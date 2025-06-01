@@ -80,9 +80,11 @@ const styles = StyleSheet.create({
   },
   username: {
     fontFamily: 'Inter-Bold',
+    fontWeight: '800',
   },
   summary: {
     fontFamily: 'Inter-Bold',
+    fontWeight: '800',
   },
   truth: {
     fontFamily: 'Inter-Regular',

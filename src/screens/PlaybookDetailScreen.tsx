@@ -128,11 +128,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // PanResponder for modern swipe up/down
   const panResponder = useRef(
     PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
         if (viewMode !== 'stack') return false;
         // Only allow vertical swipes
-        return Math.abs(gestureState.dy) > 10;
+        const isVerticalSwipe = Math.abs(gestureState.dy) > Math.abs(gestureState.dx * 2);
+        return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
       },
+      onPanResponderTerminationRequest: () => false,
       onPanResponderMove: (_, gestureState) => {
         // Don't allow swipe up on first card (to go to previous)
         if (currentCard === 0 && gestureState.dy < 0) {
@@ -146,11 +149,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           return;
         }
 
-        // Normal swipe behavior - invert the direction
-        pan.setValue(-gestureState.dy);
+        // Normal swipe behavior - follow finger movement
+        pan.setValue(gestureState.dy);
         
-        // Add subtle rotation based on swipe distance (inverted)
-        rotate.setValue(-gestureState.dy / 20);
+        // Add subtle rotation based on swipe distance
+        rotate.setValue(gestureState.dy / 20);
         
         // Scale the card slightly when swiping
         const scaleFactor = Math.max(0.96, 1 - Math.abs(gestureState.dy) / 1000);
@@ -181,13 +184,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             ]).start();
           }
         } else {
-          // Swipe down to next card (inverted direction)
-          if (gestureState.dy > 60 && currentCard < cardData.length - 1) {
-            // Animate card off screen
-            Animated.timing(pan, {
-              toValue: -SCREEN_HEIGHT,
-              duration: 300,
+          // Swipe down to next card - more sensitive
+          if (gestureState.dy > 40 && currentCard < cardData.length - 1) {
+            // Animate card off screen down
+            Animated.spring(pan, {
+              toValue: SCREEN_HEIGHT * 0.8,
               useNativeDriver: true,
+              tension: 50,
+              friction: 8,
             }).start(() => {
               setCurrentCard(currentCard + 1);
               pan.setValue(0);
@@ -196,27 +200,49 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               nextCardScale.setValue(0.95);
             });
           } 
-          // Swipe up to previous card (inverted direction)
-          else if (gestureState.dy < -60 && currentCard > 0) {
-            // Animate card off screen
-            Animated.timing(pan, {
-              toValue: SCREEN_HEIGHT,
-              duration: 300,
+          // Swipe up to previous card - more sensitive
+          else if (gestureState.dy < -40 && currentCard > 0) {
+            // Animate card off screen up
+            Animated.spring(pan, {
+              toValue: -SCREEN_HEIGHT * 0.8,
               useNativeDriver: true,
+              tension: 50,
+              friction: 8,
             }).start(() => {
               setCurrentCard(currentCard - 1);
               pan.setValue(0);
               rotate.setValue(0);
               scale.setValue(1);
+              nextCardScale.setValue(0.95);
             });
           } 
           // Return to center
           else {
             Animated.parallel([
-              Animated.spring(pan, { toValue: 0, useNativeDriver: true, friction: 6 }),
-              Animated.spring(rotate, { toValue: 0, useNativeDriver: true, friction: 6 }),
-              Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6 }),
-              Animated.spring(nextCardScale, { toValue: 0.95, useNativeDriver: true, friction: 6 }),
+              Animated.spring(pan, { 
+                toValue: 0, 
+                useNativeDriver: true, 
+                tension: 50,
+                friction: 8,
+              }),
+              Animated.spring(rotate, { 
+                toValue: 0, 
+                useNativeDriver: true, 
+                tension: 50,
+                friction: 8,
+              }),
+              Animated.spring(scale, { 
+                toValue: 1, 
+                useNativeDriver: true, 
+                tension: 50,
+                friction: 8,
+              }),
+              Animated.spring(nextCardScale, { 
+                toValue: 0.95, 
+                useNativeDriver: true, 
+                tension: 50,
+                friction: 8,
+              }),
             ]).start();
           }
         }
@@ -434,21 +460,23 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   <Ionicons name="arrow-up" size={16} color="rgba(255, 255, 255, 0.6)" />
                 </View>
               )}
-              <TouchableOpacity
-                activeOpacity={card.tappable && isActive && !expanded ? 0.8 : 1}
-                onPress={() => {
-                  if (card.tappable && isActive && !expanded) setExpanded(true);
-                }}
-                disabled={!card.tappable || !isActive || expanded}
-                style={{ flex: 1 }}
-              >
-                {/* Card content */}
-                {card.component(isExpanded)}
+              <View style={{ flex: 1 }}>
+                <TouchableOpacity
+                  activeOpacity={card.tappable && isActive && !expanded ? 0.8 : 1}
+                  onPress={() => {
+                    if (card.tappable && isActive && !expanded) setExpanded(true);
+                  }}
+                  disabled={!card.tappable || !isActive || expanded}
+                  style={{ flex: 1 }}
+                >
+                  {/* Card content */}
+                  {card.component(isExpanded)}
+                </TouchableOpacity>
                 {/* Drag handle for expanded */}
                 {isExpanded && (
                   <View style={styles.dragHandle} />
                 )}
-              </TouchableOpacity>
+              </View>
             </Animated.View>
           );
         })}
