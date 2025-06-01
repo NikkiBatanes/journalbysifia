@@ -1,27 +1,45 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { signIn } from './supabaseApi';
 
-export default function LoginScreen({ navigation }: any) {
+type LoginScreenProps = {
+  navigation: any;
+  onLogin: () => void;
+};
+
+export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
-    setLoading(true);
-    try {
-      await signIn(email, password);
-      Alert.alert('Success', 'Logged in!');
-      // TODO: Navigate to main app
-    } catch (err: any) {
-      Alert.alert('Error', err.message || 'Login failed');
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
     }
-    setLoading(false);
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { error } = await signIn(email, password);
+      if (error) throw error;
+      // Call the onLogin callback to update auth state in App.tsx
+      onLogin();
+    } catch (err: any) {
+      setError(err.message || 'Failed to sign in');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
+      
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+      
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -30,6 +48,7 @@ export default function LoginScreen({ navigation }: any) {
         autoCapitalize="none"
         keyboardType="email-address"
       />
+      
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -37,8 +56,23 @@ export default function LoginScreen({ navigation }: any) {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <Button title={loading ? 'Logging in...' : 'Login'} onPress={handleLogin} disabled={loading} />
-      <Text style={styles.link} onPress={() => navigation.navigate('Register')}>Don't have an account? Register</Text>
+      
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Signing in...' : 'Sign In'}
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.link}
+        onPress={() => navigation.navigate('Register')}
+      >
+        <Text style={styles.linkText}>Don't have an account? Sign up</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -47,26 +81,50 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    padding: 20,
     backgroundColor: '#fff',
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    marginBottom: 24,
+    marginBottom: 20,
     textAlign: 'center',
   },
   input: {
+    height: 50,
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    padding: 12,
-    marginBottom: 16,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    marginBottom: 15,
     fontSize: 16,
   },
+  button: {
+    backgroundColor: '#007AFF',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonDisabled: {
+    backgroundColor: '#A0C4FF',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   link: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  linkText: {
     color: '#007AFF',
-    marginTop: 16,
+    fontSize: 16,
+  },
+  error: {
+    color: 'red',
+    marginBottom: 15,
     textAlign: 'center',
   },
 });

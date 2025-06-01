@@ -57,18 +57,31 @@ function App(): React.JSX.Element {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>
-            <Stack.Screen 
-              name="Home" 
-              children={(props) => <HomeScreen {...props} onLogout={handleLogout} />} 
-            />
+            <Stack.Screen name="Home">
+              {(props) => <HomeScreen {...props} onLogout={handleLogout} />}
+            </Stack.Screen>
             <Stack.Screen name="PlaybookList" component={PlaybookListScreen} />
             <Stack.Screen name="UserProfile" component={UserProfileScreen} />
             <Stack.Screen name="PlaybookDetail" component={PlaybookDetailScreen} />
           </>
         ) : (
           <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
+            <Stack.Screen name="Login">
+              {(props) => (
+                <LoginScreen 
+                  {...props} 
+                  onLogin={() => setIsAuthenticated(true)} 
+                />
+              )}
+            </Stack.Screen>
+            <Stack.Screen name="Register">
+              {(props) => (
+                <RegisterScreen 
+                  {...props} 
+                  onRegister={() => setIsAuthenticated(true)} 
+                />
+              )}
+            </Stack.Screen>
           </>
         )}
       </Stack.Navigator>
