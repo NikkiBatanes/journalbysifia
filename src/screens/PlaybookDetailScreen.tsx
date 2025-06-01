@@ -263,10 +263,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 onPress={() => setViewMode('stack')}
               >
                 <View style={[styles.iconContainer, viewMode === 'stack' && styles.iconContainerActive]}>
-                  <MaterialCommunityIcons 
-                    name="layers" 
+                  <Ionicons 
+                    name="albums" 
                     size={20} 
-                    color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey} 
+                    color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey}
+                    style={{ transform: [{ rotate: '180deg' }] }} 
                   />
                 </View>
               </TouchableOpacity>
@@ -276,8 +277,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 onPress={() => setViewMode('document')}
               >
                 <View style={[styles.iconContainer, viewMode === 'document' && styles.iconContainerActive]}>
-                  <Ionicons 
-                    name="document-text-outline" 
+                  <MaterialCommunityIcons 
+                    name="view-agenda" 
                     size={20} 
                     color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey} 
                   />
@@ -443,7 +444,8 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 4,
   },
   progressText: {
     fontFamily: 'System', // Default system font

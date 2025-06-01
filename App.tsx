@@ -10,6 +10,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import * as Font from 'expo-font';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 // Define tab bar icon types
 type TabBarIcon = {
   name: string;
@@ -149,8 +150,11 @@ function App(): React.JSX.Element {
         //   'Custom-Font': require('./assets/fonts/CustomFont.ttf'),
         // });
         
-        // Load Ionicons font
-        await Ionicons.loadFont();
+        // Load icon fonts
+        await Promise.all([
+          Ionicons.loadFont(),
+          MaterialCommunityIcons.loadFont()
+        ]);
         
       } catch (error) {
         console.warn('Error loading fonts:', error);
