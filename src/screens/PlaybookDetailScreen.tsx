@@ -236,6 +236,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             </Text>
           ) : null}
           
+          {/* Creation Date */}
+          <Text style={styles.creationDate}>
+            {new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }).toUpperCase()}
+          </Text>
+          
           {/* Progress and View Toggle Row */}
           <View style={styles.progressAndViewRow}>
             <View style={styles.progressContainer}>
@@ -433,7 +443,7 @@ const styles = StyleSheet.create({
   playbookLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 2,
   },
   playbookLabel: {
     fontFamily: 'System',
@@ -443,19 +453,29 @@ const styles = StyleSheet.create({
     color: Colors.anchorBlue,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 4,
+    marginBottom: 0,
   },
   chevronIcon: {
     marginLeft: 6,
   },
   playbookTitle: {
     fontFamily: 'System',
-    fontWeight: '900',
     fontSize: 24,
-    lineHeight: 26,
+    fontWeight: '700',
     color: Colors.anchorBlue,
+    marginTop: 0,
+    marginBottom: 2,
+    lineHeight: 34,
+  },
+  creationDate: {
+    fontFamily: Fonts.regular,
+    fontSize: 10,
+    color: Colors.trustGrey,
+    marginTop: 2,
     marginBottom: 12,
-    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    opacity: 0.8,
   },
   progressAndViewRow: {
     flexDirection: 'row',
