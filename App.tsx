@@ -228,20 +228,17 @@ function App(): React.JSX.Element {
                   title: '',
                   headerBackVisible: false,
                   headerLeft: () => (
-                    <TouchableOpacity onPress={() => navigation.goBack()}>
-                      <Icon name="chevron-left" size={26} color={Colors.anchorBlue} style={{ marginLeft: 8 }} />
+                    <TouchableOpacity 
+                      onPress={() => navigation.goBack()}
+                      style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
+                    >
+                      <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
                     </TouchableOpacity>
                   ),
                   headerRight: () => (
-                    <Image
-                      source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
-                      style={{ 
-                        width: 32, 
-                        height: 32, 
-                        borderRadius: 16, 
-                        marginRight: 16 
-                      }}
-                    />
+                    <View style={{ marginRight: 16 }}>
+                      <Ionicons name="person-circle-outline" size={32} color={Colors.anchorBlue} />
+                    </View>
                   ),
                   headerStyle: {
                     backgroundColor: '#f2f5f7',
