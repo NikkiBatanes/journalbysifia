@@ -312,6 +312,20 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           const scale = 1 - (cardPosition * SCALE_DECREMENT);
           const bottomOffset = cardPosition * BOTTOM_OFFSET;
           
+          // Calculate color fade based on card position
+          const getCardColor = (position: number) => {
+            if (isActive) return Colors.anchorBlue; // Base color for active card
+            // Lighter shades for cards behind
+            switch(position) {
+              case 1: return '#3a6ea5'; // Slightly lighter
+              case 2: return '#4f7cb3'; // Lighter
+              case 3: return '#7fa3c9'; // Lightest
+              default: return Colors.anchorBlue;
+            }
+          };
+          
+          const cardColor = isActive ? Colors.anchorBlue : getCardColor(cardPosition);
+          
           const cardStyle = [
             styles.stackCard,
             {
@@ -321,10 +335,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 { translateY: isActive ? pan : bottomOffset },
                 { scale: isExpanded ? 1 : scale },
               ],
-              // Adjust shadow and opacity based on position
-              opacity: 1,
+              // Adjust shadow and elevation based on position
+              opacity: 1, // Keep cards fully opaque
               elevation: isActive ? 12 : 3 + cardPosition,
               shadowOpacity: isActive ? 0.25 : 0.15,
+              backgroundColor: cardColor, // Solid color based on position
             },
             isExpanded && styles.expandedCard,
           ];
@@ -552,7 +567,7 @@ const styles = StyleSheet.create({
     height: 450, // Fixed height to match design
     alignSelf: 'center',
     borderRadius: 28,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.anchorBlue, // Base color (will be overridden by inline style)
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 12,
