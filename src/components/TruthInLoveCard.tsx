@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
@@ -9,11 +9,12 @@ type TruthInLoveCardProps = {
   summary: string;
   username?: string;
   expanded?: boolean;
+  style?: StyleProp<ViewStyle>;
 };
 
-export default function TruthInLoveCard({ truth, summary, username = 'Nikki', expanded = false }: TruthInLoveCardProps) {
+export default function TruthInLoveCard({ truth, summary, username = 'Nikki', expanded = false, style }: TruthInLoveCardProps) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, style]}>
       <View style={styles.headingContainer}>
         <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
         <Text style={styles.heading}>Truth in Love</Text>
@@ -57,7 +58,7 @@ const styles = StyleSheet.create({
   headingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 8, // Reduced from 20 to 8
   },
   heartIcon: {
     marginRight: 8,
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     lineHeight: 38,
     color: Colors.hopeWhite,
-    marginBottom: 20,
+    marginBottom: 12, // Reduced from 20 to 12
   },
   username: {
     fontFamily: 'Inter-Bold',
@@ -89,9 +90,10 @@ const styles = StyleSheet.create({
   truth: {
     fontFamily: 'Inter-Regular',
     fontSize: 16,
+    lineHeight: 24,
     color: Colors.hopeWhite,
     opacity: 0.8,
-    marginTop: 16,
+    marginTop: 4, // Further reduced from 8 to 4
   },
   footerContainer: {
     flexDirection: 'row',

@@ -486,13 +486,26 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Document Card View
   const renderDocumentCards = () => (
-    <View style={styles.docContainer}>
-      {cardData.map((card, idx) => (
-        <View key={card.type} style={styles.docCard}>
-          {card.component(false)}
-        </View>
+    <ScrollView 
+      style={styles.docContainer}
+      contentContainerStyle={styles.docContentContainer}
+    >
+      {cardData.map((card) => (
+        card.type === 'truth' ? (
+          <TruthInLoveCard 
+            key={card.type}
+            truth={playbook.truthInLove.truth} 
+            summary={playbook.truthInLove.summary}
+            expanded={true}
+            style={[styles.docCard, styles.truthCard]}
+          />
+        ) : (
+          <View key={card.type} style={styles.docCard}>
+            {card.component(false)}
+          </View>
+        )
       ))}
-    </View>
+    </ScrollView>
   );
 
   return (
@@ -611,14 +624,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   userInputText: {
-    fontFamily: 'System', // Default system font
+    fontFamily: 'System',
     fontWeight: '400',
     fontSize: 14,
     lineHeight: 20,
     color: Colors.anchorBlue,
   },
-  
-  // View toggle styles
   viewToggleContainer: {
     flexDirection: 'row',
     backgroundColor: 'white',
@@ -668,8 +679,8 @@ const styles = StyleSheet.create({
   stackContainer: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-start', // Changed to flex-start to move cards up
-    paddingTop: 4, // Further reduced top padding
+    justifyContent: 'flex-start',
+    paddingTop: 4,
     paddingBottom: 60,
     position: 'relative',
     overflow: 'visible',
@@ -677,10 +688,10 @@ const styles = StyleSheet.create({
   stackCard: {
     position: 'absolute',
     width: SCREEN_WIDTH - 80,
-    height: 450, // Fixed height to match design
+    height: 450,
     alignSelf: 'center',
     borderRadius: 28,
-    backgroundColor: Colors.anchorBlue, // Base color (will be overridden by inline style)
+    backgroundColor: Colors.anchorBlue,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -689,7 +700,7 @@ const styles = StyleSheet.create({
     padding: 0,
     overflow: 'hidden',
     borderWidth: 0,
-    transformOrigin: 'bottom center', // Changed to bottom for fan-out effect
+    transformOrigin: 'bottom center',
   },
   expandedCard: {
     minHeight: SCREEN_HEIGHT * 0.65,
@@ -699,7 +710,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 24,
     left: 20,
-    borderRadius: 32, // Increased for more rounded corners in expanded state
+    borderRadius: 32,
   },
   dragHandle: {
     alignSelf: 'center',
@@ -712,11 +723,40 @@ const styles = StyleSheet.create({
   },
   docContainer: {
     flex: 1,
-    paddingTop: 4, // Reduced to match stack view top padding
+    backgroundColor: Colors.hopeWhite,
+  },
+  docContentContainer: {
+    paddingTop: 4, // Match stack view's paddingTop
+    paddingBottom: 60, // Match stack view's paddingBottom
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
   docCard: {
-    marginBottom: 12, // Slightly reduced for better spacing
-    marginHorizontal: 20, // Add horizontal margin to match card width
+    width: SCREEN_WIDTH - 80, // Match stack card width
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 28, // Match stack card border radius
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 }, // Match stack card shadow
+    shadowOpacity: 0.2, // Match stack card shadow
+    shadowRadius: 12, // Match stack card shadow
+    elevation: 8, // Match stack card elevation
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+  truthCard: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 28,
+    padding: 24,
+    marginTop: 0, // Remove top margin to match stack view
+    marginBottom: 16, // Keep bottom margin for spacing
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+    width: '100%', // Full width of parent
+    maxWidth: '100%', // Use percentage for valid DimensionValue
+    alignSelf: 'center',
   },
   swipeIndicator: {
     position: 'absolute',
@@ -734,7 +774,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     opacity: 0.8,
-  },
+  }
 });
 
 
