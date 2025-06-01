@@ -1,27 +1,46 @@
-import { Platform } from 'react-native';
+import { Platform, PlatformIOSStatic } from 'react-native';
 
-// Define font family names for Inter from react-native-vector-icons
+// Define font families with fallbacks
 export const Fonts = {
+  // Primary font (Inter)
   regular: 'Inter_400Regular',
   medium: 'Inter_500Medium',
   semiBold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
-  // Fallbacks for Android
-  ...Platform.select({
-    android: {
-      regular: 'sans-serif',
-      medium: 'sans-serif-medium',
-      semiBold: 'sans-serif-medium',
-      bold: 'sans-serif-bold',
-    },
-  }),
-};
+  
+  // Playfair Display font with fallbacks
+  playfair: {
+    regular: Platform.OS === 'ios' ? 'PlayfairDisplay-Regular' : 'sans-serif',
+    bold: Platform.OS === 'ios' ? 'PlayfairDisplay-Bold' : 'sans-serif-medium',
+  },
+  
+  // System fonts as fallbacks
+  system: {
+    regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    medium: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    semiBold: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    bold: Platform.OS === 'ios' ? 'System' : 'sans-serif-bold',
+  },
+} as const;
 
-// Helper to load fonts (call this in your App.tsx or root component)
-export const loadFonts = async () => {
-  // No need to manually load Inter if using react-native-vector-icons
-  // This is a placeholder in case you add custom fonts later
-  return Promise.resolve(true);
+// Font weights
+export const FontWeights = {
+  regular: '400',
+  medium: '500',
+  semiBold: '600',
+  bold: '700',
+} as const;
+
+// Helper to load fonts
+export const loadAppFonts = async () => {
+  try {
+    // Load any custom fonts here if needed in the future
+    // For now, we're using system fonts and react-native-vector-icons
+    return true;
+  } catch (error) {
+    console.warn('Error loading fonts:', error);
+    return false;
+  }
 };
 
 // Default font family for Text components

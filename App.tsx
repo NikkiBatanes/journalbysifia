@@ -4,10 +4,11 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, StatusBar, Text, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, StatusBar, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import * as Font from 'expo-font'; // Using expo-font directly
 // Define tab bar icon types
 type TabBarIcon = {
   name: string;
@@ -33,7 +34,7 @@ const TabBarIcons: TabBarIconsType = {
 import { checkAuth, signOut } from './src/services/supabaseApi';
 
 // Screens
-import SplashScreen from './src/screens/SplashScreen';
+import AppSplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import UserInputScreen from './src/screens/UserInputScreen';
@@ -136,45 +137,78 @@ function AuthStack({ onLogin }: { onLogin: () => void }) {
 
 // Main App Component
 function App(): React.JSX.Element {
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  // Check if user is logged in on app start
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  // Load custom fonts
   useEffect(() => {
-    const checkUserLoggedIn = async () => {
+    let isMounted = true;
+    
+    const loadFonts = async () => {
       try {
-        const isLoggedIn = await checkAuth();
-        console.log('User is logged in:', isLoggedIn);
-        setIsAuthenticated(isLoggedIn);
+        // Try to load the fonts
+        await Font.loadAsync({
+          // Using system fonts as fallbacks
+          'PlayfairDisplay-Regular': require('react-native-vector-icons/Fonts/Feather.ttf'),
+          'PlayfairDisplay-Bold': require('react-native-vector-icons/Fonts/Feather.ttf'),
+        });
       } catch (error) {
-        console.error('Auth check error:', error);
-        setIsAuthenticated(false);
+        console.warn('Error loading custom fonts, using system fonts:', error);
       } finally {
-        setCheckingAuth(false);
+        if (isMounted) {
+          setFontsLoaded(true);
+        }
       }
     };
 
-    checkUserLoggedIn();
+    loadFonts();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array means this runs once on mount
+
+  // Check if user is logged in on app start
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const isLoggedIn = await checkAuth();
+        setIsAuthenticated(!!isLoggedIn);
+      } catch (error) {
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkUser();
   }, []);
 
   // Handle successful login
   const handleLogin = useCallback(() => {
-    console.log('Login successful, updating auth state');
     setIsAuthenticated(true);
   }, []);
 
   // Handle logout
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
-      console.log('Logging out...');
       await signOut();
       setIsAuthenticated(false);
     } catch (error) {
       console.error('Logout error:', error);
     }
-  };
+  }, []);
 
-  if (checkingAuth) {
-    return <SplashScreen />;
+  // Combine loading states
+  const isAppReady = fontsLoaded && !isLoading;
+
+  // Show loading state while app is getting ready
+  if (!isAppReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.hopeWhite }}>
+        <ActivityIndicator size="large" color={Colors.anchorBlue} />
+      </View>
+    );
   }
 
   return (
@@ -219,7 +253,7 @@ function App(): React.JSX.Element {
             />
           </>
         ) : (
-          <Stack.Screen name="Auth">
+          <Stack.Screen name="AuthStack">
             {() => <AuthStack onLogin={handleLogin} />}
           </Stack.Screen>
         )}

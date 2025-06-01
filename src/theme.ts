@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const Colors = {
   anchorBlue: '#1A3C6D',
   hopeWhite: '#F5F6F5',
@@ -8,8 +10,21 @@ export const Colors = {
   darkBackground: '#1C2526',
 };
 
-export const Fonts = {
-  regular: 'Inter-Regular',
-  bold: 'Inter-Bold',
-  semiBold: 'Inter-SemiBold',
-};
+// Re-export fonts from fonts.ts
+export * from './theme/fonts';
+
+// Export default font family
+export const defaultFontFamily = {
+  regular: 'System',
+  medium: 'System',
+  semiBold: 'System',
+  bold: 'System',
+  ...Platform.select({
+    android: {
+      regular: 'sans-serif',
+      medium: 'sans-serif-medium',
+      semiBold: 'sans-serif-medium',
+      bold: 'sans-serif-bold',
+    },
+  }),
+} as const;

@@ -1,24 +1,26 @@
-
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
-  View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
   PanResponder,
   Dimensions,
+  Text,
+  View,
   Image,
   SafeAreaView,
+  ActivityIndicator,
+  ScrollView,
+  Platform
 } from 'react-native';
-import { Colors, Fonts } from '../theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Colors, Fonts, FontWeights } from '../theme';
 import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
 import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Playbook } from '../interfaces/playbook';
 import { getMockPlaybook } from '../mocks/playbookMocks';
 
@@ -152,6 +154,30 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // State for toggling user input card
   const [showUserInput, setShowUserInput] = useState(false);
+  
+  // Title style with enhanced boldness
+  const titleStyle = [
+    styles.playbookTitle,
+    {
+      fontSize: 26, // Slightly larger for better presence
+      color: Colors.anchorBlue,
+      ...Platform.select({
+        ios: {
+          fontFamily: 'Georgia-Bold', // Direct bold variant for iOS
+          fontWeight: '900', // Maximum boldness
+        },
+        android: {
+          fontFamily: 'serif',
+          fontWeight: 'bold',
+          includeFontPadding: false, // Remove extra padding
+        },
+      }),
+      textShadowColor: 'rgba(0, 0, 0, 0.1)', // Subtle shadow for depth
+      textShadowOffset: { width: 0.5, height: 0.5 },
+      textShadowRadius: 1,
+      letterSpacing: 0.3 // Slight letter spacing for better readability
+    }
+  ];
 
   // Header with safe area for status bar
   const renderHeader = () => (
@@ -204,9 +230,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           
           {/* Title with line break */}
           <Text style={styles.playbookTitle}>
-            <Text>{firstLine}</Text>
-            {secondLine ? `\n${secondLine}` : ''}
+            {firstLine}
           </Text>
+          {secondLine ? (
+            <Text style={styles.playbookTitle}>
+              {secondLine}
+            </Text>
+          ) : null}
           
           {/* Progress and View Toggle Row */}
           <View style={styles.progressAndViewRow}>
@@ -368,21 +398,25 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   playbookLabel: {
-    fontFamily: Fonts.semiBold,
+    fontFamily: 'System',
+    fontWeight: '600',
     fontSize: 12,
-    letterSpacing: 1,
+    lineHeight: 16,
     color: Colors.anchorBlue,
     textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 4,
   },
   chevronIcon: {
     marginLeft: 6,
   },
   playbookTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 22,
-    lineHeight: 28,
+    fontFamily: 'PlayfairDisplay-Bold',
+    fontSize: 24,
+    lineHeight: 32,
     color: Colors.anchorBlue,
     marginBottom: 12,
+    letterSpacing: 0.3,
   },
   progressAndViewRow: {
     flexDirection: 'row',
@@ -411,9 +445,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
   },
   progressText: {
-    fontFamily: Fonts.semiBold,
+    fontFamily: 'System', // Default system font
+    fontWeight: '500',
     fontSize: 12,
-    color: Colors.trustGrey,
+    lineHeight: 16,
+    color: Colors.anchorBlue,
+    marginRight: 4,
   },
   
   // User input card
@@ -425,7 +462,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   userInputText: {
-    fontFamily: Fonts.regular,
+    fontFamily: 'System', // Default system font
+    fontWeight: '400',
     fontSize: 14,
     lineHeight: 20,
     color: Colors.anchorBlue,
@@ -464,7 +502,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
   viewToggleText: {
-    fontFamily: Fonts.semiBold, // Changed from medium to semiBold
+    fontFamily: 'System',
+    fontWeight: '600',
     fontSize: 13,
     color: Colors.trustGrey,
     marginLeft: 6,
