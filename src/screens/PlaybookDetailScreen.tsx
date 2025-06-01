@@ -214,9 +214,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           >
             <Text style={styles.playbookLabel}>PLAYBOOK</Text>
             <Ionicons 
-              name="chevron-back" 
-              size={28} 
-              color={Colors.trustGrey}
+              name={showUserInput ? 'chevron-up' : 'chevron-down'}
+              size={15} 
+              color={Colors.anchorBlue}
+              style={{ marginLeft: 4 }}
             />
           </TouchableOpacity>
 
@@ -232,7 +233,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             {firstLine}
           </Text>
           {secondLine ? (
-            <Text style={styles.playbookTitle}>
+            <Text style={[styles.playbookTitle, { marginTop: -8 }]}>
               {secondLine}
             </Text>
           ) : null}
@@ -410,9 +411,10 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   playbookTitle: {
-    fontFamily: 'PlayfairDisplay-Bold',
+    fontFamily: 'System',
+    fontWeight: '900',
     fontSize: 24,
-    lineHeight: 32,
+    lineHeight: 26,
     color: Colors.anchorBlue,
     marginBottom: 12,
     letterSpacing: 0.3,
