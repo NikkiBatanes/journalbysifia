@@ -401,11 +401,11 @@ const styles = StyleSheet.create({
   playbookInfoContainer: {
     backgroundColor: '#f2f5f7',
     paddingHorizontal: 20,
-    paddingTop: 14, // Further reduced top padding
-    paddingBottom: 12, // Reduced bottom padding to bring cards up
+    paddingTop: 16, // Increased top padding for better spacing
+    paddingBottom: 12,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    marginTop: -10, // Pull up slightly
+    marginTop: 0, // Reset negative margin
   },
   playbookHeader: {
     marginBottom: 8,
