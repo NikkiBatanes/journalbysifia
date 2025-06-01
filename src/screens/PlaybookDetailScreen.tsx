@@ -214,10 +214,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           >
             <Text style={styles.playbookLabel}>PLAYBOOK</Text>
             <Ionicons 
-              name={showUserInput ? "chevron-up" : "chevron-down"} 
-              size={18} 
-              color={Colors.anchorBlue} 
-              style={styles.chevronIcon} 
+              name="chevron-back" 
+              size={28} 
+              color={Colors.trustGrey}
             />
           </TouchableOpacity>
 
@@ -263,8 +262,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 onPress={() => setViewMode('stack')}
               >
                 <View style={[styles.iconContainer, viewMode === 'stack' && styles.iconContainerActive]}>
-                  <Ionicons 
-                    name="layers-outline" 
+                  <MaterialCommunityIcons 
+                    name="layers" 
                     size={20} 
                     color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey} 
                   />

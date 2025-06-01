@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import Icon from 'react-native-vector-icons/Ionicons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts } from '../theme';
 import { mockPlaybooks } from '../mocks/playbookMocks';
@@ -90,7 +90,7 @@ export default function PlaybookListScreen() {
         </View>
         
         <View style={styles.arrowContainer}>
-          <Icon name="chevron-forward" size={20} color={Colors.trustGrey} />
+          <Ionicons name="chevron-forward" size={20} color={Colors.trustGrey} />
         </View>
       </TouchableOpacity>
     );

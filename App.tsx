@@ -8,7 +8,8 @@ import { View, StyleSheet, StatusBar, Text, Image, TouchableOpacity, ActivityInd
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import * as Font from 'expo-font'; // Using expo-font directly
+import * as Font from 'expo-font';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 // Define tab bar icon types
 type TabBarIcon = {
   name: string;
@@ -25,11 +26,14 @@ import { Colors } from './src/theme';
 // Import vector icons
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-// Tab bar icons using text as fallback
-const TabBarIcons: TabBarIconsType = {
-  Home: { name: '📝', focused: '📝' },
-  Playbooks: { name: '📚', focused: '📚' },
-  Profile: { name: '👤', focused: '👤' }
+// Define the icon names type
+type IconName = 'home-outline' | 'home' | 'book-outline' | 'book' | 'person-outline' | 'person';
+
+// Tab bar icons using Ionicons
+const TabBarIcons: Record<string, { name: IconName; focused: IconName }> = {
+  Home: { name: 'home-outline', focused: 'home' },
+  Playbooks: { name: 'book-outline', focused: 'book' },
+  Profile: { name: 'person-outline', focused: 'person' }
 };
 import { checkAuth, signOut } from './src/services/supabaseApi';
 
@@ -53,30 +57,22 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let icon = TabBarIcons.Home;
-          
-          if (route.name === 'Home') {
-            icon = TabBarIcons.Home;
-          } else if (route.name === 'Playbooks') {
-            icon = TabBarIcons.Playbooks;
-          } else if (route.name === 'Profile') {
-            icon = TabBarIcons.Profile;
-          }
-          
-          const iconText = focused ? icon.focused : icon.name;
-          return <Text style={{ fontSize: size, color }}>{iconText}</Text>;
+        tabBarIcon: ({ color, size, focused }) => {
+          const iconName = focused 
+            ? TabBarIcons[route.name as keyof typeof TabBarIcons].focused 
+            : TabBarIcons[route.name as keyof typeof TabBarIcons].name;
+          return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: Colors.anchorBlue,
+        tabBarInactiveTintColor: Colors.trustGrey,
         tabBarStyle: {
-          paddingTop: 5,
+          paddingTop: 8,
+          paddingBottom: 8,
           height: 60,
-          paddingBottom: 5,
         },
         tabBarLabelStyle: {
           fontSize: 12,
-          marginBottom: 5,
+          marginBottom: 4,
         },
         headerShown: false,
       })}
@@ -141,20 +137,23 @@ function App(): React.JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
-  // Load custom fonts
+  // Load custom fonts and icon fonts
   useEffect(() => {
     let isMounted = true;
     
     const loadFonts = async () => {
       try {
-        // Try to load the fonts
-        await Font.loadAsync({
-          // Using system fonts as fallbacks
-          'PlayfairDisplay-Regular': require('react-native-vector-icons/Fonts/Feather.ttf'),
-          'PlayfairDisplay-Bold': require('react-native-vector-icons/Fonts/Feather.ttf'),
-        });
+        // Load any custom fonts here if needed
+        // Example:
+        // await Font.loadAsync({
+        //   'Custom-Font': require('./assets/fonts/CustomFont.ttf'),
+        // });
+        
+        // Load Ionicons font
+        await Ionicons.loadFont();
+        
       } catch (error) {
-        console.warn('Error loading custom fonts, using system fonts:', error);
+        console.warn('Error loading fonts:', error);
       } finally {
         if (isMounted) {
           setFontsLoaded(true);
@@ -167,7 +166,7 @@ function App(): React.JSX.Element {
     return () => {
       isMounted = false;
     };
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
   // Check if user is logged in on app start
   useEffect(() => {
