@@ -1,21 +1,27 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { signIn } from './supabaseApi';
+import { signUp } from '../services/supabaseApi';
 
-type LoginScreenProps = {
+type RegisterScreenProps = {
   navigation: any;
-  onLogin: () => void;
+  onRegister: () => void;
 };
 
-export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
+export default function RegisterScreen({ navigation, onRegister }: RegisterScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    if (!email || !password) {
+  const handleRegister = async () => {
+    if (!email || !password || !confirmPassword) {
       setError('Please fill in all fields');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -23,12 +29,12 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
     setError('');
 
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signUp(email, password);
       if (error) throw error;
-      // Call the onLogin callback to update auth state in App.tsx
-      onLogin();
+      // Call the onRegister callback to update auth state in App.tsx
+      onRegister();
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -36,7 +42,7 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Text style={styles.title}>Create Account</Text>
       
       {error ? <Text style={styles.error}>{error}</Text> : null}
       
@@ -55,23 +61,39 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        autoComplete="off"
+        autoCorrect={false}
+        autoCapitalize="none"
+        textContentType="oneTimeCode"
+      />
+      
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+        autoComplete="off"
+        autoCorrect={false}
+        autoCapitalize="none"
+        textContentType="oneTimeCode"
       />
       
       <TouchableOpacity 
         style={[styles.button, loading && styles.buttonDisabled]} 
-        onPress={handleLogin}
+        onPress={handleRegister}
         disabled={loading}
       >
         <Text style={styles.buttonText}>
-          {loading ? 'Signing in...' : 'Sign In'}
+          {loading ? 'Creating Account...' : 'Sign Up'}
         </Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
         style={styles.link}
-        onPress={() => navigation.navigate('Register')}
+        onPress={() => navigation.navigate('Login')}
       >
-        <Text style={styles.linkText}>Don't have an account? Sign up</Text>
+        <Text style={styles.linkText}>Already have an account? Sign in</Text>
       </TouchableOpacity>
     </View>
   );

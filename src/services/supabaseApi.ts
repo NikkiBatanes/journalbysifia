@@ -113,25 +113,91 @@ export async function deleteRow(table: string, id: string) {
 // Sign in with email/password
 export async function signIn(email: string, password: string) {
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await response.json();
+    console.log('Attempting to sign in with:', email);
+    console.log('Supabase URL:', SUPABASE_URL);
+    console.log('Supabase Key:', SUPABASE_ANON_KEY ? 'Key exists' : 'Key is missing');
+    
+    // First, let's try to sign in with the password grant type
+    let response;
+    let data;
+    let responseText;
+    
+    try {
+      response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ 
+          email, 
+          password,
+          client_id: SUPABASE_ANON_KEY,
+          grant_type: 'password'
+        }),
+      });
+      
+      responseText = await response.text();
+      console.log('Raw response:', responseText);
+      
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', responseText);
+        throw new Error('Invalid server response format');
+      }
+      
+      // If we get a 400 error, it might be because the user needs to confirm their email
+      if (response.status === 400 && data.msg?.includes('Email not confirmed')) {
+        throw new Error('Please check your email to confirm your account before signing in.');
+      }
+      
+      // If we get a 401 error, the credentials are invalid
+      if (response.status === 401) {
+        throw new Error('Invalid login credentials. Please check your email and password.');
+      }
+      
+      // If we get any other error status, throw with the error message
+      if (!response.ok) {
+        throw new Error(data.error_description || data.message || 'Authentication failed');
+      }
+      
+    } catch (error: any) {
+      console.error('Sign in error details:', {
+        status: response?.status,
+        statusText: response?.statusText,
+        error: error?.message || 'Unknown error',
+        response: data
+      });
+      throw error; // Re-throw to be caught by the outer catch
+    }
+    
+    console.log('Sign in response status:', response.status);
+    console.log('Sign in response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('Sign in response data:', data);
+    
     if (response.ok) {
+      console.log('Sign in successful, storing session');
       await storeSession(data);
       return { data, error: null };
     } else {
-      return { data: null, error: data };
+      console.error('Sign in failed with status:', response.status);
+      console.error('Error details:', data);
+      
+      // Return a more detailed error object
+      return { 
+        data: null, 
+        error: {
+          ...data,
+          status: response.status,
+          statusText: response.statusText,
+          message: data?.error_description || data?.message || 'Authentication failed'
+        } 
+      };
     }
   } catch (error) {
     console.error('Sign in error:', error);
-    return { data: null, error: { message: 'Network error' } };
+    return { data: null, error: { message: 'Network error: ' + (error as Error).message } };
   }
 }
 

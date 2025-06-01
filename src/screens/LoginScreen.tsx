@@ -1,40 +1,65 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { signUp } from './supabaseApi';
+import { signIn } from '../services/supabaseApi';
 
-type RegisterScreenProps = {
+type LoginScreenProps = {
   navigation: any;
-  onRegister: () => void;
+  onLogin: () => void;
 };
 
-export default function RegisterScreen({ navigation, onRegister }: RegisterScreenProps) {
+export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
+  const handleLogin = async () => {
+    if (!email || !password) {
       setError('Please fill in all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
       return;
     }
 
     setLoading(true);
     setError('');
+    console.log('Login attempt started for:', email);
 
     try {
-      const { error } = await signUp(email, password);
-      if (error) throw error;
-      // Call the onRegister callback to update auth state in App.tsx
-      onRegister();
+      const { error } = await signIn(email, password);
+      console.log('Login response error:', error);
+      
+      if (error) {
+        // Handle different types of errors
+        if (error.error_description) {
+          throw new Error(error.error_description);
+        } else if (error.message) {
+          throw new Error(error.message);
+        } else if (typeof error === 'string') {
+          throw new Error(error);
+        } else {
+          throw new Error('Failed to sign in. Please try again.');
+        }
+      }
+      
+      // Call the onLogin callback to update auth state in App.tsx
+      console.log('Login successful, calling onLogin');
+      onLogin();
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
+      console.error('Login error:', err);
+      
+      // Handle specific error cases
+      let errorMessage = 'Failed to sign in. Please check your credentials and try again.';
+      
+      if (err.message.includes('Email not confirmed') || 
+          err.message.includes('confirm your account') ||
+          err.message.includes('email not verified')) {
+        errorMessage = 'Please check your email to confirm your account before signing in. If you didn\'t receive an email, check your spam folder or request a new confirmation email.';
+      } else if (err.message.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -42,7 +67,7 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
+      <Text style={styles.title}>Login</Text>
       
       {error ? <Text style={styles.error}>{error}</Text> : null}
       
@@ -61,31 +86,27 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
+        autoComplete="off"
+        autoCorrect={false}
+        autoCapitalize="none"
+        textContentType="oneTimeCode"
       />
       
       <TouchableOpacity 
         style={[styles.button, loading && styles.buttonDisabled]} 
-        onPress={handleRegister}
+        onPress={handleLogin}
         disabled={loading}
       >
         <Text style={styles.buttonText}>
-          {loading ? 'Creating Account...' : 'Sign Up'}
+          {loading ? 'Signing in...' : 'Sign In'}
         </Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
         style={styles.link}
-        onPress={() => navigation.navigate('Login')}
+        onPress={() => navigation.navigate('Register')}
       >
-        <Text style={styles.linkText}>Already have an account? Sign in</Text>
+        <Text style={styles.linkText}>Don't have an account? Sign up</Text>
       </TouchableOpacity>
     </View>
   );
