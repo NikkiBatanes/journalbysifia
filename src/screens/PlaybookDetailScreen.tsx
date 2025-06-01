@@ -115,8 +115,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Animation refs
   const pan = useRef(new Animated.Value(0)).current;
+  const rotate = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(1)).current;
+  const nextCardScale = useRef(new Animated.Value(0.95)).current;
 
-  // PanResponder for swipe up/down
+  // Derived animations
+  const rotateInterpolate = rotate.interpolate({
+    inputRange: [-100, 0, 100],
+    outputRange: ['2deg', '0deg', '-2deg'],
+  });
+
+  // PanResponder for modern swipe up/down
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -125,27 +134,90 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         return Math.abs(gestureState.dy) > 10;
       },
       onPanResponderMove: (_, gestureState) => {
-        pan.setValue(gestureState.dy);
+        // Don't allow swipe up on first card (to go to previous)
+        if (currentCard === 0 && gestureState.dy < 0) {
+          pan.setValue(gestureState.dy / 3); // Reduced movement to indicate restriction
+          return;
+        }
+        
+        // Don't allow swipe down on last card (to go to next)
+        if (currentCard === cardData.length - 1 && gestureState.dy > 0) {
+          pan.setValue(gestureState.dy / 3); // Reduced movement to indicate restriction
+          return;
+        }
+
+        // Normal swipe behavior - invert the direction
+        pan.setValue(-gestureState.dy);
+        
+        // Add subtle rotation based on swipe distance (inverted)
+        rotate.setValue(-gestureState.dy / 20);
+        
+        // Scale the card slightly when swiping
+        const scaleFactor = Math.max(0.96, 1 - Math.abs(gestureState.dy) / 1000);
+        scale.setValue(scaleFactor);
+        
+        // Scale up the next card as current card moves
+        if (gestureState.dy > 0 && currentCard < cardData.length - 1) {
+          const nextScaleFactor = Math.min(0.98, 0.95 + Math.abs(gestureState.dy) / 500);
+          nextCardScale.setValue(nextScaleFactor);
+        }
       },
       onPanResponderRelease: (_, gestureState) => {
         if (expanded) {
           // Only allow swipe down to collapse
           if (gestureState.dy > 60) {
             setExpanded(false);
-            Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
+            Animated.parallel([
+              Animated.spring(pan, { toValue: 0, useNativeDriver: true, friction: 6 }),
+              Animated.spring(rotate, { toValue: 0, useNativeDriver: true, friction: 6 }),
+              Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6 }),
+            ]).start();
           } else {
-            Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
+            // Return to center
+            Animated.parallel([
+              Animated.spring(pan, { toValue: 0, useNativeDriver: true, friction: 6 }),
+              Animated.spring(rotate, { toValue: 0, useNativeDriver: true, friction: 6 }),
+              Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6 }),
+            ]).start();
           }
         } else {
-          // Only allow swipe up to next card
-          if (gestureState.dy < -60 && currentCard < cardData.length - 1) {
-            setCurrentCard(currentCard + 1);
-            Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
-          } else if (gestureState.dy > 60 && currentCard > 0) {
-            setCurrentCard(currentCard - 1);
-            Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
-          } else {
-            Animated.spring(pan, { toValue: 0, useNativeDriver: true }).start();
+          // Swipe down to next card (inverted direction)
+          if (gestureState.dy > 60 && currentCard < cardData.length - 1) {
+            // Animate card off screen
+            Animated.timing(pan, {
+              toValue: -SCREEN_HEIGHT,
+              duration: 300,
+              useNativeDriver: true,
+            }).start(() => {
+              setCurrentCard(currentCard + 1);
+              pan.setValue(0);
+              rotate.setValue(0);
+              scale.setValue(1);
+              nextCardScale.setValue(0.95);
+            });
+          } 
+          // Swipe up to previous card (inverted direction)
+          else if (gestureState.dy < -60 && currentCard > 0) {
+            // Animate card off screen
+            Animated.timing(pan, {
+              toValue: SCREEN_HEIGHT,
+              duration: 300,
+              useNativeDriver: true,
+            }).start(() => {
+              setCurrentCard(currentCard - 1);
+              pan.setValue(0);
+              rotate.setValue(0);
+              scale.setValue(1);
+            });
+          } 
+          // Return to center
+          else {
+            Animated.parallel([
+              Animated.spring(pan, { toValue: 0, useNativeDriver: true, friction: 6 }),
+              Animated.spring(rotate, { toValue: 0, useNativeDriver: true, friction: 6 }),
+              Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6 }),
+              Animated.spring(nextCardScale, { toValue: 0.95, useNativeDriver: true, friction: 6 }),
+            ]).start();
           }
         }
       },
@@ -332,9 +404,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             {
               zIndex,
               // Position cards to create bottom fan-out effect
-              transform: [
-                { translateY: isActive ? pan : bottomOffset },
-                { scale: isExpanded ? 1 : scale },
+              transform: isActive ? [
+                { translateY: pan },
+                { rotate: rotateInterpolate },
+                { scale: scale },
+              ] : [
+                { translateY: bottomOffset },
+                { scale: cardPosition === 1 ? nextCardScale : 1 - (cardPosition * SCALE_DECREMENT) },
               ],
               // Adjust shadow and elevation based on position
               opacity: 1, // Keep cards fully opaque
@@ -350,6 +426,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               style={cardStyle}
               {...(isActive ? panResponder.panHandlers : {})}
             >
+              {isActive && currentCard === 0 && (
+                <View style={styles.swipeIndicator} />
+              )}
+              {isActive && currentCard === cardData.length - 1 && (
+                <View style={styles.swipeIndicator}>
+                  <Ionicons name="arrow-up" size={16} color="rgba(255, 255, 255, 0.6)" />
+                </View>
+              )}
               <TouchableOpacity
                 activeOpacity={card.tappable && isActive && !expanded ? 0.8 : 1}
                 onPress={() => {
@@ -605,6 +689,23 @@ const styles = StyleSheet.create({
   docCard: {
     marginBottom: 12, // Slightly reduced for better spacing
     marginHorizontal: 20, // Add horizontal margin to match card width
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    zIndex: 10,
+  },
+  swipeIndicatorText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    opacity: 0.8,
   },
 });
 
