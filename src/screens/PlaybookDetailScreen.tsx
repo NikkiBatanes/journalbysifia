@@ -369,6 +369,7 @@ const styles = StyleSheet.create({
   },
   headerSafeArea: {
     backgroundColor: '#f2f5f7',
+    marginBottom: -10, // Reduce space below header
   },
   headerContainer: {
     height: 0, // No visible header, just safe area
@@ -384,10 +385,11 @@ const styles = StyleSheet.create({
   playbookInfoContainer: {
     backgroundColor: '#f2f5f7',
     paddingHorizontal: 20,
-    paddingTop: 24, // Increased top padding for better spacing
+    paddingTop: 22, // Increased top padding
     paddingBottom: 16,
-    borderTopLeftRadius: 20, // Added top radius since we removed the header
+    borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    marginTop: -10, // Pull up slightly
   },
   playbookHeader: {
     marginBottom: 8,
