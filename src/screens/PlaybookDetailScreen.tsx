@@ -150,59 +150,115 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     })
   ).current;
 
-  // Header
+  // State for toggling user input card
+  const [showUserInput, setShowUserInput] = useState(false);
+
+  // Header with safe area for status bar
   const renderHeader = () => (
     <SafeAreaView style={styles.headerSafeArea}>
-      <View style={styles.headerContainer}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.anchorBlue} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }} />
-        <Image
-          source={{ uri: playbook.profileImage }}
-          style={styles.profilePic}
-        />
-      </View>
+      <View style={styles.headerContainer} />
     </SafeAreaView>
   );
-
-  // Title and progress
-  const renderTitleBar = () => (
-    <View style={styles.titleBarContainer}>
-      <TouchableOpacity style={styles.playbookLabel}>
-        <Text style={styles.playbookText}>Playbook</Text>
-        <Ionicons name="chevron-down" size={18} color={Colors.faithGold} style={{ marginLeft: 2 }} />
-      </TouchableOpacity>
-      <Text style={styles.screenTitle}>{playbook.title}</Text>
-      <View style={styles.progressRow}>
-        <View style={styles.progressBarBg}>
-          <View
-            style={[
-              styles.progressBarFill,
-              { width: `${(playbook.progress / playbook.totalTasks) * 100}%` },
-            ]}
-          />
-        </View>
-        <Text style={styles.progressText}>
-          {playbook.progress}/{playbook.totalTasks} Tasks
-        </Text>
-      </View>
-      <View style={styles.viewIconRow}>
-        <TouchableOpacity
-          style={[styles.iconCircle, viewMode === 'stack' && styles.iconActive]}
-          onPress={() => setViewMode('stack')}
-        >
-          <Ionicons name="layers" size={22} color={viewMode === 'stack' ? Colors.anchorBlue : Colors.trustGrey} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.iconCircle, viewMode === 'document' && styles.iconActive]}
-          onPress={() => setViewMode('document')}
-        >
-          <Ionicons name="document-text" size={22} color={viewMode === 'document' ? Colors.anchorBlue : Colors.trustGrey} />
-        </TouchableOpacity>
+  
+  // Main content container with proper spacing
+  const renderContent = () => (
+    <View style={styles.contentContainer}>
+      {renderPlaybookInfo()}
+      <View style={styles.mainContainer}>
+        {viewMode === 'stack' ? renderStackCards() : renderDocumentCards()}
       </View>
     </View>
   );
+
+  // Playbook info section with collapsible user input
+  const renderPlaybookInfo = () => {
+    // Split title at first colon for two-line display
+    const titleParts = playbook.title.split(':');
+    const firstLine = titleParts[0] + (titleParts.length > 1 ? ':' : '');
+    const secondLine = titleParts.length > 1 ? titleParts.slice(1).join(':').trim() : '';
+    
+    return (
+      <View style={styles.playbookInfoContainer}>
+        {/* Playbook header with toggle */}
+        <View style={styles.playbookHeader}>
+          <TouchableOpacity 
+            style={styles.playbookLabelRow}
+            onPress={() => setShowUserInput(!showUserInput)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.playbookLabel}>PLAYBOOK</Text>
+            <Ionicons 
+              name={showUserInput ? "chevron-up" : "chevron-down"} 
+              size={18} 
+              color={Colors.anchorBlue} 
+              style={styles.chevronIcon} 
+            />
+          </TouchableOpacity>
+
+          {/* User Input Card - Collapsible */}
+          {showUserInput && playbook.userInput && (
+            <View style={styles.userInputCard}>
+              <Text style={styles.userInputText}>{playbook.userInput}</Text>
+            </View>
+          )}
+          
+          {/* Title with line break */}
+          <Text style={styles.playbookTitle}>
+            <Text>{firstLine}</Text>
+            {secondLine ? `\n${secondLine}` : ''}
+          </Text>
+          
+          {/* Progress and View Toggle Row */}
+          <View style={styles.progressAndViewRow}>
+            <View style={styles.progressContainer}>
+              <View style={styles.progressRow}>
+                <View style={styles.progressBarBg}>
+                  <View 
+                    style={[
+                      styles.progressBarFill, 
+                      { width: `${(playbook.progress / playbook.totalTasks) * 100}%` }
+                    ]} 
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {playbook.progress}/{playbook.totalTasks} Tasks
+                </Text>
+              </View>
+            </View>
+            
+            {/* View Toggle Icons */}
+            <View style={styles.viewToggleContainer}>
+              <TouchableOpacity
+                style={styles.viewToggle}
+                onPress={() => setViewMode('stack')}
+              >
+                <View style={[styles.iconContainer, viewMode === 'stack' && styles.iconContainerActive]}>
+                  <Ionicons 
+                    name="layers-outline" 
+                    size={20} 
+                    color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey} 
+                  />
+                </View>
+              </TouchableOpacity>
+              <View style={styles.viewToggleDivider} />
+              <TouchableOpacity
+                style={styles.viewToggle}
+                onPress={() => setViewMode('document')}
+              >
+                <View style={[styles.iconContainer, viewMode === 'document' && styles.iconContainerActive]}>
+                  <Ionicons 
+                    name="document-text-outline" 
+                    size={20} 
+                    color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey} 
+                  />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   // Stack Card View
   const renderStackCards = () => {
@@ -265,102 +321,156 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: Colors.hopeWhite }}>
+    <View style={styles.container}>
       {renderHeader()}
-      {renderTitleBar()}
-      <View style={styles.mainContainer}>
-        {viewMode === 'stack' ? renderStackCards() : renderDocumentCards()}
-      </View>
+      {renderContent()}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+  },
+  contentContainer: {
+    flex: 1,
+  },
+  headerSafeArea: {
+    backgroundColor: '#f2f5f7',
+  },
+  headerContainer: {
+    height: 0, // No visible header, just safe area
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.hopeWhite,
   },
-  headerSafeArea: {
-    backgroundColor: Colors.hopeWhite,
+  
+  // Playbook info styles
+  playbookInfoContainer: {
+    backgroundColor: '#f2f5f7',
+    paddingHorizontal: 20,
+    paddingTop: 24, // Increased top padding for better spacing
+    paddingBottom: 16,
+    borderTopLeftRadius: 20, // Added top radius since we removed the header
+    borderTopRightRadius: 20,
   },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 18,
-    paddingTop: 10,
-    paddingBottom: 4,
+  playbookHeader: {
+    marginBottom: 8,
   },
-  profilePic: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 2,
-    borderColor: Colors.anchorBlue,
-  },
-  titleBarContainer: {
-    paddingHorizontal: 22,
-    marginBottom: 6,
-  },
-  playbookLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginBottom: 2,
-  },
-  playbookText: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 14,
-    color: Colors.trustGrey,
-    marginRight: 2,
-  },
-  screenTitle: {
-    fontFamily: Fonts.bold,
-    fontSize: 22,
-    color: Colors.anchorBlue,
-    marginBottom: 6,
-    flexWrap: 'wrap',
-  },
-  progressRow: {
+
+  playbookLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
+  playbookLabel: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 12,
+    letterSpacing: 1,
+    color: Colors.anchorBlue,
+    textTransform: 'uppercase',
+  },
+  chevronIcon: {
+    marginLeft: 6,
+  },
+  playbookTitle: {
+    fontFamily: Fonts.bold,
+    fontSize: 22,
+    lineHeight: 28,
+    color: Colors.anchorBlue,
+    marginBottom: 12,
+  },
+  progressAndViewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24, // Increased margin bottom for better spacing
+  },
+  progressContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   progressBarBg: {
     flex: 1,
-    height: 12,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 8,
+    height: 8,
+    backgroundColor: 'rgba(26, 60, 109, 0.1)',
+    borderRadius: 4,
     overflow: 'hidden',
-    marginRight: 10,
+    marginRight: 8,
   },
   progressBarFill: {
-    height: 12,
-    backgroundColor: Colors.growthGreen,
-    borderRadius: 8,
+    height: '100%',
+    backgroundColor: Colors.anchorBlue,
   },
   progressText: {
     fontFamily: Fonts.semiBold,
+    fontSize: 12,
+    color: Colors.trustGrey,
+  },
+  
+  // User input card
+  userInputCard: {
+    backgroundColor: 'rgba(26, 60, 109, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 6,
+    marginBottom: 12,
+  },
+  userInputText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.anchorBlue,
+  },
+  
+  // View toggle styles
+  viewToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    height: 36,
+    alignItems: 'center',
+  },
+  viewToggle: {
+    padding: 4,
+  },
+  iconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  iconContainerActive: {
+    backgroundColor: Colors.faithGold,
+  },
+  viewToggleDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  viewToggleText: {
+    fontFamily: Fonts.semiBold, // Changed from medium to semiBold
     fontSize: 13,
     color: Colors.trustGrey,
-    marginRight: 10,
+    marginLeft: 6,
   },
-  viewIconRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  iconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#f0f4fa',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 4,
-  },
-  iconActive: {
-    backgroundColor: Colors.faithGold,
+  viewToggleTextActive: {
+    color: Colors.anchorBlue,
   },
   mainContainer: {
     flex: 1,
