@@ -33,6 +33,7 @@
     "react-native-safe-area-context": "^5.4.1",
     "react-native-screens": "^4.11.1",
     "react-native-url-polyfill": "^2.0.0",
+    "react-native-vector-icons": "^10.2.0",
     "text-encoding": "^0.7.0",
     "web-streams-polyfill": "3.2.1"
   },

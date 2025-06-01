@@ -1,0 +1,271 @@
+import React from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation/types';
+import { Colors, Fonts } from '../theme';
+import { mockPlaybooks } from '../mocks/playbookMocks';
+
+// Define the navigation param types
+declare global {
+  namespace ReactNavigation {
+    interface RootParamList extends RootStackParamList {}
+  }
+}
+
+type Playbook = typeof mockPlaybooks[number];
+
+// Update the navigation prop type to match the expected params
+type PlaybookListScreenNavigationProp = StackNavigationProp<RootStackParamList, 'PlaybookDetail'> & {
+  navigate: (screen: 'PlaybookDetail', params: { playbookId: string }) => void;
+};
+
+// Calculate progress based on completed action steps
+function calculateProgress(playbook: Playbook): number {
+  if (!playbook.actionSteps.length) return 0;
+  const completed = playbook.actionSteps.filter(step => step.completed).length;
+  return completed / playbook.actionSteps.length;
+}
+
+// Format progress text
+function formatProgress(playbook: Playbook): string {
+  const completed = playbook.actionSteps.filter(step => step.completed).length;
+  return `${completed}/${playbook.actionSteps.length} Steps`;
+}
+
+// Format date to a readable format
+const formatDate = () => {
+  const date = new Date();
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+export default function PlaybookListScreen() {
+  const navigation = useNavigation<PlaybookListScreenNavigationProp>();
+  const renderItem = ({ item }: { item: Playbook }) => {
+    const progress = calculateProgress(item);
+    const progressPercent = Math.round(progress * 100);
+    
+    return (
+      <TouchableOpacity 
+        style={styles.card}
+        onPress={() => navigation.navigate('PlaybookDetail', { playbookId: item.id })}
+      >
+        {/* Card Header with Profile Image */}
+        <View style={styles.cardHeader}>
+          <Image 
+            source={{ uri: item.profileImage }} 
+            style={styles.profileImage} 
+            resizeMode="cover"
+          />
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+            <View style={styles.progressContainer}>
+              <View style={styles.progressBarBg}>
+                <View 
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${progressPercent}%` }
+                  ]} 
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {formatProgress(item)}
+              </Text>
+            </View>
+          </View>
+        </View>
+        
+        {/* Card Content */}
+        <View style={styles.cardContent}>
+          <Text style={styles.summaryText}>
+            {item.truthInLove.summary}
+          </Text>
+          
+          {/* User Input Section */}
+          <View style={styles.userInputContainer}>
+            <Text style={styles.userInputLabel}>Your input:</Text>
+            <Text style={styles.userInputText} numberOfLines={2}>
+              "{item.userInput}"
+            </Text>
+          </View>
+          
+          {/* Card Footer */}
+          <View style={styles.cardFooter}>
+            <View style={styles.progressBadge}>
+              <Icon name="checkmark-circle" size={16} color={Colors.faithGold} />
+              <Text style={styles.progressPercent}>{progressPercent}% Complete</Text>
+            </View>
+            <Text style={styles.dateText}>
+              {formatDate()}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>My Playbooks</Text>
+      <FlatList
+        data={mockPlaybooks}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+    padding: 16,
+  },
+  header: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: Colors.anchorBlue,
+    marginBottom: 24,
+    marginTop: 8,
+  },
+  listContent: {
+    paddingBottom: 24,
+  },
+  
+  // Card styles
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  
+  // Card Header
+  cardHeader: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: 'rgba(10, 132, 255, 0.03)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  profileImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  headerTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: Colors.anchorBlue,
+    marginBottom: 8,
+    lineHeight: 20,
+  },
+  
+  // Progress Bar
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressBarBg: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    borderRadius: 3,
+    marginRight: 8,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.faithGold,
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 12,
+    color: Colors.trustGrey,
+    fontFamily: Fonts.semiBold,
+    minWidth: 50,
+    textAlign: 'right',
+  },
+  
+  // Card Content
+  cardContent: {
+    padding: 16,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: Colors.trustGrey,
+    fontFamily: Fonts.regular,
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  
+  // User Input Section
+  userInputContainer: {
+    backgroundColor: 'rgba(10, 132, 255, 0.03)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.faithGold,
+  },
+  userInputLabel: {
+    fontSize: 10,
+    color: Colors.trustGrey,
+    fontFamily: Fonts.semiBold,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  userInputText: {
+    fontSize: 14,
+    color: Colors.anchorBlue,
+    fontFamily: Fonts.regular,
+    lineHeight: 20,
+  },
+  
+  // Card Footer
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  progressBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  progressPercent: {
+    fontSize: 12,
+    color: Colors.anchorBlue,
+    fontFamily: Fonts.semiBold,
+    marginLeft: 4,
+  },
+  dateText: {
+    fontSize: 12,
+    color: Colors.trustGrey,
+    fontFamily: Fonts.regular,
+    textAlign: 'right',
+  },
+});

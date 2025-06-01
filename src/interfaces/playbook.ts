@@ -9,16 +9,23 @@ export interface ActionStep {
   completed: boolean;
 }
 
+export interface TruthInLove {
+  truth: string;
+  summary: string;
+}
+
 export interface Playbook {
   id: string;
   title: string;
-  truthInLove: string;
-  truthSummary: string;
+  userInput: string;
+  truthInLove: TruthInLove;
   actionSteps: ActionStep[];
   affirmation: string;
   bibleVerse: BibleVerse;
   directChallenge: string;
-  createdAt: string;
-  updatedAt: string;
-  userInput?: string;
+  profileImage: string;
+  progress: number;
+  totalTasks: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
