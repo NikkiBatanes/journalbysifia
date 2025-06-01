@@ -293,7 +293,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Stack Card View
   const renderStackCards = () => {
-    const VISIBLE_CARDS = 3; // Number of cards visible behind the active card
+    const TOTAL_CARDS = cardData.length;
     const SCALE_DECREMENT = 0.05; // How much smaller each card gets
     const BOTTOM_OFFSET = 15; // How much each card peeks out from the bottom
     
@@ -301,7 +301,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       <View style={styles.stackContainer}>
         {cardData.map((card, idx) => {
           if (idx < currentCard) return null; // Hide previous cards
-          if (idx > currentCard + VISIBLE_CARDS) return null; // Hide cards too far back
+          // Show all remaining cards in the stack
           
           const isActive = idx === currentCard;
           const isExpanded = isActive && expanded;
@@ -317,9 +317,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             if (isActive) return Colors.anchorBlue; // Base color for active card
             // Lighter shades for cards behind
             switch(position) {
-              case 1: return '#3a6ea5'; // Slightly lighter
-              case 2: return '#4f7cb3'; // Lighter
-              case 3: return '#7fa3c9'; // Lightest
+              case 1: return '#2a4c7d'; // Slightly lighter
+              case 2: return '#3a5c8c'; // Lighter
+              case 3: return '#4a6c9b'; // Even lighter
+              case 4: return '#5a7caa'; // Lightest
               default: return Colors.anchorBlue;
             }
           };
