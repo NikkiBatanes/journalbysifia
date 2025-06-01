@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, StatusBar, Text } from 'react-native';
+import { View, StyleSheet, StatusBar, Text, Image, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -17,6 +17,12 @@ type TabBarIcon = {
 type TabBarIconsType = {
   [key: string]: TabBarIcon;
 };
+
+// Import theme colors
+import { Colors } from './src/theme';
+
+// Import vector icons
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Tab bar icons using text as fallback
 const TabBarIcons: TabBarIconsType = {
@@ -183,10 +189,32 @@ function App(): React.JSX.Element {
             <Stack.Screen 
               name="PlaybookDetail" 
               component={PlaybookDetailScreen as React.ComponentType} 
-              options={{
-                headerShown: true,
-                title: 'Playbook Details',
-                headerBackTitle: 'Back',
+              options={({ navigation }) => {
+                return {
+                  headerShown: true,
+                  title: '',
+                  headerBackVisible: false,
+                  headerLeft: () => (
+                    <TouchableOpacity onPress={() => navigation.goBack()}>
+                      <Icon name="chevron-left" size={26} color={Colors.anchorBlue} style={{ marginLeft: 8 }} />
+                    </TouchableOpacity>
+                  ),
+                  headerRight: () => (
+                    <Image
+                      source={{ uri: 'https://randomuser.me/api/portraits/men/1.jpg' }}
+                      style={{ 
+                        width: 32, 
+                        height: 32, 
+                        borderRadius: 16, 
+                        marginRight: 16 
+                      }}
+                    />
+                  ),
+                  headerStyle: {
+                    backgroundColor: '#f2f5f7',
+                  },
+                  headerShadowVisible: false,
+                }
               }}
             />
           </>
