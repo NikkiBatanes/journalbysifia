@@ -293,22 +293,38 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Stack Card View
   const renderStackCards = () => {
+    const VISIBLE_CARDS = 3; // Number of cards visible behind the active card
+    const SCALE_DECREMENT = 0.05; // How much smaller each card gets
+    const BOTTOM_OFFSET = 15; // How much each card peeks out from the bottom
+    
     return (
       <View style={styles.stackContainer}>
         {cardData.map((card, idx) => {
           if (idx < currentCard) return null; // Hide previous cards
+          if (idx > currentCard + VISIBLE_CARDS) return null; // Hide cards too far back
+          
           const isActive = idx === currentCard;
           const isExpanded = isActive && expanded;
           const zIndex = cardData.length - idx;
+          const cardPosition = idx - currentCard;
+          
+          // Calculate scale and offset for stacked effect
+          const scale = 1 - (cardPosition * SCALE_DECREMENT);
+          const bottomOffset = cardPosition * BOTTOM_OFFSET;
+          
           const cardStyle = [
             styles.stackCard,
             {
-              top: isActive ? 0 : (idx - currentCard) * 16,
               zIndex,
-              transform: isActive
-                ? [{ translateY: pan }]
-                : [{ scale: 1 - (idx - currentCard) * 0.03 }],
-              elevation: isActive ? 6 : 2,
+              // Position cards to create bottom fan-out effect
+              transform: [
+                { translateY: isActive ? pan : bottomOffset },
+                { scale: isExpanded ? 1 : scale },
+              ],
+              // Adjust shadow and opacity based on position
+              opacity: 1,
+              elevation: isActive ? 12 : 3 + cardPosition,
+              shadowOpacity: isActive ? 0.25 : 0.15,
             },
             isExpanded && styles.expandedCard,
           ];
@@ -385,8 +401,8 @@ const styles = StyleSheet.create({
   playbookInfoContainer: {
     backgroundColor: '#f2f5f7',
     paddingHorizontal: 20,
-    paddingTop: 22, // Increased top padding
-    paddingBottom: 16,
+    paddingTop: 14, // Further reduced top padding
+    paddingBottom: 12, // Reduced bottom padding to bring cards up
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     marginTop: -10, // Pull up slightly
@@ -426,7 +442,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24, // Increased margin bottom for better spacing
+    marginBottom: 12, // Reduced margin to bring cards up
   },
   progressContainer: {
     flex: 1,
@@ -523,29 +539,39 @@ const styles = StyleSheet.create({
   },
   stackContainer: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'flex-start', // Changed to flex-start to move cards up
+    paddingTop: 4, // Further reduced top padding
+    paddingBottom: 60,
     position: 'relative',
+    overflow: 'visible',
   },
   stackCard: {
     position: 'absolute',
-    width: SCREEN_WIDTH - 32,
-    minHeight: 260,
+    width: SCREEN_WIDTH - 80,
+    height: 450, // Fixed height to match design
     alignSelf: 'center',
-    borderRadius: 18,
+    borderRadius: 28,
     backgroundColor: Colors.anchorBlue,
-    shadowColor: Colors.anchorBlue,
-    shadowOpacity: 0.12,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    elevation: 8,
     padding: 0,
     overflow: 'hidden',
+    borderWidth: 0,
+    transformOrigin: 'bottom center', // Changed to bottom for fan-out effect
   },
   expandedCard: {
-    minHeight: SCREEN_HEIGHT * 0.6,
-    width: SCREEN_WIDTH - 18,
+    minHeight: SCREEN_HEIGHT * 0.65,
+    width: SCREEN_WIDTH - 40,
     zIndex: 100,
+    transform: [{ translateY: 0 }],
+    shadowOpacity: 0.3,
+    shadowRadius: 24,
+    left: 20,
+    borderRadius: 32, // Increased for more rounded corners in expanded state
   },
   dragHandle: {
     alignSelf: 'center',
@@ -558,10 +584,11 @@ const styles = StyleSheet.create({
   },
   docContainer: {
     flex: 1,
-    paddingTop: 18,
+    paddingTop: 4, // Reduced to match stack view top padding
   },
   docCard: {
-    marginBottom: 18,
+    marginBottom: 12, // Slightly reduced for better spacing
+    marginHorizontal: 20, // Add horizontal margin to match card width
   },
 });
 

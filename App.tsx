@@ -240,8 +240,12 @@ function App(): React.JSX.Element {
                     </TouchableOpacity>
                   ),
                   headerRight: () => (
-                    <View style={{ marginRight: 16 }}>
-                      <Ionicons name="person-circle-outline" size={32} color={Colors.anchorBlue} />
+                    <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
+                      <Image 
+                        source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} 
+                        style={{ width: 32, height: 32, borderRadius: 16 }}
+                        resizeMode="cover"
+                      />
                     </View>
                   ),
                   headerStyle: {
