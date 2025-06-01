@@ -5,7 +5,8 @@ export interface BibleVerse {
 
 export interface ActionStep {
   id: string;
-  text: string;
+  title: string;
+  description: string;
   completed: boolean;
 }
 
@@ -14,13 +15,19 @@ export interface TruthInLove {
   summary: string;
 }
 
+export interface Affirmation {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface Playbook {
   id: string;
   title: string;
   userInput: string;
   truthInLove: TruthInLove;
   actionSteps: ActionStep[];
-  affirmation: string;
+  affirmations: Affirmation[];
   bibleVerse: BibleVerse;
   directChallenge: string;
   profileImage: string;

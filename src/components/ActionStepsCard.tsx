@@ -32,7 +32,7 @@ export default function ActionStepsCard({ steps, onToggleStep, style }: ActionSt
           color={Colors.faithGold} 
           style={styles.icon}
         />
-        <Text style={styles.heading}>{steps.length} Action Steps</Text>
+        <Text style={styles.heading}>{steps.length} Action steps</Text>
       </View>
       
       <View style={styles.stepsContainer}>
@@ -79,7 +79,7 @@ export default function ActionStepsCard({ steps, onToggleStep, style }: ActionSt
                 </View>
                 <View style={styles.titleContainer}>
                   <Text style={styles.stepTitle}>
-                    {index + 1}. {step.title.toUpperCase()}
+                    {index + 1}. {step.title}
                   </Text>
                 </View>
                 <MaterialCommunityIcons 

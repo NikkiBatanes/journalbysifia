@@ -7,14 +7,76 @@ export const mockPlaybooks = [
       truth: "You're not too late; you're just stuck in a mindset of fear and comparison. God's purpose for your life isn't bound by age, but by your obedience and faith. At 35, you have the maturity, wisdom, and life experience that many younger entrepreneurs lack. Stop using age as an excuse to delay action. The real issue isn't your age—it's your belief in God's ability to work through you.",
       summary: "God's timing is perfect; trust Him and take bold, obedient action."
     },
+    affirmations: [
+      {
+        id: 'aff1',
+        text: 'I am walking in God\'s perfect timing for my life.',
+        completed: false
+      },
+      {
+        id: 'aff2',
+        text: 'My age is an asset, not a limitation, in fulfilling God\'s purpose.',
+        completed: false
+      },
+      {
+        id: 'aff3',
+        text: 'I trust that God has been preparing me for such a time as this.',
+        completed: false
+      },
+      {
+        id: 'aff4',
+        text: 'I embrace my unique journey and the wisdom I\'ve gained along the way.',
+        completed: false
+      },
+      {
+        id: 'aff5',
+        text: 'I am exactly where I need to be, and my best years are ahead of me.',
+        completed: false
+      }
+    ],
     actionSteps: [
-      { id: 'a1', text: 'Reflect on Biblical figures like Moses (called at 80) and Abraham (promised a son at 75).', completed: false },
-      { id: 'a2', text: 'Write down three ways your age and experience are assets, not liabilities.', completed: false },
-      { id: 'a3', text: 'Identify one tech problem you\'re passionate about solving and research the market.', completed: false },
-      { id: 'a4', text: 'Begin with a minimum viable product (MVP) to test your concept.', completed: false },
-      { id: 'a5', text: 'Reach out to mentors, peers, and industry professionals for advice and connections.', completed: false },
-      { id: 'a6', text: 'Enroll in online courses or attend workshops to sharpen your skills.', completed: false },
-      { id: 'a7', text: 'Create a 90-day action plan with specific, measurable goals.', completed: false }
+      { 
+        id: 'a1', 
+        title: 'Reflect on Biblical Figures',
+        description: 'Spend time studying the lives of Moses (called at 80) and Abraham (promised a son at 75). Note how God used them at different stages of life.', 
+        completed: false 
+      },
+      { 
+        id: 'a2', 
+        title: 'Identify Your Strengths',
+        description: 'Write down three specific ways your age and life experience give you an advantage in your tech journey.', 
+        completed: false 
+      },
+      { 
+        id: 'a3', 
+        title: 'Market Research',
+        description: 'Identify one tech problem you\'re passionate about solving. Spend 2 hours researching the market and potential solutions.', 
+        completed: false 
+      },
+      { 
+        id: 'a4', 
+        title: 'Build MVP',
+        description: 'Outline the most basic version of your product that would be valuable to users. Focus on core functionality only.', 
+        completed: false 
+      },
+      { 
+        id: 'a5', 
+        title: 'Network Building',
+        description: 'Reach out to three people in your network who could provide guidance or connections in the tech industry.', 
+        completed: false 
+      },
+      { 
+        id: 'a6', 
+        title: 'Skill Development',
+        description: 'Enroll in one online course or attend a workshop to improve your technical or business skills.', 
+        completed: false 
+      },
+      { 
+        id: 'a7', 
+        title: '90-Day Plan',
+        description: 'Create a detailed 90-day action plan with specific, measurable goals and weekly checkpoints.', 
+        completed: false 
+      }
     ],
     affirmation: "God's timing is perfect, and I am right where I need to be. I am equipped with wisdom, experience, and faith to succeed. I trust God to guide my steps and bless my efforts.",
     bibleVerse: {
@@ -34,12 +96,42 @@ export const mockPlaybooks = [
       summary: "Fear is not from God; act in faith and trust His power, not yours."
     },
     actionSteps: [
-      { id: 'b1', text: 'Write down your specific fears and doubts. Be brutally honest.', completed: false },
-      { id: 'b2', text: 'For each fear, write a counter-truth grounded in God\'s Word.', completed: false },
-      { id: 'b3', text: 'Set a timer for 15 minutes and work on one small task related to your goal.', completed: false },
-      { id: 'b4', text: 'Meditate on Joshua 1:9 daily.', completed: false },
-      { id: 'b5', text: 'Share your struggles with a trusted friend or mentor.', completed: false },
-      { id: 'b6', text: 'Write a vision statement for your goals and read it daily.', completed: false }
+      { 
+        id: 'b1', 
+        title: 'Identify Fears',
+        description: 'Write down your specific fears and doubts. Be brutally honest about what\'s holding you back.', 
+        completed: false 
+      },
+      { 
+        id: 'b2', 
+        title: 'Biblical Truths',
+        description: 'For each fear, find and write down a Bible verse that speaks truth to that specific fear.', 
+        completed: false 
+      },
+      { 
+        id: 'b3', 
+        title: '15-Minute Challenge',
+        description: 'Set a timer for 15 minutes and work on one small task related to your goal. Notice how starting is often the hardest part.', 
+        completed: false 
+      },
+      { 
+        id: 'b4', 
+        title: 'Daily Meditation',
+        description: 'Read and meditate on Joshua 1:9 each morning before starting your day.', 
+        completed: false 
+      },
+      { 
+        id: 'b5', 
+        title: 'Accountability',
+        description: 'Share your current struggles and goals with someone you trust. Ask them to check in with you weekly.', 
+        completed: false 
+      },
+      { 
+        id: 'b6', 
+        title: 'Vision Statement',
+        description: 'Write a clear, concise vision statement for your goals. Read it aloud every morning and night.', 
+        completed: false 
+      }
     ],
     affirmation: "God has not given me a spirit of fear, but of power and love. I am capable because God is with me. I will take action today, trusting God to guide my steps.",
     bibleVerse: {
@@ -60,12 +152,42 @@ export const mockPlaybooks = [
       summary: "God calls you to live intentionally, not passively; seek His purpose with urgency."
     },
     actionSteps: [
-      { id: 'c1', text: 'Spend 15 minutes daily in prayer, asking God to reveal His purpose for your life.', completed: false },
-      { id: 'c2', text: 'Write down what excites you, what you\'re naturally good at, and what burdens you.', completed: false },
-      { id: 'c3', text: 'Write a vision statement for your ideal life 10 years from now.', completed: false },
-      { id: 'c4', text: 'Choose courses and projects that align with your vision.', completed: false },
-      { id: 'c5', text: 'Seek mentors who can guide you in your field of interest.', completed: false },
-      { id: 'c6', text: 'Take one small step this week toward exploring a potential path.', completed: false }
+      { 
+        id: 'c1', 
+        title: 'Daily Prayer',
+        description: 'Set aside 15 minutes each morning to pray specifically about God\'s purpose for your life. Journal any insights or promptings.', 
+        completed: false 
+      },
+      { 
+        id: 'c2', 
+        title: 'Self-Assessment',
+        description: 'Create three lists: 1) Activities that energize you 2) Skills that come naturally 3) Issues that deeply concern you', 
+        completed: false 
+      },
+      { 
+        id: 'c3', 
+        title: 'Future Vision',
+        description: 'Write a detailed description of your ideal life 10 years from now. Include career, relationships, and personal growth aspects.', 
+        completed: false 
+      },
+      { 
+        id: 'c4', 
+        title: 'Course Alignment',
+        description: 'Review your current courses. Identify how each one could contribute to your long-term vision. Adjust your schedule if needed.', 
+        completed: false 
+      },
+      { 
+        id: 'c5', 
+        title: 'Find Mentors',
+        description: 'Identify 2-3 people who are where you want to be. Reach out to them for informational interviews.', 
+        completed: false 
+      },
+      { 
+        id: 'c6', 
+        title: 'First Step',
+        description: 'Choose one action from this list that excites you the most and complete it this week.', 
+        completed: false 
+      }
     ],
     affirmation: "God has a unique purpose for my life, and I will seek it daily. I am not a drifter; I am a driver of God's mission for me. I trust God to guide my steps as I take action.",
     bibleVerse: {

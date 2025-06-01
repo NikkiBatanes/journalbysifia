@@ -105,7 +105,27 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     {
       type: 'affirmation' as CardType,
       component: () => (
-        <AffirmationCard affirmation={playbook.affirmation} />
+        <View style={styles.affirmationsContainer}>
+          <View style={styles.affirmationsHeader}>
+            <MaterialCommunityIcons 
+              name="format-quote-open" 
+              size={24} 
+              color={Colors.growthGreen} 
+              style={styles.icon}
+            />
+            <Text style={styles.affirmationsTitle}>Affirmations</Text>
+          </View>
+          <View style={styles.affirmationsList}>
+            {playbook.affirmations.map(affirmation => (
+              <AffirmationCard 
+                key={affirmation.id}
+                id={affirmation.id}
+                text={affirmation.text} 
+                completed={affirmation.completed} 
+              />
+            ))}
+          </View>
+        </View>
       ),
       tappable: false,
     },
@@ -328,6 +348,30 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               onToggleStep={toggleStepCompletion}
               style={{ flex: 1, padding: 24 }}
             />
+          ) : card.type === 'affirmation' ? (
+            <View style={{ flex: 1, padding: 24 }}>
+              <View style={styles.affirmationsContainer}>
+                <View style={styles.affirmationsHeader}>
+                  <MaterialCommunityIcons 
+                    name="format-quote-open" 
+                    size={24} 
+                    color={Colors.growthGreen} 
+                    style={styles.icon}
+                  />
+                  <Text style={styles.affirmationsTitle}>Affirmations</Text>
+                </View>
+                <View style={styles.affirmationsList}>
+                  {playbook.affirmations.slice(0, 3).map(affirmation => (
+                    <AffirmationCard 
+                      key={affirmation.id}
+                      id={affirmation.id}
+                      text={affirmation.text} 
+                      completed={affirmation.completed} 
+                    />
+                  ))}
+                </View>
+              </View>
+            </View>
           ) : (
             <View style={{ flex: 1, padding: 24 }}>
               {card.component()}
@@ -371,28 +415,64 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       style={styles.docContainer}
       contentContainerStyle={styles.docContentContainer}
     >
-      {cardData.map((card) => (
-        card.type === 'truth' ? (
-          <TruthInLoveCard 
-            key={card.type}
-            truth={playbook.truthInLove.truth} 
-            summary={playbook.truthInLove.summary}
-            expanded={true}
-            style={[styles.docCard, styles.truthCard]}
-          />
-        ) : card.type === 'action' ? (
-          <ActionStepsCard 
-            key={card.type}
-            steps={playbook.actionSteps}
-            onToggleStep={toggleStepCompletion}
-            style={[styles.docCard, styles.actionCard]}
-          />
-        ) : (
-          <View key={card.type} style={[styles.docCard, styles.defaultCard]}>
-            {card.component()}
-          </View>
-        )
-      ))}
+      {cardData.map((card) => {
+        if (card.type === 'truth') {
+          return (
+            <TruthInLoveCard 
+              key={card.type}
+              truth={playbook.truthInLove.truth} 
+              summary={playbook.truthInLove.summary}
+              expanded={true}
+              style={[styles.docCard, styles.truthCard]}
+            />
+          );
+        } else if (card.type === 'action') {
+          return (
+            <ActionStepsCard 
+              key={card.type}
+              steps={playbook.actionSteps}
+              onToggleStep={toggleStepCompletion}
+              style={[styles.docCard, styles.actionCard]}
+            />
+          );
+        } else if (card.type === 'affirmation') {
+          // Show only the first 3 affirmations in document view
+          const limitedAffirmations = [...playbook.affirmations].slice(0, 3);
+          return (
+            <View key={card.type} style={[styles.docCard, styles.truthCard]}>
+              <View style={{ flex: 1 }}>
+                <View style={styles.affirmationsContainer}>
+                  <View style={styles.affirmationsHeader}>
+                    <MaterialCommunityIcons 
+                      name="format-quote-open" 
+                      size={24} 
+                      color={Colors.growthGreen} 
+                      style={styles.icon}
+                    />
+                    <Text style={styles.affirmationsTitle}>Affirmations</Text>
+                  </View>
+                  <View style={styles.affirmationsList}>
+                    {limitedAffirmations.map(affirmation => (
+                      <AffirmationCard 
+                        key={affirmation.id}
+                        id={affirmation.id}
+                        text={affirmation.text} 
+                        completed={affirmation.completed} 
+                      />
+                    ))}
+                  </View>
+                </View>
+              </View>
+            </View>
+          );
+        } else {
+          return (
+            <View key={card.type} style={[styles.docCard, styles.defaultCard]}>
+              {card.component()}
+            </View>
+          );
+        }
+      })}
     </ScrollView>
   );
 
@@ -654,7 +734,7 @@ const styles = StyleSheet.create({
   defaultCard: {
     backgroundColor: Colors.hopeWhite,
     borderRadius: 28,
-    padding: 32,
+    padding: 0, // Remove default padding to handle it in the card content
     marginBottom: 16,
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -708,8 +788,29 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
-  }
+  },
+  affirmationsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  icon: {
+    marginRight: 8,
+  },
+  affirmationsContainer: {
+    width: '100%',
+    flex: 1,
+  },
+  affirmationsList: {
+    gap: 12,
+  },
+  affirmationsTitle: {
+    fontFamily: 'Inter-Black',
+    fontSize: 20,
+    color: 'white',
+    fontWeight: '900',
+    letterSpacing: 0.5,
+    marginLeft: 8,
+  },
 });
-
-
-

@@ -1,42 +1,39 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Fonts } from '../theme';
+import { Colors } from '../theme';
 
 type AffirmationCardProps = {
-  affirmation: string;
+  id: string;
+  text: string;
+  completed: boolean;
 };
 
-export default function AffirmationCard({ affirmation }: AffirmationCardProps) {
+export default function AffirmationCard({ text }: AffirmationCardProps) {
   return (
     <View style={styles.card}>
-      <Text style={styles.heading}>Daily Affirmation</Text>
-      <Text style={styles.text}>{affirmation}</Text>
+      <Text style={styles.text}>
+        {text}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 18,
-    borderWidth: 1,
-    borderColor: Colors.faithGold,
-    shadowColor: Colors.faithGold,
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  heading: {
-    fontFamily: Fonts.bold,
-    fontSize: 17,
-    color: Colors.faithGold,
-    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    width: '100%',
+    minHeight: 80, // Ensure minimum height for visibility
   },
   text: {
-    fontFamily: Fonts.regular,
-    fontSize: 15,
-    color: Colors.anchorBlue,
+    fontFamily: 'Inter-Italic',
+    fontSize: 16,
+    lineHeight: 24,
+    color: 'white',
+    textAlign: 'left',
+    textAlignVertical: 'center',
+    paddingHorizontal: 8,
   },
 });
