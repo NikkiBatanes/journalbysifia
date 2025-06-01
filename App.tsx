@@ -1,21 +1,28 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
+ * AnchoredApp - Main Application Component
+ * A React Native application for managing playbooks and user content
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-// Font loading temporarily disabled to fix NativeModule issues
 import { View, StyleSheet, StatusBar, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-// Using basic text icons to avoid NativeModule issues
-const TabBarIcons = {
-  Home: '📝',
-  Playbooks: '📚',
-  Profile: '👤'
+// Define tab bar icon types
+type TabBarIcon = {
+  name: string;
+  focused: string;
+};
+
+type TabBarIconsType = {
+  [key: string]: TabBarIcon;
+};
+
+// Tab bar icons using text as fallback
+const TabBarIcons: TabBarIconsType = {
+  Home: { name: '📝', focused: '📝' },
+  Playbooks: { name: '📚', focused: '📚' },
+  Profile: { name: '👤', focused: '👤' }
 };
 import { checkAuth, signOut } from './src/services/supabaseApi';
 
@@ -50,7 +57,8 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
             icon = TabBarIcons.Profile;
           }
           
-          return <Text style={{ fontSize: size, color }}>{icon}</Text>;
+          const iconText = focused ? icon.focused : icon.name;
+          return <Text style={{ fontSize: size, color }}>{iconText}</Text>;
         },
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: 'gray',
@@ -174,7 +182,7 @@ function App(): React.JSX.Element {
             </Stack.Screen>
             <Stack.Screen 
               name="PlaybookDetail" 
-              component={PlaybookDetailScreen} 
+              component={PlaybookDetailScreen as React.ComponentType} 
               options={{
                 headerShown: true,
                 title: 'Playbook Details',
