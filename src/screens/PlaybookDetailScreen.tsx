@@ -1,9 +1,7 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
-  Animated,
-  PanResponder,
   Dimensions,
   Text,
   View,
@@ -63,7 +61,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const cardData = [
     {
       type: 'truth' as CardType,
-      component: (expanded: boolean) => (
+      component: () => (
         <TruthInLoveCard
           truth={playbook.truthInLove.truth}
           summary={playbook.truthInLove.summary}
@@ -73,28 +71,28 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     {
       type: 'action' as CardType,
-      component: (expanded: boolean) => (
+      component: () => (
         <ActionStepsCard steps={playbook.actionSteps} />
       ),
       tappable: true,
     },
     {
       type: 'affirmation' as CardType,
-      component: (expanded: boolean) => (
+      component: () => (
         <AffirmationCard affirmation={playbook.affirmation} />
       ),
       tappable: false,
     },
     {
       type: 'bible' as CardType,
-      component: (expanded: boolean) => (
+      component: () => (
         <BibleVerseCard verse={playbook.bibleVerse} />
       ),
       tappable: false,
     },
     {
       type: 'challenge' as CardType,
-      component: (expanded: boolean) => (
+      component: () => (
         <DirectChallengeCard challenge={playbook.directChallenge} />
       ),
       tappable: false,
@@ -108,147 +106,23 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </View>
     );
   }
+  
   // View state
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
   const [currentCard, setCurrentCard] = useState(0);
-  const [expanded, setExpanded] = useState(false);
-
-  // Animation refs
-  const pan = useRef(new Animated.Value(0)).current;
-  const rotate = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(1)).current;
-  const nextCardScale = useRef(new Animated.Value(0.95)).current;
-
-  // Derived animations
-  const rotateInterpolate = rotate.interpolate({
-    inputRange: [-100, 0, 100],
-    outputRange: ['2deg', '0deg', '-2deg'],
-  });
-
-  // PanResponder for modern swipe up/down
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gestureState) => {
-        if (viewMode !== 'stack') return false;
-        // Only allow vertical swipes
-        const isVerticalSwipe = Math.abs(gestureState.dy) > Math.abs(gestureState.dx * 2);
-        return isVerticalSwipe && Math.abs(gestureState.dy) > 10;
-      },
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderMove: (_, gestureState) => {
-        // Don't allow swipe up on first card (to go to previous)
-        if (currentCard === 0 && gestureState.dy < 0) {
-          pan.setValue(gestureState.dy / 3); // Reduced movement to indicate restriction
-          return;
-        }
-        
-        // Don't allow swipe down on last card (to go to next)
-        if (currentCard === cardData.length - 1 && gestureState.dy > 0) {
-          pan.setValue(gestureState.dy / 3); // Reduced movement to indicate restriction
-          return;
-        }
-
-        // Normal swipe behavior - follow finger movement
-        pan.setValue(gestureState.dy);
-        
-        // Add subtle rotation based on swipe distance
-        rotate.setValue(gestureState.dy / 20);
-        
-        // Scale the card slightly when swiping
-        const scaleFactor = Math.max(0.96, 1 - Math.abs(gestureState.dy) / 1000);
-        scale.setValue(scaleFactor);
-        
-        // Scale up the next card as current card moves
-        if (gestureState.dy > 0 && currentCard < cardData.length - 1) {
-          const nextScaleFactor = Math.min(0.98, 0.95 + Math.abs(gestureState.dy) / 500);
-          nextCardScale.setValue(nextScaleFactor);
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (expanded) {
-          // Only allow swipe down to collapse
-          if (gestureState.dy > 60) {
-            setExpanded(false);
-            Animated.parallel([
-              Animated.spring(pan, { toValue: 0, useNativeDriver: true, friction: 6 }),
-              Animated.spring(rotate, { toValue: 0, useNativeDriver: true, friction: 6 }),
-              Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6 }),
-            ]).start();
-          } else {
-            // Return to center
-            Animated.parallel([
-              Animated.spring(pan, { toValue: 0, useNativeDriver: true, friction: 6 }),
-              Animated.spring(rotate, { toValue: 0, useNativeDriver: true, friction: 6 }),
-              Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 6 }),
-            ]).start();
-          }
-        } else {
-          // Swipe down to next card - more sensitive
-          if (gestureState.dy > 40 && currentCard < cardData.length - 1) {
-            // Animate card off screen down
-            Animated.spring(pan, {
-              toValue: SCREEN_HEIGHT * 0.8,
-              useNativeDriver: true,
-              tension: 50,
-              friction: 8,
-            }).start(() => {
-              setCurrentCard(currentCard + 1);
-              pan.setValue(0);
-              rotate.setValue(0);
-              scale.setValue(1);
-              nextCardScale.setValue(0.95);
-            });
-          } 
-          // Swipe up to previous card - more sensitive
-          else if (gestureState.dy < -40 && currentCard > 0) {
-            // Animate card off screen up
-            Animated.spring(pan, {
-              toValue: -SCREEN_HEIGHT * 0.8,
-              useNativeDriver: true,
-              tension: 50,
-              friction: 8,
-            }).start(() => {
-              setCurrentCard(currentCard - 1);
-              pan.setValue(0);
-              rotate.setValue(0);
-              scale.setValue(1);
-              nextCardScale.setValue(0.95);
-            });
-          } 
-          // Return to center
-          else {
-            Animated.parallel([
-              Animated.spring(pan, { 
-                toValue: 0, 
-                useNativeDriver: true, 
-                tension: 50,
-                friction: 8,
-              }),
-              Animated.spring(rotate, { 
-                toValue: 0, 
-                useNativeDriver: true, 
-                tension: 50,
-                friction: 8,
-              }),
-              Animated.spring(scale, { 
-                toValue: 1, 
-                useNativeDriver: true, 
-                tension: 50,
-                friction: 8,
-              }),
-              Animated.spring(nextCardScale, { 
-                toValue: 0.95, 
-                useNativeDriver: true, 
-                tension: 50,
-                friction: 8,
-              }),
-            ]).start();
-          }
-        }
-      },
-    })
-  ).current;
+  
+  // Navigation handlers for card stack
+  const goToNextCard = () => {
+    if (currentCard < cardData.length - 1) {
+      setCurrentCard(currentCard + 1);
+    }
+  };
+  
+  const goToPrevCard = () => {
+    if (currentCard > 0) {
+      setCurrentCard(currentCard - 1);
+    }
+  };
 
   // State for toggling user input card
   const [showUserInput, setShowUserInput] = useState(false);
@@ -391,95 +265,60 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Stack Card View
   const renderStackCards = () => {
-    const TOTAL_CARDS = cardData.length;
-    const SCALE_DECREMENT = 0.05; // How much smaller each card gets
-    const BOTTOM_OFFSET = 15; // How much each card peeks out from the bottom
+    if (cardData.length === 0) return null;
+    
+    // Helper to calculate color based on card type
+    const getCardColor = () => {
+      // Return the anchor blue color for all cards
+      return Colors.anchorBlue;
+    };
+    
+    // Current card to display
+    const card = cardData[currentCard];
     
     return (
       <View style={styles.stackContainer}>
-        {cardData.map((card, idx) => {
-          if (idx < currentCard) return null; // Hide previous cards
-          // Show all remaining cards in the stack
+        {/* Current card */}
+        <View style={[styles.stackCard, { backgroundColor: getCardColor() }]}>
+          {card.type === 'truth' ? (
+            <TruthInLoveCard 
+              truth={playbook.truthInLove.truth} 
+              summary={playbook.truthInLove.summary}
+              style={{ flex: 1, padding: 32 }}
+            />
+          ) : (
+            <View style={{ flex: 1, padding: 32 }}>
+              {card.component()}
+            </View>
+          )}
+        </View>
+        
+        {/* Navigation controls */}
+        <View style={styles.cardNavigation}>
+          <TouchableOpacity 
+            style={[styles.navButton, currentCard === 0 && styles.navButtonDisabled]} 
+            onPress={goToPrevCard}
+            disabled={currentCard === 0}
+          >
+            <Ionicons name="arrow-up" size={24} color={currentCard === 0 ? "#ccc" : "#fff"} />
+            <Text style={styles.navButtonText}>Previous</Text>
+          </TouchableOpacity>
           
-          const isActive = idx === currentCard;
-          const isExpanded = isActive && expanded;
-          const zIndex = cardData.length - idx;
-          const cardPosition = idx - currentCard;
+          <View style={styles.cardIndicator}>
+            <Text style={styles.cardIndicatorText}>
+              {currentCard + 1} / {cardData.length}
+            </Text>
+          </View>
           
-          // Calculate scale and offset for stacked effect
-          const scale = 1 - (cardPosition * SCALE_DECREMENT);
-          const bottomOffset = cardPosition * BOTTOM_OFFSET;
-          
-          // Calculate color fade based on card position
-          const getCardColor = (position: number) => {
-            if (isActive) return Colors.anchorBlue; // Base color for active card
-            // Lighter shades for cards behind
-            switch(position) {
-              case 1: return '#2a4c7d'; // Slightly lighter
-              case 2: return '#3a5c8c'; // Lighter
-              case 3: return '#4a6c9b'; // Even lighter
-              case 4: return '#5a7caa'; // Lightest
-              default: return Colors.anchorBlue;
-            }
-          };
-          
-          const cardColor = isActive ? Colors.anchorBlue : getCardColor(cardPosition);
-          
-          const cardStyle = [
-            styles.stackCard,
-            {
-              zIndex,
-              // Position cards to create bottom fan-out effect
-              transform: isActive ? [
-                { translateY: pan },
-                { rotate: rotateInterpolate },
-                { scale: scale },
-              ] : [
-                { translateY: bottomOffset },
-                { scale: cardPosition === 1 ? nextCardScale : 1 - (cardPosition * SCALE_DECREMENT) },
-              ],
-              // Adjust shadow and elevation based on position
-              opacity: 1, // Keep cards fully opaque
-              elevation: isActive ? 12 : 3 + cardPosition,
-              shadowOpacity: isActive ? 0.25 : 0.15,
-              backgroundColor: cardColor, // Solid color based on position
-            },
-            isExpanded && styles.expandedCard,
-          ];
-          return (
-            <Animated.View
-              key={card.type}
-              style={cardStyle}
-              {...(isActive ? panResponder.panHandlers : {})}
-            >
-              {isActive && currentCard === 0 && (
-                <View style={styles.swipeIndicator} />
-              )}
-              {isActive && currentCard === cardData.length - 1 && (
-                <View style={styles.swipeIndicator}>
-                  <Ionicons name="arrow-up" size={16} color="rgba(255, 255, 255, 0.6)" />
-                </View>
-              )}
-              <View style={{ flex: 1 }}>
-                <TouchableOpacity
-                  activeOpacity={card.tappable && isActive && !expanded ? 0.8 : 1}
-                  onPress={() => {
-                    if (card.tappable && isActive && !expanded) setExpanded(true);
-                  }}
-                  disabled={!card.tappable || !isActive || expanded}
-                  style={{ flex: 1 }}
-                >
-                  {/* Card content */}
-                  {card.component(isExpanded)}
-                </TouchableOpacity>
-                {/* Drag handle for expanded */}
-                {isExpanded && (
-                  <View style={styles.dragHandle} />
-                )}
-              </View>
-            </Animated.View>
-          );
-        })}
+          <TouchableOpacity 
+            style={[styles.navButton, currentCard === cardData.length - 1 && styles.navButtonDisabled]} 
+            onPress={goToNextCard}
+            disabled={currentCard === cardData.length - 1}
+          >
+            <Text style={styles.navButtonText}>Next</Text>
+            <Ionicons name="arrow-down" size={24} color={currentCard === cardData.length - 1 ? "#ccc" : "#fff"} />
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -500,8 +339,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             style={[styles.docCard, styles.truthCard]}
           />
         ) : (
-          <View key={card.type} style={styles.docCard}>
-            {card.component(false)}
+          <View key={card.type} style={[styles.docCard, { padding: 32 }]}>
+            {card.component()}
           </View>
         )
       ))}
@@ -702,25 +541,8 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     transformOrigin: 'bottom center',
   },
-  expandedCard: {
-    minHeight: SCREEN_HEIGHT * 0.65,
-    width: SCREEN_WIDTH - 40,
-    zIndex: 100,
-    transform: [{ translateY: 0 }],
-    shadowOpacity: 0.3,
-    shadowRadius: 24,
-    left: 20,
-    borderRadius: 32,
-  },
-  dragHandle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.hopeWhite,
-    marginVertical: 8,
-    opacity: 0.5,
-  },
+
+
   docContainer: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
@@ -747,7 +569,7 @@ const styles = StyleSheet.create({
   truthCard: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 28,
-    padding: 24,
+    padding: 32,
     marginTop: 0, // Remove top margin to match stack view
     marginBottom: 16, // Keep bottom margin for spacing
     shadowOpacity: 0.2,
@@ -758,22 +580,51 @@ const styles = StyleSheet.create({
     maxWidth: '100%', // Use percentage for valid DimensionValue
     alignSelf: 'center',
   },
-  swipeIndicator: {
+
+  // New navigation controls
+  cardNavigation: {
     position: 'absolute',
     bottom: 20,
     left: 0,
     right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
-    zIndex: 10,
+    paddingHorizontal: 20,
   },
-  swipeIndicatorText: {
+  navButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(25, 57, 104, 0.7)',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  navButtonDisabled: {
+    backgroundColor: 'rgba(25, 57, 104, 0.3)',
+    opacity: 0.5,
+  },
+  navButtonText: {
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
-    textAlign: 'center',
-    opacity: 0.8,
+    marginHorizontal: 8,
+  },
+  cardIndicator: {
+    backgroundColor: 'rgba(25, 57, 104, 0.7)',
+    borderRadius: 15,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  cardIndicatorText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '500',
   }
 });
 

@@ -14,7 +14,7 @@ type TruthInLoveCardProps = {
 
 export default function TruthInLoveCard({ truth, summary, username = 'Nikki', expanded = false, style }: TruthInLoveCardProps) {
   return (
-    <View style={[styles.card, style]}>
+    <View style={style}>
       <View style={styles.headingContainer}>
         <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
         <Text style={styles.heading}>Truth in Love</Text>
@@ -45,16 +45,6 @@ export default function TruthInLoveCard({ truth, summary, username = 'Nikki', ex
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 28,
-    padding: 24,
-    flex: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-  },
   headingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
