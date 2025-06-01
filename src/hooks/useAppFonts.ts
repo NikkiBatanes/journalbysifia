@@ -19,6 +19,12 @@ export const useAppFonts = () => {
           // Playfair Display fonts
           'PlayfairDisplay-Regular': require('@expo-google-fonts/playfair-display/PlayfairDisplay_400Regular.ttf'),
           'PlayfairDisplay-Bold': require('@expo-google-fonts/playfair-display/PlayfairDisplay_700Bold.ttf'),
+          
+          // Lora fonts
+          'Lora_400Regular': require('@expo-google-fonts/lora/Lora_400Regular.ttf'),
+          'Lora_400Regular_Italic': require('@expo-google-fonts/lora/Lora_400Regular_Italic.ttf'),
+          'Lora_600SemiBold': require('@expo-google-fonts/lora/Lora_600SemiBold.ttf'),
+          'Lora_600SemiBold_Italic': require('@expo-google-fonts/lora/Lora_600SemiBold_Italic.ttf'),
         });
         
         setFontsLoaded(true);

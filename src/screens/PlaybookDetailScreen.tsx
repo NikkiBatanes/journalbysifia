@@ -372,6 +372,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 </View>
               </View>
             </View>
+          ) : card.type === 'bible' ? (
+            <View style={{ flex: 1, padding: 24 }}>
+              <BibleVerseCard verse={playbook.bibleVerse} />
+            </View>
+          ) : card.type === 'challenge' ? (
+            <DirectChallengeCard challenge={playbook.directChallenge} />
           ) : (
             <View style={{ flex: 1, padding: 24 }}>
               {card.component()}

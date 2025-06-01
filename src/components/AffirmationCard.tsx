@@ -28,12 +28,13 @@ const styles = StyleSheet.create({
     minHeight: 80, // Ensure minimum height for visibility
   },
   text: {
-    fontFamily: 'Inter-Italic',
+    fontFamily: 'Inter-SemiBold',
     fontSize: 16,
     lineHeight: 24,
     color: 'white',
     textAlign: 'left',
     textAlignVertical: 'center',
     paddingHorizontal: 8,
+    fontWeight: '600',
   },
 });

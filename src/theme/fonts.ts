@@ -14,6 +14,14 @@ export const Fonts = {
     bold: Platform.OS === 'ios' ? 'PlayfairDisplay-Bold' : 'sans-serif-medium',
   },
   
+  // Lora font
+  lora: {
+    regular: 'Lora_400Regular',
+    italic: 'Lora_400Regular_Italic',
+    semiBold: 'Lora_600SemiBold',
+    semiBoldItalic: 'Lora_600SemiBold_Italic',
+  },
+  
   // System fonts as fallbacks
   system: {
     regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',

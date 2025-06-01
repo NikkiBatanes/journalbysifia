@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontWeight: '900',
     letterSpacing: 0.5,
-    textTransform: 'uppercase',
   },
   stepsContainer: {
     flex: 1,
@@ -160,6 +159,7 @@ const styles = StyleSheet.create({
   titleContainer: {
     flex: 1,
     marginLeft: 12,
+    marginRight: 8, // Add right margin to prevent text from touching the chevron
     justifyContent: 'center',
   },
   stepTitle: {
@@ -169,6 +169,8 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     flexShrink: 1,
+    flexWrap: 'wrap', // Allow text to wrap if needed
+    textTransform: 'uppercase',
   },
   chevron: {
     opacity: 0.7,

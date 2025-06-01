@@ -1131,6 +1131,11 @@
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/inter/-/inter-0.4.1.tgz#0240eb12dc906582358b2fbc4b5aabeed6a69d37"
   integrity sha512-ypL+XokTHEG+ie/nxNj/mS38afMrY4Li4oKvTJf9k9XvH7I21qfTGCsDtlZ6nIUWEAy1odoUZISdXT1nfMh4kA==
 
+"@expo-google-fonts/lora@^0.4.1":
+  version "0.4.1"
+  resolved "https://registry.yarnpkg.com/@expo-google-fonts/lora/-/lora-0.4.1.tgz#4d60779eedd6757744a2b9fee471e0817539a03d"
+  integrity sha512-UKh7GbsswDRBXej7WauF7jASLL6AiAbzQxI4UkGCsAIAy3wKWjXvRLDWKgLIzLiJUzzEF/0KOBkgnQ2NATeORg==
+
 "@expo-google-fonts/playfair-display@^0.4.0":
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/@expo-google-fonts/playfair-display/-/playfair-display-0.4.0.tgz#c0d4b1c25ee37c7acb4f23354f7d1692be0e2f15"
