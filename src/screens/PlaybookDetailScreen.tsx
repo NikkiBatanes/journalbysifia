@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -55,7 +55,33 @@ const usePlaybook = (playbook: Playbook) => {
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   const { playbook: routePlaybook } = route.params;
-  const { playbook, loading } = usePlaybook(routePlaybook);
+  const { playbook: initialPlaybook, loading } = usePlaybook(routePlaybook);
+  const [playbook, setPlaybook] = useState(initialPlaybook);
+  
+  // Update playbook when initialPlaybook changes
+  useEffect(() => {
+    if (initialPlaybook) {
+      setPlaybook(initialPlaybook);
+    }
+  }, [initialPlaybook]);
+  
+  // Handle step completion toggle
+  const toggleStepCompletion = (stepId: string) => {
+    setPlaybook(prev => {
+      const updatedSteps = prev.actionSteps.map(step => 
+        step.id === stepId ? { ...step, completed: !step.completed } : step
+      );
+      
+      const completedCount = updatedSteps.filter(step => step.completed).length;
+      
+      return {
+        ...prev,
+        actionSteps: updatedSteps,
+        progress: completedCount,
+        totalTasks: updatedSteps.length,
+      };
+    });
+  };
   
   // Define card data with access to playbook
   const cardData = [
@@ -286,8 +312,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               summary={playbook.truthInLove.summary}
               style={{ flex: 1, padding: 32 }}
             />
+          ) : card.type === 'action' ? (
+            <ActionStepsCard 
+              steps={playbook.actionSteps}
+              onToggleStep={toggleStepCompletion}
+              style={{ flex: 1, padding: 24 }}
+            />
           ) : (
-            <View style={{ flex: 1, padding: 32 }}>
+            <View style={{ flex: 1, padding: 24 }}>
               {card.component()}
             </View>
           )}
@@ -338,8 +370,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             expanded={true}
             style={[styles.docCard, styles.truthCard]}
           />
+        ) : card.type === 'action' ? (
+          <ActionStepsCard 
+            key={card.type}
+            steps={playbook.actionSteps}
+            onToggleStep={toggleStepCompletion}
+            style={[styles.docCard, styles.actionCard]}
+          />
         ) : (
-          <View key={card.type} style={[styles.docCard, { padding: 32 }]}>
+          <View key={card.type} style={[styles.docCard, styles.defaultCard]}>
             {card.component()}
           </View>
         )
@@ -578,6 +617,30 @@ const styles = StyleSheet.create({
     elevation: 8,
     width: '100%', // Full width of parent
     maxWidth: '100%', // Use percentage for valid DimensionValue
+    alignSelf: 'center',
+  },
+  actionCard: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 28,
+    padding: 24,
+    marginBottom: 16,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  defaultCard: {
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 28,
+    padding: 32,
+    marginBottom: 16,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    width: '100%',
     alignSelf: 'center',
   },
 
