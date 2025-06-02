@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
@@ -10,16 +10,17 @@ type TruthInLoveCardProps = {
   username?: string;
   expanded?: boolean;
   style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
 };
 
-export default function TruthInLoveCard({ truth, summary, username = 'Nikki', expanded = false, style }: TruthInLoveCardProps) {
+export default function TruthInLoveCard({ truth, summary, username = 'Nikki', expanded = false, style, onPress }: TruthInLoveCardProps) {
+  const Wrapper = onPress ? TouchableOpacity : View;
   return (
-    <View style={style}>
+    <Wrapper style={style} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.headingContainer}>
         <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
         <Text style={styles.heading}>Truth in Love</Text>
       </View>
-      
       <View style={styles.contentContainer}>
         <Text style={styles.content}>
           <Text style={styles.username}>{username}, </Text>
@@ -33,11 +34,9 @@ export default function TruthInLoveCard({ truth, summary, username = 'Nikki', ex
           {truth}
         </Text>
       </View>
-      
       {expanded && (
         <Text style={styles.truth}>{truth}</Text>
       )}
-      
       {!expanded && (
         <View style={styles.footerContainer}>
           <View style={styles.swipeHint}>
@@ -48,7 +47,7 @@ export default function TruthInLoveCard({ truth, summary, username = 'Nikki', ex
           </View>
         </View>
       )}
-    </View>
+    </Wrapper>
   );
 }
 
