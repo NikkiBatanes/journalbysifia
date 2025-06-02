@@ -590,11 +590,12 @@ const styles = StyleSheet.create({
   playbookInfoContainer: {
     backgroundColor: '#f2f5f7',
     paddingHorizontal: 20,
-    paddingTop: 16, // Increased top padding for better spacing
-    paddingBottom: 12,
+    paddingTop: 12, // Reduced top padding
+    paddingBottom: 0, // Reduced bottom padding
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     marginTop: 0, // Reset negative margin
+    marginBottom: -10,
   },
   playbookHeader: {
     marginBottom: 8,
