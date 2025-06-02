@@ -803,16 +803,16 @@ const styles = StyleSheet.create({
   },
   progressBarBg: {
     flex: 1,
-    height: 8,
+    height: 12,  // Increased from 8 to 12
     backgroundColor: 'rgba(26, 60, 109, 0.1)',
-    borderRadius: 4,
+    borderRadius: 6,  // Increased from 4 to 6 to match the new height
     overflow: 'hidden',
     marginRight: 8,
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 4,
+    borderRadius: 6,  // Increased from 4 to 6 to match the new height
   },
   progressText: {
     fontFamily: 'System', // Default system font
