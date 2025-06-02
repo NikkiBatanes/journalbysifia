@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, StyleSheet, StatusBar, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -215,54 +216,56 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <NavigationContainer>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
-          <>
-            <Stack.Screen name="MainTabs">
-              {() => <MainTabs onLogout={handleLogout} />}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {isAuthenticated ? (
+            <>
+              <Stack.Screen name="MainTabs">
+                {() => <MainTabs onLogout={handleLogout} />}
+              </Stack.Screen>
+              <Stack.Screen 
+                name="PlaybookDetail" 
+                component={PlaybookDetailScreen as React.ComponentType} 
+                options={({ navigation }) => {
+                  return {
+                    headerShown: true,
+                    title: '',
+                    headerBackVisible: false,
+                    headerLeft: () => (
+                      <TouchableOpacity 
+                        onPress={() => navigation.goBack()}
+                        style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
+                      >
+                        <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+                      </TouchableOpacity>
+                    ),
+                    headerRight: () => (
+                      <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
+                        <Image 
+                          source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} 
+                          style={{ width: 32, height: 32, borderRadius: 16 }}
+                          resizeMode="cover"
+                        />
+                      </View>
+                    ),
+                    headerStyle: {
+                      backgroundColor: '#f2f5f7',
+                    },
+                    headerShadowVisible: false,
+                  }
+                }}
+              />
+            </>
+          ) : (
+            <Stack.Screen name="AuthStack">
+              {() => <AuthStack onLogin={handleLogin} />}
             </Stack.Screen>
-            <Stack.Screen 
-              name="PlaybookDetail" 
-              component={PlaybookDetailScreen as React.ComponentType} 
-              options={({ navigation }) => {
-                return {
-                  headerShown: true,
-                  title: '',
-                  headerBackVisible: false,
-                  headerLeft: () => (
-                    <TouchableOpacity 
-                      onPress={() => navigation.goBack()}
-                      style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
-                    >
-                      <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-                    </TouchableOpacity>
-                  ),
-                  headerRight: () => (
-                    <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
-                      <Image 
-                        source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} 
-                        style={{ width: 32, height: 32, borderRadius: 16 }}
-                        resizeMode="cover"
-                      />
-                    </View>
-                  ),
-                  headerStyle: {
-                    backgroundColor: '#f2f5f7',
-                  },
-                  headerShadowVisible: false,
-                }
-              }}
-            />
-          </>
-        ) : (
-          <Stack.Screen name="AuthStack">
-            {() => <AuthStack onLogin={handleLogin} />}
-          </Stack.Screen>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 

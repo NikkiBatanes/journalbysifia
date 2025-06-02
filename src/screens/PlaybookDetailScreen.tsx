@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PanGestureHandler, PanGestureHandlerGestureEvent, State as GestureState } from 'react-native-gesture-handler';
+import { PanGestureHandler } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedGestureHandler, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -55,22 +56,59 @@ const usePlaybook = (playbook: Playbook) => {
 
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  // --- Gesture handler hooks and logic for swipe navigation ---
+  // --- Animated swipe logic for top card ---
   const gestureHandlerRef = useRef(null);
-  const SWIPE_THRESHOLD = 40;
-  // Handle gesture events (no-op, required by PanGestureHandler)
-  const onGestureEvent = () => {};
-  // Handle gesture end
-  const onHandlerStateChange = (event: PanGestureHandlerGestureEvent) => {
-    if (event.nativeEvent.state === GestureState.END) {
-      const { translationY } = event.nativeEvent;
-      if (translationY < -SWIPE_THRESHOLD) {
-        goToNextCard();
-      } else if (translationY > SWIPE_THRESHOLD) {
-        goToPrevCard();
-      }
+  const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
+  const translateY = useSharedValue(0);
+  const isTransitioning = useRef(false);
+
+  const onSwipeComplete = (direction: 'up' | 'down') => {
+    if (direction === 'up') {
+      goToNextCard();
+    } else {
+      goToPrevCard();
     }
+    translateY.value = 0;
+    isTransitioning.current = false;
   };
+
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: (_, ctx: any) => {
+      ctx.startY = translateY.value;
+    },
+    onActive: (event, ctx: any) => {
+      if (!isTransitioning.current) {
+        translateY.value = ctx.startY + event.translationY;
+      }
+    },
+    onEnd: (event, ctx: any) => {
+      if (isTransitioning.current) return;
+      if (event.translationY < -SWIPE_THRESHOLD) {
+        // Swipe up: animate out, then instantly show next card
+        isTransitioning.current = true;
+        translateY.value = withTiming(-700, { duration: 250 }, (finished) => {
+          if (finished) {
+            runOnJS(onSwipeComplete)('up');
+          }
+        });
+      } else if (event.translationY > SWIPE_THRESHOLD) {
+        // Swipe down: animate out, then instantly show prev card
+        isTransitioning.current = true;
+        translateY.value = withTiming(700, { duration: 250 }, (finished) => {
+          if (finished) {
+            runOnJS(onSwipeComplete)('down');
+          }
+        });
+      } else {
+        // Not enough swipe, bounce back
+        translateY.value = withSpring(0, { damping: 10, stiffness: 150 });
+      }
+    },
+  });
+
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
 
   const { playbook: routePlaybook } = route.params;
   const { playbook: initialPlaybook, loading } = usePlaybook(routePlaybook);
@@ -381,20 +419,27 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const isCurrentCard = cardIndex === currentCard;
       const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
       
+      // Only the top card animates. Back cards are static.
+      const isTopCard = stackIndex === 0;
+      const CardContainer = isTopCard ? Animated.View : View;
+      // Only apply animatedCardStyle to the top card
+      const extraStyle = isTopCard ? animatedCardStyle : {};
+      // For back cards, use only static transforms and opacity (not tied to animation)
       return (
-        <View 
+        <CardContainer
           key={`${cardIndex}-${stackIndex}`}
           style={[
-            styles.stackCard, 
-            { 
+            styles.stackCard,
+            {
               backgroundColor: getCardColor(stackIndex),
-              transform: [
+              // Only apply transform/opacity for the static stack effect
+              transform: !isTopCard ? [
                 { scaleX },
                 { scaleY },
                 { translateY },
-              ],
+              ] : undefined,
               zIndex,
-              opacity,
+              opacity: !isTopCard ? opacity : 1,
               position: stackIndex === 0 ? 'relative' : 'absolute',
               top: 0,
               left: undefined,
@@ -406,7 +451,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.25,
               shadowRadius: 3.84,
-            }
+            },
+            extraStyle,
           ]}
         >
           {card.type === 'truth' ? (
@@ -456,32 +502,33 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               {card.component()}
             </View>
           )}
-        </View>
+        </CardContainer>
       );
     };
     
     // Generate the stack of cards
     const cardStack = [];
+    // Render back cards (static, never re-render or animate)
+    const backCards = Array.from({ length: visibleCardCount - 1 }).map((_, i, arr) => {
+      const stackIndex = arr.length - 1 - i + 1; // +1 to skip top card
+      const cardIndex = currentCard + stackIndex;
+      return renderCard(cardIndex, stackIndex);
+    });
+
     return (
-      <>
+      <View style={styles.cardStackContainer}>
+        {/* Back cards (static) */}
+        {backCards}
+        {/* Top card (animated, only one re-renders/animates) */}
         <PanGestureHandler
           ref={gestureHandlerRef}
-          onGestureEvent={onGestureEvent}
-          onHandlerStateChange={onHandlerStateChange}
-          activeOffsetY={[-10, 10]} // Only trigger on vertical movement
+          onGestureEvent={gestureHandler}
         >
-          <View style={styles.cardStackContainer}>
-            {/* Stack cards - render from back to front for correct stacking */}
-            {Array.from({ length: visibleCardCount }).map((_, i, arr) => {
-              // Reverse order: furthest back rendered first, top card last
-              const stackIndex = arr.length - 1 - i;
-              const cardIndex = currentCard + stackIndex;
-              return renderCard(cardIndex, stackIndex);
-            })}
-          </View>
+          <Animated.View style={[animatedCardStyle, { width: '100%', position: 'relative', zIndex: 200 }]}> 
+            {renderCard(currentCard, 0)}
+          </Animated.View>
         </PanGestureHandler>
-
-      </>
+      </View>
     );
   };
 

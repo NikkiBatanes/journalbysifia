@@ -14,7 +14,7 @@ type BibleVerseCardProps = {
 
 export default function BibleVerseCard({ verse }: BibleVerseCardProps) {
   return (
-    <View style={[styles.docCard, styles.verseCard]}>
+    <View style={{ flex: 1, padding: 24 }}>
       <View style={styles.cardContent}>
         <View style={styles.headerContainer}>
           <MaterialCommunityIcons 
