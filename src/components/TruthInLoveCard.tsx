@@ -20,10 +20,19 @@ export default function TruthInLoveCard({ truth, summary, username = 'Nikki', ex
         <Text style={styles.heading}>Truth in Love</Text>
       </View>
       
-      <Text style={styles.content}>
-        <Text style={styles.username}>{username}, </Text>
-        <Text style={styles.summary}>{summary}</Text>
-      </Text>
+      <View style={styles.contentContainer}>
+        <Text style={styles.content}>
+          <Text style={styles.username}>{username}, </Text>
+          <Text style={styles.summary}>{summary}</Text>
+        </Text>
+        <Text 
+          style={styles.truncatedTruth} 
+          numberOfLines={5} 
+          ellipsizeMode="tail"
+        >
+          {truth}
+        </Text>
+      </View>
       
       {expanded && (
         <Text style={styles.truth}>{truth}</Text>
@@ -33,7 +42,6 @@ export default function TruthInLoveCard({ truth, summary, username = 'Nikki', ex
         <View style={styles.footerContainer}>
           <View style={styles.swipeHint}>
             <Text style={styles.swipeText}>Swipe up to continue</Text>
-            <Ionicons name="arrow-up" size={16} color="rgba(255, 255, 255, 0.6)" style={styles.arrowIcon} />
           </View>
           <View style={styles.expandHint}>
             <MaterialCommunityIcons name="arrow-expand" size={24} color={Colors.faithGold} style={styles.expandIcon} />
@@ -61,13 +69,15 @@ const styles = StyleSheet.create({
     textTransform: 'none',
     fontWeight: '800',
   },
-  content: {
+  contentContainer: {
     flex: 1,
+  },
+  content: {
     fontFamily: 'Inter-Regular',
     fontSize: 28,
     lineHeight: 38,
     color: Colors.hopeWhite,
-    marginBottom: 12, // Reduced from 20 to 12
+    marginBottom: 4, // Reduced from 12 to 4
   },
   username: {
     fontFamily: 'Inter-Bold',
@@ -85,6 +95,14 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginTop: 4, // Further reduced from 8 to 4
   },
+  truncatedTruth: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
+    marginTop: 2, // Reduced from 8 to 2
+  },
   footerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -101,9 +119,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     marginLeft: 4,
   },
-  arrowIcon: {
-    marginLeft: 4,
-  },
+
   expandHint: {
     position: 'absolute',
     right: 8,  // Moved 8px closer to the corner
