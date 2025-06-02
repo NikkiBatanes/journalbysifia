@@ -62,6 +62,72 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const translateY = useSharedValue(0);
   const isTransitioning = useRef(false);
 
+  // View state
+  const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
+  const [currentCard, setCurrentCard] = useState(0);
+
+  // Card data
+  const cardData = [
+    {
+      type: 'truth' as CardType,
+      component: () => (
+        <TruthInLoveCard
+          truth={playbook.truthInLove.truth}
+          summary={playbook.truthInLove.summary}
+        />
+      ),
+      tappable: false,
+    },
+    {
+      type: 'action' as CardType,
+      component: () => (
+        <ActionStepsCard steps={playbook.actionSteps} />
+      ),
+      tappable: false,
+    },
+    {
+      type: 'affirmation' as CardType,
+      component: () => (
+        <View style={styles.affirmationsContainer}>
+          <View style={styles.affirmationsHeader}>
+            <MaterialCommunityIcons
+              name="format-quote-open"
+              size={24}
+              color={Colors.growthGreen}
+              style={styles.icon}
+            />
+            <Text style={styles.affirmationsTitle}>Affirmations</Text>
+          </View>
+          <View style={styles.affirmationsList}>
+            {playbook.affirmations.map(affirmation => (
+              <AffirmationCard
+                key={affirmation.id}
+                id={affirmation.id}
+                text={affirmation.text}
+                completed={affirmation.completed}
+              />
+            ))}
+          </View>
+        </View>
+      ),
+      tappable: false,
+    },
+    {
+      type: 'bible' as CardType,
+      component: () => (
+        <BibleVerseCard verse={playbook.bibleVerse} />
+      ),
+      tappable: false,
+    },
+    {
+      type: 'challenge' as CardType,
+      component: () => (
+        <DirectChallengeCard challenge={playbook.directChallenge} />
+      ),
+      tappable: false,
+    },
+  ];
+
   const onSwipeComplete = (direction: 'up' | 'down') => {
     if (direction === 'up') {
       goToNextCard();
@@ -71,6 +137,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     translateY.value = 0;
     isTransitioning.current = false;
   };
+
+  // Shared values for worklet access
+  const cardCount = useSharedValue(cardData.length);
+  const currentCardIndex = useSharedValue(currentCard);
+
+  useEffect(() => {
+    cardCount.value = cardData.length;
+  }, [cardData.length]);
+
+  useEffect(() => {
+    currentCardIndex.value = currentCard;
+  }, [currentCard]);
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
@@ -83,16 +161,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     onEnd: (event, ctx: any) => {
       if (isTransitioning.current) return;
-      if (event.translationY < -SWIPE_THRESHOLD) {
-        // Swipe up: animate out, then instantly show next card
+      if (event.translationY < -SWIPE_THRESHOLD && currentCardIndex.value < cardCount.value - 1) {
+        // Only allow swipe up if not on last card
         isTransitioning.current = true;
         translateY.value = withTiming(-700, { duration: 250 }, (finished) => {
           if (finished) {
             runOnJS(onSwipeComplete)('up');
           }
         });
-      } else if (event.translationY > SWIPE_THRESHOLD) {
-        // Swipe down: animate out, then instantly show prev card
+      } else if (event.translationY > SWIPE_THRESHOLD && currentCardIndex.value > 0) {
+        // Only allow swipe down if not on first card
         isTransitioning.current = true;
         translateY.value = withTiming(700, { duration: 250 }, (finished) => {
           if (finished) {
@@ -140,66 +218,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   };
   
   // Define card data with access to playbook
-  const cardData = [
-    {
-      type: 'truth' as CardType,
-      component: () => (
-        <TruthInLoveCard
-          truth={playbook.truthInLove.truth}
-          summary={playbook.truthInLove.summary}
-        />
-      ),
-      tappable: true,
-    },
-    {
-      type: 'action' as CardType,
-      component: () => (
-        <ActionStepsCard steps={playbook.actionSteps} />
-      ),
-      tappable: true,
-    },
-    {
-      type: 'affirmation' as CardType,
-      component: () => (
-        <View style={styles.affirmationsContainer}>
-          <View style={styles.affirmationsHeader}>
-            <MaterialCommunityIcons 
-              name="format-quote-open" 
-              size={24} 
-              color={Colors.growthGreen} 
-              style={styles.icon}
-            />
-            <Text style={styles.affirmationsTitle}>Affirmations</Text>
-          </View>
-          <View style={styles.affirmationsList}>
-            {playbook.affirmations.map(affirmation => (
-              <AffirmationCard 
-                key={affirmation.id}
-                id={affirmation.id}
-                text={affirmation.text} 
-                completed={affirmation.completed} 
-              />
-            ))}
-          </View>
-        </View>
-      ),
-      tappable: false,
-    },
-    {
-      type: 'bible' as CardType,
-      component: () => (
-        <BibleVerseCard verse={playbook.bibleVerse} />
-      ),
-      tappable: false,
-    },
-    {
-      type: 'challenge' as CardType,
-      component: () => (
-        <DirectChallengeCard challenge={playbook.directChallenge} />
-      ),
-      tappable: false,
-    },
-  ];
+
 
   if (!playbook) {
     return (
@@ -208,10 +227,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </View>
     );
   }
-  
-  // View state
-  const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
-  const [currentCard, setCurrentCard] = useState(0);
   
   // Navigation handlers for card stack
   const goToNextCard = () => {
