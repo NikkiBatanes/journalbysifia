@@ -134,8 +134,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     } else {
       goToPrevCard();
     }
-    translateY.value = 0;
-    isTransitioning.value = false;
+    // Reset the position after a small delay to allow the card to animate out
+    requestAnimationFrame(() => {
+      translateY.value = 0;
+      isTransitioning.value = false;
+    });
   };
 
   // Shared values for worklet access
@@ -153,40 +156,63 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
       ctx.startY = translateY.value;
+      ctx.startX = 0; // Track X position for potential horizontal swipes
     },
     onActive: (event, ctx: any) => {
       if (!isTransitioning.value) {
-        translateY.value = ctx.startY + event.translationY;
+        // Only allow vertical swipes by ignoring horizontal movement
+        if (Math.abs(event.translationY) > Math.abs(event.translationX)) {
+          translateY.value = ctx.startY + event.translationY;
+        }
       }
     },
     onEnd: (event, ctx: any) => {
       if (isTransitioning.value) return;
-      if (event.translationY < -SWIPE_THRESHOLD && currentCardIndex.value < cardCount.value - 1) {
-        // Only allow swipe up if not on last card
-        isTransitioning.value = true;
-        translateY.value = withTiming(-700, { duration: 250 }, (finished) => {
-          if (finished) {
-            runOnJS(onSwipeComplete)('up');
-          }
-        });
-      } else if (event.translationY > SWIPE_THRESHOLD && currentCardIndex.value > 0) {
-        // Only allow swipe down if not on first card
-        isTransitioning.value = true;
-        translateY.value = withTiming(700, { duration: 250 }, (finished) => {
-          if (finished) {
-            runOnJS(onSwipeComplete)('down');
-          }
-        });
+      
+      // Check if it's primarily a vertical swipe
+      const isVerticalSwipe = Math.abs(event.translationY) > Math.abs(event.translationX);
+      
+      if (isVerticalSwipe) {
+        if (event.translationY < -SWIPE_THRESHOLD && currentCardIndex.value < cardCount.value - 1) {
+          // Swipe up - go to next card
+          isTransitioning.value = true;
+          translateY.value = withTiming(-SCREEN_HEIGHT, { duration: 250 }, (finished) => {
+            if (finished) {
+              runOnJS(onSwipeComplete)('up');
+            }
+          });
+        } else if (event.translationY > SWIPE_THRESHOLD && currentCardIndex.value > 0) {
+          // Swipe down - go to previous card
+          isTransitioning.value = true;
+          translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, (finished) => {
+            if (finished) {
+              runOnJS(onSwipeComplete)('down');
+            }
+          });
+        } else {
+          // Not enough swipe, bounce back
+          translateY.value = withSpring(0, { 
+            damping: 10, 
+            stiffness: 150 
+          });
+        }
       } else {
-        // Not enough swipe, bounce back
-        translateY.value = withSpring(0, { damping: 10, stiffness: 150 });
+        // If not a vertical swipe, reset position
+        translateY.value = withSpring(0, { 
+          damping: 10, 
+          stiffness: 150 
+        });
       }
     },
   });
 
-  const animatedCardStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
+  const animatedCardStyle = useAnimatedStyle(() => {
+    return {
+      transform: [
+        { translateY: translateY.value }
+      ]
+    };
+  });
 
   const { playbook: routePlaybook } = route.params;
   const { playbook: initialPlaybook, loading } = usePlaybook(routePlaybook);
