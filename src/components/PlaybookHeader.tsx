@@ -47,7 +47,8 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   const txtColor = textColor || Colors.anchorBlue;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: bgColor }]}> 
+    <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.container, { backgroundColor: bgColor }]}> 
       <View style={[styles.headerContainer, { backgroundColor: bgColor }]}>
         <View style={styles.headerCenter}>
           {onPlaybookLabelPress ? (
@@ -83,10 +84,16 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
           ))}
           {subtitle ? <Text style={[styles.subtitle, { color: txtColor }]}>{subtitle.toUpperCase()}</Text> : null}
           <View style={styles.progressRow}>
-            <View style={styles.progressBarBg}>
+            <View style={[styles.progressBarBg, bgColor === Colors.anchorBlue && { backgroundColor: 'rgba(255,255,255,0.15)' }]}> 
               <View style={[styles.progressBarFill, { width: `${(progress / totalTasks) * 100}%` }]} />
             </View>
-            <Text style={[styles.progressText, { color: txtColor }]}>{progress}/{totalTasks} Tasks</Text>
+            <Text style={[styles.progressText, { 
+              color: txtColor,
+              marginLeft: 8,
+              minWidth: 80
+            }]}>
+              {progress}/{totalTasks} Tasks
+            </Text>
             {showToggle && (
               <View style={styles.toggleRow}>
                 <TouchableOpacity
@@ -121,14 +128,29 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
           )}
         </View>
       </View>
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'transparent',
     width: '100%',
+    paddingTop: 0, // Remove any default padding that might interfere
+  },
+  container: {
+    width: '100%',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    overflow: 'hidden',
+    backgroundColor: Colors.hopeWhite,
+    // Add shadow for better visual separation
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   userInputCardHeader: {
     backgroundColor: 'rgba(26, 60, 109, 0.1)',
@@ -158,11 +180,10 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'stretch',
     paddingTop: 24,
-    paddingBottom: 12,
+    paddingBottom: 16,
     paddingHorizontal: 22,
-    backgroundColor: Colors.hopeWhite,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f1f1',
+    backgroundColor: 'transparent', // Make container transparent to show parent's background
+    borderBottomWidth: 0, // Remove border as we're using shadow now
     width: '100%',
   },
   headerLeft: {
@@ -191,7 +212,8 @@ const styles = StyleSheet.create({
     color: Colors.anchorBlue,
     fontSize: 13,
     fontWeight: '700',
-    letterSpacing: 1,
+    textAlign: 'left',
+    marginTop: 2,
   },
   title: {
     fontSize: 22,

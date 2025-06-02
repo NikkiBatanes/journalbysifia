@@ -49,15 +49,17 @@ const CARD_TYPES = [
 type CardType = typeof CARD_TYPES[number];
 
 // Get playbook data from route params
-const usePlaybook = (playbook: Playbook) => {
-  const [loading, setLoading] = useState(false);
-  // If we need to fetch additional data in the future, we can do it here
-  return { playbook, loading };
-};
-
-
+// Removed usePlaybook hook to avoid duplicate playbook declarations
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
+  const playbook = route?.params?.playbook;
+  if (!playbook) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading playbook...</Text>
+      </View>
+    );
+  }
   // --- Animated swipe logic for top card ---
   const gestureHandlerRef = useRef(null);
   const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
@@ -69,63 +71,32 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [currentCard, setCurrentCard] = useState(0);
 
   // Card data
+  // Only include serializable data for each card
   const cardData = [
     {
       type: 'truth' as CardType,
-      component: () => (
-        <TruthInLoveCard
-          truth={playbook.truthInLove.truth}
-          summary={playbook.truthInLove.summary}
-        />
-      ),
+      truth: playbook.truthInLove.truth,
+      summary: playbook.truthInLove.summary,
       tappable: false,
     },
     {
       type: 'action' as CardType,
-      component: () => (
-        <ActionStepsCard steps={playbook.actionSteps} />
-      ),
+      steps: playbook.actionSteps,
       tappable: false,
     },
     {
       type: 'affirmation' as CardType,
-      component: () => (
-        <View style={styles.affirmationsContainer}>
-          <View style={styles.affirmationsHeader}>
-            <MaterialCommunityIcons
-              name="format-quote-open"
-              size={24}
-              color={Colors.growthGreen}
-              style={styles.icon}
-            />
-            <Text style={styles.affirmationsTitle}>Affirmations</Text>
-          </View>
-          <View style={styles.affirmationsList}>
-            {playbook.affirmations.map(affirmation => (
-              <AffirmationCard
-                key={affirmation.id}
-                id={affirmation.id}
-                text={affirmation.text}
-                completed={affirmation.completed}
-              />
-            ))}
-          </View>
-        </View>
-      ),
+      affirmations: playbook.affirmations,
       tappable: false,
     },
     {
       type: 'bible' as CardType,
-      component: () => (
-        <BibleVerseCard verse={playbook.bibleVerse} />
-      ),
+      verse: playbook.bibleVerse,
       tappable: false,
     },
     {
       type: 'challenge' as CardType,
-      component: () => (
-        <DirectChallengeCard challenge={playbook.directChallenge} />
-      ),
+      challenge: playbook.directChallenge,
       tappable: false,
     },
   ];
@@ -254,16 +225,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     };
   });
 
-  const { playbook: routePlaybook } = route.params;
-  const { playbook: initialPlaybook, loading } = usePlaybook(routePlaybook);
-  const [playbook, setPlaybook] = useState(initialPlaybook);
-  
-  // Update playbook when initialPlaybook changes
-  useEffect(() => {
-    if (initialPlaybook) {
-      setPlaybook(initialPlaybook);
-    }
-  }, [initialPlaybook]);
+
   
   // Handle step completion toggle
   const toggleStepCompletion = (stepId: string) => {
@@ -309,14 +271,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Handle card press to navigate to detail view
   const handleCardPress = (cardType: string, cardData: any) => {
+    // Remove non-serializable properties (like 'component') before navigating
+    const { component, ...serializableCardData } = cardData;
     navigation.navigate('CardDetail', {
       cardType,
-      cardData,
+      cardData: serializableCardData,
       playbook,
       progress: playbook.progress,
       totalTasks: playbook.totalTasks,
       viewMode,
-      onToggleView: setViewMode,
+      // Do NOT pass onToggleView/setViewMode in navigation params
     });
   };
 
@@ -616,7 +580,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             <DirectChallengeCard challenge={playbook.directChallenge} />
           ) : (
               <View style={{ flex: 1, padding: 24 }}>
-                {card.component()}
+                {/* Render fallback for unknown type, or nothing */}
               </View>
             )}
         </TouchableOpacity>
@@ -750,7 +714,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         } else {
           return (
             <View key={card.type} style={[styles.docCard, styles.defaultCard]}>
-              {card.component()}
+              {/* Render fallback for unknown type, or nothing */}
             </View>
           );
         }

@@ -70,7 +70,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
         })}
         progress={progress}
         totalTasks={totalTasks}
-        showToggle={true}
+        showToggle={false}
         viewMode={viewMode}
         onToggleView={handleToggleView}
         onPlaybookLabelPress={() => setShowUserInput(prev => !prev)}
@@ -90,7 +90,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue, // Match header background for smooth transition
   },
   headerContainer: {
     flexDirection: 'row',
