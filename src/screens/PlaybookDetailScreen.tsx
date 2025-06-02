@@ -573,7 +573,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           );
         } else if (card.type === 'affirmation') {
           // Show only the first 3 affirmations in document view
-          const limitedAffirmations = [...playbook.affirmations].slice(0, 3);
+          const affirmations = playbook.affirmations || [];
+          const limitedAffirmations = affirmations.slice(0, 3);
           return (
             <View key={card.type} style={[styles.docCard, styles.truthCard]}>
               <View style={{ flex: 1 }}>

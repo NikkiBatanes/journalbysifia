@@ -133,7 +133,28 @@ export const mockPlaybooks = [
         completed: false 
       }
     ],
-    affirmation: "God has not given me a spirit of fear, but of power and love. I am capable because God is with me. I will take action today, trusting God to guide my steps.",
+    affirmations: [
+      {
+        id: 'aff1',
+        text: "God's got me. My past doesn't define me.",
+        completed: false
+      },
+      {
+        id: 'aff2',
+        text: 'My fears do not control me; my faith does.',
+        completed: false
+      },
+      {
+        id: 'aff3',
+        text: 'My future is in God\'s hands, and He\'s already gone ahead of me.',
+        completed: false
+      },
+      {
+        id: 'aff4',
+        text: 'I take action, not because I\'m not afraid, but because I trust God more than I fear failure.',
+        completed: false
+      }
+    ],
     bibleVerse: {
       text: "Be strong and courageous. Do not be afraid; do not be discouraged, for the Lord your God will be with you wherever you go.",
       reference: "Joshua 1:9"
@@ -189,7 +210,28 @@ export const mockPlaybooks = [
         completed: false 
       }
     ],
-    affirmation: "God has a unique purpose for my life, and I will seek it daily. I am not a drifter; I am a driver of God's mission for me. I trust God to guide my steps as I take action.",
+    affirmations: [
+      {
+        id: 'aff1',
+        text: 'God has a unique purpose for my life, and I will seek it daily.',
+        completed: false
+      },
+      {
+        id: 'aff2',
+        text: 'I am not a drifter; I am a driver of God\'s mission for me.',
+        completed: false
+      },
+      {
+        id: 'aff3',
+        text: 'I trust God to guide my steps as I take action.',
+        completed: false
+      },
+      {
+        id: 'aff4',
+        text: 'I am exactly where I need to be in my journey.',
+        completed: false
+      }
+    ],
     bibleVerse: {
       text: "For we are God's handiwork, created in Christ Jesus to do good works, which God prepared in advance for us to do.",
       reference: "Ephesians 2:10"
