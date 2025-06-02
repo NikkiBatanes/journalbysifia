@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../theme';
 
+import { TouchableOpacity } from 'react-native';
+
 type AffirmationCardProps = {
   id: string;
   text: string;

@@ -28,9 +28,11 @@ export default function DirectChallengeCard({ challenge }: DirectChallengeCardPr
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 24,
     backgroundColor: Colors.alertCoral,
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   headerContainer: {
     flexDirection: 'row',
@@ -50,11 +52,13 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 18,
-    lineHeight: 28,
-    color: 'rgba(255, 255, 255, 0.95)',
+    color: Colors.hopeWhite,
+    lineHeight: 26,
     textAlign: 'left',
     paddingHorizontal: 8,
     fontWeight: '600',
+    alignSelf: 'stretch',
+    width: '100%',
     marginTop: 16,
   },
 });

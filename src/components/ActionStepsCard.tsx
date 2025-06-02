@@ -82,16 +82,9 @@ export default function ActionStepsCard({ steps, onToggleStep, style }: ActionSt
                     {index + 1}. {step.title}
                   </Text>
                 </View>
-                <MaterialCommunityIcons 
-                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                  size={24}
-                  color={Colors.hopeWhite}
-                  style={styles.chevron}
-                />
               </View>
-              
-              <Text style={styles.stepDescription} numberOfLines={isExpanded ? undefined : 2}>
-                {displayText}
+              <Text style={styles.stepDescription}>
+                {step.description}
               </Text>
             </TouchableOpacity>
           );

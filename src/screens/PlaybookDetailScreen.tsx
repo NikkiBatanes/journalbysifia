@@ -18,6 +18,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors, Fonts, FontWeights } from '../theme';
 import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
+import { useActionSteps } from '../context/ActionStepsContext';
 import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
@@ -52,7 +53,10 @@ type CardType = typeof CARD_TYPES[number];
 // Removed usePlaybook hook to avoid duplicate playbook declarations
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  const playbook = route?.params?.playbook;
+  const { actionSteps, handleToggleStep } = useActionSteps();
+  const playbook = route.params.playbook;
+
+
   if (!playbook) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -227,24 +231,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
 
   
-  // Handle step completion toggle
-  const toggleStepCompletion = (stepId: string) => {
-    setPlaybook(prev => {
-      const updatedSteps = prev.actionSteps.map(step => 
-        step.id === stepId ? { ...step, completed: !step.completed } : step
-      );
-      
-      const completedCount = updatedSteps.filter(step => step.completed).length;
-      
-      return {
-        ...prev,
-        actionSteps: updatedSteps,
-        progress: completedCount,
-        totalTasks: updatedSteps.length,
-      };
-    });
-  };
-  
+
   // Define card data with access to playbook
 
 
@@ -400,15 +387,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             <View style={styles.progressContainer}>
               <View style={styles.progressRow}>
                 <View style={styles.progressBarBg}>
-                  <View 
+                  <View
                     style={[
                       styles.progressBarFill, 
-                      { width: `${(playbook.progress / playbook.totalTasks) * 100}%` }
-                    ]} 
+                      { width: `${(actionSteps.length > 0 ? (actionSteps.filter(step => step.completed).length / actionSteps.length) * 100 : 0)}%` }
+                    ]}
                   />
                 </View>
                 <Text style={styles.progressText}>
-                  {playbook.progress}/{playbook.totalTasks} Tasks
+                  {actionSteps.filter(step => step.completed).length}/{actionSteps.length} Steps
                 </Text>
               </View>
             </View>
@@ -505,84 +492,95 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           onPress={() => isTopCard && handleCardPress(card.type, card)}
           style={[
             styles.stackCard,
-            {
-              backgroundColor: getCardColor(stackIndex),
-              // Only apply transform/opacity for the static stack effect
-              transform: !isTopCard ? [
-                { scaleX },
-                { scaleY },
-                { translateY },
-              ] : undefined,
-              zIndex,
-              opacity: !isTopCard ? opacity : 1,
-              position: stackIndex === 0 ? 'relative' : 'absolute',
-              top: 0,
-              left: undefined,
-              right: undefined,
-              bottom: 0,
-              alignSelf: 'center',
-              elevation: 5 - stackIndex, // for Android shadow
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 3.84,
-            },
+            card.type === 'affirmation'
+              ? {
+                  backgroundColor: 'transparent',
+                  borderRadius: 28,
+                  elevation: 0,
+                  shadowColor: 'transparent',
+                  // keep transforms for stacking effect
+                  transform: !isTopCard ? [
+                    { scaleX },
+                    { scaleY },
+                    { translateY },
+                  ] : undefined,
+                  zIndex,
+                  opacity: !isTopCard ? opacity : 1,
+                  position: stackIndex === 0 ? 'relative' : 'absolute',
+                  top: 0,
+                  left: undefined,
+                  right: undefined,
+                  bottom: 0,
+                  alignSelf: 'center',
+                }
+              : {
+                  backgroundColor: getCardColor(stackIndex),
+                  transform: !isTopCard ? [
+                    { scaleX },
+                    { scaleY },
+                    { translateY },
+                  ] : undefined,
+                  zIndex,
+                  opacity: !isTopCard ? opacity : 1,
+                  position: stackIndex === 0 ? 'relative' : 'absolute',
+                  top: 0,
+                  left: undefined,
+                  right: undefined,
+                  bottom: 0,
+                  alignSelf: 'center',
+                  elevation: 5 - stackIndex, // for Android shadow
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 3.84,
+                },
             extraStyle,
           ]}
         >
           {card.type === 'truth' ? (
             <TruthInLoveCard 
-              truth={playbook.truthInLove.truth} 
+              truth={playbook.truthInLove.truth}
               summary={playbook.truthInLove.summary}
               style={{ flex: 1, padding: 32 }}
             />
           ) : card.type === 'action' ? (
             <ActionStepsCard 
-              steps={playbook.actionSteps}
-              onToggleStep={toggleStepCompletion}
-              style={{ padding: 24 }}
+              steps={actionSteps}
+              onToggleStep={handleToggleStep}
+              style={{ flex: 1, padding: 24 }}
             />
           ) : card.type === 'affirmation' ? (
-            <View style={{ flex: 1, padding: 24 }}>
-              <View style={styles.affirmationsContainer}>
-                <View style={styles.affirmationsHeader}>
-                  <MaterialCommunityIcons 
-                    name="format-quote-open" 
-                    size={24} 
-                    color={Colors.growthGreen} 
-                    style={styles.icon}
-                  />
-                  <Text style={styles.affirmationsTitle}>Affirmations</Text>
-                </View>
-                <View style={styles.affirmationsList}>
-                  {playbook.affirmations?.slice(0, 3).map(affirmation => (
-                    <AffirmationCard 
-                      key={affirmation.id}
-                      id={affirmation.id}
-                      text={affirmation.text} 
-                      completed={affirmation.completed} 
-                    />
-                  ))}
-                </View>
-              </View>
-            </View>
+            <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}> 
+  <View style={styles.affirmationsHeader}>
+    <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
+    <Text style={styles.affirmationsTitle}>Affirmations</Text>
+  </View>
+  <View style={styles.affirmationsList}>
+    {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
+      card.affirmations.map((affirmation) => (
+        <AffirmationCard
+          key={affirmation.id}
+          id={affirmation.id}
+          text={affirmation.text}
+          completed={affirmation.completed}
+        />
+      ))
+    ) : (
+      <Text style={{ color: '#fff', textAlign: 'center' }}>No affirmations</Text>
+    )}
+  </View>
+</View>
           ) : card.type === 'bible' ? (
-            <>
-              {currentCard === 0 && stackIndex === 0 ? (
-                <Animated.View style={[{ flex: 1, backgroundColor: getCardColor(stackIndex) }, animatedCardStyle]}>
-                  <BibleVerseCard verse={playbook.bibleVerse} />
-                </Animated.View>
-              ) : (
-                <BibleVerseCard verse={playbook.bibleVerse} style={{ flex: 1, backgroundColor: getCardColor(stackIndex) }} />
-              )}
-            </>
+            <BibleVerseCard verse={card.verse} />
           ) : card.type === 'challenge' ? (
-            <DirectChallengeCard challenge={playbook.directChallenge} />
+            <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
+              <DirectChallengeCard challenge={playbook.directChallenge} />
+            </View>
           ) : (
-              <View style={{ flex: 1, padding: 24 }}>
-                {/* Render fallback for unknown type, or nothing */}
-              </View>
-            )}
+            <View style={{ flex: 1, padding: 24 }}>
+              {/* Render fallback for unknown type, or nothing */}
+            </View>
+          )}
         </TouchableOpacity>
       );
     };
@@ -660,65 +658,43 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       style={styles.docContainer}
       contentContainerStyle={styles.docContentContainer}
     >
-      {cardData.map((card) => {
-        if (card.type === 'truth') {
-          return (
-            <TruthInLoveCard 
-              key={card.type}
-              truth={playbook.truthInLove.truth} 
-              summary={playbook.truthInLove.summary}
-              expanded={true}
-              style={[styles.docCard, styles.truthCard]}
-            />
-          );
-        } else if (card.type === 'action') {
-          return (
-            <ActionStepsCard 
-              key={card.type}
-              steps={playbook.actionSteps}
-              onToggleStep={toggleStepCompletion}
-              style={[styles.docCard, styles.actionCard]}
-            />
-          );
-        } else if (card.type === 'affirmation') {
-          // Show only the first 3 affirmations in document view
-          const affirmations = playbook.affirmations || [];
-          const limitedAffirmations = affirmations.slice(0, 3);
-          return (
-            <View key={card.type} style={[styles.docCard, styles.truthCard]}>
-              <View style={{ flex: 1 }}>
-                <View style={styles.affirmationsContainer}>
-                  <View style={styles.affirmationsHeader}>
-                    <MaterialCommunityIcons 
-                      name="format-quote-open" 
-                      size={24} 
-                      color={Colors.growthGreen} 
-                      style={styles.icon}
-                    />
-                    <Text style={styles.affirmationsTitle}>Affirmations</Text>
-                  </View>
-                  <View style={styles.affirmationsList}>
-                    {limitedAffirmations.map(affirmation => (
-                      <AffirmationCard 
-                        key={affirmation.id}
-                        id={affirmation.id}
-                        text={affirmation.text} 
-                        completed={affirmation.completed} 
-                      />
-                    ))}
-                  </View>
-                </View>
-              </View>
-            </View>
-          );
-        } else {
-          return (
-            <View key={card.type} style={[styles.docCard, styles.defaultCard]}>
-              {/* Render fallback for unknown type, or nothing */}
-            </View>
-          );
-        }
-      })}
+      <TruthInLoveCard 
+        key="truth"
+        truth={playbook.truthInLove?.truth} 
+        summary={playbook.truthInLove?.summary}
+        expanded={true}
+        style={[styles.docCard, styles.truthCard]}
+      />
+      <ActionStepsCard 
+        key="action"
+        steps={actionSteps}
+        onToggleStep={handleToggleStep}
+        style={[styles.docCard, styles.actionCard]}
+      />
+      <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}> 
+  <View style={styles.affirmationsHeader}>
+    <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
+    <Text style={styles.affirmationsTitle}>Affirmations</Text>
+  </View>
+  <View style={styles.affirmationsList}>
+    {playbook.affirmations?.map((affirmation) => (
+      <AffirmationCard 
+        key={affirmation.id}
+        id={affirmation.id}
+        text={affirmation.text} 
+        completed={affirmation.completed} 
+      />
+    ))}
+  </View>
+</View>
+<BibleVerseCard 
+  key="bible"
+  verse={playbook.bibleVerse} 
+  style={[styles.docCard, styles.bibleCard]}
+/>
+<View key="challenge" style={styles.challengeCard}>
+  <DirectChallengeCard challenge={playbook.directChallenge} />
+</View>
     </ScrollView>
   );
 
@@ -726,7 +702,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     <View style={styles.container}>
       {renderHeader()}
       {renderContent()}
-      {currentCard === 0 && (
+      {/* SwipeUpIndicator only in stack view */}
+      {viewMode === 'stack' && currentCard === 0 && (
         <View style={styles.swipeUpIndicatorContainer}>
           <SwipeUpIndicator />
         </View>
@@ -1007,6 +984,43 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
     width: '100%',
+    alignSelf: 'center',
+  },
+  affirmationsCard: {
+    backgroundColor: Colors.anchorBlue, // fully opaque
+    borderRadius: 28,
+    padding: 24,
+    // Removed marginBottom to avoid faded bottom in stack view
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+    width: '100%',
+    alignSelf: 'center',
+    flex: 1, // fill parent for full coverage
+  },
+  bibleCard: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 28,
+    padding: 24,
+    marginBottom: 16,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  challengeCard: {
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 28,
+    padding: 16, // Reduced padding for document view
+    marginBottom: 16,
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+    width: '100%', // Same as bibleCard
     alignSelf: 'center',
   },
 

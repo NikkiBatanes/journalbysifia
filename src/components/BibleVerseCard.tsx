@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   verseText: {
-    fontFamily: Fonts.lora.italic,
+    fontFamily: Fonts.lora.italic, // Lora Italic for beautiful serif italics
     fontSize: 18,
     lineHeight: 28,
     color: 'rgba(255, 255, 255, 0.95)',
@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     fontWeight: '400',
     width: '100%',
+    fontStyle: 'italic', // Ensure italic rendering
   },
   reference: {
     fontFamily: 'Inter-SemiBold',

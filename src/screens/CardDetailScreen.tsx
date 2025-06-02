@@ -7,6 +7,7 @@ import PlaybookHeader from '../components/PlaybookHeader';
 import { Colors } from '../theme';
 import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
+import { useActionSteps } from '../context/ActionStepsContext';
 import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
@@ -48,7 +49,8 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       case 'truth':
         return <TruthInLoveCard {...cardData} expandedMode />;
       case 'action':
-        return <ActionStepsCard {...cardData} expandedMode />;
+        const { actionSteps, handleToggleStep } = useActionSteps();
+        return <ActionStepsCard steps={actionSteps} onToggleStep={handleToggleStep} />;
       case 'affirmation':
         return <AffirmationCard {...cardData} expandedMode />;
       case 'bible':

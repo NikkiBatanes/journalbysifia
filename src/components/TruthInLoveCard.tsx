@@ -25,18 +25,18 @@ export default function TruthInLoveCard({ truth, summary, username = 'Nikki', ex
           <Text style={styles.username}>{username}, </Text>
           <Text style={styles.summary}>{summary}</Text>
         </Text>
-        <Text 
-          style={styles.truncatedTruth} 
-          numberOfLines={5} 
-          ellipsizeMode="tail"
-        >
-          {truth}
-        </Text>
+        {expanded ? (
+          <Text style={styles.truth}>{truth}</Text>
+        ) : (
+          <Text 
+            style={styles.truncatedTruth} 
+            numberOfLines={5} 
+            ellipsizeMode="tail"
+          >
+            {truth}
+          </Text>
+        )}
       </View>
-      
-      {expanded && (
-        <Text style={styles.truth}>{truth}</Text>
-      )}
       
       {!expanded && (
         <View style={styles.footerContainer}>
