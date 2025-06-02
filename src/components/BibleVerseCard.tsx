@@ -10,61 +10,34 @@ type BibleVerse = {
 
 type BibleVerseCardProps = {
   verse: BibleVerse;
+  style?: any;
 };
 
-export default function BibleVerseCard({ verse }: BibleVerseCardProps) {
+export default function BibleVerseCard({ verse, style }: BibleVerseCardProps) {
   return (
-    <View style={styles.docCard}>
-      <View style={[styles.verseCard, styles.cardContent]}>
-        <View style={styles.headerContainer}>
-          <MaterialCommunityIcons 
-            name="book" 
-            size={24} 
-            color={Colors.hopeWhite} 
-            style={styles.icon}
-          />
-          <Text style={styles.heading}>Bible Verse</Text>
-        </View>
-        <View style={styles.verseContainer}>
-          <Text style={styles.verseText}>"{verse.text}"</Text>
-          <Text style={styles.reference}>— {verse.reference}</Text>
-        </View>
+    <View style={[styles.container, style]}>
+      <View style={styles.headerContainer}>
+        <MaterialCommunityIcons 
+          name="book" 
+          size={24} 
+          color={Colors.hopeWhite} 
+          style={styles.icon}
+        />
+        <Text style={styles.heading}>Bible Verse</Text>
+      </View>
+      <View style={styles.contentContainer}>
+        <Text style={styles.verseText}>"{verse.text}"</Text>
+        <Text style={styles.reference}>— {verse.reference}</Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  docCard: {
-    width: '100%',
-    maxWidth: '100%',
-    alignSelf: 'center',
-    borderRadius: 28,
-    margin: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-    overflow: 'hidden',
-    backgroundColor: Colors.anchorBlue,
-    minHeight: 200,
+  container: {
     flex: 1,
-  },
-  verseCard: {
-    width: '100%',
     padding: 24,
-    flex: 1,
-  },
-  cardContent: {
-    flex: 1,
-    justifyContent: 'space-between',
-  },
-  verseContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 16,
-    flex: 1,
+    backgroundColor: Colors.anchorBlue,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -81,24 +54,34 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5,
   },
+  contentContainer: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    paddingTop: 20, // Equivalent to 2 lines of text (24px line height * 2)
+    width: '100%',
+  },
   verseText: {
     fontFamily: Fonts.lora.italic,
     fontSize: 18,
     lineHeight: 28,
     color: 'rgba(255, 255, 255, 0.95)',
-    marginBottom: 12,
-    textAlign: 'center',
+    textAlign: 'left',
     paddingHorizontal: 8,
+    fontWeight: '400',
+    width: '100%',
   },
   reference: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.9)',
-    textAlign: 'center',
+    textAlign: 'right',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginTop: 8,
+    marginTop: 40, // Increased from 16 to 40 to move the reference text down
     fontWeight: '600',
     opacity: 0.9,
+    paddingHorizontal: 8,
+    alignSelf: 'flex-end',
   },
 });

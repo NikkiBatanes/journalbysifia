@@ -507,7 +507,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               </View>
             </View>
           ) : card.type === 'bible' ? (
-            <BibleVerseCard verse={playbook.bibleVerse} />
+            <BibleVerseCard verse={playbook.bibleVerse} style={{ flex: 1, backgroundColor: getCardColor(stackIndex) }} />
           ) : card.type === 'challenge' ? (
             <DirectChallengeCard challenge={playbook.directChallenge} />
           ) : (

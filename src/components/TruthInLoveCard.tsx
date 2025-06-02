@@ -42,6 +42,7 @@ export default function TruthInLoveCard({ truth, summary, username = 'Nikki', ex
         <View style={styles.footerContainer}>
           <View style={styles.swipeHint}>
             <Text style={styles.swipeText}>Swipe up to continue</Text>
+            <Ionicons name="arrow-up" size={16} color="rgba(255, 255, 255, 0.6)" style={styles.arrowIcon} />
           </View>
           <View style={styles.expandHint}>
             <MaterialCommunityIcons name="arrow-expand" size={24} color={Colors.faithGold} style={styles.expandIcon} />
@@ -119,7 +120,9 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.6)',
     marginLeft: 4,
   },
-
+  arrowIcon: {
+    marginLeft: 4,
+  },
   expandHint: {
     position: 'absolute',
     right: 8,  // Moved 8px closer to the corner
