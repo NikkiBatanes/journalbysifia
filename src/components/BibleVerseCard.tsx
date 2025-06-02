@@ -14,8 +14,8 @@ type BibleVerseCardProps = {
 
 export default function BibleVerseCard({ verse }: BibleVerseCardProps) {
   return (
-    <View style={{ flex: 1, padding: 24 }}>
-      <View style={styles.cardContent}>
+    <View style={styles.docCard}>
+      <View style={[styles.verseCard, styles.cardContent]}>
         <View style={styles.headerContainer}>
           <MaterialCommunityIcons 
             name="book" 
@@ -36,8 +36,8 @@ export default function BibleVerseCard({ verse }: BibleVerseCardProps) {
 
 const styles = StyleSheet.create({
   docCard: {
+    flex: 1,
     width: '100%',
-    height: '100%',
     maxWidth: '100%',
     alignSelf: 'center',
     borderRadius: 28,
@@ -48,11 +48,11 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     overflow: 'hidden',
+    backgroundColor: Colors.anchorBlue,
   },
   verseCard: {
-    backgroundColor: Colors.anchorBlue,
-    padding: 24,
     flex: 1,
+    padding: 24,
   },
   cardContent: {
     flex: 1,
