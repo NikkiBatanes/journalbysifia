@@ -58,7 +58,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
-    paddingTop: 20, // Equivalent to 2 lines of text (24px line height * 2)
+    paddingTop: 20, // Space above the verse text
+    paddingBottom: 5, // Space below the reference text
     width: '100%',
   },
   verseText: {
