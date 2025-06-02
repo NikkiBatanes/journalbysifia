@@ -480,7 +480,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             <ActionStepsCard 
               steps={playbook.actionSteps}
               onToggleStep={toggleStepCompletion}
-              style={{ flex: 1, padding: 24 }}
+              style={{ padding: 24 }}
             />
           ) : card.type === 'affirmation' ? (
             <View style={{ flex: 1, padding: 24 }}>

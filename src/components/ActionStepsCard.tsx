@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   stepsContainer: {
-    flex: 1,
+    // flex: 1 removed to avoid layout delay and pop-in effect
   },
   stepCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
