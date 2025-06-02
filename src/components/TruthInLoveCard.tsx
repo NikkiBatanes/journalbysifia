@@ -72,6 +72,9 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     flex: 1,
+    justifyContent: 'flex-start',
+    paddingBottom: 20, // Reduced padding to 20
+    maxHeight: '80%', // Limit height to prevent overflow
   },
   content: {
     fontFamily: 'Inter-Regular',
@@ -102,13 +105,15 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: Colors.hopeWhite,
     opacity: 0.8,
-    marginTop: 2, // Reduced from 8 to 2
+    marginTop: 2,
+    flexShrink: 1, // Allow text to shrink if needed
   },
   footerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginTop: 'auto',
+    marginTop: 8,
+    minHeight: 32, // Ensure consistent height for the footer
   },
   swipeHint: {
     flexDirection: 'row',
@@ -125,8 +130,8 @@ const styles = StyleSheet.create({
   },
   expandHint: {
     position: 'absolute',
-    right: 8,  // Moved 8px closer to the corner
-    bottom: 0,  // Positioned at the very bottom
+    right: 8,
+    bottom: 8,
   },
   expandIcon: {
     opacity: 0.9,

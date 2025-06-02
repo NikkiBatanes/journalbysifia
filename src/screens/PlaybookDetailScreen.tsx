@@ -495,7 +495,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   <Text style={styles.affirmationsTitle}>Affirmations</Text>
                 </View>
                 <View style={styles.affirmationsList}>
-                  {playbook.affirmations.slice(0, 3).map(affirmation => (
+                  {playbook.affirmations?.slice(0, 3).map(affirmation => (
                     <AffirmationCard 
                       key={affirmation.id}
                       id={affirmation.id}
