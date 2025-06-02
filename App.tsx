@@ -47,6 +47,7 @@ import UserInputScreen from './src/screens/UserInputScreen';
 import PlaybookListScreen from './src/screens/PlaybookListScreen';
 import UserProfileScreen from './src/screens/UserProfileScreen';
 import PlaybookDetailScreen from './src/screens/PlaybookDetailScreen';
+import CardDetailScreen from './src/screens/CardDetailScreen';
 
 // Types
 import { RootStackParamList, BottomTabParamList } from './src/navigation/types';
@@ -257,7 +258,37 @@ function App(): React.JSX.Element {
                   }
                 }}
               />
-            </>
+            <Stack.Screen 
+              name="CardDetail"
+              component={CardDetailScreen as React.ComponentType}
+              options={({ navigation }) => ({
+                headerShown: true,
+                title: '',
+                headerBackVisible: false,
+                headerLeft: () => (
+                  <TouchableOpacity 
+                    onPress={() => navigation.goBack()}
+                    style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
+                  >
+                    <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+                  </TouchableOpacity>
+                ),
+                headerRight: () => (
+                  <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
+                    <Image 
+                      source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} 
+                      style={{ width: 32, height: 32, borderRadius: 16 }}
+                      resizeMode="cover"
+                    />
+                  </View>
+                ),
+                headerStyle: {
+                  backgroundColor: '#f2f5f7',
+                },
+                headerShadowVisible: false,
+              })}
+            />
+          </>
           ) : (
             <Stack.Screen name="AuthStack">
               {() => <AuthStack onLogin={handleLogin} />}

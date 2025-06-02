@@ -24,6 +24,7 @@ import DirectChallengeCard from '../components/DirectChallengeCard';
 import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import { Playbook } from '../interfaces/playbook';
 import { getMockPlaybook } from '../mocks/playbookMocks';
+import PlaybookHeader from '../components/PlaybookHeader';
 
 // Types
 type PlaybookScreenProps = {
@@ -306,6 +307,19 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     }
   };
 
+  // Handle card press to navigate to detail view
+  const handleCardPress = (cardType: string, cardData: any) => {
+    navigation.navigate('CardDetail', {
+      cardType,
+      cardData,
+      playbook,
+      progress: playbook.progress,
+      totalTasks: playbook.totalTasks,
+      viewMode,
+      onToggleView: setViewMode,
+    });
+  };
+
   // State for toggling user input card
   const [showUserInput, setShowUserInput] = useState(false);
   
@@ -343,7 +357,22 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Main content container with proper spacing
   const renderContent = () => (
     <View style={styles.contentContainer}>
-      {renderPlaybookInfo()}
+      <View>
+        <PlaybookHeader
+          title={playbook.title}
+          subtitle={new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+          })}
+          progress={playbook.progress}
+          totalTasks={playbook.totalTasks}
+          showToggle={true}
+          viewMode={viewMode}
+          onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
+          onPlaybookLabelPress={() => setShowUserInput((prev) => !prev)}
+          showUserInput={showUserInput}
+          userInput={playbook.userInput}
+        />
+      </View>
       <View style={styles.mainContainer}>
         {viewMode === 'stack' ? renderStackCards() : renderDocumentCards()}
       </View>
@@ -506,8 +535,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const extraStyle = isTopCard ? animatedCardStyle : {};
       // For back cards, use only static transforms and opacity (not tied to animation)
       return (
-        <CardContainer
+        <TouchableOpacity 
           key={`${cardIndex}-${stackIndex}`}
+          activeOpacity={0.9}
+          onPress={() => isTopCard && handleCardPress(card.type, card)}
           style={[
             styles.stackCard,
             {
@@ -588,7 +619,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 {card.component()}
               </View>
             )}
-        </CardContainer>
+        </TouchableOpacity>
       );
     };
     
@@ -611,7 +642,48 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           onGestureEvent={gestureHandler}
         >
           <Animated.View style={[animatedCardStyle, { width: '100%', position: 'relative', zIndex: 200 }]}> 
-            {renderCard(currentCard, 0)}
+            {/* Tap-to-expand: always enable for demonstration; refine with truncation logic if needed */}
+              <TouchableOpacity
+                activeOpacity={0.85}
+                style={{ flex: 1 }}
+                onPress={() => {
+                  let cardType = cardData[currentCard].type;
+                  let cardDataForDetail: any = {};
+                  if (cardType === 'truth') {
+                    cardDataForDetail = {
+                      truth: playbook.truthInLove.truth,
+                      summary: playbook.truthInLove.summary
+                    };
+                  } else if (cardType === 'action') {
+                    cardDataForDetail = {
+                      steps: playbook.actionSteps
+                    };
+                  } else if (cardType === 'affirmation') {
+                    cardDataForDetail = {
+                      affirmations: playbook.affirmations
+                    };
+                  } else if (cardType === 'bible') {
+                    cardDataForDetail = {
+                      verse: playbook.bibleVerse
+                    };
+                  } else if (cardType === 'challenge') {
+                    cardDataForDetail = {
+                      challenge: playbook.directChallenge
+                    };
+                  }
+                  navigation.navigate('CardDetail', {
+                    cardType,
+                    cardData: cardDataForDetail,
+                    playbook,
+                    progress: currentCard + 1,
+                    totalTasks: cardData.length,
+                    viewMode,
+                    onToggleView: undefined // Optionally pass if needed
+                  });
+                }}
+              >
+                {renderCard(currentCard, 0)}
+              </TouchableOpacity>
           </Animated.View>
         </PanGestureHandler>
       </View>

@@ -9,6 +9,15 @@ export type RootStackParamList = {
   // Main App
   MainTabs: undefined;
   PlaybookDetail: { playbook: Playbook };
+  CardDetail: {
+    cardType: string;
+    cardData: any;
+    playbook: any;
+    progress: number;
+    totalTasks: number;
+    viewMode: 'stack' | 'document';
+    onToggleView: (mode: 'stack' | 'document') => void;
+  };
 };
 
 export type BottomTabParamList = {
