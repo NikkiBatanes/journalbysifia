@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, useAnimatedGestureHandler, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedGestureHandler, withSpring, withTiming, runOnJS, withSequence } from 'react-native-reanimated';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -21,6 +21,7 @@ import ActionStepsCard from '../components/ActionStepsCard';
 import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
+import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import { Playbook } from '../interfaces/playbook';
 import { getMockPlaybook } from '../mocks/playbookMocks';
 
@@ -206,10 +207,48 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
   });
 
+  // Nudge animation for the first card and bounce for new front cards
+  const nudgeY = useSharedValue(0);
+  const bounceY = useSharedValue(0);
+  const prevCardRef = useRef(currentCard);
+
+  // Handle card change animations
+  React.useEffect(() => {
+    // First card nudge animation
+    if (currentCard === 0) {
+      nudgeY.value = withSequence(
+        withTiming(-24, { duration: 350 }),
+        withTiming(0, { duration: 350 }),
+        withTiming(-14, { duration: 250 }),
+        withTiming(0, { duration: 250 }),
+        withTiming(-8, { duration: 180 }),
+        withTiming(0, { duration: 180 })
+      );
+    }
+
+    // Slower, more deliberate bounce animation when a new card becomes the front card
+    if (currentCard !== prevCardRef.current) {
+      bounceY.value = withSequence(
+        withTiming(-15, { duration: 100 }), // Slower upward movement
+        withSpring(0, { 
+          damping: 12,  // Slightly reduced damping for a more fluid motion
+          stiffness: 100, // Reduced stiffness for slower movement
+          mass: 1.5, // Increased mass for more weight
+          overshootClamping: false
+        })
+      );
+      prevCardRef.current = currentCard;
+    }
+  }, [currentCard]);
+
   const animatedCardStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateY: translateY.value }
+        { 
+          translateY: translateY.value + 
+            (currentCard === 0 ? nudgeY.value : 0) + 
+            (currentCard > 0 ? bounceY.value : 0)
+        }
       ]
     };
   });
@@ -533,14 +572,22 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               </View>
             </View>
           ) : card.type === 'bible' ? (
-            <BibleVerseCard verse={playbook.bibleVerse} style={{ flex: 1, backgroundColor: getCardColor(stackIndex) }} />
+            <>
+              {currentCard === 0 && stackIndex === 0 ? (
+                <Animated.View style={[{ flex: 1, backgroundColor: getCardColor(stackIndex) }, animatedCardStyle]}>
+                  <BibleVerseCard verse={playbook.bibleVerse} />
+                </Animated.View>
+              ) : (
+                <BibleVerseCard verse={playbook.bibleVerse} style={{ flex: 1, backgroundColor: getCardColor(stackIndex) }} />
+              )}
+            </>
           ) : card.type === 'challenge' ? (
             <DirectChallengeCard challenge={playbook.directChallenge} />
           ) : (
-            <View style={{ flex: 1, padding: 24 }}>
-              {card.component()}
-            </View>
-          )}
+              <View style={{ flex: 1, padding: 24 }}>
+                {card.component()}
+              </View>
+            )}
         </CardContainer>
       );
     };
@@ -643,6 +690,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     <View style={styles.container}>
       {renderHeader()}
       {renderContent()}
+      {currentCard === 0 && (
+        <View style={styles.swipeUpIndicatorContainer}>
+          <SwipeUpIndicator />
+        </View>
+      )}
     </View>
   );
 }
@@ -651,6 +703,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
+    position: 'relative',
+  },
+  swipeUpIndicatorContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
   },
   cardStackContainer: {
     flex: 1,

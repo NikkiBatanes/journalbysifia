@@ -40,10 +40,6 @@ export default function TruthInLoveCard({ truth, summary, username = 'Nikki', ex
       
       {!expanded && (
         <View style={styles.footerContainer}>
-          <View style={styles.swipeHint}>
-            <Text style={styles.swipeText}>Swipe up to continue</Text>
-            <Ionicons name="arrow-up" size={16} color="rgba(255, 255, 255, 0.6)" style={styles.arrowIcon} />
-          </View>
           <View style={styles.expandHint}>
             <MaterialCommunityIcons name="arrow-expand" size={24} color={Colors.faithGold} style={styles.expandIcon} />
           </View>
@@ -110,28 +106,15 @@ const styles = StyleSheet.create({
   },
   footerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: 8,
-    minHeight: 32, // Ensure consistent height for the footer
-  },
-  swipeHint: {
-    flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-  },
-  swipeText: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginLeft: 4,
-  },
-  arrowIcon: {
-    marginLeft: 4,
+    marginTop: 'auto',
+    paddingTop: 16,
   },
   expandHint: {
-    position: 'absolute',
-    right: 8,
-    bottom: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    padding: 8,
+    borderRadius: 20,
   },
   expandIcon: {
     opacity: 0.9,
