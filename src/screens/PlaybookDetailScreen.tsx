@@ -60,7 +60,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const gestureHandlerRef = useRef(null);
   const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
   const translateY = useSharedValue(0);
-  const isTransitioning = useRef(false);
+  const isTransitioning = useSharedValue(false);
 
   // View state
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
@@ -135,7 +135,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       goToPrevCard();
     }
     translateY.value = 0;
-    isTransitioning.current = false;
+    isTransitioning.value = false;
   };
 
   // Shared values for worklet access
@@ -155,15 +155,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       ctx.startY = translateY.value;
     },
     onActive: (event, ctx: any) => {
-      if (!isTransitioning.current) {
+      if (!isTransitioning.value) {
         translateY.value = ctx.startY + event.translationY;
       }
     },
     onEnd: (event, ctx: any) => {
-      if (isTransitioning.current) return;
+      if (isTransitioning.value) return;
       if (event.translationY < -SWIPE_THRESHOLD && currentCardIndex.value < cardCount.value - 1) {
         // Only allow swipe up if not on last card
-        isTransitioning.current = true;
+        isTransitioning.value = true;
         translateY.value = withTiming(-700, { duration: 250 }, (finished) => {
           if (finished) {
             runOnJS(onSwipeComplete)('up');
@@ -171,7 +171,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         });
       } else if (event.translationY > SWIPE_THRESHOLD && currentCardIndex.value > 0) {
         // Only allow swipe down if not on first card
-        isTransitioning.current = true;
+        isTransitioning.value = true;
         translateY.value = withTiming(700, { duration: 250 }, (finished) => {
           if (finished) {
             runOnJS(onSwipeComplete)('down');
