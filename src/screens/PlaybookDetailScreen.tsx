@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { PanGestureHandler, PanGestureHandlerGestureEvent, State as GestureState } from 'react-native-gesture-handler';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -54,6 +55,23 @@ const usePlaybook = (playbook: Playbook) => {
 
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
+  // --- Gesture handler hooks and logic for swipe navigation ---
+  const gestureHandlerRef = useRef(null);
+  const SWIPE_THRESHOLD = 40;
+  // Handle gesture events (no-op, required by PanGestureHandler)
+  const onGestureEvent = () => {};
+  // Handle gesture end
+  const onHandlerStateChange = (event: PanGestureHandlerGestureEvent) => {
+    if (event.nativeEvent.state === GestureState.END) {
+      const { translationY } = event.nativeEvent;
+      if (translationY < -SWIPE_THRESHOLD) {
+        goToNextCard();
+      } else if (translationY > SWIPE_THRESHOLD) {
+        goToPrevCard();
+      }
+    }
+  };
+
   const { playbook: routePlaybook } = route.params;
   const { playbook: initialPlaybook, loading } = usePlaybook(routePlaybook);
   const [playbook, setPlaybook] = useState(initialPlaybook);
@@ -379,9 +397,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               opacity,
               position: stackIndex === 0 ? 'relative' : 'absolute',
               top: 0,
-              left: 0,
-              right: 0,
+              left: undefined,
+              right: undefined,
               bottom: 0,
+              alignSelf: 'center',
               elevation: 5 - stackIndex, // for Android shadow
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
@@ -443,44 +462,26 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     
     // Generate the stack of cards
     const cardStack = [];
-    for (let i = 0; i < visibleCardCount; i++) {
-      cardStack.push(renderCard(currentCard + i, i));
-    }
-    
     return (
-      <View style={styles.stackContainer}>
-        {/* Stack of cards */}
-        <View style={styles.cardStackContainer}>
-          {cardStack}
-        </View>
-        
-        {/* Navigation controls */}
-        <View style={styles.cardNavigation}>
-          <TouchableOpacity 
-            style={[styles.navButton, currentCard === 0 && styles.navButtonDisabled]} 
-            onPress={goToPrevCard}
-            disabled={currentCard === 0}
-          >
-            <Ionicons name="arrow-up" size={24} color={currentCard === 0 ? "#ccc" : "#fff"} />
-            <Text style={styles.navButtonText}>Previous</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.cardIndicator}>
-            <Text style={styles.cardIndicatorText}>
-              {currentCard + 1} / {cardData.length}
-            </Text>
+      <>
+        <PanGestureHandler
+          ref={gestureHandlerRef}
+          onGestureEvent={onGestureEvent}
+          onHandlerStateChange={onHandlerStateChange}
+          activeOffsetY={[-10, 10]} // Only trigger on vertical movement
+        >
+          <View style={styles.cardStackContainer}>
+            {/* Stack cards - render from back to front for correct stacking */}
+            {Array.from({ length: visibleCardCount }).map((_, i, arr) => {
+              // Reverse order: furthest back rendered first, top card last
+              const stackIndex = arr.length - 1 - i;
+              const cardIndex = currentCard + stackIndex;
+              return renderCard(cardIndex, stackIndex);
+            })}
           </View>
-          
-          <TouchableOpacity 
-            style={[styles.navButton, currentCard === cardData.length - 1 && styles.navButtonDisabled]} 
-            onPress={goToNextCard}
-            disabled={currentCard === cardData.length - 1}
-          >
-            <Text style={styles.navButtonText}>Next</Text>
-            <Ionicons name="arrow-down" size={24} color={currentCard === cardData.length - 1 ? "#ccc" : "#fff"} />
-          </TouchableOpacity>
-        </View>
-      </View>
+        </PanGestureHandler>
+
+      </>
     );
   };
 
