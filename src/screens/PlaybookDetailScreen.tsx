@@ -319,23 +319,77 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     );
   };
 
-  // Stack Card View
+  // Stack Card View with fan-out effect
   const renderStackCards = () => {
     if (cardData.length === 0) return null;
     
+    // Number of cards to show in the stack (all cards)
+    const visibleCardCount = Math.min(5, cardData.length - currentCard);
+    
     // Helper to calculate color based on card type
-    const getCardColor = () => {
-      // Return the anchor blue color for all cards
-      return Colors.anchorBlue;
+    const getCardColor = (index: number) => {
+      // For the last card, return the original color
+      if (index >= cardData.length - 1) {
+        return Colors.anchorBlue;
+      }
+      
+      // Lighten the anchor blue color for cards in the back (except last)
+      const lightenAmount = index * 0.15; // 15% lighter per card
+      const color = Colors.anchorBlue;
+      // Convert hex to RGB
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      // Lighten the color by moving towards white
+      const lighten = (value: number) => Math.min(255, Math.floor(value + (255 - value) * lightenAmount));
+      // Convert back to hex
+      const toHex = (value: number) => Math.round(value).toString(16).padStart(2, '0');
+      return `#${toHex(lighten(r))}${toHex(lighten(g))}${toHex(lighten(b))}`;
     };
     
-    // Current card to display
-    const card = cardData[currentCard];
-    
-    return (
-      <View style={styles.stackContainer}>
-        {/* Current card */}
-        <View style={[styles.stackCard, { backgroundColor: getCardColor() }]}>
+    // Render a single card
+    const renderCard = (cardIndex: number, stackIndex: number) => {
+      const card = cardData[cardIndex];
+      if (!card) return null;
+      
+      // Calculate scale and offset for the fan-out effect
+      // Scale width more than height for a better visual effect
+      const scaleY = 1 - (stackIndex * 0.01); // Very subtle vertical scaling
+      const scaleX = 1 - (stackIndex * 0.03); // More pronounced horizontal scaling
+      const translateY = stackIndex * 8;
+      const zIndex = 100 - stackIndex;
+      // Reduce opacity for the last card when it's in the stack, but not when it's the current card
+      const isLastCard = cardIndex === cardData.length - 1;
+      const isCurrentCard = cardIndex === currentCard;
+      const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
+      
+      return (
+        <View 
+          key={`${cardIndex}-${stackIndex}`}
+          style={[
+            styles.stackCard, 
+            { 
+              backgroundColor: getCardColor(stackIndex),
+              transform: [
+                { scaleX },
+                { scaleY },
+                { translateY },
+              ],
+              zIndex,
+              opacity,
+              position: stackIndex === 0 ? 'relative' : 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              elevation: 5 - stackIndex, // for Android shadow
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+            }
+          ]}
+        >
           {card.type === 'truth' ? (
             <TruthInLoveCard 
               truth={playbook.truthInLove.truth} 
@@ -383,6 +437,21 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               {card.component()}
             </View>
           )}
+        </View>
+      );
+    };
+    
+    // Generate the stack of cards
+    const cardStack = [];
+    for (let i = 0; i < visibleCardCount; i++) {
+      cardStack.push(renderCard(currentCard + i, i));
+    }
+    
+    return (
+      <View style={styles.stackContainer}>
+        {/* Stack of cards */}
+        <View style={styles.cardStackContainer}>
+          {cardStack}
         </View>
         
         {/* Navigation controls */}
@@ -494,6 +563,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
+  },
+  cardStackContainer: {
+    flex: 1,
+    position: 'relative',
+    marginBottom: 20,
   },
   contentContainer: {
     flex: 1,
