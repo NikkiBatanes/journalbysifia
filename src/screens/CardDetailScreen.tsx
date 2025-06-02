@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { TouchableOpacity, Image, View, ScrollView, StyleSheet } from 'react-native';
+import { TouchableOpacity, Image, View, ScrollView, StyleSheet, StatusBar } from 'react-native';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -62,6 +62,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
 
   return (
     <View style={styles.container}>
+      <StatusBar backgroundColor={Colors.anchorBlue} barStyle="light-content" />
       <PlaybookHeader
         title={playbook.title}
         subtitle={new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
@@ -76,6 +77,8 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
         showUserInput={showUserInput}
         userInput={playbook.userInput}
         profileImageUri={playbook.profileImage}
+        backgroundColor={Colors.anchorBlue}
+        textColor={Colors.hopeWhite}
       />
       <ScrollView contentContainerStyle={styles.cardContainer}>
         {renderCard()}

@@ -19,6 +19,8 @@ interface PlaybookHeaderProps {
   onPlaybookLabelPress?: () => void;
   showUserInput?: boolean;
   userInput?: string;
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
@@ -35,30 +37,35 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   onPlaybookLabelPress,
   showUserInput,
   userInput,
+  backgroundColor,
+  textColor,
 }) => {
   // Split title at colons that are followed by a space (to avoid splitting Bible references like 'John 3:16')
   const titleLines = title.split(/(?<=[^0-9]):(?=[^0-9])/).map(part => part.trim()).filter(part => part.length > 0);
 
+  const bgColor = backgroundColor || Colors.hopeWhite;
+  const txtColor = textColor || Colors.anchorBlue;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.headerContainer}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: bgColor }]}> 
+      <View style={[styles.headerContainer, { backgroundColor: bgColor }]}>
         <View style={styles.headerCenter}>
           {onPlaybookLabelPress ? (
             <TouchableOpacity style={styles.row} onPress={onPlaybookLabelPress} activeOpacity={0.7}>
-              <Text style={styles.playbookLabel}>PLAYBOOK</Text>
-              <Ionicons name="chevron-down" size={15} color={Colors.anchorBlue} style={{ marginLeft: 4 }} />
+              <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
+              <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           ) : (
             <View style={styles.row}>
-              <Text style={styles.playbookLabel}>PLAYBOOK</Text>
-              <Ionicons name="chevron-down" size={15} color={Colors.anchorBlue} style={{ marginLeft: 4 }} />
+              <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
+              <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
             </View>
           )}
 
           {/* Collapsible user input card between PLAYBOOK and title */}
           {showUserInput && userInput ? (
             <View style={styles.userInputCardHeader}>
-              <Text style={styles.userInputTextHeader}>{userInput}</Text>
+              <Text style={[styles.userInputTextHeader, { color: txtColor }]}>{userInput}</Text>
             </View>
           ) : null}
 
@@ -67,18 +74,19 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
               key={index} 
               style={[
                 styles.title, 
-                index > 0 && { marginTop: -4 } // Slight negative margin for visual consistency
+                { color: txtColor },
+                index > 0 && { marginTop: -4 }
               ]}
             >
               {line}{index < titleLines.length - 1 ? ':' : ''}
             </Text>
           ))}
-          {subtitle ? <Text style={styles.subtitle}>{subtitle.toUpperCase()}</Text> : null}
+          {subtitle ? <Text style={[styles.subtitle, { color: txtColor }]}>{subtitle.toUpperCase()}</Text> : null}
           <View style={styles.progressRow}>
             <View style={styles.progressBarBg}>
               <View style={[styles.progressBarFill, { width: `${(progress / totalTasks) * 100}%` }]} />
             </View>
-            <Text style={styles.progressText}>{progress}/{totalTasks} Tasks</Text>
+            <Text style={[styles.progressText, { color: txtColor }]}>{progress}/{totalTasks} Tasks</Text>
             {showToggle && (
               <View style={styles.toggleRow}>
                 <TouchableOpacity
