@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     marginTop: 0, // Reset negative margin
-    marginBottom: -10,
+    marginBottom: 0,
   },
   playbookHeader: {
     marginBottom: 8,
