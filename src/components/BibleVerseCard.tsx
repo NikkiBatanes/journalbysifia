@@ -36,12 +36,11 @@ export default function BibleVerseCard({ verse }: BibleVerseCardProps) {
 
 const styles = StyleSheet.create({
   docCard: {
-    flex: 1,
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'center',
     borderRadius: 28,
-    marginBottom: 16,
+    margin: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
@@ -49,21 +48,23 @@ const styles = StyleSheet.create({
     elevation: 8,
     overflow: 'hidden',
     backgroundColor: Colors.anchorBlue,
+    minHeight: 200,
+    flex: 1,
   },
   verseCard: {
-    flex: 1,
+    width: '100%',
     padding: 24,
+    flex: 1,
   },
   cardContent: {
     flex: 1,
     justifyContent: 'space-between',
   },
   verseContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 16,
-    minHeight: 200, // Ensure minimum height for content visibility
+    flex: 1,
   },
   headerContainer: {
     flexDirection: 'row',
