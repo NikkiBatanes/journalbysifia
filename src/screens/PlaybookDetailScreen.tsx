@@ -55,9 +55,6 @@ const usePlaybook = (playbook: Playbook) => {
 
 
 
-// Helper: consider >350 chars as truncated for 5 lines (adjust as needed)
-const isTruthTruncated = (truth: string) => truth.length > 350;
-
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   // --- Animated swipe logic for top card ---
   const gestureHandlerRef = useRef(null);
@@ -478,19 +475,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               truth={playbook.truthInLove.truth} 
               summary={playbook.truthInLove.summary}
               style={{ flex: 1, padding: 32 }}
-              onPress={
-                isTruthTruncated(playbook.truthInLove.truth)
-                  ? () => navigation.navigate('CardDetailScreen', {
-                      card: {
-                        truth: playbook.truthInLove.truth,
-                        summary: playbook.truthInLove.summary,
-                        username: playbook.truthInLove.username || 'Nikki',
-                        index: cardIndex,
-                        total: cardData.length,
-                      },
-                    })
-                  : undefined
-              }
             />
           ) : card.type === 'action' ? (
             <ActionStepsCard 
