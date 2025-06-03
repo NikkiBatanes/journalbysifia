@@ -36,17 +36,48 @@ type PlaybookListScreenNavigationProp = StackNavigationProp<RootStackParamList, 
   navigate: (screen: 'PlaybookDetail', params: { playbook: Playbook }) => void;
 };
 
-// Calculate progress based on completed action steps
+// Calculate progress based on completed action steps and sub-tasks
 function calculateProgress(playbook: Playbook): number {
   if (!playbook.actionSteps.length) return 0;
-  const completed = playbook.actionSteps.filter(step => step.completed).length;
-  return completed / playbook.actionSteps.length;
+  
+  let totalCompleted = 0;
+  let totalTasks = 0;
+  
+  playbook.actionSteps.forEach(step => {
+    if (step.subTasks && step.subTasks.length > 0) {
+      // Count sub-tasks for steps that have them
+      const completedSubTasks = step.subTasks.filter(st => st.completed).length;
+      totalCompleted += completedSubTasks;
+      totalTasks += step.subTasks.length;
+    } else {
+      // Count regular steps that don't have sub-tasks
+      if (step.completed) totalCompleted++;
+      totalTasks++;
+    }
+  });
+  
+  return totalTasks > 0 ? totalCompleted / totalTasks : 0;
 }
 
 // Format progress text
 function formatProgress(playbook: Playbook): string {
-  const completed = playbook.actionSteps.filter(step => step.completed).length;
-  return `${completed}/${playbook.actionSteps.length} Steps`;
+  let totalCompleted = 0;
+  let totalTasks = 0;
+  
+  playbook.actionSteps.forEach(step => {
+    if (step.subTasks && step.subTasks.length > 0) {
+      // Count sub-tasks for steps that have them
+      const completedSubTasks = step.subTasks.filter(st => st.completed).length;
+      totalCompleted += completedSubTasks;
+      totalTasks += step.subTasks.length;
+    } else {
+      // Count regular steps that don't have sub-tasks
+      if (step.completed) totalCompleted++;
+      totalTasks++;
+    }
+  });
+  
+  return `${totalCompleted}/${totalTasks} Tasks`;
 }
 
 // Format date to a readable format

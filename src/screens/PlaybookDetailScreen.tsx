@@ -53,8 +53,12 @@ type CardType = typeof CARD_TYPES[number];
 // Removed usePlaybook hook to avoid duplicate playbook declarations
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  const { actionSteps, handleToggleStep } = useActionSteps();
+  const { actionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
+  
+  // Calculate progress
+  const { completed, total } = getCompletedStepsCount();
+  const progress = total > 0 ? (completed / total) * 100 : 0;
 
 
   if (!playbook) {
@@ -85,7 +89,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     {
       type: 'action' as CardType,
-      steps: playbook.actionSteps,
+      steps: actionSteps,
+      onToggleStep: handleToggleStep,
       tappable: false,
     },
     {
@@ -101,7 +106,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     {
       type: 'challenge' as CardType,
       challenge: playbook.directChallenge,
-  challengeCTA: playbook.challengeCTA,
+      challengeCTA: playbook.challengeCTA,
       tappable: false,
     },
   ];
@@ -715,11 +720,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 }
 
 const styles = StyleSheet.create({
+  // Base container styles
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
     position: 'relative',
   },
+  
+  // Swipe indicator
   swipeUpIndicatorContainer: {
     position: 'absolute',
     bottom: 30,
@@ -728,13 +736,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1000,
   },
+  
+  // Card stack container
   cardStackContainer: {
     flex: 1,
     position: 'relative',
     marginBottom: 20,
   },
+  
+  // Main content container with max width
   contentContainer: {
     flex: 1,
+    width: '100%',
+    maxWidth: 600, // Set a max-width for larger screens
+    alignSelf: 'center',
   },
   headerSafeArea: {
     backgroundColor: '#f2f5f7',
@@ -922,24 +937,151 @@ const styles = StyleSheet.create({
     elevation: 8,
     padding: 0,
     overflow: 'hidden',
-    borderWidth: 0,
-    transformOrigin: 'bottom center',
-  },
 
+playbookLabelRow: {
+flexDirection: 'row',
+alignItems: 'center',
+marginBottom: 2,
+},
+playbookLabel: {
+fontFamily: 'System',
+fontWeight: '600',
+fontSize: 12,
+lineHeight: 16,
+color: Colors.anchorBlue,
+textTransform: 'uppercase',
+letterSpacing: 1,
+marginBottom: 0,
+},
+chevronIcon: {
+marginLeft: 6,
+},
+playbookTitle: {
+fontFamily: 'System',
+fontSize: 24,
+fontWeight: '700',
+color: Colors.anchorBlue,
+marginTop: 0,
+marginBottom: 2,
+lineHeight: 34,
+},
+creationDate: {
+fontFamily: Fonts.regular,
+fontSize: 10,
+color: Colors.trustGrey,
+marginTop: 2,
+marginBottom: 12,
+textTransform: 'uppercase',
+letterSpacing: 0.4,
+opacity: 0.8,
+},
+progressAndViewRow: {
+flexDirection: 'row',
+alignItems: 'center',
+justifyContent: 'space-between',
+marginBottom: 12, // Reduced margin to bring cards up
+},
+progressContainer: {
+flex: 1,
+marginRight: 16,
+},
+progressRow: {
+flexDirection: 'row',
+alignItems: 'center',
+},
+progressBarBg: {
+flex: 1,
+height: 12,  // Increased from 8 to 12
+backgroundColor: 'rgba(26, 60, 109, 0.1)',
+borderRadius: 6,  // Increased from 4 to 6 to match the new height
+overflow: 'hidden',
+marginRight: 8,
+},
+progressBarFill: {
+height: '100%',
+backgroundColor: Colors.growthGreen,
+borderRadius: 6,  // Increased from 4 to 6 to match the new height
+},
+progressText: {
+fontFamily: 'System', // Default system font
+fontWeight: '500',
+fontSize: 12,
+lineHeight: 16,
+color: Colors.anchorBlue,
+marginRight: 4,
+},
 
-  docContainer: {
-    flex: 1,
-    backgroundColor: Colors.hopeWhite,
-  },
-  docContentContainer: {
-    paddingTop: 4, // Match stack view's paddingTop
-    paddingBottom: 60, // Match stack view's paddingBottom
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  docCard: {
-    width: SCREEN_WIDTH - 80, // Match stack card width
-    backgroundColor: Colors.hopeWhite,
+// User input card
+userInputCard: {
+backgroundColor: 'rgba(26, 60, 109, 0.05)',
+borderRadius: 8,
+padding: 12,
+marginTop: 6,
+marginBottom: 12,
+},
+userInputText: {
+fontFamily: 'System',
+fontWeight: '400',
+fontSize: 14,
+lineHeight: 20,
+color: Colors.anchorBlue,
+},
+viewToggleContainer: {
+flexDirection: 'row',
+backgroundColor: 'white',
+borderRadius: 20,
+padding: 4,
+shadowColor: '#000',
+shadowOffset: { width: 0, height: 1 },
+shadowOpacity: 0.1,
+shadowRadius: 2,
+elevation: 2,
+height: 36,
+alignItems: 'center',
+},
+viewToggle: {
+padding: 4,
+},
+iconContainer: {
+width: 28,
+height: 28,
+borderRadius: 14,
+justifyContent: 'center',
+alignItems: 'center',
+},
+iconContainerActive: {
+backgroundColor: Colors.faithGold,
+},
+viewToggleDivider: {
+width: 1,
+height: 20,
+backgroundColor: 'rgba(0, 0, 0, 0.1)',
+},
+viewToggleText: {
+fontFamily: 'System',
+fontWeight: '600',
+fontSize: 13,
+color: Colors.trustGrey,
+position: 'relative',
+overflow: 'visible',
+},
+stackCard: {
+position: 'absolute',
+width: SCREEN_WIDTH - 80,
+height: 450,
+alignSelf: 'center',
+borderRadius: 28,
+backgroundColor: Colors.anchorBlue,
+shadowColor: '#000',
+shadowOpacity: 0.2,
+shadowRadius: 12,
+shadowOffset: { width: 0, height: 6 },
+elevation: 8,
+padding: 0,
+overflow: 'hidden',
+borderWidth: 0,
+transformOrigin: 'bottom center',
+},
     borderRadius: 28, // Match stack card border radius
     marginBottom: 16,
     shadowColor: '#000',
