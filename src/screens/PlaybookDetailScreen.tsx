@@ -693,12 +693,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       />
     ))}
   </View>
-</View>
-<BibleVerseCard 
-  key="bible"
-  verse={playbook.bibleVerse} 
-  style={[styles.docCard, styles.bibleCard]}
-/>
+  </View>
+  <BibleVerseCard 
+    key="bible"
+    verse={playbook.bibleVerse} 
+    style={[styles.docCard, styles.bibleCard, { marginTop: 16 }]}
+  />
 <View key="challenge" style={styles.challengeCard}>
   <DirectChallengeCard challenge={playbook.directChallenge} challengeCTA={playbook.challengeCTA} />
 </View>
@@ -720,6 +720,33 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 }
 
 const styles = StyleSheet.create({
+  // Document view styles
+  docContainer: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+  },
+  docContentContainer: {
+    paddingTop: 4,
+    paddingBottom: 60,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    width: '100%',
+    maxWidth: 500, // Constrain max width for better readability
+    alignSelf: 'center',
+  },
+  docCard: {
+    width: '100%',
+    maxWidth: 380, // Slightly narrower for better aesthetics
+    alignSelf: 'center',
+    marginBottom: 16,
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+  },
   // Base container styles
   container: {
     flex: 1,
@@ -1132,9 +1159,9 @@ transformOrigin: 'bottom center',
   },
   affirmationsCard: {
     backgroundColor: Colors.anchorBlue, // fully opaque
+    padding: 16,
+    marginBottom: 0, // Remove bottom margin since we'll handle spacing with marginTop on bibleCard
     borderRadius: 28,
-    padding: 24,
-    // Removed marginBottom to avoid faded bottom in stack view
     shadowOpacity: 0.2,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
@@ -1145,12 +1172,14 @@ transformOrigin: 'bottom center',
   },
   bibleCard: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 28,
-    padding: 24,
-    marginBottom: 16,
+    borderRadius: 24,
+    padding: 16,
+    marginTop: 16, // Add space above BibleVerse card
+    marginBottom: 16, // Consistent bottom margin
     shadowOpacity: 0.2,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
+    shadowColor: '#000',
     elevation: 8,
     width: '100%',
     alignSelf: 'center',
