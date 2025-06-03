@@ -19,11 +19,13 @@ type ActionStep = {
 
 type ActionStepsCardProps = {
   steps: ActionStep[];
-  onToggleStep?: (stepId: string, subTaskId?: string) => void;
   style?: StyleProp<ViewStyle>;
 };
 
-export default function ActionStepsCard({ steps, onToggleStep, style }: ActionStepsCardProps) {
+import { useActionSteps } from '../context/ActionStepsContext';
+
+export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) {
+  const { handleToggleStep } = useActionSteps();
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
   const toggleStep = (id: string) => {
@@ -31,7 +33,7 @@ export default function ActionStepsCard({ steps, onToggleStep, style }: ActionSt
   };
 
   const handleToggleSubTask = (stepId: string, subTaskId: string) => {
-    onToggleStep?.(stepId, subTaskId);
+    handleToggleStep?.(stepId, subTaskId);
   };
 
   return (

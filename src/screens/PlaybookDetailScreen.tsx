@@ -90,7 +90,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     {
       type: 'action' as CardType,
       steps: actionSteps,
-      onToggleStep: handleToggleStep,
       tappable: false,
     },
     {
@@ -552,7 +551,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           ) : card.type === 'action' ? (
             <ActionStepsCard 
               steps={actionSteps}
-              onToggleStep={handleToggleStep}
               style={{ flex: 1, padding: 24 }}
             />
           ) : card.type === 'affirmation' ? (
@@ -675,7 +673,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       <ActionStepsCard 
         key="action"
         steps={actionSteps}
-        onToggleStep={handleToggleStep}
         style={[styles.docCard, styles.actionCard]}
       />
       <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}> 
