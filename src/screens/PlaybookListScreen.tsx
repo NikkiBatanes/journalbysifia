@@ -3,12 +3,13 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  FlatList, 
+  SectionList, 
   TouchableOpacity, 
   Animated, 
   Alert,
   SafeAreaView,
-  StatusBar 
+  StatusBar, 
+  Pressable
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -153,11 +154,31 @@ export default function PlaybookListScreen() {
 
   const navigation = useNavigation<PlaybookListScreenNavigationProp>();
   const [playbooks, setPlaybooks] = React.useState([...mockPlaybooks]);
-  
-  // Sort playbooks by creation date (newest first)
-  const sortedPlaybooks = [...playbooks].sort((a, b) => 
-    new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-  );
+  const [filter, setFilter] = React.useState<'all' | 'ongoing' | 'accomplished'>('all');
+
+  // Filter playbooks by completion status
+  const filteredPlaybooks = React.useMemo(() => {
+    if (filter === 'all') return playbooks;
+    if (filter === 'ongoing') return playbooks.filter(pb => pb.actionSteps.some(step => !step.completed));
+    if (filter === 'accomplished') return playbooks.filter(pb => pb.actionSteps.length > 0 && pb.actionSteps.every(step => step.completed));
+    return playbooks;
+  }, [playbooks, filter]);
+
+  // Group playbooks by month/year
+  function groupPlaybooksByMonth(playbooks: Playbook[]) {
+    const groups: { [key: string]: Playbook[] } = {};
+    playbooks.forEach(pb => {
+      const key = format(new Date(pb.createdAt), 'MMMM yyyy');
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(pb);
+    });
+    // Sort months descending (most recent first)
+    return Object.entries(groups)
+      .sort((a, b) => new Date(b[1][0].createdAt).getTime() - new Date(a[1][0].createdAt).getTime())
+      .map(([title, data]) => ({ title, data: data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) }));
+  }
+
+  const sections = React.useMemo(() => groupPlaybooksByMonth(filteredPlaybooks), [filteredPlaybooks]);
 
   const handleDelete = (id: string) => {
     Alert.alert(
@@ -203,41 +224,29 @@ export default function PlaybookListScreen() {
       >
         <View style={styles.cardContent}>
           <View style={styles.titleContainer}>
-            {(() => {
-              // Split title at first colon followed by space for two-line display
-              const titleMatch = item.title.match(/^(.+?)(?::\s|$)([^:]*)$/);
-              const firstLine = titleMatch ? titleMatch[1] + (titleMatch[2] ? ':' : '') : item.title;
-              const secondLine = titleMatch ? titleMatch[2].trim() : '';
-              
-              return (
-                <>
-                  <Text style={styles.title} numberOfLines={1}>
-                    {firstLine}
-                  </Text>
-                  {secondLine ? (
-                    <Text style={styles.subtitle} numberOfLines={1}>
-                      {secondLine}
-                    </Text>
-                  ) : null}
-                </>
-              );
-            })()}
-          </View>
-          <Text style={styles.date}>
-            {formattedDate}
-          </Text>
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBarBg}>
-              <View 
-                style={[
-                  styles.progressBarFill, 
-                  { width: `${progress}%` }
-                ]} 
-              />
-            </View>
-            <Text style={styles.progressText}>
-              {completedSteps} of {totalSteps} steps completed
+            <Text style={styles.date}>
+              {formattedDate}
             </Text>
+            <View style={styles.titleRow}>
+              <Text style={styles.title} numberOfLines={1}>
+                {item.title}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.progressContainer}>
+            <View style={styles.progressRow}>
+              <View style={styles.progressBarBg}>
+                <View 
+                  style={[
+                    styles.progressBarFill, 
+                    { width: `${progress}%` }
+                  ]} 
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {completedSteps}/{totalSteps} Tasks
+              </Text>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -248,12 +257,30 @@ export default function PlaybookListScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.header}>My Playbooks</Text>
-        <FlatList
-          data={sortedPlaybooks}
-          renderItem={renderItem}
+        <Text style={styles.header}>PLAYBOOKS</Text>
+        {/* Filter Tabs */}
+        <View style={styles.filterTabs}>
+          {['all', 'ongoing', 'accomplished'].map((tab) => (
+            <Pressable
+              key={tab}
+              style={[styles.filterTab, filter === tab && styles.filterTabActive]}
+              onPress={() => setFilter(tab as any)}
+            >
+              <Text style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}>
+                {tab === 'all' ? 'All' : tab === 'ongoing' ? 'Ongoing' : 'Accomplished'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          renderSectionHeader={({ section: { title } }) => (
+            <View style={styles.sectionHeader}><Text style={styles.sectionHeaderText}>{title}</Text></View>
+          )}
           contentContainerStyle={styles.listContent}
+          stickySectionHeadersEnabled
           showsVerticalScrollIndicator={false}
         />
       </View>
@@ -341,9 +368,55 @@ const styles = StyleSheet.create({
     color: Colors.anchorBlue,
     marginBottom: 20,
     marginTop: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontWeight: '800',
   },
   listContent: {
     paddingBottom: 20,
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  filterTab: {
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    backgroundColor: '#e8edf6',
+    marginHorizontal: 2,
+  },
+  filterTabActive: {
+    backgroundColor: Colors.anchorBlue,
+  },
+  filterTabText: {
+    fontFamily: Fonts.medium,
+    fontSize: 13,
+    color: Colors.anchorBlue,
+    letterSpacing: 0.2,
+  },
+  filterTabTextActive: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.bold,
+  },
+  sectionHeader: {
+    backgroundColor: '#f6f8fa',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 2,
+  },
+  sectionHeaderText: {
+    fontFamily: Fonts.bold,
+    fontSize: 12,
+    color: Colors.anchorBlue,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
   },
   card: {
     backgroundColor: Colors.anchorBlue,
@@ -352,58 +425,84 @@ const styles = StyleSheet.create({
     flex: 1,
     borderTopLeftRadius: 20,
     borderBottomLeftRadius: 20,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   cardContent: {
     flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
+    paddingVertical: 2,
   },
   titleContainer: {
-    marginBottom: 8,
+    marginBottom: 10,
+    width: '100%',
+  },
+  subtitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 2,
   },
   title: {
-    fontSize: 20,
+    fontSize: 17,
     fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
     lineHeight: 24,
-    paddingBottom: 2,
-    fontWeight: '800',
-
+    paddingVertical: 1,
+    fontWeight: '700',
+    flexShrink: 1,
   },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: Fonts.medium,
-    color: 'rgba(255, 255, 255, 0.95)',
-    lineHeight: 20,
-    paddingTop: 0,
-    paddingBottom: 4,
-    fontWeight: '500',
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 1,
   },
   date: {
-    fontSize: 12,
-    fontFamily: Fonts.medium,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 12,
-    letterSpacing: 0.2,
-    lineHeight: 16,
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: 'rgba(255, 255, 255, 0.8)',
+    letterSpacing: 0.8,
+    lineHeight: 14,
+    marginBottom: 2,
+    textTransform: 'uppercase',
   },
   progressContainer: {
-    marginTop: 4,
+    marginTop: 6,
+    width: '100%',
+    alignSelf: 'stretch',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressRow: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    maxWidth: '100%',
   },
   progressBarBg: {
+    flex: 1,
     height: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 6,
     overflow: 'hidden',
-    marginBottom: 4,
+    marginRight: 8,
+    minWidth: 100,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.growthGreen,
+    backgroundColor: Colors.hopeWhite,
     borderRadius: 6,
   },
   progressText: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 11,
+    fontFamily: Fonts.semiBold,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginLeft: 'auto',
+    paddingLeft: 8,
   },
 
 });
