@@ -48,10 +48,16 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   const renderCard = () => {
     switch (cardType) {
       case 'truth':
-        return <TruthInLoveCard {...cardData} expanded={true} />;
+        return <TruthInLoveCard {...cardData} expanded={true} textColor={Colors.anchorBlue} />;
       case 'action':
-        const { actionSteps, handleToggleStep } = useActionSteps();
-        return <ActionStepsCard steps={actionSteps} onToggleStep={handleToggleStep} />;
+        const { actionSteps } = useActionSteps();
+        return <ActionStepsCard
+          steps={actionSteps}
+          textColor={Colors.anchorBlue}
+          solidCardBackground={true}
+          checkboxColor={Colors.anchorBlue}
+          stepCircleBackground="rgba(26,60,109,0.12)"
+        />;
       case 'affirmation':
         if (Array.isArray(cardData.affirmations)) {
           return (
@@ -67,6 +73,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
                     id={affirmation.id}
                     text={affirmation.text}
                     completed={affirmation.completed}
+                    textColor={Colors.anchorBlue}
                   />
                 ))}
               </View>
@@ -79,13 +86,13 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
               <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
               <Text style={styles.affirmationsTitle}>Affirmations</Text>
             </View>
-            <AffirmationCard {...cardData} />
+            <AffirmationCard {...cardData} textColor={Colors.anchorBlue} />
           </View>
         );
       case 'bible':
-        return <BibleVerseCard {...cardData} expandedMode />;
+        return <BibleVerseCard {...cardData} expandedMode textColor={Colors.anchorBlue} />;
       case 'challenge':
-        return <DirectChallengeCard {...cardData} expandedMode />;
+        return <DirectChallengeCard {...cardData} expandedMode textColor={Colors.anchorBlue} />;
       default:
         return null;
     }
@@ -93,35 +100,79 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
 
   return (
     <View style={styles.container}>
-      <StatusBar backgroundColor={Colors.anchorBlue} barStyle="light-content" />
-      <PlaybookHeader
-        title={playbook.title}
-        subtitle={new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
-          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-        })}
-        progress={progress}
-        totalTasks={totalTasks}
-        showToggle={false}
-        viewMode={viewMode}
-        onToggleView={handleToggleView}
-        onPlaybookLabelPress={() => setShowUserInput(prev => !prev)}
-        showUserInput={showUserInput}
-        userInput={playbook.userInput}
-        profileImageUri={playbook.profileImage}
-        backgroundColor={Colors.anchorBlue}
-        textColor={Colors.hopeWhite}
-      />
-      <ScrollView contentContainerStyle={styles.cardContainer}>
-        {renderCard()}
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      
+      {/* Fixed Header */}
+      <View style={styles.headerContainer}>
+        <PlaybookHeader
+          title={playbook.title}
+          subtitle={new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+          })}
+          progress={progress || 0}
+          totalTasks={totalTasks || 0}
+          onBack={() => navigation.goBack()}
+          showToggle={false}
+          backgroundColor={Colors.anchorBlue}
+          textColor={Colors.hopeWhite}
+        />
+      </View>
+
+      {/* Scrollable Content */}
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.contentContainer}>
+          <View style={styles.cardContainer}>
+            {renderCard()}
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Base container styles
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue, // Match header background for smooth transition
+    backgroundColor: Colors.hopeWhite,
+  },
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  scrollView: {
+    flex: 1,
+    paddingTop: 150, // Increased to 150 as requested
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    paddingBottom: 40, // Add some bottom padding
+  },
+  // Main content container with max width
+  contentContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 600, // Set a max-width for larger screens
+    alignSelf: 'center',
+  },
+  mainContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    backgroundColor: Colors.hopeWhite, // Restore background to hope white in CardDetailScreen
+  },
+  cardContainer: {
+    flex: 1,
+    marginTop: 0, // Remove general marginTop; we'll apply it only to ActionStepsCard
+    padding: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   affirmationsCard: {
     backgroundColor: 'transparent',
@@ -147,29 +198,6 @@ const styles = StyleSheet.create({
   affirmationsList: {
     width: '100%',
   },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f2f5f7',
-    paddingTop: 24,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f1f1',
-  },
-  headerLeft: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  headerCenter: {
-    flex: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
   progressBarBg: {
     width: 120,
     height: 8,
@@ -182,10 +210,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.growthGreen,
     borderRadius: 4,
   },
-  cardContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
+
 });

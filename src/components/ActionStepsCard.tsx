@@ -21,11 +21,15 @@ type ActionStep = {
 type ActionStepsCardProps = {
   steps: ActionStep[];
   style?: StyleProp<ViewStyle>;
+  textColor?: string;
+  solidCardBackground?: boolean;
+  checkboxColor?: string;
+  stepCircleBackground?: string;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
 
-export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) {
+export default function ActionStepsCard({ steps, style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
   const { handleToggleStep } = useActionSteps();
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
@@ -46,7 +50,7 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
           color={Colors.faithGold} 
           style={styles.icon}
         />
-        <Text style={styles.heading}>{steps.length} Action steps</Text>
+        <Text style={[styles.heading, !!textColor && { color: textColor }]}>{steps.length} Action steps</Text>
       </View>
       
       <View style={styles.stepsContainer}>
@@ -65,7 +69,11 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
           return (
             <TouchableOpacity 
               key={step.id} 
-              style={[styles.stepCard, step.completed && styles.completedCard]}
+              style={[
+                styles.stepCard,
+                step.completed && styles.completedCard,
+                solidCardBackground && { backgroundColor: 'rgba(80,80,80,0.15)' }
+              ]}
               onPress={() => toggleStep(step.id)}
               activeOpacity={0.8}
             >
@@ -80,7 +88,7 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
                         <MaterialCommunityIcons 
                           name="checkbox-marked-circle" 
                           size={24} 
-                          color={Colors.faithGold} 
+                          color={checkboxColor || Colors.faithGold} 
                         />
                       </TouchableOpacity>
                     ) : (
@@ -91,18 +99,26 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
                         <MaterialCommunityIcons 
                           name="checkbox-blank-circle-outline" 
                           size={24} 
-                          color="#FFFFFF" 
+                          color={checkboxColor || Colors.anchorBlue} 
                         />
                       </TouchableOpacity>
                     )
                   ) : (
-                    <View style={[styles.circle, step.completed && styles.completedCircle]}>
-                      <Text style={styles.stepNumber}>{index + 1}</Text>
+                    <View style={[
+                      styles.circle,
+                      { backgroundColor: stepCircleBackground || 'rgba(255, 255, 255, 0.1)' },
+                      step.completed && styles.completedCircle
+                    ]}>
+                      <Text style={[styles.stepNumber, !!textColor && { color: textColor }]}>{index + 1}</Text>
                     </View>
                   )}
                 </View>
                 <View style={styles.titleContainer}>
-                  <Text style={[styles.stepTitle, step.completed && styles.completedText]}>
+                  <Text style={[
+                    styles.stepTitle,
+                    step.completed && styles.completedText,
+                    !!textColor && { color: textColor }
+                  ]}>
                     {step.title}
                   </Text>
                 </View>
@@ -131,7 +147,11 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
                                 color={subTask.completed ? Colors.faithGold : 'rgba(255,255,255,0.7)'}
                                 style={styles.checkboxIcon}
                               />
-                              <Text style={[styles.subTaskText, subTask.completed && styles.completedText]}>
+                              <Text style={[
+                                styles.subTaskText,
+                                subTask.completed && styles.completedText,
+                                !!textColor && { color: textColor }
+                              ]}>
                                 {subTask.text}
                               </Text>
                             </TouchableOpacity>
@@ -141,10 +161,12 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
                         {/* Examples without checkboxes */}
                         {examples.length > 0 && (
                           <View style={styles.examplesContainer}>
-                            <Text style={styles.examplesTitle}>Examples:</Text>
+                            <Text style={[styles.examplesTitle, !!textColor && { color: textColor }]}>
+                              {examples.length === 1 ? 'Example:' : 'Examples:'}
+                            </Text>
                             {examples.map((example) => (
                               <View key={example.id} style={styles.exampleContainer}>
-                                <Text style={styles.exampleText}>
+                                <Text style={[styles.exampleText, !!textColor && { color: textColor }]}>
                                   {example.text.replace('Example:', '').trim()}
                                 </Text>
                               </View>
