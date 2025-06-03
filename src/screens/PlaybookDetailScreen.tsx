@@ -311,9 +311,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       <View>
         <PlaybookHeader
           title={playbook.title}
-          subtitle={new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
+          subtitle={playbook.createdAt ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-          })}
+          }) : ''}
           progress={playbook.progress}
           totalTasks={playbook.totalTasks}
           showToggle={true}
@@ -332,10 +332,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Playbook info section with collapsible user input
   const renderPlaybookInfo = () => {
-    // Split title at first colon for two-line display
-    const titleParts = playbook.title.split(':');
-    const firstLine = titleParts[0] + (titleParts.length > 1 ? ':' : '');
-    const secondLine = titleParts.length > 1 ? titleParts.slice(1).join(':').trim() : '';
+    // Split title at first colon followed by space or end of string (but not for Bible verses like John 3:15)
+    const titleMatch = playbook.title.match(/^(.+?)(?::\s|$)([^:]*)$/);
+    const firstLine = titleMatch ? titleMatch[1] + (titleMatch[2] ? ':' : '') : playbook.title;
+    const secondLine = titleMatch ? titleMatch[2].trim() : '';
     
     return (
       <View style={styles.playbookInfoContainer}>

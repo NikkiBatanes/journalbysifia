@@ -1,6 +1,7 @@
 export const mockPlaybooks = [
   {
     id: '1',
+    createdAt: '2025-06-03T00:00:00.000Z', // June 3, 2025
     title: "It's Not Too Late: God's Timing is Perfect",
     userInput: 'I want to be a tech entrepreneur but I feel like I am too late. I am 35',
     truthInLove: {
@@ -89,6 +90,7 @@ export const mockPlaybooks = [
   },
   {
     id: '2',
+    createdAt: '2025-06-02T00:00:00.000Z', // June 2, 2025
     title: "Overcoming Fear: Faith in Action, Not Hesitation",
     userInput: 'I am having doubts, procrastination and fear.',
     truthInLove: {
@@ -166,6 +168,7 @@ export const mockPlaybooks = [
   },
   {
     id: '3',
+    createdAt: '2025-06-01T00:00:00.000Z', // June 1, 2025
     title: "Living with Purpose: Stop Drifting, Start Driving",
     userInput: 'I dont know where to start my journey in life. I am in school but I feel like Im just going with the flow.',
     truthInLove: {

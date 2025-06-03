@@ -30,7 +30,7 @@ export interface Playbook {
   affirmations: Affirmation[];
   bibleVerse: BibleVerse;
   directChallenge: string;
-  profileImage: string;
+  profileImage?: string;
   progress: number;
   totalTasks: number;
   createdAt?: string;
