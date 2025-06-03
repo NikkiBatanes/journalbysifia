@@ -7,6 +7,7 @@ type SubTask = {
   id: string;
   text: string;
   completed: boolean;
+  isExample?: boolean;
 };
 
 type ActionStep = {
@@ -73,7 +74,7 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
                   {!hasSubTasks ? (
                     step.completed ? (
                       <TouchableOpacity 
-                        onPress={() => onToggleStep?.(step.id)}
+                        onPress={() => handleToggleStep?.(step.id)}
                         activeOpacity={0.7}
                       >
                         <MaterialCommunityIcons 
@@ -84,7 +85,7 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
                       </TouchableOpacity>
                     ) : (
                       <TouchableOpacity 
-                        onPress={() => onToggleStep?.(step.id)}
+                        onPress={() => handleToggleStep?.(step.id)}
                         activeOpacity={0.7}
                       >
                         <MaterialCommunityIcons 
@@ -109,25 +110,50 @@ export default function ActionStepsCard({ steps, style }: ActionStepsCardProps) 
               {/* Render subTasks checklist if present */}
               {hasSubTasks ? (
                 <View style={{marginTop: 8}}>
-                  {step.subTasks!.map((subTask) => (
-                    <View key={subTask.id} style={styles.subTaskContainer}>
-                      <TouchableOpacity 
-                        onPress={() => handleToggleSubTask(step.id, subTask.id)}
-                        activeOpacity={0.7}
-                        style={styles.subTaskButton}
-                      >
-                        <MaterialCommunityIcons
-                          name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-                          size={20}
-                          color={subTask.completed ? Colors.faithGold : 'rgba(255,255,255,0.7)'}
-                          style={styles.checkboxIcon}
-                        />
-                        <Text style={[styles.subTaskText, subTask.completed && styles.completedText]}>
-                          {subTask.text}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
+                  {(() => {
+                    // Separate regular subtasks and examples
+                    const regularSubtasks = step.subTasks!.filter(st => !st.text.startsWith('Example:'));
+                    const examples = step.subTasks!.filter(st => st.text.startsWith('Example:'));
+                    
+                    return (
+                      <>
+                        {/* Regular subtasks with checkboxes */}
+                        {regularSubtasks.map((subTask) => (
+                          <View key={subTask.id} style={styles.subTaskContainer}>
+                            <TouchableOpacity 
+                              onPress={() => handleToggleSubTask(step.id, subTask.id)}
+                              activeOpacity={0.7}
+                              style={styles.subTaskButton}
+                            >
+                              <MaterialCommunityIcons
+                                name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                                size={20}
+                                color={subTask.completed ? Colors.faithGold : 'rgba(255,255,255,0.7)'}
+                                style={styles.checkboxIcon}
+                              />
+                              <Text style={[styles.subTaskText, subTask.completed && styles.completedText]}>
+                                {subTask.text}
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                        
+                        {/* Examples without checkboxes */}
+                        {examples.length > 0 && (
+                          <View style={styles.examplesContainer}>
+                            <Text style={styles.examplesTitle}>Examples:</Text>
+                            {examples.map((example) => (
+                              <View key={example.id} style={styles.exampleContainer}>
+                                <Text style={styles.exampleText}>
+                                  {example.text.replace('Example:', '').trim()}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
                 </View>
               ) : step.description ? (
                 <Text style={styles.stepDescription}>{displayText}</Text>
@@ -243,6 +269,31 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     lineHeight: 20,
     paddingRight: 8, // Add padding to prevent text from touching the edge
+  },
+  exampleText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
+  examplesContainer: {
+    marginTop: 8,
+    marginLeft: 28, // Align with subtasks
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(255,255,255,0.2)',
+    paddingLeft: 12,
+  },
+  examplesTitle: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  exampleContainer: {
+    marginBottom: 6,
   },
   titleContainer: {
     flex: 1,
