@@ -21,6 +21,7 @@ interface PlaybookHeaderProps {
   userInput?: string;
   backgroundColor?: string;
   textColor?: string;
+  alignTasksLeft?: boolean;
 }
 
 const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
@@ -39,6 +40,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInput,
   backgroundColor,
   textColor,
+  alignTasksLeft = false,
 }) => {
   // Split title at colons that are followed by a space (to avoid splitting Bible references like 'John 3:16')
   const titleLines = title.split(/(?<=[^0-9]):(?=[^0-9])/).map(part => part.trim()).filter(part => part.length > 0);
@@ -83,14 +85,15 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
             </Text>
           ))}
           {subtitle ? <Text style={[styles.subtitle, { color: txtColor }]}>{subtitle.toUpperCase()}</Text> : null}
-          <View style={styles.progressRow}>
+          <View style={[styles.progressRow, alignTasksLeft && styles.progressRowLeftAligned]}>
             <View style={[styles.progressBarBg, bgColor === Colors.anchorBlue && { backgroundColor: 'rgba(255,255,255,0.15)' }]}> 
               <View style={[styles.progressBarFill, { width: `${(progress / totalTasks) * 100}%` }]} />
             </View>
             <Text style={[styles.progressText, { 
               color: txtColor,
               marginLeft: 8,
-              minWidth: 80
+              minWidth: 80,
+              textAlign: alignTasksLeft ? 'left' : 'center'
             }]}>
               {progress}/{totalTasks} Tasks
             </Text>
@@ -237,10 +240,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 2,
     width: '100%',
-    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  progressRowLeftAligned: {
+    justifyContent: 'flex-start',
   },
   progressBarBg: {
-    width: 200, // Fixed width instead of flex
+    flex: 1,
+    maxWidth: 200,
     height: 12,
     backgroundColor: 'rgba(26, 60, 109, 0.1)',
     borderRadius: 6,
@@ -267,7 +274,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 20,
     padding: 1,
-    marginLeft: 'auto', // Push to the right
   },
   toggleBtn: {
     padding: 1,

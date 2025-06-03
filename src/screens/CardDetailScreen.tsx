@@ -115,6 +115,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           showToggle={false}
           backgroundColor={Colors.anchorBlue}
           textColor={Colors.hopeWhite}
+          alignTasksLeft={true}
         />
       </View>
 
