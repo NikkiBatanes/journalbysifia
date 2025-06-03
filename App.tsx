@@ -274,11 +274,11 @@ function App(): React.JSX.Element {
                       onPress={() => navigation.goBack()}
                       style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
                     >
-                      <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+                      <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
                     </TouchableOpacity>
                   ),
                   headerRight: () => (
-                    <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
+                    <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
                       <Image 
                         source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} 
                         style={{ width: 32, height: 32, borderRadius: 16 }}
@@ -287,8 +287,9 @@ function App(): React.JSX.Element {
                     </View>
                   ),
                   headerStyle: {
-                    backgroundColor: '#f2f5f7',
+                    backgroundColor: Colors.anchorBlue,
                   },
+                  headerTintColor: Colors.hopeWhite,
                   headerShadowVisible: false,
                 })}
               />
