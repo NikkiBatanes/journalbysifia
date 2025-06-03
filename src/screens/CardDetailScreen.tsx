@@ -26,6 +26,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   
   const [showUserInput, setShowUserInput] = useState(false);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>(initialViewMode);
+  const [userInput, setUserInput] = useState('');
   
   // Sync with parent's view mode when screen comes into focus
   useFocusEffect(
@@ -73,7 +74,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
                     id={affirmation.id}
                     text={affirmation.text}
                     completed={affirmation.completed}
-                    textColor={Colors.anchorBlue}
+                    color={Colors.anchorBlue}
                   />
                 ))}
               </View>
@@ -86,7 +87,12 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
               <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
               <Text style={styles.affirmationsTitle}>Affirmations</Text>
             </View>
-            <AffirmationCard {...cardData} textColor={Colors.anchorBlue} />
+            <AffirmationCard 
+              id={cardData.id}
+              text={cardData.text}
+              completed={cardData.completed}
+              color={Colors.anchorBlue}
+            />
           </View>
         );
       case 'bible':
@@ -116,6 +122,9 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           backgroundColor={Colors.anchorBlue}
           textColor={Colors.hopeWhite}
           alignTasksLeft={true}
+          showUserInput={showUserInput}
+          userInput={userInput}
+          onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
         />
       </View>
 
