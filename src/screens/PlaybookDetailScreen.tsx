@@ -79,7 +79,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const cardData = [
     {
       type: 'truth' as CardType,
-      truth: playbook.truthInLove.truth,
+      truth: playbook.truthInLove.text,
       summary: playbook.truthInLove.summary,
       tappable: false,
     },
@@ -101,6 +101,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     {
       type: 'challenge' as CardType,
       challenge: playbook.directChallenge,
+  challengeCTA: playbook.challengeCTA,
       tappable: false,
     },
   ];
@@ -539,7 +540,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         >
           {card.type === 'truth' ? (
             <TruthInLoveCard 
-              truth={playbook.truthInLove.truth}
+              truth={playbook.truthInLove.text}
               summary={playbook.truthInLove.summary}
               style={{ flex: 1, padding: 32 }}
             />
@@ -574,7 +575,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             <BibleVerseCard verse={card.verse} />
           ) : card.type === 'challenge' ? (
             <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
-              <DirectChallengeCard challenge={playbook.directChallenge} />
+              <DirectChallengeCard challenge={playbook.directChallenge} challengeCTA={playbook.challengeCTA} />
             </View>
           ) : (
             <View style={{ flex: 1, padding: 24 }}>
@@ -613,7 +614,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   let cardDataForDetail: any = {};
                   if (cardType === 'truth') {
                     cardDataForDetail = {
-                      truth: playbook.truthInLove.truth,
+                      truth: playbook.truthInLove.text,
                       summary: playbook.truthInLove.summary
                     };
                   } else if (cardType === 'action') {
@@ -630,7 +631,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                     };
                   } else if (cardType === 'challenge') {
                     cardDataForDetail = {
-                      challenge: playbook.directChallenge
+                      challenge: playbook.directChallenge,
+  challengeCTA: playbook.challengeCTA
                     };
                   }
                   navigation.navigate('CardDetail', {
@@ -660,7 +662,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     >
       <TruthInLoveCard 
         key="truth"
-        truth={playbook.truthInLove?.truth} 
+        truth={playbook.truthInLove?.text} 
         summary={playbook.truthInLove?.summary}
         expanded={true}
         style={[styles.docCard, styles.truthCard]}
@@ -693,7 +695,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   style={[styles.docCard, styles.bibleCard]}
 />
 <View key="challenge" style={styles.challengeCard}>
-  <DirectChallengeCard challenge={playbook.directChallenge} />
+  <DirectChallengeCard challenge={playbook.directChallenge} challengeCTA={playbook.challengeCTA} />
 </View>
     </ScrollView>
   );

@@ -5,9 +5,10 @@ import { Colors, Fonts } from '../theme';
 
 type DirectChallengeCardProps = {
   challenge: string;
+  challengeCTA?: string;
 };
 
-export default function DirectChallengeCard({ challenge }: DirectChallengeCardProps) {
+export default function DirectChallengeCard({ challenge, challengeCTA }: DirectChallengeCardProps) {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
@@ -22,6 +23,9 @@ export default function DirectChallengeCard({ challenge }: DirectChallengeCardPr
       <Text style={styles.text}>
         {challenge}
       </Text>
+      {challengeCTA && (
+        <Text style={styles.cta}>{challengeCTA}</Text>
+      )}
     </View>
   );
 }
@@ -60,5 +64,13 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     width: '100%',
     marginTop: 16,
+  },
+  cta: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 17,
+    color: Colors.faithGold,
+    marginTop: 18,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
 });

@@ -3,15 +3,22 @@ export interface BibleVerse {
   reference: string;
 }
 
-export interface ActionStep {
+export interface SubTask {
   id: string;
-  title: string;
-  description: string;
+  text: string;
   completed: boolean;
 }
 
+export interface ActionStep {
+  id: string;
+  title: string;
+  description?: string; // For steps without sub-tasks
+  subTasks?: SubTask[]; // Only present if there are sub-tasks
+  completed?: boolean;  // Optionally, for UI convenience
+}
+
 export interface TruthInLove {
-  truth: string;
+  text: string;
   summary: string;
 }
 
@@ -30,6 +37,7 @@ export interface Playbook {
   affirmations: Affirmation[];
   bibleVerse: BibleVerse;
   directChallenge: string;
+  challengeCTA?: string; // Optional call-to-action separated from the challenge body
   profileImage?: string;
   progress: number;
   totalTasks: number;

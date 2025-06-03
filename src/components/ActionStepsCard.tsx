@@ -3,11 +3,18 @@ import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from '
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
 
+type SubTask = {
+  id: string;
+  text: string;
+  completed: boolean;
+};
+
 type ActionStep = {
   id: string;
   title: string;
-  description: string;
-  completed: boolean;
+  description?: string;
+  subTasks?: SubTask[];
+  completed?: boolean;
 };
 
 type ActionStepsCardProps = {
@@ -38,12 +45,16 @@ export default function ActionStepsCard({ steps, onToggleStep, style }: ActionSt
       <View style={styles.stepsContainer}>
         {steps.map((step, index) => {
           const isExpanded = expandedStep === step.id;
-          const displayText = isExpanded 
-            ? step.description 
-            : step.description.length > 60 
-              ? step.description.substring(0, 60) + '...' 
-              : step.description;
-              
+          // Only show description if present and no subTasks
+          const hasSubTasks = step.subTasks && step.subTasks.length > 0;
+          const displayText = step.description
+            ? (isExpanded
+                ? step.description
+                : step.description.length > 60
+                  ? step.description.substring(0, 60) + '...'
+                  : step.description)
+            : '';
+
           return (
             <TouchableOpacity 
               key={step.id} 
@@ -83,9 +94,24 @@ export default function ActionStepsCard({ steps, onToggleStep, style }: ActionSt
                   </Text>
                 </View>
               </View>
-              <Text style={styles.stepDescription}>
-                {step.description}
-              </Text>
+              {/* Render subTasks checklist if present */}
+              {hasSubTasks ? (
+                <View style={{marginTop: 8}}>
+                  {step.subTasks!.map((subTask) => (
+                    <View key={subTask.id} style={{flexDirection: 'row', alignItems: 'center', marginBottom: 4, marginLeft: 4}}>
+                      <MaterialCommunityIcons
+                        name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                        size={20}
+                        color={subTask.completed ? Colors.faithGold : '#FFFFFF'}
+                        style={{marginRight: 8}}
+                      />
+                      <Text style={{color: 'rgba(255,255,255,0.85)', fontSize: 13, flexShrink: 1}}>{subTask.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : step.description ? (
+                <Text style={styles.stepDescription}>{displayText}</Text>
+              ) : null}
             </TouchableOpacity>
           );
         })}

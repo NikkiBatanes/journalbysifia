@@ -1,11 +1,92 @@
 export const mockPlaybooks = [
   {
+    id: 'patience-playbook',
+    createdAt: '2024-03-02T00:00:00.000Z', // March 2, 2024
+    title: 'Patience and Perseverance: Trusting God’s Process',
+    userInput: 'I struggle with impatience and giving up too easily when results take time',
+    truthInLove: {
+  text: "Impatience and self-doubt are signs that you’re relying on your own strength instead of God’s. The hard truth? You’re trying to control the timeline and outcomes of your life, and when things don’t happen fast enough, you’re ready to quit. This mindset is rooted in pride and fear, not faith. God’s work in you is a process, not a quick fix. You’re not a failure—you’re just unwilling to endure the refining that builds character and faith. It’s time to surrender your timeline to God and trust that He’s not done with you yet.",
+  summary: "God’s process takes time; trust Him and stop giving up on yourself."
+},
+    actionSteps: [
+      {
+        id: 'p1',
+        title: 'Surrender Your Timeline to God',
+        subTasks: [
+          { id: 'p1-1', text: "Pray daily, asking God to help you trust His timing over your own.", completed: false },
+          { id: 'p1-2', text: "Meditate on Ecclesiastes 3:11: “He has made everything beautiful in its time.”", completed: false },
+          { id: 'p1-3', text: "Write down areas where you feel impatient and surrender them to God in prayer.", completed: false }
+        ]
+      },
+      {
+        id: 'p2',
+        title: 'Reframe Failure as Growth',
+        subTasks: [
+          { id: 'p2-1', text: "Instead of seeing setbacks as reasons to quit, view them as opportunities to learn and grow.", completed: false },
+          { id: 'p2-2', text: "Write down one lesson you’ve learned from a recent failure or challenge.", completed: false },
+          { id: 'p2-3', text: "Remember, even Biblical heroes like David and Peter failed but were restored by God’s grace.", completed: false }
+        ]
+      },
+      {
+        id: 'p3',
+        title: 'Develop a Discipline of Patience',
+        subTasks: [
+          { id: 'p3-1', text: "Practice waiting intentionally: Choose one small thing daily to wait on (e.g., don’t check your phone immediately, wait an extra minute before eating).", completed: false },
+          { id: 'p3-2', text: "Use these moments to pray or reflect, building your patience muscle.", completed: false }
+        ]
+      },
+      {
+        id: 'p4',
+        title: 'Set Small, Achievable Goals',
+        subTasks: [
+          { id: 'p4-1', text: "Break your larger goals into smaller, manageable steps.", completed: false },
+          { id: 'p4-2', text: "Celebrate small wins to build momentum and confidence.", completed: false },
+          { id: 'p4-3', text: "Example: If you’re working on a project, commit to 30 minutes of focused work daily instead of trying to finish it all at once.", completed: false }
+        ]
+      },
+      {
+        id: 'p5',
+        title: 'Surround Yourself with Encouragement',
+        subTasks: [
+          { id: 'p5-1', text: "Share your struggles with a trusted friend or mentor who can encourage and pray for you.", completed: false },
+          { id: 'p5-2', text: "Read stories of perseverance in the Bible, like Joseph, who waited years for God’s promises to be fulfilled.", completed: false }
+        ]
+      }
+    ],
+    affirmations: [
+      {
+        id: 'aff1',
+        text: 'God is not finished with me; I am a work in progress.',
+        completed: false
+      },
+      {
+        id: 'aff2',
+        text: 'I trust God’s timing and will not give up on myself.',
+        completed: false
+      },
+      {
+        id: 'aff3',
+        text: 'I am patient because I know God’s plans are worth the wait.',
+        completed: false
+      }
+    ],
+    bibleVerse: {
+      text: 'Let us not become weary in doing good, for at the proper time we will reap a harvest if we do not give up.',
+      reference: 'Galatians 6:9'
+    },
+    directChallenge: 'This week, identify one area where you’ve been impatient or tempted to give up. Commit to taking one small, consistent action in that area every day for the next seven days. Keep a journal of your progress and how God is working in you through the process.',
+    challengeCTA: 'Are you ready to stop quitting on yourself and start trusting God’s process?',
+    progress: 0,
+    totalTasks: 5
+  },
+  {
     id: '1',
     createdAt: '2025-06-03T00:00:00.000Z', // June 3, 2025
     title: "It's Not Too Late: God's Timing is Perfect",
     userInput: 'I want to be a tech entrepreneur but I feel like I am too late. I am 35',
     truthInLove: {
-      truth: "You're not too late; you're just stuck in a mindset of fear and comparison. God's purpose for your life isn't bound by age, but by your obedience and faith. At 35, you have the maturity, wisdom, and life experience that many younger entrepreneurs lack. Stop using age as an excuse to delay action. The real issue isn't your age—it's your belief in God's ability to work through you.",
+      text: 
+      "You're not too late; you're just stuck in a mindset of fear and comparison. God's purpose for your life isn't bound by age, but by your obedience and faith. At 35, you have the maturity, wisdom, and life experience that many younger entrepreneurs lack. Stop using age as an excuse to delay action. The real issue isn't your age—it's your belief in God's ability to work through you.",
       summary: "God's timing is perfect; trust Him and take bold, obedient action."
     },
     affirmations: [
@@ -94,7 +175,8 @@ export const mockPlaybooks = [
     title: "Overcoming Fear: Faith in Action, Not Hesitation",
     userInput: 'I am having doubts, procrastination and fear.',
     truthInLove: {
-      truth: "Doubt, procrastination, and fear are not from God—they are tools of the enemy to keep you stagnant and ineffective. Fear thrives when you focus on your limitations instead of God's power. Procrastination is disobedience in disguise, and doubt is a lack of trust in God's promises. You're not stuck because you're incapable; you're stuck because you're letting fear dictate your actions instead of faith.",
+      text: 
+      "Doubt, procrastination, and fear are not from God—they are tools of the enemy to keep you stagnant and ineffective. Fear thrives when you focus on your limitations instead of God's power. Procrastination is disobedience in disguise, and doubt is a lack of trust in God's promises. You're not stuck because you're incapable; you're stuck because you're letting fear dictate your actions instead of faith.",
       summary: "Fear is not from God; act in faith and trust His power, not yours."
     },
     actionSteps: [
@@ -172,7 +254,8 @@ export const mockPlaybooks = [
     title: "Living with Purpose: Stop Drifting, Start Driving",
     userInput: 'I dont know where to start my journey in life. I am in school but I feel like Im just going with the flow.',
     truthInLove: {
-      truth: "You're not lost; you're just unaligned with God's purpose for your life. Drifting through life is a choice, not a condition. The hard truth? You're avoiding the responsibility of seeking clarity because it's easier to 'go with the flow' than to wrestle with the big questions. God didn't create you to be passive—He created you to live intentionally, with purpose and impact.",
+      text: 
+      "You're not lost; you're just unaligned with God's purpose for your life. Drifting through life is a choice, not a condition. The hard truth? You're avoiding the responsibility of seeking clarity because it's easier to 'go with the flow' than to wrestle with the big questions. God didn't create you to be passive—He created you to live intentionally, with purpose and impact.",
       summary: "God calls you to live intentionally, not passively; seek His purpose with urgency."
     },
     actionSteps: [

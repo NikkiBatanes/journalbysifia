@@ -153,8 +153,53 @@ export default function PlaybookListScreen() {
   };
 
   const navigation = useNavigation<PlaybookListScreenNavigationProp>();
-  const [playbooks, setPlaybooks] = React.useState([...mockPlaybooks]);
+  const [playbooks, setPlaybooks] = React.useState<Playbook[]>([]);
   const [filter, setFilter] = React.useState<'all' | 'ongoing' | 'accomplished'>('all');
+
+  // Group playbooks by month/year
+  function groupPlaybooksByMonth(playbooks: Playbook[]) {
+    const groups: { [key: string]: Playbook[] } = {};
+    
+    playbooks.forEach(pb => {
+      try {
+        // Ensure createdAt exists and is a valid date string
+        if (!pb.createdAt) return;
+        
+        const date = new Date(pb.createdAt);
+        if (isNaN(date.getTime())) return; // Skip invalid dates
+        
+        const key = format(date, 'MMMM yyyy');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(pb);
+      } catch (error) {
+        console.warn('Error processing playbook date:', pb.id, error);
+      }
+    });
+    
+    // Sort months descending (most recent first)
+    return Object.entries(groups)
+      .sort((a, b) => {
+        try {
+          const dateA = new Date(a[1][0].createdAt || 0);
+          const dateB = new Date(b[1][0].createdAt || 0);
+          return dateB.getTime() - dateA.getTime();
+        } catch (error) {
+          return 0;
+        }
+      })
+      .map(([title, data]) => ({
+        title,
+        data: data.sort((a, b) => {
+          try {
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return dateB.getTime() - dateA.getTime();
+          } catch (error) {
+            return 0;
+          }
+        })
+      }));
+  }
 
   // Filter playbooks by completion status
   const filteredPlaybooks = React.useMemo(() => {
@@ -164,21 +209,29 @@ export default function PlaybookListScreen() {
     return playbooks;
   }, [playbooks, filter]);
 
-  // Group playbooks by month/year
-  function groupPlaybooksByMonth(playbooks: Playbook[]) {
-    const groups: { [key: string]: Playbook[] } = {};
-    playbooks.forEach(pb => {
-      const key = format(new Date(pb.createdAt), 'MMMM yyyy');
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(pb);
-    });
-    // Sort months descending (most recent first)
-    return Object.entries(groups)
-      .sort((a, b) => new Date(b[1][0].createdAt).getTime() - new Date(a[1][0].createdAt).getTime())
-      .map(([title, data]) => ({ title, data: data.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) }));
-  }
-
   const sections = React.useMemo(() => groupPlaybooksByMonth(filteredPlaybooks), [filteredPlaybooks]);
+
+  // Load playbooks with debug logging
+  React.useEffect(() => {
+    console.log('Loading mockPlaybooks:', mockPlaybooks);
+    console.log('Mock playbook count:', mockPlaybooks.length);
+    console.log('Sample playbook:', mockPlaybooks[0]?.title, mockPlaybooks[0]?.createdAt);
+    
+    // Log all playbook IDs and titles for verification
+    mockPlaybooks.forEach(pb => {
+      console.log(`Playbook: ${pb.id} - ${pb.title} (${pb.createdAt})`);
+    });
+    
+    setPlaybooks([...mockPlaybooks]);
+  }, []);
+  
+  // Log when playbooks state changes
+  React.useEffect(() => {
+    console.log('Playbooks state updated. Count:', playbooks.length);
+    console.log('Filtered playbooks count:', filteredPlaybooks.length);
+    console.log('Current filter:', filter);
+    console.log('Current sections:', sections);
+  }, [playbooks, filteredPlaybooks, filter, sections]);
 
   const handleDelete = (id: string) => {
     Alert.alert(
