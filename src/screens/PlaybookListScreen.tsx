@@ -257,17 +257,26 @@ export default function PlaybookListScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.header}>PLAYBOOKS</Text>
+        <Text style={styles.header}>Playbooks</Text>
         {/* Filter Tabs */}
         <View style={styles.filterTabs}>
           {['all', 'ongoing', 'accomplished'].map((tab) => (
             <Pressable
               key={tab}
-              style={[styles.filterTab, filter === tab && styles.filterTabActive]}
+              style={[
+                styles.filterTab, 
+                filter === tab && (
+                  tab === 'accomplished' 
+                    ? styles.filterTabActiveCompleted 
+                    : tab === 'ongoing'
+                      ? styles.filterTabActiveOngoing
+                      : styles.filterTabActive
+                )
+              ]}
               onPress={() => setFilter(tab as any)}
             >
               <Text style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}>
-                {tab === 'all' ? 'All' : tab === 'ongoing' ? 'Ongoing' : 'Accomplished'}
+                {tab === 'all' ? 'All' : tab === 'ongoing' ? 'Ongoing' : 'Completed'}
               </Text>
             </Pressable>
           ))}
@@ -368,7 +377,6 @@ const styles = StyleSheet.create({
     color: Colors.anchorBlue,
     marginBottom: 20,
     marginTop: 10,
-    textTransform: 'uppercase',
     letterSpacing: 0.5,
     fontWeight: '800',
   },
@@ -377,26 +385,33 @@ const styles = StyleSheet.create({
   },
   filterTabs: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 12,
-    gap: 8,
+    gap: 2,
   },
   filterTab: {
     paddingVertical: 6,
     paddingHorizontal: 18,
-    borderRadius: 16,
+    borderRadius: 6,
     backgroundColor: '#e8edf6',
     marginHorizontal: 2,
   },
   filterTabActive: {
     backgroundColor: Colors.anchorBlue,
   },
+  filterTabActiveCompleted: {
+    backgroundColor: Colors.growthGreen,
+  },
+  filterTabActiveOngoing: {
+    backgroundColor: Colors.alertCoral,
+  },
   filterTabText: {
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
     fontSize: 13,
     color: Colors.anchorBlue,
     letterSpacing: 0.2,
+    fontWeight: '400',
   },
   filterTabTextActive: {
     color: Colors.hopeWhite,
