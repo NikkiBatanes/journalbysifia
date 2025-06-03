@@ -47,12 +47,26 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   const renderCard = () => {
     switch (cardType) {
       case 'truth':
-        return <TruthInLoveCard {...cardData} expandedMode />;
+        return <TruthInLoveCard {...cardData} expanded={true} />;
       case 'action':
         const { actionSteps, handleToggleStep } = useActionSteps();
         return <ActionStepsCard steps={actionSteps} onToggleStep={handleToggleStep} />;
       case 'affirmation':
-        return <AffirmationCard {...cardData} expandedMode />;
+        if (Array.isArray(cardData.affirmations)) {
+          return (
+            <View style={{ width: '100%' }}>
+              {cardData.affirmations.map((affirmation: any) => (
+                <AffirmationCard
+                  key={affirmation.id}
+                  id={affirmation.id}
+                  text={affirmation.text}
+                  completed={affirmation.completed}
+                />
+              ))}
+            </View>
+          );
+        }
+        return <AffirmationCard {...cardData} />;
       case 'bible':
         return <BibleVerseCard {...cardData} expandedMode />;
       case 'challenge':
