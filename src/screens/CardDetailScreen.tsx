@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { TouchableOpacity, Image, View, ScrollView, StyleSheet, StatusBar } from 'react-native';
+import { TouchableOpacity, Image, View, ScrollView, StyleSheet, StatusBar, Text } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -54,19 +55,33 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       case 'affirmation':
         if (Array.isArray(cardData.affirmations)) {
           return (
-            <View style={{ width: '100%' }}>
-              {cardData.affirmations.map((affirmation: any) => (
-                <AffirmationCard
-                  key={affirmation.id}
-                  id={affirmation.id}
-                  text={affirmation.text}
-                  completed={affirmation.completed}
-                />
-              ))}
+            <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
+              <View style={styles.affirmationsHeader}>
+                <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
+                <Text style={styles.affirmationsTitle}>Affirmations</Text>
+              </View>
+              <View style={styles.affirmationsList}>
+                {cardData.affirmations.map((affirmation: any) => (
+                  <AffirmationCard
+                    key={affirmation.id}
+                    id={affirmation.id}
+                    text={affirmation.text}
+                    completed={affirmation.completed}
+                  />
+                ))}
+              </View>
             </View>
           );
         }
-        return <AffirmationCard {...cardData} />;
+        return (
+          <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
+            <View style={styles.affirmationsHeader}>
+              <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
+              <Text style={styles.affirmationsTitle}>Affirmations</Text>
+            </View>
+            <AffirmationCard {...cardData} />
+          </View>
+        );
       case 'bible':
         return <BibleVerseCard {...cardData} expandedMode />;
       case 'challenge':
@@ -107,6 +122,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue, // Match header background for smooth transition
+  },
+  affirmationsCard: {
+    backgroundColor: 'transparent',
+    borderRadius: 16,
+    padding: 16,
+    width: '100%',
+  },
+  affirmationsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  icon: {
+    marginRight: 8,
+  },
+  affirmationsTitle: {
+    fontFamily: 'Inter-Black',
+    fontSize: 20,
+    color: 'white',
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  affirmationsList: {
+    width: '100%',
   },
   headerContainer: {
     flexDirection: 'row',
