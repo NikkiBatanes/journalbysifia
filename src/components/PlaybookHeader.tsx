@@ -237,11 +237,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 2,
     width: '100%',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
   },
   progressBarBg: {
-    flex: 1,
-    maxWidth: 200,
+    width: 200, // Fixed width instead of flex
     height: 12,
     backgroundColor: 'rgba(26, 60, 109, 0.1)',
     borderRadius: 6,
@@ -257,7 +256,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.trustGrey,
     fontWeight: '600',
-    marginHorizontal: 8,
+    marginLeft: 8,
+    marginRight: 0,
+    textAlign: 'left',
     minWidth: 60, // Ensure consistent width for the text
   },
   toggleRow: {

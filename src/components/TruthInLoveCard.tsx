@@ -10,26 +10,34 @@ type TruthInLoveCardProps = {
   username?: string;
   expanded?: boolean;
   style?: StyleProp<ViewStyle>;
+  textColor?: string;
 };
 
-export default function TruthInLoveCard({ truth, summary, username = 'Nikki', expanded = false, style }: TruthInLoveCardProps) {
+export default function TruthInLoveCard({ 
+  truth, 
+  summary, 
+  username = 'Nikki', 
+  expanded = false, 
+  style, 
+  textColor = Colors.hopeWhite 
+}: TruthInLoveCardProps) {
   return (
     <View style={style}>
       <View style={styles.headingContainer}>
         <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
-        <Text style={styles.heading}>Truth in Love</Text>
+        <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
       </View>
       
       <View style={styles.contentContainer}>
-        <Text style={styles.content}>
-          <Text style={styles.username}>{username}, </Text>
-          <Text style={styles.summary}>{summary}</Text>
+        <Text style={[styles.content, { color: textColor }]}>
+          <Text style={[styles.username, { color: textColor }]}>{username}, </Text>
+          <Text style={[styles.summary, { color: textColor }]}>{summary}</Text>
         </Text>
         {expanded ? (
-          <Text style={styles.truth}>{truth}</Text>
+          <Text style={[styles.truth, { color: textColor }]}>{truth}</Text>
         ) : (
           <Text 
-            style={styles.truncatedTruth} 
+            style={[styles.truncatedTruth, { color: textColor }]} 
             numberOfLines={5} 
             ellipsizeMode="tail"
           >
