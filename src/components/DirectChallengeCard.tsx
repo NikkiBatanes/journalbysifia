@@ -18,7 +18,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
           color={Colors.hopeWhite} 
           style={styles.icon}
         />
-        <Text style={styles.heading}>Direct Challenge</Text>
+        <Text style={styles.heading}>Rise in Faith</Text>
       </View>
       <Text style={styles.text}>
         {challenge}
