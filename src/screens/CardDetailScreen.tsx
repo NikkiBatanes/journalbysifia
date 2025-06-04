@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     position: 'absolute',
-    top: 0,
+    top: -10,
     left: 0,
     right: 0,
     zIndex: 10,
