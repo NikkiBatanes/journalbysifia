@@ -64,7 +64,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           return (
             <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
               <View style={styles.affirmationsHeader}>
-                <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
+                <MaterialCommunityIcons name="format-quote-close" size={24} color={Colors.faithGold} style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
                 <Text style={styles.affirmationsTitle}>Affirmations</Text>
               </View>
               <View style={styles.affirmationsList}>
@@ -75,6 +75,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
                     text={affirmation.text}
                     completed={affirmation.completed}
                     color={Colors.anchorBlue}
+                    containerStyle={{ backgroundColor: 'rgba(80,80,80,0.15)', borderRadius: 16, padding: 16, marginBottom: 12 }}
                   />
                 ))}
               </View>
@@ -84,7 +85,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
         return (
           <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
             <View style={styles.affirmationsHeader}>
-              <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
+              <MaterialCommunityIcons name="format-quote-close" size={24} color={Colors.faithGold} style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
               <Text style={styles.affirmationsTitle}>Affirmations</Text>
             </View>
             <AffirmationCard 
@@ -92,6 +93,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
               text={cardData.text}
               completed={cardData.completed}
               color={Colors.anchorBlue}
+              containerStyle={{ backgroundColor: 'rgba(80,80,80,0.15)', borderRadius: 16, padding: 16, marginBottom: 12 }}
             />
           </View>
         );
@@ -186,8 +188,6 @@ const styles = StyleSheet.create({
   },
   affirmationsCard: {
     backgroundColor: 'transparent',
-    borderRadius: 16,
-    padding: 16,
     width: '100%',
   },
   affirmationsHeader: {
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   affirmationsTitle: {
     fontFamily: 'Inter-Black',
     fontSize: 20,
-    color: 'white',
+    color: Colors.anchorBlue,
     fontWeight: '900',
     letterSpacing: 0.5,
   },

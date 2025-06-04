@@ -556,7 +556,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           ) : card.type === 'affirmation' ? (
             <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}> 
   <View style={styles.affirmationsHeader}>
-    <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
+    <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
     <Text style={styles.affirmationsTitle}>Affirmations</Text>
   </View>
   <View style={styles.affirmationsList}>
@@ -677,7 +677,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       />
       <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}> 
   <View style={styles.affirmationsHeader}>
-    <MaterialCommunityIcons name="heart" size={22} color="white" style={styles.icon} />
+    <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
     <Text style={styles.affirmationsTitle}>Affirmations</Text>
   </View>
   <View style={styles.affirmationsList}>

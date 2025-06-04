@@ -7,11 +7,13 @@ interface AffirmationCardProps {
   text: string;
   completed: boolean;
   color?: string;
+  containerStyle?: any;
 }
 
 const AffirmationCard: React.FC<AffirmationCardProps> = ({ 
   text, 
-  color = 'white' 
+  color = 'white',
+  containerStyle = {}
 }) => {
   const textStyle: TextStyle = {
     fontFamily: 'Inter-SemiBold',
@@ -25,7 +27,7 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
   };
 
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, containerStyle]}>
       <Text style={textStyle}>
         {text}
       </Text>
