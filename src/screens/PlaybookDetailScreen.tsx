@@ -336,6 +336,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           onPlaybookLabelPress={() => setShowUserInput((prev) => !prev)}
           showUserInput={showUserInput}
           userInput={playbook.userInput}
+          chevronAnimatedStyle={chevronStyle}
         />
       </View>
       <View style={styles.mainContainer}>
@@ -345,6 +346,20 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   );
 
   // Playbook info section with collapsible user input
+  // Animation for chevron rotation (reanimated)
+
+  // --- MOVE THESE TO THE TOP LEVEL, NOT INSIDE renderPlaybookInfo ---
+  // Place after all useState/useEffect hooks, before any render functions
+  // (This is the main fix for the animation bug)
+  const chevronAnim = useSharedValue(0);
+  useEffect(() => {
+    chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
+  }, [showUserInput]);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
+    marginLeft: 4,
+  }));
+
   const renderPlaybookInfo = () => {
     // Split title at first colon followed by space or end of string (but not for Bible verses like John 3:15)
     const titleMatch = playbook.title.match(/^(.+?)(?::\s|$)([^:]*)$/);
@@ -361,12 +376,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             activeOpacity={0.7}
           >
             <Text style={styles.playbookLabel}>PLAYBOOK</Text>
-            <Ionicons 
-              name={showUserInput ? 'chevron-up' : 'chevron-down'}
-              size={15} 
-              color={Colors.anchorBlue}
-              style={{ marginLeft: 4 }}
-            />
+            <Animated.View style={chevronStyle}>
+              <Ionicons 
+                name="chevron-down"
+                size={15} 
+                color={Colors.anchorBlue}
+              />
+            </Animated.View>
           </TouchableOpacity>
 
           {/* User Input Card - Collapsible */}

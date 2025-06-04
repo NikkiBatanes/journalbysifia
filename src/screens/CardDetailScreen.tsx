@@ -13,6 +13,8 @@ import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
 import { RootStackParamList } from '../navigation/types';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+
 export default function CardDetailScreen({ route, navigation }: StackScreenProps<RootStackParamList, 'CardDetail'>) {
   const [headerHeight, setHeaderHeight] = useState(150); // Default header height
   const { 
@@ -26,6 +28,16 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   } = route.params;
   
   const [showUserInput, setShowUserInput] = useState(false);
+
+  // Chevron animation logic (same as PlaybookDetailScreen)
+  const chevronAnim = useSharedValue(0);
+  React.useEffect(() => {
+    chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
+  }, [showUserInput]);
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
+    marginLeft: 4,
+  }));
   const [viewMode, setViewMode] = useState<'stack' | 'document'>(initialViewMode);
   const [userInput, setUserInput] = useState(playbook?.userInput || '');
   
@@ -144,6 +156,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           userInputBorderColor={'#385886'}
           userInputTextColor={Colors.hopeWhite}
           onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
+          chevronAnimatedStyle={chevronStyle}
         />
       </View>
 

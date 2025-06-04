@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Animated from 'react-native-reanimated';
 import { Colors } from '../theme';
 import { opacity } from 'react-native-reanimated/lib/typescript/Colors';
 
@@ -25,6 +26,10 @@ interface PlaybookHeaderProps {
   userInputBackgroundColor?: string;
   userInputBorderColor?: string;
   userInputTextColor?: string;
+  /**
+   * Optional animated style for the chevron icon (e.g. from react-native-reanimated)
+   */
+  chevronAnimatedStyle?: any;
 }
 
 const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
@@ -47,6 +52,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInputBackgroundColor,
   userInputBorderColor,
   userInputTextColor,
+  chevronAnimatedStyle,
 }) => {
   // Split title at colons that are followed by a space (to avoid splitting Bible references like 'John 3:16')
   const titleLines = title.split(/(?<=[^0-9]):(?=[^0-9])/).map(part => part.trim()).filter(part => part.length > 0);
@@ -60,16 +66,28 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
       <View style={[styles.headerContainer, { backgroundColor: bgColor }]}>
         <View style={styles.headerCenter}>
           {onPlaybookLabelPress ? (
-            <TouchableOpacity style={styles.row} onPress={onPlaybookLabelPress} activeOpacity={0.7}>
-              <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
-              <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.row}>
-              <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
-              <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
-            </View>
-          )}
+  <TouchableOpacity style={styles.row} onPress={onPlaybookLabelPress} activeOpacity={0.7}>
+    <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
+    {chevronAnimatedStyle ? (
+      <Animated.View style={chevronAnimatedStyle}>
+        <Ionicons name="chevron-down" size={15} color={txtColor} />
+      </Animated.View>
+    ) : (
+      <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
+    )}
+  </TouchableOpacity>
+) : (
+  <View style={styles.row}>
+    <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
+    {chevronAnimatedStyle ? (
+      <Animated.View style={chevronAnimatedStyle}>
+        <Ionicons name="chevron-down" size={15} color={txtColor} />
+      </Animated.View>
+    ) : (
+      <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
+    )}
+  </View>
+)}
 
           {/* Collapsible user input card between PLAYBOOK and title */}
           {showUserInput && userInput ? (
