@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import { Colors, Fonts } from '../theme';
 
 type TruthInLoveCardProps = {
@@ -45,14 +45,7 @@ export default function TruthInLoveCard({
           </Text>
         )}
       </View>
-      
-      {!expanded && (
-        <View style={styles.footerContainer}>
-          <View style={styles.expandHint}>
-            <MaterialCommunityIcons name="arrow-expand" size={24} color={Colors.faithGold} style={styles.expandIcon} />
-          </View>
-        </View>
-      )}
+
     </View>
   );
 }
@@ -112,19 +105,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
     flexShrink: 1, // Allow text to shrink if needed
   },
-  footerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginTop: 'auto',
-    paddingTop: 16,
-  },
-  expandHint: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    padding: 8,
-    borderRadius: 20,
-  },
-  expandIcon: {
-    opacity: 0.9,
-  },
+
 });

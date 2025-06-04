@@ -24,7 +24,7 @@ export default function SwipeUpIndicator() {
       <Animated.View style={[styles.iconContainer, animatedStyle]}>
         <Ionicons name="chevron-up" size={32} color={Colors.anchorBlue} style={styles.icon} />
       </Animated.View>
-      <Text style={styles.text}>Swipe up to continue</Text>
+      <Text style={styles.text}>Tap the card or Swipe up to continue</Text>
     </View>
   );
 }
