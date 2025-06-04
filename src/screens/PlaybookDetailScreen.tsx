@@ -53,6 +53,8 @@ type CardType = typeof CARD_TYPES[number];
 
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
+  // ...existing hooks and logic
+  const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
   const { actionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
   
@@ -77,6 +79,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // View state
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
   const [currentCard, setCurrentCard] = useState(0);
+
+  // Hide SwipeUpIndicator after leaving the first card
+  useEffect(() => {
+    if (currentCard > 0 && !hasSeenSwipeUp) {
+      setHasSeenSwipeUp(true);
+    }
+  }, [currentCard, hasSeenSwipeUp]);
 
   // Card data
   // Only include serializable data for each card
@@ -707,7 +716,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       {renderHeader()}
       {renderContent()}
       {/* SwipeUpIndicator only in stack view */}
-      {viewMode === 'stack' && currentCard === 0 && (
+      {viewMode === 'stack' && currentCard === 0 && !showUserInput && !hasSeenSwipeUp && (
         <View style={styles.swipeUpIndicatorContainer}>
           <SwipeUpIndicator />
         </View>
@@ -1106,7 +1115,6 @@ overflow: 'hidden',
 borderWidth: 0,
 transformOrigin: 'bottom center',
 },
-    borderRadius: 28, // Match stack card border radius
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 }, // Match stack card shadow
