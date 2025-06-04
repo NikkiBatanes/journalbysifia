@@ -14,6 +14,7 @@ import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
 import { RootStackParamList } from '../navigation/types';
 export default function CardDetailScreen({ route, navigation }: StackScreenProps<RootStackParamList, 'CardDetail'>) {
+  const [headerHeight, setHeaderHeight] = useState(150); // Default header height
   const { 
     cardType, 
     cardData, 
@@ -121,7 +122,10 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       
       {/* Fixed Header */}
-      <View style={styles.headerContainer}>
+      <View
+        style={styles.headerContainer}
+        onLayout={e => setHeaderHeight(e.nativeEvent.layout.height)}
+      >
         <PlaybookHeader
           title={playbook.title}
           subtitle={new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
@@ -136,22 +140,16 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           alignTasksLeft={true}
           showUserInput={showUserInput}
           userInput={userInput}
+          userInputBackgroundColor={'#264776'}
+          userInputBorderColor={'#385886'}
+          userInputTextColor={Colors.hopeWhite}
           onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
         />
       </View>
 
-      {/* User Input Card */}
-      {showUserInput && userInput && (
-        <View style={[styles.userInputContainer, { backgroundColor: Colors.hopeWhite }]}>
-          <View style={styles.userInputCard}>
-            <Text style={styles.userInputText}>{userInput}</Text>
-          </View>
-        </View>
-      )}
-
       {/* Scrollable Content */}
       <ScrollView 
-        style={styles.scrollView}
+        style={[styles.scrollView, { paddingTop: headerHeight }]}
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
@@ -213,7 +211,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
   },
   userInputCard: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -221,13 +219,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   userInputText: {
     fontFamily: 'System',
     fontWeight: '400',
     fontSize: 15,
     lineHeight: 22,
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
   },
   bibleCard: {
     width: '100%',

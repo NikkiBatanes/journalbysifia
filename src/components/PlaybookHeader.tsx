@@ -22,6 +22,9 @@ interface PlaybookHeaderProps {
   backgroundColor?: string;
   textColor?: string;
   alignTasksLeft?: boolean;
+  userInputBackgroundColor?: string;
+  userInputBorderColor?: string;
+  userInputTextColor?: string;
 }
 
 const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
@@ -41,6 +44,9 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   backgroundColor,
   textColor,
   alignTasksLeft = false,
+  userInputBackgroundColor,
+  userInputBorderColor,
+  userInputTextColor,
 }) => {
   // Split title at colons that are followed by a space (to avoid splitting Bible references like 'John 3:16')
   const titleLines = title.split(/(?<=[^0-9]):(?=[^0-9])/).map(part => part.trim()).filter(part => part.length > 0);
@@ -67,8 +73,14 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
 
           {/* Collapsible user input card between PLAYBOOK and title */}
           {showUserInput && userInput ? (
-            <View style={styles.userInputCardHeader}>
-              <Text style={[styles.userInputTextHeader, { color: txtColor }]}>{userInput}</Text>
+            <View
+              style={[
+                styles.userInputCardHeader,
+                userInputBackgroundColor && { backgroundColor: userInputBackgroundColor },
+                userInputBorderColor && { borderColor: userInputBorderColor, borderWidth: 1 }
+              ]}
+            >
+              <Text style={[styles.userInputTextHeader, userInputTextColor ? { color: userInputTextColor } : { color: txtColor }]}>{userInput}</Text>
             </View>
           ) : null}
 
