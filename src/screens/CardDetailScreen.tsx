@@ -190,6 +190,9 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 600, // Set a max-width for larger screens
     alignSelf: 'center',
+    marginTop: 0,
+    paddingTop: 16, // Add a small, uniform gap below the header for all cards
+
   },
   mainContainer: {
     flex: 1,
@@ -198,11 +201,12 @@ const styles = StyleSheet.create({
   },
   cardContainer: {
     flex: 1,
-    marginTop: 0, // Remove general marginTop; we'll apply it only to ActionStepsCard
+    marginTop: 0,
     padding: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
     width: '100%',
+
   },
   userInputContainer: {
     paddingHorizontal: 24,
