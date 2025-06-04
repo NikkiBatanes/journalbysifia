@@ -11,23 +11,25 @@ type BibleVerse = {
 type BibleVerseCardProps = {
   verse: BibleVerse;
   style?: any;
+  textColor?: string;
+  backgroundColor?: string;
 };
 
-export default function BibleVerseCard({ verse, style }: BibleVerseCardProps) {
+export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = Colors.anchorBlue }: BibleVerseCardProps) {
   return (
-    <View style={[styles.container, style]}>
+    <View style={[styles.container, style, { backgroundColor }]}>
       <View style={styles.headerContainer}>
         <MaterialCommunityIcons 
           name="book" 
           size={24} 
-          color={Colors.hopeWhite} 
+          color={textColor} 
           style={styles.icon}
         />
-        <Text style={styles.heading}>Bible Verse</Text>
+        <Text style={[styles.heading, { color: textColor }]}>Bible Verse</Text>
       </View>
       <View style={styles.contentContainer}>
-        <Text style={styles.verseText}>"{verse.text}"</Text>
-        <Text style={styles.reference}>— {verse.reference}</Text>
+        <Text style={[styles.verseText, { color: textColor }]}>"{verse.text}"</Text>
+        <Text style={[styles.reference, { color: textColor }]}>— {verse.reference}</Text>
       </View>
     </View>
   );

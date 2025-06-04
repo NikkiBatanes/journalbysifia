@@ -98,7 +98,17 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           </View>
         );
       case 'bible':
-        return <BibleVerseCard {...cardData} expandedMode textColor={Colors.anchorBlue} />;
+        return (
+          <View style={styles.cardContainer}>
+            <BibleVerseCard 
+              {...cardData} 
+              expandedMode 
+              textColor={Colors.anchorBlue} 
+              backgroundColor={Colors.hopeWhite}
+              style={styles.bibleCard}
+            />
+          </View>
+        );
       case 'challenge':
         return <DirectChallengeCard {...cardData} expandedMode textColor={Colors.anchorBlue} />;
       default:
@@ -185,6 +195,14 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+  },
+  bibleCard: {
+    width: '100%',
+    maxWidth: 500,
+    borderRadius: 16,
+    padding: 24,
+    elevation: 3,
   },
   affirmationsCard: {
     backgroundColor: 'transparent',
