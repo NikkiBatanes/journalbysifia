@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
   },
   userInputCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',
@@ -221,15 +221,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   userInputText: {
     fontFamily: 'System',
     fontWeight: '400',
     fontSize: 15,
     lineHeight: 22,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   bibleCard: {
     width: '100%',
