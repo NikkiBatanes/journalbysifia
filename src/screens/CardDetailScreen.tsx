@@ -26,7 +26,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   
   const [showUserInput, setShowUserInput] = useState(false);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>(initialViewMode);
-  const [userInput, setUserInput] = useState('');
+  const [userInput, setUserInput] = useState(playbook?.userInput || '');
   
   // Sync with parent's view mode when screen comes into focus
   useFocusEffect(
@@ -140,6 +140,15 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
         />
       </View>
 
+      {/* User Input Card */}
+      {showUserInput && userInput && (
+        <View style={[styles.userInputContainer, { backgroundColor: Colors.hopeWhite }]}>
+          <View style={styles.userInputCard}>
+            <Text style={styles.userInputText}>{userInput}</Text>
+          </View>
+        </View>
+      )}
+
       {/* Scrollable Content */}
       <ScrollView 
         style={styles.scrollView}
@@ -196,6 +205,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
+  },
+  userInputContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
+    backgroundColor: Colors.hopeWhite,
+  },
+  userInputCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  userInputText: {
+    fontFamily: 'System',
+    fontWeight: '400',
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.anchorBlue,
   },
   bibleCard: {
     width: '100%',
