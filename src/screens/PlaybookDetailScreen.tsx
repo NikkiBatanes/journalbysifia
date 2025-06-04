@@ -50,7 +50,7 @@ const CARD_TYPES = [
 type CardType = typeof CARD_TYPES[number];
 
 // Get playbook data from route params
-// Removed usePlaybook hook to avoid duplicate playbook declarations
+
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   const { actionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
@@ -99,7 +99,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     {
       type: 'bible' as CardType,
-      verse: playbook.bibleVerse,
+      verse: playbook.bibleVerse || { text: '', reference: '' },
       tappable: false,
     },
     {
@@ -1133,7 +1133,7 @@ transformOrigin: 'bottom center',
   actionCard: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 28,
-    padding: 24,
+    padding: 24, // Standardized to match TruthInLoveCard
     marginBottom: 16,
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -1156,7 +1156,7 @@ transformOrigin: 'bottom center',
   },
   affirmationsCard: {
     backgroundColor: Colors.anchorBlue, // fully opaque
-    padding: 16,
+    padding: 24, // Standardized to match TruthInLoveCard
     marginBottom: 0, // Remove bottom margin since we'll handle spacing with marginTop on bibleCard
     borderRadius: 28,
     shadowOpacity: 0.2,
@@ -1170,7 +1170,7 @@ transformOrigin: 'bottom center',
   bibleCard: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 24,
-    padding: 16,
+    padding: 24, // Standardized to match TruthInLoveCard
     marginTop: 16, // Add space above BibleVerse card
     marginBottom: 16, // Consistent bottom margin
     shadowOpacity: 0.2,
@@ -1183,8 +1183,8 @@ transformOrigin: 'bottom center',
   },
   challengeCard: {
     backgroundColor: Colors.alertCoral,
-    borderRadius: 28,
-    padding: 16, // Reduced padding for document view
+    borderRadius: 24, // Match bibleCard/document card corners
+    padding: 2, // Match all document card paddings
     marginBottom: 16,
     shadowOpacity: 0.2,
     shadowRadius: 12,

@@ -4,10 +4,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors, Fonts } from '../theme';
 import { formatBibleVerse } from '../utils/textFormatting';
 
-type BibleVerse = {
-  text: string;
-  reference: string;
-};
+import { BibleVerse } from '../interfaces/playbook';
 
 type BibleVerseCardProps = {
   verse: BibleVerse;
