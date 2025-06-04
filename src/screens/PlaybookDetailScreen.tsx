@@ -494,13 +494,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     };
     
     // Render a single card
-    // --- Card press scale animation ---
-const cardPressScale = useSharedValue(1);
-const cardPressAnimatedStyle = useAnimatedStyle(() => ({
-  transform: [{ scale: cardPressScale.value }],
-}));
-
-const renderCard = (cardIndex: number, stackIndex: number) => {
+    const renderCard = (cardIndex: number, stackIndex: number) => {
       const card = cardData[cardIndex];
       if (!card) return null;
       
@@ -513,28 +507,19 @@ const renderCard = (cardIndex: number, stackIndex: number) => {
       // Reduce opacity for the last card when it's in the stack, but not when it's the current card
       const isLastCard = cardIndex === cardData.length - 1;
       const isCurrentCard = cardIndex === currentCard;
+      const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
+      
       // Only the top card animates. Back cards are static.
       const isTopCard = stackIndex === 0;
       const CardContainer = isTopCard ? Animated.View : View;
-      // Only apply animatedCardStyle and press scale to the top card
-      const extraStyle = isTopCard ? [animatedCardStyle, cardPressAnimatedStyle] : {};
+      // Only apply animatedCardStyle to the top card
+      const extraStyle = isTopCard ? animatedCardStyle : {};
       // For back cards, use only static transforms and opacity (not tied to animation)
       return (
-        <TouchableOpacity
+        <TouchableOpacity 
           key={`${cardIndex}-${stackIndex}`}
-          activeOpacity={1}
-          onPressIn={() => {
-            if (isTopCard) cardPressScale.value = withTiming(0.96, { duration: 90 });
-          }}
-          onPressOut={() => {
-            if (isTopCard) cardPressScale.value = withTiming(1, { duration: 90 });
-          }}
-          onPress={() => {
-            if (isTopCard) {
-              cardPressScale.value = withTiming(1, { duration: 90 });
-              handleCardPress(card.type, card);
-            }
-          }}
+          activeOpacity={0.9}
+          onPress={() => isTopCard && handleCardPress(card.type, card)}
           style={[
             styles.stackCard,
             card.type === 'affirmation'
@@ -550,7 +535,7 @@ const renderCard = (cardIndex: number, stackIndex: number) => {
                     { translateY },
                   ] : undefined,
                   zIndex,
-                  opacity: !isTopCard && isLastCard && !isCurrentCard ? 0.7 : 1,
+                  opacity: !isTopCard ? opacity : 1,
                   position: stackIndex === 0 ? 'relative' : 'absolute',
                   top: 0,
                   left: undefined,
@@ -566,7 +551,7 @@ const renderCard = (cardIndex: number, stackIndex: number) => {
                     { translateY },
                   ] : undefined,
                   zIndex,
-                  opacity: !isTopCard && isLastCard && !isCurrentCard ? 0.7 : 1,
+                  opacity: !isTopCard ? opacity : 1,
                   position: stackIndex === 0 ? 'relative' : 'absolute',
                   top: 0,
                   left: undefined,
