@@ -202,6 +202,27 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const bounceY = useSharedValue(0);
   const prevCardRef = useRef(currentCard);
 
+  // Animation for card press with scale and shadow
+  const cardScale = useSharedValue(1);
+  const shadowElevation = useSharedValue(4);
+  const shadowOpacity = useSharedValue(0.15);
+
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    transform: [
+      { 
+        translateY: translateY.value + 
+          (currentCard === 0 ? nudgeY.value : 0) + 
+          (currentCard > 0 ? bounceY.value : 0)
+      },
+      { scale: cardScale.value },
+    ],
+    shadowOpacity: shadowOpacity.value,
+    elevation: shadowElevation.value,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    shadowColor: '#000',
+  }));
+
   // Handle card change animations
   React.useEffect(() => {
     // First card nudge animation
@@ -230,19 +251,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       prevCardRef.current = currentCard;
     }
   }, [currentCard]);
-
-  const animatedCardStyle = useAnimatedStyle(() => {
-    return {
-      transform: [
-        { 
-          translateY: translateY.value + 
-            (currentCard === 0 ? nudgeY.value : 0) + 
-            (currentCard > 0 ? bounceY.value : 0)
-        }
-      ]
-    };
-  });
-
 
   
 
@@ -518,8 +526,22 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       return (
         <TouchableOpacity 
           key={`${cardIndex}-${stackIndex}`}
-          activeOpacity={0.9}
+          activeOpacity={1}
           onPress={() => isTopCard && handleCardPress(card.type, card)}
+          onPressIn={() => {
+            if (isTopCard) {
+              cardScale.value = withTiming(0.98, { duration: 100 });
+              shadowElevation.value = withTiming(8, { duration: 100 });
+              shadowOpacity.value = withTiming(0.25, { duration: 100 });
+            }
+          }}
+          onPressOut={() => {
+            if (isTopCard) {
+              cardScale.value = withTiming(1, { duration: 100 });
+              shadowElevation.value = withTiming(4, { duration: 100 });
+              shadowOpacity.value = withTiming(0.15, { duration: 100 });
+            }
+          }}
           style={[
             styles.stackCard,
             card.type === 'affirmation'
