@@ -140,7 +140,7 @@ export const mockPlaybooks = [
       book: 'Jeremiah',
       chapter: 29,
       verse: 11,
-      text: '\"For I know the plans I have for you," declares the LORD, "plans to prosper you and not to harm you, plans to give you hope and a future.\"',
+      text: 'For I know the plans I have for you, declares the LORD, plans to prosper you and not to harm you, plans to give you hope and a future.',
       reference: 'Jeremiah 29:11'
     },
     directChallenge: "This week, write down your tech business idea and share it with three trusted people for feedback. Commit to taking one concrete step—whether it's researching, networking, or building a prototype—by the end of the week. No excuses.",

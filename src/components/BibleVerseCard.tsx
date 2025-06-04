@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
+import { formatBibleVerse } from '../utils/textFormatting';
 
 type BibleVerse = {
   text: string;
@@ -28,7 +29,7 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         <Text style={[styles.heading, { color: textColor }]}>Bible Verse</Text>
       </View>
       <View style={styles.contentContainer}>
-        <Text style={[styles.verseText, { color: textColor }]}>"{verse.text}"</Text>
+        <Text style={[styles.verseText, { color: textColor }]}>{formatBibleVerse(verse.text)}</Text>
         <Text style={[styles.reference, { color: textColor }]}>— {verse.reference}</Text>
       </View>
     </View>
