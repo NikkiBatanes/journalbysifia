@@ -17,7 +17,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     // Enable console logging in debug builds
     #if DEBUG
     RCTSetLogThreshold(.info)
-    RCTSetLogFunction { level, source, lineNumber, message in
+    RCTSetLogFunction { level, source, fileName, lineNumber, message in
       let levelString: String
       switch level {
       case .fatal: levelString = "Fatal"
@@ -27,7 +27,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
       case .trace: levelString = "Trace"
       @unknown default: levelString = "Unknown"
       }
-      print("ReactNative: \(levelString) - \(message() ?? "")")
+      if let message = message {
+        print("ReactNative: \(levelString) - \(message)")
+      } else {
+        print("ReactNative: \(levelString) - No message")
+      }
     }
     #endif
     
@@ -67,6 +71,6 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
   }
 
   override func bundleURL() -> URL? {
-    return sourceURL(for: nil)
+    return sourceURL(for: RCTBridge.current())
   }
 }

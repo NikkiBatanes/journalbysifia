@@ -317,39 +317,19 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       textShadowOffset: { width: 0.5, height: 0.5 },
       textShadowRadius: 1,
       letterSpacing: 0.3 // Slight letter spacing for better readability
-    },
+    }
   ];
 
   // Header with safe area for status bar
   const renderHeader = () => (
     <SafeAreaView style={styles.headerSafeArea}>
-      {viewMode === 'document' ? (
-        <PlaybookHeader
-          title={playbook.title}
-          subtitle={playbook.createdAt ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-          }) : ''}
-          progress={progress}
-          totalTasks={total}
-          showToggle={false}
-          viewMode={viewMode}
-          onToggleView={setViewMode}
-          onPlaybookLabelPress={() => setShowUserInput((prev) => !prev)}
-          showUserInput={false}
-          userInput={playbook.userInput}
-          chevronAnimatedStyle={chevronStyle}
-          collapsed={true}
-        />
-      ) : (
-        <View style={styles.headerContainer} />
-      )}
+      <View style={styles.headerContainer} />
     </SafeAreaView>
   );
-
-// Main content container with proper spacing
-const renderContent = () => (
-  <View style={styles.contentContainer}>
-    {viewMode === 'stack' && (
+  
+  // Main content container with proper spacing
+  const renderContent = () => (
+    <View style={styles.contentContainer}>
       <View>
         <PlaybookHeader
           title={playbook.title}
@@ -365,30 +345,18 @@ const renderContent = () => (
           showUserInput={showUserInput}
           userInput={playbook.userInput}
           chevronAnimatedStyle={chevronStyle}
-          collapsed={false}
         />
       </View>
-    )}
-    <View style={styles.mainContainer}>
-      {viewMode === 'stack' ? renderStackCards() : renderDocumentCards()}
+      <View style={styles.mainContainer}>
+        {viewMode === 'stack' ? renderStackCards() : renderDocumentCards()}
+      </View>
     </View>
-  </View>
-);
+  );
 
-// Playbook info section with collapsible user input
-// Animation for chevron rotation (reanimated)
+  // Playbook info section with collapsible user input
+  // Animation for chevron rotation (reanimated)
 
-// --- MOVE THESE TO THE TOP LEVEL, NOT INSIDE renderPlaybookInfo ---
-// Place after all useState/useEffect hooks, before any render functions
-// (This is the main fix for the animation bug)
-const chevronAnim = useSharedValue(0);
-useEffect(() => {
-  chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
-}, [showUserInput]);
-const chevronStyle = useAnimatedStyle(() => ({
-  transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
-  marginLeft: 4,
-}));
+  // --- MOVE THESE TO THE TOP LEVEL, NOT INSIDE renderPlaybookInfo ---
   // Place after all useState/useEffect hooks, before any render functions
   // (This is the main fix for the animation bug)
   const chevronAnim = useSharedValue(0);
