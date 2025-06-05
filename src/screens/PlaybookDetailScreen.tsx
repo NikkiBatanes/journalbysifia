@@ -512,13 +512,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const scaleX = 1 - (stackIndex * 0.03); // More pronounced horizontal scaling
       const translateY = stackIndex * 8;
       const zIndex = 100 - stackIndex;
-      // Reduce opacity for the last card when it's in the stack, but not when it's the current card
-      const isLastCard = cardIndex === cardData.length - 1;
+      // Gradually fade all back cards lighter (not just the last one)
       const isCurrentCard = cardIndex === currentCard;
-      const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
+      const isTopCard = stackIndex === 0;
+      // For back cards, fade lighter the further back they are: 0.85 (just behind top), 0.8, ..., 0.7 (furthest back)
+      const opacity = isTopCard ? 1 : Math.max(0.7, 0.85 - (stackIndex - 1) * 0.075);
       
       // Only the top card animates. Back cards are static.
-      const isTopCard = stackIndex === 0;
       const CardContainer = isTopCard ? Animated.View : View;
       // Only apply animatedCardStyle to the top card
       const extraStyle = isTopCard ? animatedCardStyle : {};
