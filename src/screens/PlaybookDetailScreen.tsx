@@ -27,7 +27,6 @@ import { Playbook } from '../interfaces/playbook';
 import { getMockPlaybook } from '../mocks/playbookMocks';
 import PlaybookHeader from '../components/PlaybookHeader';
 import DocumentCards from '../components/DocumentCards';
-import PlaybookInfoSection from '../components/PlaybookInfoSection';
 
 // Types
 type PlaybookScreenProps = {
@@ -333,14 +332,20 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const renderContent = () => (
     <View style={styles.contentContainer}>
       <View>
-        <PlaybookInfoSection
-          playbook={playbook}
-          showUserInput={showUserInput}
-          setShowUserInput={setShowUserInput}
-          chevronStyle={chevronStyle}
-          styles={styles}
+        <PlaybookHeader
+          title={playbook.title}
+          subtitle={playbook.createdAt ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+          }) : ''}
+          progress={playbook.progress}
+          totalTasks={playbook.totalTasks}
+          showToggle={true}
           viewMode={viewMode}
-          setViewMode={setViewMode}
+          onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
+          onPlaybookLabelPress={() => setShowUserInput((prev) => !prev)}
+          showUserInput={showUserInput}
+          userInput={playbook.userInput}
+          chevronAnimatedStyle={chevronStyle}
         />
       </View>
       <View style={styles.mainContainer}>
