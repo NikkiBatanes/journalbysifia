@@ -144,7 +144,7 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
                               <MaterialCommunityIcons
                                 name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
                                 size={20}
-                                color={subTask.completed ? Colors.faithGold : 'rgba(255,255,255,0.7)'}
+                                color={subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)')}
                                 style={styles.checkboxIcon}
                               />
                               <Text style={[
