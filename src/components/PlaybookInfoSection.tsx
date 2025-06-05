@@ -1,0 +1,125 @@
+import React from 'react';
+import { View, Text, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Colors } from '../theme';
+import { Playbook } from '../interfaces/playbook';
+
+interface PlaybookInfoSectionProps {
+  playbook: Playbook;
+  showUserInput: boolean;
+  setShowUserInput: (show: boolean) => void;
+  chevronStyle: StyleProp<ViewStyle>;
+  styles: { [key: string]: ViewStyle | TextStyle };
+  viewMode: 'stack' | 'document';
+  setViewMode: (mode: 'stack' | 'document') => void;
+}
+
+const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
+  playbook,
+  showUserInput,
+  setShowUserInput,
+  chevronStyle,
+  styles,
+  viewMode,
+  setViewMode,
+}) => {
+  // Split title at first colon followed by space or end of string (but not for Bible verses like John 3:15)
+  const titleMatch = playbook.title.match(/^(.+?)(?::\s|$)([^:]*)$/);
+  const firstLine = titleMatch ? titleMatch[1] + (titleMatch[2] ? ':' : '') : playbook.title;
+  const secondLine = titleMatch ? titleMatch[2].trim() : '';
+
+  return (
+    <View style={styles.playbookInfoContainer}>
+      <View style={styles.playbookHeader}>
+        <TouchableOpacity
+          style={styles.playbookLabelRow}
+          onPress={() => setShowUserInput(!showUserInput)}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.playbookLabel}>PLAYBOOK</Text>
+          <Animated.View style={chevronStyle}>
+            <Ionicons
+              name="chevron-down"
+              size={15}
+              color={Colors.anchorBlue}
+            />
+          </Animated.View>
+        </TouchableOpacity>
+        {/* User Input Card - Collapsible */}
+        {showUserInput && playbook.userInput && (
+          <View style={styles.userInputCard}>
+            <Text style={styles.userInputText}>{playbook.userInput}</Text>
+          </View>
+        )}
+        <Text style={styles.playbookTitle}>
+          {firstLine}
+        </Text>
+        {secondLine ? (
+          <Text style={[styles.playbookTitle, { marginTop: -8 }]}>
+            {secondLine}
+          </Text>
+        ) : null}
+        {/* Creation Date */}
+        <Text style={styles.creationDate}>
+          {new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }).toUpperCase()}
+        </Text>
+        {/* Progress and View Toggle Row */}
+        <View style={styles.progressAndViewRow}>
+          {/* Progress bar and text */}
+          <View style={styles.progressContainer}>
+            <View style={styles.progressRow}>
+              <View style={styles.progressBarBg}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${playbook.progress || 0}%` },
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressText}>
+                {playbook.completedTasks || 0}/{playbook.totalTasks || 0} Tasks
+              </Text>
+            </View>
+          </View>
+          {/* View mode toggles */}
+          <View style={styles.viewToggleContainer}>
+            <TouchableOpacity
+              style={styles.viewToggle}
+              onPress={() => setViewMode('stack')}
+            >
+              <View style={[styles.iconContainer, viewMode === 'stack' && styles.iconContainerActive]}>
+                <Ionicons
+                  name="albums"
+                  size={20}
+                  color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey}
+                  style={{ transform: [{ rotate: '180deg' }] }}
+                />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.viewToggleDivider} />
+            <TouchableOpacity
+              style={styles.viewToggle}
+              onPress={() => setViewMode('document')}
+            >
+              <View style={[styles.iconContainer, viewMode === 'document' && styles.iconContainerActive]}>
+                <MaterialCommunityIcons
+                  name="view-agenda"
+                  size={20}
+                  color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey}
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+export default PlaybookInfoSection;
