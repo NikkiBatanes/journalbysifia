@@ -26,6 +26,7 @@ import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import { Playbook } from '../interfaces/playbook';
 import { getMockPlaybook } from '../mocks/playbookMocks';
 import PlaybookHeader from '../components/PlaybookHeader';
+import DocumentCards from '../components/DocumentCards';
 
 // Types
 type PlaybookScreenProps = {
@@ -348,7 +349,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         />
       </View>
       <View style={styles.mainContainer}>
-        {viewMode === 'stack' ? renderStackCards() : renderDocumentCards()}
+        {viewMode === 'stack' ? renderStackCards() : <DocumentCards playbook={playbook} actionSteps={actionSteps} styles={styles} />}
       </View>
     </View>
   );
