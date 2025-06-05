@@ -476,30 +476,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Stack Card View with fan-out effect
   const renderStackCards = () => {
     if (cardData.length === 0) return null;
-    
-    // Number of cards to show in the stack (all cards)
-    const visibleCardCount = Math.min(5, cardData.length - currentCard);
-    
-    // Helper to calculate color based on card type
-    // Palette: anchorBlue, lighterBlue1, lighterBlue2, lighterBlue3, lightCoral
-    const lighterBlue1 = '#3E6CB5'; // lighter than anchorBlue
-    const lighterBlue2 = '#6F98C9'; // even lighter
-    const lighterBlue3 = '#B3C9E6'; // very light blue
-    const lightCoral = '#FFD4CF'; // lighter coral for the last card
-
-    const palette = [
-      Colors.anchorBlue, // top card
-      lighterBlue1,
-      lighterBlue2,
-      lighterBlue3,
-      lightCoral // last card
-    ];
-    const getCardColor = (stackIndex: number) => palette[Math.min(stackIndex, palette.length - 1)];
-    
-    // Render a single card
-    const renderCard = (cardIndex: number, stackIndex: number) => {
-      const card = cardData[cardIndex];
-      if (!card) return null;
       
       // Calculate scale and offset for the fan-out effect
       // Scale width more than height for a better visual effect
@@ -518,6 +494,23 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       // Only apply animatedCardStyle to the top card
       const extraStyle = isTopCard ? animatedCardStyle : {};
       // For back cards, use only static transforms and opacity (not tied to animation)
+      // Card color for this stack position
+      const cardColor = (() => {
+        switch (stackIndex) {
+          case 0:
+            return Colors.anchorBlue;
+          case 1:
+            return '#315486';
+          case 2:
+            return '#416599';
+          case 3:
+            return '#547ab2';
+          case 4:
+            return '#faaeae';
+          default:
+            return '#faaeae';
+        }
+      })();
       return (
         <TouchableOpacity 
           key={`${cardIndex}-${stackIndex}`}
@@ -561,7 +554,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   alignSelf: 'center',
                 }
               : {
-                  backgroundColor: getCardColor(stackIndex),
+                  backgroundColor: cardColor,
                   transform: !isTopCard ? [
                     { scaleX },
                     { scaleY },
