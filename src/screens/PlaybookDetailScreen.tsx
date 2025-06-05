@@ -481,25 +481,20 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
     
     // Helper to calculate color based on card type
-    const getCardColor = (index: number) => {
-      // For the last card, return the original color
-      if (index >= cardData.length - 1) {
-        return Colors.anchorBlue;
-      }
-      
-      // Lighten the anchor blue color for cards in the back (except last)
-      const lightenAmount = index * 0.15; // 15% lighter per card
-      const color = Colors.anchorBlue;
-      // Convert hex to RGB
-      const r = parseInt(color.slice(1, 3), 16);
-      const g = parseInt(color.slice(3, 5), 16);
-      const b = parseInt(color.slice(5, 7), 16);
-      // Lighten the color by moving towards white
-      const lighten = (value: number) => Math.min(255, Math.floor(value + (255 - value) * lightenAmount));
-      // Convert back to hex
-      const toHex = (value: number) => Math.round(value).toString(16).padStart(2, '0');
-      return `#${toHex(lighten(r))}${toHex(lighten(g))}${toHex(lighten(b))}`;
-    };
+    // Palette: anchorBlue, lighterBlue1, lighterBlue2, lighterBlue3, lightCoral
+    const lighterBlue1 = '#3E6CB5'; // lighter than anchorBlue
+    const lighterBlue2 = '#6F98C9'; // even lighter
+    const lighterBlue3 = '#B3C9E6'; // very light blue
+    const lightCoral = '#FFD4CF'; // lighter coral for the last card
+
+    const palette = [
+      Colors.anchorBlue, // top card
+      lighterBlue1,
+      lighterBlue2,
+      lighterBlue3,
+      lightCoral // last card
+    ];
+    const getCardColor = (stackIndex: number) => palette[Math.min(stackIndex, palette.length - 1)];
     
     // Render a single card
     const renderCard = (cardIndex: number, stackIndex: number) => {
@@ -512,13 +507,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const scaleX = 1 - (stackIndex * 0.03); // More pronounced horizontal scaling
       const translateY = stackIndex * 8;
       const zIndex = 100 - stackIndex;
-      // Gradually fade all back cards lighter (not just the last one)
+      // Reduce opacity for the last card when it's in the stack, but not when it's the current card
+      const isLastCard = cardIndex === cardData.length - 1;
       const isCurrentCard = cardIndex === currentCard;
-      const isTopCard = stackIndex === 0;
-      // For back cards, fade lighter the further back they are: 0.85 (just behind top), 0.8, ..., 0.7 (furthest back)
-      const opacity = isTopCard ? 1 : Math.max(0.7, 0.85 - (stackIndex - 1) * 0.075);
+      const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
       
       // Only the top card animates. Back cards are static.
+      const isTopCard = stackIndex === 0;
       const CardContainer = isTopCard ? Animated.View : View;
       // Only apply animatedCardStyle to the top card
       const extraStyle = isTopCard ? animatedCardStyle : {};
