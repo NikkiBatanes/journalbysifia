@@ -32,7 +32,7 @@ interface PlaybookHeaderProps {
   chevronAnimatedStyle?: any;
 }
 
-const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
+const PlaybookHeader: React.FC<PlaybookHeaderProps & { collapsed?: boolean }> = ({
   title,
   subtitle,
   progress,
@@ -53,12 +53,47 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInputBorderColor,
   userInputTextColor,
   chevronAnimatedStyle,
+  collapsed = false,
 }) => {
   // Split title at colons that are followed by a space (to avoid splitting Bible references like 'John 3:16')
   const titleLines = title.split(/(?<=[^0-9]):(?=[^0-9])/).map(part => part.trim()).filter(part => part.length > 0);
 
   const bgColor = backgroundColor || Colors.hopeWhite;
   const txtColor = textColor || Colors.anchorBlue;
+
+  if (collapsed) {
+    return (
+      <View style={styles.collapsedHeaderContainer}>
+        <TouchableOpacity 
+          style={styles.row}
+          onPress={onPlaybookLabelPress}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
+          {chevronAnimatedStyle ? (
+            <Animated.View style={chevronAnimatedStyle}>
+              <Ionicons name="chevron-down" size={15} color={txtColor} />
+            </Animated.View>
+          ) : (
+            <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
+          )}
+        </TouchableOpacity>
+        <View style={styles.progressRow}>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[
+                styles.progressBarFill, 
+                { width: `${progress}%` }
+              ]}
+            />
+          </View>
+          <Text style={styles.progressText}>
+            {Math.round(progress * totalTasks / 100)}/{totalTasks} Steps
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -167,6 +202,13 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
+  collapsedHeaderContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#f2f5f7',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
   safeArea: {
     backgroundColor: 'transparent',
     width: '100%',

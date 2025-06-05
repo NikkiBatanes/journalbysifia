@@ -317,19 +317,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       textShadowOffset: { width: 0.5, height: 0.5 },
       textShadowRadius: 1,
       letterSpacing: 0.3 // Slight letter spacing for better readability
-    }
-  ];
-
-  // Header with safe area for status bar
-  const renderHeader = () => (
-    <SafeAreaView style={styles.headerSafeArea}>
       <View style={styles.headerContainer} />
-    </SafeAreaView>
-  );
-  
-  // Main content container with proper spacing
-  const renderContent = () => (
-    <View style={styles.contentContainer}>
+    )}
+  </SafeAreaView>
+);
+
+// Main content container with proper spacing
+const renderContent = () => (
+  <View style={styles.contentContainer}>
+    {viewMode === 'stack' && (
       <View>
         <PlaybookHeader
           title={playbook.title}
@@ -345,18 +341,30 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           showUserInput={showUserInput}
           userInput={playbook.userInput}
           chevronAnimatedStyle={chevronStyle}
+          collapsed={false}
         />
       </View>
-      <View style={styles.mainContainer}>
-        {viewMode === 'stack' ? renderStackCards() : renderDocumentCards()}
-      </View>
+    )}
+    <View style={styles.mainContainer}>
+      {viewMode === 'stack' ? renderStackCards() : renderDocumentCards()}
     </View>
-  );
+  </View>
+);
 
-  // Playbook info section with collapsible user input
-  // Animation for chevron rotation (reanimated)
+// Playbook info section with collapsible user input
+// Animation for chevron rotation (reanimated)
 
-  // --- MOVE THESE TO THE TOP LEVEL, NOT INSIDE renderPlaybookInfo ---
+// --- MOVE THESE TO THE TOP LEVEL, NOT INSIDE renderPlaybookInfo ---
+// Place after all useState/useEffect hooks, before any render functions
+// (This is the main fix for the animation bug)
+const chevronAnim = useSharedValue(0);
+useEffect(() => {
+  chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
+}, [showUserInput]);
+const chevronStyle = useAnimatedStyle(() => ({
+  transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
+  marginLeft: 4,
+}));
   // Place after all useState/useEffect hooks, before any render functions
   // (This is the main fix for the animation bug)
   const chevronAnim = useSharedValue(0);
@@ -476,6 +484,35 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Stack Card View with fan-out effect
   const renderStackCards = () => {
     if (cardData.length === 0) return null;
+    
+    // Number of cards to show in the stack (all cards)
+    const visibleCardCount = Math.min(5, cardData.length - currentCard);
+    
+    // Helper to calculate color based on card type
+    const getCardColor = (index: number) => {
+      // For the last card, return the original color
+      if (index >= cardData.length - 1) {
+        return Colors.anchorBlue;
+      }
+      
+      // Lighten the anchor blue color for cards in the back (except last)
+      const lightenAmount = index * 0.15; // 15% lighter per card
+      const color = Colors.anchorBlue;
+      // Convert hex to RGB
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      // Lighten the color by moving towards white
+      const lighten = (value: number) => Math.min(255, Math.floor(value + (255 - value) * lightenAmount));
+      // Convert back to hex
+      const toHex = (value: number) => Math.round(value).toString(16).padStart(2, '0');
+      return `#${toHex(lighten(r))}${toHex(lighten(g))}${toHex(lighten(b))}`;
+    };
+    
+    // Render a single card
+    const renderCard = (cardIndex: number, stackIndex: number) => {
+      const card = cardData[cardIndex];
+      if (!card) return null;
       
       // Calculate scale and offset for the fan-out effect
       // Scale width more than height for a better visual effect
@@ -494,23 +531,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       // Only apply animatedCardStyle to the top card
       const extraStyle = isTopCard ? animatedCardStyle : {};
       // For back cards, use only static transforms and opacity (not tied to animation)
-      // Card color for this stack position
-      const cardColor = (() => {
-        switch (stackIndex) {
-          case 0:
-            return Colors.anchorBlue;
-          case 1:
-            return '#315486';
-          case 2:
-            return '#416599';
-          case 3:
-            return '#547ab2';
-          case 4:
-            return '#faaeae';
-          default:
-            return '#faaeae';
-        }
-      })();
       return (
         <TouchableOpacity 
           key={`${cardIndex}-${stackIndex}`}
@@ -554,7 +574,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   alignSelf: 'center',
                 }
               : {
-                  backgroundColor: cardColor,
+                  backgroundColor: getCardColor(stackIndex),
                   transform: !isTopCard ? [
                     { scaleX },
                     { scaleY },
