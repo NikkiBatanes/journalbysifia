@@ -325,7 +325,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Header with safe area for status bar
   const renderHeader = () => (
     <SafeAreaView style={styles.headerSafeArea}>
-      <View style={styles.headerContainer} />
+      <View style={styles.headerContainer}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.anchorBlue} />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>{playbook.title}</Text>
+        </View>
+        <View style={styles.headerRight} />
+      </View>
     </SafeAreaView>
   );
   
@@ -333,14 +344,20 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const renderContent = () => (
     <View style={styles.contentContainer}>
       <View>
-        <PlaybookInfoSection
-          playbook={playbook}
-          showUserInput={showUserInput}
-          setShowUserInput={setShowUserInput}
-          chevronStyle={chevronStyle}
-          styles={styles}
+        <PlaybookHeader
+          title={playbook.title}
+          subtitle={playbook.createdAt ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+          }) : ''}
+          progress={progress}
+          totalTasks={actionSteps.length}
+          showToggle={true}
           viewMode={viewMode}
-          setViewMode={setViewMode}
+          onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
+          onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
+          showUserInput={showUserInput}
+          userInput={playbook.userInput}
+          chevronAnimatedStyle={chevronStyle}
         />
       </View>
       <View style={styles.mainContainer}>
@@ -760,6 +777,37 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 }
 
 const styles = StyleSheet.create({
+  // Header styles
+  headerSafeArea: {
+    backgroundColor: Colors.hopeWhite,
+    width: '100%',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.trustGrey,
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.anchorBlue,
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 40, // Same as back button for balance
+  },
   // Document view styles
   docContainer: {
     flex: 1,
