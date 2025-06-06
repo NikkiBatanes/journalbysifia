@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Text } from 'react-native';
 import { Colors } from '../theme';
-import { TabBarIcons } from '../constants/tabBarIcons';
+import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import UserInputScreen from '../screens/UserInputScreen';
