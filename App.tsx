@@ -24,6 +24,7 @@ import LoadingScreen from './src/components/LoadingScreen';
 
 import { TabBarIcons, IconName } from './src/constants/tabBarIcons';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
+import RootStackNavigator from './src/navigation/RootStackNavigator';
 import { checkAuth, signOut } from './src/services/supabaseApi';
 
 // Screens
@@ -173,82 +174,12 @@ function App(): React.JSX.Element {
       <ActionStepsProvider initialSteps={playbook.actionSteps}>
         <NavigationContainer>
           <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {isAuthenticated ? (
-              <>
-                <Stack.Screen name="MainTabs">
-                  {() => <BottomTabNavigator onLogout={handleLogout} />}
-                </Stack.Screen>
-                <Stack.Screen
-                  name="PlaybookDetail"
-                  component={PlaybookDetailScreen as React.ComponentType}
-                  options={({ navigation }) => {
-                    return {
-                      headerShown: true,
-                      title: '',
-                      headerBackVisible: false,
-                      headerLeft: () => (
-                        <TouchableOpacity
-                          onPress={() => navigation.goBack()}
-                          style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
-                        >
-                          <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-                        </TouchableOpacity>
-                      ),
-                      headerRight: () => (
-                        <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
-                          <Image
-                            source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-                            style={{ width: 32, height: 32, borderRadius: 16 }}
-                            resizeMode="cover"
-                          />
-                        </View>
-                      ),
-                      headerStyle: {
-                        backgroundColor: '#f2f5f7',
-                      },
-                      headerShadowVisible: false,
-                    };
-                  }}
-                />
-              <Stack.Screen
-                name="CardDetail"
-                component={CardDetailScreen as React.ComponentType}
-                options={({ navigation }) => ({
-                  headerShown: true,
-                  title: '',
-                  headerBackVisible: false,
-                  headerLeft: () => (
-                    <TouchableOpacity
-                      onPress={() => navigation.goBack()}
-                      style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
-                    >
-                      <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
-                    </TouchableOpacity>
-                  ),
-                  headerRight: () => (
-                    <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
-                      <Image
-                        source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-                        style={{ width: 32, height: 32, borderRadius: 16 }}
-                        resizeMode="cover"
-                      />
-                    </View>
-                  ),
-                  headerStyle: {
-                    backgroundColor: Colors.anchorBlue,
-                  },
-                  headerTintColor: Colors.hopeWhite,
-                  headerShadowVisible: false,
-                })}
-              />
-            </>
-            ) : (
-              <Stack.Screen name="AuthStack">
-                {() => <AuthStack onLogin={handleLogin} />}
-              </Stack.Screen>
-            )}
-          </Stack.Navigator>
+          <RootStackNavigator
+            isAuthenticated={isAuthenticated}
+            handleLogout={handleLogout}
+            handleLogin={handleLogin}
+            AuthStack={AuthStack}
+          />
         </NavigationContainer>
       </ActionStepsProvider>
     </GestureHandlerRootView>
