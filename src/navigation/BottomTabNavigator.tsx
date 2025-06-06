@@ -3,7 +3,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Text } from 'react-native';
-import { Colors } from '../theme';
+import { Colors } from '../theme/colors';
 import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
@@ -50,7 +50,7 @@ export default function BottomTabNavigator({ onLogout }: { onLogout: () => void 
           headerShown: true,
           headerRight: () => (
             <Text
-              style={{ fontSize: 20, color: '#FF3B30', marginRight: 15 }}
+              style={{ fontSize: 20, color: Colors.dangerRed, marginRight: 15 }}
               onPress={onLogout}
             >
               🚪

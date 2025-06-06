@@ -16,7 +16,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 
 // Import theme colors
-import { Colors } from './src/theme';
+import { Colors } from './src/theme/colors';
 import LoadingScreen from './src/components/LoadingScreen';
 
 // Import vector icons
