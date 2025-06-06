@@ -116,34 +116,40 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     }
   }, [currentCard, hasSeenSwipeUp]);
 
-  // Card data
+  // Card data with explicit typing and null checks
   const cardData: CardData[] = [
     {
-      type: 'truth',
+      type: 'truth' as const,
       truth: playbook.truthInLove?.text ?? '',
       summary: playbook.truthInLove?.summary ?? '',
       tappable: false,
     },
     {
-      type: 'action',
-      steps: actionSteps ?? [],
+      type: 'action' as const,
+      steps: Array.isArray(actionSteps) ? actionSteps : [],
       tappable: false,
     },
     {
-      type: 'affirmation',
-      affirmations: playbook.affirmations ?? [],
+      type: 'affirmation' as const,
+      affirmations: Array.isArray(playbook.affirmations) 
+        ? playbook.affirmations.filter((a): a is Required<Affirmation> => 
+            a?.id !== undefined && 
+            a?.text !== undefined &&
+            a?.completed !== undefined
+          )
+        : [],
       tappable: false,
     },
     {
-      type: 'bible',
+      type: 'bible' as const,
       verse: {
-        text: playbook.bibleVerse?.text ?? '',
-        reference: playbook.bibleVerse?.reference ?? ''
+        text: playbook.bibleVerse?.text ?? 'No verse text available',
+        reference: playbook.bibleVerse?.reference ?? 'Unknown'
       },
       tappable: false,
     },
     {
-      type: 'challenge',
+      type: 'challenge' as const,
       challenge: typeof playbook.directChallenge === 'string' 
         ? playbook.directChallenge 
         : playbook.directChallenge?.text ?? '',
@@ -565,21 +571,32 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               </View>
               <View style={styles.affirmationsList}>
                 {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
-                  card.affirmations.map((affirmation) => (
-                    <AffirmationCard
-                      key={affirmation?.id ?? ''}
-                      id={affirmation?.id ?? ''}
-                      text={affirmation?.text ?? ''}
-                      completed={affirmation?.completed ?? false}
-                    />
-                  ))
+                  card.affirmations
+                    .filter((affirmation): affirmation is Required<Affirmation> => 
+                      affirmation?.id !== undefined && 
+                      affirmation?.text !== undefined &&
+                      affirmation?.completed !== undefined
+                    )
+                    .map((affirmation) => (
+                      <AffirmationCard
+                        key={affirmation.id}
+                        id={affirmation.id}
+                        text={affirmation.text}
+                        completed={affirmation.completed}
+                      />
+                    ))
                 ) : (
                   <Text style={styles.noAffirmationsText}>No affirmations</Text>
                 )}
               </View>
             </View>
           ) : card.type === 'bible' ? (
-            <BibleVerseCard verse={card.verse} />
+            <BibleVerseCard 
+              verse={{
+                text: card.verse?.text ?? 'No verse text available',
+                reference: card.verse?.reference ?? 'Unknown'
+              }} 
+            />
           ) : card.type === 'challenge' ? (
             <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
               <DirectChallengeCard
