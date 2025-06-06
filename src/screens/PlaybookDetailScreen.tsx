@@ -301,6 +301,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       progress,
       totalTasks: actionSteps.length,
       viewMode,
+      onToggleView: (mode: 'stack' | 'document') => setViewMode(mode),
     });
   };
 
@@ -608,7 +609,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 handleCardPress(card.type, card);
               }}
             >
-              {renderCard(currentCard, 0)}
+              {renderCard(currentCard, 0, (mode: 'stack' | 'document') => setViewMode(mode))}
             </TouchableOpacity>
           </Animated.View>
         </PanGestureHandler>
