@@ -22,15 +22,7 @@ import LoadingScreen from './src/components/LoadingScreen';
 // Import vector icons
 
 
-// Define the icon names type
-type IconName = 'home-outline' | 'home' | 'book-outline' | 'book' | 'person-outline' | 'person';
-
-// Tab bar icons using Ionicons
-const TabBarIcons: Record<string, { name: IconName; focused: IconName }> = {
-  Home: { name: 'home-outline', focused: 'home' },
-  Playbooks: { name: 'book-outline', focused: 'book' },
-  Profile: { name: 'person-outline', focused: 'person' },
-};
+import { TabBarIcons, IconName } from './src/constants/tabBarIcons';
 import { checkAuth, signOut } from './src/services/supabaseApi';
 
 // Screens
