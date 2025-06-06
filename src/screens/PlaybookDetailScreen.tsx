@@ -120,32 +120,34 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const cardData: CardData[] = [
     {
       type: 'truth',
-      truth: playbook.truthInLove.text,
-      summary: playbook.truthInLove.summary,
+      truth: playbook.truthInLove?.text ?? '',
+      summary: playbook.truthInLove?.summary ?? '',
       tappable: false,
     },
     {
       type: 'action',
-      steps: actionSteps,
+      steps: actionSteps ?? [],
       tappable: false,
     },
     {
       type: 'affirmation',
-      affirmations: playbook.affirmations,
+      affirmations: playbook.affirmations ?? [],
       tappable: false,
     },
     {
       type: 'bible',
-      verse: playbook.bibleVerse ? playbook.bibleVerse : { text: '', reference: '' },
+      verse: {
+        text: playbook.bibleVerse?.text ?? '',
+        reference: playbook.bibleVerse?.reference ?? ''
+      },
       tappable: false,
     },
     {
       type: 'challenge',
-      challenge:
-        typeof playbook.directChallenge === 'string'
-          ? playbook.directChallenge
-          : playbook.directChallenge?.text ?? '',
-      challengeCTA: playbook.challengeCTA || '',
+      challenge: typeof playbook.directChallenge === 'string' 
+        ? playbook.directChallenge 
+        : playbook.directChallenge?.text ?? '',
+      challengeCTA: playbook.challengeCTA ?? '',
       tappable: false,
     },
   ];
