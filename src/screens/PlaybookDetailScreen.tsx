@@ -136,13 +136,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     {
       type: 'bible',
-      verse: playbook.bibleVerse || { text: '', reference: '' },
+      verse: playbook.bibleVerse ? playbook.bibleVerse : { text: '', reference: '' },
       tappable: false,
     },
     {
       type: 'challenge',
-      challenge: playbook.directChallenge,
-      challengeCTA: playbook.challengeCTA,
+      challenge:
+        typeof playbook.directChallenge === 'string'
+          ? playbook.directChallenge
+          : playbook.directChallenge?.text ?? '',
+      challengeCTA: playbook.challengeCTA || '',
       tappable: false,
     },
   ];
@@ -663,7 +666,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       />
       <View key="challenge" style={[styles.docCard, styles.challengeCard]}>
         <DirectChallengeCard
-          challenge={playbook.directChallenge ?? { text: '', summary: '' }}
+          challenge={typeof playbook.directChallenge === 'string'
+          ? playbook.directChallenge
+          : playbook.directChallenge?.text ?? ''}
           challengeCTA={playbook.challengeCTA ?? ''}
         />
       </View>

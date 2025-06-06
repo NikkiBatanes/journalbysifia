@@ -36,7 +36,7 @@ export interface Playbook {
   actionSteps: ActionStep[];
   affirmations: Affirmation[];
   bibleVerse: BibleVerse;
-  directChallenge: string;
+  directChallenge?: string | { text: string; summary: string };
   challengeCTA?: string; // Optional call-to-action separated from the challenge body
   profileImage?: string;
   progress: number;
