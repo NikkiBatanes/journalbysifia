@@ -14,7 +14,7 @@ export interface ActionStep {
   title: string;
   description?: string; // For steps without sub-tasks
   subTasks?: SubTask[]; // Only present if there are sub-tasks
-  completed?: boolean;  // Optionally, for UI convenience
+  completed: boolean; // Always boolean for strict typing
 }
 
 export interface TruthInLove {

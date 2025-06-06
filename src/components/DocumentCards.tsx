@@ -9,9 +9,11 @@ import DirectChallengeCard from './DirectChallengeCard';
 import { Colors } from '../theme';
 import { Playbook } from '../interfaces/playbook';
 
+import { ActionStep } from '../interfaces/playbook';
+
 interface DocumentCardsProps {
   playbook: Playbook;
-  actionSteps: any[];
+  actionSteps: ActionStep[];
   styles: any;
 }
 

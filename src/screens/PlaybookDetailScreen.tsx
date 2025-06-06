@@ -46,20 +46,23 @@ import PlaybookHeader from '../components/PlaybookHeader';
 import DocumentCards from '../components/DocumentCards';
 
 // Types & Context
-import { Playbook } from '../interfaces/playbook';
+import { Playbook, ActionStep, Affirmation } from '../interfaces/playbook';
 import { useActionSteps } from '../context/ActionStepsContext';
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Gesture context type
+type GestureContext = { startY: number; startX: number };
+
 // Types
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation/types'; // Adjust path if needed
+
 type PlaybookScreenProps = {
-  route: {
-    params: {
-      playbook: Playbook;
-    };
-  };
-  navigation: any;
+  navigation: StackNavigationProp<RootStackParamList, 'PlaybookDetail'>;
+  route: { params: { playbook: Playbook } };
 };
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Types
 type CardType = 'truth' | 'action' | 'affirmation' | 'bible' | 'challenge';
@@ -68,8 +71,8 @@ interface CardData {
   type: CardType;
   truth?: string;
   summary?: string;
-  steps?: any[];
-  affirmations?: any[];
+  steps?: ActionStep[];
+  affirmations?: Affirmation[];
   verse?: { text: string; reference: string };
   challenge?: { text: string; summary: string };
   challengeCTA?: string;
@@ -177,11 +180,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const animatedHeaderStyle = useAnimatedStyle(() => ({ opacity: headerOpacity.value }));
 
   const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: any) => {
+    onStart: (_, ctx: GestureContext) => {
       ctx.startY = translateY.value;
       ctx.startX = 0;
     },
-    onActive: (event, ctx: any) => {
+    onActive: (event, ctx: GestureContext) => {
       if (!isTransitioning.value) {
         if (Math.abs(event.translationY) > Math.abs(event.translationX)) {
           translateY.value = ctx.startY + event.translationY;
@@ -196,7 +199,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         }
       }
     },
-    onEnd: (event, ctx: any) => {
+    onEnd: (event, ctx: GestureContext) => {
       if (isTransitioning.value) return;
 
       const isVerticalSwipe = Math.abs(event.translationY) > Math.abs(event.translationX);
@@ -469,7 +472,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       return `#${toHex(lighten(r))}${toHex(lighten(g))}${toHex(lighten(b))}`;
     };
 
-    const renderCard = (cardIndex: number, stackIndex: number) => {
+    const renderCard = (cardIndex: number, stackIndex: number, onToggleView: (mode: 'stack' | 'document') => void) => {
       const card = cardData[cardIndex];
       if (!card) return null;
 
@@ -573,7 +576,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             <BibleVerseCard verse={card.verse} />
           ) : card.type === 'challenge' ? (
             <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
-              <DirectChallengeCard challenge={card.challenge ?? { text: '', summary: '' }} challengeCTA={card.challengeCTA ?? ''} />
+              <DirectChallengeCard
+                challenge={card.challenge ?? { text: '', summary: '' }}
+                challengeCTA={card.challengeCTA ?? ''}
+                onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
+              />
             </View>
           ) : (
             <View style={{ flex: 1, padding: 24 }} />
@@ -585,7 +592,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     const backCards = Array.from({ length: visibleCardCount - 1 }).map((_, i, arr) => {
       const stackIndex = arr.length - 1 - i + 1;
       const cardIndex = currentCard + stackIndex;
-      return renderCard(cardIndex, stackIndex);
+      return renderCard(cardIndex, stackIndex, (mode: 'stack' | 'document') => setViewMode(mode));
     });
 
     return (
