@@ -15,7 +15,7 @@ interface RootStackNavigatorProps {
   handleLogout: () => void;
   handleLogin: () => void;
   AuthStack: React.ComponentType<{ onLogin: () => void }>;
-}
+} // (No change needed, prop type is already generic, just ensure usage is correct)
 
 export default function RootStackNavigator({
   isAuthenticated,

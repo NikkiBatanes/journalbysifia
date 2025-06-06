@@ -46,29 +46,7 @@ import { RootStackParamList, BottomTabParamList } from './src/navigation/types';
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Auth Stack
-function AuthStack({ onLogin }: { onLogin: () => void }) {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Login">
-        {(props) => (
-          <LoginScreen
-            {...props}
-            onLogin={onLogin}
-          />
-        )}
-      </Stack.Screen>
-      <Stack.Screen name="Register">
-        {(props) => (
-          <RegisterScreen
-            {...props}
-            onRegister={onLogin}
-          />
-        )}
-      </Stack.Screen>
-    </Stack.Navigator>
-  );
-}
+import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 
 // Main App Component
 function App(): React.JSX.Element {
@@ -178,7 +156,7 @@ function App(): React.JSX.Element {
             isAuthenticated={isAuthenticated}
             handleLogout={handleLogout}
             handleLogin={handleLogin}
-            AuthStack={AuthStack}
+            AuthStack={AuthStackNavigator}
           />
         </NavigationContainer>
       </ActionStepsProvider>
