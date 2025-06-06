@@ -1,16 +1,14 @@
 // React & React Native
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
   View,
   Text,
   Dimensions,
-  ActivityIndicator,
   ScrollView,
-  Platform,
   StatusBar,
-  SafeAreaView,
+  Platform,
   ViewStyle,
   TextStyle,
   ImageStyle,
