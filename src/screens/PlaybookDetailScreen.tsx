@@ -129,14 +129,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const onSwipeComplete = (direction: 'up' | 'down') => {
     if (direction === 'up') {
       goToNextCard();
-      // Restore header after card changes
-      navigation.setOptions({ headerShown: true });
-      if (headerVisibleRef.current !== true) headerVisibleRef.current = true;
+      // Fade header back in after card changes
+      headerOpacity.value = withTiming(1, { duration: 200 });
+      headerFaded.value = false;
     } else {
       goToPrevCard();
-      // Also restore header on swipe down
-      navigation.setOptions({ headerShown: true });
-      if (headerVisibleRef.current !== true) headerVisibleRef.current = true;
+      headerOpacity.value = withTiming(1, { duration: 200 });
+      headerFaded.value = false;
     }
     // Reset the position after a small delay to allow the card to animate out
     requestAnimationFrame(() => {
@@ -157,7 +156,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     currentCardIndex.value = currentCard;
   }, [currentCard]);
 
-  const headerVisibleRef = useRef(true);
+  const headerFaded = useSharedValue(false);
+
+  const headerOpacity = useSharedValue(1);
+  const animatedHeaderStyle = useAnimatedStyle(() => ({ opacity: headerOpacity.value }));
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
@@ -171,12 +173,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           translateY.value = ctx.startY + event.translationY;
           // Advanced: Hide/show header as swipe crosses threshold
           const threshold = -SWIPE_THRESHOLD / 2;
-          if (translateY.value < threshold && headerVisibleRef.current) {
-            headerVisibleRef.current = false;
-            runOnJS(navigation.setOptions)({ headerShown: false, animation: 'none' });
-          } else if (translateY.value >= threshold && !headerVisibleRef.current) {
-            headerVisibleRef.current = true;
-            runOnJS(navigation.setOptions)({ headerShown: true, animation: 'none' });
+          if (translateY.value < threshold && !headerFaded.value) {
+            headerFaded.value = true;
+            headerOpacity.value = withTiming(0, { duration: 200 });
+          } else if (translateY.value >= threshold && headerFaded.value) {
+            headerFaded.value = false;
+            headerOpacity.value = withTiming(1, { duration: 200 });
           }
         }
       }
@@ -346,7 +348,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Header with safe area for status bar
   const renderHeader = () => (
-    <View style={styles.headerSafeArea}>
+    <Animated.View style={[styles.headerSafeArea, animatedHeaderStyle]}>
       <View style={styles.headerContainer}>
         <TouchableOpacity
           style={styles.backButton}
@@ -359,7 +361,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </View>
         <View style={styles.headerRight} />
       </View>
-    </View>
+    </Animated.View>
   );
 
   // Main content container with proper spacing
