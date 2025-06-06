@@ -38,6 +38,7 @@ import { Colors, Fonts } from '../theme';
 // Components
 import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
+import DocumentCardView from '../components/DocumentCardView';
 import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
@@ -540,70 +541,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             extraStyle,
           ]}
         >
-          {card.type === 'truth' ? (
-            <View style={{ flex: 1, overflow: 'hidden', padding: 16 }}>
-              <TruthInLoveCard
-                truth={card.truth ?? ''}
-                summary={card.summary ?? ''}
-                expanded={false}
-                style={{ 
-                  flex: 1,
-                  padding: 24,
-                  paddingBottom: 24,
-                }}
-              />
-            </View>
-          ) : card.type === 'action' ? (
-            <ActionStepsCard steps={card.steps ?? []} style={{ flex: 1, padding: 24 }} />
-          ) : card.type === 'affirmation' ? (
-            <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
-              <View style={styles.affirmationsHeader}>
-                <MaterialCommunityIcons
-                  name="format-quote-close"
-                  size={24}
-                  color="white"
-                  style={[styles.icon, { transform: [{ scaleX: -1 }] }]}
-                />
-                <Text style={styles.affirmationsTitle}>Affirmations</Text>
-              </View>
-              <View style={styles.affirmationsList}>
-                {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
-                  card.affirmations
-                    .filter((affirmation): affirmation is Required<Affirmation> => 
-                      affirmation?.id !== undefined && 
-                      affirmation?.text !== undefined &&
-                      affirmation?.completed !== undefined
-                    )
-                    .map((affirmation) => (
-                      <AffirmationCard
-                        key={affirmation.id}
-                        id={affirmation.id}
-                        text={affirmation.text}
-                        completed={affirmation.completed}
-                      />
-                    ))
-                ) : (
-                  <Text style={styles.noAffirmationsText}>No affirmations</Text>
-                )}
-              </View>
-            </View>
-          ) : card.type === 'bible' ? (
-            <BibleVerseCard 
-              verse={{
-                text: card.verse?.text ?? 'No verse text available',
-                reference: card.verse?.reference ?? 'Unknown'
-              }} 
-            />
-          ) : card.type === 'challenge' ? (
-            <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
-              <DirectChallengeCard
-                challenge={typeof card.challenge === 'string' ? card.challenge : card.challenge?.text ?? ''}
-                challengeCTA={card.challengeCTA ?? ''}
-              />
-            </View>
-          ) : (
-            <View style={{ flex: 1, padding: 24 }} />
-          )}
+          <DocumentCardView card={card} styles={styles} />
         </TouchableOpacity>
       );
     };
