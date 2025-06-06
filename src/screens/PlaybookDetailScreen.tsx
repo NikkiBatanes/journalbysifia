@@ -753,7 +753,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   </View>
   <BibleVerseCard
     key="bible"
-    verse={playbook.bibleVerse}
+    verse={playbook.bibleVerse || { text: '', reference: '' }}
     style={[styles.docCard, styles.bibleCard, { marginTop: 16 }]}
   />
 <View key="challenge" style={styles.challengeCard}>
@@ -795,16 +795,6 @@ const styles = StyleSheet.create({
     padding: 8,
     marginLeft: -8,
   },
-  headerTitleContainer: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.anchorBlue,
-    textAlign: 'center',
-  },
   headerRight: {
     width: 40, // Same as back button for balance
   },
@@ -842,22 +832,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
 
-  // Swipe indicator
-  swipeUpIndicatorContainer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-
-  // Card stack container
-  cardStackContainer: {
-    flex: 1,
-    position: 'relative',
-    marginBottom: 20,
-  },
+  // Removed unused styles: swipeUpIndicatorContainer, cardStackContainer
 
   // Main content container with max width
   contentContainer: {
@@ -895,16 +870,65 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
+  // Header styles
+  headerTitleContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.anchorBlue,
+    textAlign: 'center',
+  },
   playbookLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
+    marginBottom: 8,
   },
-
-
-
-
-
+  playbookLabel: {
+    fontSize: 14,
+    color: Colors.trustGrey,
+    marginRight: 8,
+  },
+  cardStackContainer: {
+    flex: 1,
+    position: 'relative',
+    marginBottom: 20,
+  },
+  swipeUpIndicatorContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  // Playbook title and info styles
+  playbookTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.anchorBlue,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  creationDate: {
+    fontSize: 12,
+    color: Colors.trustGrey,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  progressAndViewRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  progressContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
 
   progressRow: {
     flexDirection: 'row',
