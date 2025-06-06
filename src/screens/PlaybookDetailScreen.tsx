@@ -62,8 +62,7 @@ type PlaybookScreenProps = {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Types
-const CARD_TYPES = ['truth', 'action', 'affirmation', 'bible', 'challenge'] as const;
-type CardType = typeof CARD_TYPES[number];
+type CardType = 'truth' | 'action' | 'affirmation' | 'bible' | 'challenge';
 
 interface CardData {
   type: CardType;
@@ -304,7 +303,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   const [showUserInput, setShowUserInput] = useState(false);
 
-  const titleStyle: TextStyle = [
+  const titleStyle: TextStyle[] = [
     styles.playbookTitle,
     {
       fontSize: 26,
