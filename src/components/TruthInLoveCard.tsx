@@ -23,30 +23,31 @@ export default function TruthInLoveCard({
   textColor = Colors.hopeWhite,
 }: TruthInLoveCardProps) {
   return (
-    <View style={style}>
-      <View style={styles.headingContainer}>
-        <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
-        <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
-      </View>
-
-      <View style={styles.contentContainer}>
-        <Text style={[styles.content, { color: textColor }]}>
+    <View style={[style, { flex: 1, justifyContent: 'space-between' }]}>
+      <View style={{ flexShrink: 0 }}>
+        <View style={styles.headingContainer}>
+          <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
+          <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
+        </View>
+        <Text style={[styles.content, { color: textColor, marginTop: 16 }]}>
           <Text style={[styles.username, { color: textColor }]}>{username}, </Text>
           <Text style={[styles.summary, { color: textColor }]}>{summary}</Text>
         </Text>
-        {expanded ? (
-          <Text style={[styles.truth, { color: textColor }]}>{truth}</Text>
-        ) : (
-          <Text
-            style={[styles.truncatedTruth, { color: textColor }]}
-            numberOfLines={5}
-            ellipsizeMode="tail"
-          >
-            {truth}
-          </Text>
-        )}
       </View>
-
+      
+      <View style={{ flex: 1, minHeight: 0, marginTop: 16 }}>
+        <Text
+          style={[styles.truth, { 
+            color: textColor, 
+            flex: 1,
+            minHeight: 0,
+          }]}
+          numberOfLines={expanded ? undefined : 5}
+          ellipsizeMode={expanded ? 'clip' : 'tail'}
+        >
+          {truth}
+        </Text>
+      </View>
     </View>
   );
 }

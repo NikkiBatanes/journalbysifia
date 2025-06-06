@@ -551,11 +551,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           ]}
         >
           {card.type === 'truth' ? (
-            <TruthInLoveCard
-              truth={card.truth ?? ''}
-              summary={card.summary ?? ''}
-              style={{ flex: 1, padding: 32 }}
-            />
+            <View style={{ flex: 1, overflow: 'hidden', padding: 16 }}>
+              <TruthInLoveCard
+                truth={card.truth ?? ''}
+                summary={card.summary ?? ''}
+                expanded={false}
+                style={{ 
+                  flex: 1,
+                  padding: 24,
+                  paddingBottom: 24,
+                }}
+              />
+            </View>
           ) : card.type === 'action' ? (
             <ActionStepsCard steps={card.steps ?? []} style={{ flex: 1, padding: 24 }} />
           ) : card.type === 'affirmation' ? (
