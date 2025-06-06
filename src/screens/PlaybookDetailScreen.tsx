@@ -604,41 +604,41 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         >
           {card.type === 'truth' ? (
             <TruthInLoveCard
-              truth={playbook.truthInLove.text}
-              summary={playbook.truthInLove.summary}
+              truth={playbook.truthInLove?.text ?? ''}
+              summary={playbook.truthInLove?.summary ?? ''}
               style={{ flex: 1, padding: 32 }}
             />
           ) : card.type === 'action' ? (
             <ActionStepsCard
-              steps={actionSteps}
+              steps={actionSteps ?? []}
               style={{ flex: 1, padding: 24 }}
             />
           ) : card.type === 'affirmation' ? (
             <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
-  <View style={styles.affirmationsHeader}>
-    <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
-    <Text style={styles.affirmationsTitle}>Affirmations</Text>
-  </View>
-  <View style={styles.affirmationsList}>
-    {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
-      card.affirmations.map((affirmation) => (
-        <AffirmationCard
-          key={affirmation.id}
-          id={affirmation.id}
-          text={affirmation.text}
-          completed={affirmation.completed}
-        />
-      ))
-    ) : (
-      <Text style={{ color: '#fff', textAlign: 'center' }}>No affirmations</Text>
-    )}
-  </View>
-</View>
+              <View style={styles.affirmationsHeader}>
+                <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
+                <Text style={styles.affirmationsTitle}>Affirmations</Text>
+              </View>
+              <View style={styles.affirmationsList}>
+                {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
+                  card.affirmations.map((affirmation) => (
+                    <AffirmationCard
+                      key={affirmation?.id ?? ''}
+                      id={affirmation?.id ?? ''}
+                      text={affirmation?.text ?? ''}
+                      completed={affirmation?.completed ?? false}
+                    />
+                  ))
+                ) : (
+                  <Text style={{ color: '#fff', textAlign: 'center' }}>No affirmations</Text>
+                )}
+              </View>
+            </View>
           ) : card.type === 'bible' ? (
             <BibleVerseCard verse={card.verse} />
           ) : card.type === 'challenge' ? (
             <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
-              <DirectChallengeCard challenge={playbook.directChallenge} challengeCTA={playbook.challengeCTA} />
+              <DirectChallengeCard challenge={playbook.directChallenge ?? { text: '', summary: '' }} challengeCTA={playbook.challengeCTA ?? ''} />
             </View>
           ) : (
             <View style={{ flex: 1, padding: 24 }}>
@@ -669,48 +669,48 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         >
           <Animated.View style={[animatedCardStyle, { width: '100%', position: 'relative', zIndex: 200 }]}>
             {/* Tap-to-expand: always enable for demonstration; refine with truncation logic if needed */}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                style={{ flex: 1 }}
-                onPress={() => {
-                  let cardType = cardData[currentCard].type;
-                  let cardDataForDetail: any = {};
-                  if (cardType === 'truth') {
-                    cardDataForDetail = {
-                      truth: playbook.truthInLove.text,
-                      summary: playbook.truthInLove.summary,
-                    };
-                  } else if (cardType === 'action') {
-                    cardDataForDetail = {
-                      steps: playbook.actionSteps,
-                    };
-                  } else if (cardType === 'affirmation') {
-                    cardDataForDetail = {
-                      affirmations: playbook.affirmations,
-                    };
-                  } else if (cardType === 'bible') {
-                    cardDataForDetail = {
-                      verse: playbook.bibleVerse,
-                    };
-                  } else if (cardType === 'challenge') {
-                    cardDataForDetail = {
-                      challenge: playbook.directChallenge,
-  challengeCTA: playbook.challengeCTA,
-                    };
-                  }
-                  navigation.navigate('CardDetail', {
-                    cardType,
-                    cardData: cardDataForDetail,
-                    playbook,
-                    progress: currentCard + 1,
-                    totalTasks: cardData.length,
-                    viewMode,
-                    onToggleView: undefined, // Optionally pass if needed
-                  });
-                }}
-              >
-                {renderCard(currentCard, 0)}
-              </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={{ flex: 1 }}
+              onPress={() => {
+                let cardType = cardData[currentCard].type;
+                let cardDataForDetail: any = {};
+                if (cardType === 'truth') {
+                  cardDataForDetail = {
+                    truth: playbook.truthInLove?.text ?? '',
+                    summary: playbook.truthInLove?.summary ?? '',
+                  };
+                } else if (cardType === 'action') {
+                  cardDataForDetail = {
+                    steps: actionSteps ?? [],
+                  };
+                } else if (cardType === 'affirmation') {
+                  cardDataForDetail = {
+                    affirmations: playbook.affirmations ?? [],
+                  };
+                } else if (cardType === 'bible') {
+                  cardDataForDetail = {
+                    verse: playbook.bibleVerse ?? { text: '', reference: '' },
+                  };
+                } else if (cardType === 'challenge') {
+                  cardDataForDetail = {
+                    challenge: playbook.directChallenge ?? { text: '', summary: '' },
+                    challengeCTA: playbook.challengeCTA ?? '',
+                  };
+                }
+                navigation.navigate('CardDetail', {
+                  cardType,
+                  cardData: cardDataForDetail,
+                  playbook,
+                  progress: currentCard + 1,
+                  totalTasks: cardData.length,
+                  viewMode,
+                  onToggleView: undefined, // Optionally pass if needed
+                });
+              }}
+            >
+              {renderCard(currentCard, 0)}
+            </TouchableOpacity>
           </Animated.View>
         </PanGestureHandler>
       </View>
@@ -725,40 +725,44 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     >
       <TruthInLoveCard
         key="truth"
-        truth={playbook.truthInLove?.text}
-        summary={playbook.truthInLove?.summary}
+        truth={playbook.truthInLove?.text ?? ''}
+        summary={playbook.truthInLove?.summary ?? ''}
         expanded={true}
         style={[styles.docCard, styles.truthCard]}
       />
       <ActionStepsCard
         key="action"
-        steps={actionSteps}
+        steps={actionSteps ?? []}
         style={[styles.docCard, styles.actionCard]}
       />
       <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>
-  <View style={styles.affirmationsHeader}>
-    <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
-    <Text style={styles.affirmationsTitle}>Affirmations</Text>
-  </View>
-  <View style={styles.affirmationsList}>
-    {playbook.affirmations?.map((affirmation) => (
-      <AffirmationCard
-        key={affirmation.id}
-        id={affirmation.id}
-        text={affirmation.text}
-        completed={affirmation.completed}
+        <View style={styles.affirmationsHeader}>
+          <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
+          <Text style={styles.affirmationsTitle}>Affirmations</Text>
+        </View>
+        <View style={styles.affirmationsList}>
+          {Array.isArray(playbook.affirmations) && playbook.affirmations.length > 0 ? (
+            playbook.affirmations.map((affirmation) => (
+              <AffirmationCard
+                key={affirmation?.id ?? ''}
+                id={affirmation?.id ?? ''}
+                text={affirmation?.text ?? ''}
+                completed={affirmation?.completed ?? false}
+              />
+            ))
+          ) : (
+            <Text style={{ color: '#fff', textAlign: 'center' }}>No affirmations</Text>
+          )}
+        </View>
+      </View>
+      <BibleVerseCard
+        key="bible"
+        verse={playbook.bibleVerse ?? { text: '', reference: '' }}
       />
-    ))}
-  </View>
-  </View>
-  <BibleVerseCard
-    key="bible"
-    verse={playbook.bibleVerse || { text: '', reference: '' }}
-    style={[styles.docCard, styles.bibleCard, { marginTop: 16 }]}
-  />
-<View key="challenge" style={styles.challengeCard}>
-  <DirectChallengeCard challenge={playbook.directChallenge} challengeCTA={playbook.challengeCTA} />
-</View>
+      <View key="challenge" style={styles.challengeCard}>
+        <DirectChallengeCard challenge={playbook.directChallenge ?? { text: '', summary: '' }} challengeCTA={playbook.challengeCTA ?? ''} />
+      </View>
+
     </ScrollView>
   );
 
