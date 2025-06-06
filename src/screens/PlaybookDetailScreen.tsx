@@ -471,17 +471,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
 
     const getCardColor = (index: number) => {
-      if (index >= cardData.length - 1) {
-        return Colors.anchorBlue;
-      }
-      const lightenAmount = index * 0.15;
-      const color = Colors.anchorBlue;
-      const r = parseInt(color.slice(1, 3), 16);
-      const g = parseInt(color.slice(3, 5), 16);
-      const b = parseInt(color.slice(5, 7), 16);
-      const lighten = (value: number) => Math.min(255, Math.floor(value + (255 - value) * lightenAmount));
-      const toHex = (value: number) => Math.round(value).toString(16).padStart(2, '0');
-      return `#${toHex(lighten(r))}${toHex(lighten(g))}${toHex(lighten(b))}`;
+      // Return the same color for all cards to remove the gradient effect
+      return Colors.anchorBlue;
     };
 
     const renderCard = (cardIndex: number, stackIndex: number, onToggleView: (mode: 'stack' | 'document') => void) => {
