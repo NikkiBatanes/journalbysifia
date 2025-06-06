@@ -58,9 +58,11 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
   override func sourceURL(for bridge: RCTBridge) -> URL? {
     #if DEBUG
     // For development, use the packager server
-    let url = RCTBundleURLProvider.sharedSettings()
-      .jsBundleURL(forBundleRoot: "index", fallbackExtension: nil)
-    print("Using bundle URL: \(url?.absoluteString ?? "nil")")
+    guard let url = RCTBundleURLProvider.sharedSettings()
+      .jsBundleURL(forBundleRoot: "index", fallbackExtension: nil) else {
+      fatalError("Could not find JS bundle. Is Metro running?")
+    }
+    print("Using bundle URL: \(url.absoluteString)")
     return url
     #else
     // For production, use the local bundle
@@ -70,7 +72,16 @@ class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {
     #endif
   }
 
+  @objc
   override func bundleURL() -> URL? {
-    return sourceURL(for: RCTBridge.current())
+    #if DEBUG
+    let url = RCTBundleURLProvider.sharedSettings().jsBundleURL(forBundleRoot: "index")
+    print("Bundle URL: \(url?.absoluteString ?? "nil")")
+    return url
+    #else
+    let url = Bundle.main.url(forResource: "main", withExtension: "jsbundle")
+    print("Bundle URL: \(url?.absoluteString ?? "nil")")
+    return url
+    #endif
   }
 }

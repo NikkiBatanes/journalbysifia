@@ -23,6 +23,7 @@ import LoadingScreen from './src/components/LoadingScreen';
 
 
 import { TabBarIcons, IconName } from './src/constants/tabBarIcons';
+import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import { checkAuth, signOut } from './src/services/supabaseApi';
 
 // Screens
@@ -43,61 +44,6 @@ import { RootStackParamList, BottomTabParamList } from './src/navigation/types';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
-
-// Main App Tabs
-function MainTabs({ onLogout }: { onLogout: () => void }) {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size, focused }) => {
-          const iconName = focused
-            ? TabBarIcons[route.name as keyof typeof TabBarIcons].focused
-            : TabBarIcons[route.name as keyof typeof TabBarIcons].name;
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: Colors.anchorBlue,
-        tabBarInactiveTintColor: Colors.trustGrey,
-        tabBarStyle: {
-          paddingTop: 8,
-          paddingBottom: 8,
-          height: 60,
-        },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          marginBottom: 4,
-        },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen
-        name="Home"
-        component={UserInputScreen}
-        options={{ title: 'New Playbook' }}
-      />
-      <Tab.Screen
-        name="Playbooks"
-        component={PlaybookListScreen}
-        options={{ title: 'My Playbooks' }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={UserProfileScreen}
-        options={{
-          title: 'Profile',
-          headerShown: true,
-          headerRight: () => (
-            <Text
-              style={{ fontSize: 20, color: '#FF3B30', marginRight: 15 }}
-              onPress={onLogout}
-            >
-              🚪
-            </Text>
-          ),
-        }}
-      />
-    </Tab.Navigator>
-  );
-}
 
 // Auth Stack
 function AuthStack({ onLogin }: { onLogin: () => void }) {
@@ -231,7 +177,7 @@ function App(): React.JSX.Element {
             {isAuthenticated ? (
               <>
                 <Stack.Screen name="MainTabs">
-                  {() => <MainTabs onLogout={handleLogout} />}
+                  {() => <BottomTabNavigator onLogout={handleLogout} />}
                 </Stack.Screen>
                 <Stack.Screen
                   name="PlaybookDetail"
