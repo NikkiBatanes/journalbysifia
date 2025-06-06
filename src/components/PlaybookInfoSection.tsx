@@ -24,6 +24,8 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
   viewMode,
   setViewMode,
 }) => {
+  // Calculate completed tasks from actionSteps
+  const completedTasks = playbook.actionSteps.filter(step => step.completed).length;
   // Split title at first colon followed by space or end of string (but not for Bible verses like John 3:15)
   const titleMatch = playbook.title.match(/^(.+?)(?::\s|$)([^:]*)$/);
   const firstLine = titleMatch ? titleMatch[1] + (titleMatch[2] ? ':' : '') : playbook.title;
@@ -83,7 +85,7 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
                 />
               </View>
               <Text style={styles.progressText}>
-                {playbook.completedTasks || 0}/{playbook.totalTasks || 0} Tasks
+                {completedTasks}/{playbook.totalTasks || 0} Tasks
               </Text>
             </View>
           </View>
