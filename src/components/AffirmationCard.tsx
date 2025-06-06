@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextStyle } from 'react-native';
+import { BorderRadii } from '../theme/styles';
 import { Colors } from '../theme';
 
 interface AffirmationCardProps {
@@ -38,7 +39,7 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
+    borderRadius: BorderRadii.cardLarge,
     padding: 16,
     marginBottom: 12,
     width: '100%',

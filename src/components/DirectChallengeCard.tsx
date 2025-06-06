@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { BorderRadii } from '../theme/styles';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
 
@@ -33,7 +34,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
 const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.alertCoral,
-    borderRadius: 24,
+    borderRadius: BorderRadii.cardXL,
     padding: 24,
     width: '100%',
     alignSelf: 'stretch',

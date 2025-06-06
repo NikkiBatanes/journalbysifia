@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { Animated, StyleSheet, View, Dimensions, TouchableOpacity } from 'react-native';
+import { BorderRadii } from '../theme/styles';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
   container: {
     position: 'relative',
     overflow: 'hidden',
-    borderRadius: 12,
+    borderRadius: BorderRadii.card,
     marginVertical: 4,
   },
   content: {
