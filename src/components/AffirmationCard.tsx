@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TextStyle } from 'react-native';
 import { BorderRadii } from '../theme/styles';
 import { Colors } from '../theme';
+import { Typography } from '../theme/typography';
 
 interface AffirmationCardProps {
   id: string;
@@ -17,14 +18,13 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
   containerStyle = {},
 }) => {
   const textStyle: TextStyle = {
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.interSemiBold,
     fontSize: 16,
     lineHeight: 24,
     color: color,
-    textAlign: 'left' as const,
-    textAlignVertical: 'center' as const,
+    textAlign: 'left',
+    textAlignVertical: 'center',
     paddingHorizontal: 8,
-    fontWeight: '600',
   };
 
   return (

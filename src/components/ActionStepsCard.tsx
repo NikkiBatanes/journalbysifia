@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
+import { Typography } from '../theme/typography';
 
 type SubTask = {
   id: string;
@@ -199,10 +200,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   heading: {
-    fontFamily: 'Inter-Black',
+    ...Typography.interBlack,
     fontSize: 20,
     color: Colors.hopeWhite,
-    fontWeight: '900',
     letterSpacing: 0.5,
     flexShrink: 1, // Ensure text wraps properly
   },
@@ -247,14 +247,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.faithGold,
   },
   stepNumber: {
-    fontFamily: 'Inter-Bold',
+    ...Typography.interBold,
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '800',
   },
   stepTitle: {
-    fontFamily: 'System',
-    fontWeight: '600',
+    ...Typography.interSemiBold,
     fontSize: 14,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
@@ -329,7 +327,7 @@ const styles = StyleSheet.create({
     marginLeft: 'auto', // Push chevron to the right
   },
   stepDescription: {
-    fontFamily: 'Inter-Regular',
+    ...Typography.interRegular,
     fontSize: 14,
     lineHeight: 20,
     color: 'rgba(255, 255, 255, 0.8)',

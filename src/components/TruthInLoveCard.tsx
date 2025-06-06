@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors, Fonts } from '../theme';
+import { Typography } from '../theme/typography';
 
 type TruthInLoveCardProps = {
   truth: string;
@@ -60,12 +61,11 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   heading: {
-    fontFamily: 'Inter-ExtraBold',
+    ...Typography.interBold,
     fontSize: 20,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     textTransform: 'none',
-    fontWeight: '800',
   },
   contentContainer: {
     flex: 1,
@@ -74,22 +74,20 @@ const styles = StyleSheet.create({
     maxHeight: '80%', // Limit height to prevent overflow
   },
   content: {
-    fontFamily: 'Inter-Regular',
+    ...Typography.interRegular,
     fontSize: 28,
     lineHeight: 38,
     color: Colors.hopeWhite,
     marginBottom: 4, // Reduced from 12 to 4
   },
   username: {
-    fontFamily: 'Inter-Bold',
-    fontWeight: '800',
+    ...Typography.interBlack,
   },
   summary: {
-    fontFamily: 'Inter-Bold',
-    fontWeight: '800',
+    ...Typography.interBlack,
   },
   truth: {
-    fontFamily: 'Inter-Regular',
+    ...Typography.interRegular,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
@@ -97,7 +95,7 @@ const styles = StyleSheet.create({
     marginTop: 4, // Further reduced from 8 to 4
   },
   truncatedTruth: {
-    fontFamily: 'Inter-Regular',
+    ...Typography.interRegular,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { BorderRadii } from '../theme/styles';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
+import { Typography } from '../theme/typography';
 
 type DirectChallengeCardProps = {
   challenge: string;
@@ -48,32 +49,29 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   heading: {
-    fontFamily: 'Inter-Black',
+    ...Typography.interBlack,
     fontSize: 20,
     color: Colors.hopeWhite,
-    fontWeight: '900',
     letterSpacing: 0.5,
   },
   text: {
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.interSemiBold,
     fontSize: 18,
     color: Colors.hopeWhite,
     lineHeight: 26,
     textAlign: 'left',
     paddingHorizontal: 8,
-    fontWeight: '600',
     alignSelf: 'stretch',
     width: '100%',
     marginTop: 16,
   },
   cta: {
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.interSemiBold,
     fontSize: 18,
     color: Colors.hopeWhite,
     lineHeight: 26,
     textAlign: 'left',
     paddingHorizontal: 8,
-    fontWeight: '600',
     alignSelf: 'stretch',
     width: '100%',
     marginTop: 16,

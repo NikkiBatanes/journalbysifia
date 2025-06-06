@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
+import { Typography } from '../theme/typography';
 import { formatBibleVerse } from '../utils/textFormatting';
 
 import { BibleVerse } from '../interfaces/playbook';
@@ -48,10 +49,9 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   heading: {
-    fontFamily: 'Inter-Black',
+    ...Typography.interBlack,
     fontSize: 20,
     color: Colors.hopeWhite,
-    fontWeight: '900',
     letterSpacing: 0.5,
   },
   contentContainer: {
@@ -63,25 +63,22 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   verseText: {
-    fontFamily: Fonts.lora.italic, // Lora Italic for beautiful serif italics
+    ...Typography.interSemiBold,
     fontSize: 18,
     lineHeight: 28,
     color: 'rgba(255, 255, 255, 0.95)',
     textAlign: 'left',
     paddingHorizontal: 8,
-    fontWeight: '400',
     width: '100%',
-    fontStyle: 'italic', // Ensure italic rendering
   },
   reference: {
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.interSemiBold,
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'right',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginTop: 40, // Increased from 16 to 40 to move the reference text down
-    fontWeight: '600',
     opacity: 0.9,
     paddingHorizontal: 8,
     alignSelf: 'flex-end',
