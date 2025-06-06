@@ -900,48 +900,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 2,
   },
-  playbookLabel: {
-    fontFamily: 'System',
-    fontWeight: '600',
-    fontSize: 12,
-    lineHeight: 16,
-    color: Colors.anchorBlue,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 0,
-  },
-  chevronIcon: {
-    marginLeft: 6,
-  },
-  playbookTitle: {
-    fontFamily: 'System',
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.anchorBlue,
-    marginTop: 0,
-    marginBottom: 2,
-    lineHeight: 34,
-  },
-  creationDate: {
-    fontFamily: Fonts.regular,
-    fontSize: 10,
-    color: Colors.trustGrey,
-    marginTop: 2,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    opacity: 0.8,
-  },
-  progressAndViewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12, // Reduced margin to bring cards up
-  },
-  progressContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
+
+
+
+
+
+
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
