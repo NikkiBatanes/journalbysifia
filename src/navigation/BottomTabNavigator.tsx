@@ -40,7 +40,7 @@ export default function BottomTabNavigator({ onLogout }: { onLogout: () => void 
       <Tab.Screen
         name="Playbooks"
         component={PlaybookListScreen}
-        options={{ title: 'My Playbooks' }}
+        options={{ headerShown: false }}
       />
       <Tab.Screen
         name="Profile"

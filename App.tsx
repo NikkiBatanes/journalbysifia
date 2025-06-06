@@ -37,7 +37,7 @@ import UserProfileScreen from './src/screens/UserProfileScreen';
 import PlaybookDetailScreen from './src/screens/PlaybookDetailScreen';
 
 import CardDetailScreen from './src/screens/CardDetailScreen';
-import { ActionStepsProvider } from './src/context/ActionStepsContext';
+import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
 import { getMockPlaybook } from './src/mocks/playbookMocks';
 
 // Types
@@ -149,9 +149,9 @@ function App(): React.JSX.Element {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ActionStepsProvider initialSteps={playbook.actionSteps}>
+      <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
         <NavigationContainer>
-          <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+          <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
           <RootStackNavigator
             isAuthenticated={isAuthenticated}
             handleLogout={handleLogout}
@@ -159,7 +159,7 @@ function App(): React.JSX.Element {
             AuthStack={AuthStackNavigator}
           />
         </NavigationContainer>
-      </ActionStepsProvider>
+      </ActionStepsProviderWrapper>
     </GestureHandlerRootView>
   );
 }
