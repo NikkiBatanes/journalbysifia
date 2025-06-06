@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   ScrollView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -56,6 +57,7 @@ type CardType = typeof CARD_TYPES[number];
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   // ...existing hooks and logic
+  // ...existing hooks and logic
   const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
   const { actionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
@@ -67,9 +69,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   if (!playbook) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Loading playbook...</Text>
-      </View>
+      <>
+        <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text>Loading playbook...</Text>
+        </View>
+      </>
     );
   }
   // --- Animated swipe logic for top card ---
@@ -124,8 +129,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const onSwipeComplete = (direction: 'up' | 'down') => {
     if (direction === 'up') {
       goToNextCard();
+      // Restore header after card changes
+      navigation.setOptions({ headerShown: true });
+      if (headerVisibleRef.current !== true) headerVisibleRef.current = true;
     } else {
       goToPrevCard();
+      // Also restore header on swipe down
+      navigation.setOptions({ headerShown: true });
+      if (headerVisibleRef.current !== true) headerVisibleRef.current = true;
     }
     // Reset the position after a small delay to allow the card to animate out
     requestAnimationFrame(() => {
@@ -146,6 +157,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     currentCardIndex.value = currentCard;
   }, [currentCard]);
 
+  const headerVisibleRef = useRef(true);
+
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
       ctx.startY = translateY.value;
@@ -156,6 +169,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         // Only allow vertical swipes by ignoring horizontal movement
         if (Math.abs(event.translationY) > Math.abs(event.translationX)) {
           translateY.value = ctx.startY + event.translationY;
+          // Advanced: Hide/show header as swipe crosses threshold
+          const threshold = -SWIPE_THRESHOLD / 2;
+          if (translateY.value < threshold && headerVisibleRef.current) {
+            headerVisibleRef.current = false;
+            runOnJS(navigation.setOptions)({ headerShown: false, animation: 'none' });
+          } else if (translateY.value >= threshold && !headerVisibleRef.current) {
+            headerVisibleRef.current = true;
+            runOnJS(navigation.setOptions)({ headerShown: true, animation: 'none' });
+          }
         }
       }
     },
@@ -324,7 +346,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Header with safe area for status bar
   const renderHeader = () => (
-    <SafeAreaView style={styles.headerSafeArea}>
+    <View style={styles.headerSafeArea}>
       <View style={styles.headerContainer}>
         <TouchableOpacity
           style={styles.backButton}
@@ -337,7 +359,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </View>
         <View style={styles.headerRight} />
       </View>
-    </SafeAreaView>
+    </View>
   );
 
   // Main content container with proper spacing
@@ -782,7 +804,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
 const styles = StyleSheet.create({
   noAffirmationsText: {
-    color: '#fff',
+    color: Colors.hopeWhite,
     textAlign: 'center',
   },
   // Header styles
@@ -1344,7 +1366,7 @@ transformOrigin: 'bottom center',
   affirmationsTitle: {
     fontFamily: 'Inter-Black',
     fontSize: 20,
-    color: 'white',
+    color: Colors.hopeWhite,
     fontWeight: '900',
     letterSpacing: 0.5,
     marginLeft: 8,
