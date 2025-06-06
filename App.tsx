@@ -5,11 +5,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StyleSheet, StatusBar, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StatusBar, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import * as Font from 'expo-font';
+
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 // Define tab bar icon types
@@ -18,16 +18,14 @@ type TabBarIcon = {
   focused: string;
 };
 
-type TabBarIconsType = {
-  [key: string]: TabBarIcon;
-};
+
 
 // Import theme colors
 import { Colors } from './src/theme';
 import LoadingScreen from './src/components/LoadingScreen';
 
 // Import vector icons
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+
 
 // Define the icon names type
 type IconName = 'home-outline' | 'home' | 'book-outline' | 'book' | 'person-outline' | 'person';
@@ -41,7 +39,7 @@ const TabBarIcons: Record<string, { name: IconName; focused: IconName }> = {
 import { checkAuth, signOut } from './src/services/supabaseApi';
 
 // Screens
-import AppSplashScreen from './src/screens/SplashScreen';
+
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import UserInputScreen from './src/screens/UserInputScreen';
