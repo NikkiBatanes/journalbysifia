@@ -12,11 +12,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-// Define tab bar icon types
-type TabBarIcon = {
-  name: string;
-  focused: string;
-};
 
 
 
