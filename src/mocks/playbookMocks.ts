@@ -12,6 +12,7 @@ export const mockPlaybooks = [
       {
         id: 'p1',
         title: 'Surrender Your Timeline to God',
+        completed: false,
         subTasks: [
           { id: 'p1-1', text: 'Pray daily, asking God to help you trust His timing over your own.', completed: false },
           { id: 'p1-2', text: 'Meditate on Ecclesiastes 3:11: “He has made everything beautiful in its time.”', completed: false },
@@ -21,6 +22,7 @@ export const mockPlaybooks = [
       {
         id: 'p2',
         title: 'Reframe Failure as Growth',
+        completed: false,
         subTasks: [
           { id: 'p2-1', text: 'Instead of seeing setbacks as reasons to quit, view them as opportunities to learn and grow.', completed: false },
           { id: 'p2-2', text: 'Write down one lesson you’ve learned from a recent failure or challenge.', completed: false },
@@ -30,6 +32,7 @@ export const mockPlaybooks = [
       {
         id: 'p3',
         title: 'Develop a Discipline of Patience',
+        completed: false,
         subTasks: [
           { id: 'p3-1', text: 'Practice waiting intentionally: Choose one small thing daily to wait on (e.g., don’t check your phone immediately, wait an extra minute before eating).', completed: false },
           { id: 'p3-2', text: 'Use these moments to pray or reflect, building your patience muscle.', completed: false },
@@ -38,6 +41,7 @@ export const mockPlaybooks = [
       {
         id: 'p4',
         title: 'Set Small, Achievable Goals',
+        completed: false,
         subTasks: [
           { id: 'p4-1', text: 'Break your larger goals into smaller, manageable steps.', completed: false },
           { id: 'p4-2', text: 'Celebrate small wins to build momentum and confidence.', completed: false },
@@ -47,6 +51,7 @@ export const mockPlaybooks = [
       {
         id: 'p5',
         title: 'Surround Yourself with Encouragement',
+        completed: false,
         subTasks: [
           { id: 'p5-1', text: 'Share your struggles with a trusted friend or mentor who can encourage and pray for you.', completed: false },
           { id: 'p5-2', text: 'Read stories of perseverance in the Bible, like Joseph, who waited years for God’s promises to be fulfilled.', completed: false },
@@ -92,6 +97,7 @@ export const mockPlaybooks = [
       {
         id: 'a1',
         title: 'Shift Your Perspective',
+        completed: false,
         subTasks: [
           { id: 'a1-1', text: 'Reflect on Biblical figures like Moses (called at 80) and Abraham (promised a son at 75).', completed: false },
           { id: 'a1-2', text: 'Write down three ways your age and experience are assets, not liabilities.', completed: false },
@@ -100,6 +106,7 @@ export const mockPlaybooks = [
       {
         id: 'a2',
         title: 'Start Small, Think Big',
+        completed: false,
         subTasks: [
           { id: 'a2-1', text: "Identify one tech problem you're passionate about solving.", completed: false },
           { id: 'a2-2', text: 'Research the market and validate your idea with potential users.', completed: false },
@@ -109,6 +116,7 @@ export const mockPlaybooks = [
       {
         id: 'a3',
         title: 'Leverage Your Network',
+        completed: false,
         subTasks: [
           { id: 'a3-1', text: 'Reach out to mentors, peers, and industry professionals for advice and connections.', completed: false },
           { id: 'a3-2', text: 'Join tech meetups or online communities to expand your circle.', completed: false },
@@ -117,6 +125,7 @@ export const mockPlaybooks = [
       {
         id: 'a4',
         title: 'Commit to Lifelong Learning',
+        completed: false,
         subTasks: [
           { id: 'a4-1', text: 'Enroll in online courses or attend workshops to sharpen your tech and business skills.', completed: false },
           { id: 'a4-2', text: 'Dedicate 30 minutes daily to learning about entrepreneurship, coding, or emerging technologies.', completed: false },
@@ -125,6 +134,7 @@ export const mockPlaybooks = [
       {
         id: 'a5',
         title: 'Pray and Plan',
+        completed: false,
         subTasks: [
           { id: 'a5-1', text: 'Spend time in prayer, asking God for clarity and courage.', completed: false },
           { id: 'a5-2', text: 'Create a 90-day action plan with specific, measurable goals to move forward.', completed: false },
@@ -161,6 +171,7 @@ export const mockPlaybooks = [
       {
         id: 'f1',
         title: 'Name the Fear',
+        completed: false,
         subTasks: [
           { id: 'f1-1', text: 'Write down your specific fears and doubts. Be brutally honest.', completed: false },
           { id: 'f1-2', text: "For each fear, write a counter-truth grounded in God's Word.", completed: false },
@@ -170,6 +181,7 @@ export const mockPlaybooks = [
       {
         id: 'f2',
         title: 'Break the Cycle of Procrastination',
+        completed: false,
         subTasks: [
           { id: 'f2-1', text: 'Set a timer for 15 minutes and work on one small task related to your goal.', completed: false },
           { id: 'f2-2', text: 'Commit to doing this daily, no matter how small the step.', completed: false },
@@ -179,6 +191,7 @@ export const mockPlaybooks = [
       {
         id: 'f3',
         title: 'Anchor Yourself in God\'s Promises',
+        completed: false,
         subTasks: [
           { id: 'f3-1', text: 'Meditate on scriptures about courage and trust.', completed: false },
           { id: 'f3-2', text: "Start with Joshua 1:9: 'Be strong and courageous. Do not be afraid...'", completed: false },
@@ -188,6 +201,7 @@ export const mockPlaybooks = [
       {
         id: 'f4',
         title: 'Seek Accountability',
+        completed: false,
         subTasks: [
           { id: 'f4-1', text: 'Share your struggles with a trusted friend, mentor, or pastor.', completed: false },
           { id: 'f4-2', text: "Ask them to check in with you weekly to ensure you're taking action.", completed: false },
@@ -196,6 +210,7 @@ export const mockPlaybooks = [
       {
         id: 'f5',
         title: 'Visualize the Outcome',
+        completed: false,
         subTasks: [
           { id: 'f5-1', text: 'Imagine the impact your obedience could have—not just on your life, but on others.', completed: false },
           { id: 'f5-2', text: 'Write a vision statement for your goals and read it daily to stay focused.', completed: false },
@@ -233,6 +248,7 @@ export const mockPlaybooks = [
       {
         id: 'p1',
         title: 'Seek God First',
+        completed: false,
         subTasks: [
           { id: 'p1-1', text: 'Spend 15 minutes daily in prayer, asking God to reveal His purpose for your life.', completed: false },
           { id: 'p1-2', text: "Meditate on Matthew 6:33: 'But seek first His kingdom and His righteousness, and all these things will be given to you as well.'", completed: false },
@@ -242,6 +258,7 @@ export const mockPlaybooks = [
       {
         id: 'p2',
         title: 'Identify Your Passions and Strengths',
+        completed: false,
         subTasks: [
           { id: 'p2-1', text: "Write down what excites you, what you're naturally good at, and what burdens you (what problems in the world you feel called to solve).", completed: false },
           { id: 'p2-2', text: 'Look for patterns—your purpose often lies at the intersection of these three areas.', completed: false },
@@ -250,6 +267,7 @@ export const mockPlaybooks = [
       {
         id: 'p3',
         title: 'Set a Vision for Your Life',
+        completed: false,
         subTasks: [
           { id: 'p3-1', text: 'Imagine your ideal life 10 years from now. What are you doing? Who are you helping?', completed: false },
           { id: 'p3-2', text: "Write a vision statement that aligns with God's Word and reflects your unique gifts.", completed: false },
@@ -258,6 +276,7 @@ export const mockPlaybooks = [
       {
         id: 'p4',
         title: 'Take Ownership of Your Education',
+        completed: false,
         subTasks: [
           { id: 'p4-1', text: 'Stop seeing school as a box to check and start using it as a tool to prepare for your calling.', completed: false },
           { id: 'p4-2', text: 'Choose courses, projects, and extracurriculars that align with your vision.', completed: false },
@@ -267,6 +286,7 @@ export const mockPlaybooks = [
       {
         id: 'p5',
         title: 'Start Small, Act Now',
+        completed: false,
         subTasks: [
           { id: 'p5-1', text: 'Pick one area of interest and take a small step this week.', completed: false },
           { id: 'p5-2', text: "Don't wait for perfect clarity; clarity often comes through action.", completed: false },

@@ -56,7 +56,14 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, st
       style={[styles.docCard, styles.bibleCard, { marginTop: 16 }]}
     />
     <View key="challenge" style={styles.challengeCard}>
-      <DirectChallengeCard challenge={playbook.directChallenge} challengeCTA={playbook.challengeCTA} />
+      <DirectChallengeCard 
+        challenge={
+          typeof playbook.directChallenge === 'string'
+            ? playbook.directChallenge
+            : playbook.directChallenge?.text ?? ''
+        }
+        challengeCTA={playbook.challengeCTA ?? ''}
+      />
     </View>
   </ScrollView>
 );

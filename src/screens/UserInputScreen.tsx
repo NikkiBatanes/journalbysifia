@@ -90,14 +90,22 @@ const UserInputScreen: React.FC = () => {
       const mockPlaybook: Playbook = {
         id: Date.now().toString(),
         title: `Playbook for ${firstName}`,
-        truthInLove: 'God cares about your struggles and is with you in this journey.',
-        truthSummary: 'God is faithful and will help you through this challenge.',
+        truthInLove: {
+          text: 'God cares about your struggles and is with you in this journey.',
+          summary: 'God is faithful and will help you through this challenge.'
+        },
         actionSteps: [
-          { id: '1', text: 'Spend 5 minutes in prayer today', completed: false },
-          { id: '2', text: 'Read a chapter from the book of Psalms', completed: false },
-          { id: '3', text: 'Reach out to a friend for support', completed: false },
+          { id: '1', title: 'Spend 5 minutes in prayer today', completed: false },
+          { id: '2', title: 'Read a chapter from the book of Psalms', completed: false },
+          { id: '3', title: 'Reach out to a friend for support', completed: false },
         ],
-        affirmation: 'I am loved by God and He is working in my life.',
+        affirmations: [
+          {
+            id: '1',
+            text: 'I am loved by God and He is working in my life.',
+            completed: false
+          }
+        ],
         bibleVerse: {
           text: 'Cast all your anxiety on him because he cares for you.',
           reference: '1 Peter 5:7',
@@ -106,6 +114,9 @@ const UserInputScreen: React.FC = () => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         userInput,
+        progress: 0,
+        totalTasks: 3, // Total number of action steps
+        profileImage: undefined,
       };
 
       // Navigate to PlaybookDetail with the generated playbook

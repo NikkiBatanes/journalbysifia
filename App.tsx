@@ -22,7 +22,7 @@ import LoadingScreen from './src/components/LoadingScreen';
 // Import vector icons
 
 
-import { TabBarIcons, IconName } from './src/constants/tabBarIcons';
+import { TabBarIcons } from './src/constants/tabBarIcons';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 import { checkAuth, signOut } from './src/services/supabaseApi';
