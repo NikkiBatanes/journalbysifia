@@ -74,7 +74,7 @@ interface CardData {
   steps?: ActionStep[];
   affirmations?: Affirmation[];
   verse?: { text: string; reference: string };
-  challenge?: { text: string; summary: string };
+  challenge?: string | { text: string; summary: string };
   challengeCTA?: string;
   tappable: boolean;
 }
@@ -583,9 +583,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           ) : card.type === 'challenge' ? (
             <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
               <DirectChallengeCard
-                challenge={card.challenge ?? { text: '', summary: '' }}
+                challenge={typeof card.challenge === 'string' ? card.challenge : card.challenge?.text ?? ''}
                 challengeCTA={card.challengeCTA ?? ''}
-                onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
               />
             </View>
           ) : (
@@ -648,14 +647,21 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </View>
         <View style={styles.affirmationsList}>
           {Array.isArray(playbook.affirmations) && playbook.affirmations.length > 0 ? (
-            playbook.affirmations.map((affirmation) => (
-              <AffirmationCard
-                key={affirmation?.id ?? ''}
-                id={affirmation?.id ?? ''}
-                text={affirmation?.text ?? ''}
-                completed={affirmation?.completed ?? false}
-              />
-            ))
+            playbook.affirmations
+              .filter((affirmation): affirmation is Required<Affirmation> => 
+                affirmation !== undefined && 
+                affirmation.id !== undefined && 
+                affirmation.text !== undefined &&
+                affirmation.completed !== undefined
+              )
+              .map((affirmation) => (
+                <AffirmationCard
+                  key={affirmation.id}
+                  id={affirmation.id}
+                  text={affirmation.text}
+                  completed={affirmation.completed}
+                />
+              ))
           ) : (
             <Text style={styles.noAffirmationsText}>No affirmations</Text>
           )}
@@ -669,8 +675,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       <View key="challenge" style={[styles.docCard, styles.challengeCard]}>
         <DirectChallengeCard
           challenge={typeof playbook.directChallenge === 'string'
-          ? playbook.directChallenge
-          : playbook.directChallenge?.text ?? ''}
+            ? playbook.directChallenge
+            : playbook.directChallenge?.text ?? ''}
           challengeCTA={playbook.challengeCTA ?? ''}
         />
       </View>
