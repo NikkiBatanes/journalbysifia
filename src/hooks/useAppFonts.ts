@@ -15,18 +15,18 @@ export const useAppFonts = () => {
           'Inter_500Medium': require('@expo-google-fonts/inter/Inter_500Medium.ttf'),
           'Inter_600SemiBold': require('@expo-google-fonts/inter/Inter_600SemiBold.ttf'),
           'Inter_700Bold': require('@expo-google-fonts/inter/Inter_700Bold.ttf'),
-          
+
           // Playfair Display fonts
           'PlayfairDisplay-Regular': require('@expo-google-fonts/playfair-display/PlayfairDisplay_400Regular.ttf'),
           'PlayfairDisplay-Bold': require('@expo-google-fonts/playfair-display/PlayfairDisplay_700Bold.ttf'),
-          
+
           // Lora fonts
           'Lora_400Regular': require('@expo-google-fonts/lora/Lora_400Regular.ttf'),
           'Lora_400Regular_Italic': require('@expo-google-fonts/lora/Lora_400Regular_Italic.ttf'),
           'Lora_600SemiBold': require('@expo-google-fonts/lora/Lora_600SemiBold.ttf'),
           'Lora_600SemiBold_Italic': require('@expo-google-fonts/lora/Lora_600SemiBold_Italic.ttf'),
         });
-        
+
         setFontsLoaded(true);
       } catch (error) {
         console.error('Error loading fonts:', error);

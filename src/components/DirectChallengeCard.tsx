@@ -12,10 +12,10 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <MaterialCommunityIcons 
-          name="lightning-bolt" 
-          size={24} 
-          color={Colors.hopeWhite} 
+        <MaterialCommunityIcons
+          name="lightning-bolt"
+          size={24}
+          color={Colors.hopeWhite}
           style={styles.icon}
         />
         <Text style={styles.heading}>Rise in Faith</Text>

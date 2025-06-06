@@ -4,8 +4,8 @@
  * @returns Cleaned and formatted text
  */
 export const cleanText = (text: string): string => {
-  if (!text) return '';
-  
+  if (!text) {return '';}
+
   return text
     // Replace escaped quotes with regular quotes
     .replace(/\\"/g, '"')
@@ -28,23 +28,23 @@ export const cleanText = (text: string): string => {
  * @returns Formatted verse text
  */
 export const formatBibleVerse = (verse: string): string => {
-  if (!verse) return '';
-  
+  if (!verse) {return '';}
+
   // First clean the text
   let formatted = cleanText(verse);
-  
+
   // Handle common verse formatting patterns
   // Remove quotes around the entire verse if they exist
-  if ((formatted.startsWith('"') && formatted.endsWith('"')) || 
+  if ((formatted.startsWith('"') && formatted.endsWith('"')) ||
       (formatted.startsWith('"') && formatted.endsWith('"'))) {
     formatted = formatted.substring(1, formatted.length - 1);
   }
-  
+
   // Ensure proper spacing around punctuation
   formatted = formatted
     .replace(/\s+([,.!?;:])/g, '$1')  // Remove space before punctuation
     .replace(/([a-z])"([A-Z])/g, '$1" $2')  // Add space after quote if missing before capital letter
     .replace(/([.,!?;:])"([^\s])/g, '$1" $2');  // Add space after quote following punctuation
-    
+
   return formatted;
 };

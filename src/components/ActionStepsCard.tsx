@@ -44,15 +44,15 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
   return (
     <View style={style}>
       <View style={styles.headingContainer}>
-        <MaterialCommunityIcons 
-          name="playlist-check" 
-          size={24} 
-          color={Colors.faithGold} 
+        <MaterialCommunityIcons
+          name="playlist-check"
+          size={24}
+          color={Colors.faithGold}
           style={styles.icon}
         />
         <Text style={[styles.heading, !!textColor && { color: textColor }]}>{steps.length} Action steps</Text>
       </View>
-      
+
       <View style={styles.stepsContainer}>
         {steps.map((step, index) => {
           const isExpanded = expandedStep === step.id;
@@ -67,12 +67,12 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
             : '';
 
           return (
-            <TouchableOpacity 
-              key={step.id} 
+            <TouchableOpacity
+              key={step.id}
               style={[
                 styles.stepCard,
                 step.completed && styles.completedCard,
-                solidCardBackground && { backgroundColor: 'rgba(80,80,80,0.15)' }
+                solidCardBackground && { backgroundColor: 'rgba(80,80,80,0.15)' },
               ]}
               onPress={() => toggleStep(step.id)}
               activeOpacity={0.8}
@@ -81,25 +81,25 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
                 <View style={styles.stepNumberContainer}>
                   {!hasSubTasks ? (
                     step.completed ? (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={() => handleToggleStep?.(step.id)}
                         activeOpacity={0.7}
                       >
-                        <MaterialCommunityIcons 
-                          name="checkbox-marked-circle" 
-                          size={24} 
-                          color={checkboxColor || Colors.faithGold} 
+                        <MaterialCommunityIcons
+                          name="checkbox-marked-circle"
+                          size={24}
+                          color={checkboxColor || Colors.faithGold}
                         />
                       </TouchableOpacity>
                     ) : (
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         onPress={() => handleToggleStep?.(step.id)}
                         activeOpacity={0.7}
                       >
-                        <MaterialCommunityIcons 
-                          name="checkbox-blank-circle-outline" 
-                          size={24} 
-                          color={checkboxColor || Colors.anchorBlue} 
+                        <MaterialCommunityIcons
+                          name="checkbox-blank-circle-outline"
+                          size={24}
+                          color={checkboxColor || Colors.anchorBlue}
                         />
                       </TouchableOpacity>
                     )
@@ -107,7 +107,7 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
                     <View style={[
                       styles.circle,
                       { backgroundColor: stepCircleBackground || 'rgba(255, 255, 255, 0.1)' },
-                      step.completed && styles.completedCircle
+                      step.completed && styles.completedCircle,
                     ]}>
                       <Text style={[styles.stepNumber, !!textColor && { color: textColor }]}>{index + 1}</Text>
                     </View>
@@ -117,7 +117,7 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
                   <Text style={[
                     styles.stepTitle,
                     step.completed && styles.completedText,
-                    !!textColor && { color: textColor }
+                    !!textColor && { color: textColor },
                   ]}>
                     {step.title}
                   </Text>
@@ -130,13 +130,13 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
                     // Separate regular subtasks and examples
                     const regularSubtasks = step.subTasks!.filter(st => !st.text.startsWith('Example:'));
                     const examples = step.subTasks!.filter(st => st.text.startsWith('Example:'));
-                    
+
                     return (
                       <>
                         {/* Regular subtasks with checkboxes */}
                         {regularSubtasks.map((subTask) => (
                           <View key={subTask.id} style={styles.subTaskContainer}>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                               onPress={() => handleToggleSubTask(step.id, subTask.id)}
                               activeOpacity={0.7}
                               style={styles.subTaskButton}
@@ -150,14 +150,14 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
                               <Text style={[
                                 styles.subTaskText,
                                 subTask.completed && styles.completedText,
-                                !!textColor && { color: textColor }
+                                !!textColor && { color: textColor },
                               ]}>
                                 {subTask.text}
                               </Text>
                             </TouchableOpacity>
                           </View>
                         ))}
-                        
+
                         {/* Examples without checkboxes */}
                         {examples.length > 0 && (
                           <View style={styles.examplesContainer}>

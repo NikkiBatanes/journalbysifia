@@ -13,13 +13,13 @@ type TruthInLoveCardProps = {
   textColor?: string;
 };
 
-export default function TruthInLoveCard({ 
-  truth, 
-  summary, 
-  username = 'Nikki', 
-  expanded = false, 
-  style, 
-  textColor = Colors.hopeWhite 
+export default function TruthInLoveCard({
+  truth,
+  summary,
+  username = 'Nikki',
+  expanded = false,
+  style,
+  textColor = Colors.hopeWhite,
 }: TruthInLoveCardProps) {
   return (
     <View style={style}>
@@ -27,7 +27,7 @@ export default function TruthInLoveCard({
         <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
         <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
       </View>
-      
+
       <View style={styles.contentContainer}>
         <Text style={[styles.content, { color: textColor }]}>
           <Text style={[styles.username, { color: textColor }]}>{username}, </Text>
@@ -36,9 +36,9 @@ export default function TruthInLoveCard({
         {expanded ? (
           <Text style={[styles.truth, { color: textColor }]}>{truth}</Text>
         ) : (
-          <Text 
-            style={[styles.truncatedTruth, { color: textColor }]} 
-            numberOfLines={5} 
+          <Text
+            style={[styles.truncatedTruth, { color: textColor }]}
+            numberOfLines={5}
             ellipsizeMode="tail"
           >
             {truth}

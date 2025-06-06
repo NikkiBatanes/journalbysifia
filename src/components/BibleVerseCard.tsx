@@ -17,10 +17,10 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
   return (
     <View style={[styles.container, style, { backgroundColor }]}>
       <View style={styles.headerContainer}>
-        <MaterialCommunityIcons 
-          name="book" 
-          size={24} 
-          color={textColor} 
+        <MaterialCommunityIcons
+          name="book"
+          size={24}
+          color={textColor}
           style={styles.icon}
         />
         <Text style={[styles.heading, { color: textColor }]}>Bible Verse</Text>

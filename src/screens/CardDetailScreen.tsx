@@ -17,16 +17,16 @@ import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-na
 
 export default function CardDetailScreen({ route, navigation }: StackScreenProps<RootStackParamList, 'CardDetail'>) {
   const [headerHeight, setHeaderHeight] = useState(150); // Default header height
-  const { 
-    cardType, 
-    cardData, 
-    playbook, 
-    progress, 
-    totalTasks, 
+  const {
+    cardType,
+    cardData,
+    playbook,
+    progress,
+    totalTasks,
     viewMode: initialViewMode = 'stack',
-    onToggleView: parentToggleView
+    onToggleView: parentToggleView,
   } = route.params;
-  
+
   const [showUserInput, setShowUserInput] = useState(false);
 
   // Chevron animation logic (same as PlaybookDetailScreen)
@@ -40,7 +40,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   }));
   const [viewMode, setViewMode] = useState<'stack' | 'document'>(initialViewMode);
   const [userInput, setUserInput] = useState(playbook?.userInput || '');
-  
+
   // Sync with parent's view mode when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -49,7 +49,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       }
     }, [route.params?.viewMode])
   );
-  
+
   // Handle view mode toggle
   const handleToggleView = useCallback((mode: 'stack' | 'document') => {
     setViewMode(mode);
@@ -101,7 +101,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
               <MaterialCommunityIcons name="format-quote-close" size={24} color={Colors.faithGold} style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
               <Text style={styles.affirmationsTitle}>Affirmations</Text>
             </View>
-            <AffirmationCard 
+            <AffirmationCard
               id={cardData.id}
               text={cardData.text}
               completed={cardData.completed}
@@ -113,10 +113,10 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       case 'bible':
         return (
           <View style={styles.cardContainer}>
-            <BibleVerseCard 
-              {...cardData} 
-              expandedMode 
-              textColor={Colors.anchorBlue} 
+            <BibleVerseCard
+              {...cardData}
+              expandedMode
+              textColor={Colors.anchorBlue}
               backgroundColor={Colors.hopeWhite}
               style={styles.bibleCard}
             />
@@ -132,7 +132,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      
+
       {/* Fixed Header */}
       <View
         style={styles.headerContainer}
@@ -141,7 +141,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
         <PlaybookHeader
           title={playbook.title}
           subtitle={new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
           })}
           progress={progress || 0}
           totalTasks={totalTasks || 0}
@@ -161,7 +161,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       </View>
 
       {/* Scrollable Content */}
-      <ScrollView 
+      <ScrollView
         style={[styles.scrollView, { paddingTop: headerHeight }]}
         contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}

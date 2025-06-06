@@ -10,10 +10,10 @@ interface AffirmationCardProps {
   containerStyle?: any;
 }
 
-const AffirmationCard: React.FC<AffirmationCardProps> = ({ 
-  text, 
+const AffirmationCard: React.FC<AffirmationCardProps> = ({
+  text,
   color = 'white',
-  containerStyle = {}
+  containerStyle = {},
 }) => {
   const textStyle: TextStyle = {
     fontFamily: 'Inter-SemiBold',

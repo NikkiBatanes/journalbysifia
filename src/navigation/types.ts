@@ -5,7 +5,7 @@ export type RootStackParamList = {
   Auth: undefined;
   Login: { onLogin: () => void } | undefined;
   Register: { onRegister: () => void } | undefined;
-  
+
   // Main App
   MainTabs: undefined;
   PlaybookDetail: { playbook: Playbook };

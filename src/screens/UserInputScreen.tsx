@@ -82,7 +82,7 @@ const UserInputScreen: React.FC = () => {
       Alert.alert('Input Required', 'Please share what you\'re struggling with.');
       return;
     }
-    
+
     setIsLoading(true);
     try {
       // TODO: Replace with actual API call to generate playbook
@@ -107,7 +107,7 @@ const UserInputScreen: React.FC = () => {
         updatedAt: new Date().toISOString(),
         userInput,
       };
-      
+
       // Navigate to PlaybookDetail with the generated playbook
       navigation.navigate('PlaybookDetail', { playbook: mockPlaybook });
     } catch (error) {

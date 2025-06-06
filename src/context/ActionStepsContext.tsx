@@ -39,7 +39,7 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
         completed += completedSubTasks;
         total += step.subTasks.length;
       } else {
-        if (step.completed) completed++;
+        if (step.completed) {completed++;}
         total++;
       }
     });
@@ -50,40 +50,40 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
   const handleToggleStep = (stepId: string, subTaskId?: string) => {
     setActionSteps(prev =>
       prev.map(step => {
-        if (step.id !== stepId) return step;
-        
+        if (step.id !== stepId) {return step;}
+
         // If toggling a sub-task
         if (subTaskId && step.subTasks) {
-          const updatedSubTasks = step.subTasks.map(st => 
+          const updatedSubTasks = step.subTasks.map(st =>
             st.id === subTaskId ? { ...st, completed: !st.completed } : st
           );
-          
+
           // Check if all sub-tasks are completed
           const allSubTasksCompleted = updatedSubTasks.every(st => st.completed);
-          
+
           return {
             ...step,
             subTasks: updatedSubTasks,
-            completed: allSubTasksCompleted
+            completed: allSubTasksCompleted,
           };
         }
-        
+
         // Toggle main step (only if no sub-tasks)
         if (!step.subTasks || step.subTasks.length === 0) {
           return { ...step, completed: !step.completed };
         }
-        
+
         return step;
       })
     );
   };
 
   return (
-    <ActionStepsContext.Provider value={{ 
-      actionSteps, 
-      setActionSteps, 
+    <ActionStepsContext.Provider value={{
+      actionSteps,
+      setActionSteps,
       handleToggleStep,
-      getCompletedStepsCount 
+      getCompletedStepsCount,
     }}>
       {children}
     </ActionStepsContext.Provider>
@@ -92,6 +92,6 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
 
 export function useActionSteps() {
   const ctx = useContext(ActionStepsContext);
-  if (!ctx) throw new Error('useActionSteps must be used within an ActionStepsProvider');
+  if (!ctx) {throw new Error('useActionSteps must be used within an ActionStepsProvider');}
   return ctx;
 }

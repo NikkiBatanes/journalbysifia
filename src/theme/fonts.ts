@@ -7,13 +7,13 @@ export const Fonts = {
   medium: 'Inter_500Medium',
   semiBold: 'Inter_600SemiBold',
   bold: 'Inter_700Bold',
-  
+
   // Playfair Display font with fallbacks
   playfair: {
     regular: Platform.OS === 'ios' ? 'PlayfairDisplay-Regular' : 'sans-serif',
     bold: Platform.OS === 'ios' ? 'PlayfairDisplay-Bold' : 'sans-serif-medium',
   },
-  
+
   // Lora font
   lora: {
     regular: 'Lora_400Regular',
@@ -21,7 +21,7 @@ export const Fonts = {
     semiBold: 'Lora_600SemiBold',
     semiBoldItalic: 'Lora_600SemiBold_Italic',
   },
-  
+
   // System fonts as fallbacks
   system: {
     regular: Platform.OS === 'ios' ? 'System' : 'sans-serif',

@@ -26,7 +26,7 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
     try {
       const { error } = await signIn(email, password);
       console.log('Login response error:', error);
-      
+
       if (error) {
         // Handle different types of errors
         if (error.error_description) {
@@ -39,17 +39,17 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
           throw new Error('Failed to sign in. Please try again.');
         }
       }
-      
+
       // Call the onLogin callback to update auth state in App.tsx
       console.log('Login successful, calling onLogin');
       onLogin();
     } catch (err: any) {
       console.error('Login error:', err);
-      
+
       // Handle specific error cases
       let errorMessage = 'Failed to sign in. Please check your credentials and try again.';
-      
-      if (err.message.includes('Email not confirmed') || 
+
+      if (err.message.includes('Email not confirmed') ||
           err.message.includes('confirm your account') ||
           err.message.includes('email not verified')) {
         errorMessage = 'Please check your email to confirm your account before signing in. If you didn\'t receive an email, check your spam folder or request a new confirmation email.';
@@ -58,7 +58,7 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
       } else if (err.message) {
         errorMessage = err.message;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -68,9 +68,9 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
-      
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -79,7 +79,7 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -91,9 +91,9 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
         autoCapitalize="none"
         textContentType="oneTimeCode"
       />
-      
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
+
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleLogin}
         disabled={loading}
       >
@@ -101,8 +101,8 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
           {loading ? 'Signing in...' : 'Sign In'}
         </Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.link}
         onPress={() => navigation.navigate('Register')}
       >

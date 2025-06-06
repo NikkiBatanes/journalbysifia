@@ -30,7 +30,7 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
 
     try {
       const { error } = await signUp(email, password);
-      if (error) throw error;
+      if (error) {throw error;}
       // Call the onRegister callback to update auth state in App.tsx
       onRegister();
     } catch (err: any) {
@@ -43,9 +43,9 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Create Account</Text>
-      
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      
+
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -54,7 +54,7 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
         autoCapitalize="none"
         keyboardType="email-address"
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -66,7 +66,7 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
         autoCapitalize="none"
         textContentType="oneTimeCode"
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="Confirm Password"
@@ -78,9 +78,9 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
         autoCapitalize="none"
         textContentType="oneTimeCode"
       />
-      
-      <TouchableOpacity 
-        style={[styles.button, loading && styles.buttonDisabled]} 
+
+      <TouchableOpacity
+        style={[styles.button, loading && styles.buttonDisabled]}
         onPress={handleRegister}
         disabled={loading}
       >
@@ -88,8 +88,8 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
           {loading ? 'Creating Account...' : 'Sign Up'}
         </Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.link}
         onPress={() => navigation.navigate('Login')}
       >

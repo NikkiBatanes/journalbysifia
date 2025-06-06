@@ -5,23 +5,23 @@ export default function HomeScreen({ navigation, onLogout }: any) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to AnchoredApp</Text>
-      
+
       <View style={styles.buttonContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.button}
           onPress={() => navigation.navigate('PlaybookList')}
         >
           <Text style={styles.buttonText}>My Playbooks</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.button}
           onPress={() => navigation.navigate('UserProfile')}
         >
           <Text style={styles.buttonText}>My Profile</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={[styles.button, styles.logoutButton]}
           onPress={onLogout}
         >

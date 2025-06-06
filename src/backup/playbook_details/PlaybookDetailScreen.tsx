@@ -11,7 +11,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   ScrollView,
-  Platform
+  Platform,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -59,7 +59,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
   const { actionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
-  
+
   // Calculate progress
   const { completed, total } = getCompletedStepsCount();
   const progress = total > 0 ? (completed / total) * 100 : 0;
@@ -160,11 +160,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       }
     },
     onEnd: (event, ctx: any) => {
-      if (isTransitioning.value) return;
-      
+      if (isTransitioning.value) {return;}
+
       // Check if it's primarily a vertical swipe
       const isVerticalSwipe = Math.abs(event.translationY) > Math.abs(event.translationX);
-      
+
       if (isVerticalSwipe) {
         if (event.translationY < -SWIPE_THRESHOLD && currentCardIndex.value < cardCount.value - 1) {
           // Swipe up - go to next card
@@ -184,16 +184,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           });
         } else {
           // Not enough swipe, bounce back
-          translateY.value = withSpring(0, { 
-            damping: 10, 
-            stiffness: 150 
+          translateY.value = withSpring(0, {
+            damping: 10,
+            stiffness: 150,
           });
         }
       } else {
         // If not a vertical swipe, reset position
-        translateY.value = withSpring(0, { 
-          damping: 10, 
-          stiffness: 150 
+        translateY.value = withSpring(0, {
+          damping: 10,
+          stiffness: 150,
         });
       }
     },
@@ -211,10 +211,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     transform: [
-      { 
-        translateY: translateY.value + 
-          (currentCard === 0 ? nudgeY.value : 0) + 
-          (currentCard > 0 ? bounceY.value : 0)
+      {
+        translateY: translateY.value +
+          (currentCard === 0 ? nudgeY.value : 0) +
+          (currentCard > 0 ? bounceY.value : 0),
       },
       { scale: cardScale.value },
     ],
@@ -243,18 +243,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     if (currentCard !== prevCardRef.current) {
       bounceY.value = withSequence(
         withTiming(-15, { duration: 100 }), // Slower upward movement
-        withSpring(0, { 
+        withSpring(0, {
           damping: 12,  // Slightly reduced damping for a more fluid motion
           stiffness: 100, // Reduced stiffness for slower movement
           mass: 1.5, // Increased mass for more weight
-          overshootClamping: false
+          overshootClamping: false,
         })
       );
       prevCardRef.current = currentCard;
     }
   }, [currentCard]);
 
-  
+
 
   // Define card data with access to playbook
 
@@ -266,14 +266,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </View>
     );
   }
-  
+
   // Navigation handlers for card stack
   const goToNextCard = () => {
     if (currentCard < cardData.length - 1) {
       setCurrentCard(currentCard + 1);
     }
   };
-  
+
   const goToPrevCard = () => {
     if (currentCard > 0) {
       setCurrentCard(currentCard - 1);
@@ -297,7 +297,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // State for toggling user input card
   const [showUserInput, setShowUserInput] = useState(false);
-  
+
   // Title style with enhanced boldness
   const titleStyle = [
     styles.playbookTitle,
@@ -318,15 +318,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       textShadowColor: 'rgba(0, 0, 0, 0.1)', // Subtle shadow for depth
       textShadowOffset: { width: 0.5, height: 0.5 },
       textShadowRadius: 1,
-      letterSpacing: 0.3 // Slight letter spacing for better readability
-    }
+      letterSpacing: 0.3, // Slight letter spacing for better readability
+    },
   ];
 
   // Header with safe area for status bar
   const renderHeader = () => (
     <SafeAreaView style={styles.headerSafeArea}>
       <View style={styles.headerContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -339,7 +339,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </View>
     </SafeAreaView>
   );
-  
+
   // Main content container with proper spacing
   const renderContent = () => (
     <View style={styles.contentContainer}>
@@ -347,7 +347,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         <PlaybookHeader
           title={playbook.title}
           subtitle={playbook.createdAt ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
           }) : ''}
           progress={progress}
           totalTasks={actionSteps.length}
@@ -386,21 +386,21 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     const titleMatch = playbook.title.match(/^(.+?)(?::\s|$)([^:]*)$/);
     const firstLine = titleMatch ? titleMatch[1] + (titleMatch[2] ? ':' : '') : playbook.title;
     const secondLine = titleMatch ? titleMatch[2].trim() : '';
-    
+
     return (
       <View style={styles.playbookInfoContainer}>
         {/* Playbook header with toggle */}
         <View style={styles.playbookHeader}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.playbookLabelRow}
             onPress={() => setShowUserInput(!showUserInput)}
             activeOpacity={0.7}
           >
             <Text style={styles.playbookLabel}>PLAYBOOK</Text>
             <Animated.View style={chevronStyle}>
-              <Ionicons 
+              <Ionicons
                 name="chevron-down"
-                size={15} 
+                size={15}
                 color={Colors.anchorBlue}
               />
             </Animated.View>
@@ -412,7 +412,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               <Text style={styles.userInputText}>{playbook.userInput}</Text>
             </View>
           )}
-          
+
           {/* Title with line break */}
           <Text style={styles.playbookTitle}>
             {firstLine}
@@ -422,17 +422,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               {secondLine}
             </Text>
           ) : null}
-          
+
           {/* Creation Date */}
           <Text style={styles.creationDate}>
             {new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
               weekday: 'long',
               year: 'numeric',
               month: 'long',
-              day: 'numeric'
+              day: 'numeric',
             }).toUpperCase()}
           </Text>
-          
+
           {/* Progress and View Toggle Row */}
           <View style={styles.progressAndViewRow}>
             <View style={styles.progressContainer}>
@@ -440,8 +440,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 <View style={styles.progressBarBg}>
                   <View
                     style={[
-                      styles.progressBarFill, 
-                      { width: `${(actionSteps.length > 0 ? (actionSteps.filter(step => step.completed).length / actionSteps.length) * 100 : 0)}%` }
+                      styles.progressBarFill,
+                      { width: `${(actionSteps.length > 0 ? (actionSteps.filter(step => step.completed).length / actionSteps.length) * 100 : 0)}%` },
                     ]}
                   />
                 </View>
@@ -450,7 +450,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 </Text>
               </View>
             </View>
-            
+
             {/* View Toggle Icons */}
             <View style={styles.viewToggleContainer}>
               <TouchableOpacity
@@ -458,11 +458,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 onPress={() => setViewMode('stack')}
               >
                 <View style={[styles.iconContainer, viewMode === 'stack' && styles.iconContainerActive]}>
-                  <Ionicons 
-                    name="albums" 
-                    size={20} 
+                  <Ionicons
+                    name="albums"
+                    size={20}
                     color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey}
-                    style={{ transform: [{ rotate: '180deg' }] }} 
+                    style={{ transform: [{ rotate: '180deg' }] }}
                   />
                 </View>
               </TouchableOpacity>
@@ -472,10 +472,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 onPress={() => setViewMode('document')}
               >
                 <View style={[styles.iconContainer, viewMode === 'document' && styles.iconContainerActive]}>
-                  <MaterialCommunityIcons 
-                    name="view-agenda" 
-                    size={20} 
-                    color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey} 
+                  <MaterialCommunityIcons
+                    name="view-agenda"
+                    size={20}
+                    color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey}
                   />
                 </View>
               </TouchableOpacity>
@@ -488,18 +488,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Stack Card View with fan-out effect
   const renderStackCards = () => {
-    if (cardData.length === 0) return null;
-    
+    if (cardData.length === 0) {return null;}
+
     // Number of cards to show in the stack (all cards)
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
-    
+
     // Helper to calculate color based on card type
     const getCardColor = (index: number) => {
       // For the last card, return the original color
       if (index >= cardData.length - 1) {
         return Colors.anchorBlue;
       }
-      
+
       // Lighten the anchor blue color for cards in the back (except last)
       const lightenAmount = index * 0.15; // 15% lighter per card
       const color = Colors.anchorBlue;
@@ -513,12 +513,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const toHex = (value: number) => Math.round(value).toString(16).padStart(2, '0');
       return `#${toHex(lighten(r))}${toHex(lighten(g))}${toHex(lighten(b))}`;
     };
-    
+
     // Render a single card
     const renderCard = (cardIndex: number, stackIndex: number) => {
       const card = cardData[cardIndex];
-      if (!card) return null;
-      
+      if (!card) {return null;}
+
       // Calculate scale and offset for the fan-out effect
       // Scale width more than height for a better visual effect
       const scaleY = 1 - (stackIndex * 0.01); // Very subtle vertical scaling
@@ -529,7 +529,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const isLastCard = cardIndex === cardData.length - 1;
       const isCurrentCard = cardIndex === currentCard;
       const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
-      
+
       // Only the top card animates. Back cards are static.
       const isTopCard = stackIndex === 0;
       const CardContainer = isTopCard ? Animated.View : View;
@@ -537,7 +537,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const extraStyle = isTopCard ? animatedCardStyle : {};
       // For back cards, use only static transforms and opacity (not tied to animation)
       return (
-        <TouchableOpacity 
+        <TouchableOpacity
           key={`${cardIndex}-${stackIndex}`}
           activeOpacity={1}
           onPress={() => isTopCard && handleCardPress(card.type, card)}
@@ -603,18 +603,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           ]}
         >
           {card.type === 'truth' ? (
-            <TruthInLoveCard 
+            <TruthInLoveCard
               truth={playbook.truthInLove.text}
               summary={playbook.truthInLove.summary}
               style={{ flex: 1, padding: 32 }}
             />
           ) : card.type === 'action' ? (
-            <ActionStepsCard 
+            <ActionStepsCard
               steps={actionSteps}
               style={{ flex: 1, padding: 24 }}
             />
           ) : card.type === 'affirmation' ? (
-            <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}> 
+            <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
   <View style={styles.affirmationsHeader}>
     <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
     <Text style={styles.affirmationsTitle}>Affirmations</Text>
@@ -648,7 +648,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </TouchableOpacity>
       );
     };
-    
+
     // Generate the stack of cards
     const cardStack = [];
     // Render back cards (static, never re-render or animate)
@@ -667,7 +667,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           ref={gestureHandlerRef}
           onGestureEvent={gestureHandler}
         >
-          <Animated.View style={[animatedCardStyle, { width: '100%', position: 'relative', zIndex: 200 }]}> 
+          <Animated.View style={[animatedCardStyle, { width: '100%', position: 'relative', zIndex: 200 }]}>
             {/* Tap-to-expand: always enable for demonstration; refine with truncation logic if needed */}
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -678,24 +678,24 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   if (cardType === 'truth') {
                     cardDataForDetail = {
                       truth: playbook.truthInLove.text,
-                      summary: playbook.truthInLove.summary
+                      summary: playbook.truthInLove.summary,
                     };
                   } else if (cardType === 'action') {
                     cardDataForDetail = {
-                      steps: playbook.actionSteps
+                      steps: playbook.actionSteps,
                     };
                   } else if (cardType === 'affirmation') {
                     cardDataForDetail = {
-                      affirmations: playbook.affirmations
+                      affirmations: playbook.affirmations,
                     };
                   } else if (cardType === 'bible') {
                     cardDataForDetail = {
-                      verse: playbook.bibleVerse
+                      verse: playbook.bibleVerse,
                     };
                   } else if (cardType === 'challenge') {
                     cardDataForDetail = {
                       challenge: playbook.directChallenge,
-  challengeCTA: playbook.challengeCTA
+  challengeCTA: playbook.challengeCTA,
                     };
                   }
                   navigation.navigate('CardDetail', {
@@ -705,7 +705,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                     progress: currentCard + 1,
                     totalTasks: cardData.length,
                     viewMode,
-                    onToggleView: undefined // Optionally pass if needed
+                    onToggleView: undefined, // Optionally pass if needed
                   });
                 }}
               >
@@ -719,41 +719,41 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Document Card View
   const renderDocumentCards = () => (
-    <ScrollView 
+    <ScrollView
       style={styles.docContainer}
       contentContainerStyle={styles.docContentContainer}
     >
-      <TruthInLoveCard 
+      <TruthInLoveCard
         key="truth"
-        truth={playbook.truthInLove?.text} 
+        truth={playbook.truthInLove?.text}
         summary={playbook.truthInLove?.summary}
         expanded={true}
         style={[styles.docCard, styles.truthCard]}
       />
-      <ActionStepsCard 
+      <ActionStepsCard
         key="action"
         steps={actionSteps}
         style={[styles.docCard, styles.actionCard]}
       />
-      <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}> 
+      <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>
   <View style={styles.affirmationsHeader}>
     <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
     <Text style={styles.affirmationsTitle}>Affirmations</Text>
   </View>
   <View style={styles.affirmationsList}>
     {playbook.affirmations?.map((affirmation) => (
-      <AffirmationCard 
+      <AffirmationCard
         key={affirmation.id}
         id={affirmation.id}
-        text={affirmation.text} 
-        completed={affirmation.completed} 
+        text={affirmation.text}
+        completed={affirmation.completed}
       />
     ))}
   </View>
   </View>
-  <BibleVerseCard 
+  <BibleVerseCard
     key="bible"
-    verse={playbook.bibleVerse} 
+    verse={playbook.bibleVerse}
     style={[styles.docCard, styles.bibleCard, { marginTop: 16 }]}
   />
 <View key="challenge" style={styles.challengeCard}>
@@ -841,7 +841,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     position: 'relative',
   },
-  
+
   // Swipe indicator
   swipeUpIndicatorContainer: {
     position: 'absolute',
@@ -851,14 +851,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1000,
   },
-  
+
   // Card stack container
   cardStackContainer: {
     flex: 1,
     position: 'relative',
     marginBottom: 20,
   },
-  
+
   // Main content container with max width
   contentContainer: {
     flex: 1,
@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.hopeWhite,
   },
-  
+
   // Playbook info styles
   playbookInfoContainer: {
     backgroundColor: '#f2f5f7',
@@ -967,7 +967,7 @@ const styles = StyleSheet.create({
     color: Colors.anchorBlue,
     marginRight: 4,
   },
-  
+
   // User input card
   userInputCard: {
     backgroundColor: 'rgba(26, 60, 109, 0.05)',

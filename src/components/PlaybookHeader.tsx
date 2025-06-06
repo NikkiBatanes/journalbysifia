@@ -62,7 +62,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.container, { backgroundColor: bgColor }]}> 
+      <View style={[styles.container, { backgroundColor: bgColor }]}>
       <View style={[styles.headerContainer, { backgroundColor: bgColor }]}>
         <View style={styles.headerCenter}>
           {onPlaybookLabelPress ? (
@@ -95,7 +95,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
               style={[
                 styles.userInputCardHeader,
                 userInputBackgroundColor && { backgroundColor: userInputBackgroundColor },
-                userInputBorderColor && { borderColor: userInputBorderColor, borderWidth: 1 }
+                userInputBorderColor && { borderColor: userInputBorderColor, borderWidth: 1 },
               ]}
             >
               <Text style={[styles.userInputTextHeader, userInputTextColor ? { color: userInputTextColor } : { color: txtColor }]}>{userInput}</Text>
@@ -103,12 +103,12 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
           ) : null}
 
           {titleLines.map((line, index) => (
-            <Text 
-              key={index} 
+            <Text
+              key={index}
               style={[
-                styles.title, 
+                styles.title,
                 { color: txtColor },
-                index > 0 && { marginTop: -4 }
+                index > 0 && { marginTop: -4 },
               ]}
             >
               {line}{index < titleLines.length - 1 ? ':' : ''}
@@ -116,14 +116,14 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
           ))}
           {subtitle ? <Text style={[styles.subtitle, { color: txtColor }]}>{subtitle.toUpperCase()}</Text> : null}
           <View style={[styles.progressRow, alignTasksLeft && styles.progressRowLeftAligned]}>
-            <View style={[styles.progressBarBg, bgColor === Colors.anchorBlue && { backgroundColor: 'rgba(255,255,255,0.15)' }]}> 
+            <View style={[styles.progressBarBg, bgColor === Colors.anchorBlue && { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
               <View style={[styles.progressBarFill, { width: `${(progress / totalTasks) * 100}%` }]} />
             </View>
-            <Text style={[styles.progressText, { 
+            <Text style={[styles.progressText, {
               color: txtColor,
               marginLeft: 8,
               minWidth: 80,
-              textAlign: alignTasksLeft ? 'left' : 'center'
+              textAlign: alignTasksLeft ? 'left' : 'center',
             }]}>
               {progress}/{totalTasks} Tasks
             </Text>

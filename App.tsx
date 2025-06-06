@@ -35,7 +35,7 @@ type IconName = 'home-outline' | 'home' | 'book-outline' | 'book' | 'person-outl
 const TabBarIcons: Record<string, { name: IconName; focused: IconName }> = {
   Home: { name: 'home-outline', focused: 'home' },
   Playbooks: { name: 'book-outline', focused: 'book' },
-  Profile: { name: 'person-outline', focused: 'person' }
+  Profile: { name: 'person-outline', focused: 'person' },
 };
 import { checkAuth, signOut } from './src/services/supabaseApi';
 
@@ -65,8 +65,8 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size, focused }) => {
-          const iconName = focused 
-            ? TabBarIcons[route.name as keyof typeof TabBarIcons].focused 
+          const iconName = focused
+            ? TabBarIcons[route.name as keyof typeof TabBarIcons].focused
             : TabBarIcons[route.name as keyof typeof TabBarIcons].name;
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -84,24 +84,24 @@ function MainTabs({ onLogout }: { onLogout: () => void }) {
         headerShown: false,
       })}
     >
-      <Tab.Screen 
-        name="Home" 
-        component={UserInputScreen} 
+      <Tab.Screen
+        name="Home"
+        component={UserInputScreen}
         options={{ title: 'New Playbook' }}
       />
-      <Tab.Screen 
-        name="Playbooks" 
-        component={PlaybookListScreen} 
+      <Tab.Screen
+        name="Playbooks"
+        component={PlaybookListScreen}
         options={{ title: 'My Playbooks' }}
       />
-      <Tab.Screen 
-        name="Profile" 
-        component={UserProfileScreen} 
-        options={{ 
+      <Tab.Screen
+        name="Profile"
+        component={UserProfileScreen}
+        options={{
           title: 'Profile',
           headerShown: true,
           headerRight: () => (
-            <Text 
+            <Text
               style={{ fontSize: 20, color: '#FF3B30', marginRight: 15 }}
               onPress={onLogout}
             >
@@ -120,17 +120,17 @@ function AuthStack({ onLogin }: { onLogin: () => void }) {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login">
         {(props) => (
-          <LoginScreen 
-            {...props} 
-            onLogin={onLogin} 
+          <LoginScreen
+            {...props}
+            onLogin={onLogin}
           />
         )}
       </Stack.Screen>
       <Stack.Screen name="Register">
         {(props) => (
-          <RegisterScreen 
-            {...props} 
-            onRegister={onLogin} 
+          <RegisterScreen
+            {...props}
+            onRegister={onLogin}
           />
         )}
       </Stack.Screen>
@@ -147,7 +147,7 @@ function App(): React.JSX.Element {
   // Load custom fonts and icon fonts
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadFonts = async () => {
       try {
         // Load any custom fonts here if needed
@@ -155,13 +155,13 @@ function App(): React.JSX.Element {
         // await Font.loadAsync({
         //   'Custom-Font': require('./assets/fonts/CustomFont.ttf'),
         // });
-        
+
         // Load icon fonts
         await Promise.all([
           Ionicons.loadFont(),
-          MaterialCommunityIcons.loadFont()
+          MaterialCommunityIcons.loadFont(),
         ]);
-        
+
       } catch (error) {
         console.warn('Error loading fonts:', error);
       } finally {
@@ -172,7 +172,7 @@ function App(): React.JSX.Element {
     };
 
     loadFonts();
-    
+
     return () => {
       isMounted = false;
     };
@@ -231,16 +231,16 @@ function App(): React.JSX.Element {
                 <Stack.Screen name="MainTabs">
                   {() => <MainTabs onLogout={handleLogout} />}
                 </Stack.Screen>
-                <Stack.Screen 
-                  name="PlaybookDetail" 
-                  component={PlaybookDetailScreen as React.ComponentType} 
+                <Stack.Screen
+                  name="PlaybookDetail"
+                  component={PlaybookDetailScreen as React.ComponentType}
                   options={({ navigation }) => {
                     return {
                       headerShown: true,
                       title: '',
                       headerBackVisible: false,
                       headerLeft: () => (
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           onPress={() => navigation.goBack()}
                           style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
                         >
@@ -249,8 +249,8 @@ function App(): React.JSX.Element {
                       ),
                       headerRight: () => (
                         <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
-                          <Image 
-                            source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} 
+                          <Image
+                            source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
                             style={{ width: 32, height: 32, borderRadius: 16 }}
                             resizeMode="cover"
                           />
@@ -260,10 +260,10 @@ function App(): React.JSX.Element {
                         backgroundColor: '#f2f5f7',
                       },
                       headerShadowVisible: false,
-                    }
+                    };
                   }}
                 />
-              <Stack.Screen 
+              <Stack.Screen
                 name="CardDetail"
                 component={CardDetailScreen as React.ComponentType}
                 options={({ navigation }) => ({
@@ -271,7 +271,7 @@ function App(): React.JSX.Element {
                   title: '',
                   headerBackVisible: false,
                   headerLeft: () => (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       onPress={() => navigation.goBack()}
                       style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
                     >
@@ -280,8 +280,8 @@ function App(): React.JSX.Element {
                   ),
                   headerRight: () => (
                     <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
-                      <Image 
-                        source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }} 
+                      <Image
+                        source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
                         style={{ width: 32, height: 32, borderRadius: 16 }}
                         resizeMode="cover"
                       />

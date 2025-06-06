@@ -1,15 +1,15 @@
 import React, { useRef, useImperativeHandle, forwardRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SectionList, 
-  TouchableOpacity, 
-  Animated, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  SectionList,
+  TouchableOpacity,
+  Animated,
   Alert,
   SafeAreaView,
-  StatusBar, 
-  Pressable
+  StatusBar,
+  Pressable,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -38,11 +38,11 @@ type PlaybookListScreenNavigationProp = StackNavigationProp<RootStackParamList, 
 
 // Calculate progress based on completed action steps and sub-tasks
 function calculateProgress(playbook: Playbook): number {
-  if (!playbook.actionSteps.length) return 0;
-  
+  if (!playbook.actionSteps.length) {return 0;}
+
   let totalCompleted = 0;
   let totalTasks = 0;
-  
+
   playbook.actionSteps.forEach(step => {
     if (step.subTasks && step.subTasks.length > 0) {
       // Count sub-tasks for steps that have them
@@ -51,11 +51,11 @@ function calculateProgress(playbook: Playbook): number {
       totalTasks += step.subTasks.length;
     } else {
       // Count regular steps that don't have sub-tasks
-      if (step.completed) totalCompleted++;
+      if (step.completed) {totalCompleted++;}
       totalTasks++;
     }
   });
-  
+
   return totalTasks > 0 ? totalCompleted / totalTasks : 0;
 }
 
@@ -63,7 +63,7 @@ function calculateProgress(playbook: Playbook): number {
 function formatProgress(playbook: Playbook): string {
   let totalCompleted = 0;
   let totalTasks = 0;
-  
+
   playbook.actionSteps.forEach(step => {
     if (step.subTasks && step.subTasks.length > 0) {
       // Count sub-tasks for steps that have them
@@ -72,11 +72,11 @@ function formatProgress(playbook: Playbook): string {
       totalTasks += step.subTasks.length;
     } else {
       // Count regular steps that don't have sub-tasks
-      if (step.completed) totalCompleted++;
+      if (step.completed) {totalCompleted++;}
       totalTasks++;
     }
   });
-  
+
   return `${totalCompleted}/${totalTasks} Tasks`;
 }
 
@@ -131,7 +131,7 @@ const SwipeableRow = forwardRef(({ item, onDelete, children, onSwipeableOpen }: 
         <Animated.View
           style={[
             styles.iosDeleteButton,
-            { transform: [{ translateX: bgTranslateX }] }
+            { transform: [{ translateX: bgTranslateX }] },
           ]}
         >
           <RectButton
@@ -190,23 +190,23 @@ export default function PlaybookListScreen() {
   // Group playbooks by month/year
   function groupPlaybooksByMonth(playbooks: Playbook[]) {
     const groups: { [key: string]: Playbook[] } = {};
-    
+
     playbooks.forEach(pb => {
       try {
         // Ensure createdAt exists and is a valid date string
-        if (!pb.createdAt) return;
-        
+        if (!pb.createdAt) {return;}
+
         const date = new Date(pb.createdAt);
-        if (isNaN(date.getTime())) return; // Skip invalid dates
-        
+        if (isNaN(date.getTime())) {return;} // Skip invalid dates
+
         const key = format(date, 'MMMM yyyy');
-        if (!groups[key]) groups[key] = [];
+        if (!groups[key]) {groups[key] = [];}
         groups[key].push(pb);
       } catch (error) {
         console.warn('Error processing playbook date:', pb.id, error);
       }
     });
-    
+
     // Sort months descending (most recent first)
     return Object.entries(groups)
       .sort((a, b) => {
@@ -228,15 +228,15 @@ export default function PlaybookListScreen() {
           } catch (error) {
             return 0;
           }
-        })
+        }),
       }));
   }
 
   // Filter playbooks by completion status
   const filteredPlaybooks = React.useMemo(() => {
-    if (filter === 'all') return playbooks;
-    if (filter === 'ongoing') return playbooks.filter(pb => pb.actionSteps.some(step => !step.completed));
-    if (filter === 'accomplished') return playbooks.filter(pb => pb.actionSteps.length > 0 && pb.actionSteps.every(step => step.completed));
+    if (filter === 'all') {return playbooks;}
+    if (filter === 'ongoing') {return playbooks.filter(pb => pb.actionSteps.some(step => !step.completed));}
+    if (filter === 'accomplished') {return playbooks.filter(pb => pb.actionSteps.length > 0 && pb.actionSteps.every(step => step.completed));}
     return playbooks;
   }, [playbooks, filter]);
 
@@ -247,15 +247,15 @@ export default function PlaybookListScreen() {
     console.log('Loading mockPlaybooks:', mockPlaybooks);
     console.log('Mock playbook count:', mockPlaybooks.length);
     console.log('Sample playbook:', mockPlaybooks[0]?.title, mockPlaybooks[0]?.createdAt);
-    
+
     // Log all playbook IDs and titles for verification
     mockPlaybooks.forEach(pb => {
       console.log(`Playbook: ${pb.id} - ${pb.title} (${pb.createdAt})`);
     });
-    
+
     setPlaybooks([...mockPlaybooks]);
   }, []);
-  
+
   // Log when playbooks state changes
   React.useEffect(() => {
     console.log('Playbooks state updated. Count:', playbooks.length);
@@ -283,13 +283,13 @@ export default function PlaybookListScreen() {
       ]
     );
   };
-  
+
   const renderItem = ({ item }: { item: Playbook }) => {
     const formattedDate = format(new Date(item.createdAt || ''), 'EEEE, MMM d, yyyy').toUpperCase();
     const completedSteps = item.actionSteps.filter(step => step.completed).length;
     const totalSteps = item.actionSteps.length;
     const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
-    
+
     // Ensure a persistent ref for each row
     if (!rowRefs.current[item.id]) {
       rowRefs.current[item.id] = React.createRef();
@@ -301,7 +301,7 @@ export default function PlaybookListScreen() {
         onDelete={handleDelete}
         onSwipeableOpen={handleSwipeableOpen}
       >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.card}
         onPress={() => navigation.navigate('PlaybookDetail', { playbook: item })}
         activeOpacity={0.8}
@@ -320,11 +320,11 @@ export default function PlaybookListScreen() {
           <View style={styles.progressContainer}>
             <View style={styles.progressRow}>
               <View style={styles.progressBarBg}>
-                <View 
+                <View
                   style={[
-                    styles.progressBarFill, 
-                    { width: `${progress}%` }
-                  ]} 
+                    styles.progressBarFill,
+                    { width: `${progress}%` },
+                  ]}
                 />
               </View>
               <Text style={styles.progressText}>
@@ -348,14 +348,14 @@ export default function PlaybookListScreen() {
             <Pressable
               key={tab}
               style={[
-                styles.filterTab, 
+                styles.filterTab,
                 filter === tab && (
-                  tab === 'accomplished' 
-                    ? styles.filterTabActiveCompleted 
+                  tab === 'accomplished'
+                    ? styles.filterTabActiveCompleted
                     : tab === 'ongoing'
                       ? styles.filterTabActiveOngoing
                       : styles.filterTabActive
-                )
+                ),
               ]}
               onPress={() => setFilter(tab as any)}
             >

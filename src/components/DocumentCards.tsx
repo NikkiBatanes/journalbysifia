@@ -16,41 +16,41 @@ interface DocumentCardsProps {
 }
 
 const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, styles }) => (
-  <ScrollView 
+  <ScrollView
     style={styles.docContainer}
     contentContainerStyle={styles.docContentContainer}
   >
-    <TruthInLoveCard 
+    <TruthInLoveCard
       key="truth"
-      truth={playbook.truthInLove?.text} 
+      truth={playbook.truthInLove?.text}
       summary={playbook.truthInLove?.summary}
       expanded={true}
       style={[styles.docCard, styles.truthCard]}
     />
-    <ActionStepsCard 
+    <ActionStepsCard
       key="action"
       steps={actionSteps}
       style={[styles.docCard, styles.actionCard]}
     />
-    <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}> 
+    <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>
       <View style={styles.affirmationsHeader}>
         <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
         <Text style={styles.affirmationsTitle}>Affirmations</Text>
       </View>
       <View style={styles.affirmationsList}>
         {playbook.affirmations?.map((affirmation) => (
-          <AffirmationCard 
+          <AffirmationCard
             key={affirmation.id}
             id={affirmation.id}
-            text={affirmation.text} 
-            completed={affirmation.completed} 
+            text={affirmation.text}
+            completed={affirmation.completed}
           />
         ))}
       </View>
     </View>
-    <BibleVerseCard 
+    <BibleVerseCard
       key="bible"
-      verse={playbook.bibleVerse} 
+      verse={playbook.bibleVerse}
       style={[styles.docCard, styles.bibleCard, { marginTop: 16 }]}
     />
     <View key="challenge" style={styles.challengeCard}>

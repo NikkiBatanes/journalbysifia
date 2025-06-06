@@ -46,7 +46,7 @@ const SwipeableRow: React.FC<SwipeableRowProps> = ({ children, onDelete }) => {
         onTouchStart={() => {}}
         onTouchMove={(e) => {
           const { pageX } = e.nativeEvent;
-          if (pageX < 0) return;
+          if (pageX < 0) {return;}
           translateX.setValue(-pageX / 3);
         }}
         onTouchEnd={(e) => {
