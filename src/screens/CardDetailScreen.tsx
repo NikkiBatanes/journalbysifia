@@ -24,8 +24,14 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     progress,
     totalTasks,
     viewMode: initialViewMode = 'stack',
-    onToggleView: parentToggleView,
   } = route.params;
+  
+  const parentToggleView = (mode: 'stack' | 'document') => {
+    // Update local state
+    setViewMode(mode);
+    // If we need to update the parent screen, we can use navigation.setParams
+    // or use a different approach like a shared context or state management
+  };
 
   const [showUserInput, setShowUserInput] = useState(false);
 

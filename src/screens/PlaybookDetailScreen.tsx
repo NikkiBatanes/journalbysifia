@@ -312,7 +312,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       progress,
       totalTasks: actionSteps.length,
       viewMode,
-      onToggleView: (mode: 'stack' | 'document') => setViewMode(mode),
     });
   };
 

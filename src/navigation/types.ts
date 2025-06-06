@@ -16,7 +16,7 @@ export type RootStackParamList = {
     progress: number;
     totalTasks: number;
     viewMode: 'stack' | 'document';
-    onToggleView: (mode: 'stack' | 'document') => void;
+    onToggleView?: (mode: 'stack' | 'document') => void; // Made optional
   };
 };
 
