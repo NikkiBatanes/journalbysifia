@@ -24,6 +24,7 @@ type TabBarIconsType = {
 
 // Import theme colors
 import { Colors } from './src/theme';
+import LoadingScreen from './src/components/LoadingScreen';
 
 // Import vector icons
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -233,11 +234,7 @@ function App(): React.JSX.Element {
 
   // Don't render the main app until we have the playbook data
   if (playbook.actionSteps.length === 0) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.hopeWhite }}>
-        <ActivityIndicator size="large" color={Colors.anchorBlue} />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return (
