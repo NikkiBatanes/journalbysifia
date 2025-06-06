@@ -8,6 +8,7 @@ import { opacity } from 'react-native-reanimated/lib/typescript/Colors';
 
 interface PlaybookHeaderProps {
   title: string;
+  showTitle?: boolean;
   subtitle?: string;
   progress: number;
   totalTasks: number;
@@ -53,6 +54,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInputBorderColor,
   userInputTextColor,
   chevronAnimatedStyle,
+  showTitle = true,
 }) => {
   // Split title at colons that are followed by a space (to avoid splitting Bible references like 'John 3:16')
   const titleLines = title.split(/(?<=[^0-9]):(?=[^0-9])/).map(part => part.trim()).filter(part => part.length > 0);
