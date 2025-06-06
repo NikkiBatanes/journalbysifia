@@ -630,7 +630,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                     />
                   ))
                 ) : (
-                  <Text style={{ color: '#fff', textAlign: 'center' }}>No affirmations</Text>
+                  <Text style={styles.noAffirmationsText}>No affirmations</Text>
                 )}
               </View>
             </View>
@@ -781,6 +781,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 }
 
 const styles = StyleSheet.create({
+  noAffirmationsText: {
+    color: '#fff',
+    textAlign: 'center',
+  },
   // Header styles
   headerSafeArea: {
     backgroundColor: Colors.hopeWhite,
