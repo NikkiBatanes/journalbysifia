@@ -43,16 +43,17 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8, // Match TruthInLoveCard
   },
   icon: {
-    marginRight: 12,
+    marginRight: 8, // Match TruthInLoveCard's icon margin
   },
   heading: {
-    ...Typography.interBlack,
+    ...Typography.interBold, // Match TruthInLoveCard
     fontSize: 20,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
+    textTransform: 'none', // Match TruthInLoveCard
   },
   text: {
     ...Typography.interSemiBold,

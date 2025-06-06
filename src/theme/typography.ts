@@ -13,7 +13,7 @@ export const Typography = {
   } as TextStyle,
   interBold: {
     fontFamily: 'Inter-Bold',
-    fontWeight: '700',
+    fontWeight: '800',
   } as TextStyle,
   interBlack: {
     fontFamily: 'Inter-Black',

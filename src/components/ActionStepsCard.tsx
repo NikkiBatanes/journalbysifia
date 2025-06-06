@@ -193,18 +193,17 @@ const styles = StyleSheet.create({
   headingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 8, // Add horizontal padding for better edge spacing
+    marginBottom: 8, // Match TruthInLoveCard
   },
   icon: {
-    marginRight: 12,
+    marginRight: 8, // Match TruthInLoveCard's heart icon margin
   },
   heading: {
-    ...Typography.interBlack,
+    ...Typography.interBold, // Match TruthInLoveCard
     fontSize: 20,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
-    flexShrink: 1, // Ensure text wraps properly
+    textTransform: 'none', // Match TruthInLoveCard
   },
   stepsContainer: {
     width: '100%',
