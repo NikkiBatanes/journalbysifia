@@ -51,7 +51,6 @@ import PlaybookDetailScreen from './src/screens/PlaybookDetailScreen';
 import CardDetailScreen from './src/screens/CardDetailScreen';
 import { ActionStepsProvider } from './src/context/ActionStepsContext';
 import { getMockPlaybook } from './src/mocks/playbookMocks';
-const playbook = getMockPlaybook();
 
 // Types
 import { RootStackParamList, BottomTabParamList } from './src/navigation/types';
@@ -143,6 +142,18 @@ function App(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [playbook, setPlaybook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
+
+  // Initialize mock data
+  useEffect(() => {
+    try {
+      // Use the first playbook's ID from the mock data
+      const mockPlaybook = getMockPlaybook('patience-playbook');
+      setPlaybook(mockPlaybook);
+    } catch (error) {
+      console.error('Error initializing mock data:', error);
+    }
+  }, []);
 
   // Load custom fonts and icon fonts
   useEffect(() => {
@@ -213,6 +224,15 @@ function App(): React.JSX.Element {
 
   // Show loading state while app is getting ready
   if (!isAppReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.hopeWhite }}>
+        <ActivityIndicator size="large" color={Colors.anchorBlue} />
+      </View>
+    );
+  }
+
+  // Don't render the main app until we have the playbook data
+  if (playbook.actionSteps.length === 0) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.hopeWhite }}>
         <ActivityIndicator size="large" color={Colors.anchorBlue} />
