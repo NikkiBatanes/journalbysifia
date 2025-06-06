@@ -38,13 +38,13 @@ export default function RootStackNavigator({
               title: '',
               headerBackVisible: false,
               headerLeft: () => (
-                <TouchableOpacity
-                  onPress={() => navigation.goBack()}
-                  style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
-                >
-                  <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-                </TouchableOpacity>
-              ),
+  <TouchableOpacity
+    onPress={() => navigation.goBack()}
+    style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
+  >
+    <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+  </TouchableOpacity>
+),
               headerRight: () => (
                 <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
                   <Image

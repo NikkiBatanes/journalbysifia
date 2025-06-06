@@ -1,34 +1,55 @@
+// React & React Native
 import React, { useState, useEffect, useRef } from 'react';
-import { PanGestureHandler } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, useAnimatedGestureHandler, withSpring, withTiming, runOnJS, withSequence } from 'react-native-reanimated';
 import {
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
-  Text,
   View,
-  Image,
-  SafeAreaView,
+  Text,
+  Dimensions,
   ActivityIndicator,
   ScrollView,
   Platform,
   StatusBar,
+  SafeAreaView,
+  ViewStyle,
+  TextStyle,
+  ImageStyle,
 } from 'react-native';
+
+// Navigation & Gestures
+import { PanGestureHandler } from 'react-native-gesture-handler';
+
+// Animation
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  useAnimatedGestureHandler,
+  withSpring,
+  withTiming,
+  runOnJS,
+  withSequence,
+} from 'react-native-reanimated';
+
+// Icons
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Colors, Fonts, FontWeights } from '../theme';
+
+// Theme & Styling
+import { Colors, Fonts } from '../theme';
+
+// Components
 import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
-import { useActionSteps } from '../context/ActionStepsContext';
 import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
 import SwipeUpIndicator from '../components/SwipeUpIndicator';
-import { Playbook } from '../interfaces/playbook';
-import { getMockPlaybook } from '../mocks/playbookMocks';
 import PlaybookHeader from '../components/PlaybookHeader';
 import DocumentCards from '../components/DocumentCards';
-import PlaybookInfoSection from '../components/PlaybookInfoSection';
+
+// Types & Context
+import { Playbook } from '../interfaces/playbook';
+import { useActionSteps } from '../context/ActionStepsContext';
 
 // Types
 type PlaybookScreenProps = {
@@ -43,21 +64,22 @@ type PlaybookScreenProps = {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Types
-const CARD_TYPES = [
-  'truth',
-  'action',
-  'affirmation',
-  'bible',
-  'challenge',
-] as const;
+const CARD_TYPES = ['truth', 'action', 'affirmation', 'bible', 'challenge'] as const;
 type CardType = typeof CARD_TYPES[number];
 
-// Get playbook data from route params
-
+interface CardData {
+  type: CardType;
+  truth?: string;
+  summary?: string;
+  steps?: any[];
+  affirmations?: any[];
+  verse?: { text: string; reference: string };
+  challenge?: { text: string; summary: string };
+  challengeCTA?: string;
+  tappable: boolean;
+}
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  // ...existing hooks and logic
-  // ...existing hooks and logic
   const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
   const { actionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
@@ -66,17 +88,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const { completed, total } = getCompletedStepsCount();
   const progress = total > 0 ? (completed / total) * 100 : 0;
 
-
   if (!playbook) {
     return (
       <>
         <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={styles.loadingContainer}>
           <Text>Loading playbook...</Text>
         </View>
       </>
     );
   }
+
   // --- Animated swipe logic for top card ---
   const gestureHandlerRef = useRef(null);
   const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
@@ -95,31 +117,30 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   }, [currentCard, hasSeenSwipeUp]);
 
   // Card data
-  // Only include serializable data for each card
-  const cardData = [
+  const cardData: CardData[] = [
     {
-      type: 'truth' as CardType,
+      type: 'truth',
       truth: playbook.truthInLove.text,
       summary: playbook.truthInLove.summary,
       tappable: false,
     },
     {
-      type: 'action' as CardType,
+      type: 'action',
       steps: actionSteps,
       tappable: false,
     },
     {
-      type: 'affirmation' as CardType,
+      type: 'affirmation',
       affirmations: playbook.affirmations,
       tappable: false,
     },
     {
-      type: 'bible' as CardType,
+      type: 'bible',
       verse: playbook.bibleVerse || { text: '', reference: '' },
       tappable: false,
     },
     {
-      type: 'challenge' as CardType,
+      type: 'challenge',
       challenge: playbook.directChallenge,
       challengeCTA: playbook.challengeCTA,
       tappable: false,
@@ -129,7 +150,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const onSwipeComplete = (direction: 'up' | 'down') => {
     if (direction === 'up') {
       goToNextCard();
-      // Fade header back in after card changes
       headerOpacity.value = withTiming(1, { duration: 200 });
       headerFaded.value = false;
     } else {
@@ -137,7 +157,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       headerOpacity.value = withTiming(1, { duration: 200 });
       headerFaded.value = false;
     }
-    // Reset the position after a small delay to allow the card to animate out
     requestAnimationFrame(() => {
       translateY.value = 0;
       isTransitioning.value = false;
@@ -157,21 +176,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   }, [currentCard]);
 
   const headerFaded = useSharedValue(false);
-
   const headerOpacity = useSharedValue(1);
   const animatedHeaderStyle = useAnimatedStyle(() => ({ opacity: headerOpacity.value }));
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: any) => {
       ctx.startY = translateY.value;
-      ctx.startX = 0; // Track X position for potential horizontal swipes
+      ctx.startX = 0;
     },
     onActive: (event, ctx: any) => {
       if (!isTransitioning.value) {
-        // Only allow vertical swipes by ignoring horizontal movement
         if (Math.abs(event.translationY) > Math.abs(event.translationX)) {
           translateY.value = ctx.startY + event.translationY;
-          // Advanced: Hide/show header as swipe crosses threshold
           const threshold = -SWIPE_THRESHOLD / 2;
           if (translateY.value < threshold && !headerFaded.value) {
             headerFaded.value = true;
@@ -184,14 +200,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       }
     },
     onEnd: (event, ctx: any) => {
-      if (isTransitioning.value) {return;}
+      if (isTransitioning.value) return;
 
-      // Check if it's primarily a vertical swipe
       const isVerticalSwipe = Math.abs(event.translationY) > Math.abs(event.translationX);
-
       if (isVerticalSwipe) {
         if (event.translationY < -SWIPE_THRESHOLD && currentCardIndex.value < cardCount.value - 1) {
-          // Swipe up - go to next card
           isTransitioning.value = true;
           translateY.value = withTiming(-SCREEN_HEIGHT, { duration: 250 }, (finished) => {
             if (finished) {
@@ -199,7 +212,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             }
           });
         } else if (event.translationY > SWIPE_THRESHOLD && currentCardIndex.value > 0) {
-          // Swipe down - go to previous card
           isTransitioning.value = true;
           translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, (finished) => {
             if (finished) {
@@ -207,18 +219,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             }
           });
         } else {
-          // Not enough swipe, bounce back
-          translateY.value = withSpring(0, {
-            damping: 10,
-            stiffness: 150,
-          });
+          translateY.value = withSpring(0, { damping: 10, stiffness: 150 });
         }
       } else {
-        // If not a vertical swipe, reset position
-        translateY.value = withSpring(0, {
-          damping: 10,
-          stiffness: 150,
-        });
+        translateY.value = withSpring(0, { damping: 10, stiffness: 150 });
       }
     },
   });
@@ -228,7 +232,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const bounceY = useSharedValue(0);
   const prevCardRef = useRef(currentCard);
 
-  // Animation for card press with scale and shadow
+  // Animation for card press
   const cardScale = useSharedValue(1);
   const shadowElevation = useSharedValue(4);
   const shadowOpacity = useSharedValue(0.15);
@@ -236,7 +240,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const animatedCardStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateY: translateY.value +
+        translateY:
+          translateY.value +
           (currentCard === 0 ? nudgeY.value : 0) +
           (currentCard > 0 ? bounceY.value : 0),
       },
@@ -249,9 +254,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     shadowColor: '#000',
   }));
 
-  // Handle card change animations
-  React.useEffect(() => {
-    // First card nudge animation
+  useEffect(() => {
     if (currentCard === 0) {
       nudgeY.value = withSequence(
         withTiming(-24, { duration: 350 }),
@@ -263,14 +266,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       );
     }
 
-    // Slower, more deliberate bounce animation when a new card becomes the front card
     if (currentCard !== prevCardRef.current) {
       bounceY.value = withSequence(
-        withTiming(-15, { duration: 100 }), // Slower upward movement
+        withTiming(-15, { duration: 100 }),
         withSpring(0, {
-          damping: 12,  // Slightly reduced damping for a more fluid motion
-          stiffness: 100, // Reduced stiffness for slower movement
-          mass: 1.5, // Increased mass for more weight
+          damping: 12,
+          stiffness: 100,
+          mass: 1.5,
           overshootClamping: false,
         })
       );
@@ -278,20 +280,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     }
   }, [currentCard]);
 
-
-
-  // Define card data with access to playbook
-
-
-  if (!playbook) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading playbook...</Text>
-      </View>
-    );
-  }
-
-  // Navigation handlers for card stack
   const goToNextCard = () => {
     if (currentCard < cardData.length - 1) {
       setCurrentCard(currentCard + 1);
@@ -304,98 +292,43 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     }
   };
 
-  // Handle card press to navigate to detail view
-  const handleCardPress = (cardType: string, cardData: any) => {
-    // Remove non-serializable properties (like 'component') before navigating
-    const { component, ...serializableCardData } = cardData;
+  const handleCardPress = (cardType: CardType, cardData: CardData) => {
+    const { tappable, ...serializableCardData } = cardData;
     navigation.navigate('CardDetail', {
       cardType,
       cardData: serializableCardData,
       playbook,
-      progress: playbook.progress,
-      totalTasks: playbook.totalTasks,
+      progress,
+      totalTasks: actionSteps.length,
       viewMode,
-      // Do NOT pass onToggleView/setViewMode in navigation params
     });
   };
 
-  // State for toggling user input card
   const [showUserInput, setShowUserInput] = useState(false);
 
-  // Title style with enhanced boldness
-  const titleStyle = [
+  const titleStyle: TextStyle = [
     styles.playbookTitle,
     {
-      fontSize: 26, // Slightly larger for better presence
+      fontSize: 26,
       color: Colors.anchorBlue,
       ...Platform.select({
         ios: {
-          fontFamily: 'Georgia-Bold', // Direct bold variant for iOS
-          fontWeight: '900', // Maximum boldness
+          fontFamily: 'Georgia-Bold',
+          fontWeight: '900',
         },
         android: {
           fontFamily: 'serif',
           fontWeight: 'bold',
-          includeFontPadding: false, // Remove extra padding
+          includeFontPadding: false,
         },
       }),
-      textShadowColor: 'rgba(0, 0, 0, 0.1)', // Subtle shadow for depth
+      textShadowColor: 'rgba(0, 0, 0, 0.1)',
       textShadowOffset: { width: 0.5, height: 0.5 },
       textShadowRadius: 1,
-      letterSpacing: 0.3, // Slight letter spacing for better readability
+      letterSpacing: 0.3,
     },
   ];
 
-  // Header with safe area for status bar
-  const renderHeader = () => (
-    <Animated.View style={[styles.headerSafeArea, animatedHeaderStyle]}>
-      <View style={styles.headerContainer}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={Colors.anchorBlue} />
-        </TouchableOpacity>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>{playbook.title}</Text>
-        </View>
-        <View style={styles.headerRight} />
-      </View>
-    </Animated.View>
-  );
-
-  // Main content container with proper spacing
-  const renderContent = () => (
-    <View style={styles.contentContainer}>
-      <View>
-        <PlaybookHeader
-          title={playbook.title}
-          subtitle={playbook.createdAt ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-          }) : ''}
-          progress={progress}
-          totalTasks={actionSteps.length}
-          showToggle={true}
-          viewMode={viewMode}
-          onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
-          onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
-          showUserInput={showUserInput}
-          userInput={playbook.userInput}
-          chevronAnimatedStyle={chevronStyle}
-        />
-      </View>
-      <View style={styles.mainContainer}>
-        {viewMode === 'stack' ? renderStackCards() : <DocumentCards playbook={playbook} actionSteps={actionSteps} styles={styles} />}
-      </View>
-    </View>
-  );
-
-  // Playbook info section with collapsible user input
-  // Animation for chevron rotation (reanimated)
-
-  // --- MOVE THESE TO THE TOP LEVEL, NOT INSIDE renderPlaybookInfo ---
-  // Place after all useState/useEffect hooks, before any render functions
-  // (This is the main fix for the animation bug)
   const chevronAnim = useSharedValue(0);
   useEffect(() => {
     chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
@@ -405,15 +338,44 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     marginLeft: 4,
   }));
 
+  const renderContent = () => (
+    <View style={styles.contentContainer}>
+      <PlaybookHeader
+        title={playbook.title}
+        subtitle={
+          playbook.createdAt
+            ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })
+            : ''
+        }
+        progress={progress}
+        totalTasks={actionSteps.length}
+        showToggle={true}
+        viewMode={viewMode}
+        onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
+        onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
+        showUserInput={showUserInput}
+        userInput={playbook.userInput}
+        chevronAnimatedStyle={chevronStyle}
+        showTitle={false}
+      />
+      <View style={styles.mainContainer}>
+        {viewMode === 'stack' ? renderStackCards() : <DocumentCards playbook={playbook} actionSteps={actionSteps} styles={styles} />}
+      </View>
+    </View>
+  );
+
   const renderPlaybookInfo = () => {
-    // Split title at first colon followed by space or end of string (but not for Bible verses like John 3:15)
     const titleMatch = playbook.title.match(/^(.+?)(?::\s|$)([^:]*)$/);
     const firstLine = titleMatch ? titleMatch[1] + (titleMatch[2] ? ':' : '') : playbook.title;
     const secondLine = titleMatch ? titleMatch[2].trim() : '';
 
     return (
       <View style={styles.playbookInfoContainer}>
-        {/* Playbook header with toggle */}
         <View style={styles.playbookHeader}>
           <TouchableOpacity
             style={styles.playbookLabelRow}
@@ -422,32 +384,21 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           >
             <Text style={styles.playbookLabel}>PLAYBOOK</Text>
             <Animated.View style={chevronStyle}>
-              <Ionicons
-                name="chevron-down"
-                size={15}
-                color={Colors.anchorBlue}
-              />
+              <Ionicons name="chevron-down" size={15} color={Colors.anchorBlue} />
             </Animated.View>
           </TouchableOpacity>
 
-          {/* User Input Card - Collapsible */}
           {showUserInput && playbook.userInput && (
             <View style={styles.userInputCard}>
               <Text style={styles.userInputText}>{playbook.userInput}</Text>
             </View>
           )}
 
-          {/* Title with line break */}
-          <Text style={styles.playbookTitle}>
-            {firstLine}
-          </Text>
+          <Text style={styles.playbookTitle}>{firstLine}</Text>
           {secondLine ? (
-            <Text style={[styles.playbookTitle, { marginTop: -8 }]}>
-              {secondLine}
-            </Text>
+            <Text style={[styles.playbookTitle, { marginTop: -8 }]}>{secondLine}</Text>
           ) : null}
 
-          {/* Creation Date */}
           <Text style={styles.creationDate}>
             {new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
               weekday: 'long',
@@ -457,7 +408,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             }).toUpperCase()}
           </Text>
 
-          {/* Progress and View Toggle Row */}
           <View style={styles.progressAndViewRow}>
             <View style={styles.progressContainer}>
               <View style={styles.progressRow}>
@@ -465,22 +415,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   <View
                     style={[
                       styles.progressBarFill,
-                      { width: `${(actionSteps.length > 0 ? (actionSteps.filter(step => step.completed).length / actionSteps.length) * 100 : 0)}%` },
+                      { width: `${progress}%` },
                     ]}
                   />
                 </View>
                 <Text style={styles.progressText}>
-                  {actionSteps.filter(step => step.completed).length}/{actionSteps.length} Steps
+                  {actionSteps.filter((step) => step.completed).length}/{actionSteps.length} Steps
                 </Text>
               </View>
             </View>
 
-            {/* View Toggle Icons */}
             <View style={styles.viewToggleContainer}>
-              <TouchableOpacity
-                style={styles.viewToggle}
-                onPress={() => setViewMode('stack')}
-              >
+              <TouchableOpacity style={styles.viewToggle} onPress={() => setViewMode('stack')}>
                 <View style={[styles.iconContainer, viewMode === 'stack' && styles.iconContainerActive]}>
                   <Ionicons
                     name="albums"
@@ -491,10 +437,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 </View>
               </TouchableOpacity>
               <View style={styles.viewToggleDivider} />
-              <TouchableOpacity
-                style={styles.viewToggle}
-                onPress={() => setViewMode('document')}
-              >
+              <TouchableOpacity style={styles.viewToggle} onPress={() => setViewMode('document')}>
                 <View style={[styles.iconContainer, viewMode === 'document' && styles.iconContainerActive]}>
                   <MaterialCommunityIcons
                     name="view-agenda"
@@ -510,56 +453,40 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     );
   };
 
-  // Stack Card View with fan-out effect
   const renderStackCards = () => {
-    if (cardData.length === 0) {return null;}
+    if (cardData.length === 0) return null;
 
-    // Number of cards to show in the stack (all cards)
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
 
-    // Helper to calculate color based on card type
     const getCardColor = (index: number) => {
-      // For the last card, return the original color
       if (index >= cardData.length - 1) {
         return Colors.anchorBlue;
       }
-
-      // Lighten the anchor blue color for cards in the back (except last)
-      const lightenAmount = index * 0.15; // 15% lighter per card
+      const lightenAmount = index * 0.15;
       const color = Colors.anchorBlue;
-      // Convert hex to RGB
       const r = parseInt(color.slice(1, 3), 16);
       const g = parseInt(color.slice(3, 5), 16);
       const b = parseInt(color.slice(5, 7), 16);
-      // Lighten the color by moving towards white
       const lighten = (value: number) => Math.min(255, Math.floor(value + (255 - value) * lightenAmount));
-      // Convert back to hex
       const toHex = (value: number) => Math.round(value).toString(16).padStart(2, '0');
       return `#${toHex(lighten(r))}${toHex(lighten(g))}${toHex(lighten(b))}`;
     };
 
-    // Render a single card
     const renderCard = (cardIndex: number, stackIndex: number) => {
       const card = cardData[cardIndex];
-      if (!card) {return null;}
+      if (!card) return null;
 
-      // Calculate scale and offset for the fan-out effect
-      // Scale width more than height for a better visual effect
-      const scaleY = 1 - (stackIndex * 0.01); // Very subtle vertical scaling
-      const scaleX = 1 - (stackIndex * 0.03); // More pronounced horizontal scaling
+      const scaleY = 1 - stackIndex * 0.01;
+      const scaleX = 1 - stackIndex * 0.03;
       const translateY = stackIndex * 8;
       const zIndex = 100 - stackIndex;
-      // Reduce opacity for the last card when it's in the stack, but not when it's the current card
       const isLastCard = cardIndex === cardData.length - 1;
       const isCurrentCard = cardIndex === currentCard;
       const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
-
-      // Only the top card animates. Back cards are static.
       const isTopCard = stackIndex === 0;
       const CardContainer = isTopCard ? Animated.View : View;
-      // Only apply animatedCardStyle to the top card
       const extraStyle = isTopCard ? animatedCardStyle : {};
-      // For back cards, use only static transforms and opacity (not tied to animation)
+
       return (
         <TouchableOpacity
           key={`${cardIndex}-${stackIndex}`}
@@ -587,37 +514,22 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   borderRadius: 28,
                   elevation: 0,
                   shadowColor: 'transparent',
-                  // keep transforms for stacking effect
-                  transform: !isTopCard ? [
-                    { scaleX },
-                    { scaleY },
-                    { translateY },
-                  ] : undefined,
+                  transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY }] : undefined,
                   zIndex,
                   opacity: !isTopCard ? opacity : 1,
                   position: stackIndex === 0 ? 'relative' : 'absolute',
                   top: 0,
-                  left: undefined,
-                  right: undefined,
-                  bottom: 0,
                   alignSelf: 'center',
                 }
               : {
                   backgroundColor: getCardColor(stackIndex),
-                  transform: !isTopCard ? [
-                    { scaleX },
-                    { scaleY },
-                    { translateY },
-                  ] : undefined,
+                  transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY }] : undefined,
                   zIndex,
                   opacity: !isTopCard ? opacity : 1,
                   position: stackIndex === 0 ? 'relative' : 'absolute',
                   top: 0,
-                  left: undefined,
-                  right: undefined,
-                  bottom: 0,
                   alignSelf: 'center',
-                  elevation: 5 - stackIndex, // for Android shadow
+                  elevation: 5 - stackIndex,
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 2 },
                   shadowOpacity: 0.25,
@@ -628,19 +540,21 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         >
           {card.type === 'truth' ? (
             <TruthInLoveCard
-              truth={playbook.truthInLove?.text ?? ''}
-              summary={playbook.truthInLove?.summary ?? ''}
+              truth={card.truth ?? ''}
+              summary={card.summary ?? ''}
               style={{ flex: 1, padding: 32 }}
             />
           ) : card.type === 'action' ? (
-            <ActionStepsCard
-              steps={actionSteps ?? []}
-              style={{ flex: 1, padding: 24 }}
-            />
+            <ActionStepsCard steps={card.steps ?? []} style={{ flex: 1, padding: 24 }} />
           ) : card.type === 'affirmation' ? (
             <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
               <View style={styles.affirmationsHeader}>
-                <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
+                <MaterialCommunityIcons
+                  name="format-quote-close"
+                  size={24}
+                  color="white"
+                  style={[styles.icon, { transform: [{ scaleX: -1 }] }]}
+                />
                 <Text style={styles.affirmationsTitle}>Affirmations</Text>
               </View>
               <View style={styles.affirmationsList}>
@@ -662,75 +576,32 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             <BibleVerseCard verse={card.verse} />
           ) : card.type === 'challenge' ? (
             <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
-              <DirectChallengeCard challenge={playbook.directChallenge ?? { text: '', summary: '' }} challengeCTA={playbook.challengeCTA ?? ''} />
+              <DirectChallengeCard challenge={card.challenge ?? { text: '', summary: '' }} challengeCTA={card.challengeCTA ?? ''} />
             </View>
           ) : (
-            <View style={{ flex: 1, padding: 24 }}>
-              {/* Render fallback for unknown type, or nothing */}
-            </View>
+            <View style={{ flex: 1, padding: 24 }} />
           )}
         </TouchableOpacity>
       );
     };
 
-    // Generate the stack of cards
-    const cardStack = [];
-    // Render back cards (static, never re-render or animate)
     const backCards = Array.from({ length: visibleCardCount - 1 }).map((_, i, arr) => {
-      const stackIndex = arr.length - 1 - i + 1; // +1 to skip top card
+      const stackIndex = arr.length - 1 - i + 1;
       const cardIndex = currentCard + stackIndex;
       return renderCard(cardIndex, stackIndex);
     });
 
     return (
       <View style={styles.cardStackContainer}>
-        {/* Back cards (static) */}
         {backCards}
-        {/* Top card (animated, only one re-renders/animates) */}
-        <PanGestureHandler
-          ref={gestureHandlerRef}
-          onGestureEvent={gestureHandler}
-        >
+        <PanGestureHandler ref={gestureHandlerRef} onGestureEvent={gestureHandler}>
           <Animated.View style={[animatedCardStyle, { width: '100%', position: 'relative', zIndex: 200 }]}>
-            {/* Tap-to-expand: always enable for demonstration; refine with truncation logic if needed */}
             <TouchableOpacity
               activeOpacity={0.85}
               style={{ flex: 1 }}
               onPress={() => {
-                let cardType = cardData[currentCard].type;
-                let cardDataForDetail: any = {};
-                if (cardType === 'truth') {
-                  cardDataForDetail = {
-                    truth: playbook.truthInLove?.text ?? '',
-                    summary: playbook.truthInLove?.summary ?? '',
-                  };
-                } else if (cardType === 'action') {
-                  cardDataForDetail = {
-                    steps: actionSteps ?? [],
-                  };
-                } else if (cardType === 'affirmation') {
-                  cardDataForDetail = {
-                    affirmations: playbook.affirmations ?? [],
-                  };
-                } else if (cardType === 'bible') {
-                  cardDataForDetail = {
-                    verse: playbook.bibleVerse ?? { text: '', reference: '' },
-                  };
-                } else if (cardType === 'challenge') {
-                  cardDataForDetail = {
-                    challenge: playbook.directChallenge ?? { text: '', summary: '' },
-                    challengeCTA: playbook.challengeCTA ?? '',
-                  };
-                }
-                navigation.navigate('CardDetail', {
-                  cardType,
-                  cardData: cardDataForDetail,
-                  playbook,
-                  progress: currentCard + 1,
-                  totalTasks: cardData.length,
-                  viewMode,
-                  onToggleView: undefined, // Optionally pass if needed
-                });
+                const card = cardData[currentCard];
+                handleCardPress(card.type, card);
               }}
             >
               {renderCard(currentCard, 0)}
@@ -741,12 +612,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     );
   };
 
-  // Document Card View
   const renderDocumentCards = () => (
-    <ScrollView
-      style={styles.docContainer}
-      contentContainerStyle={styles.docContentContainer}
-    >
+    <ScrollView style={styles.docContainer} contentContainerStyle={styles.docContentContainer}>
       <TruthInLoveCard
         key="truth"
         truth={playbook.truthInLove?.text ?? ''}
@@ -761,7 +628,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       />
       <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>
         <View style={styles.affirmationsHeader}>
-          <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
+          <MaterialCommunityIcons
+            name="format-quote-close"
+            size={24}
+            color="white"
+            style={[styles.icon, { transform: [{ scaleX: -1 }] }]}
+          />
           <Text style={styles.affirmationsTitle}>Affirmations</Text>
         </View>
         <View style={styles.affirmationsList}>
@@ -775,26 +647,28 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               />
             ))
           ) : (
-            <Text style={{ color: '#fff', textAlign: 'center' }}>No affirmations</Text>
+            <Text style={styles.noAffirmationsText}>No affirmations</Text>
           )}
         </View>
       </View>
       <BibleVerseCard
         key="bible"
         verse={playbook.bibleVerse ?? { text: '', reference: '' }}
+        style={[styles.docCard, styles.bibleCard]}
       />
-      <View key="challenge" style={styles.challengeCard}>
-        <DirectChallengeCard challenge={playbook.directChallenge ?? { text: '', summary: '' }} challengeCTA={playbook.challengeCTA ?? ''} />
+      <View key="challenge" style={[styles.docCard, styles.challengeCard]}>
+        <DirectChallengeCard
+          challenge={playbook.directChallenge ?? { text: '', summary: '' }}
+          challengeCTA={playbook.challengeCTA ?? ''}
+        />
       </View>
-
     </ScrollView>
   );
 
   return (
     <View style={styles.container}>
-      {renderHeader()}
+      
       {renderContent()}
-      {/* SwipeUpIndicator only in stack view */}
       {viewMode === 'stack' && currentCard === 0 && !showUserInput && !hasSeenSwipeUp && (
         <View style={styles.swipeUpIndicatorContainer}>
           <SwipeUpIndicator />
@@ -804,15 +678,83 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   );
 }
 
-const styles = StyleSheet.create({
-  noAffirmationsText: {
-    color: Colors.hopeWhite,
-    textAlign: 'center',
+// Define proper types for styles
+interface PlaybookDetailStyles {
+  stackCard: ViewStyle;
+  noAffirmationsText: TextStyle;
+  headerSafeArea: ViewStyle;
+  headerContainer: ViewStyle;
+  backButton: ViewStyle;
+  headerRight: ViewStyle;
+  docContainer: ViewStyle;
+  docContentContainer: ViewStyle;
+  docCard: ViewStyle;
+  container: ViewStyle;
+  contentContainer: ViewStyle;
+  loadingContainer: ViewStyle;
+  playbookInfoContainer: ViewStyle;
+  playbookHeader: ViewStyle;
+  headerTitleContainer: ViewStyle;
+  headerTitle: TextStyle;
+  playbookLabelRow: ViewStyle;
+  playbookLabel: TextStyle;
+  cardStackContainer: ViewStyle;
+  swipeUpIndicatorContainer: ViewStyle;
+  playbookTitle: TextStyle;
+  creationDate: TextStyle;
+  progressAndViewRow: ViewStyle;
+  progressContainer: ViewStyle;
+  progressRow: ViewStyle;
+  progressBarBg: ViewStyle;
+  progressBarFill: ViewStyle;
+  progressText: TextStyle;
+  userInputCard: ViewStyle;
+  userInputText: TextStyle;
+  viewToggleContainer: ViewStyle;
+  viewToggle: ViewStyle;
+  iconContainer: ViewStyle;
+  iconContainerActive: ViewStyle;
+  viewToggleDivider: ViewStyle;
+  mainContainer: ViewStyle;
+  truthCard: ViewStyle;
+  actionCard: ViewStyle;
+  affirmationsCard: ViewStyle;
+  bibleCard: ViewStyle;
+  challengeCard: ViewStyle;
+  cardNavigation: ViewStyle;
+  navButton: ViewStyle;
+  navButtonDisabled: ViewStyle;
+  navButtonText: TextStyle;
+  cardIndicator: ViewStyle;
+  cardIndicatorText: TextStyle;
+  affirmationsHeader: ViewStyle;
+  icon: ImageStyle;
+  affirmationsList: ViewStyle;
+  affirmationsTitle: TextStyle;
+}
+
+const styles = StyleSheet.create<PlaybookDetailStyles>({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+    position: 'relative',
   },
-  // Header styles
+  contentContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.hopeWhite,
+  },
   headerSafeArea: {
     backgroundColor: Colors.hopeWhite,
     width: '100%',
+    marginBottom: -10,
   },
   headerContainer: {
     flexDirection: 'row',
@@ -828,81 +770,8 @@ const styles = StyleSheet.create({
     marginLeft: -8,
   },
   headerRight: {
-    width: 40, // Same as back button for balance
+    width: 40,
   },
-  // Document view styles
-  docContainer: {
-    flex: 1,
-    backgroundColor: Colors.hopeWhite,
-  },
-  docContentContainer: {
-    paddingTop: 4,
-    paddingBottom: 60,
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    width: '100%',
-    maxWidth: 500, // Constrain max width for better readability
-    alignSelf: 'center',
-  },
-  docCard: {
-    width: '100%',
-    maxWidth: 380, // Slightly narrower for better aesthetics
-    alignSelf: 'center',
-    marginBottom: 16,
-    borderRadius: 28,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  // Base container styles
-  container: {
-    flex: 1,
-    backgroundColor: Colors.hopeWhite,
-    position: 'relative',
-  },
-
-  // Removed unused styles: swipeUpIndicatorContainer, cardStackContainer
-
-  // Main content container with max width
-  contentContainer: {
-    flex: 1,
-    width: '100%',
-    maxWidth: 600, // Set a max-width for larger screens
-    alignSelf: 'center',
-  },
-  headerSafeArea: {
-    backgroundColor: '#f2f5f7',
-    marginBottom: -10, // Reduce space below header
-  },
-  headerContainer: {
-    height: 0, // No visible header, just safe area
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
-  },
-
-  // Playbook info styles
-  playbookInfoContainer: {
-    backgroundColor: '#f2f5f7',
-    paddingHorizontal: 20,
-    paddingTop: 12, // Reduced top padding
-    paddingBottom: 0, // Reduced bottom padding
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: 0, // Reset negative margin
-    marginBottom: 0,
-  },
-  playbookHeader: {
-    marginBottom: 8,
-  },
-
-  // Header styles
   headerTitleContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -914,6 +783,17 @@ const styles = StyleSheet.create({
     color: Colors.anchorBlue,
     textAlign: 'center',
   },
+  playbookInfoContainer: {
+    backgroundColor: '#f2f5f7',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 0,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  playbookHeader: {
+    marginBottom: 8,
+  },
   playbookLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -924,31 +804,24 @@ const styles = StyleSheet.create({
     color: Colors.trustGrey,
     marginRight: 8,
   },
-  cardStackContainer: {
-    flex: 1,
-    position: 'relative',
-    marginBottom: 20,
-  },
-  swipeUpIndicatorContainer: {
-    position: 'absolute',
-    bottom: 30,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  // Playbook title and info styles
   playbookTitle: {
+    fontFamily: 'System',
     fontSize: 24,
     fontWeight: '700',
     color: Colors.anchorBlue,
-    marginBottom: 8,
+    marginBottom: 2,
+    lineHeight: 34,
     textAlign: 'center',
   },
   creationDate: {
-    fontSize: 12,
+    fontFamily: Fonts.regular,
+    fontSize: 10,
     color: Colors.trustGrey,
-    marginBottom: 16,
+    marginTop: 2,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    opacity: 0.8,
     textAlign: 'center',
   },
   progressAndViewRow: {
@@ -961,34 +834,31 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 16,
   },
-
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   progressBarBg: {
     flex: 1,
-    height: 12,  // Increased from 8 to 12
+    height: 12,
     backgroundColor: 'rgba(26, 60, 109, 0.1)',
-    borderRadius: 6,  // Increased from 4 to 6 to match the new height
+    borderRadius: 6,
     overflow: 'hidden',
     marginRight: 8,
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 6,  // Increased from 4 to 6 to match the new height
+    borderRadius: 6,
   },
   progressText: {
-    fontFamily: 'System', // Default system font
+    fontFamily: 'System',
     fontWeight: '500',
     fontSize: 12,
     lineHeight: 16,
     color: Colors.anchorBlue,
     marginRight: 4,
   },
-
-  // User input card
   userInputCard: {
     backgroundColor: 'rgba(26, 60, 109, 0.05)',
     borderRadius: 8,
@@ -1034,32 +904,25 @@ const styles = StyleSheet.create({
     height: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
-  viewToggleText: {
-    fontFamily: 'System',
-    fontWeight: '600',
-    fontSize: 13,
-    color: Colors.trustGrey,
-    marginLeft: 6,
-  },
-  viewToggleTextActive: {
-    color: Colors.anchorBlue,
-  },
   mainContainer: {
     flex: 1,
     paddingHorizontal: 10,
     paddingTop: 6,
   },
-  stackContainer: {
+  cardStackContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 4,
-    paddingBottom: 60,
     position: 'relative',
-    overflow: 'visible',
+    marginBottom: 20,
+  },
+  swipeUpIndicatorContainer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
   },
   stackCard: {
-    position: 'absolute',
     width: SCREEN_WIDTH - 80,
     height: 450,
     alignSelf: 'center',
@@ -1072,202 +935,35 @@ const styles = StyleSheet.create({
     elevation: 8,
     padding: 0,
     overflow: 'hidden',
-
-playbookLabelRow: {
-flexDirection: 'row',
-alignItems: 'center',
-marginBottom: 2,
-},
-playbookLabel: {
-fontFamily: 'System',
-fontWeight: '600',
-fontSize: 12,
-lineHeight: 16,
-color: Colors.anchorBlue,
-textTransform: 'uppercase',
-letterSpacing: 1,
-marginBottom: 0,
-},
-chevronIcon: {
-marginLeft: 6,
-},
-playbookTitle: {
-fontFamily: 'System',
-fontSize: 24,
-fontWeight: '700',
-color: Colors.anchorBlue,
-marginTop: 0,
-marginBottom: 2,
-lineHeight: 34,
-},
-creationDate: {
-fontFamily: Fonts.regular,
-fontSize: 10,
-color: Colors.trustGrey,
-marginTop: 2,
-marginBottom: 12,
-textTransform: 'uppercase',
-letterSpacing: 0.4,
-opacity: 0.8,
-},
-progressAndViewRow: {
-flexDirection: 'row',
-alignItems: 'center',
-justifyContent: 'space-between',
-marginBottom: 12, // Reduced margin to bring cards up
-},
-progressContainer: {
-flex: 1,
-marginRight: 16,
-},
-progressRow: {
-flexDirection: 'row',
-alignItems: 'center',
-},
-progressBarBg: {
-flex: 1,
-height: 12,  // Increased from 8 to 12
-backgroundColor: 'rgba(26, 60, 109, 0.1)',
-borderRadius: 6,  // Increased from 4 to 6 to match the new height
-overflow: 'hidden',
-marginRight: 8,
-},
-progressBarFill: {
-height: '100%',
-backgroundColor: Colors.growthGreen,
-borderRadius: 6,  // Increased from 4 to 6 to match the new height
-},
-progressText: {
-fontFamily: 'System', // Default system font
-fontWeight: '500',
-fontSize: 12,
-lineHeight: 16,
-color: Colors.anchorBlue,
-marginRight: 4,
-},
-
-// User input card
-userInputCard: {
-backgroundColor: 'rgba(26, 60, 109, 0.05)',
-borderRadius: 8,
-padding: 12,
-marginTop: 6,
-marginBottom: 12,
-},
-userInputText: {
-fontFamily: 'System',
-fontWeight: '400',
-fontSize: 14,
-lineHeight: 20,
-color: Colors.anchorBlue,
-},
-viewToggleContainer: {
-flexDirection: 'row',
-backgroundColor: 'white',
-borderRadius: 20,
-padding: 4,
-shadowColor: '#000',
-shadowOffset: { width: 0, height: 1 },
-shadowOpacity: 0.1,
-shadowRadius: 2,
-elevation: 2,
-height: 36,
-alignItems: 'center',
-},
-viewToggle: {
-padding: 4,
-},
-iconContainer: {
-width: 28,
-height: 28,
-borderRadius: 14,
-justifyContent: 'center',
-alignItems: 'center',
-},
-iconContainerActive: {
-backgroundColor: Colors.faithGold,
-},
-viewToggleDivider: {
-width: 1,
-height: 20,
-backgroundColor: 'rgba(0, 0, 0, 0.1)',
-},
-viewToggleText: {
-fontFamily: 'System',
-fontWeight: '600',
-fontSize: 13,
-color: Colors.trustGrey,
-position: 'relative',
-overflow: 'visible',
-},
-stackCard: {
-position: 'absolute',
-width: SCREEN_WIDTH - 80,
-height: 450,
-alignSelf: 'center',
-borderRadius: 28,
-backgroundColor: Colors.anchorBlue,
-shadowColor: '#000',
-shadowOpacity: 0.2,
-shadowRadius: 12,
-shadowOffset: { width: 0, height: 6 },
-elevation: 8,
-padding: 0,
-overflow: 'hidden',
-borderWidth: 0,
-transformOrigin: 'bottom center',
-},
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 }, // Match stack card shadow
-    shadowOpacity: 0.2, // Match stack card shadow
-    shadowRadius: 12, // Match stack card shadow
-    elevation: 8, // Match stack card elevation
-    overflow: 'hidden',
-    alignSelf: 'center',
   },
   truthCard: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 28,
     padding: 32,
-    marginTop: 0, // Remove top margin to match stack view
-    marginBottom: 16, // Keep bottom margin for spacing
+    marginBottom: 16,
     shadowOpacity: 0.2,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
-    width: '100%', // Full width of parent
-    maxWidth: '100%', // Use percentage for valid DimensionValue
+    width: '100%',
     alignSelf: 'center',
   },
   actionCard: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 28,
-    padding: 24, // Standardized to match TruthInLoveCard
+    padding: 24,
     marginBottom: 16,
     shadowOpacity: 0.2,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
-    width: '100%',
-    alignSelf: 'center',
-  },
-  defaultCard: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 28,
-    padding: 0, // Remove default padding to handle it in the card content
-    marginBottom: 16,
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
     width: '100%',
     alignSelf: 'center',
   },
   affirmationsCard: {
-    backgroundColor: Colors.anchorBlue, // fully opaque
-    padding: 24, // Standardized to match TruthInLoveCard
-    marginBottom: 0, // Remove bottom margin since we'll handle spacing with marginTop on bibleCard
+    backgroundColor: Colors.anchorBlue,
+    padding: 24,
+    marginBottom: 0,
     borderRadius: 28,
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -1275,36 +971,33 @@ transformOrigin: 'bottom center',
     elevation: 8,
     width: '100%',
     alignSelf: 'center',
-    flex: 1, // fill parent for full coverage
+    flex: 1,
   },
   bibleCard: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 24,
-    padding: 24, // Standardized to match TruthInLoveCard
-    marginTop: 16, // Add space above BibleVerse card
-    marginBottom: 16, // Consistent bottom margin
+    padding: 24,
+    marginTop: 16,
+    marginBottom: 16,
     shadowOpacity: 0.2,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-    shadowColor: '#000',
     elevation: 8,
     width: '100%',
     alignSelf: 'center',
   },
   challengeCard: {
     backgroundColor: Colors.alertCoral,
-    borderRadius: 24, // Match bibleCard/document card corners
-    padding: 2, // Match all document card paddings
+    borderRadius: 24,
+    padding: 2,
     marginBottom: 16,
     shadowOpacity: 0.2,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 8,
-    width: '100%', // Same as bibleCard
+    width: '100%',
     alignSelf: 'center',
   },
-
-  // New navigation controls
   cardNavigation: {
     position: 'absolute',
     bottom: 20,
@@ -1358,10 +1051,6 @@ transformOrigin: 'bottom center',
   icon: {
     marginRight: 8,
   },
-  affirmationsContainer: {
-    width: '100%',
-    flex: 1,
-  },
   affirmationsList: {
     gap: 12,
   },
@@ -1372,5 +1061,35 @@ transformOrigin: 'bottom center',
     fontWeight: '900',
     letterSpacing: 0.5,
     marginLeft: 8,
+  },
+  noAffirmationsText: {
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+  },
+  docContainer: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+  },
+  docContentContainer: {
+    paddingTop: 4,
+    paddingBottom: 60,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
+  },
+  docCard: {
+    width: '100%',
+    maxWidth: 380,
+    alignSelf: 'center',
+    marginBottom: 16,
+    borderRadius: 28,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
   },
 });
