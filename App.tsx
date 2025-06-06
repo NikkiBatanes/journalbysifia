@@ -142,8 +142,10 @@ function App(): React.JSX.Element {
     );
   }
 
-  // Don't render the main app until we have the playbook data
-  if (playbook.actionSteps.length === 0) {
+  // Helper function to determine if the app is still loading
+  const isAppLoading = !fontsLoaded || playbook.actionSteps.length === 0;
+
+  if (isAppLoading) {
     return <LoadingScreen />;
   }
 
