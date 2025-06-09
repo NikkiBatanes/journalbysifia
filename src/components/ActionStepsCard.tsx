@@ -31,6 +31,8 @@ type ActionStepsCardProps = {
 import { useActionSteps } from '../context/ActionStepsContext';
 
 export default function ActionStepsCard({ steps, style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
+  // DEBUG: Log the received steps prop
+  console.log('[DEBUG] ActionStepsCard received steps:', steps);
   const { handleToggleStep } = useActionSteps();
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
@@ -54,136 +56,142 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
         <Text style={[styles.heading, !!textColor && { color: textColor }]}>{steps.length} Action steps</Text>
       </View>
 
-      <View style={styles.stepsContainer}>
-        {steps.map((step, index) => {
-          const isExpanded = expandedStep === step.id;
-          // Only show description if present and no subTasks
-          const hasSubTasks = step.subTasks && step.subTasks.length > 0;
-          const displayText = step.description
-            ? (isExpanded
-                ? step.description
-                : step.description.length > 60
-                  ? step.description.substring(0, 60) + '...'
-                  : step.description)
-            : '';
+      <View>
+        {steps.length === 0 ? (
+          <View style={styles.stepsContainer}>
+            <Text style={[styles.stepTitle, { color: textColor || Colors.hopeWhite, textAlign: 'center', opacity: 0.7 }]}>
+              No action steps available.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.stepsContainer}>
+            {steps.map((step, index) => {
+              const isExpanded = expandedStep === step.id;
+              const hasSubTasks = step.subTasks && step.subTasks.length > 0;
+              const displayText = step.description
+                ? (isExpanded
+                  ? step.description
+                  : step.description.length > 60
+                    ? step.description.substring(0, 60) + '...'
+                    : step.description)
+                : '';
 
-          return (
-            <TouchableOpacity
-              key={step.id}
-              style={[
-                styles.stepCard,
-                step.completed && styles.completedCard,
-                solidCardBackground && { backgroundColor: 'rgba(80,80,80,0.15)' },
-              ]}
-              onPress={() => toggleStep(step.id)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.stepHeader}>
-                <View style={styles.stepNumberContainer}>
-                  {!hasSubTasks ? (
-                    step.completed ? (
-                      <TouchableOpacity
-                        onPress={() => handleToggleStep?.(step.id)}
-                        activeOpacity={0.7}
-                      >
-                        <MaterialCommunityIcons
-                          name="checkbox-marked-circle"
-                          size={24}
-                          color={checkboxColor || Colors.faithGold}
-                        />
-                      </TouchableOpacity>
-                    ) : (
-                      <TouchableOpacity
-                        onPress={() => handleToggleStep?.(step.id)}
-                        activeOpacity={0.7}
-                      >
-                        <MaterialCommunityIcons
-                          name="checkbox-blank-circle-outline"
-                          size={24}
-                          color={checkboxColor || Colors.anchorBlue}
-                        />
-                      </TouchableOpacity>
-                    )
-                  ) : (
-                    <View style={[
-                      styles.circle,
-                      { backgroundColor: stepCircleBackground || 'rgba(255, 255, 255, 0.1)' },
-                      step.completed && styles.completedCircle,
-                    ]}>
-                      <Text style={[styles.stepNumber, !!textColor && { color: textColor }]}>{index + 1}</Text>
+              return (
+                <TouchableOpacity
+                  key={step.id}
+                  style={[
+                    styles.stepCard,
+                    step.completed && styles.completedCard,
+                    solidCardBackground && { backgroundColor: 'rgba(80,80,80,0.15)' },
+                  ]}
+                  onPress={() => toggleStep(step.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.stepHeader}>
+                    <View style={styles.stepNumberContainer}>
+                      {!hasSubTasks ? (
+                        step.completed ? (
+                          <TouchableOpacity
+                            onPress={() => handleToggleStep?.(step.id)}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialCommunityIcons
+                              name="checkbox-marked-circle"
+                              size={24}
+                              color={checkboxColor || Colors.faithGold}
+                            />
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={() => handleToggleStep?.(step.id)}
+                            activeOpacity={0.7}
+                          >
+                            <MaterialCommunityIcons
+                              name="checkbox-blank-circle-outline"
+                              size={24}
+                              color={checkboxColor || Colors.anchorBlue}
+                            />
+                          </TouchableOpacity>
+                        )
+                      ) : (
+                        <View style={[
+                          styles.circle,
+                          { backgroundColor: stepCircleBackground || 'rgba(255, 255, 255, 0.1)' },
+                          step.completed && styles.completedCircle,
+                        ]}>
+                          <Text style={[styles.stepNumber, !!textColor && { color: textColor }]}>{index + 1}</Text>
+                        </View>
+                      )}
                     </View>
-                  )}
-                </View>
-                <View style={styles.titleContainer}>
-                  <Text style={[
-                    styles.stepTitle,
-                    step.completed && styles.completedText,
-                    !!textColor && { color: textColor },
-                  ]}>
-                    {step.title}
-                  </Text>
-                </View>
-              </View>
-              {/* Render subTasks checklist if present */}
-              {hasSubTasks ? (
-                <View style={{marginTop: 8}}>
-                  {(() => {
-                    // Separate regular subtasks and examples
-                    const regularSubtasks = step.subTasks!.filter(st => !st.text.startsWith('Example:'));
-                    const examples = step.subTasks!.filter(st => st.text.startsWith('Example:'));
+                    <View style={styles.titleContainer}>
+                      <Text style={[
+                        styles.stepTitle,
+                        step.completed && styles.completedText,
+                        !!textColor && { color: textColor },
+                      ]}>
+                        {step.title}
+                      </Text>
+                    </View>
+                  </View>
 
-                    return (
-                      <>
-                        {/* Regular subtasks with checkboxes */}
-                        {regularSubtasks.map((subTask) => (
-                          <View key={subTask.id} style={styles.subTaskContainer}>
-                            <TouchableOpacity
-                              onPress={() => handleToggleSubTask(step.id, subTask.id)}
-                              activeOpacity={0.7}
-                              style={styles.subTaskButton}
-                            >
-                              <MaterialCommunityIcons
-                                name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-                                size={20}
-                                color={subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)')}
-                                style={styles.checkboxIcon}
-                              />
-                              <Text style={[
-                                styles.subTaskText,
-                                subTask.completed && styles.completedText,
-                                !!textColor && { color: textColor },
-                              ]}>
-                                {subTask.text}
-                              </Text>
-                            </TouchableOpacity>
-                          </View>
-                        ))}
+                  {hasSubTasks ? (
+                    <View style={{marginTop: 8}}>
+                      {(() => {
+                        const regularSubtasks = step.subTasks!.filter(st => !st.text.startsWith('Example:'));
+                        const examples = step.subTasks!.filter(st => st.text.startsWith('Example:'));
 
-                        {/* Examples without checkboxes */}
-                        {examples.length > 0 && (
-                          <View style={styles.examplesContainer}>
-                            <Text style={[styles.examplesTitle, !!textColor && { color: textColor }]}>
-                              {examples.length === 1 ? 'Example:' : 'Examples:'}
-                            </Text>
-                            {examples.map((example) => (
-                              <View key={example.id} style={styles.exampleContainer}>
-                                <Text style={[styles.exampleText, !!textColor && { color: textColor }]}>
-                                  {example.text.replace('Example:', '').trim()}
-                                </Text>
+                        return (
+                          <React.Fragment>
+                            {regularSubtasks.map((subTask) => (
+                              <View key={subTask.id} style={styles.subTaskContainer}>
+                                <TouchableOpacity
+                                  onPress={() => handleToggleSubTask(step.id, subTask.id)}
+                                  activeOpacity={0.7}
+                                  style={styles.subTaskButton}
+                                >
+                                  <MaterialCommunityIcons
+                                    name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                                    size={20}
+                                    color={subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)')}
+                                    style={styles.checkboxIcon}
+                                  />
+                                  <Text style={[
+                                    styles.subTaskText,
+                                    subTask.completed && styles.completedText,
+                                    !!textColor && { color: textColor },
+                                  ]}>
+                                    {subTask.text}
+                                  </Text>
+                                </TouchableOpacity>
                               </View>
                             ))}
-                          </View>
-                        )}
-                      </>
-                    );
-                  })()}
-                </View>
-              ) : step.description ? (
-                <Text style={styles.stepDescription}>{displayText}</Text>
-              ) : null}
-            </TouchableOpacity>
-          );
-        })}
+
+                            {examples.length > 0 && (
+                              <View style={styles.examplesContainer}>
+                                <Text style={[styles.examplesTitle, !!textColor && { color: textColor }]}>
+                                  {examples.length === 1 ? 'Example:' : 'Examples:'}
+                                </Text>
+                                {examples.map((example) => (
+                                  <View key={example.id} style={styles.exampleContainer}>
+                                    <Text style={[styles.exampleText, !!textColor && { color: textColor }]}>
+                                      {example.text.replace('Example:', '').trim()}
+                                    </Text>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
+                          </React.Fragment>
+                        );
+                      })()}
+                    </View>
+                  ) : step.description ? (
+                    <Text style={styles.stepDescription}>{displayText}</Text>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </View>
     </View>
   );

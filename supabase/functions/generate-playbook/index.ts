@@ -67,32 +67,76 @@ function parseOpenAIResponse(openAIResponse: OpenAIResponse, userName: string, u
   // Parse Action Steps (robust extraction)
   const actionStepsMatch = content.match(/ACTION STEPS:\s*([\s\S]*?)(?=AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (actionStepsMatch) {
-    // Split by step number ("1. ...", "2. ...")
-    const stepBlocks = actionStepsMatch[1]
+    // DEBUG LOGS
+    console.log('ACTION STEPS RAW BLOCK:', actionStepsMatch[1]);
+    let steps: any[] = [];
+    // Try numbered steps first
+    let stepBlocks = actionStepsMatch[1]
       .split(/\n(?=\d+\.\s)/)
       .filter(block => block.match(/^\d+\./));
-    playbook.actionSteps = stepBlocks.map((block, idx) => {
-      // Extract step title and sub-tasks/examples
-      const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
-      let titleLine = lines[0].replace(/^\d+\.\s*/, '');
-      const subTasks: string[] = [];
-      const examples: string[] = [];
-      lines.slice(1).forEach(line => {
-        if (/^-\s*Sub-task:/i.test(line)) {
-          subTasks.push(line.replace(/^-\s*Sub-task:\s*/i, ''));
-        } else if (/^-\s*Example:/i.test(line)) {
-          examples.push(line.replace(/^-\s*Example:\s*/i, ''));
+    if (stepBlocks.length > 0) {
+      steps = stepBlocks.map((block, idx) => {
+        const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
+        let titleLine = lines[0].replace(/^\d+\.\s*/, '');
+        const subTasks: string[] = [];
+        const examples: string[] = [];
+        lines.slice(1).forEach(line => {
+          if (/^-\s*Sub-task:/i.test(line)) {
+            subTasks.push(line.replace(/^-\s*Sub-task:\s*/i, ''));
+          } else if (/^-\s*Example:/i.test(line)) {
+            examples.push(line.replace(/^-\s*Example:\s*/i, ''));
+          }
+        });
+        return {
+          id: `${timestamp}-step-${idx}`,
+          title: titleLine,
+          subTasks,
+          examples,
+          completed: false,
+        };
+      });
+    } else {
+      // Fallback: parse unnumbered/natural steps
+      const lines = actionStepsMatch[1].split('\n').map(l => l.trim()).filter(Boolean);
+      let currentStep: any = null;
+      let idx = 0;
+      const isTitleLike = (line: string) => {
+        // Heuristic: Title if line is capitalized, not too long, and not a verse or question
+        return (
+          line.length > 0 &&
+          line.length < 80 &&
+          /^[A-Z][^.!?]{2,}/.test(line) &&
+          !/^\d+\./.test(line) &&
+          !line.endsWith('?') &&
+          !/^\"/.test(line)
+        );
+      };
+      steps = [];
+      lines.forEach(line => {
+        if (isTitleLike(line)) {
+          if (currentStep) steps.push(currentStep);
+          currentStep = {
+            id: `${timestamp}-step-${idx++}`,
+            title: line,
+            description: [],
+            completed: false,
+          };
+        } else if (currentStep) {
+          currentStep.description.push(line);
         }
       });
-      return {
-        id: `${timestamp}-step-${idx}`,
-        title: titleLine,
-        subTasks,
-        examples,
-        completed: false,
-      };
-    });
-    playbook.totalTasks = playbook.actionSteps.length;
+      if (currentStep) steps.push(currentStep);
+      // Normalize to match frontend expectations (add subTasks/examples as empty arrays)
+      steps = steps.map(step => ({
+        ...step,
+        subTasks: [],
+        examples: [],
+      }));
+    }
+    // DEBUG LOGS
+    console.log('PARSED ACTION STEPS:', steps);
+    playbook.actionSteps = steps;
+    playbook.totalTasks = steps.length;
   }
 
   // Parse Affirmations
@@ -171,14 +215,14 @@ For each response:
 Format your response exactly as follows (replace bracketed text with your content, do not include the brackets):
 
 PLAYBOOK TITLE:
-<main title>
+<main title:>
 <subtitle or summary>
 
 TRUTH SUMMARY:
 <${userName}, ... concise 10-15 word summary>
 
 TRUTH IN LOVE:
-<the hard truth and loving wisdom>
+<the hard truth I need to hear, titled “Truth in Love” grounded in both practical and spiritual wisdom.>
 
 ACTION STEPS:
 1. <Step Title>
@@ -213,8 +257,8 @@ Struggle: ${userInput}
     body: JSON.stringify({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 2000,
+      temperature: 0.9,
+      max_tokens: 4000,
     }),
   });
 

@@ -16,7 +16,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 
 // Import theme colors
-import { Colors } from './src/theme/colors';
+import { Colors } from './src/theme/colors'; // (Keep this if App.tsx is at project root)
+// If this still fails, try: import { Colors } from './theme/colors';
+// (But based on your structure, the current path should be correct)
 import LoadingScreen from './src/components/LoadingScreen';
 
 // Import vector icons
@@ -38,7 +40,7 @@ import PlaybookDetailScreen from './src/screens/PlaybookDetailScreen';
 
 import CardDetailScreen from './src/screens/CardDetailScreen';
 import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
-import { getMockPlaybook } from './src/mocks/playbookMocks';
+
 
 // Types
 import { RootStackParamList, BottomTabParamList } from './src/navigation/types';
@@ -57,16 +59,7 @@ function App(): React.JSX.Element {
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [playbook, setPlaybook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
 
-  // Initialize mock data
-  useEffect(() => {
-    try {
-      // Use the first playbook's ID from the mock data
-      const mockPlaybook = getMockPlaybook('patience-playbook');
-      setPlaybook(mockPlaybook);
-    } catch (error) {
-      console.error('Error initializing mock data:', error);
-    }
-  }, []);
+
 
   // Load custom fonts and icon fonts
   useEffect(() => {
@@ -144,12 +137,7 @@ function App(): React.JSX.Element {
     );
   }
 
-  // Helper function to determine if the app is still loading
-  const isAppLoading = !fontsLoaded || playbook.actionSteps.length === 0;
 
-  if (isAppLoading) {
-    return <LoadingScreen />;
-  }
 
   return (
     <UserProvider>

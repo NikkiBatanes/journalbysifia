@@ -218,23 +218,15 @@ export async function savePlaybook(playbook: any, userId: string) {
 
 
 /**
- * Get playbooks for a user: loads from AsyncStorage first, then updates from Supabase.
+ * Get playbooks for a user: tries to fetch from Supabase first, falls back to AsyncStorage if needed.
  * @param userId - User's unique ID
  * @returns Playbook array
  */
 export async function getPlaybooks(userId: string) {
   console.log('[getPlaybooks] userId:', userId);
-  // 1. Load from AsyncStorage (fast)
-  let localPlaybooks = [];
-  try {
-    const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
-    localPlaybooks = stored ? JSON.parse(stored) : [];
-    console.log('[getPlaybooks] Loaded from AsyncStorage. Count:', localPlaybooks.length);
-  } catch (e) {
-    console.error('[getPlaybooks] AsyncStorage get error:', e);
-  }
-
-  // 2. Fetch from Supabase (async, update local)
+  let playbooks = [];
+  
+  // 1. Try to fetch from Supabase first
   try {
     const headers = await getHeadersWithAuth();
     const response = await fetch(
@@ -245,24 +237,35 @@ export async function getPlaybooks(userId: string) {
       }
     );
 
-    if (!response.ok) {
-      throw new Error(await response.text());
+    if (response.ok) {
+      playbooks = await response.json();
+      // Update local storage with fresh data
+      await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
+      console.log('[getPlaybooks] Successfully fetched from Supabase. Count:', playbooks.length);
+      return playbooks;
     }
-
-    const remotePlaybooks = await response.json();
-    await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(remotePlaybooks));
-    console.log('[getPlaybooks] Refreshed from Supabase. Remote count:', remotePlaybooks.length);
+    throw new Error(await response.text());
   } catch (e) {
     console.error('[getPlaybooks] Supabase fetch error:', e);
+    
     // If there's an auth error, clear the session
     if (e.message && e.message.includes('JWT')) {
       console.log('[getPlaybooks] Auth error, clearing session');
       await clearSession();
       // You might want to trigger a re-login flow here
     }
+
+    // 2. Fall back to local storage if Supabase fails
+    try {
+      const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
+      playbooks = stored ? JSON.parse(stored) : [];
+      console.log('[getPlaybooks] Falling back to AsyncStorage. Count:', playbooks.length);
+    } catch (storageError) {
+      console.error('[getPlaybooks] AsyncStorage get error:', storageError);
+    }
   }
 
-  return localPlaybooks;
+  return playbooks;
 }
 
 

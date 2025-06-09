@@ -32,12 +32,19 @@ export default function BottomTabNavigator({ onLogout }: { onLogout: () => void 
         },
         headerShown: true,
         headerShadowVisible: false,
+        headerStyle: {
+          backgroundColor: Colors.anchorBlue,
+        },
+        headerTintColor: Colors.hopeWhite,
+        headerTitleStyle: {
+          color: Colors.hopeWhite,
+        },
       })}
     >
       <Tab.Screen
-        name="Home"
+        name="UserInput"
         component={UserInputScreen}
-        options={{ title: 'New Playbook' }}
+        options={{ title: '' }}
       />
       <Tab.Screen
         name="Playbooks"

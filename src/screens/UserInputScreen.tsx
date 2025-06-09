@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Alert,
   Animated,
   SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +21,8 @@ import { RootStackParamList } from '../navigation/types';
 import { Playbook } from '../interfaces/playbook';
 import { useUser } from '../context/UserContext';
 import { generatePlaybook, savePlaybook } from '../services/supabaseApi';
+import { Colors } from '../theme/colors';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const exampleStruggles = [
   'I struggle with being consistent in my daily devotions',
@@ -33,8 +36,88 @@ type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Ma
 
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
+  
+  // Set status bar style
+  useEffect(() => {
+    // For Android
+    StatusBar.setBackgroundColor(Colors.anchorBlue);
+    StatusBar.setBarStyle('light-content');
+    
+    return () => {
+      // Reset status bar style when component unmounts if needed
+      StatusBar.setBackgroundColor('transparent');
+      StatusBar.setBarStyle('dark-content');
+    };
+  }, []);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [placeholderText, setPlaceholderText] = useState('');
+  const placeholderIndex = useRef(0);
+  const charIndex = useRef(0);
+  const isDeleting = useRef(false);
+  const placeholderTexts = [
+    'help with a tough decision...',
+    'guide you through a struggle...',
+    'provide wisdom for your next step...',
+    'support you in a life transition...',
+    'help you navigate a relationship challenge...',
+    'offer encouragement in difficult times...',
+    'help you discern your purpose...',
+    'guide your spiritual growth...',
+    'help you find peace in uncertainty...',
+    'provide insight for a big decision...',
+  ];
+  
+  // Store the timeout ID to clear it on unmount
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  const animatePlaceholder = useCallback(() => {
+    const currentText = placeholderTexts[placeholderIndex.current];
+    
+    if (isDeleting.current) {
+      // Delete characters
+      setPlaceholderText(prev => {
+        const newText = prev.slice(0, -1);
+        if (newText.length === 0) {
+          isDeleting.current = false;
+          placeholderIndex.current = (placeholderIndex.current + 1) % placeholderTexts.length;
+          charIndex.current = 0;
+          // Pause before starting next phrase
+          timeoutRef.current = setTimeout(animatePlaceholder, 1000);
+          return newText;
+        }
+        // Schedule next deletion
+        timeoutRef.current = setTimeout(animatePlaceholder, 30);
+        return newText;
+      });
+    } else {
+      // Add characters
+      const newText = currentText.slice(0, charIndex.current + 1);
+      setPlaceholderText(newText);
+      
+      if (charIndex.current === currentText.length - 1) {
+        isDeleting.current = true;
+        // Pause at full text before starting to delete
+        timeoutRef.current = setTimeout(animatePlaceholder, 2000);
+      } else {
+        charIndex.current++;
+        // Type at a slower pace
+        timeoutRef.current = setTimeout(animatePlaceholder, 100);
+      }
+    }
+  }, [placeholderTexts]);
+  
+  useEffect(() => {
+    // Initial delay before starting animation
+    timeoutRef.current = setTimeout(animatePlaceholder, 1000);
+    
+    // Cleanup function to clear any pending timeouts
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [animatePlaceholder]);
   const [error, setError] = useState(null);
   const buttonScale = useRef(new Animated.Value(1)).current;
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
@@ -122,54 +205,33 @@ const UserInputScreen: React.FC = () => {
             <Text style={styles.subtitle}>Share what you're struggling with</Text>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Animated.View
-              style={[
-                styles.inputWrapper,
-                { borderWidth: inputBorderWidth },
-              ]}
-            >
+          {/* Redesigned Ask Input Area */}
+          <View style={styles.askContainer}>
+            <View style={styles.askBox}>
               <TextInput
-                style={styles.input}
-                placeholder="I'm struggling with..."
-                placeholderTextColor="#999"
+                style={styles.askInput}
+                placeholder={`Ask Anchored to ${placeholderText}`}
+                placeholderTextColor={Colors.trustGrey}
                 value={userInput}
                 onChangeText={setUserInput}
                 multiline
-                textAlignVertical="top"
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
+                maxLength={500}
+                textAlignVertical="center"
               />
-            </Animated.View>
-
-            <Text style={styles.exampleTitle}>Examples:</Text>
-            <View style={styles.examplesContainer}>
-              {exampleStruggles.map((example, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.exampleButton}
-                  onPress={() => handleExampleSelect(example)}
-                >
-                  <Text style={styles.exampleText}>{example}</Text>
-                </TouchableOpacity>
-              ))}
+              <TouchableOpacity 
+                style={styles.askSendButton} 
+                onPress={handleGeneratePlaybook} 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={Colors.hopeWhite} />
+                ) : (
+                  <Ionicons name="arrow-up-circle" size={34} color={Colors.hopeWhite} />
+                )}
+              </TouchableOpacity>
             </View>
           </View>
 
-          <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-            <TouchableOpacity
-              style={[styles.generateButton, isLoading && styles.disabledButton]}
-              onPress={handleGeneratePlaybook}
-              disabled={isLoading}
-              activeOpacity={0.8}
-            >
-              {isLoading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.generateButtonText}>Generate Playbook</Text>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -179,79 +241,69 @@ const UserInputScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
     paddingTop: 40,
+    paddingHorizontal: -20,
   },
   header: {
     marginBottom: 30,
     alignItems: 'center',
   },
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: 'bold',
-    color: '#333',
+    color: Colors.hopeWhite,
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: Colors.hopeWhite,
     textAlign: 'center',
+    marginBottom: 24,
   },
-  inputContainer: {
-    marginBottom: 30,
+  askContainer: {
+    paddingHorizontal: 0,
+    marginBottom: 24,
+    width: '100%',
   },
-  inputWrapper: {
-    borderColor: '#007AFF',
-    borderRadius: 12,
-    backgroundColor: '#F5F7FA',
-    marginBottom: 20,
-  },
-  input: {
-    minHeight: 120,
+  askBox: {
+    borderRadius: 28,
+    backgroundColor: Colors.inputBackground,
+    borderWidth: 1.5,
+    borderColor: Colors.inputBorder,
     padding: 16,
-    fontSize: 16,
-    color: '#333',
-    textAlignVertical: 'top',
+    paddingBottom: 24,
+    width: '100%',
+    minHeight: 150,
+    marginVertical: 8,
   },
-  exampleTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 12,
-  },
-  examplesContainer: {
-    marginBottom: 20,
-  },
-  exampleButton: {
-    backgroundColor: '#F0F4F8',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  exampleText: {
-    color: '#333',
-    fontSize: 14,
-  },
-  generateButton: {
-    backgroundColor: '#007AFF',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 'auto',
-    marginBottom: 40,
-  },
-  disabledButton: {
-    opacity: 0.7,
-  },
-  generateButtonText: {
-    color: '#FFF',
+  askInput: {
+    color: Colors.hopeWhite,
     fontSize: 18,
-    fontWeight: '600',
+    textAlignVertical: 'top',
+    paddingRight: 40, // Space for send button
+    lineHeight: 24,
+    backgroundColor: 'transparent',
+    minHeight: 120,
+    maxHeight: 200, // Maximum height before scrolling starts
+    width: '100%',
+    overflow: 'scroll',
+    textAlign: 'left',
+  },
+  askSendButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    zIndex: 10,
+    borderRadius: 20,
+    padding: 0,
   },
 });
 

@@ -195,7 +195,27 @@ export default function PlaybookListScreen() {
         title: pb.title,
         userInput: pb.user_input ?? pb.userInput,
         truthInLove: pb.truth_in_love ?? pb.truthInLove,
-        actionSteps: pb.action_steps ?? pb.actionSteps ?? [],
+        // DEBUG: Log action_steps from Supabase
+        // eslint-disable-next-line no-console
+        ...(() => { console.log('[DEBUG] pb.action_steps:', pb.action_steps); return {}; })(),
+        actionSteps: (() => {
+          let steps;
+          if (Array.isArray(pb.action_steps)) {
+            steps = pb.action_steps;
+          } else if (typeof pb.action_steps === 'string') {
+            try {
+              steps = JSON.parse(pb.action_steps);
+            } catch (e) {
+              console.error('[DEBUG] Failed to parse pb.action_steps:', pb.action_steps, e);
+              steps = [];
+            }
+          } else {
+            steps = pb.actionSteps ?? [];
+          }
+          // eslint-disable-next-line no-console
+          console.log('[DEBUG] Normalized actionSteps:', steps);
+          return steps;
+        })(),
         dailyAffirmations: pb.daily_affirmations ?? pb.dailyAffirmations ?? [],
         bibleVerse: pb.bible_verse ?? pb.bibleVerse,
         directChallenge: pb.direct_challenge ?? pb.directChallenge,

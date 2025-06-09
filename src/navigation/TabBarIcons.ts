@@ -4,9 +4,9 @@
  * TabBarIcons maps tab names to their Ionicons icon names for focused and unfocused states.
  */
 export const TabBarIcons = {
-  Home: {
-    name: 'home-outline',
-    focused: 'home',
+  UserInput: {
+    name: 'add-circle-outline',
+    focused: 'add-circle',
   },
   Playbooks: {
     name: 'book-outline',
