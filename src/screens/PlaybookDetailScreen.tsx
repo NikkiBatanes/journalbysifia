@@ -83,12 +83,42 @@ interface CardData {
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   const { actionSteps, setActionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
+  
+  // Debug: Log the playbook data when it's received
+  useEffect(() => {
+    console.log('[DEBUG] Playbook data received in PlaybookDetailScreen:', JSON.stringify({
+      id: playbook?.id,
+      title: playbook?.title,
+      affirmations: playbook?.affirmations,
+      affirmationsCount: playbook?.affirmations?.length,
+      hasAffirmations: Array.isArray(playbook?.affirmations) && playbook.affirmations.length > 0,
+      playbookKeys: playbook ? Object.keys(playbook) : []
+    }, null, 2));
+  }, [playbook]);
   const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize action steps when playbook loads
   useEffect(() => {
+    console.log('[DEBUG] PlaybookDetailScreen - Playbook data structure:', JSON.stringify(playbook, null, 2));
     console.log('[DEBUG] PlaybookDetailScreen - Playbook actionSteps:', JSON.stringify(playbook?.actionSteps, null, 2));
+    
+    // Log detailed structure of action steps
+    if (playbook?.actionSteps) {
+      console.log('[DEBUG] PlaybookDetailScreen - Action steps structure:', {
+        count: playbook.actionSteps.length,
+        hasSubTasks: playbook.actionSteps.some(step => step.subTasks && step.subTasks.length > 0),
+        stepsWithSubTasks: playbook.actionSteps
+          .filter(step => step.subTasks && step.subTasks.length > 0)
+          .map(step => ({
+            id: step.id,
+            title: step.title,
+            subTasksCount: step.subTasks?.length || 0,
+            subTasksSample: step.subTasks?.slice(0, 2) // Show first 2 subtasks for inspection
+          }))
+      });
+    }
+    
     if (playbook?.actionSteps && !isInitialized) {
       console.log('[DEBUG] Initializing action steps from playbook');
       setActionSteps(playbook.actionSteps);
@@ -620,27 +650,46 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           />
           <Text style={styles.affirmationsTitle}>Affirmations</Text>
         </View>
-        <View style={styles.affirmationsList}>
-          {Array.isArray(playbook.affirmations) && playbook.affirmations.length > 0 ? (
-            playbook.affirmations
-              .filter((affirmation): affirmation is Required<Affirmation> => 
-                affirmation !== undefined && 
-                affirmation.id !== undefined && 
-                affirmation.text !== undefined &&
-                affirmation.completed !== undefined
-              )
-              .map((affirmation) => (
-                <AffirmationCard
-                  key={affirmation.id}
-                  id={affirmation.id}
-                  text={affirmation.text}
-                  completed={affirmation.completed}
-                />
-              ))
-          ) : (
-            <Text style={styles.noAffirmationsText}>No affirmations</Text>
-          )}
-        </View>
+        {(() => {
+          // Debug: log affirmations right before rendering
+          console.log('[DEBUG] Rendering affirmations:', {
+            affirmations: playbook.affirmations,
+            isArray: Array.isArray(playbook.affirmations),
+            length: playbook.affirmations?.length,
+            filtered: Array.isArray(playbook.affirmations)
+              ? playbook.affirmations.filter((affirmation) =>
+                  affirmation !== undefined &&
+                  affirmation.id !== undefined &&
+                  affirmation.text !== undefined &&
+                  affirmation.completed !== undefined
+                )
+              : undefined,
+          });
+          return (
+            <View style={styles.affirmationsList}>
+              {Array.isArray(playbook.affirmations) && playbook.affirmations.length > 0 ? (
+                playbook.affirmations
+                  .filter((affirmation): affirmation is Required<Affirmation> => 
+                    affirmation !== undefined && 
+                    affirmation.id !== undefined && 
+                    affirmation.text !== undefined &&
+                    affirmation.completed !== undefined
+                  )
+                  .map((affirmation) => (
+                    <AffirmationCard
+                      key={affirmation.id}
+                      id={affirmation.id}
+                      text={affirmation.text}
+                      completed={affirmation.completed}
+                    />
+                  ))
+              ) : (
+                <Text style={styles.noAffirmationsText}>No affirmations</Text>
+              )}
+            </View>
+          );
+        })()}
+
       </View>
       <BibleVerseCard
         key="bible"

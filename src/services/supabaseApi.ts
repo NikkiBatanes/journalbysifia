@@ -49,10 +49,16 @@ function getApiUrl(table: string) {
 
 // Helper to get default headers with authentication
 async function getHeadersWithAuth(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    'apikey': SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+  };
+
   try {
     const sessionStr = await AsyncStorage.getItem(SESSION_KEY);
     if (!sessionStr) {
-      throw new Error('No session found');
+      return headers; // Return minimal headers if no session
     }
 
     const session = JSON.parse(sessionStr) as {
@@ -61,16 +67,12 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
       expires_at?: number;
     };
     
-    let accessToken = session?.access_token || '';
-    const refreshToken = session?.refresh_token;
-
     // Check if token is expired (with 1 minute buffer)
-    const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0; // Convert to milliseconds
+    const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
     const now = Date.now();
     const isExpired = !expiresAt || now >= (expiresAt - 60000); // 1 minute before actual expiration
 
-    // If token is expired, try to refresh it
-    if (isExpired && refreshToken) {
+    if (isExpired && session.refresh_token) {
       console.log('[Auth] Token expired, attempting to refresh...');
       try {
         const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
@@ -80,7 +82,7 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
             'apikey': SUPABASE_ANON_KEY,
           },
           body: JSON.stringify({
-            refresh_token: refreshToken,
+            refresh_token: session.refresh_token,
           }),
         });
 
@@ -97,31 +99,22 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
         // Update session with new tokens
         const updatedSession = {
           ...session,
-          ...newSession,
-          expires_at: Math.floor(Date.now() / 1000) + (newSession.expires_in || 3600),
+          access_token: newSession.access_token,
+          refresh_token: newSession.refresh_token || session.refresh_token,
+          expires_at: Math.floor(now / 1000) + (newSession.expires_in || 3600),
         };
-
+        
         await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
-        accessToken = updatedSession.access_token || '';
-        console.log('[Auth] Token refreshed successfully');
-      } catch (refreshError) {
-        console.error('[Auth] Token refresh failed:', refreshError);
-        // Clear session on refresh failure
+        headers['Authorization'] = `Bearer ${updatedSession.access_token}`;
+      } catch (error) {
+        console.error('[Auth] Token refresh failed:', error);
         await AsyncStorage.removeItem(SESSION_KEY);
         throw new Error('Session expired. Please sign in again.');
       }
+    } else if (session.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
     }
-
-    const headers: Record<string, string> = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-    };
-
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-    }
-
+    
     return headers;
   } catch (error) {
     console.error('[Auth] Error in getHeadersWithAuth:', error);
@@ -132,7 +125,6 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
     };
   }
 }
-
 
 // Example: Fetch all rows from a table
 export async function fetchTable(table: string) {
@@ -176,7 +168,7 @@ export async function savePlaybook(playbook: any, userId: string) {
   try {
     // Map camelCase to snake_case and only send fields present in the DB schema
     // Ensure NOT NULL columns are always set with defaults
-    const playbookForSupabase = {
+    const playbookForSupabase: Record<string, any> = {
       // Do NOT set id unless it is a valid UUID. Let Supabase generate it.
       // id: playbook.id,
       title: playbook.title,
@@ -201,8 +193,8 @@ export async function savePlaybook(playbook: any, userId: string) {
     const [inserted] = await insertRow('playbooks', playbookForSupabase);
     supabasePlaybook = inserted;
     console.log('[savePlaybook] Saved to Supabase:', inserted);
-  } catch (e) {
-    console.error('[savePlaybook] Supabase save error:', e);
+  } catch (error: unknown) {
+    console.error('[savePlaybook] Supabase save error:', error);
   }
   // 2. Save to AsyncStorage (always)
   try {
@@ -211,8 +203,8 @@ export async function savePlaybook(playbook: any, userId: string) {
     playbooks.unshift(supabasePlaybook || { ...playbook, user_id: userId });
     await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
     console.log('[savePlaybook] Saved to AsyncStorage. Total:', playbooks.length);
-  } catch (e) {
-    console.error('[savePlaybook] AsyncStorage save error:', e);
+  } catch (error: unknown) {
+    console.error('[savePlaybook] AsyncStorage save error:', error);
   }
 }
 
@@ -245,11 +237,10 @@ export async function getPlaybooks(userId: string) {
       return playbooks;
     }
     throw new Error(await response.text());
-  } catch (e) {
-    console.error('[getPlaybooks] Supabase fetch error:', e);
-    
+  } catch (error: unknown) {
+    console.error('[getPlaybooks] Error fetching from Supabase:', error);
     // If there's an auth error, clear the session
-    if (e.message && e.message.includes('JWT')) {
+    if (error instanceof Error && error.message && error.message.includes('JWT')) {
       console.log('[getPlaybooks] Auth error, clearing session');
       await clearSession();
       // You might want to trigger a re-login flow here
@@ -260,7 +251,7 @@ export async function getPlaybooks(userId: string) {
       const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
       playbooks = stored ? JSON.parse(stored) : [];
       console.log('[getPlaybooks] Falling back to AsyncStorage. Count:', playbooks.length);
-    } catch (storageError) {
+    } catch (storageError: unknown) {
       console.error('[getPlaybooks] AsyncStorage get error:', storageError);
     }
   }
@@ -278,17 +269,17 @@ export async function deletePlaybook(id: string, userId: string) {
   // 1. Delete from Supabase
   try {
     await deleteRow('playbooks', id);
-  } catch (e) {
-    console.error('Supabase delete error:', e);
-  }
+  } catch (error: unknown) {
+    console.error('[deletePlaybook] Supabase delete error:', error);
+  }  
   // 2. Delete from AsyncStorage
   try {
     const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
     let playbooks = stored ? JSON.parse(stored) : [];
     playbooks = playbooks.filter((pb: any) => pb.id !== id);
     await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
-  } catch (e) {
-    console.error('AsyncStorage delete error:', e);
+  } catch (error: unknown) {
+    console.error('[deletePlaybook] AsyncStorage delete error:', error);
   }
 }
 // --- END HYBRID HELPERS ---

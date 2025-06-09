@@ -19,7 +19,25 @@ interface DocumentCardsProps {
 
 const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, styles }) => {
   // DEBUG: Log actionSteps received by DocumentCards
-  console.log('[DEBUG] DocumentCards received actionSteps:', actionSteps);
+  console.log('[DEBUG] DocumentCards - Received actionSteps:', {
+    fromProps: actionSteps,
+    fromPlaybook: playbook.actionSteps,
+    hasSubTasks: actionSteps?.some(step => step.subTasks && step.subTasks.length > 0) || 
+                 playbook.actionSteps?.some(step => step.subTasks && step.subTasks.length > 0)
+  });
+  
+  // Log first action step details if available
+  const firstStep = actionSteps?.[0] || playbook.actionSteps?.[0];
+  if (firstStep) {
+    console.log('[DEBUG] DocumentCards - First action step:', {
+      id: firstStep.id,
+      title: firstStep.title,
+      hasSubTasks: firstStep.subTasks && firstStep.subTasks.length > 0,
+      subTasksCount: firstStep.subTasks?.length || 0,
+      subTasks: firstStep.subTasks?.slice(0, 2) // Show first 2 subtasks for inspection
+    });
+  }
+  
   return (
     <ScrollView
       style={styles.docContainer}
