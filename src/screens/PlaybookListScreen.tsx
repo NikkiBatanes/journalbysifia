@@ -88,73 +88,70 @@ const formatDate = () => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-const SwipeableRow = forwardRef(({ item, onDelete, children, onSwipeableOpen }: { item: Playbook; onDelete: (id: string) => void; children: React.ReactNode; onSwipeableOpen?: (ref: any) => void }, ref) => {
+interface SwipeableRowProps {
+  item: Playbook;
+  onDelete: (id: string) => void;
+  children: React.ReactNode;
+  onSwipeableOpen?: (ref: any) => void;
+}
+
+const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, children, onSwipeableOpen }, ref) => {
   const swipeableRef = useRef<any>(null);
+  const openSwipeableRef = useRef<any>(null);
+
   useImperativeHandle(ref, () => ({
     close: () => swipeableRef.current?.close(),
   }));
-  // iOS-style: Animate delete button as swipe closes
-  const renderRightActions = (progress: any, dragX: any) => {
-    // Animate opacity and scale based on progress
-    const opacity = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 1],
+  // Modern delete button with scale animation
+  const renderRightActions = (progress: Animated.AnimatedInterpolation<number>) => {
+    // Close any open swipeable when a new one is opened
+    const handlePress = () => {
+      if (openSwipeableRef.current && openSwipeableRef.current !== swipeableRef.current) {
+        openSwipeableRef.current.close();
+      }
+      openSwipeableRef.current = swipeableRef.current;
+      onDelete(item.id);
+    };
+
+    // Fade in the delete button as user swipes
+    const fadeAnim = progress.interpolate({
+      inputRange: [0, 0.7, 1],
+      outputRange: [0, 0, 1],
       extrapolate: 'clamp',
     });
-    const scale = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.7, 1],
+
+    // Scale animation for the press effect
+    const scaleAnim = progress.interpolate({
+      inputRange: [0, 0.7, 1],
+      outputRange: [0.8, 0.8, 1],
       extrapolate: 'clamp',
     });
-    const translateX = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [32, 0],
-      extrapolate: 'clamp',
-    });
-    // Animate the entire delete action with translateX instead of width
-    const DELETE_WIDTH = 128;
-    const bgTranslateX = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [DELETE_WIDTH, 0],
-      extrapolate: 'clamp',
-    });
-    const contentOpacity = progress.interpolate({
-      inputRange: [0, 0.3, 1],
-      outputRange: [0, 0.7, 1],
-      extrapolate: 'clamp',
-    });
-    const contentTranslateX = progress.interpolate({
-      inputRange: [0, 1],
-      outputRange: [DELETE_WIDTH / 2, 0],
-      extrapolate: 'clamp',
-    });
+
     return (
-      <View style={styles.iosRightActionContainer}>
-        <Animated.View
-          style={[
-            styles.iosDeleteButton,
-            { transform: [{ translateX: bgTranslateX }] },
-          ]}
+      <Animated.View 
+        style={[
+          styles.deleteButtonContainer,
+          { opacity: fadeAnim }
+        ]}
+      >
+        <RectButton
+          style={styles.deleteButton}
+          onPress={handlePress}
+          rippleColor="rgba(0,0,0,0.1)"
         >
-          <RectButton
-            style={styles.iosDeleteButtonInner}
-            onPress={() => onDelete(item.id)}
-            rippleColor="rgba(255,255,255,0.15)"
-          >
-            <Animated.View
-              style={[
-                styles.iosDeleteContent,
-                {
-                  opacity: contentOpacity,
-                  transform: [{ translateX: contentTranslateX }],
-                },
-              ]}
-            >
-              <Ionicons name="trash-outline" size={32} color="white" style={styles.deleteIcon} />
-            </Animated.View>
-          </RectButton>
-        </Animated.View>
-      </View>
+          <Animated.View style={[
+            styles.deleteButtonContent,
+            { transform: [{ scale: scaleAnim }] }
+          ]}>
+            <Ionicons 
+              name="trash-outline" 
+              size={24} 
+              color="white" 
+              style={styles.deleteIcon} 
+            />
+          </Animated.View>
+        </RectButton>
+      </Animated.View>
     );
   };
 
@@ -185,58 +182,35 @@ export default function PlaybookListScreen() {
 
   // Load playbooks on focus
   React.useEffect(() => {
-    const load = async () => {
+    const load = async (): Promise<void> => {
       if (!userId) return;
-      const localPlaybooks = await getPlaybooks(userId);
-      // Normalize keys for UI
-      const normalized = localPlaybooks.map(pb => ({
-        ...pb,
-        id: pb.id,
-        title: pb.title,
-        userInput: pb.user_input ?? pb.userInput,
-        truthInLove: pb.truth_in_love ?? pb.truthInLove,
-        actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
-        dailyAffirmations: pb.daily_affirmations ?? pb.dailyAffirmations ?? [],
-        bibleVerse: pb.bible_verse ?? pb.bibleVerse,
-        directChallenge: pb.direct_challenge ?? pb.directChallenge,
-        createdAt: pb.created_at ?? pb.createdAt,
-        updatedAt: pb.updated_at ?? pb.updatedAt,
-        userId: pb.user_id ?? pb.userId,
-        progress: pb.progress,
-        totalTasks: pb.total_tasks ?? pb.totalTasks,
-        challengeCta: pb.challenge_cta ?? pb.challengeCta,
-        profileImage: pb.profile_image ?? pb.profileImage,
-        ...(() => {
-          let steps;
-          if (Array.isArray(pb.action_steps)) {
-            steps = pb.action_steps;
-          } else if (typeof pb.action_steps === 'string') {
-            try {
-              steps = JSON.parse(pb.action_steps);
-            } catch (e) {
-              console.error('[DEBUG] Failed to parse pb.action_steps:', pb.action_steps, e);
-              steps = [];
-            }
-          } else {
-            steps = pb.actionSteps ?? [];
-          }
-          // eslint-disable-next-line no-console
-          console.log('[DEBUG] Normalized actionSteps:', steps);
-          return steps;
-        })(),
-        dailyAffirmations: pb.daily_affirmations ?? pb.dailyAffirmations ?? [],
-        bibleVerse: pb.bible_verse ?? pb.bibleVerse,
-        directChallenge: pb.direct_challenge ?? pb.directChallenge,
-        createdAt: pb.created_at ?? pb.createdAt,
-        updatedAt: pb.updated_at ?? pb.updatedAt,
-        userId: pb.user_id ?? pb.userId,
-        progress: pb.progress,
-        totalTasks: pb.total_tasks ?? pb.totalTasks,
-        challengeCta: pb.challenge_cta ?? pb.challengeCta,
-        profileImage: pb.profile_image ?? pb.profileImage,
-      }));
-      setPlaybooks(normalized);
+      try {
+        const localPlaybooks = await getPlaybooks(userId);
+        // Normalize keys for UI
+        const normalized = localPlaybooks.map((pb: any) => ({
+          id: pb.id,
+          title: pb.title,
+          userInput: pb.user_input ?? pb.userInput,
+          truthInLove: pb.truth_in_love ?? pb.truthInLove,
+          actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
+          dailyAffirmations: pb.daily_affirmations ?? pb.dailyAffirmations ?? [],
+          bibleVerse: pb.bible_verse ?? pb.bibleVerse,
+          directChallenge: pb.direct_challenge ?? pb.directChallenge,
+          createdAt: pb.created_at ?? pb.createdAt,
+          updatedAt: pb.updated_at ?? pb.updatedAt,
+          userId: pb.user_id ?? pb.userId,
+          progress: pb.progress,
+          totalTasks: pb.total_tasks ?? pb.totalTasks,
+          challengeCta: pb.challenge_cta ?? pb.challengeCta,
+          profileImage: pb.profile_image ?? pb.profileImage,
+        }));
+        
+        setPlaybooks(normalized);
+      } catch (error) {
+        console.error('Error loading playbooks:', error);
+      }
     };
+
     const unsubscribe = navigation.addListener('focus', load);
     load(); // also load on mount
     return unsubscribe;
@@ -455,62 +429,29 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     flexDirection: 'row',
   },
-  // iOS-style swipe action
-  iosRightActionContainer: {
-    width: 128,
+  deleteButtonContainer: {
+    width: 80,
     height: '100%',
     justifyContent: 'center',
-    alignItems: 'flex-end',
-    backgroundColor: 'transparent',
-    position: 'relative',
-    right: 0,
-    top: 0,
-    bottom: 0,
+    alignItems: 'center',
+    paddingRight: 8,
   },
-  iosDeleteButton: {
-    backgroundColor: Colors.alertCoral,
+  deleteButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f87171',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonContent: {
+    width: '100%',
     height: '100%',
-    width: 128,
     justifyContent: 'center',
     alignItems: 'center',
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-    borderRadius: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    bottom: 0,
-  },
-  iosDeleteButtonInner: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderTopRightRadius: 20,
-    borderBottomRightRadius: 20,
-    backgroundColor: 'transparent',
-  },
-  iosDeleteContent: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-  },
-  iosDeleteText: {
-    color: 'white',
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
-    marginTop: 2,
-    letterSpacing: 0.5,
   },
   deleteIcon: {
-    marginBottom: 2,
+    opacity: 0.9,
   },
   safeArea: {
     flex: 1,
