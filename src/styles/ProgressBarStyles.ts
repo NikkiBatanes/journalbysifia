@@ -13,7 +13,8 @@ export const progressBarStyles = StyleSheet.create({
   },
   progressWrapper: {
     flex: 1,
-    marginRight: 4, // Reduced spacing
+    marginRight: 12, // Consistent spacing between bar and text
+    minWidth: 250, // Increased minimum width for longer progress bar
   },
   barBg: {
     width: '100%',
@@ -26,15 +27,18 @@ export const progressBarStyles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.hopeWhite,
     borderRadius: 4,
+    minWidth: 8, // Ensure minimum width for visibility
   },
   textContainer: {
-    width: 60, // Reduced width
+    width: 60, // Fixed width for text container
     alignItems: 'flex-end',
+    marginLeft: 'auto', // Push to the far right
   },
   text: {
     fontSize: 12,
     fontFamily: Fonts.medium,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'right',
+    minWidth: 60, // Ensure minimum width for text
   },
 });
