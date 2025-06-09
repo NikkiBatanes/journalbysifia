@@ -174,9 +174,6 @@ const UserInputScreen: React.FC = () => {
     return;
   }
 
-  // Navigate to the full-screen animation page
-  navigation.navigate('GeneratingPlaybook');
-
   setIsLoading(true);
   setError(null);
   try {
@@ -185,7 +182,21 @@ const UserInputScreen: React.FC = () => {
     if (userId) {
       await savePlaybook(aiResponse, userId);
     }
-    navigation.navigate('PlaybookDetail', { playbook: aiResponse });
+    
+    // Reset the navigation stack and navigate to PlaybookDetail
+    navigation.reset({
+      index: 0,
+      routes: [
+        { name: 'MainTabs', state: { 
+          routes: [
+            { name: 'Home' },
+            { name: 'PlaybookList' }
+          ],
+          index: 1 // Make sure PlaybookList is active
+        }},
+        { name: 'PlaybookDetail', params: { playbook: aiResponse } }
+      ]
+    });
   } catch (error) {
     Alert.alert('Error', 'Failed to generate playbook. Please try again.');
   } finally {

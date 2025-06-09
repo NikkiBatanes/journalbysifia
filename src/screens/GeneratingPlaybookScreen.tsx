@@ -1,40 +1,150 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-const { width, height } = Dimensions.get('window');
+type RootStackParamList = {
+  MainTabs: undefined;
+  // Add other screen params as needed
+};
 
-const GeneratingPlaybookScreen: React.FC = () => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
 
+const { width } = Dimensions.get('window');
+
+const GeneratingPlaybookScreen = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [animationKey, setAnimationKey] = useState(0);
+  const animations = useRef<Animated.Value[]>([]);
+  
+  // Initialize animations for each line
   useEffect(() => {
-    const pulse = Animated.loop(
+    animations.current = Array(5).fill(0).map(() => new Animated.Value(0.3));
+  }, []);
+
+  // Text fade animation
+  const textOpacity = useRef(new Animated.Value(1)).current;
+  
+  // Start line animations
+  useEffect(() => {
+    // Line animations
+    const lineAnimations = animations.current.map((anim, index) => 
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(index * 100),
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0.3,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      )
+    );
+
+    // Text fade animation
+    const textFade = Animated.loop(
       Animated.sequence([
-        Animated.timing(scaleAnim, {
-          toValue: 1.15,
-          duration: 1000,
+        Animated.timing(textOpacity, {
+          toValue: 0.7,
+          duration: 1500,
           useNativeDriver: true,
         }),
-        Animated.timing(scaleAnim, {
+        Animated.timing(textOpacity, {
           toValue: 1,
-          duration: 1000,
+          duration: 1500,
           useNativeDriver: true,
-        }),
+        })
       ])
     );
-    pulse.start();
-    return () => pulse.stop();
-  }, [scaleAnim]);
+
+    // Start all animations
+    const lineAnimation = Animated.stagger(100, lineAnimations);
+    lineAnimation.start();
+    textFade.start();
+    
+    // Cleanup function
+    return () => {
+      lineAnimation.stop();
+      textFade.stop();
+      animations.current.forEach(anim => anim.setValue(0.3));
+    };
+  }, [animationKey, textOpacity]);
+
+  // Reset animations when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setAnimationKey(prev => prev + 1);
+      return () => {};
+    }, [])
+  );
+
+  const handleBack = () => {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'MainTabs' }],
+    });
+  };
 
   return (
     <View style={styles.container}>
-      <Animated.View
+      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+        <Text style={styles.closeIcon}>×</Text>
+      </TouchableOpacity>
+      <View style={styles.linesContainer}>
+        {animations.current.map((anim, index) => (
+          <Animated.View
+            key={index}
+            style={[
+              styles.line,
+              { 
+                opacity: anim,
+                transform: [
+                  { scaleX: anim.interpolate({
+                    inputRange: [0.3, 1],
+                    outputRange: [0.8, 1.2]
+                  })},
+                  { scaleY: anim.interpolate({
+                    inputRange: [0.3, 1],
+                    outputRange: [0.8, 1.2]
+                  })}
+                ]
+              }
+            ]}
+          />
+        ))}
+        <Animated.Text style={[styles.generatingText, { opacity: textOpacity }]}>
+          GENERATING
+        </Animated.Text>
+      </View>
+      <Animated.View 
         style={[
-          styles.circle,
-          { transform: [{ scale: scaleAnim }] },
+          styles.textContainer, 
+          { 
+            opacity: textOpacity.interpolate({
+              inputRange: [0.7, 1],
+              outputRange: [0.9, 1]
+            }),
+            transform: [{
+              scale: textOpacity.interpolate({
+                inputRange: [0.7, 1],
+                outputRange: [0.98, 1.02]
+              })
+            }]
+          }
         ]}
-      />
-      <Text style={styles.text}>Take a breath, {'\n'}generating your playbook…</Text>
+      >
+        <Animated.Text style={[styles.textLine, { opacity: textOpacity }]}>
+          Breathe in peace, breathe out worry.
+        </Animated.Text>
+        <Animated.Text style={[styles.textLine, { opacity: textOpacity }]}>
+          Your playbook is being crafted just for you.
+        </Animated.Text>
+      </Animated.View>
     </View>
   );
 };
@@ -43,24 +153,62 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  closeIcon: {
+    color: Colors.hopeWhite,
+    fontSize: 32,
+    lineHeight: 32,
+    marginTop: -5,
+  },
+  linesContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+    height: 150,
     justifyContent: 'center',
   },
-  circle: {
-    width: width * 0.25,
-    height: width * 0.25,
-    borderRadius: width * 0.125,
+  line: {
+    width: 120,  // Reduced from 160
+    height: 8,    // Increased from 6
     backgroundColor: Colors.hopeWhite,
-    opacity: 0.15,
-    marginBottom: 40,
+    borderRadius: 4, // Slightly increased to match thicker line
+    marginVertical: 5, // Slightly reduced to compensate for thicker lines
   },
-  text: {
+  textContainer: {
+    width: '100%',
+    marginTop: 24,
+    backgroundColor: Colors.inputBackground,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  textLine: {
     color: Colors.hopeWhite,
-    fontSize: 22,
+    fontSize: 16,
     textAlign: 'center',
+    fontWeight: '400',
+    letterSpacing: 0.2,
+    lineHeight: 22,
+    opacity: 0.9,
+  },
+  generatingText: {
+    color: Colors.hopeWhite,
+    fontSize: 18,
     fontWeight: '600',
-    letterSpacing: 0.5,
-    lineHeight: 32,
+    letterSpacing: 2.5,
+    marginTop: 24,
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
 });
 
