@@ -81,9 +81,12 @@ interface CardData {
 }
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
   const { actionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
+
+  console.log('[DEBUG] PlaybookDetailScreen received playbook:', playbook);
+  console.log('[DEBUG] PlaybookDetailScreen context actionSteps:', actionSteps);
+  const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
 
   // Calculate progress
   const { completed, total } = getCompletedStepsCount();
@@ -132,9 +135,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     {
       type: 'affirmation' as const,
-      affirmations: Array.isArray(playbook.affirmations) 
-        ? playbook.affirmations.filter((a): a is Required<Affirmation> => 
-            a?.id !== undefined && 
+      affirmations: Array.isArray(playbook.affirmations)
+        ? playbook.affirmations.filter((a): a is Required<Affirmation> =>
+            a?.id !== undefined &&
             a?.text !== undefined &&
             a?.completed !== undefined
           )
@@ -145,14 +148,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       type: 'bible' as const,
       verse: {
         text: playbook.bibleVerse?.text ?? 'No verse text available',
-        reference: playbook.bibleVerse?.reference ?? 'Unknown'
+        reference: playbook.bibleVerse?.reference ?? 'Unknown',
       },
       tappable: false,
     },
     {
       type: 'challenge' as const,
-      challenge: typeof playbook.directChallenge === 'string' 
-        ? playbook.directChallenge 
+      challenge: typeof playbook.directChallenge === 'string'
+        ? playbook.directChallenge
         : playbook.directChallenge?.text ?? '',
       challengeCTA: playbook.challengeCTA ?? '',
       tappable: false,
@@ -350,36 +353,38 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     marginLeft: 4,
   }));
 
-  const renderContent = () => (
-    <View style={styles.contentContainer}>
-      <PlaybookHeader
-        title={playbook.title}
-        subtitle={
-          playbook.createdAt
-            ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })
-            : ''
-        }
-        progress={progress}
-        totalTasks={actionSteps.length}
-        showToggle={true}
-        viewMode={viewMode}
-        onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
-        onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
-        showUserInput={showUserInput}
-        userInput={playbook.userInput}
-        chevronAnimatedStyle={chevronStyle}
-        showTitle={false}
-      />
-      <View style={styles.mainContainer}>
-        {viewMode === 'stack' ? renderStackCards() : <DocumentCards playbook={playbook} actionSteps={actionSteps} styles={styles} />}
+  const renderContent = () => {
+    return (
+      <View style={styles.contentContainer}>
+        <PlaybookHeader
+          title={playbook.title}
+          subtitle={
+            playbook.createdAt
+              ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })
+              : ''
+          }
+          progress={progress}
+          totalTasks={actionSteps.length}
+          showToggle={true}
+          viewMode={viewMode}
+          onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
+          onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
+          showUserInput={showUserInput}
+          userInput={playbook.userInput}
+          chevronAnimatedStyle={chevronStyle}
+          showTitle={false}
+        />
+        <View style={styles.mainContainer}>
+          {viewMode === 'stack' ? renderStackCards() : <DocumentCards playbook={playbook} actionSteps={actionSteps} styles={styles} />}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderPlaybookInfo = () => {
     const titleMatch = playbook.title.match(/^(.+?)(?::\s|$)([^:]*)$/);

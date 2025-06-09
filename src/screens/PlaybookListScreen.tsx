@@ -195,10 +195,18 @@ export default function PlaybookListScreen() {
         title: pb.title,
         userInput: pb.user_input ?? pb.userInput,
         truthInLove: pb.truth_in_love ?? pb.truthInLove,
-        // DEBUG: Log action_steps from Supabase
-        // eslint-disable-next-line no-console
-        ...(() => { console.log('[DEBUG] pb.action_steps:', pb.action_steps); return {}; })(),
-        actionSteps: (() => {
+        actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
+        dailyAffirmations: pb.daily_affirmations ?? pb.dailyAffirmations ?? [],
+        bibleVerse: pb.bible_verse ?? pb.bibleVerse,
+        directChallenge: pb.direct_challenge ?? pb.directChallenge,
+        createdAt: pb.created_at ?? pb.createdAt,
+        updatedAt: pb.updated_at ?? pb.updatedAt,
+        userId: pb.user_id ?? pb.userId,
+        progress: pb.progress,
+        totalTasks: pb.total_tasks ?? pb.totalTasks,
+        challengeCta: pb.challenge_cta ?? pb.challengeCta,
+        profileImage: pb.profile_image ?? pb.profileImage,
+        ...(() => {
           let steps;
           if (Array.isArray(pb.action_steps)) {
             steps = pb.action_steps;

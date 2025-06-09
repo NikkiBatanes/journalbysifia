@@ -82,12 +82,12 @@ const UserInputScreen: React.FC = () => {
           isDeleting.current = false;
           placeholderIndex.current = (placeholderIndex.current + 1) % placeholderTexts.length;
           charIndex.current = 0;
-          // Pause before starting next phrase
-          timeoutRef.current = setTimeout(animatePlaceholder, 1000);
+          // Minimal pause before starting next phrase
+          timeoutRef.current = setTimeout(animatePlaceholder, 200);
           return newText;
         }
-        // Schedule next deletion
-        timeoutRef.current = setTimeout(animatePlaceholder, 30);
+        // Schedule next deletion (very fast)
+        timeoutRef.current = setTimeout(animatePlaceholder, 10);
         return newText;
       });
     } else {
@@ -97,19 +97,19 @@ const UserInputScreen: React.FC = () => {
       
       if (charIndex.current === currentText.length - 1) {
         isDeleting.current = true;
-        // Pause at full text before starting to delete
-        timeoutRef.current = setTimeout(animatePlaceholder, 2000);
+        // Minimal pause at full text before starting to delete
+        timeoutRef.current = setTimeout(animatePlaceholder, 500);
       } else {
         charIndex.current++;
-        // Type at a slower pace
-        timeoutRef.current = setTimeout(animatePlaceholder, 100);
+        // Type at maximum speed
+        timeoutRef.current = setTimeout(animatePlaceholder, 30);
       }
     }
   }, [placeholderTexts]);
   
   useEffect(() => {
-    // Initial delay before starting animation
-    timeoutRef.current = setTimeout(animatePlaceholder, 1000);
+    // Immediate start for animation
+    timeoutRef.current = setTimeout(animatePlaceholder, 100);
     
     // Cleanup function to clear any pending timeouts
     return () => {
@@ -126,13 +126,13 @@ const UserInputScreen: React.FC = () => {
   const animateButton = () => {
     Animated.sequence([
       Animated.timing(buttonScale, {
-        toValue: 0.95,
-        duration: 100,
+        toValue: 0.98,
+        duration: 30,
         useNativeDriver: true,
       }),
       Animated.timing(buttonScale, {
         toValue: 1,
-        duration: 100,
+        duration: 30,
         useNativeDriver: true,
       }),
     ]).start();
@@ -141,7 +141,7 @@ const UserInputScreen: React.FC = () => {
   const handleInputFocus = () => {
     Animated.timing(inputBorderWidth, {
       toValue: 2,
-      duration: 200,
+      duration: 50,
       useNativeDriver: false,
     }).start();
   };
@@ -149,7 +149,7 @@ const UserInputScreen: React.FC = () => {
   const handleInputBlur = () => {
     Animated.timing(inputBorderWidth, {
       toValue: 1,
-      duration: 200,
+      duration: 50,
       useNativeDriver: false,
     }).start();
   };
@@ -201,7 +201,7 @@ const UserInputScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
-            <Text style={styles.title}>AnchoredAI</Text>
+            <Text style={styles.title}>Anchored</Text>
             <Text style={styles.subtitle}>Share what you're struggling with</Text>
           </View>
 
@@ -216,7 +216,15 @@ const UserInputScreen: React.FC = () => {
                 onChangeText={setUserInput}
                 multiline
                 maxLength={500}
-                textAlignVertical="center"
+                textAlignVertical="top"
+                autoCapitalize="sentences"
+                keyboardAppearance="dark"
+                // Ensure consistent text positioning
+                textBreakStrategy="simple"
+                underlineColorAndroid="transparent"
+                // Ensure proper cursor and text alignment
+                autoCorrect={true}
+                autoFocus={false}
               />
               <TouchableOpacity 
                 style={styles.askSendButton} 
@@ -279,31 +287,63 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
     padding: 16,
-    paddingBottom: 24,
+    paddingBottom: 16, // Space for send button
+    paddingTop: 16, // Consistent top padding
+    paddingRight: 60, // Extra space for send button
     width: '100%',
     minHeight: 150,
     marginVertical: 8,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    // Ensure content doesn't get cut off
+    overflow: 'visible',
+    // Ensure proper text wrapping
+    flexDirection: 'column',
+    position: 'relative',
+    // Platform-specific adjustments
+    ...Platform.select({
+      ios: {
+        // Additional iOS specific styles if needed
+      },
+      android: {
+        paddingTop: 12,
+      },
+    }),
   },
   askInput: {
     color: Colors.hopeWhite,
     fontSize: 18,
-    textAlignVertical: 'top',
-    paddingRight: 40, // Space for send button
-    lineHeight: 24,
+    // Set consistent padding and margins
+    padding: 0,
+    margin: 0,
+    // Set line height with some extra space
+    lineHeight: 28,
     backgroundColor: 'transparent',
     minHeight: 120,
     maxHeight: 200, // Maximum height before scrolling starts
     width: '100%',
-    overflow: 'scroll',
     textAlign: 'left',
+    includeFontPadding: true, // Keep font padding for better alignment
+    textAlignVertical: 'top', // Ensure text stays at the top
+    // Platform-specific adjustments
+    ...Platform.select({
+      ios: {
+        paddingTop: 12, // More padding at top for iOS
+      },
+      android: {
+        textAlignVertical: 'top',
+        paddingTop: 8,
+      },
+    }),
   },
   askSendButton: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
+    right: 16,
+    bottom: 16,
     zIndex: 10,
     borderRadius: 20,
     padding: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Slight background for better visibility
   },
 });
 

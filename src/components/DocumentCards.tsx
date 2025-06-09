@@ -17,11 +17,14 @@ interface DocumentCardsProps {
   styles: any;
 }
 
-const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, styles }) => (
-  <ScrollView
-    style={styles.docContainer}
-    contentContainerStyle={styles.docContentContainer}
-  >
+const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, styles }) => {
+  // DEBUG: Log actionSteps received by DocumentCards
+  console.log('[DEBUG] DocumentCards received actionSteps:', actionSteps);
+  return (
+    <ScrollView
+      style={styles.docContainer}
+      contentContainerStyle={styles.docContentContainer}
+    >
     <TruthInLoveCard
       key="truth"
       truth={playbook.truthInLove?.text}
@@ -66,6 +69,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, st
       />
     </View>
   </ScrollView>
-);
+  );
+};
 
 export default DocumentCards;

@@ -33,6 +33,8 @@ import { useActionSteps } from '../context/ActionStepsContext';
 export default function ActionStepsCard({ steps, style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
   // DEBUG: Log the received steps prop
   console.log('[DEBUG] ActionStepsCard received steps:', steps);
+  // DEBUG: Log the received steps prop
+  console.log('[DEBUG] ActionStepsCard received steps:', steps);
   const { handleToggleStep } = useActionSteps();
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
