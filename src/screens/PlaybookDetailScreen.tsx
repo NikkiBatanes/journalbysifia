@@ -435,9 +435,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   };
 
   const renderPlaybookInfo = () => {
-    const titleMatch = playbook.title.match(/^(.+?)(?::\s|$)([^:]*)$/);
-    const firstLine = titleMatch ? titleMatch[1] + (titleMatch[2] ? ':' : '') : playbook.title;
-    const secondLine = titleMatch ? titleMatch[2].trim() : '';
+    // Handle two-line title format from the playbook
+    const titleLines = playbook.title.split('\n').map(line => line.trim()).filter(line => line);
+    const firstLine = titleLines[0] || '';
+    const secondLine = titleLines[1] || '';
 
     return (
       <View style={styles.playbookInfoContainer}>
