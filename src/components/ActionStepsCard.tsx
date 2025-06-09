@@ -185,9 +185,24 @@ export default function ActionStepsCard({ steps: rawSteps, style, textColor, sol
                   {/* Examples block */}
                   {examples.length > 0 && (
                     <View style={styles.examplesContainer}>
-                      <Text style={styles.examplesTitle}>{examples.length === 1 ? 'EXAMPLE:' : 'EXAMPLES:'}</Text>
+                      <Text style={[
+                        styles.examplesTitle,
+                        solidCardBackground && { color: Colors.anchorBlue }
+                      ]}>
+                        {examples.length === 1 ? 'EXAMPLE:' : 'EXAMPLES:'}
+                      </Text>
                       {examples.map((example: {id: string, text: string}) => (
-                        <Text key={example.id} style={[styles.exampleText, { fontStyle: 'italic' }]}>{example.text}</Text>
+                        <Text 
+                          key={example.id} 
+                          style={[
+                            styles.exampleText, 
+                            { 
+                              fontStyle: 'italic',
+                              color: solidCardBackground ? Colors.anchorBlue : styles.exampleText.color
+                            }
+                          ]}>
+                          {example.text}
+                        </Text>
                       ))}
                     </View>
                   )}
@@ -217,10 +232,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
   },
   solidStepCard: {
-    backgroundColor: '#d9dfe7', // New container color
-    borderRadius: 24,           // More rounded corners
-    padding: 22,                // Comfortable padding
-    marginBottom: 20,           // More space between steps
+    backgroundColor: '#d9dfe7', // Light blue-gray for step container
+    borderRadius: 24,          // More rounded corners
+    padding: 22,               // Comfortable padding
+    marginBottom: 20,          // More space between steps
     width: '100%',
     alignSelf: 'center',
   },
@@ -348,7 +363,7 @@ const styles = StyleSheet.create({
     flex: 1, // Take up available space
   },
   exampleText: {
-    color: Colors.anchorBlue, // Anchor blue for example text
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     lineHeight: 18,
     fontStyle: 'italic',
@@ -362,7 +377,7 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
   },
   examplesTitle: {
-    color: Colors.anchorBlue, // Anchor blue for EXAMPLE label
+    color: 'rgba(255,255,255,0.8)',
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 4,
