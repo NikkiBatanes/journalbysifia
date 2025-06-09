@@ -47,23 +47,90 @@ function getApiUrl(table: string) {
   return `${SUPABASE_URL}/rest/v1/${table}`;
 }
 
-// Helper to get default headers
-// Helper to get headers with user access token if available
-async function getHeadersWithAuth() {
-  let accessToken = null;
+// Helper to get default headers with authentication
+async function getHeadersWithAuth(): Promise<Record<string, string>> {
   try {
     const sessionStr = await AsyncStorage.getItem(SESSION_KEY);
-    if (sessionStr) {
-      const session = JSON.parse(sessionStr);
-      accessToken = session?.access_token;
+    if (!sessionStr) {
+      throw new Error('No session found');
     }
-  } catch (e) {}
-  return {
-    'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${accessToken || SUPABASE_ANON_KEY}`,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation',
-  };
+
+    const session = JSON.parse(sessionStr) as {
+      access_token?: string;
+      refresh_token?: string;
+      expires_at?: number;
+    };
+    
+    let accessToken = session?.access_token || '';
+    const refreshToken = session?.refresh_token;
+
+    // Check if token is expired (with 1 minute buffer)
+    const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0; // Convert to milliseconds
+    const now = Date.now();
+    const isExpired = !expiresAt || now >= (expiresAt - 60000); // 1 minute before actual expiration
+
+    // If token is expired, try to refresh it
+    if (isExpired && refreshToken) {
+      console.log('[Auth] Token expired, attempting to refresh...');
+      try {
+        const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            refresh_token: refreshToken,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to refresh token');
+        }
+
+        const newSession = await response.json() as {
+          access_token: string;
+          refresh_token?: string;
+          expires_in?: number;
+        };
+        
+        // Update session with new tokens
+        const updatedSession = {
+          ...session,
+          ...newSession,
+          expires_at: Math.floor(Date.now() / 1000) + (newSession.expires_in || 3600),
+        };
+
+        await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+        accessToken = updatedSession.access_token || '';
+        console.log('[Auth] Token refreshed successfully');
+      } catch (refreshError) {
+        console.error('[Auth] Token refresh failed:', refreshError);
+        // Clear session on refresh failure
+        await AsyncStorage.removeItem(SESSION_KEY);
+        throw new Error('Session expired. Please sign in again.');
+      }
+    }
+
+    const headers: Record<string, string> = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+    };
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+  } catch (error) {
+    console.error('[Auth] Error in getHeadersWithAuth:', error);
+    // Return minimal headers without auth if something goes wrong
+    return {
+      'apikey': SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+    };
+  }
 }
 
 
@@ -166,18 +233,35 @@ export async function getPlaybooks(userId: string) {
   } catch (e) {
     console.error('[getPlaybooks] AsyncStorage get error:', e);
   }
+
   // 2. Fetch from Supabase (async, update local)
-  fetch(`${getApiUrl('playbooks')}?user_id=eq.${userId}&order=created_at.desc`, {
-    method: 'GET',
-    headers: await getHeadersWithAuth(),
-  })
-    .then(async (res) => {
-      if (!res.ok) throw new Error(await res.text());
-      const remotePlaybooks = await res.json();
-      await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(remotePlaybooks));
-      console.log('[getPlaybooks] Refreshed from Supabase. Remote count:', remotePlaybooks.length);
-    })
-    .catch((e) => console.error('[getPlaybooks] Supabase fetch error:', e));
+  try {
+    const headers = await getHeadersWithAuth();
+    const response = await fetch(
+      `${getApiUrl('playbooks')}?user_id=eq.${userId}&order=created_at.desc`,
+      {
+        method: 'GET',
+        headers: new Headers(headers),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(await response.text());
+    }
+
+    const remotePlaybooks = await response.json();
+    await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(remotePlaybooks));
+    console.log('[getPlaybooks] Refreshed from Supabase. Remote count:', remotePlaybooks.length);
+  } catch (e) {
+    console.error('[getPlaybooks] Supabase fetch error:', e);
+    // If there's an auth error, clear the session
+    if (e.message && e.message.includes('JWT')) {
+      console.log('[getPlaybooks] Auth error, clearing session');
+      await clearSession();
+      // You might want to trigger a re-login flow here
+    }
+  }
+
   return localPlaybooks;
 }
 

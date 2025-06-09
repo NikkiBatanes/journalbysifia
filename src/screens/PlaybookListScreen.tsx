@@ -320,12 +320,7 @@ export default function PlaybookListScreen() {
               {formattedDate}
             </Text>
             <View style={styles.titleRow}>
-              <Text 
-                style={styles.title} 
-                numberOfLines={1} 
-                ellipsizeMode="tail"
-                lineBreakMode="tail"
-              >
+              <Text style={styles.title} numberOfLines={1}>
                 {item.title}
               </Text>
             </View>
@@ -342,9 +337,11 @@ export default function PlaybookListScreen() {
                   />
                 </View>
               </View>
-              <Text style={progressBarStyles.text}>
-                {completedSteps}/{totalSteps} tasks
-              </Text>
+              <View style={progressBarStyles.textContainer}>
+                <Text style={progressBarStyles.text}>
+                  {completedSteps}/{totalSteps} tasks
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -566,7 +563,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     paddingVertical: 1,
     fontWeight: '700',
-    flex: 1,
     flexShrink: 1,
   },
   titleRow: {
