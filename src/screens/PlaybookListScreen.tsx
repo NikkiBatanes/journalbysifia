@@ -185,10 +185,8 @@ export default function PlaybookListScreen() {
   // Load playbooks on focus
   React.useEffect(() => {
     const load = async () => {
-      Alert.alert('UserID on Load', userId ? userId : 'No userId!');
       if (!userId) return;
       const localPlaybooks = await getPlaybooks(userId);
-      Alert.alert('Loaded Playbooks', `Count: ${localPlaybooks.length}`);
       // Normalize keys for UI
       const normalized = localPlaybooks.map(pb => ({
         ...pb,

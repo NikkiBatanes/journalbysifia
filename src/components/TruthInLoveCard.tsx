@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors, Fonts } from '../theme';
 import { Typography } from '../theme/typography';
+import { useUser } from '../context/UserContext';
 
 type TruthInLoveCardProps = {
   truth: string;
@@ -17,11 +18,13 @@ type TruthInLoveCardProps = {
 export default function TruthInLoveCard({
   truth,
   summary,
-  username = 'Nikki',
+  username: propUsername,
   expanded = false,
   style,
   textColor = Colors.hopeWhite,
 }: TruthInLoveCardProps) {
+  const { name: contextUsername } = useUser();
+  const username = propUsername || contextUsername || 'Friend';
   return (
     <View style={[style, { flex: 1, justifyContent: 'space-between' }]}>
       <View style={{ flexShrink: 0 }}>

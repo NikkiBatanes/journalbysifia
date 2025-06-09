@@ -96,7 +96,6 @@ const UserInputScreen: React.FC = () => {
     try {
       const aiResponse = await generatePlaybook(userInput, userName);
       aiResponse.createdAt = new Date().toISOString();
-      Alert.alert('UserID on Save', userId ? userId : 'No userId!');
       if (userId) {
         await savePlaybook(aiResponse, userId);
       }
