@@ -272,7 +272,12 @@ export default function PlaybookListScreen() {
 
 
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
     Alert.alert(
       'Delete Playbook',
       'Are you sure you want to delete this playbook?',
@@ -284,8 +289,29 @@ export default function PlaybookListScreen() {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            setPlaybooks(prev => prev.filter(playbook => playbook.id !== id));
+          onPress: async () => {
+            try {
+              // Optimistically update local state for immediate UI feedback
+              setPlaybooks(prev => prev.filter(playbook => playbook.id !== id));
+              // Delete from Supabase and AsyncStorage (background)
+              deletePlaybook(id, userId)
+                .then(() => {
+                  console.log('Playbook deleted successfully');
+                })
+                .catch(async (error) => {
+                  console.error('Error deleting playbook:', error);
+                  // If there was an error, reload the playbooks to restore the correct state
+                  const reloadedPlaybooks = await getPlaybooks(userId);
+                  setPlaybooks(reloadedPlaybooks);
+                  Alert.alert('Error', 'Failed to delete playbook. Please try again.');
+                });
+            } catch (error) {
+              console.error('Error deleting playbook:', error);
+              // If there was an error, reload the playbooks to restore the correct state
+              const reloadedPlaybooks = await getPlaybooks(userId);
+              setPlaybooks(reloadedPlaybooks);
+              Alert.alert('Error', 'Failed to delete playbook. Please try again.');
+            }
           },
         },
       ]
