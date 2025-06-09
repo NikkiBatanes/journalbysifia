@@ -2,20 +2,27 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
-type RootStackParamList = {
-  MainTabs: undefined;
-  // Add other screen params as needed
-};
-
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/types';
 
 const { width } = Dimensions.get('window');
 
-const GeneratingPlaybookScreen = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
+
+const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
+  const userName = route?.params?.userName || 'Friend';
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const [animationKey, setAnimationKey] = useState(0);
   const animations = useRef<Animated.Value[]>([]);
+  
+  // Fade in animation when component mounts
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [fadeAnim]);
   
   // Initialize animations for each line
   useEffect(() => {
@@ -91,7 +98,15 @@ const GeneratingPlaybookScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View 
+      style={[
+        styles.container, 
+        { opacity: fadeAnim, transform: [{ scale: fadeAnim }] }
+      ]}
+    >
+      <View style={StyleSheet.absoluteFill}>
+        <View style={styles.background} />
+      </View>
       <TouchableOpacity style={styles.backButton} onPress={handleBack}>
         <Text style={styles.closeIcon}>×</Text>
       </TouchableOpacity>
@@ -117,10 +132,10 @@ const GeneratingPlaybookScreen = () => {
             ]}
           />
         ))}
-        <Animated.Text style={[styles.generatingText, { opacity: textOpacity }]}>
-          GENERATING
-        </Animated.Text>
       </View>
+      <Animated.Text style={[styles.generatingText, { opacity: textOpacity }]}>
+        GENERATING
+      </Animated.Text>
       <Animated.View 
         style={[
           styles.textContainer, 
@@ -142,14 +157,18 @@ const GeneratingPlaybookScreen = () => {
           Breathe in peace, breathe out worry.
         </Animated.Text>
         <Animated.Text style={[styles.textLine, { opacity: textOpacity }]}>
-          Your playbook is being crafted just for you.
+          {`${userName}'s playbook is being crafted with care.`}
         </Animated.Text>
       </Animated.View>
-    </View>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.anchorBlue,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,

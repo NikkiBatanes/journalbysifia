@@ -18,6 +18,10 @@ export type RootStackParamList = {
     viewMode: 'stack' | 'document';
     onToggleView?: (mode: 'stack' | 'document') => void; // Made optional
   };
+  GeneratingPlaybook: {
+    userInput: string;
+    userName: string;
+  };
 };
 
 export type BottomTabParamList = {

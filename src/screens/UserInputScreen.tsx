@@ -32,7 +32,9 @@ const exampleStruggles = [
   'I feel disconnected from my church community',
 ];
 
-type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
+type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
+  navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
+};
 
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
@@ -168,35 +170,41 @@ const UserInputScreen: React.FC = () => {
 
 
   const handleGeneratePlaybook = async () => {
-  animateButton();
-  if (!userInput.trim()) {
-    Alert.alert('Input Required', 'Please share what you\'re struggling with.');
-    return;
-  }
-
-  setIsLoading(true);
-  setError(null);
-  try {
-    const aiResponse = await generatePlaybook(userInput, userName);
-    aiResponse.createdAt = new Date().toISOString();
-    if (userId) {
-      await savePlaybook(aiResponse, userId);
+    animateButton();
+    if (!userInput.trim()) {
+      Alert.alert('Input Required', 'Please share what you\'re struggling with.');
+      return;
     }
-    
-    // Reset the navigation stack and navigate to PlaybookDetail
-    navigation.reset({
-      index: 0,
-      routes: [
-        { name: 'MainTabs', state: { 
-          routes: [
-            { name: 'Home' },
-            { name: 'PlaybookList' }
-          ],
-          index: 1 // Make sure PlaybookList is active
-        }},
-        { name: 'PlaybookDetail', params: { playbook: aiResponse } }
-      ]
+
+    // Navigate to GeneratingPlaybookScreen first
+    navigation.navigate('GeneratingPlaybook', { 
+      userInput,
+      userName: userName || 'Friend'
     });
+    
+    setIsLoading(true);
+    setError(null);
+    try {
+      const aiResponse = await generatePlaybook(userInput, userName);
+      aiResponse.createdAt = new Date().toISOString();
+      if (userId) {
+        await savePlaybook(aiResponse, userId);
+      }
+      
+      // Navigate to PlaybookDetail with the generated playbook
+      navigation.reset({
+        index: 0,
+        routes: [
+          { name: 'MainTabs', state: { 
+            routes: [
+              { name: 'Home' },
+              { name: 'PlaybookList' }
+            ],
+            index: 1 // Make sure PlaybookList is active
+          }},
+          { name: 'PlaybookDetail', params: { playbook: aiResponse } }
+        ]
+      });
   } catch (error) {
     Alert.alert('Error', 'Failed to generate playbook. Please try again.');
   } finally {

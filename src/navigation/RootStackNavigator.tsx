@@ -30,8 +30,7 @@ export default function RootStackNavigator({
         <>
           <Stack.Screen
             name="GeneratingPlaybook"
-            component={GeneratingPlaybookScreen}
-            options={{ headerShown: false }}
+            component={GeneratingPlaybookScreen as React.ComponentType}
           />
           <Stack.Screen name="MainTabs">
             {() => <BottomTabNavigator onLogout={handleLogout} />}
