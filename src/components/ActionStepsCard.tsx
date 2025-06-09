@@ -31,10 +31,16 @@ type ActionStepsCardProps = {
 import { useActionSteps } from '../context/ActionStepsContext';
 
 export default function ActionStepsCard({ steps, style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
-  // DEBUG: Log the received steps prop
-  console.log('[DEBUG] ActionStepsCard received steps:', steps);
-  // DEBUG: Log the received steps prop
-  console.log('[DEBUG] ActionStepsCard received steps:', steps);
+  // DEBUG: Log the received steps prop with subtasks
+  console.log('[DEBUG] ActionStepsCard received steps:', JSON.stringify(steps, null, 2));
+  steps.forEach((step, index) => {
+    console.log(`[DEBUG] Step ${index + 1}:`, step.title);
+    if (step.subTasks) {
+      console.log(`[DEBUG]   Subtasks:`, JSON.stringify(step.subTasks, null, 2));
+    } else {
+      console.log(`[DEBUG]   No subtasks`);
+    }
+  });
   const { handleToggleStep } = useActionSteps();
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
@@ -136,11 +142,22 @@ export default function ActionStepsCard({ steps, style, textColor, solidCardBack
                     </View>
                   </View>
 
-                  {hasSubTasks ? (
+                  {hasSubTasks && step.subTasks && step.subTasks.length > 0 ? (
                     <View style={{marginTop: 8}}>
                       {(() => {
-                        const regularSubtasks = step.subTasks!.filter(st => !st.text.startsWith('Example:'));
-                        const examples = step.subTasks!.filter(st => st.text.startsWith('Example:'));
+                        // Safely filter subtasks, handling cases where text might be undefined
+                        const regularSubtasks = step.subTasks.filter(st => 
+                          st && 
+                          typeof st.text === 'string' && 
+                          !st.text.startsWith('Example:')
+                        );
+                        const examples = step.subTasks.filter(st => 
+                          st && 
+                          typeof st.text === 'string' && 
+                          st.text.startsWith('Example:')
+                        );
+                        
+                        console.log(`[DEBUG] Step "${step.title}" has ${regularSubtasks.length} regular subtasks and ${examples.length} examples`);
 
                         return (
                           <React.Fragment>
@@ -277,9 +294,20 @@ const styles = StyleSheet.create({
   subTaskContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
-    marginLeft: 4,
+    marginBottom: 10,
+    marginLeft: 16,
+    marginRight: 8,
+    padding: 12,
     width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 2,
   },
   subTaskButton: {
     flexDirection: 'row',
@@ -293,11 +321,13 @@ const styles = StyleSheet.create({
     flexShrink: 0, // Prevent icon from shrinking
   },
   subTaskText: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 14,
+    color: 'white', // Brighter text for better visibility
+    fontSize: 16, // Slightly larger font
     flexShrink: 1,
-    lineHeight: 20,
-    paddingRight: 8, // Add padding to prevent text from touching the edge
+    lineHeight: 22,
+    paddingRight: 12,
+    fontWeight: '500', // Slightly bolder
+    flex: 1, // Take up available space
   },
   exampleText: {
     color: 'rgba(255,255,255,0.7)',

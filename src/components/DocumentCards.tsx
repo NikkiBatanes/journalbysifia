@@ -34,7 +34,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, st
     />
     <ActionStepsCard
       key="action"
-      steps={actionSteps}
+      steps={actionSteps || playbook.actionSteps || []}
       style={[styles.docCard, styles.actionCard]}
     />
     <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>

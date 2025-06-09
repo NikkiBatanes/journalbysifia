@@ -81,14 +81,31 @@ interface CardData {
 }
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  const { actionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
+  const { actionSteps, setActionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
-
-  console.log('[DEBUG] PlaybookDetailScreen received playbook:', playbook);
-  console.log('[DEBUG] PlaybookDetailScreen context actionSteps:', actionSteps);
   const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Initialize action steps when playbook loads
+  useEffect(() => {
+    console.log('[DEBUG] PlaybookDetailScreen - Playbook actionSteps:', JSON.stringify(playbook?.actionSteps, null, 2));
+    if (playbook?.actionSteps && !isInitialized) {
+      console.log('[DEBUG] Initializing action steps from playbook');
+      setActionSteps(playbook.actionSteps);
+      setIsInitialized(true);
+    }
+  }, [playbook, setActionSteps, isInitialized]);
+
+  // Log action steps changes
+  useEffect(() => {
+    console.log('[DEBUG] PlaybookDetailScreen - Context actionSteps updated:', JSON.stringify(actionSteps, null, 2));
+  }, [actionSteps]);
+
+  console.log('[DEBUG] PlaybookDetailScreen - Current context actionSteps:', actionSteps);
+  console.log('[DEBUG] PlaybookDetailScreen - Playbook actionSteps:', playbook?.actionSteps);
 
   // Calculate progress
+  const stepsToCalculate = actionSteps.length > 0 ? actionSteps : (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []);
   const { completed, total } = getCompletedStepsCount();
   const progress = total > 0 ? (completed / total) * 100 : 0;
 
@@ -130,7 +147,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     {
       type: 'action' as const,
-      steps: Array.isArray(actionSteps) ? actionSteps : [],
+      steps: Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps : 
+            (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []),
       tappable: false,
     },
     {
