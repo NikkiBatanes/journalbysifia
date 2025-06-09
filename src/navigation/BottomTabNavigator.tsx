@@ -110,7 +110,7 @@ export default function BottomTabNavigator({ onLogout }: { onLogout: () => void 
         component={UserInputScreen}
         options={{
           tabBarLabel: '',
-          title: 'New Playbook',
+          headerShown: false,
         }}
       />
       <Tab.Screen
