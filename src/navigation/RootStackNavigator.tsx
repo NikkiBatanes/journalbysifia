@@ -7,6 +7,7 @@ import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreen';
 import CardDetailScreen from '../screens/CardDetailScreen';
+import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,11 @@ export default function RootStackNavigator({
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
         <>
+          <Stack.Screen
+            name="GeneratingPlaybook"
+            component={GeneratingPlaybookScreen}
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="MainTabs">
             {() => <BottomTabNavigator onLogout={handleLogout} />}
           </Stack.Screen>

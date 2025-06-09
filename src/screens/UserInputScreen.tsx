@@ -168,27 +168,30 @@ const UserInputScreen: React.FC = () => {
 
 
   const handleGeneratePlaybook = async () => {
-    animateButton();
-    if (!userInput.trim()) {
-      Alert.alert('Input Required', 'Please share what you\'re struggling with.');
-      return;
-    }
+  animateButton();
+  if (!userInput.trim()) {
+    Alert.alert('Input Required', 'Please share what you\'re struggling with.');
+    return;
+  }
 
-    setIsLoading(true);
-    setError(null);
-    try {
-      const aiResponse = await generatePlaybook(userInput, userName);
-      aiResponse.createdAt = new Date().toISOString();
-      if (userId) {
-        await savePlaybook(aiResponse, userId);
-      }
-      navigation.navigate('PlaybookDetail', { playbook: aiResponse });
-    } catch (error) {
-      Alert.alert('Error', 'Failed to generate playbook. Please try again.');
-    } finally {
-      setIsLoading(false);
+  // Navigate to the full-screen animation page
+  navigation.navigate('GeneratingPlaybook');
+
+  setIsLoading(true);
+  setError(null);
+  try {
+    const aiResponse = await generatePlaybook(userInput, userName);
+    aiResponse.createdAt = new Date().toISOString();
+    if (userId) {
+      await savePlaybook(aiResponse, userId);
     }
-  };
+    navigation.navigate('PlaybookDetail', { playbook: aiResponse });
+  } catch (error) {
+    Alert.alert('Error', 'Failed to generate playbook. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <SafeAreaView style={styles.container}>
