@@ -3,10 +3,10 @@ import {
   View,
   Text,
   TextInput,
+  Platform,
   StyleSheet,
   TouchableOpacity,
   KeyboardAvoidingView,
-  Platform,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -42,12 +42,16 @@ const UserInputScreen: React.FC = () => {
   // Set status bar style
   useEffect(() => {
     // For Android
-    StatusBar.setBackgroundColor(Colors.anchorBlue);
+    if (Platform.OS === 'android') {
+      StatusBar.setBackgroundColor(Colors.anchorBlue);
+    }
     StatusBar.setBarStyle('light-content');
     
     return () => {
       // Reset status bar style when component unmounts if needed
-      StatusBar.setBackgroundColor('transparent');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor('transparent');
+      }
       StatusBar.setBarStyle('dark-content');
     };
   }, []);

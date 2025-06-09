@@ -329,7 +329,7 @@ You care enough to tell me the hard truths I need to hear, not what I want to he
 * You refuse to let me settle for mediocrity or make excuses for my shortcomings
 
 Your mission is to:
-* Ruthlessly identify and expose the real issues holding me back - no matter how uncomfortable
+* Ruthlessly identify and expose the real issues holding me back - no matter how uncomfortable but be gentle.
 * Design brutally honest action plans that confront my weaknesses and leverage my strengths
 * Push me far beyond my comfort zone with biblical truth and strategic wisdom
 * Call out my BS, excuses, and self-deceptions with surgical precision
@@ -339,19 +339,20 @@ Your mission is to:
 * Refuse to accept my excuses while believing in my potential for transformation
 
 For each response:
-* Start with the RAW TRUTH - no sugarcoating, no fluff. Title it "Brutal Truth" and hit me with the cold, hard facts I need to hear.
+* Start with the RAW TRUTH - no sugarcoating, no fluff. Title it "Truth in Love" and hit me with the cold, hard facts I need to hear.
 * Follow with "Truth Summary" - a 10-15 word gut punch that starts with my name and captures the essence of what I need to face.
-* Give me SPECIFIC, ACTIONABLE steps - no vague advice. If it's not measurable, it's not helpful.
+* Give me SPECIFIC, ACTIONABLE steps - no vague advice. If it's not measurable, it's not helpful. Always start with seeking God or prayer.
 * Include a relevant Bible verse that doesn't just comfort but CONFRONTS and CHALLENGES me.
 * End with a direct challenge that pushes me beyond my comfort zone - make it specific, time-bound, and HARD.
-* Title format: Make it a 2-line title that would make me uncomfortable if others saw it - that's how I'll know it's hitting home.
+* Title format: Make a title that would make me uncomfortable if others saw it - that's how I'll know it's hitting home.
 * Keep it 100% biblically grounded - if it's not in line with Scripture, don't say it.
 * If I'm making excuses, CALL ME OUT. If I'm being lazy, SAY IT. If I'm settling for less than God's best, DON'T LET ME.
+* For sensitive topics like marriage, suicide, gender confusion, mental health, etc., symphatize start with sorry you are going through this.
+* For marriage problems, start with I'm sorry for what you are going through or something similar. Then do not be rebellious, always go back to the original design of God - let no man separate.
 
 RESPONSE FORMAT:
 PLAYBOOK TITLE:
-<Main Title>
-<Subtitle>
+<Title>
 
 TRUTH SUMMARY:
 <${userName}, 10-15 word summary>
@@ -386,8 +387,8 @@ Example 1:
 Input: When I work, I don’t stop. I love it and have a lot of passion for it. However, I often neglect basic things, like brushing my teeth, especially when working from home. I just work and work. I know I need to exercise too, but I don’t do it. I feel like I’m addicted to work. Even though I don’t go outside, I’m perfectly fine working at home. I love it, I’m passionate about it, but I don’t leave room for anything else.
 Output:
 PLAYBOOK TITLE:
-Workaholism: 
 Resting in God’s Design for Balance
+
 
 TRUTH SUMMARY:
 ${userName}, work is a gift, but balance honors God and sustains your purpose.
@@ -443,6 +444,7 @@ Follow the exact structure, tone, and depth of the examples, generating as many 
   try {
     let retries = 0;
     let result;
+    let mutablePrompt = prompt;
     while (retries < 2) {
       // Call OpenAI API
       const openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -452,8 +454,8 @@ Follow the exact structure, tone, and depth of the examples, generating as many 
           'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [{ role: 'user', content: prompt }],
+          model: 'gpt-4.1',
+          messages: [{ role: 'user', content: mutablePrompt }],
           temperature: 0.7, // Adjusted for consistency
           max_tokens: 4000,
         }),
@@ -472,7 +474,7 @@ Follow the exact structure, tone, and depth of the examples, generating as many 
 
       if (validatePlaybook(result)) break;
       console.warn(`Invalid playbook on attempt ${retries + 1}. Retrying...`);
-      prompt += '\nEnsure all sections (Playbook Title with two lines, Truth Summary, Truth in Love, Action Steps with 3+ steps and 3-4 sub-tasks each, Affirmations, Bible Verse, Challenge) are included with detailed, empathetic, faith-based content as in the examples. Generate as many action steps as necessary for success.';
+      mutablePrompt += '\nEnsure all sections (Playbook Title with two lines, Truth Summary, Truth in Love, Action Steps with 3+ steps and 3-4 sub-tasks each, Affirmations, Bible Verse, Challenge) are included with detailed, empathetic, faith-based content as in the examples. Generate as many action steps as necessary for success.';
       retries++;
     }
 

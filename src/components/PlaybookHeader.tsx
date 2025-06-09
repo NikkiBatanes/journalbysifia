@@ -56,8 +56,8 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   chevronAnimatedStyle,
   showTitle = true,
 }) => {
-  // Split title at colons that are followed by a space (to avoid splitting Bible references like 'John 3:16')
-  const titleLines = title.split(/(?<=[^0-9]):(?=[^0-9])/).map(part => part.trim()).filter(part => part.length > 0);
+  // Split title at newlines to handle title and subtitle on separate lines
+  const titleLines = title.split('\n').map(part => part.trim()).filter(part => part.length > 0);
 
   const bgColor = backgroundColor || Colors.hopeWhite;
   const txtColor = textColor || Colors.anchorBlue;
@@ -113,7 +113,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                 index > 0 && { marginTop: -4 },
               ]}
             >
-              {line}{index < titleLines.length - 1 ? ':' : ''}
+              {line}
             </Text>
           ))}
           {subtitle ? <Text style={[styles.subtitle, { color: txtColor }]}>{subtitle.toUpperCase()}</Text> : null}
