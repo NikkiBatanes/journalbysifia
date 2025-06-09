@@ -97,7 +97,7 @@ export default function ActionStepsCard({ steps: rawSteps, style, textColor, sol
   };
 
   return (
-    <View style={[styles.card, style, solidCardBackground && styles.solidCard]}> 
+    <View style={style}> 
       <View style={styles.headingContainer}>
         <MaterialCommunityIcons
           name="playlist-check"
@@ -128,9 +128,8 @@ export default function ActionStepsCard({ steps: rawSteps, style, textColor, sol
                 <View
                   key={step.id}
                   style={[
-                    styles.stepCard,
+                    solidCardBackground ? styles.solidStepCard : styles.stepCard,
                     step.completed && styles.completedCard,
-                    solidCardBackground && styles.solidCard
                   ]}
                 >
                   <View style={styles.stepHeader}>
@@ -216,6 +215,14 @@ const styles = StyleSheet.create({
   },
   solidCard: {
     backgroundColor: Colors.hopeWhite,
+  },
+  solidStepCard: {
+    backgroundColor: '#d9dfe7', // New container color
+    borderRadius: 24,           // More rounded corners
+    padding: 22,                // Comfortable padding
+    marginBottom: 20,           // More space between steps
+    width: '100%',
+    alignSelf: 'center',
   },
   subTasksList: {
     marginTop: 8,
@@ -341,7 +348,7 @@ const styles = StyleSheet.create({
     flex: 1, // Take up available space
   },
   exampleText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.anchorBlue, // Anchor blue for example text
     fontSize: 13,
     lineHeight: 18,
     fontStyle: 'italic',
@@ -355,7 +362,7 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
   },
   examplesTitle: {
-    color: 'rgba(255,255,255,0.8)',
+    color: Colors.anchorBlue, // Anchor blue for EXAMPLE label
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 4,
