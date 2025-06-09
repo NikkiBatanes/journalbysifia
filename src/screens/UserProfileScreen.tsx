@@ -1,25 +1,41 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { useUser } from '../context/UserContext';
 
 export default function UserProfileScreen() {
+  const { name, setName } = useUser();
+  const [input, setInput] = useState(name);
+
+  // Sync input with context when the screen mounts or name changes
+  useEffect(() => {
+    setInput(name);
+  }, [name]);
+
+  const handleSave = async () => {
+    await setName(input);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>User Profile</Text>
-      {/* Add user info here */}
+      <Text style={styles.label}>Your Name</Text>
+      <TextInput
+        style={styles.input}
+        value={input}
+        onChangeText={setInput}
+        placeholder="Enter your name"
+        autoCapitalize="words"
+      />
+      <Button title="Save" onPress={handleSave} disabled={!input.trim()} />
+      {name ? <Text style={styles.greeting}>Hello, {name}!</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 24,
-  },
+  container: { flex: 1, justifyContent: 'center', padding: 24, alignItems: 'center', backgroundColor: '#F8F9FB' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 24 },
+  label: { fontSize: 18, marginBottom: 8, alignSelf: 'flex-start' },
+  input: { width: '100%', borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, marginBottom: 16, backgroundColor: '#fff' },
+  greeting: { marginTop: 20, fontSize: 16, color: '#666' },
 });

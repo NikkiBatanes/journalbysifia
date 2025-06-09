@@ -48,6 +48,8 @@ const Tab = createBottomTabNavigator();
 
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 
+import { UserProvider } from './src/context/UserContext';
+
 // Main App Component
 function App(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
@@ -150,19 +152,21 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
-        <NavigationContainer>
-          <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
-          <RootStackNavigator
-            isAuthenticated={isAuthenticated}
-            handleLogout={handleLogout}
-            handleLogin={handleLogin}
-            AuthStack={AuthStackNavigator}
-          />
-        </NavigationContainer>
-      </ActionStepsProviderWrapper>
-    </GestureHandlerRootView>
+    <UserProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
+          <NavigationContainer>
+            <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
+            <RootStackNavigator
+              isAuthenticated={isAuthenticated}
+              handleLogout={handleLogout}
+              handleLogin={handleLogin}
+              AuthStack={AuthStackNavigator}
+            />
+          </NavigationContainer>
+        </ActionStepsProviderWrapper>
+      </GestureHandlerRootView>
+    </UserProvider>
   );
 }
 

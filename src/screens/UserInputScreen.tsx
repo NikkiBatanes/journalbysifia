@@ -18,6 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { Playbook } from '../interfaces/playbook';
+import { useUser } from '../context/UserContext';
+import { generatePlaybook, savePlaybook } from '../services/supabaseApi';
 
 const exampleStruggles = [
   'I struggle with being consistent in my daily devotions',
@@ -33,8 +35,10 @@ const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const buttonScale = useRef(new Animated.Value(1)).current;
   const inputBorderWidth = useRef(new Animated.Value(1)).current;
+  const { name: userName, id: userId } = useUser();
 
   const animateButton = () => {
     Animated.sequence([
@@ -76,6 +80,10 @@ const UserInputScreen: React.FC = () => {
     return nameMatch ? nameMatch[1] : 'Friend';
   };
 
+  // Use the real generatePlaybook from the API service
+  // Remove the local mock implementation.
+
+
   const handleGeneratePlaybook = async () => {
     animateButton();
     if (!userInput.trim()) {
@@ -84,43 +92,15 @@ const UserInputScreen: React.FC = () => {
     }
 
     setIsLoading(true);
+    setError(null);
     try {
-      // TODO: Replace with actual API call to generate playbook
-      const firstName = getUserFirstName(userInput);
-      const mockPlaybook: Playbook = {
-        id: Date.now().toString(),
-        title: `Playbook for ${firstName}`,
-        truthInLove: {
-          text: 'God cares about your struggles and is with you in this journey.',
-          summary: 'God is faithful and will help you through this challenge.'
-        },
-        actionSteps: [
-          { id: '1', title: 'Spend 5 minutes in prayer today', completed: false },
-          { id: '2', title: 'Read a chapter from the book of Psalms', completed: false },
-          { id: '3', title: 'Reach out to a friend for support', completed: false },
-        ],
-        affirmations: [
-          {
-            id: '1',
-            text: 'I am loved by God and He is working in my life.',
-            completed: false
-          }
-        ],
-        bibleVerse: {
-          text: 'Cast all your anxiety on him because he cares for you.',
-          reference: '1 Peter 5:7',
-        },
-        directChallenge: 'Challenge yourself to trust God with this situation today.',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        userInput,
-        progress: 0,
-        totalTasks: 3, // Total number of action steps
-        profileImage: undefined,
-      };
-
-      // Navigate to PlaybookDetail with the generated playbook
-      navigation.navigate('PlaybookDetail', { playbook: mockPlaybook });
+      const aiResponse = await generatePlaybook(userInput, userName);
+      aiResponse.createdAt = new Date().toISOString();
+      Alert.alert('UserID on Save', userId ? userId : 'No userId!');
+      if (userId) {
+        await savePlaybook(aiResponse, userId);
+      }
+      navigation.navigate('PlaybookDetail', { playbook: aiResponse });
     } catch (error) {
       Alert.alert('Error', 'Failed to generate playbook. Please try again.');
     } finally {

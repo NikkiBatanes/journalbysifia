@@ -18,8 +18,9 @@ import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts } from '../theme';
-import { mockPlaybooks } from '../mocks/playbookMocks';
 import type { Playbook } from '../interfaces/playbook';
+import { getPlaybooks, deletePlaybook } from '../services/supabaseApi';
+import { useUser } from '../context/UserContext';
 
 // Import gesture handler at the top level
 import 'react-native-gesture-handler';
@@ -174,18 +175,45 @@ const SwipeableRow = forwardRef(({ item, onDelete, children, onSwipeableOpen }: 
 export default function PlaybookListScreen() {
   // Store refs for all rows
   const rowRefs = useRef<{ [key: string]: any }>({});
-  const openRowRef = useRef<any>(null);
-
-  const handleSwipeableOpen = (ref: any) => {
-    if (openRowRef.current && openRowRef.current !== ref && openRowRef.current.close) {
-      openRowRef.current.close();
-    }
-    openRowRef.current = ref;
-  };
-
   const navigation = useNavigation<PlaybookListScreenNavigationProp>();
+  const { id: userId } = useUser();
   const [playbooks, setPlaybooks] = React.useState<Playbook[]>([]);
   const [filter, setFilter] = React.useState<'all' | 'ongoing' | 'accomplished'>('all');
+  const [refreshing, setRefreshing] = React.useState(false);
+  const openSwipeableRef = useRef<any>(null);
+
+  // Load playbooks on focus
+  React.useEffect(() => {
+    const load = async () => {
+      Alert.alert('UserID on Load', userId ? userId : 'No userId!');
+      if (!userId) return;
+      const localPlaybooks = await getPlaybooks(userId);
+      Alert.alert('Loaded Playbooks', `Count: ${localPlaybooks.length}`);
+      // Normalize keys for UI
+      const normalized = localPlaybooks.map(pb => ({
+        ...pb,
+        id: pb.id,
+        title: pb.title,
+        userInput: pb.user_input ?? pb.userInput,
+        truthInLove: pb.truth_in_love ?? pb.truthInLove,
+        actionSteps: pb.action_steps ?? pb.actionSteps ?? [],
+        dailyAffirmations: pb.daily_affirmations ?? pb.dailyAffirmations ?? [],
+        bibleVerse: pb.bible_verse ?? pb.bibleVerse,
+        directChallenge: pb.direct_challenge ?? pb.directChallenge,
+        createdAt: pb.created_at ?? pb.createdAt,
+        updatedAt: pb.updated_at ?? pb.updatedAt,
+        userId: pb.user_id ?? pb.userId,
+        progress: pb.progress,
+        totalTasks: pb.total_tasks ?? pb.totalTasks,
+        challengeCta: pb.challenge_cta ?? pb.challengeCta,
+        profileImage: pb.profile_image ?? pb.profileImage,
+      }));
+      setPlaybooks(normalized);
+    };
+    const unsubscribe = navigation.addListener('focus', load);
+    load(); // also load on mount
+    return unsubscribe;
+  }, [navigation, userId]);
 
   // Group playbooks by month/year
   function groupPlaybooksByMonth(playbooks: Playbook[]) {
@@ -242,27 +270,8 @@ export default function PlaybookListScreen() {
 
   const sections = React.useMemo(() => groupPlaybooksByMonth(filteredPlaybooks), [filteredPlaybooks]);
 
-  // Load playbooks with debug logging
-  React.useEffect(() => {
-    console.log('Loading mockPlaybooks:', mockPlaybooks);
-    console.log('Mock playbook count:', mockPlaybooks.length);
-    console.log('Sample playbook:', mockPlaybooks[0]?.title, mockPlaybooks[0]?.createdAt);
 
-    // Log all playbook IDs and titles for verification
-    mockPlaybooks.forEach(pb => {
-      console.log(`Playbook: ${pb.id} - ${pb.title} (${pb.createdAt})`);
-    });
 
-    setPlaybooks([...mockPlaybooks]);
-  }, []);
-
-  // Log when playbooks state changes
-  React.useEffect(() => {
-    console.log('Playbooks state updated. Count:', playbooks.length);
-    console.log('Filtered playbooks count:', filteredPlaybooks.length);
-    console.log('Current filter:', filter);
-    console.log('Current sections:', sections);
-  }, [playbooks, filteredPlaybooks, filter, sections]);
 
   const handleDelete = (id: string) => {
     Alert.alert(
@@ -299,7 +308,7 @@ export default function PlaybookListScreen() {
         ref={rowRefs.current[item.id]}
         item={item}
         onDelete={handleDelete}
-        onSwipeableOpen={handleSwipeableOpen}
+
       >
       <TouchableOpacity
         style={styles.card}

@@ -48,20 +48,30 @@ function getApiUrl(table: string) {
 }
 
 // Helper to get default headers
-function getHeaders() {
+// Helper to get headers with user access token if available
+async function getHeadersWithAuth() {
+  let accessToken = null;
+  try {
+    const sessionStr = await AsyncStorage.getItem(SESSION_KEY);
+    if (sessionStr) {
+      const session = JSON.parse(sessionStr);
+      accessToken = session?.access_token;
+    }
+  } catch (e) {}
   return {
     'apikey': SUPABASE_ANON_KEY,
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+    'Authorization': `Bearer ${accessToken || SUPABASE_ANON_KEY}`,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation',
   };
 }
 
+
 // Example: Fetch all rows from a table
 export async function fetchTable(table: string) {
   const res = await fetch(getApiUrl(table), {
     method: 'GET',
-    headers: getHeaders(),
+    headers: await getHeadersWithAuth(),
   });
   console.log('Supabase fetch response:', res);
   if (!res.ok) {
@@ -74,7 +84,7 @@ export async function fetchTable(table: string) {
 export async function insertRow(table: string, data: Record<string, any>) {
   const res = await fetch(getApiUrl(table), {
     method: 'POST',
-    headers: getHeaders(),
+    headers: await getHeadersWithAuth(),
     body: JSON.stringify([data]),
   });
   if (!res.ok) {
@@ -83,12 +93,126 @@ export async function insertRow(table: string, data: Record<string, any>) {
   return res.json();
 }
 
+// --- HYBRID PLAYBOOK PERSISTENCE HELPERS ---
+const PLAYBOOKS_KEY = 'playbooks';
+
+/**
+ * Save a playbook to both Supabase and AsyncStorage.
+ * @param playbook - Playbook object (must include userId)
+ * @param userId - User's unique ID
+ */
+export async function savePlaybook(playbook: any, userId: string) {
+  console.log('[savePlaybook] userId:', userId);
+  console.log('[savePlaybook] playbook:', playbook);
+  // 1. Save to Supabase
+  let supabasePlaybook;
+  try {
+    // Map camelCase to snake_case and only send fields present in the DB schema
+    // Ensure NOT NULL columns are always set with defaults
+    const playbookForSupabase = {
+      // Do NOT set id unless it is a valid UUID. Let Supabase generate it.
+      // id: playbook.id,
+      title: playbook.title,
+      user_input: playbook.userInput,
+      truth_in_love: playbook.truthInLove ?? {},
+      action_steps: playbook.actionSteps ?? [],
+      daily_affirmations: playbook.dailyAffirmations ?? [],
+      bible_verse: playbook.bibleVerse ?? {},
+      direct_challenge: playbook.directChallenge,
+      created_at: playbook.createdAt,
+      updated_at: playbook.updatedAt,
+      user_id: userId,
+      progress: playbook.progress,
+      total_tasks: playbook.totalTasks,
+      challenge_cta: playbook.challengeCTA,
+      profile_image: playbook.profileImage,
+    };
+    // Remove undefined fields
+    Object.keys(playbookForSupabase).forEach(
+      (key) => playbookForSupabase[key] === undefined && delete playbookForSupabase[key]
+    );
+    const [inserted] = await insertRow('playbooks', playbookForSupabase);
+    supabasePlaybook = inserted;
+    console.log('[savePlaybook] Saved to Supabase:', inserted);
+  } catch (e) {
+    console.error('[savePlaybook] Supabase save error:', e);
+  }
+  // 2. Save to AsyncStorage (always)
+  try {
+    const existing = await AsyncStorage.getItem(PLAYBOOKS_KEY);
+    let playbooks = existing ? JSON.parse(existing) : [];
+    playbooks.unshift(supabasePlaybook || { ...playbook, user_id: userId });
+    await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
+    console.log('[savePlaybook] Saved to AsyncStorage. Total:', playbooks.length);
+  } catch (e) {
+    console.error('[savePlaybook] AsyncStorage save error:', e);
+  }
+}
+
+
+/**
+ * Get playbooks for a user: loads from AsyncStorage first, then updates from Supabase.
+ * @param userId - User's unique ID
+ * @returns Playbook array
+ */
+export async function getPlaybooks(userId: string) {
+  console.log('[getPlaybooks] userId:', userId);
+  // 1. Load from AsyncStorage (fast)
+  let localPlaybooks = [];
+  try {
+    const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
+    localPlaybooks = stored ? JSON.parse(stored) : [];
+    console.log('[getPlaybooks] Loaded from AsyncStorage. Count:', localPlaybooks.length);
+  } catch (e) {
+    console.error('[getPlaybooks] AsyncStorage get error:', e);
+  }
+  // 2. Fetch from Supabase (async, update local)
+  fetch(`${getApiUrl('playbooks')}?user_id=eq.${userId}&order=created_at.desc`, {
+    method: 'GET',
+    headers: await getHeadersWithAuth(),
+  })
+    .then(async (res) => {
+      if (!res.ok) throw new Error(await res.text());
+      const remotePlaybooks = await res.json();
+      await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(remotePlaybooks));
+      console.log('[getPlaybooks] Refreshed from Supabase. Remote count:', remotePlaybooks.length);
+    })
+    .catch((e) => console.error('[getPlaybooks] Supabase fetch error:', e));
+  return localPlaybooks;
+}
+
+
+/**
+ * Delete a playbook from both Supabase and AsyncStorage.
+ * @param id - Playbook id
+ * @param userId - User's unique ID
+ */
+export async function deletePlaybook(id: string, userId: string) {
+  // 1. Delete from Supabase
+  try {
+    await deleteRow('playbooks', id);
+  } catch (e) {
+    console.error('Supabase delete error:', e);
+  }
+  // 2. Delete from AsyncStorage
+  try {
+    const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
+    let playbooks = stored ? JSON.parse(stored) : [];
+    playbooks = playbooks.filter((pb: any) => pb.id !== id);
+    await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
+  } catch (e) {
+    console.error('AsyncStorage delete error:', e);
+  }
+}
+// --- END HYBRID HELPERS ---
+
+
 // Example: Update a row by primary key (id)
 export async function updateRow(table: string, id: string, data: Record<string, any>) {
   const url = getApiUrl(table) + `?id=eq.${id}`;
   const res = await fetch(url, {
     method: 'PATCH',
-    headers: getHeaders(),
+    headers: await getHeadersWithAuth(),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -102,7 +226,7 @@ export async function deleteRow(table: string, id: string) {
   const url = getApiUrl(table) + `?id=eq.${id}`;
   const res = await fetch(url, {
     method: 'DELETE',
-    headers: getHeaders(),
+    headers: await getHeadersWithAuth(),
   });
   if (!res.ok) {
     throw new Error(await res.text());
@@ -230,3 +354,28 @@ export async function signUp(email: string, password: string) {
 export async function signOut() {
   await clearSession();
 }
+
+// Generate Playbook via Supabase Edge Function
+export async function generatePlaybook(userInput: string, userName: string) {
+  const functionUrl = 'https://aesmrjinczhknchlrsmt.functions.supabase.co/generate-playbook';
+  try {
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ userInput, userName }),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to generate playbook');
+    }
+    return await response.json();
+  } catch (err: any) {
+    console.error('generatePlaybook error:', err);
+    throw err;
+  }
+}
+
