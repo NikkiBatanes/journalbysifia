@@ -21,6 +21,7 @@ import { Colors, Fonts } from '../theme';
 import type { Playbook } from '../interfaces/playbook';
 import { getPlaybooks, deletePlaybook } from '../services/supabaseApi';
 import { useUser } from '../context/UserContext';
+import { progressBarStyles } from '../styles/ProgressBarStyles';
 
 // Import gesture handler at the top level
 import 'react-native-gesture-handler';
@@ -324,18 +325,20 @@ export default function PlaybookListScreen() {
               </Text>
             </View>
           </View>
-          <View style={styles.progressContainer}>
-            <View style={styles.progressRow}>
-              <View style={styles.progressBarBg}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${progress}%` },
-                  ]}
-                />
+          <View style={progressBarStyles.container}>
+            <View style={progressBarStyles.row}>
+              <View style={progressBarStyles.progressWrapper}>
+                <View style={progressBarStyles.barBg}>
+                  <View
+                    style={[
+                      progressBarStyles.barFill,
+                      { width: `${progress}%` },
+                    ]}
+                  />
+                </View>
               </View>
-              <Text style={styles.progressText}>
-                {completedSteps}/{totalSteps} Tasks
+              <Text style={progressBarStyles.text}>
+                {completedSteps}/{totalSteps} tasks
               </Text>
             </View>
           </View>
@@ -575,40 +578,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     textTransform: 'uppercase',
   },
-  progressContainer: {
-    marginTop: 6,
-    width: '100%',
-    alignSelf: 'stretch',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  progressRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    maxWidth: '100%',
-  },
-  progressBarBg: {
-    flex: 1,
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 6,
-    overflow: 'hidden',
-    marginRight: 8,
-    minWidth: 100,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 6,
-  },
-  progressText: {
-    fontSize: 11,
-    fontFamily: Fonts.semiBold,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginLeft: 'auto',
-    paddingLeft: 8,
-  },
+
 
 });
