@@ -3,16 +3,19 @@ import {
   View,
   Text,
   TextInput,
-  Platform,
-  StyleSheet,
   TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  StatusBar,
+  Image,
+  Keyboard,
   KeyboardAvoidingView,
-  ScrollView,
+  Platform,
   ActivityIndicator,
   Alert,
   Animated,
-  SafeAreaView,
-  StatusBar,
+  Dimensions,
+  ViewStyle,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -38,6 +41,24 @@ type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Ma
 
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const inputRef = useRef<TextInput>(null);
+  
+  // Handle keyboard visibility
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+      setKeyboardVisible(true);
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
   
   // Set status bar style
   useEffect(() => {
@@ -59,8 +80,6 @@ const UserInputScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [placeholderText, setPlaceholderText] = useState('');
   const placeholderIndex = useRef(0);
-  const charIndex = useRef(0);
-  const isDeleting = useRef(false);
   const placeholderTexts = [
     'help with a tough decision...',
     'guide you through a struggle...',
@@ -74,71 +93,36 @@ const UserInputScreen: React.FC = () => {
     'provide insight for a big decision...',
   ];
   
-  // Store the timeout ID to clear it on unmount
-  const timeoutRef = useRef<NodeJS.Timeout>();
-
-  const animatePlaceholder = useCallback(() => {
+  // Animate placeholder text
+  useEffect(() => {
     const currentText = placeholderTexts[placeholderIndex.current];
+    setPlaceholderText(currentText);
     
-    if (isDeleting.current) {
-      // Delete characters
-      setPlaceholderText(prev => {
-        const newText = prev.slice(0, -1);
-        if (newText.length === 0) {
-          isDeleting.current = false;
-          placeholderIndex.current = (placeholderIndex.current + 1) % placeholderTexts.length;
-          charIndex.current = 0;
-          // Minimal pause before starting next phrase
-          timeoutRef.current = setTimeout(animatePlaceholder, 200);
-          return newText;
-        }
-        // Schedule next deletion (very fast)
-        timeoutRef.current = setTimeout(animatePlaceholder, 10);
-        return newText;
-      });
-    } else {
-      // Add characters
-      const newText = currentText.slice(0, charIndex.current + 1);
-      setPlaceholderText(newText);
-      
-      if (charIndex.current === currentText.length - 1) {
-        isDeleting.current = true;
-        // Minimal pause at full text before starting to delete
-        timeoutRef.current = setTimeout(animatePlaceholder, 500);
-      } else {
-        charIndex.current++;
-        // Type at maximum speed
-        timeoutRef.current = setTimeout(animatePlaceholder, 30);
-      }
-    }
+    const interval = setInterval(() => {
+      placeholderIndex.current = (placeholderIndex.current + 1) % placeholderTexts.length;
+      setPlaceholderText(placeholderTexts[placeholderIndex.current]);
+    }, 3000);
+    
+    return () => clearInterval(interval);
   }, [placeholderTexts]);
   
-  useEffect(() => {
-    // Immediate start for animation
-    timeoutRef.current = setTimeout(animatePlaceholder, 100);
-    
-    // Cleanup function to clear any pending timeouts
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, [animatePlaceholder]);
-  const [error, setError] = useState(null);
-  const buttonScale = useRef(new Animated.Value(1)).current;
-  const inputBorderWidth = useRef(new Animated.Value(1)).current;
+  const [error, setError] = useState<string | null>(null);
   const { name: userName, id: userId } = useUser();
 
+  const buttonScale = useRef(new Animated.Value(1)).current;
+  const inputBorderWidth = useRef(new Animated.Value(1)).current;
+
   const animateButton = () => {
+    // Simple button press animation
     Animated.sequence([
       Animated.timing(buttonScale, {
-        toValue: 0.98,
-        duration: 30,
+        toValue: 0.95,
+        duration: 100,
         useNativeDriver: true,
       }),
       Animated.timing(buttonScale, {
         toValue: 1,
-        duration: 30,
+        duration: 100,
         useNativeDriver: true,
       }),
     ]).start();
@@ -176,6 +160,19 @@ const UserInputScreen: React.FC = () => {
   const handleGeneratePlaybook = async () => {
     animateButton();
     if (!userInput.trim()) {
+      // Show error animation
+      Animated.sequence([
+        Animated.timing(inputBorderWidth, {
+          toValue: 2,
+          duration: 100,
+          useNativeDriver: false,
+        }),
+        Animated.timing(inputBorderWidth, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: false,
+        }),
+      ]).start();
       Alert.alert('Input Required', 'Please share what you\'re struggling with.');
       return;
     }
@@ -216,59 +213,57 @@ const UserInputScreen: React.FC = () => {
   }
 };
 
+  const handleInputPress = () => {
+    inputRef.current?.focus();
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.container}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>Anchored</Text>
-            <Text style={styles.subtitle}>Share what you're struggling with</Text>
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    >
+      <StatusBar barStyle="light-content" />
+      <View style={styles.content}>
+        <View style={styles.header}>
+          <Image source={require('../../assets/images/AnchoredWhite.png')} style={styles.logo} resizeMode="contain" />
+        </View>
+        <View style={styles.spacer} />
+        <View style={styles.inputContainer}>
+          <View style={styles.askBox}>
+            <TextInput
+              ref={inputRef}
+              style={styles.askInput}
+              placeholder={`Ask Anchored to ${placeholderText}`}
+              placeholderTextColor={Colors.trustGrey}
+              value={userInput}
+              onChangeText={setUserInput}
+              multiline
+              maxLength={500}
+              textAlignVertical="top"
+              autoCapitalize="sentences"
+              keyboardAppearance="dark"
+              textBreakStrategy="simple"
+              underlineColorAndroid="transparent"
+              autoCorrect={true}
+              autoFocus={false}
+              onTouchStart={handleInputPress}
+            />
+            <TouchableOpacity 
+              style={styles.askSendButton} 
+              onPress={handleGeneratePlaybook} 
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={Colors.hopeWhite} />
+              ) : (
+                <Ionicons name="arrow-up-circle" size={34} color={Colors.hopeWhite} />
+              )}
+            </TouchableOpacity>
           </View>
-
-          {/* Redesigned Ask Input Area */}
-          <View style={styles.askContainer}>
-            <View style={styles.askBox}>
-              <TextInput
-                style={styles.askInput}
-                placeholder={`Ask Anchored to ${placeholderText}`}
-                placeholderTextColor={Colors.trustGrey}
-                value={userInput}
-                onChangeText={setUserInput}
-                multiline
-                maxLength={500}
-                textAlignVertical="top"
-                autoCapitalize="sentences"
-                keyboardAppearance="dark"
-                // Ensure consistent text positioning
-                textBreakStrategy="simple"
-                underlineColorAndroid="transparent"
-                // Ensure proper cursor and text alignment
-                autoCorrect={true}
-                autoFocus={false}
-              />
-              <TouchableOpacity 
-                style={styles.askSendButton} 
-                onPress={handleGeneratePlaybook} 
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color={Colors.hopeWhite} />
-                ) : (
-                  <Ionicons name="arrow-up-circle" size={34} color={Colors.hopeWhite} />
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+        </View>
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -276,89 +271,77 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
-    paddingHorizontal: 24,
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 0,
   },
-  scrollContent: {
-    flexGrow: 1,
-    paddingTop: 40,
-    paddingHorizontal: -20,
+  content: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingBottom: 80,
   },
   header: {
-    marginBottom: 30,
+    flex: 1,
+    justifyContent: 'flex-start',
     alignItems: 'center',
-  },
-  title: {
-    fontSize: 34,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  askContainer: {
-    paddingHorizontal: 0,
-    marginBottom: 24,
     width: '100%',
+    paddingHorizontal: 40,
+    paddingTop: 200, // Increased top padding to push logo down
+    paddingBottom: 20,
+  },
+  logo: {
+    width: '100%',
+    height: 100,
+  },
+  spacer: {
+    flex: 1,
+  },
+  inputContainer: {
+    paddingBottom: 24,
+    marginBottom: Platform.OS === 'ios' ? 0 : 20, // Add some bottom margin on Android
   },
   askBox: {
     borderRadius: 28,
     backgroundColor: Colors.inputBackground,
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
-    padding: 16,
-    paddingBottom: 16, // Space for send button
-    paddingTop: 16, // Consistent top padding
-    paddingRight: 60, // Extra space for send button
+    padding: 12,
+    paddingRight: 60, // Space for send button
     width: '100%',
     minHeight: 150,
-    marginVertical: 8,
+    maxHeight: 240, // Increased max height
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
-    // Ensure content doesn't get cut off
-    overflow: 'visible',
-    // Ensure proper text wrapping
     flexDirection: 'column',
     position: 'relative',
-    // Platform-specific adjustments
     ...Platform.select({
-      ios: {
-        // Additional iOS specific styles if needed
-      },
       android: {
-        paddingTop: 12,
+        paddingTop: 10,
       },
     }),
   },
   askInput: {
     color: Colors.hopeWhite,
-    fontSize: 18,
+    fontSize: 16,
     // Set consistent padding and margins
     padding: 0,
     margin: 0,
     // Set line height with some extra space
-    lineHeight: 28,
+    lineHeight: 24,
     backgroundColor: 'transparent',
-    minHeight: 120,
-    maxHeight: 200, // Maximum height before scrolling starts
     width: '100%',
     textAlign: 'left',
     includeFontPadding: true, // Keep font padding for better alignment
     textAlignVertical: 'top', // Ensure text stays at the top
+    // Allow text to wrap and grow
+    flex: 1,
     // Platform-specific adjustments
     ...Platform.select({
       ios: {
-        paddingTop: 12, // More padding at top for iOS
+        paddingTop: 8,
       },
       android: {
         textAlignVertical: 'top',
-        paddingTop: 8,
+        paddingTop: 6,
       },
     }),
   },

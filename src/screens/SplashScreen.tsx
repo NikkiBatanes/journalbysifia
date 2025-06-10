@@ -1,19 +1,14 @@
 import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Colors } from '../theme';
 
 export default function SplashScreen() {
-  return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color="#007AFF" />
-    </View>
-  );
+  return <View style={styles.container} />;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: Colors.anchorBlue,
   },
 });
