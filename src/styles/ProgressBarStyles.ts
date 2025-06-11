@@ -25,7 +25,7 @@ export const progressBarStyles = StyleSheet.create({
   },
   barFill: {
     height: '100%',
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.growthGreen,
     borderRadius: 4,
     minWidth: 8, // Ensure minimum width for visibility
   },
