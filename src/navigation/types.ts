@@ -14,6 +14,7 @@ export type RootStackParamList = {
     cardData: any;
     playbook: any;
     progress: number;
+    completedTasks: number;
     totalTasks: number;
     viewMode: 'stack' | 'document';
     onToggleView?: (mode: 'stack' | 'document') => void; // Made optional

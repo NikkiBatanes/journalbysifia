@@ -20,7 +20,7 @@ type ActionStep = {
 };
 
 type ActionStepsCardProps = {
-  steps: ActionStep[];
+  steps?: ActionStep[]; // Made optional to allow using context directly
   style?: StyleProp<ViewStyle>;
   textColor?: string;
   solidCardBackground?: boolean;
@@ -42,19 +42,19 @@ const cleanMarkdown = (text: string | undefined): string => {
 };
 
 // Helper function to normalize subtasks to the expected format
-const normalizeSubTasks = (subTasks: any[] | undefined): SubTask[] => {
+const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTask[] => {
   if (!subTasks) return [];
   return subTasks.map((task, index) => {
     if (typeof task === 'string') {
       return {
-        id: `subtask-${index}-${Date.now()}`,
+        id: stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`,
         text: cleanMarkdown(task),
         completed: false
       };
     }
     // If it's already an object but missing required fields
     return {
-      id: task.id || `subtask-${index}-${Date.now()}`,
+      id: task.id || (stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`),
       text: cleanMarkdown(task.text) || cleanMarkdown(task.toString()),
       completed: Boolean(task.completed)
     };
@@ -70,16 +70,22 @@ const hasSubTasks = (step: ActionStep): boolean => {
 const processSteps = (steps: ActionStep[]): ActionStep[] => {
   return steps.map(step => ({
     ...step,
-    subTasks: normalizeSubTasks(step.subTasks)
+    subTasks: normalizeSubTasks(step.subTasks, step.id) // Pass step ID to generate stable subtask IDs
   }));
 };
 
-export default function ActionStepsCard({ style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
-  const { actionSteps, handleToggleStep } = useActionSteps();
-
-  // Clean markdown for display only
-  const cleanedSteps = useMemo(() => {
-    return actionSteps.map(step => ({
+export default function ActionStepsCard({ steps: propSteps, style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
+  // Get steps and handlers from context
+  const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
+  
+  // Process steps to ensure proper format and clean markdown
+  const steps = useMemo(() => {
+    // Use propSteps if provided, otherwise use contextSteps
+    const rawSteps = (propSteps && propSteps.length > 0) ? propSteps : contextSteps;
+    
+    if (!rawSteps || rawSteps.length === 0) return [];
+    
+    return processSteps(rawSteps).map(step => ({
       ...step,
       title: cleanMarkdown(step.title),
       description: step.description ? cleanMarkdown(step.description) : undefined,
@@ -88,7 +94,41 @@ export default function ActionStepsCard({ style, textColor, solidCardBackground,
         text: cleanMarkdown(subTask.text)
       }))
     }));
-  }, [actionSteps]);
+  }, [propSteps, contextSteps]);
+  
+  // Handle sub-task toggle
+  const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
+    console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
+    handleToggleStep(stepId, subTaskId);
+  }, [handleToggleStep]);
+  
+  // Debug log when steps change
+  React.useEffect(() => {
+    console.log('[ActionStepsCard] Steps updated:', JSON.stringify(steps, null, 2));
+  }, [steps]);
+  
+  // Log initial steps data
+  React.useEffect(() => {
+    console.log('[DEBUG] ActionStepsCard - Initial steps:', {
+      stepsLength: steps.length,
+      steps: steps.map(step => ({
+        id: step.id,
+        title: step.title,
+        description: step.description,
+        hasSubtasks: hasSubTasks(step),
+        subtasksCount: step.subTasks ? step.subTasks.length : 0,
+        subtasks: step.subTasks || [],
+        stepRaw: JSON.stringify(step, null, 2)
+      }))
+    });
+    
+    steps.forEach((step, index) => {
+      console.log(`[DEBUG] Step ${index + 1}: ${step.title}`);
+      console.log(`- Has subTasks: ${hasSubTasks(step)}`);
+      console.log(`- subTasks:`, step.subTasks || 'None');
+      console.log(`- Raw step data:`, JSON.stringify(step, null, 2));
+    });
+  }, [steps]);
 
   return (
     <View style={style}> 
@@ -149,33 +189,34 @@ export default function ActionStepsCard({ style, textColor, solidCardBackground,
 
                   {/* Subtasks checklist */}
                   {subtasks.length > 0 && (
-  <View style={styles.subTasksList}>
-    {subtasks.map((subTask) => (
-      <View key={subTask.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-        <TouchableOpacity
-          style={styles.checkboxContainer}
-          onPress={() => handleToggleStep(step.id, subTask.id)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <MaterialCommunityIcons
-            name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-            size={24}
-            color={subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)')}
-            style={styles.checkboxIcon}
-          />
-        </TouchableOpacity>
-        <Text style={[
-          styles.subTaskText,
-          { marginLeft: 8 }, // Add margin so text aligns with step title (not number)
-          subTask.completed && styles.completedText,
-          !!textColor && { color: textColor },
-        ]}>
-          {cleanMarkdown(subTask.text)}
-        </Text>
-      </View>
-    ))}
-  </View>
-)}
+                    <View style={styles.subTasksList}>
+                      {subtasks.map((subTask) => (
+                        <TouchableOpacity 
+                          key={subTask.id} 
+                          style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}
+                          onPress={() => onToggleSubTask(step.id, subTask.id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.checkboxContainer}>
+                            <MaterialCommunityIcons
+                              name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                              size={24}
+                              color={subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)')}
+                              style={styles.checkboxIcon}
+                            />
+                          </View>
+                          <Text style={[
+                            styles.subTaskText,
+                            { marginLeft: 8 },
+                            subTask.completed && styles.completedText,
+                            !!textColor && { color: textColor },
+                          ]}>
+                            {cleanMarkdown(subTask.text)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
 
                   {/* Step description if no subtasks */}
                   {subtasks.length === 0 && step.description && (

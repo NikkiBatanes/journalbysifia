@@ -11,6 +11,7 @@ interface PlaybookHeaderProps {
   showTitle?: boolean;
   subtitle?: string;
   progress: number;
+  completedTasks: number;
   totalTasks: number;
   onBack?: () => void;
   showToggle?: boolean;
@@ -37,6 +38,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   title,
   subtitle,
   progress,
+  completedTasks,
   totalTasks,
   onBack,
   showToggle = false,
@@ -119,7 +121,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
           {subtitle ? <Text style={[styles.subtitle, { color: txtColor }]}>{subtitle.toUpperCase()}</Text> : null}
           <View style={[styles.progressRow, alignTasksLeft && styles.progressRowLeftAligned]}>
             <View style={[styles.progressBarBg, bgColor === Colors.anchorBlue && { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-              <View style={[styles.progressBarFill, { width: `${(progress / totalTasks) * 100}%` }]} />
+              <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
             </View>
             <Text style={[styles.progressText, {
               color: txtColor,
@@ -127,7 +129,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
               minWidth: 80,
               textAlign: alignTasksLeft ? 'left' : 'center',
             }]}>
-              {progress}/{totalTasks} Tasks
+              {completedTasks}/{totalTasks} Tasks
             </Text>
             {showToggle && (
               <View style={styles.toggleRow}>

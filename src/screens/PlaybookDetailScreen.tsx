@@ -180,7 +180,25 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Calculate progress
   const stepsToCalculate = actionSteps.length > 0 ? actionSteps : (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []);
   const { completed, total } = getCompletedStepsCount();
-  const progress = total > 0 ? (completed / total) * 100 : 0;
+  
+  // Ensure we don't show more than 100% progress
+  const safeCompleted = Math.min(completed, total);
+  const progress = total > 0 ? (safeCompleted / total) * 100 : 0;
+  
+  // Calculate completed tasks count for display
+  const completedTasksCount = safeCompleted;
+  const totalTasksCount = total;
+  
+  // Debug log the progress calculation
+  console.log('[DEBUG] Progress calculation:', { 
+    completed: safeCompleted, 
+    total, 
+    progress,
+    actionStepsCount: actionSteps.length,
+    playbookStepsCount: playbook.actionSteps?.length || 0,
+    completedTasksCount,
+    totalTasksCount
+  });
 
   // Handle scroll events for compact header
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -438,12 +456,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   const handleCardPress = (cardType: CardType, cardData: CardData) => {
     const { tappable, ...serializableCardData } = cardData;
+    const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
     navigation.navigate('CardDetail', {
       cardType,
       cardData: serializableCardData,
       playbook,
       progress,
-      totalTasks: actionSteps.length,
+      completedTasks,
+      totalTasks,
       viewMode,
     });
   };
@@ -500,7 +520,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 : ''
             }
             progress={progress}
-            totalTasks={actionSteps.length}
+            completedTasks={completedTasksCount}
+            totalTasks={totalTasksCount}
             showToggle={true}
             viewMode={viewMode}
             onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
@@ -518,8 +539,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             <CompactHeader
               title={playbook.title}
               progress={progress}
-              completedTasks={Math.round((progress / 100) * actionSteps.length)}
-              totalTasks={actionSteps.length}
+              completedTasks={completedTasksCount}
+              totalTasks={totalTasksCount}
             />
           </View>
         )}
@@ -745,7 +766,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       />
       <ActionStepsCard
         key="action"
-        steps={actionSteps ?? []}
         style={[styles.docCard, styles.actionCard]}
       />
       <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>

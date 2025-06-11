@@ -21,10 +21,13 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     cardType,
     cardData,
     playbook,
-    progress,
-    totalTasks,
     viewMode: initialViewMode = 'stack',
   } = route.params;
+  
+  // Get the latest progress and task counts from context
+  const { getCompletedStepsCount } = useActionSteps();
+  const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
+  const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
   
   const parentToggleView = (mode: 'stack' | 'document') => {
     // Update local state
@@ -53,7 +56,8 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       if (route.params?.viewMode) {
         setViewMode(route.params.viewMode);
       }
-    }, [route.params?.viewMode])
+      // Force re-render to get updated progress
+    }, [route.params?.viewMode, getCompletedStepsCount])
   );
 
   // Handle view mode toggle
@@ -150,7 +154,8 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
             weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
           })}
           progress={progress || 0}
-          totalTasks={totalTasks || 0}
+          completedTasks={completedTasks}
+          totalTasks={totalTasks}
           onBack={() => navigation.goBack()}
           showToggle={false}
           backgroundColor={Colors.anchorBlue}
