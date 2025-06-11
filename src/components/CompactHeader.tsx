@@ -28,7 +28,7 @@ const CompactHeader: React.FC<CompactHeaderProps> = ({
           />
         </View>
         <Text style={styles.progressText}>
-          {completedTasks}/{totalTasks} tasks
+          {completedTasks}/{totalTasks} Tasks
         </Text>
       </View>
     </View>
@@ -69,10 +69,11 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: Colors.trustGrey,
-    fontFamily: 'Inter-SemiBold',
+    color: Colors.anchorBlue,
+    fontWeight: '600',
     minWidth: 60,
     textAlign: 'right',
+    textTransform: 'capitalize',
   },
 });
 
