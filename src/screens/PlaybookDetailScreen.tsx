@@ -916,7 +916,7 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   playbookInfoContainer: {
     backgroundColor: '#f2f5f7',
     paddingHorizontal: 20,
-    paddingTop: 12,
+    paddingTop: 8,  // Reduced from 12
     paddingBottom: 0,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   mainContainer: {
     flex: 1,
     paddingHorizontal: 10,
-    paddingTop: 6,
+    paddingTop: 0, // Reduced from 6 to decrease space between header and cards
   },
   cardStackContainer: {
     flex: 1,
@@ -1201,7 +1201,7 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: Colors.hopeWhite,
   },
   docContentContainer: {
-    paddingTop: 60, // Add padding to account for the compact header
+    paddingTop: 0, // Reduced from 60 to decrease space between header and cards
     paddingBottom: 32,
     alignItems: 'center',
     paddingHorizontal: 16,
