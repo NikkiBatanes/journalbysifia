@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors, Fonts } from '../theme';
@@ -30,6 +30,17 @@ type ActionStepsCardProps = {
 
 import { useActionSteps } from '../context/ActionStepsContext';
 
+// Helper function to clean markdown formatting from text
+const cleanMarkdown = (text: string | undefined): string => {
+  if (!text) return '';
+  // Remove markdown formatting like **bold**, __bold__, *italic*, _italic_, ~~strikethrough~~, etc.
+  return text
+    .replace(/\*\*|__/g, '') // Remove ** and __ used for bold
+    .replace(/\*|_/g, '')    // Remove * and _ used for italics
+    .replace(/~~/g, '')       // Remove ~~ used for strikethrough
+    .trim();
+};
+
 // Helper function to normalize subtasks to the expected format
 const normalizeSubTasks = (subTasks: any[] | undefined): SubTask[] => {
   if (!subTasks) return [];
@@ -37,14 +48,14 @@ const normalizeSubTasks = (subTasks: any[] | undefined): SubTask[] => {
     if (typeof task === 'string') {
       return {
         id: `subtask-${index}-${Date.now()}`,
-        text: task,
+        text: cleanMarkdown(task),
         completed: false
       };
     }
     // If it's already an object but missing required fields
     return {
       id: task.id || `subtask-${index}-${Date.now()}`,
-      text: task.text || task.toString(),
+      text: cleanMarkdown(task.text) || cleanMarkdown(task.toString()),
       completed: Boolean(task.completed)
     };
   });
@@ -64,8 +75,18 @@ const processSteps = (steps: ActionStep[]): ActionStep[] => {
 };
 
 export default function ActionStepsCard({ steps: rawSteps, style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
-  // Process steps to ensure proper format
-  const steps = React.useMemo(() => processSteps(rawSteps), [rawSteps]);
+  // Process steps to ensure proper format and clean markdown
+  const steps = useMemo(() => {
+    return processSteps(rawSteps).map(step => ({
+      ...step,
+      title: cleanMarkdown(step.title),
+      description: step.description ? cleanMarkdown(step.description) : undefined,
+      subTasks: step.subTasks?.map(subTask => ({
+        ...subTask,
+        text: cleanMarkdown(subTask.text)
+      }))
+    }));
+  }, [rawSteps]);
   // DEBUG: Log the received steps prop with subtasks
   console.log('[DEBUG] ActionStepsCard - Received steps:', {
     stepsLength: steps.length,
@@ -148,7 +169,7 @@ export default function ActionStepsCard({ steps: rawSteps, style, textColor, sol
                         step.completed && styles.completedText,
                         !!textColor && { color: textColor },
                       ]}>
-                        {step.title}
+                        {cleanMarkdown(step.title)}
                       </Text>
                     </View>
                   </View>
@@ -170,7 +191,7 @@ export default function ActionStepsCard({ steps: rawSteps, style, textColor, sol
           subTask.completed && styles.completedText,
           !!textColor && { color: textColor },
         ]}>
-          {subTask.text}
+          {cleanMarkdown(subTask.text)}
         </Text>
       </View>
     ))}
@@ -179,7 +200,7 @@ export default function ActionStepsCard({ steps: rawSteps, style, textColor, sol
 
                   {/* Step description if no subtasks */}
                   {subtasks.length === 0 && step.description && (
-                    <Text style={styles.stepDescription}>{step.description}</Text>
+                    <Text style={styles.stepDescription}>{cleanMarkdown(step.description)}</Text>
                   )}
 
                   {/* Examples block */}
@@ -201,7 +222,7 @@ export default function ActionStepsCard({ steps: rawSteps, style, textColor, sol
                               color: solidCardBackground ? Colors.anchorBlue : styles.exampleText.color
                             }
                           ]}>
-                          {example.text}
+                          {cleanMarkdown(example.text)}
                         </Text>
                       ))}
                     </View>
