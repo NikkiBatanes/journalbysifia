@@ -32,12 +32,16 @@ interface DocumentCardViewProps {
 const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles }) => {
   if (card.type === 'truth') {
     return (
-      <TruthInLoveCard
-        truth={card.truth ?? ''}
-        summary={card.summary ?? ''}
-        expanded={true}
-        style={{ flex: 1, padding: 32, paddingBottom: 40 }}
-      />
+      <View style={{ flex: 1, padding: 32, paddingBottom: 40, overflow: 'hidden' }}>
+        <TruthInLoveCard
+          truth={card.truth ?? ''}
+          summary={card.summary ?? ''}
+          expanded={false} // Set to false for stack view
+          style={{ flex: 1 }}
+          numberOfLines={5}
+          ellipsizeMode="tail"
+        />
+      </View>
     );
   }
   if (card.type === 'action') {

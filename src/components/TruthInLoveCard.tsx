@@ -22,9 +22,17 @@ export default function TruthInLoveCard({
   expanded = false,
   style,
   textColor = Colors.hopeWhite,
-}: TruthInLoveCardProps) {
+  numberOfLines = 5,
+  ellipsizeMode = 'tail' as const,
+}: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { name: contextUsername } = useUser();
   const username = propUsername || contextUsername || 'Friend';
+  // Debug styles - can be removed after fixing
+  const debugStyle = {
+    // borderWidth: 1,
+    // borderColor: 'red',
+  };
+
   return (
     <View style={[style, { flex: 1, justifyContent: 'space-between' }]}>
       <View style={{ flexShrink: 0 }}>
@@ -38,18 +46,36 @@ export default function TruthInLoveCard({
         </Text>
       </View>
       
-      <View style={{ flex: 1, minHeight: 0, marginTop: 16 }}>
-        <Text
-          style={[styles.truth, { 
-            color: textColor, 
-            flex: 1,
-            minHeight: 0,
-          }]}
-          numberOfLines={expanded ? undefined : 5}
-          ellipsizeMode={expanded ? 'clip' : 'tail'}
-        >
-          {truth}
-        </Text>
+      <View style={[{
+        flex: 1,
+        minHeight: 0,
+        marginTop: 16,
+        // Ensure the container has a defined height and can shrink
+        flexShrink: 1,
+        // Debug styles
+        // backgroundColor: 'rgba(255,0,0,0.1)'
+      }, debugStyle]}>
+        <View style={{
+          flex: 1,
+          minHeight: 0,
+          // Ensure the text container can shrink and respects parent bounds
+          overflow: 'hidden',
+        }}>
+          <Text
+            style={[styles.truth, {
+              color: textColor,
+              // Remove flex from text style as it's now on the container
+            }]}
+            numberOfLines={expanded ? undefined : numberOfLines}
+            ellipsizeMode={expanded ? 'clip' : ellipsizeMode}
+            // Add these props to ensure proper text measurement
+            textBreakStrategy="highQuality"
+            allowFontScaling={true}
+            adjustsFontSizeToFit={false}
+          >
+            {truth}
+          </Text>
+        </View>
       </View>
     </View>
   );
