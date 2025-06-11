@@ -152,16 +152,11 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
             )}
           </View>
         </View>
-        <View style={styles.headerRight}>
-          {onBack && (
-            <TouchableOpacity onPress={onBack} hitSlop={{ top: 16, left: 16, right: 16, bottom: 16 }}>
-              <Ionicons name="arrow-back" size={26} color={Colors.anchorBlue} />
-            </TouchableOpacity>
-          )}
-          {showProfileImage && profileImageUri && (
+        {showProfileImage && profileImageUri && (
+          <View style={styles.headerRight}>
             <Image source={{ uri: profileImageUri }} style={styles.profileImage} resizeMode="cover" />
-          )}
-        </View>
+          </View>
+        )}
       </View>
       </View>
     </SafeAreaView>
