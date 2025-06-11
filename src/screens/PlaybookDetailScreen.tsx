@@ -274,10 +274,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     if (direction === 'up') {
       goToNextCard();
       headerOpacity.value = withTiming(1, { duration: 200 });
+      headerHeight.value = 1;
       headerFaded.value = false;
     } else {
       goToPrevCard();
       headerOpacity.value = withTiming(1, { duration: 200 });
+      headerHeight.value = 1;
       headerFaded.value = false;
     }
     requestAnimationFrame(() => {
@@ -300,7 +302,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   const headerFaded = useSharedValue(false);
   const headerOpacity = useSharedValue(1);
-  const animatedHeaderStyle = useAnimatedStyle(() => ({ opacity: headerOpacity.value }));
+  const headerHeight = useSharedValue(1); // 1 = fully expanded, 0 = fully collapsed
+  
+  const animatedHeaderStyle = useAnimatedStyle(() => ({
+    opacity: headerOpacity.value,
+    height: withTiming(headerHeight.value ? 60 : 0, { duration: 250 }),
+    marginBottom: withTiming(headerHeight.value ? 0 : -10, { duration: 250 }),
+    overflow: 'hidden',
+  }));
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: GestureContext) => {
@@ -312,12 +321,24 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         if (Math.abs(event.translationY) > Math.abs(event.translationX)) {
           translateY.value = ctx.startY + event.translationY;
           const threshold = -SWIPE_THRESHOLD / 2;
-          if (translateY.value < threshold && !headerFaded.value) {
-            headerFaded.value = true;
-            headerOpacity.value = withTiming(0, { duration: 200 });
-          } else if (translateY.value >= threshold && headerFaded.value) {
+          // Calculate fade and collapse based on scroll position
+          const fadeThreshold = -SWIPE_THRESHOLD / 2;
+          const collapseThreshold = -SWIPE_THRESHOLD * 0.8;
+          
+          if (translateY.value < fadeThreshold) {
+            // Start fading and collapsing header
+            const fadeProgress = Math.min(1, Math.abs(translateY.value - fadeThreshold) / (SWIPE_THRESHOLD - fadeThreshold));
+            headerOpacity.value = withTiming(1 - fadeProgress * 0.8, { duration: 100 });
+            headerHeight.value = 1 - fadeProgress * 0.8;
+            
+            if (translateY.value < collapseThreshold && !headerFaded.value) {
+              headerFaded.value = true;
+            }
+          } else if (translateY.value >= fadeThreshold && headerFaded.value) {
+            // Expand and show header
             headerFaded.value = false;
             headerOpacity.value = withTiming(1, { duration: 200 });
+            headerHeight.value = 1;
           }
         }
       }
