@@ -223,7 +223,7 @@ Struggle: ${userInput}
       'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
       max_tokens: 2000,
