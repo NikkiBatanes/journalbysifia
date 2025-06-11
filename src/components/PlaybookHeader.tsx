@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'column',
     alignItems: 'stretch',
-    paddingTop: 24,
+    paddingTop: 5, // Reduced from 24 to decrease space above PLAYBOOK
     paddingBottom: 16,
     paddingHorizontal: 22,
     backgroundColor: 'transparent', // Make container transparent to show parent's background

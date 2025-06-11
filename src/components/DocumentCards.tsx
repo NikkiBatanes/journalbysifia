@@ -15,9 +15,17 @@ interface DocumentCardsProps {
   playbook: Playbook;
   actionSteps: ActionStep[];
   styles: any;
+  onScroll?: (event: any) => void;
+  scrollEventThrottle?: number;
 }
 
-const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, styles }) => {
+const DocumentCards: React.FC<DocumentCardsProps> = ({
+  playbook,
+  actionSteps,
+  styles,
+  onScroll,
+  scrollEventThrottle = 16,
+}) => {
   // DEBUG: Log actionSteps received by DocumentCards
   console.log('[DEBUG] DocumentCards - Received actionSteps:', {
     fromProps: actionSteps,
@@ -42,6 +50,9 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({ playbook, actionSteps, st
     <ScrollView
       style={styles.docContainer}
       contentContainerStyle={styles.docContentContainer}
+      onScroll={onScroll}
+      scrollEventThrottle={scrollEventThrottle}
+      showsVerticalScrollIndicator={false}
     >
     <TruthInLoveCard
       key="truth"

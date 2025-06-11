@@ -38,18 +38,18 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="PlaybookDetail"
             component={PlaybookDetailScreen as React.ComponentType}
-            options={({ navigation }) => ({
+            options={({ navigation, route }) => ({
               headerShown: true,
               title: '',
               headerBackVisible: false,
               headerLeft: () => (
-  <TouchableOpacity
-    onPress={() => navigation.goBack()}
-    style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
-  >
-    <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-  </TouchableOpacity>
-),
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
+                >
+                  <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+                </TouchableOpacity>
+              ),
               headerRight: () => (
                 <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
                   <Image
@@ -61,6 +61,19 @@ export default function RootStackNavigator({
               ),
               headerStyle: {
                 backgroundColor: '#f2f5f7',
+              },
+              headerTitleAlign: 'center',
+              headerTitleStyle: {
+                fontSize: 18,
+                fontWeight: '800',
+                color: Colors.anchorBlue,
+                textAlign: 'center',
+                marginTop: 2,
+                maxWidth: '70%', // Ensure title doesn't overlap with back button and profile
+              },
+              headerTitleContainerStyle: {
+                width: '100%',
+                paddingHorizontal: 16,
               },
               headerShadowVisible: false,
             })}

@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     position: 'absolute',
-    top: -10,
+    top: 0,
     left: 0,
     right: 0,
     zIndex: 10,

@@ -1,5 +1,5 @@
 // React & React Native
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -12,6 +12,9 @@ import {
   ViewStyle,
   TextStyle,
   ImageStyle,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Animated as RNAnimated,
 } from 'react-native';
 
 // Navigation & Gestures
@@ -45,6 +48,7 @@ import DirectChallengeCard from '../components/DirectChallengeCard';
 import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import PlaybookHeader from '../components/PlaybookHeader';
 import DocumentCards from '../components/DocumentCards';
+import CompactHeader from '../components/CompactHeader';
 
 // Types & Context
 import { Playbook, ActionStep, Affirmation } from '../interfaces/playbook';
@@ -83,6 +87,45 @@ interface CardData {
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   const { actionSteps, setActionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
   const playbook = route.params.playbook;
+  
+  // Scroll position tracking for compact header
+  const scrollY = useRef(new RNAnimated.Value(0)).current;
+  const [showCompactHeader, setShowCompactHeader] = useState(false);
+  
+  // Set navigation options based on scroll state
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: '',
+      headerLeft: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ padding: 8, paddingLeft: 0 }}
+          >
+            <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+          </TouchableOpacity>
+          {showCompactHeader && (
+            <Text 
+              style={{
+                fontSize: 18,
+                fontWeight: '800',
+                color: Colors.anchorBlue,
+                marginLeft: 4,
+                maxWidth: 260, // Adjusted to allow more space before profile photo
+              }}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              {playbook.title.split('\n')[0]}
+            </Text>
+          )}
+        </View>
+      ),
+    });
+  }, [navigation, showCompactHeader, playbook.title]);
+  const lastScrollY = useRef(0);
+  const scrollThreshold = 100; // Pixels to scroll before showing compact header
+  const scrollViewRef = useRef<ScrollView>(null);
   
   // Debug: Log the playbook data when it's received
   useEffect(() => {
@@ -138,6 +181,23 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const stepsToCalculate = actionSteps.length > 0 ? actionSteps : (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []);
   const { completed, total } = getCompletedStepsCount();
   const progress = total > 0 ? (completed / total) * 100 : 0;
+
+  // Handle scroll events for compact header
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const currentScrollY = event.nativeEvent.contentOffset.y;
+    
+    // Show/hide compact header based on scroll direction and position
+    if (currentScrollY > scrollThreshold && currentScrollY > lastScrollY.current) {
+      setShowCompactHeader(true);
+    } else if (currentScrollY < lastScrollY.current - 10 || currentScrollY <= 0) {
+      setShowCompactHeader(false);
+    }
+    
+    lastScrollY.current = currentScrollY;
+    
+    // Also update the animated value for any other animations
+    scrollY.setValue(currentScrollY);
+  };
 
   if (!playbook) {
     return (
@@ -404,31 +464,57 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const renderContent = () => {
     return (
       <View style={styles.contentContainer}>
-        <PlaybookHeader
-          title={playbook.title}
-          subtitle={
-            playbook.createdAt
-              ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })
-              : ''
-          }
-          progress={progress}
-          totalTasks={actionSteps.length}
-          showToggle={true}
-          viewMode={viewMode}
-          onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
-          onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
-          showUserInput={showUserInput}
-          userInput={playbook.userInput}
-          chevronAnimatedStyle={chevronStyle}
-          showTitle={false}
-        />
+        {/* Main Header - Only show when not scrolled or in stack view */}
+        {(!showCompactHeader || viewMode === 'stack') && (
+          <PlaybookHeader
+            title={playbook.title}
+            subtitle={
+              playbook.createdAt
+                ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })
+                : ''
+            }
+            progress={progress}
+            totalTasks={actionSteps.length}
+            showToggle={true}
+            viewMode={viewMode}
+            onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
+            onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
+            showUserInput={showUserInput}
+            userInput={playbook.userInput}
+            chevronAnimatedStyle={chevronStyle}
+            showTitle={false}
+          />
+        )}
+        
+        {/* Compact Header - Only show when scrolled in document view */}
+        {showCompactHeader && viewMode === 'document' && (
+          <View style={styles.compactHeaderContainer}>
+            <CompactHeader
+              title={playbook.title}
+              progress={progress}
+              completedTasks={Math.round((progress / 100) * actionSteps.length)}
+              totalTasks={actionSteps.length}
+            />
+          </View>
+        )}
+        
         <View style={styles.mainContainer}>
-          {viewMode === 'stack' ? renderStackCards() : <DocumentCards playbook={playbook} actionSteps={actionSteps} styles={styles} />}
+          {viewMode === 'stack' ? (
+            renderStackCards()
+          ) : (
+            <DocumentCards 
+              playbook={playbook} 
+              actionSteps={actionSteps} 
+              styles={styles}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+            />
+          )}
         </View>
       </View>
     );
@@ -774,6 +860,7 @@ interface PlaybookDetailStyles {
   icon: ImageStyle;
   affirmationsList: ViewStyle;
   affirmationsTitle: TextStyle;
+  compactHeaderContainer: ViewStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
@@ -1114,13 +1201,26 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: Colors.hopeWhite,
   },
   docContentContainer: {
-    paddingTop: 4,
-    paddingBottom: 60,
+    paddingTop: 60, // Add padding to account for the compact header
+    paddingBottom: 32,
     alignItems: 'center',
     paddingHorizontal: 16,
     width: '100%',
     maxWidth: 500,
     alignSelf: 'center',
+  },
+  compactHeaderContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: Colors.hopeWhite,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   docCard: {
     width: '100%',
