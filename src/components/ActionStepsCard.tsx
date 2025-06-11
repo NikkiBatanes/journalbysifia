@@ -179,14 +179,12 @@ export default function ActionStepsCard({ steps: rawSteps, style, textColor, sol
   <View style={styles.subTasksList}>
     {subtasks.map((subTask) => (
       <View key={subTask.id} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-        <View style={styles.checkboxContainer}>
-          <MaterialCommunityIcons
-            name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-            size={24}
-            color={subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)')}
-            style={styles.checkboxIcon}
-          />
-        </View>
+        <MaterialCommunityIcons
+          name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+          size={20}
+          color={subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)')}
+          style={styles.checkboxIcon}
+        />
         <Text style={[
           styles.subTaskText,
           { marginLeft: 8 }, // Add margin so text aligns with step title (not number)
@@ -372,16 +370,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     width: '100%',
   },
-  checkboxContainer: {
-    width: 28,
-    height: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-    flexShrink: 0,
-  },
   checkboxIcon: {
-    // Size will be controlled by the container
+    marginRight: 8,
+    flexShrink: 0, // Prevent icon from shrinking
   },
   subTaskText: {
     color: 'white', // Brighter text for better visibility
