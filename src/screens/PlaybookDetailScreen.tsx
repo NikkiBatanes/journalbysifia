@@ -85,8 +85,15 @@ interface CardData {
 }
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  const { actionSteps, setActionSteps, handleToggleStep, getCompletedStepsCount } = useActionSteps();
+  const { 
+    actionSteps, 
+    setActionSteps, 
+    handleToggleStep, 
+    getCompletedStepsCount,
+    saveActionSteps 
+  } = useActionSteps();
   const playbook = route.params.playbook;
+  const [isSaving, setIsSaving] = useState(false);
   
   // Scroll position tracking for compact header
   const scrollY = useRef(new RNAnimated.Value(0)).current;
@@ -140,6 +147,29 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   }, [playbook]);
   const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Save action steps when they change or when navigating away
+  useEffect(() => {
+    // Don't save if we haven't initialized yet or if we're currently saving
+    if (!isInitialized || isSaving) return;
+
+    const saveProgress = async () => {
+      try {
+        setIsSaving(true);
+        await saveActionSteps(playbook.id, playbook.user_id);
+      } catch (error) {
+        console.error('Error saving progress:', error);
+        // Consider showing an error message to the user
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    // Save when the component unmounts
+    return () => {
+      saveProgress().catch(console.error);
+    };
+  }, [actionSteps, playbook.id, playbook.user_id, isInitialized, isSaving, saveActionSteps]);
 
   // Initialize action steps when playbook loads
   useEffect(() => {

@@ -41,6 +41,7 @@ export interface Playbook {
   profileImage?: string;
   progress: number;
   totalTasks: number;
+  user_id: string; // User ID from Supabase
   createdAt?: string;
   updatedAt?: string;
 }

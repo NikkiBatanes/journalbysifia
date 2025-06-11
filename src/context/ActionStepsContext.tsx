@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { updatePlaybookActionSteps } from '../services/supabaseApi';
 
 export type SubTask = {
   id: string;
@@ -19,6 +20,7 @@ type ActionStepsContextType = {
   setActionSteps: React.Dispatch<React.SetStateAction<ActionStep[]>>;
   handleToggleStep: (stepId: string, subTaskId?: string) => void;
   getCompletedStepsCount: () => { completed: number; total: number };
+  saveActionSteps: (playbookId: string, userId: string) => Promise<void>;
 };
 
 const ActionStepsContext = createContext<ActionStepsContextType | undefined>(undefined);
@@ -159,12 +161,25 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
     });
   };
 
+  // Function to save action steps to the database
+  const saveActionSteps = useCallback(async (playbookId: string, userId: string) => {
+    try {
+      console.log('[ActionStepsContext] Saving action steps for playbook:', playbookId);
+      await updatePlaybookActionSteps(playbookId, actionSteps, userId);
+      console.log('[ActionStepsContext] Successfully saved action steps');
+    } catch (error) {
+      console.error('[ActionStepsContext] Error saving action steps:', error);
+      throw error;
+    }
+  }, [actionSteps]);
+
   return (
     <ActionStepsContext.Provider value={{
       actionSteps,
       setActionSteps,
       handleToggleStep,
       getCompletedStepsCount,
+      saveActionSteps,
     }}>
       {children}
     </ActionStepsContext.Provider>

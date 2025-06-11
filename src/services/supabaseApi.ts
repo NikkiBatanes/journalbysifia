@@ -160,6 +160,39 @@ const PLAYBOOKS_KEY = 'playbooks';
  * @param playbook - Playbook object (must include userId)
  * @param userId - User's unique ID
  */
+/**
+ * Update a playbook's action steps
+ * @param playbookId - ID of the playbook to update
+ * @param actionSteps - Updated action steps
+ * @param userId - User's unique ID
+ */
+export async function updatePlaybookActionSteps(playbookId: string, actionSteps: any[], userId: string) {
+  try {
+    // Update in Supabase
+    const [updated] = await updateRow('playbooks', playbookId, { 
+      action_steps: actionSteps,
+      updated_at: new Date().toISOString()
+    });
+    
+    // Update in AsyncStorage
+    const existing = await AsyncStorage.getItem(PLAYBOOKS_KEY);
+    if (existing) {
+      const playbooks = JSON.parse(existing);
+      const updatedPlaybooks = playbooks.map((pb: any) => 
+        pb.id === playbookId 
+          ? { ...pb, actionSteps, updated_at: new Date().toISOString() } 
+          : pb
+      );
+      await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
+    }
+    
+    return updated;
+  } catch (error) {
+    console.error('[updatePlaybookActionSteps] Error:', error);
+    throw error;
+  }
+}
+
 export async function savePlaybook(playbook: any, userId: string) {
   console.log('[savePlaybook] userId:', userId);
   console.log('[savePlaybook] playbook:', playbook);
