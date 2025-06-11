@@ -193,7 +193,7 @@ export default function PlaybookListScreen() {
           userInput: pb.user_input ?? pb.userInput,
           truthInLove: pb.truth_in_love ?? pb.truthInLove,
           actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
-          dailyAffirmations: pb.daily_affirmations ?? pb.dailyAffirmations ?? [],
+          affirmations: pb.daily_affirmations ?? pb.affirmations ?? [],
           bibleVerse: pb.bible_verse ?? pb.bibleVerse,
           directChallenge: pb.direct_challenge ?? pb.directChallenge,
           createdAt: pb.created_at ?? pb.createdAt,

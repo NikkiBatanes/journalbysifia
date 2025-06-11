@@ -175,7 +175,7 @@ export async function savePlaybook(playbook: any, userId: string) {
       user_input: playbook.userInput,
       truth_in_love: playbook.truthInLove ?? {},
       action_steps: playbook.actionSteps ?? [],
-      daily_affirmations: playbook.dailyAffirmations ?? [],
+      daily_affirmations: playbook.affirmations ?? [],
       bible_verse: playbook.bibleVerse ?? {},
       direct_challenge: playbook.directChallenge,
       created_at: playbook.createdAt,
