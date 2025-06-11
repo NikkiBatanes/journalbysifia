@@ -5,7 +5,7 @@ import { TouchableOpacity, View, Image } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
-import PlaybookDetailScreen from '../screens/PlaybookDetailScreen';
+import PlaybookDetailScreenWithSteps from '../screens/PlaybookDetailScreenWithSteps';
 import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 
@@ -37,7 +37,7 @@ export default function RootStackNavigator({
           </Stack.Screen>
           <Stack.Screen
             name="PlaybookDetail"
-            component={PlaybookDetailScreen as React.ComponentType}
+            component={PlaybookDetailScreenWithSteps as React.ComponentType}
             options={({ navigation, route }) => ({
               headerShown: true,
               title: '',
