@@ -78,7 +78,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       // Slide down content
       Animated.timing(translateY, {
         toValue: SCREEN_HEIGHT,
-        duration: 300,
+        duration: 300, // Increased from 300ms for a slower, more deliberate animation
         useNativeDriver: true,
       }).start(() => {
         setIsVisible(false);
@@ -90,13 +90,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     // Fade out overlay
     Animated.timing(fadeAnim, {
       toValue: 0,
-      duration: 200,
+      duration: 1000,
       useNativeDriver: true,
     }).start();
     // Slide down content
     Animated.timing(translateY, {
       toValue: SCREEN_HEIGHT,
-      duration: 300,
+      duration: 250, // Increased from 300ms for a slower, more deliberate animation
       useNativeDriver: true,
     }).start(() => {
       onClose();
