@@ -87,6 +87,9 @@ interface CardData {
 }
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
+  // ...existing hooks
+  const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
+  // ...rest of hooks
   const { 
     actionSteps, 
     setActionSteps, 
@@ -605,7 +608,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               styles={styles}
               onScroll={handleScroll}
               scrollEventThrottle={16}
+              onLastCardVisible={setHasReachedLastCard}
             />
+          )}
+          {hasReachedLastCard && (
+            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 24, zIndex: 100 }}>
+              <DevotionalButton
+                onPress={() => setShowDevotionalModal(true)}
+                visible={hasReachedLastCard}
+              />
+            </View>
           )}
         </View>
       </View>
@@ -805,88 +817,128 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     );
   };
 
-  const renderDocumentCards = () => (
-    <ScrollView style={styles.docContainer} contentContainerStyle={styles.docContentContainer}>
-      <TruthInLoveCard
-        key="truth"
-        truth={playbook.truthInLove?.text ?? ''}
-        summary={playbook.truthInLove?.summary ?? ''}
-        expanded={true}
-        style={[styles.docCard, styles.truthCard]}
-      />
-      <ActionStepsCard
-        key="action"
-        style={[styles.docCard, styles.actionCard]}
-      />
-      <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>
-        <View style={styles.affirmationsHeader}>
-          <MaterialCommunityIcons
-            name="format-quote-close"
-            size={24}
-            color="white"
-            style={[styles.icon, { transform: [{ scaleX: -1 }] }]}
-          />
-          <Text style={styles.affirmationsTitle}>Affirmations</Text>
-        </View>
-        {(() => {
-          // Debug: log affirmations right before rendering
-          console.log('[DEBUG] Rendering affirmations:', {
-            affirmations: playbook.affirmations,
-            isArray: Array.isArray(playbook.affirmations),
-            length: playbook.affirmations?.length,
-            filtered: Array.isArray(playbook.affirmations)
-              ? playbook.affirmations.filter((affirmation) =>
-                  affirmation !== undefined &&
-                  affirmation.id !== undefined &&
-                  affirmation.text !== undefined &&
-                  affirmation.completed !== undefined
-                )
-              : undefined,
-          });
-          return (
-            <View style={styles.affirmationsList}>
-              {Array.isArray(playbook.affirmations) && playbook.affirmations.length > 0 ? (
-                playbook.affirmations
-                  .filter((affirmation): affirmation is Required<Affirmation> => 
-                    affirmation !== undefined && 
-                    affirmation.id !== undefined && 
+  const renderDocumentCards = () => {
+    // Add ref for ScrollView
+    const scrollRef = useRef<ScrollView>(null);
+
+    // Detect if challenge card is visible
+    const handleScroll = (event: any) => {
+      // Get layout of challenge card
+      // We'll use a ref to the challenge card view
+      if (challengeCardRef.current && scrollRef.current) {
+        challengeCardRef.current.measureLayout(
+          scrollRef.current.getInnerViewNode(),
+          (x, y, width, height) => {
+            // y is the distance from the top of the ScrollView content
+            // If y is within the visible area, the card is visible
+            const scrollY = event.nativeEvent.contentOffset.y;
+            const visibleHeight = event.nativeEvent.layoutMeasurement.height;
+            if (y < scrollY + visibleHeight && y + height > scrollY) {
+              setHasReachedLastCard(true);
+            }
+          },
+          () => {}
+        );
+      }
+    };
+    const challengeCardRef = useRef<View>(null);
+
+    return (
+      <ScrollView
+        ref={scrollRef}
+        style={styles.docContainer}
+        contentContainerStyle={styles.docContentContainer}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        <TruthInLoveCard
+          key="truth"
+          truth={playbook.truthInLove?.text ?? ''}
+          summary={playbook.truthInLove?.summary ?? ''}
+          expanded={true}
+          style={[styles.docCard, styles.truthCard]}
+        />
+        <ActionStepsCard
+          key="action"
+          style={[styles.docCard, styles.actionCard]}
+        />
+        <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>
+          <View style={styles.affirmationsHeader}>
+            <MaterialCommunityIcons
+              name="format-quote-close"
+              size={24}
+              color="white"
+              style={[styles.icon, { transform: [{ scaleX: -1 }] }]}
+            />
+            <Text style={styles.affirmationsTitle}>Affirmations</Text>
+          </View>
+          {(() => {
+            // Debug: log affirmations right before rendering
+            console.log('[DEBUG] Rendering affirmations:', {
+              affirmations: playbook.affirmations,
+              isArray: Array.isArray(playbook.affirmations),
+              length: playbook.affirmations?.length,
+              filtered: Array.isArray(playbook.affirmations)
+                ? playbook.affirmations.filter((affirmation) =>
+                    affirmation !== undefined &&
+                    affirmation.id !== undefined &&
                     affirmation.text !== undefined &&
                     affirmation.completed !== undefined
                   )
-                  .map((affirmation) => (
-                    <AffirmationCard
-                      key={affirmation.id}
-                      id={affirmation.id}
-                      text={affirmation.text}
-                      completed={affirmation.completed}
-                    />
-                  ))
-              ) : (
-                <Text style={styles.noAffirmationsText}>No affirmations</Text>
-              )}
-            </View>
-          );
-        })()}
+                : undefined,
+            });
+            return (
+              <View style={styles.affirmationsList}>
+                {Array.isArray(playbook.affirmations) && playbook.affirmations.length > 0 ? (
+                  playbook.affirmations
+                    .filter((affirmation): affirmation is Required<Affirmation> => 
+                      affirmation !== undefined && 
+                      affirmation.id !== undefined && 
+                      affirmation.text !== undefined &&
+                      affirmation.completed !== undefined
+                    )
+                    .map((affirmation) => (
+                      <AffirmationCard
+                        key={affirmation.id}
+                        id={affirmation.id}
+                        text={affirmation.text}
+                        completed={affirmation.completed}
+                      />
+                    ))
+                ) : (
+                  <Text style={styles.noAffirmationsText}>No affirmations</Text>
+                )}
+              </View>
+            );
+          })()}
 
-      </View>
-      <BibleVerseCard
-        key="bible"
-        verse={playbook.bibleVerse ?? { text: '', reference: '' }}
-        style={[styles.docCard, styles.bibleCard]}
-      />
-      <View key="challenge" style={[styles.docCard, styles.challengeCard]}>
-        <DirectChallengeCard
-          challenge={typeof playbook.directChallenge === 'string'
-            ? playbook.directChallenge
-            : playbook.directChallenge?.text ?? ''}
-          challengeCTA={playbook.challengeCTA ?? ''}
+        </View>
+        <BibleVerseCard
+          key="bible"
+          verse={playbook.bibleVerse ?? { text: '', reference: '' }}
+          style={[styles.docCard, styles.bibleCard]}
         />
-      </View>
-    </ScrollView>
-  );
+        <View key="challenge" style={[styles.docCard, styles.challengeCard]} ref={challengeCardRef}>
+          <DirectChallengeCard
+            challenge={typeof playbook.directChallenge === 'string'
+              ? playbook.directChallenge
+              : playbook.directChallenge?.text ?? ''}
+            challengeCTA={playbook.challengeCTA ?? ''}
+          />
+        </View>
+      </ScrollView>
+    );
+  };
 
   // Check if we're on the challenge card (last card in the array)
   const isChallengeCardVisible = currentCard === cardData.length - 1;
+  useEffect(() => {
+    if (viewMode === 'stack' && isChallengeCardVisible) {
+      setHasReachedLastCard(true);
+    } else if (viewMode === 'document') {
+      setHasReachedLastCard(false); // Reset when switching to document view
+    }
+  }, [viewMode, isChallengeCardVisible]);
 
   return (
     <View style={styles.container}>
@@ -897,12 +949,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </View>
       )}
       
-      {/* Devotional Button - Only show on challenge card and if not already created */}
-      {isChallengeCardVisible && !hasCreatedDevotional && (
-        <DevotionalButton 
-          onPress={() => setShowDevotionalModal(true)}
-          visible={isChallengeCardVisible}
-        />
+      {/* Devotional Button - Show if last card reached in either view and not already created */}
+      {hasReachedLastCard && !hasCreatedDevotional && (
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 24, zIndex: 100 }}>
+          <DevotionalButton 
+            onPress={() => setShowDevotionalModal(true)}
+            visible={hasReachedLastCard}
+          />
+        </View>
       )}
       
       {/* Devotional Creation Modal */}

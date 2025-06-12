@@ -17,6 +17,7 @@ interface DocumentCardsProps {
   styles: any;
   onScroll?: (event: any) => void;
   scrollEventThrottle?: number;
+  onLastCardVisible?: (visible: boolean) => void;
 }
 
 const DocumentCards: React.FC<DocumentCardsProps> = ({
@@ -25,6 +26,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
   styles,
   onScroll,
   scrollEventThrottle = 16,
+  onLastCardVisible,
 }) => {
   // DEBUG: Log actionSteps received by DocumentCards
   console.log('[DEBUG] DocumentCards - Received actionSteps:', {
@@ -46,11 +48,34 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
     });
   }
   
+  // Challenge card Y position
+  const challengeCardY = React.useRef(0);
+  const challengeCardHeight = React.useRef(0);
+  const scrollViewHeight = React.useRef(0);
+
+  // Check if challenge card is visible
+  const handleScroll = (event: any) => {
+    if (onScroll) onScroll(event);
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const visibleHeight = event.nativeEvent.layoutMeasurement.height;
+    scrollViewHeight.current = visibleHeight;
+    // If challenge card's top is within the visible area
+    // Only show the button if the ENTIRE challenge card is visible
+    if (
+      challengeCardY.current >= scrollY &&
+      challengeCardY.current + challengeCardHeight.current <= scrollY + visibleHeight
+    ) {
+      onLastCardVisible && onLastCardVisible(true);
+    } else {
+      onLastCardVisible && onLastCardVisible(false);
+    }
+  };
+
   return (
     <ScrollView
       style={styles.docContainer}
-      contentContainerStyle={styles.docContentContainer}
-      onScroll={onScroll}
+      contentContainerStyle={{ ...styles.docContentContainer, paddingBottom: 96 }}
+      onScroll={handleScroll}
       scrollEventThrottle={scrollEventThrottle}
       showsVerticalScrollIndicator={false}
     >
@@ -87,7 +112,14 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       verse={playbook.bibleVerse}
       style={[styles.docCard, styles.bibleCard, { marginTop: 16 }]}
     />
-    <View key="challenge" style={styles.challengeCard}>
+    <View
+      key="challenge"
+      style={styles.challengeCard}
+      onLayout={event => {
+        challengeCardY.current = event.nativeEvent.layout.y;
+        challengeCardHeight.current = event.nativeEvent.layout.height;
+      }}
+    >
       <DirectChallengeCard 
         challenge={
           typeof playbook.directChallenge === 'string'

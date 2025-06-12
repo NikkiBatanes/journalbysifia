@@ -15,7 +15,7 @@ const DURATION_OPTIONS: DurationOption[] = [
   {
     days: 1,
     title: '1-Day Devotional',
-    description: 'Perfect for a quick spiritual boost',
+    description: 'Perfect for a quick lift of faith',
   },
   {
     days: 3,
@@ -30,7 +30,7 @@ const DURATION_OPTIONS: DurationOption[] = [
   {
     days: 7,
     title: '7-Day Devotional',
-    description: 'A complete week of spiritual growth',
+    description: 'A full week of spiritual growth',
   },
 ];
 
@@ -104,10 +104,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const getPersonalizedMessage = () => {
-    if (!userStruggle) {
-      return 'Create a personalized devotional to help you grow in your faith journey.';
-    }
-    return `Based on your struggle with "${userStruggle}", this devotional will help you find strength and guidance.`;
+    return 'Based on what you\'ve shared, we\'ll craft a devotional tailored to your journey. \n \nChoose the duration that works best for you';
   };
 
   if (!isVisible && !visible) return null;
@@ -137,7 +134,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           ]}
         >
           <View style={styles.handle} />
-          <Text style={styles.title}>Create Your Devotional</Text>
+          <Text style={styles.title}>Create Your Personalized Devotional</Text>
           <Text style={styles.subtitle}>
             {getPersonalizedMessage()}
           </Text>
@@ -190,11 +187,21 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 18,
     fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
     marginBottom: 12,
     textAlign: 'center',
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    paddingHorizontal: 10,
+    width: '100%',
+    flexShrink: 1,
+    includeFontPadding: false,
+    alignSelf: 'center',
+    maxWidth: '100%',
+    flexWrap: 'nowrap',
+    overflow: 'hidden',
   },
   subtitle: {
     fontSize: 16,

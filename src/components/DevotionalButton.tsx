@@ -36,8 +36,8 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: Colors.anchorBlue,
     paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 30,
+    paddingHorizontal: 14,
+    borderRadius: 22,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -52,7 +52,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     fontFamily: Fonts.semiBold,
-    marginLeft: 8,
   },
 });
 
