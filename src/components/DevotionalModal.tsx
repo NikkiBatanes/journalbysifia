@@ -114,10 +114,17 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleClose = () => {
-    // Slide down the entire modal
+    // First, fade out the background quickly (200ms)
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+    
+    // Then slide down the modal (600ms)
     Animated.timing(translateY, {
       toValue: SCREEN_HEIGHT,
-      duration: 800,
+      duration: 600,
       useNativeDriver: true,
       easing: Easing.out(Easing.cubic),
     }).start(({ finished }) => {
@@ -239,10 +246,11 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContainer: {
     backgroundColor: Colors.anchorBlue,
