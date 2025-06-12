@@ -611,14 +611,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               onLastCardVisible={setHasReachedLastCard}
             />
           )}
-          {hasReachedLastCard && (
-            <View style={{ position: 'absolute', left: 0, right: 0, bottom: 24, zIndex: 100 }}>
-              <DevotionalButton
-                onPress={() => setShowDevotionalModal(true)}
-                visible={hasReachedLastCard}
-              />
-            </View>
-          )}
         </View>
       </View>
     );
@@ -949,15 +941,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </View>
       )}
       
-      {/* Devotional Button - Show if last card reached in either view and not already created */}
-      {hasReachedLastCard && !hasCreatedDevotional && (
-        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 24, zIndex: 100 }}>
-          <DevotionalButton 
-            onPress={() => setShowDevotionalModal(true)}
-            visible={hasReachedLastCard}
-          />
-        </View>
-      )}
+      <View style={[styles.bottomButtonContainer, showUserInput && styles.bottomButtonExpanded]}>
+        {/* Devotional Button - Show if last card reached in either view and not already created */}
+        {hasReachedLastCard && !hasCreatedDevotional && (
+          <View style={styles.devotionalButtonWrapper}>
+            <DevotionalButton 
+              onPress={() => setShowDevotionalModal(true)}
+              visible={hasReachedLastCard}
+            />
+          </View>
+        )}
+      </View>
       
       {/* Devotional Creation Modal */}
       <DevotionalModal
@@ -1025,6 +1019,9 @@ interface PlaybookDetailStyles {
   affirmationsList: ViewStyle;
   affirmationsTitle: TextStyle;
   compactHeaderContainer: ViewStyle;
+  bottomButtonContainer: ViewStyle;
+  bottomButtonExpanded: ViewStyle;
+  devotionalButtonWrapper: ViewStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
@@ -1210,11 +1207,27 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   },
   swipeUpIndicatorContainer: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 24,
     left: 0,
     right: 0,
     alignItems: 'center',
-    zIndex: 1000,
+    zIndex: 10,
+  },
+  bottomButtonContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 24,
+    zIndex: 100,
+    paddingHorizontal: 20,
+  },
+  bottomButtonExpanded: {
+    bottom: 'auto',
+    top: '100%',
+    marginTop: -24, // Adjust this value to position the button relative to the expanded content
+  },
+  devotionalButtonWrapper: {
+    marginTop: 20, // Add some space between the expanded content and the button
   },
   stackCard: {
     width: SCREEN_WIDTH - 80,
