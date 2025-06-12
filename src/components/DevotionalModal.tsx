@@ -50,6 +50,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   userStruggle,
   playbookInfo,
 }) => {
+  const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isVisible, setIsVisible] = useState(false);
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
@@ -58,55 +59,78 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
+    let isMounted = true;
+    
     if (visible) {
       setIsVisible(true);
-      // Fade in overlay
-      Animated.timing(fadeAnim, {
+      const fadeIn = Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 200,
         useNativeDriver: true,
-      }).start();
-      // Slide up content
-      Animated.spring(translateY, {
+      });
+      
+      const slideUp = Animated.spring(translateY, {
         toValue: 0,
         useNativeDriver: true,
         damping: 20,
-      }).start();
+      });
+      
+      Animated.parallel([fadeIn, slideUp]).start();
     } else {
-      // Fade out overlay
-      Animated.timing(fadeAnim, {
+      const fadeOut = Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
-      }).start();
-      // Slide down content
-      Animated.timing(translateY, {
+      });
+      
+      const slideDown = Animated.timing(translateY, {
         toValue: SCREEN_HEIGHT,
-        duration: 300, // Increased from 300ms for a slower, more deliberate animation
+        duration: 300,
         useNativeDriver: true,
-      }).start(() => {
-        setIsVisible(false);
+      });
+      
+      Animated.parallel([fadeOut, slideDown]).start(({ finished }) => {
+        if (finished && isMounted) {
+          setIsVisible(false);
+        }
       });
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [visible]);
 
-  const handleClose = () => {
-    // Fade out overlay
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
+  const togglePlaybookInfo = () => {
+    const toValue = showPlaybookInfo ? 0 : 1;
+    setShowPlaybookInfo(!showPlaybookInfo);
+    
+    Animated.spring(rotateAnim, {
+      toValue,
       useNativeDriver: true,
+      tension: 100,
+      friction: 10,
     }).start();
-    // Slide down content with timing animation
+  };
+
+  const handleClose = () => {
+    // Slide down the entire modal
     Animated.timing(translateY, {
-      toValue: SCREEN_HEIGHT * 1.5, // Go slightly beyond screen height to ensure it's off-screen
-      duration: 300, // Slightly longer duration for smooth exit
+      toValue: SCREEN_HEIGHT,
+      duration: 800,
       useNativeDriver: true,
-      easing: Easing.out(Easing.ease),
-    }).start(() => {
-      onClose();
+      easing: Easing.out(Easing.cubic),
+    }).start(({ finished }) => {
+      if (finished) {
+        onClose();
+      }
     });
   };
+
+  const rotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg']
+  });
 
   const getPersonalizedMessage = () => {
     return 'Based on what you\'ve shared, we\'ll craft a devotional tailored to your journey.';
@@ -163,15 +187,17 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               <View style={styles.playbookInfoContainer}>
                 <TouchableOpacity 
                   style={styles.playbookInfoHeader}
-                  onPress={() => setShowPlaybookInfo(!showPlaybookInfo)}
+                  onPress={togglePlaybookInfo}
                   activeOpacity={0.8}
                 >
                   <Text style={styles.playbookInfoLabel}>WHAT YOU SHARED</Text>
-                  <Ionicons 
-                    name={showPlaybookInfo ? 'chevron-up' : 'chevron-down'} 
-                    size={20} 
-                    color={Colors.hopeWhite} 
-                  />
+                  <Animated.View style={{ transform: [{ rotate }] }}>
+                    <Ionicons 
+                      name="chevron-down"
+                      size={20} 
+                      color={Colors.hopeWhite} 
+                    />
+                  </Animated.View>
                 </TouchableOpacity>
                 
                 <View style={[
@@ -213,7 +239,7 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'transparent',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -228,6 +254,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   headerContainer: {
     position: 'relative',
