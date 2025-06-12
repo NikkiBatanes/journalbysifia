@@ -9,6 +9,7 @@ import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import UserInputScreen from '../screens/UserInputScreen';
+import DevotionalsScreen from '../screens/DevotionalsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -110,6 +111,15 @@ export default function BottomTabNavigator({ onLogout }: { onLogout: () => void 
         component={UserInputScreen}
         options={{
           tabBarLabel: '',
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
+        name="Devotionals"
+        component={DevotionalsScreen}
+        options={{
+          tabBarLabel: 'Devotionals',
+          title: 'Devotionals',
           headerShown: false,
         }}
       />

@@ -53,6 +53,8 @@ import CompactHeader from '../components/CompactHeader';
 // Types & Context
 import { Playbook, ActionStep, Affirmation } from '../interfaces/playbook';
 import { useActionSteps } from '../context/ActionStepsContext';
+import DevotionalButton from '../components/DevotionalButton';
+import DevotionalModal from '../components/DevotionalModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -338,14 +340,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Shared values for worklet access
   const cardCount = useSharedValue(cardData.length);
-  const currentCardIndex = useSharedValue(currentCard);
+  const currentCardShared = useSharedValue(currentCard);
 
   useEffect(() => {
     cardCount.value = cardData.length;
   }, [cardData.length]);
 
   useEffect(() => {
-    currentCardIndex.value = currentCard;
+    currentCardShared.value = currentCard;
   }, [currentCard]);
 
   const headerFaded = useSharedValue(false);
@@ -396,14 +398,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
       const isVerticalSwipe = Math.abs(event.translationY) > Math.abs(event.translationX);
       if (isVerticalSwipe) {
-        if (event.translationY < -SWIPE_THRESHOLD && currentCardIndex.value < cardCount.value - 1) {
+        if (event.translationY < -SWIPE_THRESHOLD && currentCardShared.value < cardCount.value - 1) {
           isTransitioning.value = true;
           translateY.value = withTiming(-SCREEN_HEIGHT, { duration: 250 }, (finished) => {
             if (finished) {
               runOnJS(onSwipeComplete)('up');
             }
           });
-        } else if (event.translationY > SWIPE_THRESHOLD && currentCardIndex.value > 0) {
+        } else if (event.translationY > SWIPE_THRESHOLD && currentCardShared.value > 0) {
           isTransitioning.value = true;
           translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, (finished) => {
             if (finished) {
@@ -474,14 +476,29 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   const goToNextCard = () => {
     if (currentCard < cardData.length - 1) {
-      setCurrentCard(currentCard + 1);
+      setCurrentCard(prevCard => {
+        const newCard = prevCard + 1;
+        setCurrentCardIndex(newCard);
+        return newCard;
+      });
     }
   };
 
   const goToPrevCard = () => {
     if (currentCard > 0) {
-      setCurrentCard(currentCard - 1);
+      setCurrentCard(prevCard => {
+        const newCard = prevCard - 1;
+        setCurrentCardIndex(newCard);
+        return newCard;
+      });
     }
+  };
+
+  const handleCreateDevotional = (days: number) => {
+    console.log(`Creating ${days}-day devotional`);
+    // TODO: Implement actual devotional creation logic
+    setHasCreatedDevotional(true);
+    setShowDevotionalModal(false);
   };
 
   const handleCardPress = (cardType: CardType, cardData: CardData) => {
@@ -499,6 +516,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   };
 
   const [showUserInput, setShowUserInput] = useState(false);
+  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
 
   const titleStyle: TextStyle[] = [
     styles.playbookTitle,
@@ -865,15 +885,33 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     </ScrollView>
   );
 
+  // Check if we're on the challenge card (last card in the array)
+  const isChallengeCardVisible = currentCard === cardData.length - 1;
+
   return (
     <View style={styles.container}>
-      
       {renderContent()}
       {viewMode === 'stack' && currentCard === 0 && !showUserInput && !hasSeenSwipeUp && (
         <View style={styles.swipeUpIndicatorContainer}>
           <SwipeUpIndicator />
         </View>
       )}
+      
+      {/* Devotional Button - Only show on challenge card and if not already created */}
+      {isChallengeCardVisible && !hasCreatedDevotional && (
+        <DevotionalButton 
+          onPress={() => setShowDevotionalModal(true)}
+          visible={isChallengeCardVisible}
+        />
+      )}
+      
+      {/* Devotional Creation Modal */}
+      <DevotionalModal
+        visible={showDevotionalModal}
+        onClose={() => setShowDevotionalModal(false)}
+        onSelectDuration={handleCreateDevotional}
+        userStruggle={playbook.userInput}
+      />
     </View>
   );
 }
