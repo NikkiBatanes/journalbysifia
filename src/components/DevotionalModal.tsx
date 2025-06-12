@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ interface DevotionalModalProps {
   onClose: () => void;
   onSelectDuration: (days: number) => void;
   userStruggle?: string;
+  playbookInfo?: string;
 }
 
 const DevotionalModal: React.FC<DevotionalModalProps> = ({
@@ -46,9 +48,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   onClose,
   onSelectDuration,
   userStruggle,
+  playbookInfo,
 }) => {
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isVisible, setIsVisible] = useState(false);
+  const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
 
   // Animation for the overlay (fade in/out)
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -90,21 +94,22 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     // Fade out overlay
     Animated.timing(fadeAnim, {
       toValue: 0,
-      duration: 1000,
+      duration: 200,
       useNativeDriver: true,
     }).start();
-    // Slide down content
+    // Slide down content with timing animation
     Animated.timing(translateY, {
-      toValue: SCREEN_HEIGHT,
-      duration: 250, // Increased from 300ms for a slower, more deliberate animation
+      toValue: SCREEN_HEIGHT * 1.5, // Go slightly beyond screen height to ensure it's off-screen
+      duration: 300, // Slightly longer duration for smooth exit
       useNativeDriver: true,
+      easing: Easing.out(Easing.ease),
     }).start(() => {
       onClose();
     });
   };
 
   const getPersonalizedMessage = () => {
-    return 'Based on what you\'ve shared, we\'ll craft a devotional tailored to your journey. \n \nChoose the duration that works best for you';
+    return 'Based on what you\'ve shared, we\'ll craft a devotional tailored to your journey.';
   };
 
   if (!isVisible && !visible) return null;
@@ -133,25 +138,71 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             { transform: [{ translateY }] },
           ]}
         >
-          <View style={styles.handle} />
-          <Text style={styles.title}>Create Your Personalized Devotional</Text>
-          <Text style={styles.subtitle}>
-            {getPersonalizedMessage()}
-          </Text>
-          
-          <View style={styles.optionsContainer}>
-            {DURATION_OPTIONS.map((option) => (
-              <TouchableOpacity
-                key={option.days}
-                style={styles.optionButton}
-                onPress={() => onSelectDuration(option.days)}
-              >
-                <Text style={styles.optionDays}>{option.days} Day{option.days > 1 ? 's' : ''}</Text>
-                <Text style={styles.optionTitle}>{option.title}</Text>
-                <Text style={styles.optionDescription}>{option.description}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.headerContainer}>
+            <View style={styles.handle} />
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={handleClose}
+              hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+            >
+              <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+            </TouchableOpacity>
           </View>
+          
+          <View style={styles.fixedContent}>
+            <Text style={styles.title}>Create Your Personalized Devotional</Text>
+            <View style={styles.subtitleContainer}>
+              <Text style={styles.subtitle}>
+                Based on what you've shared, we'll craft a devotional tailored to your journey.
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.scrollableContent}>
+            {playbookInfo && (
+              <View style={styles.playbookInfoContainer}>
+                <TouchableOpacity 
+                  style={styles.playbookInfoHeader}
+                  onPress={() => setShowPlaybookInfo(!showPlaybookInfo)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.playbookInfoLabel}>WHAT YOU SHARED</Text>
+                  <Ionicons 
+                    name={showPlaybookInfo ? 'chevron-up' : 'chevron-down'} 
+                    size={20} 
+                    color={Colors.hopeWhite} 
+                  />
+                </TouchableOpacity>
+                
+                <View style={[
+                  styles.playbookInfoContent,
+                  showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed
+                ]}>
+                  <Text style={styles.playbookInfoText}>{playbookInfo}</Text>
+                </View>
+              </View>
+            )}
+            
+            <View style={styles.optionsContainer}>
+              <Text style={styles.durationPrompt}>
+                Choose the duration that works best for you
+              </Text>
+              {DURATION_OPTIONS.map((option) => (
+                <TouchableOpacity
+                  key={option.days}
+                  style={styles.optionButton}
+                  onPress={() => onSelectDuration(option.days)}
+                >
+                  <Text style={styles.optionDays}>{option.days} Day{option.days > 1 ? 's' : ''}</Text>
+                  <Text style={styles.optionTitle}>{option.title}</Text>
+                  <Text style={styles.optionDescription}>{option.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+          <Text style={styles.footerText}>
+            God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
+          </Text>
         </Animated.View>
       </Animated.View>
     </Modal>
@@ -171,20 +222,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
-    padding: 24,
-    paddingBottom: 40,
-    maxHeight: '80%',
+    padding: 20,
+    paddingBottom: 30,
+    maxHeight: '85%',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
+  },
+  headerContainer: {
+    position: 'relative',
+    marginBottom: 12,
   },
   handle: {
     width: 40,
     height: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderRadius: 2,
+    marginTop: 8,
+    marginBottom: 16,
     alignSelf: 'center',
-    marginBottom: 20,
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    padding: 0,
   },
   title: {
     fontSize: 18,
@@ -203,40 +265,113 @@ const styles = StyleSheet.create({
     flexWrap: 'nowrap',
     overflow: 'hidden',
   },
+  subtitleContainer: {
+    marginBottom: 0,
+  },
   subtitle: {
     fontSize: 16,
     fontFamily: Fonts.regular,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 0,
     lineHeight: 24,
   },
+  durationPrompt: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'left',
+    lineHeight: 20,
+    marginBottom: 4, // Reduced from 12px to 4px
+    paddingHorizontal: 4,
+  },
   optionsContainer: {
-    gap: 12,
+    gap: 10,
   },
   optionButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 10,
+    padding: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   optionDays: {
-    fontSize: 14,
-    fontFamily: Fonts.semiBold,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  optionTitle: {
-    fontSize: 18,
+    fontSize: 12,
     fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
+    marginBottom: 2,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
     marginBottom: 4,
   },
   optionDescription: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: Fonts.regular,
     color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 16,
+  },
+  playbookInfoContainer: {
+    width: '100%',
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  playbookInfoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  playbookInfoLabel: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.bold,
+    fontWeight: '600',
+    fontSize: 11,
+    letterSpacing: 0.8,
+    opacity: 0.8,
+    marginVertical: 2,
+  },
+  fixedContent: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  scrollableContent: {
+    width: '100%',
+  },
+  playbookInfoContent: {
+    paddingHorizontal: 12,
+    overflow: 'hidden',
+  },
+  playbookInfoContentExpanded: {
+    maxHeight: 1000, // Arbitrarily large value to allow content to expand
+    paddingBottom: 12,
+  },
+  playbookInfoContentCollapsed: {
+    maxHeight: 0,
+    paddingBottom: 0,
+  },
+  playbookInfoText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontFamily: Fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  footerText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginTop: 24,
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
 });
 

@@ -965,6 +965,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         onClose={() => setShowDevotionalModal(false)}
         onSelectDuration={handleCreateDevotional}
         userStruggle={playbook.userInput}
+        playbookInfo={playbook.userInput}
       />
     </View>
   );
