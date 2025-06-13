@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect, useMemo } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,8 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format } from 'date-fns';
 
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
-// Import the Swipeable type from react-native-gesture-handler
-type SwipeableType = InstanceType<typeof Swipeable>;
+
 import PlaybookCard from '../components/PlaybookCard';
 import { Colors, Fonts } from '../theme';
 import type { Playbook } from '../interfaces/playbook';
@@ -73,123 +72,18 @@ const formatDate = (date: Date): string => {
   return format(date, 'MMMM yyyy');
 };
 
-interface SwipeableRowProps {
-  item: Playbook;
-  onDelete: (id: string) => void;
-  children: React.ReactNode;
-  onSwipeableOpen?: (ref: SwipeableType | null) => void;
-}
-
-interface SwipeableRowRef {
-  close: () => void;
-}
-
-const SwipeableRow = forwardRef<SwipeableRowRef, SwipeableRowProps>(({ item, onDelete, children, onSwipeableOpen }, ref) => {
-  const swipeableRef = useRef<SwipeableType | null>(null);
-  const openSwipeableRef = useRef<SwipeableType | null>(null);
-
-  useImperativeHandle(ref, () => ({
-    close: () => {
-      if (swipeableRef.current) {
-        // @ts-ignore - close exists on the instance
-        swipeableRef.current.close();
-      }
-    },
-  }));
-  // Modern delete button with scale animation
-  const renderRightActions = (progress: Animated.AnimatedInterpolation<number>) => {
-    // Close any open swipeable when a new one is opened
-    const handlePress = () => {
-      if (openSwipeableRef.current && openSwipeableRef.current !== swipeableRef.current) {
-        openSwipeableRef.current.close();
-      }
-      openSwipeableRef.current = swipeableRef.current;
-      onDelete(item.id);
-    };
-
-    // Fade in the delete button as user swipes
-    const fadeAnim = progress.interpolate({
-      inputRange: [0, 0.7, 1],
-      outputRange: [0, 0, 1],
-      extrapolate: 'clamp',
-    });
-
-    // Scale animation for the press effect
-    const scaleAnim = progress.interpolate({
-      inputRange: [0, 0.7, 1],
-      outputRange: [0.8, 0.8, 1],
-      extrapolate: 'clamp',
-    });
-
-    return (
-      <Animated.View
-        style={[
-          styles.deleteButtonContainer,
-          { opacity: fadeAnim },
-        ]}
-      >
-        <RectButton
-          style={styles.deleteButton}
-          onPress={handlePress}
-          rippleColor="rgba(0,0,0,0.1)"
-        >
-          <Animated.View style={[
-            styles.deleteButtonContent,
-            { transform: [{ scale: scaleAnim }] },
-          ]}>
-            <Ionicons
-              name="trash-outline"
-              size={24}
-              color="white"
-              style={styles.deleteIcon}
-            />
-          </Animated.View>
-        </RectButton>
-      </Animated.View>
-    );
-  };
-
-  return (
-    <View style={styles.swipeableContainer}>
-      <Swipeable
-        ref={(ref) => {
-          // @ts-ignore - The ref type mismatch is expected due to the way react-native-gesture-handler is typed
-          swipeableRef.current = ref;
-          // Call the forwarded ref if it exists and onSwipeableOpen is defined
-          if (ref && onSwipeableOpen) {
-            // @ts-ignore - The ref type mismatch is expected
-            onSwipeableOpen(ref);
-          }
-        }}
-        renderRightActions={renderRightActions}
-        rightThreshold={40}
-        friction={2}
-        overshootRight={false}
-        containerStyle={styles.swipeableContainer}
-        onSwipeableWillOpen={() => onSwipeableOpen?.(swipeableRef.current)}
-      >
-        <View style={styles.swipeableChild}>
-          {children}
-        </View>
-      </Swipeable>
-    </View>
-  );
-});
-
 const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   // State for playbooks data
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
-  const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Refs
-  const swipeableRef = useRef<any>(null);
   const animatedValues = useRef<Animated.Value[]>([]);
   const rowRefs = useRef<{ [key: string]: any }>({});
 
   // Get user info
-  const { id: userId, name: userName } = useUser();
+  const { id: userId } = useUser();
 
   // Initialize animation values
   const initAnimations = (count: number) => {
