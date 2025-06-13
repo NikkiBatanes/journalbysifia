@@ -484,18 +484,6 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
-  const loadingStyles = StyleSheet.create({
-    safeArea: {
-      ...styles.safeArea,
-      backgroundColor: 'white',
-    },
-    container: {
-      ...styles.container,
-      flex: 1,
-      backgroundColor: 'white',
-    },
-  });
-
   // Show empty state only when we're not loading and there are no playbooks
   if (playbooks.length === 0 && !isLoading) {
     return (
