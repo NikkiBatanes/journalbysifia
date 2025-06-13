@@ -87,20 +87,20 @@ interface CardData {
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   // State management
   const playbook = route.params.playbook;
-  
+
   // Card state
   const [currentCard, setCurrentCard] = useState(0);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
   const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
-  
+
   // UI state
   const [showCompactHeader, setShowCompactHeader] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
-  
+
   // Action steps
   const {
     actionSteps,
@@ -109,7 +109,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     getCompletedStepsCount,
     saveActionSteps,
   } = useActionSteps();
-  
+
   // Animation values
   const nudgeY = useSharedValue(0);
   const bounceY = useSharedValue(0);
@@ -117,10 +117,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const cardScale = useSharedValue(1);
   const shadowElevation = useSharedValue(4);
   const shadowOpacity = useSharedValue(0.15);
-  
+
   // Scroll position tracking for compact header using reanimated
   const scrollY = useSharedValue(0);
-  
+
   // Animation and gesture related hooks
   const gestureHandlerRef = useRef<PanGestureHandler>(null);
   const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
@@ -165,7 +165,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   }, [navigation, showCompactHeader, playbook.title]);
   const lastScrollY = useRef(0);
   const scrollThreshold = 100; // Pixels to scroll before showing compact header
-  const scrollViewRef = useRef<ScrollView>(null);
 
   // Debug: Log the playbook data when it's received
   useEffect(() => {
@@ -245,7 +244,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   console.log('[DEBUG] PlaybookDetailScreen - Playbook actionSteps:', playbook?.actionSteps);
 
   // Calculate progress
-  const stepsToCalculate = actionSteps.length > 0 ? actionSteps : (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []);
   const { completed, total } = getCompletedStepsCount();
 
   // Ensure we don't show more than 100% progress
