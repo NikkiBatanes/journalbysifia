@@ -19,6 +19,7 @@ import PlaybookCard from '../components/PlaybookCard';
 import { Colors, Fonts } from '../theme';
 import type { Playbook } from '../interfaces/playbook';
 import { getPlaybooks, deletePlaybook } from '../services/supabaseApi';
+import { usePlaybookStore } from '../store/usePlaybookStore';
 import { useUser } from '../context/UserContext';
 
 // Import gesture handler at the top level
@@ -29,35 +30,53 @@ interface TaskStats {
   total: number;
 }
 
-// Calculate completed and total tasks for a playbook
-const calculateTaskStats = (playbook: Playbook): TaskStats => {
-  let completed = 0;
-  let total = 0;
-
-  playbook.actionSteps.forEach((step) => {
-    if (step.subTasks && step.subTasks.length > 0) {
-      // Count sub-tasks for steps that have them
-      const completedSubTasks = step.subTasks.filter(st => st.completed).length;
-      completed += completedSubTasks;
-      total += step.subTasks.length;
-    } else {
-      // Count regular steps that don't have sub-tasks
-      if (step.completed) {
-        completed++;
-      }
-      total++;
+// Calculate completed and total tasks for a playbook's action steps (optimized)
+export const calculateTaskStats = (actionSteps: any[] = []): TaskStats => {
+  try {
+    // Early return for empty or invalid input
+    if (!Array.isArray(actionSteps) || actionSteps.length === 0) {
+      return { completed: 0, total: 0 };
     }
-  });
 
-  return { completed, total };
+    let completed = 0;
+    let total = 0;
+    const chunkSize = 100; // Process in chunks to avoid blocking
+    
+    for (let i = 0; i < actionSteps.length; i += chunkSize) {
+      const chunk = actionSteps.slice(i, i + chunkSize);
+      
+      for (const step of chunk) {
+        if (!step) continue;
+        
+        if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
+          // Count sub-tasks for steps that have them
+          let subCompleted = 0;
+          for (const subTask of step.subTasks) {
+            if (subTask?.completed) subCompleted++;
+          }
+          completed += subCompleted;
+          total += step.subTasks.length;
+        } else {
+          // Count regular steps that don't have sub-tasks
+          if (step.completed) completed++;
+          total++;
+        }
+      }
+    }
+
+    return { completed, total };
+  } catch (error) {
+    console.error('Error in calculateTaskStats:', error);
+    return { completed: 0, total: 0 };
+  }
 };
 
 // Calculate progress based on completed action steps and sub-tasks
-function calculateProgress(playbook: Playbook): number {
-  const { completed, total } = calculateTaskStats(playbook);
-  return total > 0 ? completed / total : 0;
-}
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const calculateProgress = (playbook: Playbook): number => {
+  const { completed, total } = calculateTaskStats(playbook.actionSteps);
+  return total > 0 ? Math.round((completed / total) * 100) : 0;
+};
 
 /**
  * Formats a date into a human-readable month and year string
@@ -69,10 +88,10 @@ const formatDate = (date: Date): string => {
 };
 
 const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
-  // State for playbooks data
-  const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
-  const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
-  const [isLoading, setIsLoading] = useState(true);
+  // Zustand global state for playbooks
+  const { playbooks, isLoading, loadPlaybooks, removePlaybook } = usePlaybookStore();
+  // Set filter to 'all' by default to ensure all playbooks are visible
+  const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('all');
 
   // Refs
   const animatedValues = useRef<Animated.Value[]>([]);
@@ -83,177 +102,275 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 
   // Initialize animation values
   const initAnimations = (count: number) => {
-    const initialValues = Array(count).fill(0).map(() => new Animated.Value(0));
-    animatedValues.current = initialValues;
+    try {
+      // Clear any existing animations
+      if (animatedValues.current) {
+        animatedValues.current.forEach(value => {
+          if (value && typeof value.stopAnimation === 'function') {
+            value.stopAnimation();
+          }
+        });
+      }
 
-    // Start animations after a small delay
-    setTimeout(() => {
-      const animations = initialValues.map((value, index) =>
-        Animated.spring(value, {
-          toValue: 1,
-          useNativeDriver: true,
-          delay: index * 100,
-        })
-      );
-      Animated.stagger(100, animations).start();
-    }, 100);
+      // Create new animated values
+      const initialValues = Array(Math.max(0, count)).fill(0).map(() => new Animated.Value(0));
+      animatedValues.current = initialValues;
 
-    return initialValues;
+      // Only start animations if we have values to animate
+      if (initialValues.length > 0) {
+        // Start animations after a small delay
+        const timer = setTimeout(() => {
+          const animations = initialValues.map((value, index) =>
+            Animated.spring(value, {
+              toValue: 1,
+              useNativeDriver: true,
+              delay: index * 100,
+            })
+          );
+          Animated.stagger(100, animations).start();
+        }, 100);
+
+        return () => clearTimeout(timer);
+      }
+
+      return () => {}; // No-op cleanup function
+    } catch (error) {
+      console.error('Error initializing animations:', error);
+      return () => {}; // Ensure we always return a cleanup function
+    }
   };
+
+  // Load playbooks using Zustand store
+  const loadPlaybooksCallback = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+    await loadPlaybooks(userId);
+  }, [userId, loadPlaybooks]);
+
+  // Initialize animations on mount and when playbooks change
+  useEffect(() => {
+    if (playbooks.length > 0) {
+      initAnimations(playbooks.length);
+    }
+  }, [playbooks.length]);
 
   // Reset animations and set filter to 'ongoing' when screen comes into focus
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      // Set filter to 'ongoing' when screen comes into focus
       setFilter('ongoing');
-      // Reset all animations
-      animatedValues.current.forEach(value => value.setValue(0));
-      // Start animations after a small delay to ensure screen is ready
-setTimeout(() => {
+      
+      // Safely reset animation values if they exist
+      if (animatedValues.current && Array.isArray(animatedValues.current)) {
+        animatedValues.current.forEach(value => {
+          if (value && typeof value.setValue === 'function') {
+            value.setValue(0);
+          }
+        });
+      }
+      
+      // Reinitialize animations after a short delay
+      const timer = setTimeout(() => {
         if (playbooks.length > 0) {
           initAnimations(playbooks.length);
         }
+        // Always reload playbooks on focus
+        loadPlaybooksCallback();
       }, 150);
+      
+      return () => clearTimeout(timer);
     });
+    
+    return () => {
+      unsubscribe();
+    };
+  }, [navigation, playbooks.length, loadPlaybooksCallback]);
 
-    return unsubscribe;
-  }, [navigation, playbooks.length]);
-
-  // Load playbooks function
-  const loadPlaybooks = useCallback(async () => {
-    setIsLoading(true);
-    if (!userId) {
-      setPlaybooks([]);
-      setIsLoading(false);
-      return;
-    }
-    try {
-      const localPlaybooks = await getPlaybooks(userId);
-
-      // Normalize keys for UI and ensure all required fields are present
-      const normalized: Playbook[] = localPlaybooks.map((pb: any) => {
-        // Ensure directChallenge is properly formatted
-        let directChallenge: string | { text: string; summary: string } = '';
-        if (pb.direct_challenge || pb.directChallenge) {
-          const challenge = pb.direct_challenge || pb.directChallenge;
-          directChallenge = typeof challenge === 'string'
-            ? challenge
-            : { text: challenge?.text || '', summary: challenge?.summary || '' };
-        }
-
-        // Ensure truthInLove has the correct structure
-        const truthInLove = pb.truth_in_love || pb.truthInLove || { text: '', summary: '' };
-
-        // Ensure bibleVerse has the correct structure
-        const bibleVerse = pb.bible_verse || pb.bibleVerse || { text: '', reference: '' };
-
-        return {
-          id: pb.id,
-          title: pb.title || 'Untitled Playbook',
-          user_id: pb.user_id || pb.userId || '',
-          userInput: pb.user_input ?? pb.userInput ?? '',
-          truthInLove,
-          actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
-          affirmations: Array.isArray(pb.daily_affirmations)
-            ? pb.daily_affirmations
-            : (Array.isArray(pb.affirmations) ? pb.affirmations : []),
-          bibleVerse,
-          directChallenge,
-          challengeCta: pb.challenge_cta ?? pb.challengeCta ?? '',
-          profileImage: pb.profile_image ?? pb.profileImage,
-          progress: pb.progress ?? 0,
-          totalTasks: pb.total_tasks ?? pb.totalTasks ?? 0,
-          createdAt: pb.created_at ?? pb.createdAt,
-          updatedAt: pb.updated_at ?? pb.updatedAt,
-        };
-      });
-
-      setPlaybooks(normalized);
-
-      // Initialize animations after state is updated
-      if (normalized.length > 0) {
-        initAnimations(normalized.length);
-      }
-    } catch (error) {
-      console.error('Error loading playbooks:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userId]);
-
-  // Load playbooks on mount and when userId changes
+  // Ensure playbooks are loaded when userId changes
   useEffect(() => {
-    loadPlaybooks();
+    if (userId) {
+      loadPlaybooks(userId);
+    }
+  }, [userId, loadPlaybooks]);
 
-    const unsubscribe = navigation.addListener('focus', loadPlaybooks);
-    return unsubscribe;
-  }, [loadPlaybooks, navigation]);
-
-  // Group playbooks by month/year
-  const groupPlaybooksByMonth = useCallback((playbooksList: Playbook[]) => {
-    const groups: { [key: string]: Playbook[] } = {};
-
-    playbooksList.forEach((pb) => {
-      try {
-        // Ensure createdAt exists and is a valid date string
-        if (!pb.createdAt) {
-          return;
-        }
-
-        const date = new Date(pb.createdAt);
-        if (isNaN(date.getTime())) {
-          return; // Skip invalid dates
-        }
-
-        const key = formatDate(date);
-        if (!groups[key]) {groups[key] = [];}
-        groups[key].push(pb);
-      } catch (error) {
-        console.warn('Error processing playbook date:', pb.id, error);
+  // Filter and sort playbooks by completion status (optimized)
+  const filteredPlaybooks = useMemo(() => {
+    try {
+      // Early return for empty playbooks
+      if (!Array.isArray(playbooks) || playbooks.length === 0) {
+        return [];
       }
-    });
 
-    // Sort months descending (most recent first)
-    return Object.entries(groups)
-      .sort((a, b) => {
-        try {
-          const dateA = new Date(a[1][0].createdAt || 0);
-          const dateB = new Date(b[1][0].createdAt || 0);
-          return dateB.getTime() - dateA.getTime();
-        } catch (error) {
-          return 0;
-        }
-      })
-      .map(([title, data]) => ({
-        title,
-        data: data.sort((a, b) => {
-          try {
-            const dateA = new Date(a.createdAt || 0);
-            const dateB = new Date(b.createdAt || 0);
-            return dateB.getTime() - dateA.getTime();
-          } catch (error) {
-            return 0;
+      // Process in chunks to avoid blocking the JS thread
+      const chunkSize = 50;
+      let result: Playbook[] = [];
+      
+      // Process filtering in chunks
+      for (let i = 0; i < playbooks.length; i += chunkSize) {
+        const chunk = playbooks.slice(i, i + chunkSize);
+        
+        const filteredChunk = chunk.filter((playbook) => {
+          if (!playbook?.actionSteps) return false;
+          
+          const { completed, total } = calculateTaskStats(playbook.actionSteps);
+          const allStepsCompleted = total > 0 && completed === total;
+          const completedAt = playbook.completedAt ? new Date(playbook.completedAt).getTime() : 0;
+          const hasValidCompletedAt = !isNaN(completedAt);
+          
+          switch (filter) {
+            case 'all':
+              return true;
+            case 'ongoing':
+              return !allStepsCompleted || !hasValidCompletedAt;
+            case 'completed':
+              return allStepsCompleted && hasValidCompletedAt;
+            default:
+              return false;
           }
-        }),
-      }));
+        });
+        
+        result = [...result, ...filteredChunk];
+      }
+      
+      // Sort based on filter
+      if (filter === 'completed') {
+        console.log('Sorting completed playbooks...');
+        
+        // Log all playbooks with their dates before sorting
+        result.forEach(pb => {
+          console.log(`Playbook: ${pb.title}`);
+          console.log(`- completedAt: ${pb.completedAt}`);
+          console.log(`- updatedAt: ${pb.updatedAt}`);
+          console.log(`- createdAt: ${pb.createdAt}`);
+        });
+        
+        result.sort((a, b) => {
+          // For completed playbooks, sort by completedAt in descending order (newest first)
+          // If completedAt is not available, fall back to updatedAt or createdAt
+          const getSortableDate = (pb: Playbook) => {
+            if (pb.completedAt) {
+              const date = new Date(pb.completedAt).getTime();
+              if (!isNaN(date)) return { date, priority: 1, source: 'completedAt' };
+            }
+            if (pb.updatedAt) {
+              const date = new Date(pb.updatedAt).getTime();
+              if (!isNaN(date)) return { date, priority: 2, source: 'updatedAt' };
+            }
+            if (pb.createdAt) {
+              const date = new Date(pb.createdAt).getTime();
+              if (!isNaN(date)) return { date, priority: 3, source: 'createdAt' };
+            }
+            return { date: 0, priority: 4, source: 'none' };
+          };
+          
+          const dateA = getSortableDate(a);
+          const dateB = getSortableDate(b);
+          
+          // Log comparison for debugging
+          console.log(`Comparing: ${a.title} (${new Date(dateA.date).toISOString()}, ${dateA.source}) vs ${b.title} (${new Date(dateB.date).toISOString()}, ${dateB.source})`);
+          
+          // First sort by date in descending order (newest first)
+          if (dateA.date !== dateB.date) {
+            return dateB.date - dateA.date;
+          }
+          
+          // If dates are equal, sort by priority (prefer completedAt over updatedAt over createdAt)
+          return dateA.priority - dateB.priority;
+        });
+        
+        // Log the final order after sorting
+        console.log('Final order after sorting:');
+        result.forEach((pb, index) => {
+          console.log(`${index + 1}. ${pb.title} (${pb.completedAt || 'no completedAt'})`);
+        });
+      } else if (filter === 'ongoing') {
+        result.sort((a, b) => {
+          const getSortableDate = (pb: Playbook) => {
+            if (pb.updatedAt) {
+              const updatedAt = new Date(pb.updatedAt).getTime();
+              if (!isNaN(updatedAt)) return updatedAt;
+            }
+            if (pb.createdAt) {
+              const createdAt = new Date(pb.createdAt).getTime();
+              if (!isNaN(createdAt)) return createdAt;
+            }
+            return 0;
+          };
+          
+          return getSortableDate(b) - getSortableDate(a);
+        });
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error('Error filtering playbooks:', error);
+      return [];
+    }
+  }, [playbooks, filter]);
+
+  // (Remove any other filteredPlaybooks declarations below this point)
+
+  // Group playbooks by month/year (optimized)
+  const groupPlaybooksByMonth = useCallback((playbooksList: Playbook[] = []) => {
+    try {
+      const groups: { [key: string]: Playbook[] } = {};
+      
+      // Early return for empty or invalid input
+      if (!Array.isArray(playbooksList) || playbooksList.length === 0) {
+        return [];
+      }
+
+      // Process playbooks in chunks to avoid blocking
+      const chunkSize = 50;
+      for (let i = 0; i < playbooksList.length; i += chunkSize) {
+        const chunk = playbooksList.slice(i, i + chunkSize);
+        
+        for (const pb of chunk) {
+          // Skip invalid items
+          if (!pb?.createdAt) continue;
+          
+          const date = new Date(pb.createdAt);
+          if (isNaN(date.getTime())) continue;
+          
+          const key = formatDate(date);
+          if (!groups[key]) {
+            groups[key] = [];
+          }
+          groups[key].push(pb);
+        }
+      }
+
+      // Process in smaller chunks to avoid blocking
+      return Object.entries(groups)
+        .map(([title, data]) => ({
+          title,
+          data: [...data].sort((a, b) => {
+            // For completed filter, sort by completedAt, otherwise use createdAt
+            const aDate = filter === 'completed' ? (a.completedAt || a.updatedAt || a.createdAt) : a.createdAt;
+            const bDate = filter === 'completed' ? (b.completedAt || b.updatedAt || b.createdAt) : b.createdAt;
+            return new Date(bDate || 0).getTime() - new Date(aDate || 0).getTime();
+          })
+        }))
+        .sort((a, b) => {
+          // Sort sections by the first item's date
+          const aFirst = a.data[0];
+          const bFirst = b.data[0];
+          const aDate = filter === 'completed' ? (aFirst?.completedAt || aFirst?.updatedAt || aFirst?.createdAt) : aFirst?.createdAt;
+          const bDate = filter === 'completed' ? (bFirst?.completedAt || bFirst?.updatedAt || bFirst?.createdAt) : bFirst?.createdAt;
+          return new Date(bDate || 0).getTime() - new Date(aDate || 0).getTime();
+        });
+    } catch (error) {
+      console.error('Error in groupPlaybooksByMonth:', error);
+      return [];
+    }
   }, []);
 
-  // Filter playbooks by completion status
-  const filteredPlaybooks = playbooks.filter((playbook: Playbook) => {
-    if (filter === 'all') {
-      return true;
-    }
-    const progress = calculateProgress(playbook);
-    if (filter === 'ongoing') {
-      return progress < 1; // Include both not-started (0%) and in-progress (1-99%)
-    }
-    if (filter === 'completed') {
-      return progress === 1;
-    }
-    return false;
-  });
-
-  const sections = useMemo(() => groupPlaybooksByMonth(filteredPlaybooks), [filteredPlaybooks, groupPlaybooksByMonth]);
+  const sections = useMemo(() => {
+    // Ensure filteredPlaybooks is an array before passing to groupPlaybooksByMonth
+    const safeFilteredPlaybooks = Array.isArray(filteredPlaybooks) ? filteredPlaybooks : [];
+    return groupPlaybooksByMonth(safeFilteredPlaybooks);
+  }, [filteredPlaybooks, groupPlaybooksByMonth]);
 
   const handleDelete = async (id: string) => {
     if (!userId) {
@@ -274,26 +391,18 @@ setTimeout(() => {
           style: 'destructive',
           onPress: async () => {
             try {
-              // Optimistically update local state for immediate UI feedback
-              setPlaybooks(prev => prev.filter(playbook => playbook.id !== id));
-              // Delete from Supabase and AsyncStorage (background)
-              deletePlaybook(id, userId)
-                .then(() => {
-                  // Remove the deleted playbook from the list
-                  setPlaybooks(prev => prev.filter(pb => pb.id !== id));
-                })
+              removePlaybook(id); // Optimistically update UI
+              await deletePlaybook(id, userId)
                 .catch(async (error) => {
                   console.error('Error deleting playbook:', error);
                   // If there was an error, reload the playbooks to restore the correct state
-                  const reloadedPlaybooks = await getPlaybooks(userId);
-                  setPlaybooks(reloadedPlaybooks);
+                  await loadPlaybooks(userId);
                   Alert.alert('Error', 'Failed to delete playbook. Please try again.');
                 });
             } catch (error) {
               console.error('Error deleting playbook:', error);
               // If there was an error, reload the playbooks to restore the correct state
-              const reloadedPlaybooks = await getPlaybooks(userId);
-              setPlaybooks(reloadedPlaybooks);
+              await loadPlaybooks(userId);
               Alert.alert('Error', 'Failed to delete playbook. Please try again.');
             }
           },
@@ -308,17 +417,25 @@ setTimeout(() => {
   }, [navigation]);
 
   const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
+    // Safety check for item
+    if (!item || typeof item !== 'object') {
+      console.warn('Invalid item in renderItem:', item);
+      return null;
+    }
+
     // Ensure a persistent ref for each row
-    if (!rowRefs.current[item.id]) {
+    if (item.id && !rowRefs.current[item.id]) {
       rowRefs.current[item.id] = createRef();
     }
 
-    const translateY = animatedValues.current[index]?.interpolate({
+    // Safely handle cases where animatedValues.current might not be initialized yet
+    const currentAnimatedValue = Array.isArray(animatedValues.current) ? animatedValues.current[index] : null;
+    const translateY = currentAnimatedValue?.interpolate?.({
       inputRange: [0, 1],
       outputRange: [50, 0],
-    });
+    }) || new Animated.Value(0);
 
-    const opacity = animatedValues.current[index] || 0;
+    const opacity = currentAnimatedValue || 0;
 
     return (
       <Animated.View
@@ -385,7 +502,9 @@ setTimeout(() => {
             title="Refresh"
             onPress={() => {
               // Force reload playbooks
-              loadPlaybooks();
+              if (userId) {
+      loadPlaybooks(userId);
+    }
             }}
           />
         </View>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { updatePlaybookActionSteps } from '../services/supabaseApi';
+import { updatePlaybookActionSteps, calculateTaskStats } from '../services/supabaseApi';
+import { usePlaybookStore } from '../store/usePlaybookStore';
 
 export type SubTask = {
   id: string;
@@ -79,6 +80,21 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
     };
   };
 
+  // Helper to determine if all steps/subtasks are completed
+  function areAllStepsCompleted(steps: ActionStep[]): boolean {
+    let total = 0, completed = 0;
+    steps.forEach(step => {
+      if (step.subTasks && step.subTasks.length > 0) {
+        total += step.subTasks.length;
+        completed += step.subTasks.filter(st => st.completed).length;
+      } else {
+        total++;
+        if (step.completed) completed++;
+      }
+    });
+    return total > 0 && completed === total;
+  }
+
   const handleToggleStep = (stepId: string, subTaskId?: string) => {
     console.log('[DEBUG] handleToggleStep called with:', { stepId, subTaskId });
 
@@ -147,26 +163,56 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
       // Create a new array to trigger re-render
       const updated = [...prevCopy];
 
-      console.log('[DEBUG] Steps after update:', JSON.stringify(updated, null, 2));
-
-      // Verify the state is actually different
-      const stateChanged = JSON.stringify(prev) !== JSON.stringify(updated);
-      console.log('[DEBUG] State changed?', stateChanged);
-
-      if (!stateChanged) {
-        console.warn('[WARNING] State did not change after toggle!');
-      }
+      // --- COMPLETED AT LOGIC ---
+      // If this context is used for a playbook, and the parent playbook object is available,
+      // update its completedAt property in the save function (see below).
+      // Here, we just ensure the steps state is up to date.
 
       return updated;
     });
   };
 
   // Function to save action steps to the database
+  // Accepts a playbookId and updates completedAt based on current state
   const saveActionSteps = useCallback(async (playbookId: string) => {
     try {
-      console.log('[ActionStepsContext] Saving action steps for playbook:', playbookId);
-      await updatePlaybookActionSteps(playbookId, actionSteps);
-      console.log('[ActionStepsContext] Successfully saved action steps');
+      if (!playbookId) {
+        console.warn('[ActionStepsContext] No playbookId provided to saveActionSteps!');
+        return;
+      }
+      // Find the playbook in Zustand store
+      const store = usePlaybookStore.getState();
+      const playbook = store.playbooks.find(pb => pb.id === playbookId);
+      if (!playbook) {
+        console.warn('[ActionStepsContext] Could not find playbook in Zustand store for id:', playbookId);
+        return;
+      }
+      // Determine if all steps are completed
+      const allCompleted = areAllStepsCompleted(actionSteps);
+      // Update completedAt accordingly
+      let completedAt: string | null = null;
+      if (allCompleted) {
+        completedAt = new Date().toISOString();
+        console.log('[ActionStepsContext] All steps completed. Setting completedAt:', completedAt);
+      } else {
+        completedAt = null;
+        console.log('[ActionStepsContext] Not all steps completed. Clearing completedAt.');
+      }
+      // Save to API (and local)
+      await updatePlaybookActionSteps(playbookId, actionSteps, completedAt);
+      // --- Sync to Zustand global store ---
+      // Calculate completed/total and progress for UI
+      const { completed, total } = calculateTaskStats(actionSteps);
+      const progress = total > 0 ? completed / total : 0;
+      store.updatePlaybook({
+        ...playbook,
+        actionSteps: [...actionSteps],
+        completedAt,
+        progress,
+        totalTasks: total,
+        updatedAt: new Date().toISOString(),
+      });
+      console.log('[ActionStepsContext] Successfully saved action steps and updated Zustand store');
     } catch (error) {
       console.error('[ActionStepsContext] Error saving action steps:', error);
       throw error;

@@ -1,4 +1,7 @@
+import { Alert, AppState, AppStateStatus, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import 'react-native-url-polyfill/auto';
+import { Playbook } from '../interfaces/playbook';
 
 // Supabase project details
 const SUPABASE_URL = 'https://aesmrjinczhknchlrsmt.supabase.co';
@@ -263,25 +266,122 @@ function isValidUUID(uuid: string | undefined): boolean {
  * @param actionSteps - The updated action steps to save
  * @returns Promise that resolves with success status
  */
-export async function updatePlaybookActionSteps(playbookId: string | undefined, actionSteps: any[]) {
+// Calculate completed/total tasks for action steps
+export function calculateTaskStats(actionSteps: any[]) {
+  let completed = 0;
+  let total = 0;
+  actionSteps?.forEach((step: any) => {
+    total++;
+    if (step.completed) completed++;
+    if (Array.isArray(step.subtasks)) {
+      step.subtasks.forEach((sub: any) => {
+        total++;
+        if (sub.completed) completed++;
+      });
+    }
+  });
+  return { completed, total };
+}
+
+// Update a playbook's action steps and completedAt
+// Only include fields that we know exist in the Supabase schema
+interface SupabasePlaybookUpdate {
+  action_steps?: any[];
+  progress?: number;
+  total_tasks?: number;
+  updated_at?: string;
+  completed_at?: string | null;
+}
+
+export async function savePlaybook(playbook: Playbook, userId: string) {
+  try {
+    console.log('[savePlaybook] Saving playbook:', playbook.id);
+    if (!playbook.id) {
+      console.error('[savePlaybook] Cannot save playbook without ID');
+      return null;
+    }
+    
+    // Save to AsyncStorage
+    const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
+    const playbooks = stored ? JSON.parse(stored) : [];
+    const existingIndex = playbooks.findIndex((p: any) => p.id === playbook.id);
+    
+    if (existingIndex >= 0) {
+      playbooks[existingIndex] = playbook;
+    } else {
+      playbooks.push(playbook);
+    }
+    
+    await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
+    
+    // If online, save to Supabase
+    if (isValidUUID(playbook.id)) {
+      // Convert to snake_case for Supabase
+      const { actionSteps, totalTasks, updatedAt, completedAt, ...rest } = playbook;
+      const supabaseData = {
+        ...rest,
+        action_steps: actionSteps,
+        total_tasks: totalTasks,
+        updated_at: updatedAt,
+        completed_at: completedAt,
+        user_id: userId
+      };
+      
+      await updateRow('playbooks', playbook.id, supabaseData);
+    }
+    
+    return playbook;
+  } catch (error) {
+    console.error('[savePlaybook] Error saving playbook:', error);
+    return null;
+  }
+}
+
+export async function updatePlaybookActionSteps(playbookId: string | undefined, actionSteps: any[], completedAt?: string | null) {
+  console.log('[updatePlaybookActionSteps] Saving for playbook:', playbookId, actionSteps, completedAt);
   if (!playbookId) {
     console.debug('[updatePlaybookActionSteps] No playbookId provided, skipping update');
     return { success: false, error: 'No playbook ID provided' };
   }
 
   try {
+    // Calculate progress and total tasks
+    const { completed, total } = calculateTaskStats(actionSteps);
+    const progress = total > 0 ? (completed / total) * 100 : 0; // Convert to percentage
+    const allStepsCompleted = total > 0 && completed === total;
+    const now = new Date().toISOString();
+
+    // Prepare update data for Supabase and local storage
+    // Only include the most essential fields that we know exist in Supabase
+    const updateData: SupabasePlaybookUpdate = {
+      action_steps: actionSteps,
+      progress,
+      total_tasks: total,
+      updated_at: now,
+      ...(allStepsCompleted && { completed_at: now })
+    };
+    
+    // Local data includes both snake_case and camelCase for compatibility
+    const localUpdateData = {
+      ...updateData,
+      actionSteps,
+      totalTasks: total,
+      updatedAt: now,
+      completedAt: allStepsCompleted ? now : null,
+      status: allStepsCompleted ? 'completed' : 'inProgress',
+    };
+
     // Only try to update in Supabase if we have a valid UUID
     const isUuid = isValidUUID(playbookId);
-
     if (isUuid) {
       try {
-        await updateRow('playbooks', playbookId, {
-          action_steps: actionSteps,
-          updated_at: new Date().toISOString(),
-        });
+        // updateData already has the correct snake_case fields for Supabase
+        console.log(`[updatePlaybookActionSteps] Updating Supabase for playbook ${playbookId}`, updateData);
+        await updateRow('playbooks', playbookId, updateData);
+        console.log('[updatePlaybookActionSteps] Supabase update successful');
       } catch (error) {
-        // Silently fall back to local storage on Supabase error
-        console.debug('[updatePlaybookActionSteps] Supabase update failed, using local storage only');
+        console.error('[updatePlaybookActionSteps] Supabase update failed:', error);
+        // Continue to update local storage even if Supabase fails
       }
     }
 
@@ -289,15 +389,19 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
     try {
       const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
       const playbooks = stored ? JSON.parse(stored) : [];
-
-      // Update the specific playbook's action steps
-      const updatedPlaybooks = playbooks.map((pb: any) =>
-        pb.id === playbookId ? { ...pb, action_steps: actionSteps, updated_at: new Date().toISOString() } : pb
-      );
-
+      const updatedPlaybooks = playbooks.map((pb: any) => {
+        if (pb.id !== playbookId) return pb;
+        return {
+          ...pb,
+          ...localUpdateData,
+          action_steps: actionSteps,
+          total_tasks: total,
+          updated_at: now,
+          completed_at: allStepsCompleted ? now : null,
+        };
+      });
       await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
-      console.log(`[updatePlaybookActionSteps] Updated local storage for playbook ${playbookId}`);
-
+      console.log('[updatePlaybookActionSteps] AsyncStorage updated:', updatedPlaybooks);
       return { success: true };
     } catch (storageError) {
       console.error('[updatePlaybookActionSteps] Error updating local storage:', storageError);
@@ -309,56 +413,7 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
   }
 }
 
-export async function savePlaybook(playbook: any, userId: string) {
-  console.log('[savePlaybook] userId:', userId);
-  console.log('[savePlaybook] playbook:', playbook);
-
-  // 1. Save to Supabase
-  let supabasePlaybook;
-  try {
-    // Map camelCase to snake_case and only send fields present in the DB schema
-    // Ensure NOT NULL columns are always set with defaults
-    const playbookForSupabase: Record<string, any> = {
-      // Only include ID if it's a valid UUID
-      ...(playbook.id && isValidUUID(playbook.id) ? { id: playbook.id } : {}),
-      title: playbook.title,
-      user_input: playbook.userInput,
-      truth_in_love: playbook.truthInLove ?? {},
-      action_steps: playbook.actionSteps ?? [],
-      daily_affirmations: playbook.affirmations ?? [],
-      bible_verse: playbook.bibleVerse ?? {},
-      direct_challenge: playbook.directChallenge,
-      created_at: playbook.createdAt,
-      updated_at: playbook.updatedAt,
-      user_id: userId,
-      progress: playbook.progress,
-      total_tasks: playbook.totalTasks,
-      challenge_cta: playbook.challengeCTA,
-      profile_image: playbook.profileImage,
-    };
-
-    // Remove undefined fields
-    Object.keys(playbookForSupabase).forEach(
-      (key) => playbookForSupabase[key] === undefined && delete playbookForSupabase[key]
-    );
-
-    const [inserted] = await insertRow('playbooks', playbookForSupabase);
-    supabasePlaybook = inserted;
-    console.log('[savePlaybook] Saved to Supabase:', inserted);
-  } catch (error: unknown) {
-    console.error('[savePlaybook] Supabase save error:', error);
-  }
-  // 2. Save to AsyncStorage (always)
-  try {
-    const existing = await AsyncStorage.getItem(PLAYBOOKS_KEY);
-    let playbooks = existing ? JSON.parse(existing) : [];
-    playbooks.unshift(supabasePlaybook || { ...playbook, user_id: userId });
-    await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
-    console.log('[savePlaybook] Saved to AsyncStorage. Total:', playbooks.length);
-  } catch (error: unknown) {
-    console.error('[savePlaybook] AsyncStorage save error:', error);
-  }
-}
+// ...
 
 /**
  * Get playbooks for a user: tries to fetch from Supabase first, falls back to AsyncStorage if needed.
@@ -366,8 +421,52 @@ export async function savePlaybook(playbook: any, userId: string) {
  * @returns Playbook array
  */
 export async function getPlaybooks(userId: string) {
-  console.log('[getPlaybooks] userId:', userId);
-  let playbooks = [];
+  console.log('[getPlaybooks] Fetching for user:', userId);
+  let remotePlaybooks: any[] = [];
+  let localPlaybooks: any[] = [];
+  let mergedPlaybooks: any[] = [];
+
+  // Helper to normalize playbook data structure
+  const normalizePlaybook = (pb: any): any => {
+    // If it's already in camelCase (from local storage or already normalized)
+    if (pb.actionSteps || pb.action_steps) {
+      return {
+        ...pb,
+        // Ensure we have both camelCase and snake_case versions of all fields
+        id: pb.id,
+        title: pb.title,
+        userInput: pb.userInput || pb.user_input,
+        user_input: pb.userInput || pb.user_input,
+        truthInLove: pb.truthInLove || pb.truth_in_love || {},
+        truth_in_love: pb.truthInLove || pb.truth_in_love || {},
+        actionSteps: pb.actionSteps || pb.action_steps || [],
+        action_steps: pb.actionSteps || pb.action_steps || [],
+        affirmations: pb.affirmations || pb.daily_affirmations || [],
+        daily_affirmations: pb.affirmations || pb.daily_affirmations || [],
+        bibleVerse: pb.bibleVerse || pb.bible_verse || {},
+        bible_verse: pb.bibleVerse || pb.bible_verse || {},
+        directChallenge: pb.directChallenge || pb.direct_challenge,
+        direct_challenge: pb.directChallenge || pb.direct_challenge,
+        createdAt: pb.createdAt || pb.created_at || new Date().toISOString(),
+        created_at: pb.createdAt || pb.created_at || new Date().toISOString(),
+        updatedAt: pb.updatedAt || pb.updated_at || new Date().toISOString(),
+        updated_at: pb.updatedAt || pb.updated_at || new Date().toISOString(),
+        userId: pb.userId || pb.user_id || userId,
+        user_id: pb.userId || pb.user_id || userId,
+        progress: pb.progress || 0,
+        totalTasks: pb.totalTasks || pb.total_tasks || 0,
+        total_tasks: pb.totalTasks || pb.total_tasks || 0,
+        challengeCTA: pb.challengeCTA || pb.challenge_cta,
+        challenge_cta: pb.challengeCTA || pb.challenge_cta,
+        profileImage: pb.profileImage || pb.profile_image,
+        profile_image: pb.profileImage || pb.profile_image,
+        completedAt: pb.completedAt || pb.completed_at || null,
+        completed_at: pb.completedAt || pb.completed_at || null,
+        status: pb.status || (pb.completedAt || pb.completed_at ? 'completed' : 'inProgress')
+      };
+    }
+    return pb; // Return as-is if no action steps
+  };
 
   // 1. Try to fetch from Supabase first
   try {
@@ -381,13 +480,15 @@ export async function getPlaybooks(userId: string) {
     );
 
     if (response.ok) {
-      playbooks = await response.json();
-      // Update local storage with fresh data
-      await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
-      console.log('[getPlaybooks] Successfully fetched from Supabase. Count:', playbooks.length);
-      return playbooks;
+      const remoteData = await response.json();
+      remotePlaybooks = remoteData.map(normalizePlaybook);
+      console.log('[getPlaybooks] Remote playbooks:', remotePlaybooks);
+      console.log('[getPlaybooks] Remote playbooks progress:', remotePlaybooks.map(pb => pb.progress));
+      console.log('[getPlaybooks] Remote playbooks status:', remotePlaybooks.map(pb => pb.status));
+      console.log('[getPlaybooks] Remote playbooks updatedAt:', remotePlaybooks.map(pb => pb.updatedAt));
+    } else {
+      throw new Error(await response.text());
     }
-    throw new Error(await response.text());
   } catch (error: unknown) {
     console.error('[getPlaybooks] Error fetching from Supabase:', error);
     // If there's an auth error, clear the session
@@ -396,18 +497,28 @@ export async function getPlaybooks(userId: string) {
       await clearSession();
       // You might want to trigger a re-login flow here
     }
-
-    // 2. Fall back to local storage if Supabase fails
-    try {
-      const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
-      playbooks = stored ? JSON.parse(stored) : [];
-      console.log('[getPlaybooks] Falling back to AsyncStorage. Count:', playbooks.length);
-    } catch (storageError: unknown) {
-      console.error('[getPlaybooks] AsyncStorage get error:', storageError);
-    }
   }
 
-  return playbooks;
+  // 2. Always get local playbooks as fallback or for merging
+  try {
+    const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
+    localPlaybooks = stored ? JSON.parse(stored).map(normalizePlaybook) : [];
+    console.log('[getPlaybooks] Local playbooks:', localPlaybooks);
+    console.log('[getPlaybooks] Local playbooks progress:', localPlaybooks.map(pb => pb.progress));
+    console.log('[getPlaybooks] Local playbooks status:', localPlaybooks.map(pb => pb.status));
+    console.log('[getPlaybooks] Local playbooks updatedAt:', localPlaybooks.map(pb => pb.updatedAt));
+  } catch (error) {
+    console.error('[getPlaybooks] AsyncStorage get error:', error);
+    // If local storage fails but we have remote, return remote
+    if (remotePlaybooks.length > 0) {
+      return remotePlaybooks;
+    }
+    // If both fail, return empty array
+    return [];
+  }
+
+  // If all else fails, return an empty array
+  return [];
 }
 
 
@@ -415,25 +526,66 @@ export async function getPlaybooks(userId: string) {
  * Delete a playbook from both Supabase and AsyncStorage.
  * @param id - Playbook id
  * @param _userId - User's unique ID (unused parameter)
+ * @returns Promise that resolves when the deletion is complete
  */
-export async function deletePlaybook(id: string, _userId: string) {
-  // 1. Delete from Supabase if we have a valid UUID
-  if (id && isValidUUID(id)) {
-    try {
-      await deleteRow('playbooks', id);
-    } catch (error: unknown) {
-      console.error('[deletePlaybook] Supabase delete error:', error);
-    }
+export async function deletePlaybook(id: string, _userId: string): Promise<{ success: boolean; error?: string }> {
+  if (!id) {
+    console.error('[deletePlaybook] No playbook ID provided');
+    return { success: false, error: 'No playbook ID provided' };
   }
+
+  console.log(`[deletePlaybook] Deleting playbook ${id}`);
+  let supabaseSuccess = false;
+  let localSuccess = false;
+
+  // 1. Delete from Supabase if we have a valid UUID
+  if (isValidUUID(id)) {
+    try {
+      console.log(`[deletePlaybook] Deleting from Supabase: ${id}`);
+      await deleteRow('playbooks', id);
+      supabaseSuccess = true;
+      console.log(`[deletePlaybook] Successfully deleted from Supabase: ${id}`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`[deletePlaybook] Error deleting from Supabase (${id}):`, errorMessage);
+      // Continue with local deletion even if Supabase fails
+    }
+  } else {
+    console.log(`[deletePlaybook] Skipping Supabase delete for non-UUID ID: ${id}`);
+  }
+
   // 2. Delete from AsyncStorage
   try {
+    console.log(`[deletePlaybook] Deleting from AsyncStorage: ${id}`);
     const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
-    let playbooks = stored ? JSON.parse(stored) : [];
-    playbooks = playbooks.filter((pb: any) => pb.id !== id);
-    await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
+    if (stored) {
+      const playbooks = JSON.parse(stored);
+      const initialCount = playbooks.length;
+      const updatedPlaybooks = playbooks.filter((pb: any) => pb.id !== id);
+      
+      if (updatedPlaybooks.length < initialCount) {
+        await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
+        console.log(`[deletePlaybook] Successfully deleted from AsyncStorage: ${id}`);
+        localSuccess = true;
+      } else {
+        console.log(`[deletePlaybook] Playbook not found in AsyncStorage: ${id}`);
+      }
+    } else {
+      console.log('[deletePlaybook] No playbooks found in AsyncStorage');
+    }
   } catch (error: unknown) {
-    console.error('[deletePlaybook] AsyncStorage delete error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(`[deletePlaybook] Error deleting from AsyncStorage (${id}):`, errorMessage);
+    return { success: false, error: `Local deletion failed: ${errorMessage}` };
   }
+
+  // If we tried to delete from Supabase but failed, but local deletion succeeded
+  if (!supabaseSuccess && id && isValidUUID(id)) {
+    console.warn(`[deletePlaybook] Supabase deletion failed for ${id}, but local deletion succeeded`);
+    // You might want to implement a retry mechanism or offline queue here
+  }
+
+  return { success: localSuccess || supabaseSuccess };
 }
 // --- END HYBRID HELPERS ---
 

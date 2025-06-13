@@ -15,6 +15,8 @@ interface PlaybookCardProps extends TouchableOpacityProps {
   showProgressBar?: boolean;
 }
 
+import { calculateTaskStats } from '../screens/PlaybookListScreen';
+
 const PlaybookCard: React.FC<PlaybookCardProps> = ({
   playbook,
   onPress,
@@ -27,9 +29,8 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
   ...props
 }) => {
   const formattedDate = format(new Date(playbook.createdAt || ''), 'EEEE, MMM d, yyyy').toUpperCase();
-  const completedSteps = playbook.actionSteps.filter(step => step.completed).length;
-  const totalSteps = playbook.actionSteps.length;
-  const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
+  const { completed, total } = calculateTaskStats(playbook.actionSteps);
+  const progress = total > 0 ? (completed / total) * 100 : 0;
 
   return (
     <TouchableOpacity
@@ -65,7 +66,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
               </View>
               <View style={progressBarStyles.textContainer}>
                 <Text style={progressBarStyles.text}>
-                  {completedSteps}/{totalSteps} tasks
+                  {completed}/{total} tasks
                 </Text>
               </View>
             </View>

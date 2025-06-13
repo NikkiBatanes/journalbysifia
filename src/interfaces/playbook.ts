@@ -29,6 +29,7 @@ export interface Affirmation {
 }
 
 export interface Playbook {
+  completedAt?: string | null; // ISO date string when playbook is completed
   id: string;
   title: string;
   userInput: string;
@@ -44,4 +45,6 @@ export interface Playbook {
   user_id: string; // User ID from Supabase
   createdAt?: string;
   updatedAt?: string;
+  status?: string; // 'inProgress' | 'completed' or undefined for compatibility
 }
+
