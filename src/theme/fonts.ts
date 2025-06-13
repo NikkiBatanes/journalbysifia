@@ -1,4 +1,4 @@
-import { Platform, PlatformIOSStatic } from 'react-native';
+import { Platform } from 'react-native';
 
 // Define font families with fallbacks
 export const Fonts = {
@@ -41,14 +41,8 @@ export const FontWeights = {
 
 // Helper to load fonts
 export const loadAppFonts = async () => {
-  try {
-    // Load any custom fonts here if needed in the future
-    // For now, we're using system fonts and react-native-vector-icons
-    return true;
-  } catch (error) {
-    console.warn('Error loading fonts:', error);
-    return false;
-  }
+  // This is a no-op for now as we're using system fonts
+  return true;
 };
 
 // Default font family for Text components

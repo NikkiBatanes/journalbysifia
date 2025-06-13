@@ -161,7 +161,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     const saveProgress = async () => {
       try {
         setIsSaving(true);
-        await saveActionSteps(playbook.id, playbook.user_id);
+        await saveActionSteps(playbook.id);
       } catch (error) {
         console.error('Error saving progress:', error);
         // Consider showing an error message to the user
