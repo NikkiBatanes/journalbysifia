@@ -32,7 +32,7 @@ import { useActionSteps } from '../context/ActionStepsContext';
 
 // Helper function to clean markdown formatting from text
 const cleanMarkdown = (text: string | undefined): string => {
-  if (!text) return '';
+  if (!text) {return '';}
   // Remove markdown formatting like **bold**, __bold__, *italic*, _italic_, ~~strikethrough~~, etc.
   return text
     .replace(/\*\*|__/g, '') // Remove ** and __ used for bold
@@ -43,20 +43,20 @@ const cleanMarkdown = (text: string | undefined): string => {
 
 // Helper function to normalize subtasks to the expected format
 const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTask[] => {
-  if (!subTasks) return [];
+  if (!subTasks) {return [];}
   return subTasks.map((task, index) => {
     if (typeof task === 'string') {
       return {
         id: stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`,
         text: cleanMarkdown(task),
-        completed: false
+        completed: false,
       };
     }
     // If it's already an object but missing required fields
     return {
       id: task.id || (stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`),
       text: cleanMarkdown(task.text) || cleanMarkdown(task.toString()),
-      completed: Boolean(task.completed)
+      completed: Boolean(task.completed),
     };
   });
 };
@@ -70,43 +70,43 @@ const hasSubTasks = (step: ActionStep): boolean => {
 const processSteps = (steps: ActionStep[]): ActionStep[] => {
   return steps.map(step => ({
     ...step,
-    subTasks: normalizeSubTasks(step.subTasks, step.id) // Pass step ID to generate stable subtask IDs
+    subTasks: normalizeSubTasks(step.subTasks, step.id), // Pass step ID to generate stable subtask IDs
   }));
 };
 
 export default function ActionStepsCard({ steps: propSteps, style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
   // Get steps and handlers from context
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
-  
+
   // Process steps to ensure proper format and clean markdown
   const steps = useMemo(() => {
     // Use propSteps if provided, otherwise use contextSteps
     const rawSteps = (propSteps && propSteps.length > 0) ? propSteps : contextSteps;
-    
-    if (!rawSteps || rawSteps.length === 0) return [];
-    
+
+    if (!rawSteps || rawSteps.length === 0) {return [];}
+
     return processSteps(rawSteps).map(step => ({
       ...step,
       title: cleanMarkdown(step.title),
       description: step.description ? cleanMarkdown(step.description) : undefined,
       subTasks: step.subTasks?.map(subTask => ({
         ...subTask,
-        text: cleanMarkdown(subTask.text)
-      }))
+        text: cleanMarkdown(subTask.text),
+      })),
     }));
   }, [propSteps, contextSteps]);
-  
+
   // Handle sub-task toggle
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
     handleToggleStep(stepId, subTaskId);
   }, [handleToggleStep]);
-  
+
   // Debug log when steps change
   React.useEffect(() => {
     console.log('[ActionStepsCard] Steps updated:', JSON.stringify(steps, null, 2));
   }, [steps]);
-  
+
   // Log initial steps data
   React.useEffect(() => {
     console.log('[DEBUG] ActionStepsCard - Initial steps:', {
@@ -118,20 +118,20 @@ export default function ActionStepsCard({ steps: propSteps, style, textColor, so
         hasSubtasks: hasSubTasks(step),
         subtasksCount: step.subTasks ? step.subTasks.length : 0,
         subtasks: step.subTasks || [],
-        stepRaw: JSON.stringify(step, null, 2)
-      }))
+        stepRaw: JSON.stringify(step, null, 2),
+      })),
     });
-    
+
     steps.forEach((step, index) => {
       console.log(`[DEBUG] Step ${index + 1}: ${step.title}`);
       console.log(`- Has subTasks: ${hasSubTasks(step)}`);
-      console.log(`- subTasks:`, step.subTasks || 'None');
-      console.log(`- Raw step data:`, JSON.stringify(step, null, 2));
+      console.log('- subTasks:', step.subTasks || 'None');
+      console.log('- Raw step data:', JSON.stringify(step, null, 2));
     });
   }, [steps]);
 
   return (
-    <View style={style}> 
+    <View style={style}>
       <View style={styles.headingContainer}>
         <MaterialCommunityIcons
           name="playlist-check"
@@ -145,7 +145,7 @@ export default function ActionStepsCard({ steps: propSteps, style, textColor, so
       <View>
         {steps.length === 0 ? (
           <View style={styles.stepsContainer}>
-            <Text style={[styles.stepTitle, { color: textColor || Colors.hopeWhite, textAlign: 'center', opacity: 0.7 }]}> 
+            <Text style={[styles.stepTitle, { color: textColor || Colors.hopeWhite, textAlign: 'center', opacity: 0.7 }]}>
               No action steps available.
             </Text>
           </View>
@@ -191,8 +191,8 @@ export default function ActionStepsCard({ steps: propSteps, style, textColor, so
                   {subtasks.length > 0 && (
                     <View style={styles.subTasksList}>
                       {subtasks.map((subTask) => (
-                        <TouchableOpacity 
-                          key={subTask.id} 
+                        <TouchableOpacity
+                          key={subTask.id}
                           style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}
                           onPress={() => onToggleSubTask(step.id, subTask.id)}
                           activeOpacity={0.7}
@@ -228,19 +228,19 @@ export default function ActionStepsCard({ steps: propSteps, style, textColor, so
                     <View style={styles.examplesContainer}>
                       <Text style={[
                         styles.examplesTitle,
-                        solidCardBackground && { color: Colors.anchorBlue }
+                        solidCardBackground && { color: Colors.anchorBlue },
                       ]}>
                         {examples.length === 1 ? 'EXAMPLE:' : 'EXAMPLES:'}
                       </Text>
                       {examples.map((example: {id: string, text: string}) => (
-                        <Text 
-                          key={example.id} 
+                        <Text
+                          key={example.id}
                           style={[
-                            styles.exampleText, 
-                            { 
+                            styles.exampleText,
+                            {
                               fontStyle: 'italic',
-                              color: solidCardBackground ? Colors.anchorBlue : styles.exampleText.color
-                            }
+                              color: solidCardBackground ? Colors.anchorBlue : styles.exampleText.color,
+                            },
                           ]}>
                           {cleanMarkdown(example.text)}
                         </Text>

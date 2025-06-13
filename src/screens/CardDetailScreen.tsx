@@ -23,12 +23,12 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     playbook,
     viewMode: initialViewMode = 'stack',
   } = route.params;
-  
+
   // Get the latest progress and task counts from context
   const { getCompletedStepsCount } = useActionSteps();
   const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-  
+
   const parentToggleView = (mode: 'stack' | 'document') => {
     // Update local state
     setViewMode(mode);

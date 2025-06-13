@@ -71,14 +71,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   React.useEffect(() => {
     let isMounted = true;
-    
+
     if (visible) {
       setIsVisible(true);
       // Small delay to ensure content is measured
       setTimeout(() => {
         measureContent();
       }, 10);
-      
+
       // Fade in backdrop and slide up modal
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -90,12 +90,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           toValue: 0,
           useNativeDriver: true,
           damping: 20,
-        })
+        }),
       ]).start();
     } else {
       // Calculate the distance to slide down (full screen height + modal height + some extra)
       const slideDownDistance = Dimensions.get('window').height + 100; // Ensure it goes completely off screen
-      
+
       // Fade out backdrop quickly while sliding down
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -108,7 +108,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           duration: 300, // Slide down duration
           useNativeDriver: true,
           easing: Easing.out(Easing.quad),
-        })
+        }),
       ]).start(({ finished }) => {
         if (finished && isMounted) {
           setIsVisible(false);
@@ -117,7 +117,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }
       });
     }
-    
+
     return () => {
       isMounted = false;
     };
@@ -126,7 +126,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const togglePlaybookInfo = () => {
     const toValue = showPlaybookInfo ? 0 : 1;
     setShowPlaybookInfo(!showPlaybookInfo);
-    
+
     Animated.spring(rotateAnim, {
       toValue,
       useNativeDriver: true,
@@ -138,7 +138,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const handleClose = () => {
     // Calculate the distance to slide down (full screen height + modal height + some extra)
     const slideDownDistance = Dimensions.get('window').height + 100; // Ensure it goes completely off screen
-    
+
     // Fade out backdrop quickly while sliding down
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -151,7 +151,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         duration: 300, // Slide down duration
         useNativeDriver: true,
         easing: Easing.out(Easing.quad),
-      })
+      }),
     ]).start(({ finished }) => {
       if (finished) {
         onClose();
@@ -163,14 +163,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   const rotate = rotateAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '180deg']
+    outputRange: ['0deg', '180deg'],
   });
 
   const getPersonalizedMessage = () => {
     return 'Based on what you\'ve shared, we\'ll craft a devotional tailored to your journey.';
   };
 
-  if (!isVisible && !visible) return null;
+  if (!isVisible && !visible) {return null;}
 
   return (
     <Modal
@@ -180,19 +180,19 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.backdrop,
-            { opacity: fadeAnim }
+            { opacity: fadeAnim },
           ]}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
             onPress={handleClose}
           />
         </Animated.View>
-        <Animated.View 
+        <Animated.View
           ref={contentRef}
           style={[
             styles.modalContainer,
@@ -202,7 +202,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         >
           <View style={styles.headerContainer}>
             <View style={styles.handle} />
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.closeButton}
               onPress={handleClose}
               hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
@@ -210,7 +210,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               <Ionicons name="close" size={24} color={Colors.hopeWhite} />
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.contentWrapper}>
             <View style={styles.fixedContent}>
               <Text style={styles.title}>Create Your Personalized Devotional</Text>
@@ -220,34 +220,34 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.scrollableContent}>
               {playbookInfo && (
                 <View style={styles.playbookInfoContainer}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.playbookInfoHeader}
                     onPress={togglePlaybookInfo}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.playbookInfoLabel}>WHAT YOU SHARED</Text>
                     <Animated.View style={{ transform: [{ rotate }] }}>
-                      <Ionicons 
+                      <Ionicons
                         name="chevron-down"
-                        size={20} 
-                        color={Colors.hopeWhite} 
+                        size={20}
+                        color={Colors.hopeWhite}
                       />
                     </Animated.View>
                   </TouchableOpacity>
-                  
+
                   <View style={[
                     styles.playbookInfoContent,
-                    showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed
+                    showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed,
                   ]}>
                     <Text style={styles.playbookInfoText}>{playbookInfo}</Text>
                   </View>
                 </View>
               )}
-              
+
               <View style={styles.optionsContainer}>
                 <Text style={styles.durationPrompt}>
                   Choose the duration that works best for you

@@ -24,15 +24,15 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
     console.log('Login attempt started for:', email);
 
     try {
-      const { error } = await signIn(email, password);
-      console.log('Login response error:', error);
+      const { error: signInError } = await signIn(email, password);
+      console.log('Login response error:', signInError);
 
-      if (error) {
+      if (signInError) {
         // Handle different types of errors
-        if (error.error_description) {
-          throw new Error(error.error_description);
-        } else if (error.message) {
-          throw new Error(error.message);
+        if (signInError.error_description) {
+          throw new Error(signInError.error_description);
+        } else if (signInError.message) {
+          throw new Error(signInError.message);
         } else if (typeof error === 'string') {
           throw new Error(error);
         } else {

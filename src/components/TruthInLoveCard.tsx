@@ -45,7 +45,7 @@ export default function TruthInLoveCard({
           <Text style={[styles.summary, { color: textColor }]}>{summary}</Text>
         </Text>
       </View>
-      
+
       <View style={[{
         flex: 1,
         minHeight: 0,

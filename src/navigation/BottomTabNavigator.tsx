@@ -42,17 +42,17 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
               onPress={onPress}
               style={[styles.middleTab, isFocused && styles.middleTabActive]}
             >
-              <Ionicons 
-                name="add-circle" 
-                size={36} 
-                color={isFocused ? Colors.hopeWhite : Colors.anchorBlue} 
+              <Ionicons
+                name="add-circle"
+                size={36}
+                color={isFocused ? Colors.hopeWhite : Colors.anchorBlue}
               />
             </TouchableOpacity>
           );
         }
 
-        const iconName = isFocused 
-          ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused 
+        const iconName = isFocused
+          ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
           : TabBarIcons[route.name as keyof typeof TabBarIcons]?.name;
 
         return (
@@ -61,15 +61,15 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
             onPress={onPress}
             style={styles.tab}
           >
-            <Ionicons 
-              name={iconName} 
-              size={24} 
-              color={isFocused ? Colors.anchorBlue : Colors.trustGrey} 
+            <Ionicons
+              name={iconName}
+              size={24}
+              color={isFocused ? Colors.anchorBlue : Colors.trustGrey}
               style={styles.icon}
             />
             <Text style={[
-              styles.label, 
-              { color: isFocused ? Colors.anchorBlue : Colors.trustGrey }
+              styles.label,
+              { color: isFocused ? Colors.anchorBlue : Colors.trustGrey },
             ]}>
               {label}
             </Text>
@@ -131,11 +131,11 @@ export default function BottomTabNavigator({ onLogout }: { onLogout: () => void 
           title: 'Profile',
           headerRight: () => (
             <Text
-              style={{ 
-                fontSize: FontSizes.profileLogout, 
-                color: Colors.dangerRed, 
+              style={{
+                fontSize: FontSizes.profileLogout,
+                color: Colors.dangerRed,
                 marginRight: Spacing.profileLogoutMarginRight,
-                padding: 10
+                padding: 10,
               }}
               onPress={onLogout}
             >

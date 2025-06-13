@@ -90,20 +90,20 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // ...existing hooks
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
   // ...rest of hooks
-  const { 
-    actionSteps, 
-    setActionSteps, 
-    handleToggleStep, 
+  const {
+    actionSteps,
+    setActionSteps,
+    handleToggleStep,
     getCompletedStepsCount,
-    saveActionSteps 
+    saveActionSteps,
   } = useActionSteps();
   const playbook = route.params.playbook;
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Scroll position tracking for compact header
   const scrollY = useRef(new RNAnimated.Value(0)).current;
   const [showCompactHeader, setShowCompactHeader] = useState(false);
-  
+
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -117,7 +117,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
           </TouchableOpacity>
           {showCompactHeader && (
-            <Text 
+            <Text
               style={{
                 fontSize: 18,
                 fontWeight: '800',
@@ -138,7 +138,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const lastScrollY = useRef(0);
   const scrollThreshold = 100; // Pixels to scroll before showing compact header
   const scrollViewRef = useRef<ScrollView>(null);
-  
+
   // Debug: Log the playbook data when it's received
   useEffect(() => {
     console.log('[DEBUG] Playbook data received in PlaybookDetailScreen:', JSON.stringify({
@@ -147,7 +147,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       affirmations: playbook?.affirmations,
       affirmationsCount: playbook?.affirmations?.length,
       hasAffirmations: Array.isArray(playbook?.affirmations) && playbook.affirmations.length > 0,
-      playbookKeys: playbook ? Object.keys(playbook) : []
+      playbookKeys: playbook ? Object.keys(playbook) : [],
     }, null, 2));
   }, [playbook]);
   const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
@@ -156,7 +156,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Save action steps when they change or when navigating away
   useEffect(() => {
     // Don't save if we haven't initialized yet or if we're currently saving
-    if (!isInitialized || isSaving) return;
+    if (!isInitialized || isSaving) {return;}
 
     const saveProgress = async () => {
       try {
@@ -180,7 +180,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   useEffect(() => {
     console.log('[DEBUG] PlaybookDetailScreen - Playbook data structure:', JSON.stringify(playbook, null, 2));
     console.log('[DEBUG] PlaybookDetailScreen - Playbook actionSteps:', JSON.stringify(playbook?.actionSteps, null, 2));
-    
+
     // Log detailed structure of action steps
     if (playbook?.actionSteps) {
       console.log('[DEBUG] PlaybookDetailScreen - Action steps structure:', {
@@ -192,11 +192,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             id: step.id,
             title: step.title,
             subTasksCount: step.subTasks?.length || 0,
-            subTasksSample: step.subTasks?.slice(0, 2) // Show first 2 subtasks for inspection
-          }))
+            subTasksSample: step.subTasks?.slice(0, 2), // Show first 2 subtasks for inspection
+          })),
       });
     }
-    
+
     if (playbook?.actionSteps && !isInitialized) {
       console.log('[DEBUG] Initializing action steps from playbook');
       setActionSteps(playbook.actionSteps);
@@ -215,39 +215,39 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Calculate progress
   const stepsToCalculate = actionSteps.length > 0 ? actionSteps : (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []);
   const { completed, total } = getCompletedStepsCount();
-  
+
   // Ensure we don't show more than 100% progress
   const safeCompleted = Math.min(completed, total);
   const progress = total > 0 ? (safeCompleted / total) * 100 : 0;
-  
+
   // Calculate completed tasks count for display
   const completedTasksCount = safeCompleted;
   const totalTasksCount = total;
-  
+
   // Debug log the progress calculation
-  console.log('[DEBUG] Progress calculation:', { 
-    completed: safeCompleted, 
-    total, 
+  console.log('[DEBUG] Progress calculation:', {
+    completed: safeCompleted,
+    total,
     progress,
     actionStepsCount: actionSteps.length,
     playbookStepsCount: playbook.actionSteps?.length || 0,
     completedTasksCount,
-    totalTasksCount
+    totalTasksCount,
   });
 
   // Handle scroll events for compact header
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const currentScrollY = event.nativeEvent.contentOffset.y;
-    
+
     // Show/hide compact header based on scroll direction and position
     if (currentScrollY > scrollThreshold && currentScrollY > lastScrollY.current) {
       setShowCompactHeader(true);
     } else if (currentScrollY < lastScrollY.current - 10 || currentScrollY <= 0) {
       setShowCompactHeader(false);
     }
-    
+
     lastScrollY.current = currentScrollY;
-    
+
     // Also update the animated value for any other animations
     scrollY.setValue(currentScrollY);
   };
@@ -290,7 +290,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     {
       type: 'action' as const,
-      steps: Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps : 
+      steps: Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
             (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []),
       tappable: false,
     },
@@ -356,7 +356,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerFaded = useSharedValue(false);
   const headerOpacity = useSharedValue(1);
   const headerHeight = useSharedValue(1); // 1 = fully expanded, 0 = fully collapsed
-  
+
   const animatedHeaderStyle = useAnimatedStyle(() => ({
     opacity: headerOpacity.value,
     height: withTiming(headerHeight.value ? 60 : 0, { duration: 250 }),
@@ -377,13 +377,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           // Calculate fade and collapse based on scroll position
           const fadeThreshold = -SWIPE_THRESHOLD / 2;
           const collapseThreshold = -SWIPE_THRESHOLD * 0.8;
-          
+
           if (translateY.value < fadeThreshold) {
             // Start fading and collapsing header
             const fadeProgress = Math.min(1, Math.abs(translateY.value - fadeThreshold) / (SWIPE_THRESHOLD - fadeThreshold));
             headerOpacity.value = withTiming(1 - fadeProgress * 0.8, { duration: 100 });
             headerHeight.value = 1 - fadeProgress * 0.8;
-            
+
             if (translateY.value < collapseThreshold && !headerFaded.value) {
               headerFaded.value = true;
             }
@@ -397,7 +397,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       }
     },
     onEnd: (event, ctx: GestureContext) => {
-      if (isTransitioning.value) return;
+      if (isTransitioning.value) {return;}
 
       const isVerticalSwipe = Math.abs(event.translationY) > Math.abs(event.translationX);
       if (isVerticalSwipe) {
@@ -585,7 +585,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             showTitle={false}
           />
         )}
-        
+
         {/* Compact Header - Only show when scrolled in document view */}
         {showCompactHeader && viewMode === 'document' && (
           <View style={styles.compactHeaderContainer}>
@@ -597,14 +597,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             />
           </View>
         )}
-        
+
         <View style={styles.mainContainer}>
           {viewMode === 'stack' ? (
             renderStackCards()
           ) : (
-            <DocumentCards 
-              playbook={playbook} 
-              actionSteps={actionSteps} 
+            <DocumentCards
+              playbook={playbook}
+              actionSteps={actionSteps}
               styles={styles}
               onScroll={handleScroll}
               scrollEventThrottle={16}
@@ -702,7 +702,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   };
 
   const renderStackCards = () => {
-    if (cardData.length === 0) return null;
+    if (cardData.length === 0) {return null;}
 
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
 
@@ -713,7 +713,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
     const renderCard = (cardIndex: number, stackIndex: number, onToggleView: (mode: 'stack' | 'document') => void) => {
       const card = cardData[cardIndex];
-      if (!card) return null;
+      if (!card) {return null;}
 
       const scaleY = 1 - stackIndex * 0.01;
       const scaleX = 1 - stackIndex * 0.03;
@@ -883,9 +883,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               <View style={styles.affirmationsList}>
                 {Array.isArray(playbook.affirmations) && playbook.affirmations.length > 0 ? (
                   playbook.affirmations
-                    .filter((affirmation): affirmation is Required<Affirmation> => 
-                      affirmation !== undefined && 
-                      affirmation.id !== undefined && 
+                    .filter((affirmation): affirmation is Required<Affirmation> =>
+                      affirmation !== undefined &&
+                      affirmation.id !== undefined &&
                       affirmation.text !== undefined &&
                       affirmation.completed !== undefined
                     )
@@ -940,19 +940,19 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           <SwipeUpIndicator />
         </View>
       )}
-      
+
       <View style={[styles.bottomButtonContainer, showUserInput && styles.bottomButtonExpanded]}>
         {/* Devotional Button - Show if last card reached in either view and not already created */}
         {hasReachedLastCard && !hasCreatedDevotional && (
           <View style={styles.devotionalButtonWrapper}>
-            <DevotionalButton 
+            <DevotionalButton
               onPress={() => setShowDevotionalModal(true)}
               visible={hasReachedLastCard}
             />
           </View>
         )}
       </View>
-      
+
       {/* Devotional Creation Modal */}
       <DevotionalModal
         visible={showDevotionalModal}

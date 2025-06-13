@@ -32,10 +32,10 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
   console.log('[DEBUG] DocumentCards - Received actionSteps:', {
     fromProps: actionSteps,
     fromPlaybook: playbook.actionSteps,
-    hasSubTasks: actionSteps?.some(step => step.subTasks && step.subTasks.length > 0) || 
-                 playbook.actionSteps?.some(step => step.subTasks && step.subTasks.length > 0)
+    hasSubTasks: actionSteps?.some(step => step.subTasks && step.subTasks.length > 0) ||
+                 playbook.actionSteps?.some(step => step.subTasks && step.subTasks.length > 0),
   });
-  
+
   // Log first action step details if available
   const firstStep = actionSteps?.[0] || playbook.actionSteps?.[0];
   if (firstStep) {
@@ -44,10 +44,10 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       title: firstStep.title,
       hasSubTasks: firstStep.subTasks && firstStep.subTasks.length > 0,
       subTasksCount: firstStep.subTasks?.length || 0,
-      subTasks: firstStep.subTasks?.slice(0, 2) // Show first 2 subtasks for inspection
+      subTasks: firstStep.subTasks?.slice(0, 2), // Show first 2 subtasks for inspection
     });
   }
-  
+
   // Challenge card Y position
   const challengeCardY = React.useRef(0);
   const challengeCardHeight = React.useRef(0);
@@ -55,7 +55,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
 
   // Check if challenge card is visible
   const handleScroll = (event: any) => {
-    if (onScroll) onScroll(event);
+    if (onScroll) {onScroll(event);}
     const scrollY = event.nativeEvent.contentOffset.y;
     const visibleHeight = event.nativeEvent.layoutMeasurement.height;
     scrollViewHeight.current = visibleHeight;
@@ -120,7 +120,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         challengeCardHeight.current = event.nativeEvent.layout.height;
       }}
     >
-      <DirectChallengeCard 
+      <DirectChallengeCard
         challenge={
           typeof playbook.directChallenge === 'string'
             ? playbook.directChallenge

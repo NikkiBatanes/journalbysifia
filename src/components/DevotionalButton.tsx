@@ -9,12 +9,12 @@ interface DevotionalButtonProps {
 }
 
 const DevotionalButton: React.FC<DevotionalButtonProps> = ({ onPress, visible }) => {
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.button} 
+      <TouchableOpacity
+        style={styles.button}
         onPress={onPress}
         activeOpacity={0.8}
       >

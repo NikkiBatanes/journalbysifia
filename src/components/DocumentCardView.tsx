@@ -49,15 +49,15 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles }) => 
   }
   if (card.type === 'affirmation') {
     return (
-      <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}> 
+      <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
         <View style={styles.affirmationsHeader}>
           <Text style={styles.affirmationsTitle}>Affirmations</Text>
         </View>
         <View style={styles.affirmationsList}>
           {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
             card.affirmations
-              .filter((affirmation): affirmation is Required<Affirmation> => 
-                affirmation?.id !== undefined && 
+              .filter((affirmation): affirmation is Required<Affirmation> =>
+                affirmation?.id !== undefined &&
                 affirmation?.text !== undefined &&
                 affirmation?.completed !== undefined
               )
@@ -78,11 +78,11 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles }) => 
   }
   if (card.type === 'bible') {
     return (
-      <BibleVerseCard 
+      <BibleVerseCard
         verse={{
           text: card.verse?.text ?? 'No verse text available',
-          reference: card.verse?.reference ?? 'Unknown'
-        }} 
+          reference: card.verse?.reference ?? 'Unknown',
+        }}
       />
     );
   }

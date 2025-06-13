@@ -1,14 +1,13 @@
-import * as React from 'react';
-import { useRef, useCallback, useState, useEffect, useMemo } from 'react';
+import { useRef, useCallback, useState, useEffect, useMemo, createRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   Alert,
   SectionList,
-  Pressable,
   Animated,
+  SafeAreaView,
+  Pressable,
   Button,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -23,7 +22,7 @@ import { getPlaybooks, deletePlaybook } from '../services/supabaseApi';
 import { useUser } from '../context/UserContext';
 
 // Import gesture handler at the top level
-import 'react-native-gesture-handler';
+import 'react-native-gesture-handler'; // This is needed for gesture handling
 
 interface TaskStats {
   completed: number;
@@ -103,7 +102,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   };
 
   // Reset animations and set filter to 'ongoing' when screen comes into focus
-  React.useEffect(() => {
+  useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       // Set filter to 'ongoing' when screen comes into focus
       setFilter('ongoing');
@@ -311,7 +310,7 @@ setTimeout(() => {
   const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
     // Ensure a persistent ref for each row
     if (!rowRefs.current[item.id]) {
-      rowRefs.current[item.id] = React.createRef();
+      rowRefs.current[item.id] = createRef();
     }
 
     const translateY = animatedValues.current[index]?.interpolate({

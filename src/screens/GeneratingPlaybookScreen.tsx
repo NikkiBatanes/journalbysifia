@@ -14,7 +14,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [animationKey, setAnimationKey] = useState(0);
   const animations = useRef<Animated.Value[]>([]);
-  
+
   // Fade in animation when component mounts
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -23,7 +23,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
-  
+
   // Initialize animations for each line
   useEffect(() => {
     animations.current = Array(5).fill(0).map(() => new Animated.Value(0.3));
@@ -31,11 +31,11 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Text fade animation
   const textOpacity = useRef(new Animated.Value(1)).current;
-  
+
   // Start line animations
   useEffect(() => {
     // Line animations
-    const lineAnimations = animations.current.map((anim, index) => 
+    const lineAnimations = animations.current.map((anim, index) =>
       Animated.loop(
         Animated.sequence([
           Animated.delay(index * 100),
@@ -65,7 +65,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           toValue: 1,
           duration: 1500,
           useNativeDriver: true,
-        })
+        }),
       ])
     );
 
@@ -73,7 +73,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     const lineAnimation = Animated.stagger(100, lineAnimations);
     lineAnimation.start();
     textFade.start();
-    
+
     // Cleanup function
     return () => {
       lineAnimation.stop();
@@ -98,10 +98,10 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.container, 
-        { opacity: fadeAnim, transform: [{ scale: fadeAnim }] }
+        styles.container,
+        { opacity: fadeAnim, transform: [{ scale: fadeAnim }] },
       ]}
     >
       <View style={StyleSheet.absoluteFill}>
@@ -116,19 +116,19 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             key={index}
             style={[
               styles.line,
-              { 
+              {
                 opacity: anim,
                 transform: [
                   { scaleX: anim.interpolate({
                     inputRange: [0.3, 1],
-                    outputRange: [0.8, 1.2]
+                    outputRange: [0.8, 1.2],
                   })},
                   { scaleY: anim.interpolate({
                     inputRange: [0.3, 1],
-                    outputRange: [0.8, 1.2]
-                  })}
-                ]
-              }
+                    outputRange: [0.8, 1.2],
+                  })},
+                ],
+              },
             ]}
           />
         ))}
@@ -136,21 +136,21 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       <Animated.Text style={[styles.generatingText, { opacity: textOpacity }]}>
         GENERATING
       </Animated.Text>
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.textContainer, 
-          { 
+          styles.textContainer,
+          {
             opacity: textOpacity.interpolate({
               inputRange: [0.7, 1],
-              outputRange: [0.9, 1]
+              outputRange: [0.9, 1],
             }),
             transform: [{
               scale: textOpacity.interpolate({
                 inputRange: [0.7, 1],
-                outputRange: [0.98, 1.02]
-              })
-            }]
-          }
+                outputRange: [0.98, 1.02],
+              }),
+            }],
+          },
         ]}
       >
         <Animated.Text style={[styles.textLine, { opacity: textOpacity }]}>

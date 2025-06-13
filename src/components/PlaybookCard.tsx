@@ -49,7 +49,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
             </Text>
           </View>
         </View>
-        
+
         {showProgressBar && (
           <View style={progressBarStyles.container}>
             <View style={progressBarStyles.row}>

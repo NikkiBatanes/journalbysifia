@@ -23,7 +23,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     AsyncStorage.getItem(USERNAME_KEY).then((stored) => {
-      if (stored) setNameState(stored);
+      if (stored) {setNameState(stored);}
     });
     // Load id from Supabase session in AsyncStorage
     AsyncStorage.getItem('@supabase_session').then((sessionStr) => {
@@ -77,12 +77,12 @@ const getWebSession = (): SessionData | null => {
 
 export const useUser = () => {
   const context = useContext(UserContext);
-  
+
   // If we already have a name, return the context as is
   if (context.name) {
     return context;
   }
-  
+
   // Try to get email from Supabase session (web only)
   const session = getWebSession();
   if (session?.user?.email) {
@@ -91,7 +91,7 @@ export const useUser = () => {
       return { ...context, name: email.split('@')[0] };
     }
   }
-  
+
   // Return original context if no session found
   return context;
 };

@@ -51,11 +51,11 @@ export async function signIn(email: string, password: string) {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ email, password, client_id: SUPABASE_ANON_KEY, grant_type: 'password' })
+      body: JSON.stringify({ email, password, client_id: SUPABASE_ANON_KEY, grant_type: 'password' }),
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       return { error: data };
     }
@@ -77,11 +77,11 @@ export async function signUp(email: string, password: string) {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_ANON_KEY,
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await response.json();
-    
+
     if (!response.ok) {
       return { error: data };
     }
@@ -118,7 +118,7 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
       refresh_token?: string;
       expires_at?: number;
     };
-    
+
     // Check if token is expired (with 1 minute buffer)
     const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
     const now = Date.now();
@@ -147,7 +147,7 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
           refresh_token?: string;
           expires_in?: number;
         };
-        
+
         // Update session with new tokens
         const updatedSession = {
           ...session,
@@ -155,18 +155,18 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
           refresh_token: newSession.refresh_token || session.refresh_token,
           expires_at: Math.floor(now / 1000) + (newSession.expires_in || 3600),
         };
-        
+
         await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
-        headers['Authorization'] = `Bearer ${updatedSession.access_token}`;
+        headers.Authorization = `Bearer ${updatedSession.access_token}`;
       } catch (error) {
         console.error('[Auth] Token refresh failed:', error);
         await AsyncStorage.removeItem(SESSION_KEY);
         throw new Error('Session expired. Please sign in again.');
       }
     } else if (session.access_token) {
-      headers['Authorization'] = `Bearer ${session.access_token}`;
+      headers.Authorization = `Bearer ${session.access_token}`;
     }
-    
+
     return headers;
   } catch (error) {
     console.error('[Auth] Error in getHeadersWithAuth:', error);
@@ -210,7 +210,7 @@ export async function updateRow(table: string, id: string, data: Record<string, 
   const response = await fetch(url, {
     method: 'PATCH',
     headers: await getHeadersWithAuth(),
-    body: JSON.stringify(data)
+    body: JSON.stringify(data),
   });
   if (!response.ok) {
     throw new Error(await response.text());
@@ -224,7 +224,7 @@ export async function deleteRow(table: string, id: string) {
   const url = getApiUrl(table) + `?id=eq.${id}`;
   const response = await fetch(url, {
     method: 'DELETE',
-    headers: await getHeadersWithAuth()
+    headers: await getHeadersWithAuth(),
   });
   if (!response.ok) {
     const errorText = await response.text();
@@ -256,7 +256,7 @@ export async function updatePlaybookActionSteps(playbookId: string, actionSteps:
       try {
         await updateRow('playbooks', playbookId, {
           action_steps: actionSteps,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
       } catch (error) {
         console.warn('[updatePlaybookActionSteps] Error updating in Supabase, falling back to local storage:', error);
@@ -264,19 +264,19 @@ export async function updatePlaybookActionSteps(playbookId: string, actionSteps:
     } else {
       console.warn('[updatePlaybookActionSteps] No playbookId provided, only saving to local storage');
     }
-    
+
     // Update in AsyncStorage regardless of UUID validity
     const existing = await AsyncStorage.getItem(PLAYBOOKS_KEY);
     if (existing) {
       const playbooks = JSON.parse(existing);
-      const updatedPlaybooks = playbooks.map((pb: any) => 
-        pb.id === playbookId 
-          ? { ...pb, actionSteps, updated_at: new Date().toISOString() } 
+      const updatedPlaybooks = playbooks.map((pb: any) =>
+        pb.id === playbookId
+          ? { ...pb, actionSteps, updated_at: new Date().toISOString() }
           : pb
       );
       await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
     }
-    
+
     return { success: true };
   } catch (error) {
     console.error('[updatePlaybookActionSteps] Error:', error);
@@ -341,7 +341,7 @@ export async function savePlaybook(playbook: any, userId: string) {
 export async function getPlaybooks(userId: string) {
   console.log('[getPlaybooks] userId:', userId);
   let playbooks = [];
-  
+
   // 1. Try to fetch from Supabase first
   try {
     const headers = await getHeadersWithAuth();

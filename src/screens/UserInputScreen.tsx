@@ -1,11 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Image,
   Keyboard,
@@ -14,26 +12,15 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
-  Dimensions,
-  ViewStyle,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
-import { Playbook } from '../interfaces/playbook';
+
 import { useUser } from '../context/UserContext';
 import { generatePlaybook, savePlaybook } from '../services/supabaseApi';
 import { Colors } from '../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-
-const exampleStruggles = [
-  'I struggle with being consistent in my daily devotions',
-  'I feel like my prayers aren\'t being answered',
-  'I\'m having difficulty forgiving someone who hurt me',
-  'I\'m worried about my future and can\'t trust God\'s plan',
-  'I feel disconnected from my church community',
-];
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -41,17 +28,17 @@ type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Ma
 
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  const [_keyboardHeight, _setKeyboardHeight] = useState(0);
+  const [_keyboardVisible, _setKeyboardVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
-  
+
   // Handle keyboard visibility
   useEffect(() => {
     const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-      setKeyboardVisible(true);
+      _setKeyboardVisible(true);
     });
     const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-      setKeyboardVisible(false);
+      _setKeyboardVisible(false);
     });
 
     return () => {
@@ -59,7 +46,7 @@ const UserInputScreen: React.FC = () => {
       hideSubscription.remove();
     };
   }, []);
-  
+
   // Set status bar style
   useEffect(() => {
     // For Android
@@ -67,7 +54,7 @@ const UserInputScreen: React.FC = () => {
       StatusBar.setBackgroundColor(Colors.anchorBlue);
     }
     StatusBar.setBarStyle('light-content');
-    
+
     return () => {
       // Reset status bar style when component unmounts if needed
       if (Platform.OS === 'android') {
@@ -80,33 +67,28 @@ const UserInputScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [placeholderText, setPlaceholderText] = useState('');
   const placeholderIndex = useRef(0);
-  const placeholderTexts = [
-    'help with a tough decision...',
-    'guide you through a struggle...',
-    'provide wisdom for your next step...',
-    'support you in a life transition...',
-    'help you navigate a relationship challenge...',
-    'offer encouragement in difficult times...',
-    'help you discern your purpose...',
-    'guide your spiritual growth...',
-    'help you find peace in uncertainty...',
-    'provide insight for a big decision...',
-  ];
-  
   // Animate placeholder text
   useEffect(() => {
+    const placeholderTexts = [
+      'help you navigate a relationship challenge...',
+      'offer encouragement in difficult times...',
+      'help you discern your purpose...',
+      'guide your spiritual growth...',
+      'help you find peace in uncertainty...',
+      'provide insight for a big decision...',
+    ];
+
     const currentText = placeholderTexts[placeholderIndex.current];
     setPlaceholderText(currentText);
-    
+
     const interval = setInterval(() => {
       placeholderIndex.current = (placeholderIndex.current + 1) % placeholderTexts.length;
       setPlaceholderText(placeholderTexts[placeholderIndex.current]);
     }, 3000);
-    
+
     return () => clearInterval(interval);
-  }, [placeholderTexts]);
-  
-  const [error, setError] = useState<string | null>(null);
+  }, []);
+
   const { name: userName, id: userId } = useUser();
 
   const buttonScale = useRef(new Animated.Value(1)).current;
@@ -126,31 +108,6 @@ const UserInputScreen: React.FC = () => {
         useNativeDriver: true,
       }),
     ]).start();
-  };
-
-  const handleInputFocus = () => {
-    Animated.timing(inputBorderWidth, {
-      toValue: 2,
-      duration: 50,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const handleInputBlur = () => {
-    Animated.timing(inputBorderWidth, {
-      toValue: 1,
-      duration: 50,
-      useNativeDriver: false,
-    }).start();
-  };
-
-  const handleExampleSelect = (example: string) => {
-    setUserInput(example);
-  };
-
-  const getUserFirstName = (text: string) => {
-    const nameMatch = text.match(/\b(?:I|my name is|I'm|I am)\s+([A-Za-z]+)/i);
-    return nameMatch ? nameMatch[1] : 'Friend';
   };
 
   // Use the real generatePlaybook from the API service
@@ -178,35 +135,34 @@ const UserInputScreen: React.FC = () => {
     }
 
     // Navigate to GeneratingPlaybookScreen first
-    navigation.navigate('GeneratingPlaybook', { 
+    navigation.navigate('GeneratingPlaybook', {
       userInput,
-      userName: userName || 'Friend'
+      userName: userName || 'Friend',
     });
-    
+
     setIsLoading(true);
-    setError(null);
     try {
       const aiResponse = await generatePlaybook(userInput, userName);
       aiResponse.createdAt = new Date().toISOString();
       if (userId) {
         await savePlaybook(aiResponse, userId);
       }
-      
+
       // Navigate to PlaybookDetail with the generated playbook
       navigation.reset({
         index: 0,
         routes: [
-          { name: 'MainTabs', state: { 
+          { name: 'MainTabs', state: {
             routes: [
               { name: 'Home' },
-              { name: 'PlaybookList' }
+              { name: 'PlaybookList' },
             ],
-            index: 1 // Make sure PlaybookList is active
+            index: 1, // Make sure PlaybookList is active
           }},
-          { name: 'PlaybookDetail', params: { playbook: aiResponse } }
-        ]
+          { name: 'PlaybookDetail', params: { playbook: aiResponse } },
+        ],
       });
-  } catch (error) {
+  } catch (_error) {
     Alert.alert('Error', 'Failed to generate playbook. Please try again.');
   } finally {
     setIsLoading(false);
@@ -218,7 +174,7 @@ const UserInputScreen: React.FC = () => {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
@@ -249,9 +205,9 @@ const UserInputScreen: React.FC = () => {
               autoFocus={false}
               onTouchStart={handleInputPress}
             />
-            <TouchableOpacity 
-              style={styles.askSendButton} 
-              onPress={handleGeneratePlaybook} 
+            <TouchableOpacity
+              style={styles.askSendButton}
+              onPress={handleGeneratePlaybook}
               disabled={isLoading}
             >
               {isLoading ? (

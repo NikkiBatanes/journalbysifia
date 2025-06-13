@@ -38,7 +38,7 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
     actionSteps.forEach(step => {
       const subTasks = step.subTasks || [];
       const hasSubTasks = subTasks.length > 0;
-      
+
       if (hasSubTasks) {
         // For steps with subtasks, count each subtask individually
         const completedSubTasks = subTasks.filter(st => st.completed).length;
@@ -68,95 +68,95 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
       return {
         id: `${stepId}-subtask-${index}`,
         text: task,
-        completed: false
+        completed: false,
       };
     }
     // Ensure the task has all required properties
     return {
       id: task.id || `${stepId}-subtask-${index}`,
       text: task.text || '',
-      completed: Boolean(task.completed)
+      completed: Boolean(task.completed),
     };
   };
 
   const handleToggleStep = (stepId: string, subTaskId?: string) => {
     console.log('[DEBUG] handleToggleStep called with:', { stepId, subTaskId });
-    
+
     setActionSteps(prev => {
       // Create a deep copy of the previous state to ensure immutability
       const prevCopy = JSON.parse(JSON.stringify(prev));
       console.log('[DEBUG] Current steps before update:', JSON.stringify(prevCopy, null, 2));
-      
+
       // Find the step to update
       const stepIndex = prevCopy.findIndex((step: any) => step.id === stepId);
       if (stepIndex === -1) {
         console.warn(`[WARNING] Step with id ${stepId} not found`);
         return prevCopy;
       }
-      
+
       const step = prevCopy[stepIndex];
-      
+
       // Ensure subTasks is an array and properly normalized
       if (!Array.isArray(step.subTasks)) {
         step.subTasks = [];
       } else {
         // Normalize any string subtasks to objects
-        step.subTasks = step.subTasks.map((task: any, index: number) => 
+        step.subTasks = step.subTasks.map((task: any, index: number) =>
           normalizeSubTask(task, index, stepId)
         );
       }
-      
+
       // If toggling a sub-task
       if (subTaskId && step.subTasks.length > 0) {
         console.log('[DEBUG] Toggling subtask for step:', step.title);
-        
+
         // Find the subtask by ID
         const subTaskIndex = step.subTasks.findIndex((st: any) => st.id === subTaskId);
-        
+
         if (subTaskIndex === -1) {
           console.warn(`[WARNING] Subtask with id ${subTaskId} not found in step ${stepId}`);
           console.log('[DEBUG] Available subtask IDs:', step.subTasks.map((st: any) => ({
             id: st.id,
             text: st.text,
-            type: typeof st
+            type: typeof st,
           })));
           return prevCopy;
         }
-        
+
         // Toggle the found subtask
         step.subTasks[subTaskIndex] = {
           ...step.subTasks[subTaskIndex],
-          completed: !step.subTasks[subTaskIndex].completed
+          completed: !step.subTasks[subTaskIndex].completed,
         };
-        
+
         console.log('[DEBUG] Updated subTasks:', JSON.stringify(step.subTasks, null, 2));
-        
+
         // Check if all sub-tasks are completed
         const allSubTasksCompleted = step.subTasks.every((st: any) => st.completed);
         console.log('[DEBUG] All subtasks completed?', allSubTasksCompleted);
-        
+
         // Update step completion status
         step.completed = allSubTasksCompleted;
-      } 
+      }
       // Toggle main step (only if no sub-tasks)
       else if (!step.subTasks || step.subTasks.length === 0) {
         console.log('[DEBUG] Toggling main step without subtasks:', step.title);
         step.completed = !step.completed;
       }
-      
+
       // Create a new array to trigger re-render
       const updated = [...prevCopy];
-      
+
       console.log('[DEBUG] Steps after update:', JSON.stringify(updated, null, 2));
-      
+
       // Verify the state is actually different
       const stateChanged = JSON.stringify(prev) !== JSON.stringify(updated);
       console.log('[DEBUG] State changed?', stateChanged);
-      
+
       if (!stateChanged) {
         console.warn('[WARNING] State did not change after toggle!');
       }
-      
+
       return updated;
     });
   };

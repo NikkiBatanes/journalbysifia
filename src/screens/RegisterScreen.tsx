@@ -29,8 +29,8 @@ export default function RegisterScreen({ navigation, onRegister }: RegisterScree
     setError('');
 
     try {
-      const { error } = await signUp(email, password);
-      if (error) {throw error;}
+      const { error: signUpError } = await signUp(email, password);
+      if (signUpError) {throw signUpError;}
       // Call the onRegister callback to update auth state in App.tsx
       onRegister();
     } catch (err: any) {
