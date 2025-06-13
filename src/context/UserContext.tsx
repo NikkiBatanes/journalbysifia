@@ -57,25 +57,42 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// Helper function to safely get session from web storage
+type SessionData = {
+  user?: {
+    email?: string;
+  };
+};
+
+const getWebSession = (): SessionData | null => {
+  try {
+    // This is a no-op in React Native
+    // For web, this will be replaced with the actual implementation during build
+    return null;
+  } catch (e) {
+    console.error('Error accessing session:', e);
+    return null;
+  }
+};
+
 export const useUser = () => {
   const context = useContext(UserContext);
-  // Fallback: If name is blank, try to get email from Supabase session and use username part
-  if (!context.name) {
-    // Try to get email from Supabase session
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const sessionStr = window.localStorage.getItem('@supabase_session');
-      if (sessionStr) {
-        try {
-          const session = JSON.parse(sessionStr);
-          const email = session?.user?.email || '';
-          if (email && email.includes('@')) {
-            return { ...context, name: email.split('@')[0] };
-          }
-        } catch (e) {}
-      }
-    }
-    // React Native fallback: try AsyncStorage (sync not possible, so skip)
+  
+  // If we already have a name, return the context as is
+  if (context.name) {
+    return context;
   }
+  
+  // Try to get email from Supabase session (web only)
+  const session = getWebSession();
+  if (session?.user?.email) {
+    const email = session.user.email;
+    if (email.includes('@')) {
+      return { ...context, name: email.split('@')[0] };
+    }
+  }
+  
+  // Return original context if no session found
   return context;
 };
 
