@@ -1,4 +1,4 @@
-import React, { useRef, useImperativeHandle, forwardRef, useCallback, useState } from 'react';
+import React, { useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   SafeAreaView,
   ScrollView,
   Animated,
+  Easing,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -186,13 +187,53 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   const [playbooks, setPlaybooks] = React.useState<Playbook[]>([]);
   const [refreshing, setRefreshing] = React.useState(false);
   const openSwipeableRef = useRef<any>(null);
+  const animatedValues = useRef<Animated.Value[]>([]);
 
-  // Load playbooks on focus
+  // Initialize animation values
+  const initAnimations = (count: number) => {
+    animatedValues.current = Array(count).fill(0).map(() => new Animated.Value(0));
+    
+    const animations = animatedValues.current.map((value, index) => {
+      return Animated.timing(value, {
+        toValue: 1,
+        duration: 400, // Increased duration for slower animation
+        delay: index * 80, // Increased delay between animations
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic) // Smoother easing
+      });
+    });
+    
+    Animated.stagger(80, animations).start(); // Increased stagger delay
+  };
+
+  // Reset animations and set filter to 'ongoing' when screen comes into focus
+  React.useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // Set filter to 'ongoing' when screen comes into focus
+      setFilter('ongoing');
+      // Reset all animations
+      animatedValues.current.forEach(value => value.setValue(0));
+      // Start animations after a small delay to ensure screen is ready
+      setTimeout(() => {
+        if (playbooks.length > 0) {
+          initAnimations(playbooks.length);
+        }
+      }, 150);
+    });
+
+    return unsubscribe;
+  }, [navigation, playbooks.length]);
+
+  // Load playbooks
   React.useEffect(() => {
     const load = async (): Promise<void> => {
       if (!userId) return;
       try {
         const localPlaybooks = await getPlaybooks(userId);
+        // Initialize animations after data is loaded
+        if (localPlaybooks.length > 0) {
+          initAnimations(localPlaybooks.length);
+        }
         // Normalize keys for UI
         const normalized = localPlaybooks.map((pb: any) => ({
           id: pb.id,
@@ -327,7 +368,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
-  const renderItem = ({ item }: { item: Playbook }) => {
+  const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
     // Ensure a persistent ref for each row
     if (!rowRefs.current[item.id]) {
       rowRefs.current[item.id] = React.createRef();
@@ -339,8 +380,23 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       navigation.navigate('PlaybookDetail', { playbook: item });
     }, [item, navigation]);
     
+    const translateY = animatedValues.current[index]?.interpolate({
+      inputRange: [0, 1],
+      outputRange: [50, 0],
+    });
+    
+    const opacity = animatedValues.current[index] || 0;
+    
     return (
-      <View style={styles.swipeableContainer}>
+      <Animated.View 
+        style={[
+          styles.swipeableContainer,
+          {
+            opacity,
+            transform: [{ translateY }],
+          }
+        ]}
+      >
         <Swipeable
           ref={rowRefs.current[item.id]}
           renderRightActions={() => (
@@ -362,7 +418,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
             style={styles.card}
           />
         </Swipeable>
-      </View>
+      </Animated.View>
     );
   };
 
