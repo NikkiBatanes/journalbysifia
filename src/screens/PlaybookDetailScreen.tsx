@@ -120,6 +120,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   
   // Scroll position tracking for compact header using reanimated
   const scrollY = useSharedValue(0);
+  
+  // Animation and gesture related hooks
+  const gestureHandlerRef = useRef<PanGestureHandler>(null);
+  const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
+  const translateY = useSharedValue(0);
+  const isTransitioning = useSharedValue(false);
+  const cardCount = useSharedValue(0); // Will be updated in useEffect
+  const currentCardShared = useSharedValue(currentCard);
+  const headerFaded = useSharedValue(false);
+  const headerOpacity = useSharedValue(1);
+  const headerHeight = useSharedValue(1); // 1 = fully expanded, 0 = fully collapsed
 
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
@@ -283,10 +294,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </>
     );
   }
-  const gestureHandlerRef = useRef(null);
-  const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
-  const translateY = useSharedValue(0);
-  const isTransitioning = useSharedValue(false);
 
   // ... rest of the code
   // Card data with explicit typing and null checks
@@ -350,21 +357,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     });
   };
 
-  // Shared values for worklet access
-  const cardCount = useSharedValue(cardData.length);
-  const currentCardShared = useSharedValue(currentCard);
-
+  // Update shared values when dependencies change
   useEffect(() => {
     cardCount.value = cardData.length;
-  }, [cardData.length, cardCount]);
+  }, [cardData.length]);
 
   useEffect(() => {
     currentCardShared.value = currentCard;
-  }, [currentCard, currentCardShared]);
-
-  const headerFaded = useSharedValue(false);
-  const headerOpacity = useSharedValue(1);
-  const headerHeight = useSharedValue(1); // 1 = fully expanded, 0 = fully collapsed
+  }, [currentCard]);
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: GestureContext) => {
