@@ -244,42 +244,65 @@ const PLAYBOOKS_KEY = 'playbooks';
  */
 /**
  * Update a playbook's action steps
- * @param playbookId - ID of the playbook to update
- * @param actionSteps - Updated action steps
- * @param userId - User's unique ID
+ * @param playbookId - The ID of the playbook to update
+ * @param actionSteps - The updated action steps
+ * @returns Promise that resolves when the update is complete
  */
-// Helper function to validate UUID format
-export async function updatePlaybookActionSteps(playbookId: string, actionSteps: any[]) {
+// Helper function to check if a string is a valid UUID
+function isValidUUID(uuid: string | undefined): boolean {
+  if (!uuid) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
+/**
+ * Update a playbook's action steps in both Supabase (if valid UUID) and local storage
+ * @param playbookId - The ID of the playbook to update (can be any string, but only UUIDs will update Supabase)
+ * @param actionSteps - The updated action steps to save
+ * @returns Promise that resolves with success status
+ */
+export async function updatePlaybookActionSteps(playbookId: string | undefined, actionSteps: any[]) {
+  if (!playbookId) {
+    console.debug('[updatePlaybookActionSteps] No playbookId provided, skipping update');
+    return { success: false, error: 'No playbook ID provided' };
+  }
+
   try {
-    // First try to update in Supabase if we have a valid ID (UUID or numeric)
-    if (playbookId) {
+    // Only try to update in Supabase if we have a valid UUID
+    const isUuid = isValidUUID(playbookId);
+    
+    if (isUuid) {
       try {
         await updateRow('playbooks', playbookId, {
           action_steps: actionSteps,
           updated_at: new Date().toISOString(),
         });
       } catch (error) {
-        console.warn('[updatePlaybookActionSteps] Error updating in Supabase, falling back to local storage:', error);
+        // Silently fall back to local storage on Supabase error
+        console.debug('[updatePlaybookActionSteps] Supabase update failed, using local storage only');
       }
-    } else {
-      console.warn('[updatePlaybookActionSteps] No playbookId provided, only saving to local storage');
     }
 
-    // Update in AsyncStorage regardless of UUID validity
-    const existing = await AsyncStorage.getItem(PLAYBOOKS_KEY);
-    if (existing) {
-      const playbooks = JSON.parse(existing);
+    // Always update local storage as a fallback
+    try {
+      const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
+      const playbooks = stored ? JSON.parse(stored) : [];
+      
+      // Update the specific playbook's action steps
       const updatedPlaybooks = playbooks.map((pb: any) =>
-        pb.id === playbookId
-          ? { ...pb, actionSteps, updated_at: new Date().toISOString() }
-          : pb
+        pb.id === playbookId ? { ...pb, action_steps: actionSteps, updated_at: new Date().toISOString() } : pb
       );
+      
       await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
+      console.log(`[updatePlaybookActionSteps] Updated local storage for playbook ${playbookId}`);
+      
+      return { success: true };
+    } catch (storageError) {
+      console.error('[updatePlaybookActionSteps] Error updating local storage:', storageError);
+      throw storageError;
     }
-
-    return { success: true };
   } catch (error) {
-    console.error('[updatePlaybookActionSteps] Error:', error);
+    console.error('[updatePlaybookActionSteps] Unexpected error:', error);
     throw error;
   }
 }
@@ -287,14 +310,15 @@ export async function updatePlaybookActionSteps(playbookId: string, actionSteps:
 export async function savePlaybook(playbook: any, userId: string) {
   console.log('[savePlaybook] userId:', userId);
   console.log('[savePlaybook] playbook:', playbook);
+  
   // 1. Save to Supabase
   let supabasePlaybook;
   try {
     // Map camelCase to snake_case and only send fields present in the DB schema
     // Ensure NOT NULL columns are always set with defaults
     const playbookForSupabase: Record<string, any> = {
-      // Do NOT set id unless it is a valid UUID. Let Supabase generate it.
-      // id: playbook.id,
+      // Only include ID if it's a valid UUID
+      ...(playbook.id && isValidUUID(playbook.id) ? { id: playbook.id } : {}),
       title: playbook.title,
       user_input: playbook.userInput,
       truth_in_love: playbook.truthInLove ?? {},
@@ -310,10 +334,12 @@ export async function savePlaybook(playbook: any, userId: string) {
       challenge_cta: playbook.challengeCTA,
       profile_image: playbook.profileImage,
     };
+    
     // Remove undefined fields
     Object.keys(playbookForSupabase).forEach(
       (key) => playbookForSupabase[key] === undefined && delete playbookForSupabase[key]
     );
+    
     const [inserted] = await insertRow('playbooks', playbookForSupabase);
     supabasePlaybook = inserted;
     console.log('[savePlaybook] Saved to Supabase:', inserted);
@@ -331,7 +357,6 @@ export async function savePlaybook(playbook: any, userId: string) {
     console.error('[savePlaybook] AsyncStorage save error:', error);
   }
 }
-
 
 /**
  * Get playbooks for a user: tries to fetch from Supabase first, falls back to AsyncStorage if needed.
@@ -390,11 +415,13 @@ export async function getPlaybooks(userId: string) {
  * @param _userId - User's unique ID (unused parameter)
  */
 export async function deletePlaybook(id: string, _userId: string) {
-  // 1. Delete from Supabase
-  try {
-    await deleteRow('playbooks', id);
-  } catch (error: unknown) {
-    console.error('[deletePlaybook] Supabase delete error:', error);
+  // 1. Delete from Supabase if we have a valid UUID
+  if (id && isValidUUID(id)) {
+    try {
+      await deleteRow('playbooks', id);
+    } catch (error: unknown) {
+      console.error('[deletePlaybook] Supabase delete error:', error);
+    }
   }
   // 2. Delete from AsyncStorage
   try {

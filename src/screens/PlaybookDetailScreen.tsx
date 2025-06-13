@@ -160,7 +160,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
     const saveProgress = async () => {
       try {
+        if (!playbook?.id) {
+          console.warn('Cannot save progress: No playbook ID available');
+          return;
+        }
         setIsSaving(true);
+        console.log('Saving progress for playbook ID:', playbook.id);
         await saveActionSteps(playbook.id);
       } catch (error) {
         console.error('Error saving progress:', error);
@@ -174,7 +179,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     return () => {
       saveProgress().catch(console.error);
     };
-  }, [actionSteps, playbook.id, playbook.user_id, isInitialized, isSaving, saveActionSteps]);
+  }, [actionSteps, playbook?.id, playbook?.user_id, isInitialized, isSaving, saveActionSteps]);
 
   // Initialize action steps when playbook loads
   useEffect(() => {
