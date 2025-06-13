@@ -122,6 +122,56 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerHeight = useSharedValue(1);
   const isInitialRender = useRef(true);
 
+  // Initialize cardData with empty array first
+  const cardData: CardData[] = playbook ? [
+    {
+      type: 'truth' as const,
+      truth: playbook.truthInLove?.text ?? '',
+      summary: playbook.truthInLove?.summary ?? '',
+      tappable: false,
+    },
+    {
+      type: 'action' as const,
+      steps: Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
+            (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []),
+      tappable: false,
+    },
+    {
+      type: 'affirmation' as const,
+      affirmations: Array.isArray(playbook.affirmations)
+        ? playbook.affirmations.filter((a): a is Required<Affirmation> =>
+            a?.id !== undefined &&
+            a?.text !== undefined &&
+            a?.completed !== undefined
+          )
+        : [],
+      tappable: false,
+    },
+    {
+      type: 'bible' as const,
+      verse: {
+        text: playbook.bibleVerse?.text ?? 'No verse text available',
+        reference: playbook.bibleVerse?.reference ?? 'Unknown',
+      },
+      tappable: false,
+    },
+    {
+      type: 'challenge' as const,
+      challenge: typeof playbook.directChallenge === 'string'
+        ? playbook.directChallenge
+        : playbook.directChallenge?.text ?? '',
+      challengeCTA: playbook.challengeCTA ?? '',
+      tappable: false,
+    },
+  ] : [];
+
+  // Update card count when cardData changes
+  useEffect(() => {
+    if (!isLoading && !isInitialRender.current) {
+      cardCount.value = cardData.length;
+    }
+  }, [cardData.length, cardCount, isLoading]);
+
   // Set loading state when playbook is loaded
   useEffect(() => {
     if (playbook) {
@@ -294,56 +344,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     );
   }
 
-  // ... rest of the code
-  // Card data with explicit typing and null checks
-  const cardData: CardData[] = [
-    {
-      type: 'truth' as const,
-      truth: playbook.truthInLove?.text ?? '',
-      summary: playbook.truthInLove?.summary ?? '',
-      tappable: false,
-    },
-    {
-      type: 'action' as const,
-      steps: Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
-            (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []),
-      tappable: false,
-    },
-    {
-      type: 'affirmation' as const,
-      affirmations: Array.isArray(playbook.affirmations)
-        ? playbook.affirmations.filter((a): a is Required<Affirmation> =>
-            a?.id !== undefined &&
-            a?.text !== undefined &&
-            a?.completed !== undefined
-          )
-        : [],
-      tappable: false,
-    },
-    {
-      type: 'bible' as const,
-      verse: {
-        text: playbook.bibleVerse?.text ?? 'No verse text available',
-        reference: playbook.bibleVerse?.reference ?? 'Unknown',
-      },
-      tappable: false,
-    },
-    {
-      type: 'challenge' as const,
-      challenge: typeof playbook.directChallenge === 'string'
-        ? playbook.directChallenge
-        : playbook.directChallenge?.text ?? '',
-      challengeCTA: playbook.challengeCTA ?? '',
-      tappable: false,
-    },
-  ];
-
-  // Update shared values when dependencies change
-  useEffect(() => {
-    if (!isLoading && !isInitialRender.current) {
-      cardCount.value = cardData.length;
-    }
-  }, [cardData.length, cardCount, isLoading]);
+  // Card data is now defined at the top of the component
 
   useEffect(() => {
     if (!isLoading && !isInitialRender.current) {
