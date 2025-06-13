@@ -5,17 +5,12 @@ import {
   Text,
   StyleSheet,
   Alert,
-  RefreshControl,
-  ScrollView,
   Animated,
-  Easing,
   SafeAreaView,
   Pressable,
   SectionList,
   Button,
-  ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format } from 'date-fns';
 
@@ -68,15 +63,6 @@ function calculateProgress(playbook: Playbook): number {
   return total > 0 ? completed / total : 0;
 }
 
-/**
- * Formats the progress of a playbook into a human-readable string
- * @param {Playbook} playbook - The playbook containing action steps and sub-tasks
- * @returns {string} Formatted progress string in 'X/Y Tasks' format (e.g., '3/5 Tasks')
- */
-function formatProgress(playbook: Playbook): string {
-  const { completed, total } = calculateTaskStats(playbook);
-  return `${completed}/${total} Tasks`;
-}
 
 /**
  * Formats a date into a human-readable month and year string
