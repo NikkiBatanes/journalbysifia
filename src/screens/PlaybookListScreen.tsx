@@ -31,53 +31,47 @@ import { useUser } from '../context/UserContext';
 // Import gesture handler at the top level
 import 'react-native-gesture-handler';
 
-// Define the navigation param types
-interface NavigationParams {
-  navigate: (screen: 'PlaybookDetail', params: { playbook: Playbook }) => void;
-};
+interface TaskStats {
+  completed: number;
+  total: number;
+}
+
+// Calculate completed and total tasks for a playbook
+function calculateTaskStats(playbook: Playbook): TaskStats {
+  if (!playbook.actionSteps.length) {
+    return { completed: 0, total: 0 };
+  }
+
+  return playbook.actionSteps.reduce((acc, step) => {
+    const hasSubtasks = step.subTasks && step.subTasks.length > 0;
+    
+    if (hasSubtasks) {
+      // Count sub-tasks for steps that have them
+      const completedSubTasks = step.subTasks!.filter(st => st.completed).length;
+      return {
+        completed: acc.completed + completedSubTasks,
+        total: acc.total + step.subTasks!.length
+      };
+    } else {
+      // Count regular steps that don't have sub-tasks
+      return {
+        completed: acc.completed + (step.completed ? 1 : 0),
+        total: acc.total + 1
+      };
+    }
+  }, { completed: 0, total: 0 });
+}
 
 // Calculate progress based on completed action steps and sub-tasks
 function calculateProgress(playbook: Playbook): number {
-  if (!playbook.actionSteps.length) {return 0;}
-
-  let totalCompleted = 0;
-  let totalTasks = 0;
-
-  playbook.actionSteps.forEach(step => {
-    if (step.subTasks && step.subTasks.length > 0) {
-      // Count sub-tasks for steps that have them
-      const completedSubTasks = step.subTasks.filter(st => st.completed).length;
-      totalCompleted += completedSubTasks;
-      totalTasks += step.subTasks.length;
-    } else {
-      // Count regular steps that don't have sub-tasks
-      if (step.completed) {totalCompleted++;}
-      totalTasks++;
-    }
-  });
-
-  return totalTasks > 0 ? totalCompleted / totalTasks : 0;
+  const { completed, total } = calculateTaskStats(playbook);
+  return total > 0 ? completed / total : 0;
 }
 
 // Format progress text
 function formatProgress(playbook: Playbook): string {
-  let totalCompleted = 0;
-  let totalTasks = 0;
-
-  playbook.actionSteps.forEach(step => {
-    if (step.subTasks && step.subTasks.length > 0) {
-      // Count sub-tasks for steps that have them
-      const completedSubTasks = step.subTasks.filter(st => st.completed).length;
-      totalCompleted += completedSubTasks;
-      totalTasks += step.subTasks.length;
-    } else {
-      // Count regular steps that don't have sub-tasks
-      if (step.completed) {totalCompleted++;}
-      totalTasks++;
-    }
-  });
-
-  return `${totalCompleted}/${totalTasks} Tasks`;
+  const { completed, total } = calculateTaskStats(playbook);
+  return `${completed}/${total} Tasks`;
 }
 
 // Format date to a readable format
