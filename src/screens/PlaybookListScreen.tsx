@@ -20,6 +20,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format } from 'date-fns';
 
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
+// Import the Swipeable type from react-native-gesture-handler
+type SwipeableType = InstanceType<typeof Swipeable>;
 import PlaybookCard from '../components/PlaybookCard';
 import { Colors, Fonts } from '../theme';
 import type { Playbook } from '../interfaces/playbook';
@@ -87,15 +89,24 @@ interface SwipeableRowProps {
   item: Playbook;
   onDelete: (id: string) => void;
   children: React.ReactNode;
-  onSwipeableOpen?: (ref: any) => void;
+  onSwipeableOpen?: (ref: SwipeableType | null) => void;
 }
 
-const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, children, onSwipeableOpen }, ref) => {
-  const swipeableRef = useRef<any>(null);
-  const openSwipeableRef = useRef<any>(null);
+interface SwipeableRowRef {
+  close: () => void;
+}
+
+const SwipeableRow = forwardRef<SwipeableRowRef, SwipeableRowProps>(({ item, onDelete, children, onSwipeableOpen }, ref) => {
+  const swipeableRef = useRef<SwipeableType | null>(null);
+  const openSwipeableRef = useRef<SwipeableType | null>(null);
 
   useImperativeHandle(ref, () => ({
-    close: () => swipeableRef.current?.close(),
+    close: () => {
+      if (swipeableRef.current) {
+        // @ts-ignore - close exists on the instance
+        swipeableRef.current.close();
+      }
+    },
   }));
   // Modern delete button with scale animation
   const renderRightActions = (progress: Animated.AnimatedInterpolation<number>) => {
@@ -154,8 +165,12 @@ const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, child
     <View style={styles.swipeableContainer}>
       <Swipeable
         ref={(ref) => {
-          if (ref) {
-            swipeableRef.current = ref;
+          // @ts-ignore - The ref type mismatch is expected due to the way react-native-gesture-handler is typed
+          swipeableRef.current = ref;
+          // Call the forwarded ref if it exists and onSwipeableOpen is defined
+          if (ref && onSwipeableOpen) {
+            // @ts-ignore - The ref type mismatch is expected
+            onSwipeableOpen(ref);
           }
         }}
         renderRightActions={renderRightActions}
