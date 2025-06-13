@@ -4,11 +4,11 @@ import {
   View,
   Text,
   StyleSheet,
-  Alert,
-  Animated,
   SafeAreaView,
-  Pressable,
+  Alert,
   SectionList,
+  Pressable,
+  Animated,
   Button,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -31,30 +31,27 @@ interface TaskStats {
 }
 
 // Calculate completed and total tasks for a playbook
-function calculateTaskStats(playbook: Playbook): TaskStats {
-  if (!playbook.actionSteps.length) {
-    return { completed: 0, total: 0 };
-  }
+const calculateTaskStats = (playbook: Playbook): TaskStats => {
+  let completed = 0;
+  let total = 0;
 
-  return playbook.actionSteps.reduce((acc, step) => {
-    const hasSubtasks = step.subTasks && step.subTasks.length > 0;
-    
-    if (hasSubtasks) {
+  playbook.actionSteps.forEach((step) => {
+    if (step.subTasks && step.subTasks.length > 0) {
       // Count sub-tasks for steps that have them
-      const completedSubTasks = step.subTasks!.filter(st => st.completed).length;
-      return {
-        completed: acc.completed + completedSubTasks,
-        total: acc.total + step.subTasks!.length
-      };
+      const completedSubTasks = step.subTasks.filter(st => st.completed).length;
+      completed += completedSubTasks;
+      total += step.subTasks.length;
     } else {
       // Count regular steps that don't have sub-tasks
-      return {
-        completed: acc.completed + (step.completed ? 1 : 0),
-        total: acc.total + 1
-      };
+      if (step.completed) {
+        completed++;
+      }
+      total++;
     }
-  }, { completed: 0, total: 0 });
-}
+  });
+
+  return { completed, total };
+};
 
 // Calculate progress based on completed action steps and sub-tasks
 function calculateProgress(playbook: Playbook): number {
@@ -140,14 +137,14 @@ setTimeout(() => {
         let directChallenge: string | { text: string; summary: string } = '';
         if (pb.direct_challenge || pb.directChallenge) {
           const challenge = pb.direct_challenge || pb.directChallenge;
-          directChallenge = typeof challenge === 'string' 
-            ? challenge 
+          directChallenge = typeof challenge === 'string'
+            ? challenge
             : { text: challenge?.text || '', summary: challenge?.summary || '' };
         }
 
         // Ensure truthInLove has the correct structure
         const truthInLove = pb.truth_in_love || pb.truthInLove || { text: '', summary: '' };
-        
+
         // Ensure bibleVerse has the correct structure
         const bibleVerse = pb.bible_verse || pb.bibleVerse || { text: '', reference: '' };
 
@@ -158,8 +155,8 @@ setTimeout(() => {
           userInput: pb.user_input ?? pb.userInput ?? '',
           truthInLove,
           actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
-          affirmations: Array.isArray(pb.daily_affirmations) 
-            ? pb.daily_affirmations 
+          affirmations: Array.isArray(pb.daily_affirmations)
+            ? pb.daily_affirmations
             : (Array.isArray(pb.affirmations) ? pb.affirmations : []),
           bibleVerse,
           directChallenge,
@@ -197,13 +194,17 @@ setTimeout(() => {
   const groupPlaybooksByMonth = useCallback((playbooksList: Playbook[]) => {
     const groups: { [key: string]: Playbook[] } = {};
 
-    playbooksList.forEach(pb => {
+    playbooksList.forEach((pb) => {
       try {
         // Ensure createdAt exists and is a valid date string
-        if (!pb.createdAt) {return;}
+        if (!pb.createdAt) {
+          return;
+        }
 
         const date = new Date(pb.createdAt);
-        if (isNaN(date.getTime())) {return;} // Skip invalid dates
+        if (isNaN(date.getTime())) {
+          return; // Skip invalid dates
+        }
 
         const key = formatDate(date);
         if (!groups[key]) {groups[key] = [];}
@@ -240,10 +241,16 @@ setTimeout(() => {
 
   // Filter playbooks by completion status
   const filteredPlaybooks = playbooks.filter((playbook: Playbook) => {
-    if (filter === 'all') return true;
+    if (filter === 'all') {
+      return true;
+    }
     const progress = calculateProgress(playbook);
-    if (filter === 'ongoing') return progress > 0 && progress < 1;
-    if (filter === 'completed') return progress === 1;
+    if (filter === 'ongoing') {
+      return progress > 0 && progress < 1;
+    }
+    if (filter === 'completed') {
+      return progress === 1;
+    }
     return false;
   });
 
@@ -349,10 +356,22 @@ setTimeout(() => {
     );
   };
 
+  const loadingStyles = StyleSheet.create({
+    safeArea: {
+      ...styles.safeArea,
+      backgroundColor: 'white',
+    },
+    container: {
+      ...styles.container,
+      flex: 1,
+      backgroundColor: 'white',
+    },
+  });
+
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: 'white' }]}>
-        <View style={[styles.container, { flex: 1, backgroundColor: 'white' }]} />
+      <SafeAreaView style={loadingStyles.safeArea}>
+        <View style={loadingStyles.container} />
       </SafeAreaView>
     );
   }
