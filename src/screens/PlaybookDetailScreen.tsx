@@ -6,9 +6,7 @@ import {
   View,
   Text,
   Dimensions,
-  ScrollView,
   StatusBar,
-  Platform,
   ViewStyle,
   TextStyle,
   ImageStyle,
@@ -31,18 +29,12 @@ import Animated, {
 
 // Icons
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Theme & Styling
 import { Colors, Fonts } from '../theme';
 
 // Components
-import TruthInLoveCard from '../components/TruthInLoveCard';
-import ActionStepsCard from '../components/ActionStepsCard';
 import DocumentCardView from '../components/DocumentCardView';
-import AffirmationCard from '../components/AffirmationCard';
-import BibleVerseCard from '../components/BibleVerseCard';
-import DirectChallengeCard from '../components/DirectChallengeCard';
 import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import PlaybookHeader from '../components/PlaybookHeader';
 import DocumentCards from '../components/DocumentCards';
@@ -128,7 +120,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerFaded = useSharedValue(false);
   const headerOpacity = useSharedValue(1);
   const headerHeight = useSharedValue(1);
-  
+
   // Set loading state when playbook is loaded
   useEffect(() => {
     if (playbook) {
@@ -136,37 +128,35 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     }
   }, [playbook]);
 
+  // Header left component
+  const headerLeft = React.useCallback(() => (
+    <View style={styles.headerLeftContainer}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backButtonContainer}
+      >
+        <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+      </TouchableOpacity>
+      {showCompactHeader && (
+        <Text
+          style={styles.compactHeaderTitle}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {playbook?.title}
+        </Text>
+      )}
+    </View>
+  ), [navigation, showCompactHeader, playbook?.title]);
+
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: '',
-      headerLeft: () => (
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={{ padding: 8, paddingLeft: 0 }}
-          >
-            <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-          </TouchableOpacity>
-          {showCompactHeader && (
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: '800',
-                color: Colors.anchorBlue,
-                marginLeft: 4,
-                maxWidth: 260, // Adjusted to allow more space before profile photo
-              }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {playbook.title.split('\n')[0]}
-            </Text>
-          )}
-        </View>
-      ),
+      headerLeft,
     });
-  }, [navigation, showCompactHeader, playbook.title]);
+  }, [navigation, headerLeft]);
+
   const lastScrollY = useRef(0);
   const scrollThreshold = 100; // Pixels to scroll before showing compact header
 
@@ -794,9 +784,27 @@ interface PlaybookDetailStyles {
   nonAffirmationCardStyle: ViewStyle;
   cardWrapperStyle: ViewStyle;
   cardContentStyle: ViewStyle;
+  headerLeftContainer: ViewStyle;
+  backButtonContainer: ViewStyle;
+  compactHeaderTitle: TextStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
+  headerLeftContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButtonContainer: {
+    padding: 8,
+    paddingLeft: 0,
+  },
+  compactHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.anchorBlue,
+    marginLeft: 4,
+    maxWidth: 260,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
