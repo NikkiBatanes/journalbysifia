@@ -122,6 +122,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerHeight = useSharedValue(1);
   const isInitialRender = useRef(true);
 
+  // Update current card shared value when currentCard changes
+  useEffect(() => {
+    if (!isLoading && !isInitialRender.current) {
+      currentCardShared.value = currentCard;
+    }
+  }, [currentCard, currentCardShared, isLoading]);
+
   // Initialize cardData with empty array first
   const cardData: CardData[] = playbook ? [
     {
@@ -345,12 +352,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   }
 
   // Card data is now defined at the top of the component
-
-  useEffect(() => {
-    if (!isLoading && !isInitialRender.current) {
-      currentCardShared.value = currentCard;
-    }
-  }, [currentCard, currentCardShared, isLoading]);
 
   // Handle initial render
   useEffect(() => {
