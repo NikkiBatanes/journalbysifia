@@ -120,6 +120,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerFaded = useSharedValue(false);
   const headerOpacity = useSharedValue(1);
   const headerHeight = useSharedValue(1);
+  const isInitialRender = useRef(true);
 
   // Set loading state when playbook is loaded
   useEffect(() => {
@@ -337,6 +338,31 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
   ];
 
+  // Update shared values when dependencies change
+  useEffect(() => {
+    if (!isLoading && !isInitialRender.current) {
+      cardCount.value = cardData.length;
+    }
+  }, [cardData.length, cardCount, isLoading]);
+
+  useEffect(() => {
+    if (!isLoading && !isInitialRender.current) {
+      currentCardShared.value = currentCard;
+    }
+  }, [currentCard, currentCardShared, isLoading]);
+
+  // Handle initial render
+  useEffect(() => {
+    if (isLoading) {
+      isInitialRender.current = true;
+    } else if (isInitialRender.current) {
+      isInitialRender.current = false;
+      // Initialize values after first render when not loading
+      cardCount.value = cardData.length;
+      currentCardShared.value = currentCard;
+    }
+  }, [isLoading, cardData.length, currentCard, cardCount, currentCardShared]);
+
   const onSwipeComplete = (direction: 'up' | 'down') => {
     if (direction === 'up') {
       goToNextCard();
@@ -354,15 +380,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       isTransitioning.value = false;
     });
   };
-
-  // Update shared values when dependencies change
-  useEffect(() => {
-    cardCount.value = cardData.length;
-  }, [cardData.length, cardCount]);
-
-  useEffect(() => {
-    currentCardShared.value = currentCard;
-  }, [currentCard, currentCardShared]);
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: GestureContext) => {
