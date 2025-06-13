@@ -166,15 +166,27 @@ const PLAYBOOKS_KEY = 'playbooks';
  * @param actionSteps - Updated action steps
  * @param userId - User's unique ID
  */
+// Helper function to validate UUID format
+const isValidUuid = (uuid: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+};
+
 export async function updatePlaybookActionSteps(playbookId: string, actionSteps: any[], userId: string) {
   try {
-    // Update in Supabase
-    const [updated] = await updateRow('playbooks', playbookId, { 
-      action_steps: actionSteps,
-      updated_at: new Date().toISOString()
-    });
+    // Validate playbookId is a valid UUID
+    if (!isValidUuid(playbookId)) {
+      console.warn('[updatePlaybookActionSteps] Invalid playbookId format, skipping Supabase update:', playbookId);
+      // We'll still update AsyncStorage to maintain local state
+    } else {
+      // Update in Supabase only if we have a valid UUID
+      const [updated] = await updateRow('playbooks', playbookId, { 
+        action_steps: actionSteps,
+        updated_at: new Date().toISOString()
+      });
+    }
     
-    // Update in AsyncStorage
+    // Update in AsyncStorage regardless of UUID validity
     const existing = await AsyncStorage.getItem(PLAYBOOKS_KEY);
     if (existing) {
       const playbooks = JSON.parse(existing);
@@ -186,7 +198,7 @@ export async function updatePlaybookActionSteps(playbookId: string, actionSteps:
       await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
     }
     
-    return updated;
+    return { success: true };
   } catch (error) {
     console.error('[updatePlaybookActionSteps] Error:', error);
     throw error;

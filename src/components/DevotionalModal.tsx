@@ -54,44 +54,66 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isVisible, setIsVisible] = useState(false);
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
+  const [contentHeight, setContentHeight] = useState(0);
+  const contentRef = React.useRef<View>(null);
 
   // Animation for the overlay (fade in/out)
+  // Fade animation for backdrop dim
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  const measureContent = () => {
+    if (contentRef.current) {
+      contentRef.current.measureInWindow((x, y, width, height) => {
+        setContentHeight(height);
+      });
+    }
+  };
 
   React.useEffect(() => {
     let isMounted = true;
     
     if (visible) {
       setIsVisible(true);
-      const fadeIn = Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      });
+      // Small delay to ensure content is measured
+      setTimeout(() => {
+        measureContent();
+      }, 10);
       
-      const slideUp = Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        damping: 20,
-      });
-      
-      Animated.parallel([fadeIn, slideUp]).start();
+      // Fade in backdrop and slide up modal
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(translateY, {
+          toValue: 0,
+          useNativeDriver: true,
+          damping: 20,
+        })
+      ]).start();
     } else {
-      const fadeOut = Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      });
+      // Calculate the distance to slide down (full screen height + modal height + some extra)
+      const slideDownDistance = Dimensions.get('window').height + 100; // Ensure it goes completely off screen
       
-      const slideDown = Animated.timing(translateY, {
-        toValue: SCREEN_HEIGHT,
-        duration: 300,
-        useNativeDriver: true,
-      });
-      
-      Animated.parallel([fadeOut, slideDown]).start(({ finished }) => {
+      // Fade out backdrop quickly while sliding down
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 100, // Very fast fade out
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: slideDownDistance,
+          duration: 300, // Slide down duration
+          useNativeDriver: true,
+          easing: Easing.out(Easing.quad),
+        })
+      ]).start(({ finished }) => {
         if (finished && isMounted) {
           setIsVisible(false);
+          // Reset translateY for next open
+          translateY.setValue(SCREEN_HEIGHT);
         }
       });
     }
@@ -99,7 +121,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [visible]);
+  }, [visible, contentHeight]);
 
   const togglePlaybookInfo = () => {
     const toValue = showPlaybookInfo ? 0 : 1;
@@ -114,22 +136,27 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleClose = () => {
-    // First, fade out the background quickly (200ms)
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
+    // Calculate the distance to slide down (full screen height + modal height + some extra)
+    const slideDownDistance = Dimensions.get('window').height + 100; // Ensure it goes completely off screen
     
-    // Then slide down the modal (600ms)
-    Animated.timing(translateY, {
-      toValue: SCREEN_HEIGHT,
-      duration: 600,
-      useNativeDriver: true,
-      easing: Easing.out(Easing.cubic),
-    }).start(({ finished }) => {
+    // Fade out backdrop quickly while sliding down
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 100, // Very fast fade out
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: slideDownDistance,
+        duration: 300, // Slide down duration
+        useNativeDriver: true,
+        easing: Easing.out(Easing.quad),
+      })
+    ]).start(({ finished }) => {
       if (finished) {
         onClose();
+        // Reset translateY for next open
+        translateY.setValue(SCREEN_HEIGHT);
       }
     });
   };
@@ -148,26 +175,30 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   return (
     <Modal
       visible={isVisible}
-      transparent
+      transparent={true}
       animationType="none"
       onRequestClose={handleClose}
     >
-      <Animated.View 
-        style={[
-          styles.modalOverlay,
-          { opacity: fadeAnim }
-        ]}
-      >
-        <TouchableOpacity 
-          style={styles.backdrop} 
-          activeOpacity={1} 
-          onPress={handleClose}
-        />
+      <View style={styles.modalOverlay}>
         <Animated.View 
+          style={[
+            styles.backdrop,
+            { opacity: fadeAnim }
+          ]}
+        >
+          <TouchableOpacity 
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={handleClose}
+          />
+        </Animated.View>
+        <Animated.View 
+          ref={contentRef}
           style={[
             styles.modalContainer,
             { transform: [{ translateY }] },
           ]}
+          onLayout={measureContent}
         >
           <View style={styles.headerContainer}>
             <View style={styles.handle} />
@@ -180,64 +211,66 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             </TouchableOpacity>
           </View>
           
-          <View style={styles.fixedContent}>
-            <Text style={styles.title}>Create Your Personalized Devotional</Text>
-            <View style={styles.subtitleContainer}>
-              <Text style={styles.subtitle}>
-                Based on what you've shared, we'll craft a devotional tailored to your journey.
-              </Text>
-            </View>
-          </View>
-          
-          <View style={styles.scrollableContent}>
-            {playbookInfo && (
-              <View style={styles.playbookInfoContainer}>
-                <TouchableOpacity 
-                  style={styles.playbookInfoHeader}
-                  onPress={togglePlaybookInfo}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.playbookInfoLabel}>WHAT YOU SHARED</Text>
-                  <Animated.View style={{ transform: [{ rotate }] }}>
-                    <Ionicons 
-                      name="chevron-down"
-                      size={20} 
-                      color={Colors.hopeWhite} 
-                    />
-                  </Animated.View>
-                </TouchableOpacity>
-                
-                <View style={[
-                  styles.playbookInfoContent,
-                  showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed
-                ]}>
-                  <Text style={styles.playbookInfoText}>{playbookInfo}</Text>
-                </View>
+          <View style={styles.contentWrapper}>
+            <View style={styles.fixedContent}>
+              <Text style={styles.title}>Create Your Personalized Devotional</Text>
+              <View style={styles.subtitleContainer}>
+                <Text style={styles.subtitle}>
+                  Based on what you've shared, we'll craft a devotional tailored to your journey.
+                </Text>
               </View>
-            )}
+            </View>
             
-            <View style={styles.optionsContainer}>
-              <Text style={styles.durationPrompt}>
-                Choose the duration that works best for you
-              </Text>
-              {DURATION_OPTIONS.map((option) => (
-                <TouchableOpacity
-                  key={option.days}
-                  style={styles.optionButton}
-                  onPress={() => onSelectDuration(option.days)}
-                >
-                  <Text style={styles.optionDays}>{option.days} Day{option.days > 1 ? 's' : ''}</Text>
-                  <Text style={styles.optionTitle}>{option.title}</Text>
-                  <Text style={styles.optionDescription}>{option.description}</Text>
-                </TouchableOpacity>
-              ))}
+            <View style={styles.scrollableContent}>
+              {playbookInfo && (
+                <View style={styles.playbookInfoContainer}>
+                  <TouchableOpacity 
+                    style={styles.playbookInfoHeader}
+                    onPress={togglePlaybookInfo}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.playbookInfoLabel}>WHAT YOU SHARED</Text>
+                    <Animated.View style={{ transform: [{ rotate }] }}>
+                      <Ionicons 
+                        name="chevron-down"
+                        size={20} 
+                        color={Colors.hopeWhite} 
+                      />
+                    </Animated.View>
+                  </TouchableOpacity>
+                  
+                  <View style={[
+                    styles.playbookInfoContent,
+                    showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed
+                  ]}>
+                    <Text style={styles.playbookInfoText}>{playbookInfo}</Text>
+                  </View>
+                </View>
+              )}
+              
+              <View style={styles.optionsContainer}>
+                <Text style={styles.durationPrompt}>
+                  Choose the duration that works best for you
+                </Text>
+                {DURATION_OPTIONS.map((option) => (
+                  <TouchableOpacity
+                    key={option.days}
+                    style={styles.optionButton}
+                    onPress={() => onSelectDuration(option.days)}
+                  >
+                    <Text style={styles.optionDays}>{option.days} Day{option.days > 1 ? 's' : ''}</Text>
+                    <Text style={styles.optionTitle}>{option.title}</Text>
+                    <Text style={styles.optionDescription}>{option.description}</Text>
+                  </TouchableOpacity>
+                ))}
+                <Text style={styles.footerText}>
+                  God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
+                </Text>
+              </View>
             </View>
           </View>
-          <Text style={styles.footerText}>
-            God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
-          </Text>
         </Animated.View>
-      </Animated.View>
+      </View>
     </Modal>
   );
 };
@@ -246,7 +279,7 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'transparent',
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
@@ -257,15 +290,21 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
     padding: 20,
-    paddingBottom: 30,
+    paddingBottom: 40, // Increased bottom padding for better spacing
     maxHeight: '85%',
+    minHeight: 300, // Ensure minimum height for smooth animation
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     overflow: 'hidden',
     position: 'absolute',
     bottom: 0,
+    width: '100%',
     left: 0,
     right: 0,
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
   },
   headerContainer: {
     position: 'relative',
@@ -380,9 +419,12 @@ const styles = StyleSheet.create({
   fixedContent: {
     width: '100%',
     marginBottom: 16,
+    paddingHorizontal: 4,
   },
   scrollableContent: {
-    width: '100%',
+    flex: 1,
+    paddingHorizontal: 4,
+    paddingBottom: 20,
   },
   playbookInfoContent: {
     paddingHorizontal: 12,
