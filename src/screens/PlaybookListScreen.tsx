@@ -1,20 +1,24 @@
-import React, { useRef, useImperativeHandle, forwardRef } from 'react';
+import React, { useRef, useImperativeHandle, forwardRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  SectionList,
+  FlatList,
   TouchableOpacity,
-  Animated,
   Alert,
-  SafeAreaView,
-  StatusBar,
+  RefreshControl,
+  SectionList,
   Pressable,
+  SafeAreaView,
+  ScrollView,
+  Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format } from 'date-fns';
+
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
+import PlaybookCard from '../components/PlaybookCard';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts } from '../theme';
@@ -156,27 +160,30 @@ const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, child
   };
 
   return (
-    <Swipeable
-      ref={swipeableRef}
-      renderRightActions={renderRightActions}
-      rightThreshold={40}
-      friction={1.5}
-      overshootRight={true}
-      containerStyle={styles.swipeableContainer}
-      onSwipeableWillOpen={() => onSwipeableOpen?.(swipeableRef.current)}
-    >
-      {children}
-    </Swipeable>
+    <View style={styles.swipeableContainer}>
+      <Swipeable
+        ref={swipeableRef}
+        renderRightActions={renderRightActions}
+        rightThreshold={40}
+        friction={1.5}
+        overshootRight={false}
+        containerStyle={styles.swipeableInnerContainer}
+        onSwipeableWillOpen={() => onSwipeableOpen?.(swipeableRef.current)}
+      >
+        <View style={styles.swipeableChild}>
+          {children}
+        </View>
+      </Swipeable>
+    </View>
   );
 });
 
-export default function PlaybookListScreen() {
+const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   // Store refs for all rows
   const rowRefs = useRef<{ [key: string]: any }>({});
-  const navigation = useNavigation<PlaybookListScreenNavigationProp>();
+  const [filter, setFilter] = useState<'all' | 'ongoing' | 'accomplished'>('all');
   const { id: userId } = useUser();
   const [playbooks, setPlaybooks] = React.useState<Playbook[]>([]);
-  const [filter, setFilter] = React.useState<'all' | 'ongoing' | 'accomplished'>('all');
   const [refreshing, setRefreshing] = React.useState(false);
   const openSwipeableRef = useRef<any>(null);
 
@@ -321,60 +328,41 @@ export default function PlaybookListScreen() {
   };
 
   const renderItem = ({ item }: { item: Playbook }) => {
-    const formattedDate = format(new Date(item.createdAt || ''), 'EEEE, MMM d, yyyy').toUpperCase();
-    const completedSteps = item.actionSteps.filter(step => step.completed).length;
-    const totalSteps = item.actionSteps.length;
-    const progress = totalSteps > 0 ? (completedSteps / totalSteps) * 100 : 0;
-
     // Ensure a persistent ref for each row
     if (!rowRefs.current[item.id]) {
       rowRefs.current[item.id] = React.createRef();
     }
+    
+    // Handle card press
+    const handleCardPress = useCallback(() => {
+      console.log('Card pressed, navigating to PlaybookDetail with:', item.id);
+      navigation.navigate('PlaybookDetail', { playbook: item });
+    }, [item, navigation]);
+    
     return (
-      <SwipeableRow
-        ref={rowRefs.current[item.id]}
-        item={item}
-        onDelete={handleDelete}
-
-      >
-      <TouchableOpacity
-        style={styles.card}
-        onPress={() => navigation.navigate('PlaybookDetail', { playbook: item })}
-        activeOpacity={0.8}
-      >
-        <View style={styles.cardContent}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.date}>
-              {formattedDate}
-            </Text>
-            <View style={styles.titleRow}>
-              <Text style={styles.title} numberOfLines={1}>
-                {item.title}
-              </Text>
-            </View>
-          </View>
-          <View style={progressBarStyles.container}>
-            <View style={progressBarStyles.row}>
-              <View style={progressBarStyles.progressWrapper}>
-                <View style={progressBarStyles.barBg}>
-                  <View
-                    style={[
-                      progressBarStyles.barFill,
-                      { width: `${progress}%` },
-                    ]}
-                  />
-                </View>
-              </View>
-              <View style={progressBarStyles.textContainer}>
-                <Text style={progressBarStyles.text}>
-                  {completedSteps}/{totalSteps} tasks
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-      </TouchableOpacity>
-      </SwipeableRow>
+      <View style={styles.swipeableContainer}>
+        <Swipeable
+          ref={rowRefs.current[item.id]}
+          renderRightActions={() => (
+            <RectButton
+              style={styles.deleteButton}
+              onPress={() => handleDelete(item.id)}
+            >
+              <Ionicons name="trash-outline" size={24} color="white" />
+            </RectButton>
+          )}
+          rightThreshold={40}
+          friction={2}
+          overshootRight={false}
+          containerStyle={styles.swipeableContainer}
+        >
+          <PlaybookCard 
+            playbook={item}
+            onPress={handleCardPress}
+            style={styles.card}
+          />
+        </Swipeable>
+      </View>
     );
   };
 
@@ -419,15 +407,25 @@ export default function PlaybookListScreen() {
       </View>
     </SafeAreaView>
   );
-}
+};
+
+export default PlaybookListScreen;
 
 const styles = StyleSheet.create({
   swipeableContainer: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
+    width: '100%',
     marginBottom: 12,
+  },
+  cardTouchable: {
+    width: '100%',
+  },
+  swipeableInnerContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 16,
     overflow: 'hidden',
-    flexDirection: 'row',
+  },
+  swipeableChild: {
+    width: '100%',
   },
   deleteButtonContainer: {
     width: 80,
@@ -525,14 +523,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   card: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 0,
-    padding: 16,
-    flex: 1,
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
-    width: '100%',
-    alignSelf: 'stretch',
+    marginBottom: 12,
   },
   cardContent: {
     flex: 1,
