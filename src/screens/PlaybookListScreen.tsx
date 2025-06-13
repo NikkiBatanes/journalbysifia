@@ -12,6 +12,7 @@ import {
   Pressable,
   SectionList,
   Button,
+  ActivityIndicator,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -172,24 +173,24 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
   const [refreshing, setRefreshing] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   // Refs
   const openSwipeableRef = useRef<any>(null);
   const animatedValues = useRef<Animated.Value[]>([]);
   const rowRefs = useRef<{ [key: string]: any }>({});
-  
+
   // Get user info
   const { id: userId, name: userName } = useUser();
-
 
   // Initialize animation values
   const initAnimations = (count: number) => {
     const initialValues = Array(count).fill(0).map(() => new Animated.Value(0));
     animatedValues.current = initialValues;
-    
+
     // Start animations after a small delay
     setTimeout(() => {
-      const animations = initialValues.map((value, index) => 
+      const animations = initialValues.map((value, index) =>
         Animated.spring(value, {
           toValue: 1,
           useNativeDriver: true,
@@ -198,7 +199,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       );
       Animated.stagger(100, animations).start();
     }, 100);
-    
+
     return initialValues;
   };
 
@@ -210,7 +211,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       // Reset all animations
       animatedValues.current.forEach(value => value.setValue(0));
       // Start animations after a small delay to ensure screen is ready
-      setTimeout(() => {
+setTimeout(() => {
         if (playbooks.length > 0) {
           initAnimations(playbooks.length);
         }
@@ -222,17 +223,15 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 
   // Load playbooks function
   const loadPlaybooks = useCallback(async () => {
-    console.log('Loading playbooks for user:', userId);
+    setIsLoading(true);
     if (!userId) {
-      console.log('No user ID, skipping playbook load');
       setPlaybooks([]);
+      setIsLoading(false);
       return;
     }
     try {
-      console.log('Fetching playbooks...');
       const localPlaybooks = await getPlaybooks(userId);
-      console.log('Fetched playbooks:', localPlaybooks);
-      
+
       // Normalize keys for UI
       const normalized = localPlaybooks.map((pb: any) => ({
         id: pb.id,
@@ -253,21 +252,22 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       }));
 
       setPlaybooks(normalized);
-      
+
       // Initialize animations after state is updated
       if (normalized.length > 0) {
-        console.log('Initializing animations for', normalized.length, 'playbooks');
         initAnimations(normalized.length);
       }
     } catch (error) {
       console.error('Error loading playbooks:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [userId]);
 
   // Load playbooks on mount and when userId changes
   useEffect(() => {
     loadPlaybooks();
-    
+
     const unsubscribe = navigation.addListener('focus', loadPlaybooks);
     return unsubscribe;
   }, [loadPlaybooks, navigation]);
@@ -328,9 +328,6 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 
   const sections = useMemo(() => groupPlaybooksByMonth(filteredPlaybooks), [filteredPlaybooks, groupPlaybooksByMonth]);
 
-
-
-
   const handleDelete = async (id: string) => {
     if (!userId) {
       Alert.alert('Error', 'User not authenticated');
@@ -355,7 +352,8 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
               // Delete from Supabase and AsyncStorage (background)
               deletePlaybook(id, userId)
                 .then(() => {
-                  console.log('Playbook deleted successfully');
+                  // Remove the deleted playbook from the list
+                  setPlaybooks(prev => prev.filter(pb => pb.id !== id));
                 })
                 .catch(async (error) => {
                   console.error('Error deleting playbook:', error);
@@ -379,7 +377,6 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 
   // Move handleCardPress outside of renderItem
   const handleCardPress = useCallback((playbook: Playbook) => {
-    console.log('Card pressed, navigating to PlaybookDetail with:', playbook.id);
     navigation.navigate('PlaybookDetail', { playbook });
   }, [navigation]);
 
@@ -431,9 +428,13 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
-  console.log('Rendering PlaybookListScreen with', playbooks.length, 'playbooks');
-  console.log('Filtered playbooks count:', filteredPlaybooks.length);
-  console.log('Sections:', sections);
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: 'white' }]}>
+        <View style={[styles.container, { flex: 1, backgroundColor: 'white' }]} />
+      </SafeAreaView>
+    );
+  }
 
   if (playbooks.length === 0) {
     return (
@@ -441,13 +442,12 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
         <View style={[styles.container, styles.centered]}>
           <Text style={styles.header}>Playbooks</Text>
           <Text>No playbooks found. Pull to refresh or create a new playbook.</Text>
-          <Text>User ID: {userId || 'Not available'}</Text>
-          <Button 
-            title="Refresh" 
+          <Button
+            title="Refresh"
             onPress={() => {
               // Force reload playbooks
               loadPlaybooks();
-            }} 
+            }}
           />
         </View>
       </SafeAreaView>
