@@ -341,24 +341,35 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
         }
       }
 
+      // Helper function to get the most relevant date for sorting
+      const getSortDate = (pb: Playbook) => {
+        if (filter === 'completed' && pb.completedAt) {
+          return new Date(pb.completedAt).getTime();
+        }
+        if (pb.updatedAt) {
+          return new Date(pb.updatedAt).getTime();
+        }
+        return new Date(pb.createdAt || 0).getTime();
+      };
+
       // Process in smaller chunks to avoid blocking
       return Object.entries(groups)
-        .map(([title, data]) => ({
-          title,
-          data: [...data].sort((a, b) => {
-            // For completed filter, sort by completedAt, otherwise use createdAt
-            const aDate = filter === 'completed' ? (a.completedAt || a.updatedAt || a.createdAt) : a.createdAt;
-            const bDate = filter === 'completed' ? (b.completedAt || b.updatedAt || b.createdAt) : b.createdAt;
-            return new Date(bDate || 0).getTime() - new Date(aDate || 0).getTime();
-          })
-        }))
+        .map(([title, data]) => {
+          // Sort playbooks within each section
+          const sortedData = [...data].sort((a, b) => {
+            return getSortDate(b) - getSortDate(a);
+          });
+          
+          return { title, data: sortedData };
+        })
         .sort((a, b) => {
-          // Sort sections by the first item's date
-          const aFirst = a.data[0];
-          const bFirst = b.data[0];
-          const aDate = filter === 'completed' ? (aFirst?.completedAt || aFirst?.updatedAt || aFirst?.createdAt) : aFirst?.createdAt;
-          const bDate = filter === 'completed' ? (bFirst?.completedAt || bFirst?.updatedAt || bFirst?.createdAt) : bFirst?.createdAt;
-          return new Date(bDate || 0).getTime() - new Date(aDate || 0).getTime();
+          // Sort sections by the most recent date in each section
+          const getMostRecentDate = (items: Playbook[]) => {
+            if (!items.length) return 0;
+            return Math.max(...items.map(pb => getSortDate(pb)));
+          };
+
+          return getMostRecentDate(b.data) - getMostRecentDate(a.data);
         });
     } catch (error) {
       console.error('Error in groupPlaybooksByMonth:', error);

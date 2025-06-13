@@ -1,6 +1,5 @@
-import { Alert, AppState, AppStateStatus, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import 'react-native-url-polyfill/auto';
+import 'react-native-get-random-values';
 import { Playbook } from '../interfaces/playbook';
 
 // Import environment variables
@@ -225,8 +224,10 @@ export async function insertRow(table: string, data: Record<string, any>) {
 }
 
 // Example: Update a row by primary key (id)
-export async function updateRow(table: string, id: string, data: Record<string, any>) {
-  const url = getApiUrl(`/${table}?id=eq.${id}`);
+export async function updateRow(table: string, id: string | number, data: Record<string, any>) {
+  // Convert ID to string for the URL to ensure consistent comparison
+  const idStr = String(id);
+  const url = getApiUrl(`/${table}?id=eq.${idStr}`);
   const response = await fetch(url, {
     method: 'PATCH',
     headers: await getHeadersWithAuth(),
@@ -239,9 +240,11 @@ export async function updateRow(table: string, id: string, data: Record<string, 
 }
 
 // Example: Delete a row by primary key (id)
-export async function deleteRow(table: string, id: string) {
-  console.log('[deleteRow] Deleting row:', { table, id });
-  const url = getApiUrl(`/${table}?id=eq.${id}`);
+export async function deleteRow(table: string, id: string | number) {
+  // Convert ID to string for the URL to ensure consistent comparison
+  const idStr = String(id);
+  console.log('[deleteRow] Deleting row:', { table, id: idStr });
+  const url = getApiUrl(`/${table}?id=eq.${idStr}`);
   const response = await fetch(url, {
     method: 'DELETE',
     headers: await getHeadersWithAuth(),
@@ -269,12 +272,14 @@ const PLAYBOOKS_KEY = 'playbooks';
  * @returns Promise that resolves when the update is complete
  */
 // Helper function to check if a string is a valid UUID
-function isValidUUID(uuid: string | undefined): boolean {
-  if (!uuid) {
+function isValidUUID(uuid: string | number | undefined): boolean {
+  if (uuid === undefined || uuid === null) {
     return false;
   }
+  // Convert to string if it's a number
+  const uuidStr = String(uuid);
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
+  return uuidRegex.test(uuidStr);
 }
 
 /**
@@ -441,7 +446,7 @@ export async function getPlaybooks(userId: string) {
   console.log('[getPlaybooks] Fetching for user:', userId);
   let remotePlaybooks: any[] = [];
   let localPlaybooks: any[] = [];
-  let mergedPlaybooks: any[] = [];
+  // mergedPlaybooks is intentionally left for future use
 
   // Helper to normalize playbook data structure
   const normalizePlaybook = (pb: any): any => {
@@ -534,18 +539,29 @@ export async function getPlaybooks(userId: string) {
     return [];
   }
 
-  // If all else fails, return an empty array
-  return [];
+  // Merge remote and local playbooks, preferring remote versions when IDs match
+  const mergedPlaybooks = [...remotePlaybooks];
+  
+  // Add local playbooks that don't exist in remote
+  localPlaybooks.forEach(localPb => {
+    const exists = mergedPlaybooks.some(remotePb => String(remotePb.id) === String(localPb.id));
+    if (!exists) {
+      mergedPlaybooks.push(localPb);
+    }
+  });
+  
+  console.log('[getPlaybooks] Merged playbooks:', mergedPlaybooks);
+  return mergedPlaybooks;
 }
 
 
 /**
  * Delete a playbook from both Supabase and AsyncStorage.
- * @param id - Playbook id
+ * @param id - Playbook id (can be string or number)
  * @param _userId - User's unique ID (unused parameter)
  * @returns Promise that resolves when the deletion is complete
  */
-export async function deletePlaybook(id: string, _userId: string): Promise<{ success: boolean; error?: string }> {
+export async function deletePlaybook(id: string | number, _userId: string): Promise<{ success: boolean; error?: string }> {
   if (!id) {
     console.error('[deletePlaybook] No playbook ID provided');
     return { success: false, error: 'No playbook ID provided' };
@@ -555,17 +571,21 @@ export async function deletePlaybook(id: string, _userId: string): Promise<{ suc
   let supabaseSuccess = false;
   let localSuccess = false;
 
+  // Convert ID to string for consistent comparison
+  const idStr = String(id);
+  
   // 1. Delete from Supabase if we have a valid UUID
-  if (isValidUUID(id)) {
+  if (isValidUUID(idStr)) {
     try {
       console.log(`[deletePlaybook] Deleting from Supabase: ${id}`);
-      await deleteRow('playbooks', id);
+      await deleteRow('playbooks', idStr);
       supabaseSuccess = true;
-      console.log(`[deletePlaybook] Successfully deleted from Supabase: ${id}`);
+      console.log(`[deletePlaybook] Successfully deleted from Supabase: ${idStr}`);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error(`[deletePlaybook] Error deleting from Supabase (${id}):`, errorMessage);
+      console.error(`[deletePlaybook] Error deleting from Supabase (${idStr}):`, errorMessage);
       // Continue with local deletion even if Supabase fails
+      console.log(`[deletePlaybook] Continuing with local deletion for ${idStr}`);
     }
   } else {
     console.log(`[deletePlaybook] Skipping Supabase delete for non-UUID ID: ${id}`);
@@ -573,32 +593,28 @@ export async function deletePlaybook(id: string, _userId: string): Promise<{ suc
 
   // 2. Delete from AsyncStorage
   try {
-    console.log(`[deletePlaybook] Deleting from AsyncStorage: ${id}`);
+    console.log(`[deletePlaybook] Deleting from local storage: ${idStr}`);
     const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
-    if (stored) {
-      const playbooks = JSON.parse(stored);
-      const initialCount = playbooks.length;
-      const updatedPlaybooks = playbooks.filter((pb: any) => pb.id !== id);
+    let playbooks = stored ? JSON.parse(stored) : [];
+    const initialLength = playbooks.length;
+    playbooks = playbooks.filter((pb: any) => String(pb.id) !== idStr);
       
-      if (updatedPlaybooks.length < initialCount) {
-        await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
-        console.log(`[deletePlaybook] Successfully deleted from AsyncStorage: ${id}`);
-        localSuccess = true;
-      } else {
-        console.log(`[deletePlaybook] Playbook not found in AsyncStorage: ${id}`);
-      }
+    if (playbooks.length < initialLength) {
+      await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
+      console.log(`[deletePlaybook] Successfully deleted from AsyncStorage: ${idStr}`);
+      localSuccess = true;
     } else {
-      console.log('[deletePlaybook] No playbooks found in AsyncStorage');
+      console.log(`[deletePlaybook] Playbook not found in AsyncStorage: ${idStr}`);
     }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error(`[deletePlaybook] Error deleting from AsyncStorage (${id}):`, errorMessage);
+    console.error(`[deletePlaybook] Error deleting from AsyncStorage (${idStr}):`, errorMessage);
     return { success: false, error: `Local deletion failed: ${errorMessage}` };
   }
 
   // If we tried to delete from Supabase but failed, but local deletion succeeded
-  if (!supabaseSuccess && id && isValidUUID(id)) {
-    console.warn(`[deletePlaybook] Supabase deletion failed for ${id}, but local deletion succeeded`);
+  if (!supabaseSuccess && id && isValidUUID(String(id))) {
+    console.warn(`[deletePlaybook] Supabase deletion failed for ${idStr}, but local deletion succeeded`);
     // You might want to implement a retry mechanism or offline queue here
   }
 
