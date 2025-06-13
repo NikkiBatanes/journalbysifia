@@ -399,7 +399,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         }
       }
     },
-    onEnd: (event, ctx: GestureContext) => {
+    onEnd: (event, _ctx: GestureContext) => {
       if (isTransitioning.value) {return;}
 
       const isVerticalSwipe = Math.abs(event.translationY) > Math.abs(event.translationX);
