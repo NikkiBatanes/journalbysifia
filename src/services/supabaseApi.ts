@@ -174,16 +174,18 @@ const isValidUuid = (uuid: string): boolean => {
 
 export async function updatePlaybookActionSteps(playbookId: string, actionSteps: any[], userId: string) {
   try {
-    // Validate playbookId is a valid UUID
-    if (!isValidUuid(playbookId)) {
-      console.warn('[updatePlaybookActionSteps] Invalid playbookId format, skipping Supabase update:', playbookId);
-      // We'll still update AsyncStorage to maintain local state
+    // First try to update in Supabase if we have a valid ID (UUID or numeric)
+    if (playbookId) {
+      try {
+        const [updated] = await updateRow('playbooks', playbookId, { 
+          action_steps: actionSteps,
+          updated_at: new Date().toISOString()
+        });
+      } catch (error) {
+        console.warn('[updatePlaybookActionSteps] Error updating in Supabase, falling back to local storage:', error);
+      }
     } else {
-      // Update in Supabase only if we have a valid UUID
-      const [updated] = await updateRow('playbooks', playbookId, { 
-        action_steps: actionSteps,
-        updated_at: new Date().toISOString()
-      });
+      console.warn('[updatePlaybookActionSteps] No playbookId provided, only saving to local storage');
     }
     
     // Update in AsyncStorage regardless of UUID validity
