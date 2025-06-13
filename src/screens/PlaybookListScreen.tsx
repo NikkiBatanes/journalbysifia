@@ -438,21 +438,6 @@ const styles = StyleSheet.create({
   cardTouchable: {
     width: '100%',
   },
-  swipeableInnerContainer: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
-  swipeableChild: {
-    width: '100%',
-  },
-  deleteButtonContainer: {
-    width: 80,
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingRight: 8,
-  },
   deleteButton: {
     width: 60,
     backgroundColor: '#f87171',
@@ -462,15 +447,6 @@ const styles = StyleSheet.create({
     height: '100%',
     borderTopRightRadius: 16, // Match card's border radius
     borderBottomRightRadius: 16, // Match card's border radius
-  },
-  deleteButtonContent: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  deleteIcon: {
-    opacity: 0.9,
   },
   safeArea: {
     flex: 1,
@@ -552,17 +528,6 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     paddingVertical: 2,
   },
-  titleContainer: {
-    marginBottom: 10,
-    width: '100%',
-  },
-  subtitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginTop: 2,
-  },
   title: {
     fontSize: 17,
     fontFamily: Fonts.bold,
@@ -571,12 +536,6 @@ const styles = StyleSheet.create({
     paddingVertical: 1,
     fontWeight: '700',
     flexShrink: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '100%',
-    marginTop: 1,
   },
   date: {
     fontSize: 10,
