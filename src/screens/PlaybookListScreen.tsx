@@ -1,4 +1,5 @@
-import React, { useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect, useMemo } from 'react';
+import * as React from 'react';
+import { useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -152,12 +153,16 @@ const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, child
   return (
     <View style={styles.swipeableContainer}>
       <Swipeable
-        ref={swipeableRef}
+        ref={(ref) => {
+          if (ref) {
+            swipeableRef.current = ref;
+          }
+        }}
         renderRightActions={renderRightActions}
         rightThreshold={40}
-        friction={1.5}
+        friction={2}
         overshootRight={false}
-        containerStyle={styles.swipeableInnerContainer}
+        containerStyle={styles.swipeableContainer}
         onSwipeableWillOpen={() => onSwipeableOpen?.(swipeableRef.current)}
       >
         <View style={styles.swipeableChild}>
@@ -176,7 +181,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Refs
-  const openSwipeableRef = useRef<any>(null);
+  const swipeableRef = useRef<any>(null);
   const animatedValues = useRef<Animated.Value[]>([]);
   const rowRefs = useRef<{ [key: string]: any }>({});
 
@@ -232,24 +237,43 @@ setTimeout(() => {
     try {
       const localPlaybooks = await getPlaybooks(userId);
 
-      // Normalize keys for UI
-      const normalized = localPlaybooks.map((pb: any) => ({
-        id: pb.id,
-        title: pb.title,
-        userInput: pb.user_input ?? pb.userInput,
-        truthInLove: pb.truth_in_love ?? pb.truthInLove,
-        actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
-        affirmations: pb.daily_affirmations ?? pb.affirmations ?? [],
-        bibleVerse: pb.bible_verse ?? pb.bibleVerse,
-        directChallenge: pb.direct_challenge ?? pb.directChallenge,
-        createdAt: pb.created_at ?? pb.createdAt,
-        updatedAt: pb.updated_at ?? pb.updatedAt,
-        userId: pb.user_id ?? pb.userId,
-        progress: pb.progress,
-        totalTasks: pb.total_tasks ?? pb.totalTasks,
-        challengeCta: pb.challenge_cta ?? pb.challengeCta,
-        profileImage: pb.profile_image ?? pb.profileImage,
-      }));
+      // Normalize keys for UI and ensure all required fields are present
+      const normalized: Playbook[] = localPlaybooks.map((pb: any) => {
+        // Ensure directChallenge is properly formatted
+        let directChallenge: string | { text: string; summary: string } = '';
+        if (pb.direct_challenge || pb.directChallenge) {
+          const challenge = pb.direct_challenge || pb.directChallenge;
+          directChallenge = typeof challenge === 'string' 
+            ? challenge 
+            : { text: challenge?.text || '', summary: challenge?.summary || '' };
+        }
+
+        // Ensure truthInLove has the correct structure
+        const truthInLove = pb.truth_in_love || pb.truthInLove || { text: '', summary: '' };
+        
+        // Ensure bibleVerse has the correct structure
+        const bibleVerse = pb.bible_verse || pb.bibleVerse || { text: '', reference: '' };
+
+        return {
+          id: pb.id,
+          title: pb.title || 'Untitled Playbook',
+          user_id: pb.user_id || pb.userId || '',
+          userInput: pb.user_input ?? pb.userInput ?? '',
+          truthInLove,
+          actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
+          affirmations: Array.isArray(pb.daily_affirmations) 
+            ? pb.daily_affirmations 
+            : (Array.isArray(pb.affirmations) ? pb.affirmations : []),
+          bibleVerse,
+          directChallenge,
+          challengeCta: pb.challenge_cta ?? pb.challengeCta ?? '',
+          profileImage: pb.profile_image ?? pb.profileImage,
+          progress: pb.progress ?? 0,
+          totalTasks: pb.total_tasks ?? pb.totalTasks ?? 0,
+          createdAt: pb.created_at ?? pb.createdAt,
+          updatedAt: pb.updated_at ?? pb.updatedAt,
+        };
+      });
 
       setPlaybooks(normalized);
 
