@@ -6,7 +6,6 @@ import {
   StyleSheet,
   StatusBar,
   Image,
-  Keyboard,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -28,24 +27,7 @@ type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Ma
 
 const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
-  const [_keyboardHeight, _setKeyboardHeight] = useState(0);
-  const [_keyboardVisible, _setKeyboardVisible] = useState(false);
   const inputRef = useRef<TextInput>(null);
-
-  // Handle keyboard visibility
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-      _setKeyboardVisible(true);
-    });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-      _setKeyboardVisible(false);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
 
   // Set status bar style
   useEffect(() => {
