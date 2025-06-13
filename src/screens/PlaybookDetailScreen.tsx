@@ -480,25 +480,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       );
       prevCardRef.current = currentCard;
     }
-  }, [currentCard]);
+  }, [currentCard, bounceY, nudgeY]);
 
   const goToNextCard = () => {
     if (currentCard < cardData.length - 1) {
-      setCurrentCard(prevCard => {
-        const newCard = prevCard + 1;
-        setCurrentCardIndex(newCard);
-        return newCard;
-      });
+      setCurrentCard(prevCard => prevCard + 1);
     }
   };
 
   const goToPrevCard = () => {
     if (currentCard > 0) {
-      setCurrentCard(prevCard => {
-        const newCard = prevCard - 1;
-        setCurrentCardIndex(newCard);
-        return newCard;
-      });
+      setCurrentCard(prevCard => prevCard - 1);
     }
   };
 
@@ -509,8 +501,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     setShowDevotionalModal(false);
   };
 
-  const handleCardPress = (cardType: CardType, cardData: CardData) => {
-    const { tappable, ...serializableCardData } = cardData;
+  const handleCardPress = (cardType: CardType, cardItem: CardData) => {
+    // Remove tappable property as it's not needed for serialization
+    // Using _ prefix to indicate this is intentionally unused
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { tappable: _, ...serializableCardData } = cardItem;
     const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
     navigation.navigate('CardDetail', {
       cardType,
@@ -525,31 +520,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
-
-  const titleStyle: TextStyle[] = [
-    styles.playbookTitle,
-    {
-      fontSize: 26,
-      color: Colors.anchorBlue,
-      ...Platform.select({
-        ios: {
-          fontFamily: 'Georgia-Bold',
-          fontWeight: '900',
-        },
-        android: {
-          fontFamily: 'serif',
-          fontWeight: 'bold',
-          includeFontPadding: false,
-        },
-      }),
-      textShadowColor: 'rgba(0, 0, 0, 0.1)',
-      textShadowOffset: { width: 0.5, height: 0.5 },
-      textShadowRadius: 1,
-      letterSpacing: 0.3,
-    },
-  ];
 
   // Animation for chevron rotation
   const chevronAnim = useSharedValue(0);
@@ -626,114 +597,28 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     );
   };
 
-  const renderPlaybookInfo = () => {
-    // Handle two-line title format from the playbook
-    const titleLines = playbook.title.split('\n').map(line => line.trim()).filter(line => line);
-    const firstLine = titleLines[0] || '';
-    const secondLine = titleLines[1] || '';
-
-    return (
-      <View style={styles.playbookInfoContainer}>
-        <View style={styles.playbookHeader}>
-          <TouchableOpacity
-            style={styles.playbookLabelRow}
-            onPress={() => setShowUserInput(!showUserInput)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.playbookLabel}>PLAYBOOK</Text>
-            <Animated.View style={chevronStyle}>
-              <Ionicons name="chevron-down" size={15} color={Colors.anchorBlue} />
-            </Animated.View>
-          </TouchableOpacity>
-
-          {showUserInput && playbook.userInput && (
-            <View style={styles.userInputCard}>
-              <Text style={styles.userInputText}>{playbook.userInput}</Text>
-            </View>
-          )}
-
-          <Text style={styles.playbookTitle}>{firstLine}</Text>
-          {secondLine ? (
-            <Text style={[styles.playbookTitle, { marginTop: -8 }]}>{secondLine}</Text>
-          ) : null}
-
-          <Text style={styles.creationDate}>
-            {new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            }).toUpperCase()}
-          </Text>
-
-          <View style={styles.progressAndViewRow}>
-            <View style={styles.progressContainer}>
-              <View style={styles.progressRow}>
-                <View style={styles.progressBarBg}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      { width: `${progress}%` },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.progressText}>
-                  {actionSteps.filter((step) => step.completed).length}/{actionSteps.length} Steps
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.viewToggleContainer}>
-              <TouchableOpacity style={styles.viewToggle} onPress={() => setViewMode('stack')}>
-                <View style={[styles.iconContainer, viewMode === 'stack' && styles.iconContainerActive]}>
-                  <Ionicons
-                    name="albums"
-                    size={20}
-                    color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey}
-                    style={{ transform: [{ rotate: '180deg' }] }}
-                  />
-                </View>
-              </TouchableOpacity>
-              <View style={styles.viewToggleDivider} />
-              <TouchableOpacity style={styles.viewToggle} onPress={() => setViewMode('document')}>
-                <View style={[styles.iconContainer, viewMode === 'document' && styles.iconContainerActive]}>
-                  <MaterialCommunityIcons
-                    name="view-agenda"
-                    size={20}
-                    color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey}
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  };
-
   const renderStackCards = () => {
     if (cardData.length === 0) {return null;}
 
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
 
-    const getCardColor = (index: number) => {
+    const getCardColor = (_index: number) => {
       // Return the same color for all cards to remove the gradient effect
       return Colors.anchorBlue;
     };
 
-    const renderCard = (cardIndex: number, stackIndex: number, onToggleView: (mode: 'stack' | 'document') => void) => {
+    const renderCard = (cardIndex: number, stackIndex: number, _onToggleView: (mode: 'stack' | 'document') => void) => {
       const card = cardData[cardIndex];
       if (!card) {return null;}
 
       const scaleY = 1 - stackIndex * 0.01;
       const scaleX = 1 - stackIndex * 0.03;
-      const translateY = stackIndex * 8;
+      const cardTranslateY = stackIndex * 8;
       const zIndex = 100 - stackIndex;
       const isLastCard = cardIndex === cardData.length - 1;
       const isCurrentCard = cardIndex === currentCard;
       const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
       const isTopCard = stackIndex === 0;
-      const CardContainer = isTopCard ? Animated.View : View;
       const extraStyle = isTopCard ? animatedCardStyle : {};
 
       return (
@@ -763,7 +648,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   borderRadius: 28,
                   elevation: 0,
                   shadowColor: 'transparent',
-                  transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY }] : undefined,
+                  transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
                   zIndex,
                   opacity: !isTopCard ? opacity : 1,
                   position: stackIndex === 0 ? 'relative' : 'absolute',
@@ -772,7 +657,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 }
               : {
                   backgroundColor: getCardColor(stackIndex),
-                  transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY }] : undefined,
+                  transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
                   zIndex,
                   opacity: !isTopCard ? opacity : 1,
                   position: stackIndex === 0 ? 'relative' : 'absolute',
@@ -792,7 +677,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       );
     };
 
-    const backCards = Array.from({ length: visibleCardCount - 1 }).map((_, i, arr) => {
+    const backCards = Array.from({ length: visibleCardCount - 1 }).map((_item, i, arr) => {
       const stackIndex = arr.length - 1 - i + 1;
       const cardIndex = currentCard + stackIndex;
       return renderCard(cardIndex, stackIndex, (mode: 'stack' | 'document') => setViewMode(mode));
