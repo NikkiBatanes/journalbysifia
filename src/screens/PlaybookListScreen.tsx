@@ -1,18 +1,17 @@
-import React, { useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect } from 'react';
+import React, { useRef, useImperativeHandle, forwardRef, useCallback, useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  FlatList,
-  TouchableOpacity,
   Alert,
   RefreshControl,
-  SectionList,
-  Pressable,
-  SafeAreaView,
   ScrollView,
   Animated,
   Easing,
+  SafeAreaView,
+  Pressable,
+  SectionList,
+  Button,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -20,26 +19,16 @@ import { format } from 'date-fns';
 
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import PlaybookCard from '../components/PlaybookCard';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../navigation/types';
 import { Colors, Fonts } from '../theme';
 import type { Playbook } from '../interfaces/playbook';
 import { getPlaybooks, deletePlaybook } from '../services/supabaseApi';
 import { useUser } from '../context/UserContext';
-import { progressBarStyles } from '../styles/ProgressBarStyles';
 
 // Import gesture handler at the top level
 import 'react-native-gesture-handler';
 
 // Define the navigation param types
-declare global {
-  namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
-  }
-}
-
-// Update the navigation prop type to match the expected params
-type PlaybookListScreenNavigationProp = StackNavigationProp<RootStackParamList, 'PlaybookDetail'> & {
+interface NavigationParams {
   navigate: (screen: 'PlaybookDetail', params: { playbook: Playbook }) => void;
 };
 
@@ -88,9 +77,8 @@ function formatProgress(playbook: Playbook): string {
 }
 
 // Format date to a readable format
-const formatDate = () => {
-  const date = new Date();
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const formatDate = (date: Date) => {
+  return format(date, 'MMMM yyyy');
 };
 
 interface SwipeableRowProps {
@@ -133,10 +121,10 @@ const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, child
     });
 
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.deleteButtonContainer,
-          { opacity: fadeAnim }
+          { opacity: fadeAnim },
         ]}
       >
         <RectButton
@@ -146,13 +134,13 @@ const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, child
         >
           <Animated.View style={[
             styles.deleteButtonContent,
-            { transform: [{ scale: scaleAnim }] }
+            { transform: [{ scale: scaleAnim }] },
           ]}>
-            <Ionicons 
-              name="trash-outline" 
-              size={24} 
-              color="white" 
-              style={styles.deleteIcon} 
+            <Ionicons
+              name="trash-outline"
+              size={24}
+              color="white"
+              style={styles.deleteIcon}
             />
           </Animated.View>
         </RectButton>
@@ -180,30 +168,38 @@ const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, child
 });
 
 const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
-  // Store refs for all rows
-  const rowRefs = useRef<{ [key: string]: any }>({});
-  const [filter, setFilter] = useState<'all' | 'ongoing' | 'accomplished'>('ongoing');
-  const { id: userId } = useUser();
-  const [playbooks, setPlaybooks] = React.useState<Playbook[]>([]);
-  const [refreshing, setRefreshing] = React.useState(false);
+  // State for playbooks data
+  const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
+  const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Refs
   const openSwipeableRef = useRef<any>(null);
   const animatedValues = useRef<Animated.Value[]>([]);
+  const rowRefs = useRef<{ [key: string]: any }>({});
+  
+  // Get user info
+  const { id: userId, name: userName } = useUser();
+
 
   // Initialize animation values
   const initAnimations = (count: number) => {
-    animatedValues.current = Array(count).fill(0).map(() => new Animated.Value(0));
+    const initialValues = Array(count).fill(0).map(() => new Animated.Value(0));
+    animatedValues.current = initialValues;
     
-    const animations = animatedValues.current.map((value, index) => {
-      return Animated.timing(value, {
-        toValue: 1,
-        duration: 400, // Increased duration for slower animation
-        delay: index * 80, // Increased delay between animations
-        useNativeDriver: true,
-        easing: Easing.out(Easing.cubic) // Smoother easing
-      });
-    });
+    // Start animations after a small delay
+    setTimeout(() => {
+      const animations = initialValues.map((value, index) => 
+        Animated.spring(value, {
+          toValue: 1,
+          useNativeDriver: true,
+          delay: index * 100,
+        })
+      );
+      Animated.stagger(100, animations).start();
+    }, 100);
     
-    Animated.stagger(80, animations).start(); // Increased stagger delay
+    return initialValues;
   };
 
   // Reset animations and set filter to 'ongoing' when screen comes into focus
@@ -224,51 +220,63 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     return unsubscribe;
   }, [navigation, playbooks.length]);
 
-  // Load playbooks
-  React.useEffect(() => {
-    const load = async (): Promise<void> => {
-      if (!userId) return;
-      try {
-        const localPlaybooks = await getPlaybooks(userId);
-        // Initialize animations after data is loaded
-        if (localPlaybooks.length > 0) {
-          initAnimations(localPlaybooks.length);
-        }
-        // Normalize keys for UI
-        const normalized = localPlaybooks.map((pb: any) => ({
-          id: pb.id,
-          title: pb.title,
-          userInput: pb.user_input ?? pb.userInput,
-          truthInLove: pb.truth_in_love ?? pb.truthInLove,
-          actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
-          affirmations: pb.daily_affirmations ?? pb.affirmations ?? [],
-          bibleVerse: pb.bible_verse ?? pb.bibleVerse,
-          directChallenge: pb.direct_challenge ?? pb.directChallenge,
-          createdAt: pb.created_at ?? pb.createdAt,
-          updatedAt: pb.updated_at ?? pb.updatedAt,
-          userId: pb.user_id ?? pb.userId,
-          progress: pb.progress,
-          totalTasks: pb.total_tasks ?? pb.totalTasks,
-          challengeCta: pb.challenge_cta ?? pb.challengeCta,
-          profileImage: pb.profile_image ?? pb.profileImage,
-        }));
-        
-        setPlaybooks(normalized);
-      } catch (error) {
-        console.error('Error loading playbooks:', error);
-      }
-    };
+  // Load playbooks function
+  const loadPlaybooks = useCallback(async () => {
+    console.log('Loading playbooks for user:', userId);
+    if (!userId) {
+      console.log('No user ID, skipping playbook load');
+      setPlaybooks([]);
+      return;
+    }
+    try {
+      console.log('Fetching playbooks...');
+      const localPlaybooks = await getPlaybooks(userId);
+      console.log('Fetched playbooks:', localPlaybooks);
+      
+      // Normalize keys for UI
+      const normalized = localPlaybooks.map((pb: any) => ({
+        id: pb.id,
+        title: pb.title,
+        userInput: pb.user_input ?? pb.userInput,
+        truthInLove: pb.truth_in_love ?? pb.truthInLove,
+        actionSteps: Array.isArray(pb.action_steps) ? pb.action_steps : [],
+        affirmations: pb.daily_affirmations ?? pb.affirmations ?? [],
+        bibleVerse: pb.bible_verse ?? pb.bibleVerse,
+        directChallenge: pb.direct_challenge ?? pb.directChallenge,
+        createdAt: pb.created_at ?? pb.createdAt,
+        updatedAt: pb.updated_at ?? pb.updatedAt,
+        userId: pb.user_id ?? pb.userId,
+        progress: pb.progress,
+        totalTasks: pb.total_tasks ?? pb.totalTasks,
+        challengeCta: pb.challenge_cta ?? pb.challengeCta,
+        profileImage: pb.profile_image ?? pb.profileImage,
+      }));
 
-    const unsubscribe = navigation.addListener('focus', load);
-    load(); // also load on mount
+      setPlaybooks(normalized);
+      
+      // Initialize animations after state is updated
+      if (normalized.length > 0) {
+        console.log('Initializing animations for', normalized.length, 'playbooks');
+        initAnimations(normalized.length);
+      }
+    } catch (error) {
+      console.error('Error loading playbooks:', error);
+    }
+  }, [userId]);
+
+  // Load playbooks on mount and when userId changes
+  useEffect(() => {
+    loadPlaybooks();
+    
+    const unsubscribe = navigation.addListener('focus', loadPlaybooks);
     return unsubscribe;
-  }, [navigation, userId]);
+  }, [loadPlaybooks, navigation]);
 
   // Group playbooks by month/year
-  function groupPlaybooksByMonth(playbooks: Playbook[]) {
+  const groupPlaybooksByMonth = useCallback((playbooksList: Playbook[]) => {
     const groups: { [key: string]: Playbook[] } = {};
 
-    playbooks.forEach(pb => {
+    playbooksList.forEach(pb => {
       try {
         // Ensure createdAt exists and is a valid date string
         if (!pb.createdAt) {return;}
@@ -276,7 +284,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
         const date = new Date(pb.createdAt);
         if (isNaN(date.getTime())) {return;} // Skip invalid dates
 
-        const key = format(date, 'MMMM yyyy');
+        const key = formatDate(date);
         if (!groups[key]) {groups[key] = [];}
         groups[key].push(pb);
       } catch (error) {
@@ -307,17 +315,18 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           }
         }),
       }));
-  }
+  }, []);
 
   // Filter playbooks by completion status
-  const filteredPlaybooks = React.useMemo(() => {
-    if (filter === 'all') {return playbooks;}
-    if (filter === 'ongoing') {return playbooks.filter(pb => pb.actionSteps.some(step => !step.completed));}
-    if (filter === 'accomplished') {return playbooks.filter(pb => pb.actionSteps.length > 0 && pb.actionSteps.every(step => step.completed));}
-    return playbooks;
-  }, [playbooks, filter]);
+  const filteredPlaybooks = playbooks.filter((playbook: Playbook) => {
+    if (filter === 'all') return true;
+    const progress = calculateProgress(playbook);
+    if (filter === 'ongoing') return progress > 0 && progress < 1;
+    if (filter === 'completed') return progress === 1;
+    return false;
+  });
 
-  const sections = React.useMemo(() => groupPlaybooksByMonth(filteredPlaybooks), [filteredPlaybooks]);
+  const sections = useMemo(() => groupPlaybooksByMonth(filteredPlaybooks), [filteredPlaybooks, groupPlaybooksByMonth]);
 
 
 
@@ -368,33 +377,33 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
+  // Move handleCardPress outside of renderItem
+  const handleCardPress = useCallback((playbook: Playbook) => {
+    console.log('Card pressed, navigating to PlaybookDetail with:', playbook.id);
+    navigation.navigate('PlaybookDetail', { playbook });
+  }, [navigation]);
+
   const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
     // Ensure a persistent ref for each row
     if (!rowRefs.current[item.id]) {
       rowRefs.current[item.id] = React.createRef();
     }
-    
-    // Handle card press
-    const handleCardPress = useCallback(() => {
-      console.log('Card pressed, navigating to PlaybookDetail with:', item.id);
-      navigation.navigate('PlaybookDetail', { playbook: item });
-    }, [item, navigation]);
-    
+
     const translateY = animatedValues.current[index]?.interpolate({
       inputRange: [0, 1],
       outputRange: [50, 0],
     });
-    
+
     const opacity = animatedValues.current[index] || 0;
-    
+
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           styles.swipeableContainer,
           {
             opacity,
             transform: [{ translateY }],
-          }
+          },
         ]}
       >
         <Swipeable
@@ -412,9 +421,9 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           overshootRight={false}
           containerStyle={styles.swipeableContainer}
         >
-          <PlaybookCard 
+          <PlaybookCard
             playbook={item}
-            onPress={handleCardPress}
+            onPress={() => handleCardPress(item)}
             style={styles.card}
           />
         </Swipeable>
@@ -422,26 +431,49 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
+  console.log('Rendering PlaybookListScreen with', playbooks.length, 'playbooks');
+  console.log('Filtered playbooks count:', filteredPlaybooks.length);
+  console.log('Sections:', sections);
+
+  if (playbooks.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={[styles.container, styles.centered]}>
+          <Text style={styles.header}>Playbooks</Text>
+          <Text>No playbooks found. Pull to refresh or create a new playbook.</Text>
+          <Text>User ID: {userId || 'Not available'}</Text>
+          <Button 
+            title="Refresh" 
+            onPress={() => {
+              // Force reload playbooks
+              loadPlaybooks();
+            }} 
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         <Text style={styles.header}>Playbooks</Text>
         {/* Filter Tabs */}
         <View style={styles.filterTabs}>
-          {['all', 'ongoing', 'accomplished'].map((tab) => (
+          {(['all', 'ongoing', 'completed'] as const).map((tab) => (
             <Pressable
               key={tab}
               style={[
                 styles.filterTab,
                 filter === tab && (
-                  tab === 'accomplished'
+                  tab === 'completed'
                     ? styles.filterTabActiveCompleted
                     : tab === 'ongoing'
                       ? styles.filterTabActiveOngoing
                       : styles.filterTabActive
                 ),
               ]}
-              onPress={() => setFilter(tab as any)}
+              onPress={() => setFilter(tab)}
             >
               <Text style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}>
                 {tab === 'all' ? 'All' : tab === 'ongoing' ? 'Ongoing' : 'Completed'}
@@ -468,6 +500,12 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 export default PlaybookListScreen;
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
   swipeableContainer: {
     width: '100%',
     marginBottom: 8,
