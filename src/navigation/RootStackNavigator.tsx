@@ -28,13 +28,13 @@ export default function RootStackNavigator({
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
         <>
+          <Stack.Screen name="MainTabs">
+            {() => <BottomTabNavigator onLogout={handleLogout} />}
+          </Stack.Screen>
           <Stack.Screen
             name="GeneratingPlaybook"
             component={GeneratingPlaybookScreen as React.ComponentType}
           />
-          <Stack.Screen name="MainTabs">
-            {() => <BottomTabNavigator onLogout={handleLogout} />}
-          </Stack.Screen>
           <Stack.Screen
             name="PlaybookDetail"
             component={PlaybookDetailScreen as React.ComponentType}
