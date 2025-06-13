@@ -68,14 +68,22 @@ function calculateProgress(playbook: Playbook): number {
   return total > 0 ? completed / total : 0;
 }
 
-// Format progress text
+/**
+ * Formats the progress of a playbook into a human-readable string
+ * @param {Playbook} playbook - The playbook containing action steps and sub-tasks
+ * @returns {string} Formatted progress string in 'X/Y Tasks' format (e.g., '3/5 Tasks')
+ */
 function formatProgress(playbook: Playbook): string {
   const { completed, total } = calculateTaskStats(playbook);
   return `${completed}/${total} Tasks`;
 }
 
-// Format date to a readable format
-const formatDate = (date: Date) => {
+/**
+ * Formats a date into a human-readable month and year string
+ * @param {Date} date - The date to format
+ * @returns {string} Formatted date string in 'Month YYYY' format (e.g., 'June 2023')
+ */
+const formatDate = (date: Date): string => {
   return format(date, 'MMMM yyyy');
 };
 
