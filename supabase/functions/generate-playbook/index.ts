@@ -45,7 +45,7 @@ function parseOpenAIResponse(aiData: any, userName: string, userInput: string): 
     subtitle,
     truthInLove: {
       summary: '',
-      text: ''
+      text: '',
     },
     actionSteps: [],
     affirmations: [],
@@ -81,13 +81,13 @@ function parseOpenAIResponse(aiData: any, userName: string, userInput: string): 
     const stepBlocks = actionStepsMatch[1]
       .split(/\n(?=\d+\.\s)/)
       .filter(block => block.match(/^\d+\./));
-      
+
     playbook.actionSteps = stepBlocks.map((block, idx) => {
       const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
       let titleLine = lines[0].replace(/^\d+\.\s*/, '');
       const subTasks: string[] = [];
       const examples: string[] = [];
-      
+
       lines.slice(1).forEach(line => {
         if (/^-\s*Sub-task:/i.test(line)) {
           subTasks.push(line.replace(/^-\s*Sub-task:\s*/i, ''));
@@ -95,7 +95,7 @@ function parseOpenAIResponse(aiData: any, userName: string, userInput: string): 
           examples.push(line.replace(/^-\s*Example:\s*/i, ''));
         }
       });
-      
+
       return {
         id: `${timestamp}-step-${idx}`,
         title: titleLine,
@@ -104,7 +104,7 @@ function parseOpenAIResponse(aiData: any, userName: string, userInput: string): 
         completed: false,
       };
     });
-    
+
     playbook.totalTasks = playbook.actionSteps.length;
   }
 
@@ -115,7 +115,7 @@ function parseOpenAIResponse(aiData: any, userName: string, userInput: string): 
     playbook.affirmations = affirmations.map((text, idx) => ({
       id: `${timestamp}-aff-${idx}`,
       text: text.replace(/^\d+\.\s*/, '').trim(),
-      completed: false
+      completed: false,
     }));
   }
 

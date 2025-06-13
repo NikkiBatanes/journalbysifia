@@ -15,13 +15,13 @@ const DEFAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 // Use environment variables with fallbacks
 const config = {
   url: SUPABASE_URL || DEFAULT_SUPABASE_URL,
-  anonKey: SUPABASE_ANON_KEY || DEFAULT_ANON_KEY
+  anonKey: SUPABASE_ANON_KEY || DEFAULT_ANON_KEY,
 };
 
 // Log configuration (remove in production)
 console.log('Supabase Config:', {
   usingEnv: !!(SUPABASE_URL && SUPABASE_ANON_KEY),
-  url: config.url === DEFAULT_SUPABASE_URL ? 'Using default URL' : 'Using custom URL'
+  url: config.url === DEFAULT_SUPABASE_URL ? 'Using default URL' : 'Using custom URL',
 });
 
 // Session management
@@ -96,7 +96,7 @@ export async function signUp(email: string, password: string) {
         'Content-Type': 'application/json',
         'apikey': config.anonKey,
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
     });
 
     const data = await response.json();
@@ -294,11 +294,11 @@ export function calculateTaskStats(actionSteps: any[]) {
   let total = 0;
   actionSteps?.forEach((step: any) => {
     total++;
-    if (step.completed) completed++;
+    if (step.completed) {completed++;}
     if (Array.isArray(step.subtasks)) {
       step.subtasks.forEach((sub: any) => {
         total++;
-        if (sub.completed) completed++;
+        if (sub.completed) {completed++;}
       });
     }
   });
@@ -322,20 +322,20 @@ export async function savePlaybook(playbook: Playbook, userId: string) {
       console.error('[savePlaybook] Cannot save playbook without ID');
       return null;
     }
-    
+
     // Save to AsyncStorage
     const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
     const playbooks = stored ? JSON.parse(stored) : [];
     const existingIndex = playbooks.findIndex((p: any) => p.id === playbook.id);
-    
+
     if (existingIndex >= 0) {
       playbooks[existingIndex] = playbook;
     } else {
       playbooks.push(playbook);
     }
-    
+
     await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
-    
+
     // If online, save to Supabase
     if (isValidUUID(playbook.id)) {
       // Convert to snake_case for Supabase
@@ -346,12 +346,12 @@ export async function savePlaybook(playbook: Playbook, userId: string) {
         total_tasks: totalTasks,
         updated_at: updatedAt,
         completed_at: completedAt,
-        user_id: userId
+        user_id: userId,
       };
-      
+
       await updateRow('playbooks', playbook.id, supabaseData);
     }
-    
+
     return playbook;
   } catch (error) {
     console.error('[savePlaybook] Error saving playbook:', error);
@@ -380,9 +380,9 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
       progress,
       total_tasks: total,
       updated_at: now,
-      ...(allStepsCompleted && { completed_at: now })
+      ...(allStepsCompleted && { completed_at: now }),
     };
-    
+
     // Local data includes both snake_case and camelCase for compatibility
     const localUpdateData = {
       ...updateData,
@@ -412,7 +412,7 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
       const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
       const playbooks = stored ? JSON.parse(stored) : [];
       const updatedPlaybooks = playbooks.map((pb: any) => {
-        if (pb.id !== playbookId) return pb;
+        if (pb.id !== playbookId) {return pb;}
         return {
           ...pb,
           ...localUpdateData,
@@ -484,7 +484,7 @@ export async function getPlaybooks(userId: string) {
         profile_image: pb.profileImage || pb.profile_image,
         completedAt: pb.completedAt || pb.completed_at || null,
         completed_at: pb.completedAt || pb.completed_at || null,
-        status: pb.status || (pb.completedAt || pb.completed_at ? 'completed' : 'inProgress')
+        status: pb.status || (pb.completedAt || pb.completed_at ? 'completed' : 'inProgress'),
       };
     }
     return pb; // Return as-is if no action steps
@@ -541,7 +541,7 @@ export async function getPlaybooks(userId: string) {
 
   // Merge remote and local playbooks, preferring remote versions when IDs match
   const mergedPlaybooks = [...remotePlaybooks];
-  
+
   // Add local playbooks that don't exist in remote
   localPlaybooks.forEach(localPb => {
     const exists = mergedPlaybooks.some(remotePb => String(remotePb.id) === String(localPb.id));
@@ -549,7 +549,7 @@ export async function getPlaybooks(userId: string) {
       mergedPlaybooks.push(localPb);
     }
   });
-  
+
   console.log('[getPlaybooks] Merged playbooks:', mergedPlaybooks);
   return mergedPlaybooks;
 }
@@ -573,7 +573,7 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
 
   // Convert ID to string for consistent comparison
   const idStr = String(id);
-  
+
   // 1. Delete from Supabase if we have a valid UUID
   if (isValidUUID(idStr)) {
     try {
@@ -598,7 +598,7 @@ export async function deletePlaybook(id: string | number, _userId: string): Prom
     let playbooks = stored ? JSON.parse(stored) : [];
     const initialLength = playbooks.length;
     playbooks = playbooks.filter((pb: any) => String(pb.id) !== idStr);
-      
+
     if (playbooks.length < initialLength) {
       await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(playbooks));
       console.log(`[deletePlaybook] Successfully deleted from AsyncStorage: ${idStr}`);

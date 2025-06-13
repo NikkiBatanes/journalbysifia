@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Playbook } from '../interfaces/playbook';
 import { mergePlaybooks } from '../utils/mergePlaybooks';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 import { getPlaybooks, updatePlaybookActionSteps } from '../services/supabaseApi';
 
 type PlaybookStatus = 'inProgress' | 'completed';
@@ -54,7 +54,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
 
       updatePlaybook: (updated: Playbook) => {
         set((state) => ({
-          playbooks: state.playbooks.map((pb) => 
+          playbooks: state.playbooks.map((pb) =>
             pb.id === updated.id ? updated : pb,
           ),
         }));
@@ -70,7 +70,7 @@ export const usePlaybookStore = create<PlaybookStore>()(
         let updatedPlaybook: Playbook | undefined;
         set((state) => {
           const playbooks = state.playbooks.map((playbook) => {
-            if (playbook.id !== playbookId) return playbook;
+            if (playbook.id !== playbookId) {return playbook;}
             const { updatedSteps, progress, status, total } = calculateProgressAndStatus(
               playbook.actionSteps,
               stepId,

@@ -89,7 +89,7 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
         completed += step.subTasks.filter(st => st.completed).length;
       } else {
         total++;
-        if (step.completed) completed++;
+        if (step.completed) {completed++;}
       }
     });
     return total > 0 && completed === total;

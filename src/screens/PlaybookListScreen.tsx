@@ -42,24 +42,24 @@ export const calculateTaskStats = (actionSteps: any[] = []): TaskStats => {
     let completed = 0;
     let total = 0;
     const chunkSize = 100; // Process in chunks to avoid blocking
-    
+
     for (let i = 0; i < actionSteps.length; i += chunkSize) {
       const chunk = actionSteps.slice(i, i + chunkSize);
-      
+
       for (const step of chunk) {
-        if (!step) continue;
-        
+        if (!step) {continue;}
+
         if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
           // Count sub-tasks for steps that have them
           let subCompleted = 0;
           for (const subTask of step.subTasks) {
-            if (subTask?.completed) subCompleted++;
+            if (subTask?.completed) {subCompleted++;}
           }
           completed += subCompleted;
           total += step.subTasks.length;
         } else {
           // Count regular steps that don't have sub-tasks
-          if (step.completed) completed++;
+          if (step.completed) {completed++;}
           total++;
         }
       }
@@ -160,7 +160,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       setFilter('ongoing');
-      
+
       // Safely reset animation values if they exist
       if (animatedValues.current && Array.isArray(animatedValues.current)) {
         animatedValues.current.forEach(value => {
@@ -169,7 +169,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           }
         });
       }
-      
+
       // Reinitialize animations after a short delay
       const timer = setTimeout(() => {
         if (playbooks.length > 0) {
@@ -178,10 +178,10 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
         // Always reload playbooks on focus
         loadPlaybooksCallback();
       }, 150);
-      
+
       return () => clearTimeout(timer);
     });
-    
+
     return () => {
       unsubscribe();
     };
@@ -205,19 +205,19 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       // Process in chunks to avoid blocking the JS thread
       const chunkSize = 50;
       let result: Playbook[] = [];
-      
+
       // Process filtering in chunks
       for (let i = 0; i < playbooks.length; i += chunkSize) {
         const chunk = playbooks.slice(i, i + chunkSize);
-        
+
         const filteredChunk = chunk.filter((playbook) => {
-          if (!playbook?.actionSteps) return false;
-          
+          if (!playbook?.actionSteps) {return false;}
+
           const { completed, total } = calculateTaskStats(playbook.actionSteps);
           const allStepsCompleted = total > 0 && completed === total;
           const completedAt = playbook.completedAt ? new Date(playbook.completedAt).getTime() : 0;
           const hasValidCompletedAt = !isNaN(completedAt);
-          
+
           switch (filter) {
             case 'all':
               return true;
@@ -229,14 +229,14 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
               return false;
           }
         });
-        
+
         result = [...result, ...filteredChunk];
       }
-      
+
       // Sort based on filter
       if (filter === 'completed') {
         console.log('Sorting completed playbooks...');
-        
+
         // Log all playbooks with their dates before sorting
         result.forEach(pb => {
           console.log(`Playbook: ${pb.title}`);
@@ -244,41 +244,41 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           console.log(`- updatedAt: ${pb.updatedAt}`);
           console.log(`- createdAt: ${pb.createdAt}`);
         });
-        
+
         result.sort((a, b) => {
           // For completed playbooks, sort by completedAt in descending order (newest first)
           // If completedAt is not available, fall back to updatedAt or createdAt
           const getSortableDate = (pb: Playbook) => {
             if (pb.completedAt) {
               const date = new Date(pb.completedAt).getTime();
-              if (!isNaN(date)) return { date, priority: 1, source: 'completedAt' };
+              if (!isNaN(date)) {return { date, priority: 1, source: 'completedAt' };}
             }
             if (pb.updatedAt) {
               const date = new Date(pb.updatedAt).getTime();
-              if (!isNaN(date)) return { date, priority: 2, source: 'updatedAt' };
+              if (!isNaN(date)) {return { date, priority: 2, source: 'updatedAt' };}
             }
             if (pb.createdAt) {
               const date = new Date(pb.createdAt).getTime();
-              if (!isNaN(date)) return { date, priority: 3, source: 'createdAt' };
+              if (!isNaN(date)) {return { date, priority: 3, source: 'createdAt' };}
             }
             return { date: 0, priority: 4, source: 'none' };
           };
-          
+
           const dateA = getSortableDate(a);
           const dateB = getSortableDate(b);
-          
+
           // Log comparison for debugging
           console.log(`Comparing: ${a.title} (${new Date(dateA.date).toISOString()}, ${dateA.source}) vs ${b.title} (${new Date(dateB.date).toISOString()}, ${dateB.source})`);
-          
+
           // First sort by date in descending order (newest first)
           if (dateA.date !== dateB.date) {
             return dateB.date - dateA.date;
           }
-          
+
           // If dates are equal, sort by priority (prefer completedAt over updatedAt over createdAt)
           return dateA.priority - dateB.priority;
         });
-        
+
         // Log the final order after sorting
         console.log('Final order after sorting:');
         result.forEach((pb, index) => {
@@ -289,21 +289,21 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           const getSortableDate = (pb: Playbook) => {
             if (pb.updatedAt) {
               const updatedAt = new Date(pb.updatedAt).getTime();
-              if (!isNaN(updatedAt)) return updatedAt;
+              if (!isNaN(updatedAt)) {return updatedAt;}
             }
             if (pb.createdAt) {
               const createdAt = new Date(pb.createdAt).getTime();
-              if (!isNaN(createdAt)) return createdAt;
+              if (!isNaN(createdAt)) {return createdAt;}
             }
             return 0;
           };
-          
+
           return getSortableDate(b) - getSortableDate(a);
         });
       }
-      
+
       return result;
-      
+
     } catch (error) {
       console.error('Error filtering playbooks:', error);
       return [];
@@ -316,7 +316,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   const groupPlaybooksByMonth = useCallback((playbooksList: Playbook[] = []) => {
     try {
       const groups: { [key: string]: Playbook[] } = {};
-      
+
       // Early return for empty or invalid input
       if (!Array.isArray(playbooksList) || playbooksList.length === 0) {
         return [];
@@ -326,14 +326,14 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       const chunkSize = 50;
       for (let i = 0; i < playbooksList.length; i += chunkSize) {
         const chunk = playbooksList.slice(i, i + chunkSize);
-        
+
         for (const pb of chunk) {
           // Skip invalid items
-          if (!pb?.createdAt) continue;
-          
+          if (!pb?.createdAt) {continue;}
+
           const date = new Date(pb.createdAt);
-          if (isNaN(date.getTime())) continue;
-          
+          if (isNaN(date.getTime())) {continue;}
+
           const key = formatDate(date);
           if (!groups[key]) {
             groups[key] = [];
@@ -360,13 +360,13 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           const sortedData = [...data].sort((a, b) => {
             return getSortDate(b) - getSortDate(a);
           });
-          
+
           return { title, data: sortedData };
         })
         .sort((a, b) => {
           // Sort sections by the most recent date in each section
           const getMostRecentDate = (items: Playbook[]) => {
-            if (!items.length) return 0;
+            if (!items.length) {return 0;}
             return Math.max(...items.map(pb => getSortDate(pb)));
           };
 

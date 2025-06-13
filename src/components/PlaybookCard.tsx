@@ -60,7 +60,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
                     key={`progress-${progress}`}
                     style={[
                       progressBarStyles.barFill,
-                      { 
+                      {
                         width: progress > 0 ? `${progress}%` : '0%',
                         minWidth: progress > 0 ? 1 : 0,
                       },
