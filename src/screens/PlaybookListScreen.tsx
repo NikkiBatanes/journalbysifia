@@ -72,12 +72,6 @@ export const calculateTaskStats = (actionSteps: any[] = []): TaskStats => {
   }
 };
 
-// Calculate progress based on completed action steps and sub-tasks
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const calculateProgress = (playbook: Playbook): number => {
-  const { completed, total } = calculateTaskStats(playbook.actionSteps);
-  return total > 0 ? Math.round((completed / total) * 100) : 0;
-};
 
 /**
  * Formats a date into a human-readable month and year string
