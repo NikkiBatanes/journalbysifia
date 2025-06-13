@@ -80,20 +80,20 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    padding: 12,
     width: '100%',
+    height: 88, // Match the swipeable container height
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 2,
   },
   cardContent: {
     flex: 1,
   },
   titleContainer: {
-    marginBottom: 10,
+    marginBottom: 6,
     width: '100%',
   },
   date: {
@@ -110,10 +110,10 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   title: {
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
-    lineHeight: 24,
+    lineHeight: 20,
     paddingVertical: 1,
     fontWeight: '700',
     flexShrink: 1,

@@ -414,7 +414,11 @@ export default PlaybookListScreen;
 const styles = StyleSheet.create({
   swipeableContainer: {
     width: '100%',
-    marginBottom: 12,
+    marginBottom: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    height: 88, // Fixed height to match card
+    backgroundColor: Colors.anchorBlue, // Match card background color
   },
   cardTouchable: {
     width: '100%',
@@ -435,12 +439,14 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   deleteButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 60,
     backgroundColor: '#f87171',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 8,
+    height: '100%',
+    borderTopRightRadius: 16, // Match card's border radius
+    borderBottomRightRadius: 16, // Match card's border radius
   },
   deleteButtonContent: {
     width: '100%',
