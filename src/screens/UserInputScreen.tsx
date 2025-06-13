@@ -206,14 +206,21 @@ const UserInputScreen: React.FC = () => {
               onTouchStart={handleInputPress}
             />
             <TouchableOpacity
-              style={styles.askSendButton}
+              style={[
+                styles.askSendButton,
+                (!userInput || !userInput.trim()) && styles.disabledButton
+              ]}
               onPress={handleGeneratePlaybook}
-              disabled={isLoading}
+              disabled={isLoading || !userInput || !userInput.trim()}
             >
               {isLoading ? (
                 <ActivityIndicator color={Colors.hopeWhite} />
               ) : (
-                <Ionicons name="arrow-up-circle" size={34} color={Colors.hopeWhite} />
+                <Ionicons 
+                  name="arrow-up-circle" 
+                  size={34} 
+                  color={(!userInput || !userInput.trim()) ? 'rgba(255, 255, 255, 0.5)' : Colors.hopeWhite} 
+                />
               )}
             </TouchableOpacity>
           </View>
@@ -306,6 +313,9 @@ const styles = StyleSheet.create({
     right: 16,
     bottom: 16,
     zIndex: 10,
+  },
+  disabledButton: {
+    opacity: 0.7,
     borderRadius: 20,
     padding: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.1)', // Slight background for better visibility
