@@ -12,13 +12,11 @@ import {
   ViewStyle,
   TextStyle,
   ImageStyle,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  Animated as RNAnimated,
 } from 'react-native';
 
 // Navigation & Gestures
 import { PanGestureHandler } from 'react-native-gesture-handler';
+import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 
 // Animation
 import Animated, {
@@ -120,8 +118,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const shadowElevation = useSharedValue(4);
   const shadowOpacity = useSharedValue(0.15);
   
-  // Scroll position tracking for compact header
-  const scrollY = useRef(new RNAnimated.Value(0)).current;
+  // Scroll position tracking for compact header using reanimated
+  const scrollY = useSharedValue(0);
 
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
@@ -271,8 +269,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
     lastScrollY.current = currentScrollY;
 
-    // Also update the animated value for any other animations
-    scrollY.setValue(currentScrollY);
+    // Update the shared value for any other animations
+    scrollY.value = currentScrollY;
   };
 
   if (!playbook) {
