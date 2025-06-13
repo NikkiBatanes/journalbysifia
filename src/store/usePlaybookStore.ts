@@ -33,7 +33,7 @@ function calculateProgressAndStatus(actionSteps: any[], stepId: string, complete
 // Create the store with proper typing
 export const usePlaybookStore = create<PlaybookStore>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       playbooks: [],
       isLoading: false,
 

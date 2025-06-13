@@ -19,7 +19,7 @@ import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import PlaybookCard from '../components/PlaybookCard';
 import { Colors, Fonts } from '../theme';
 import type { Playbook } from '../interfaces/playbook';
-import { getPlaybooks, deletePlaybook } from '../services/supabaseApi';
+import { deletePlaybook } from '../services/supabaseApi';
 import { usePlaybookStore } from '../store/usePlaybookStore';
 import { useUser } from '../context/UserContext';
 

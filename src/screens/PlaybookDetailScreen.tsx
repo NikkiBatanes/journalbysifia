@@ -551,10 +551,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
   ];
 
+  // Animation for chevron rotation
   const chevronAnim = useSharedValue(0);
+
+  // Update chevron animation when showUserInput changes
   useEffect(() => {
     chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
-  }, [showUserInput]);
+  }, [showUserInput, chevronAnim]);
+
+  // Animated style for chevron rotation
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
     marginLeft: 4,
@@ -811,119 +816,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           </Animated.View>
         </PanGestureHandler>
       </View>
-    );
-  };
-
-  const renderDocumentCards = () => {
-    // Add ref for ScrollView
-    const scrollRef = useRef<ScrollView>(null);
-
-    // Detect if challenge card is visible
-    const handleScroll = (event: any) => {
-      // Get layout of challenge card
-      // We'll use a ref to the challenge card view
-      if (challengeCardRef.current && scrollRef.current) {
-        challengeCardRef.current.measureLayout(
-          scrollRef.current.getInnerViewNode(),
-          (x, y, width, height) => {
-            // y is the distance from the top of the ScrollView content
-            // If y is within the visible area, the card is visible
-            const scrollY = event.nativeEvent.contentOffset.y;
-            const visibleHeight = event.nativeEvent.layoutMeasurement.height;
-            if (y < scrollY + visibleHeight && y + height > scrollY) {
-              setHasReachedLastCard(true);
-            }
-          },
-          () => {}
-        );
-      }
-    };
-    const challengeCardRef = useRef<View>(null);
-
-    return (
-      <ScrollView
-        ref={scrollRef}
-        style={styles.docContainer}
-        contentContainerStyle={styles.docContentContainer}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        <TruthInLoveCard
-          key="truth"
-          truth={playbook.truthInLove?.text ?? ''}
-          summary={playbook.truthInLove?.summary ?? ''}
-          expanded={true}
-          style={[styles.docCard, styles.truthCard]}
-        />
-        <ActionStepsCard
-          key="action"
-          style={[styles.docCard, styles.actionCard]}
-        />
-        <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>
-          <View style={styles.affirmationsHeader}>
-            <MaterialCommunityIcons
-              name="format-quote-close"
-              size={24}
-              color="white"
-              style={[styles.icon, { transform: [{ scaleX: -1 }] }]}
-            />
-            <Text style={styles.affirmationsTitle}>Affirmations</Text>
-          </View>
-          {(() => {
-            // Debug: log affirmations right before rendering
-            console.log('[DEBUG] Rendering affirmations:', {
-              affirmations: playbook.affirmations,
-              isArray: Array.isArray(playbook.affirmations),
-              length: playbook.affirmations?.length,
-              filtered: Array.isArray(playbook.affirmations)
-                ? playbook.affirmations.filter((affirmation) =>
-                    affirmation !== undefined &&
-                    affirmation.id !== undefined &&
-                    affirmation.text !== undefined &&
-                    affirmation.completed !== undefined
-                  )
-                : undefined,
-            });
-            return (
-              <View style={styles.affirmationsList}>
-                {Array.isArray(playbook.affirmations) && playbook.affirmations.length > 0 ? (
-                  playbook.affirmations
-                    .filter((affirmation): affirmation is Required<Affirmation> =>
-                      affirmation !== undefined &&
-                      affirmation.id !== undefined &&
-                      affirmation.text !== undefined &&
-                      affirmation.completed !== undefined
-                    )
-                    .map((affirmation) => (
-                      <AffirmationCard
-                        key={affirmation.id}
-                        id={affirmation.id}
-                        text={affirmation.text}
-                        completed={affirmation.completed}
-                      />
-                    ))
-                ) : (
-                  <Text style={styles.noAffirmationsText}>No affirmations</Text>
-                )}
-              </View>
-            );
-          })()}
-
-        </View>
-        <BibleVerseCard
-          key="bible"
-          verse={playbook.bibleVerse ?? { text: '', reference: '' }}
-          style={[styles.docCard, styles.bibleCard]}
-        />
-        <View key="challenge" style={[styles.docCard, styles.challengeCard]} ref={challengeCardRef}>
-          <DirectChallengeCard
-            challenge={typeof playbook.directChallenge === 'string'
-              ? playbook.directChallenge
-              : playbook.directChallenge?.text ?? ''}
-            challengeCTA={playbook.challengeCTA ?? ''}
-          />
-        </View>
-      </ScrollView>
     );
   };
 
