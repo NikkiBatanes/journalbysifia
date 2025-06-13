@@ -87,9 +87,23 @@ interface CardData {
 }
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  // ...existing hooks
+  // State management
+  const playbook = route.params.playbook;
+  
+  // Card state
+  const [currentCard, setCurrentCard] = useState(0);
+  const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
-  // ...rest of hooks
+  const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
+  
+  // UI state
+  const [showCompactHeader, setShowCompactHeader] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [showUserInput, setShowUserInput] = useState(false);
+  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
+  
+  // Action steps
   const {
     actionSteps,
     setActionSteps,
@@ -97,12 +111,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     getCompletedStepsCount,
     saveActionSteps,
   } = useActionSteps();
-  const playbook = route.params.playbook;
-  const [isSaving, setIsSaving] = useState(false);
-
+  
+  // Animation values
+  const nudgeY = useSharedValue(0);
+  const bounceY = useSharedValue(0);
+  const prevCardRef = useRef(currentCard);
+  const cardScale = useSharedValue(1);
+  const shadowElevation = useSharedValue(4);
+  const shadowOpacity = useSharedValue(0.15);
+  
   // Scroll position tracking for compact header
   const scrollY = useRef(new RNAnimated.Value(0)).current;
-  const [showCompactHeader, setShowCompactHeader] = useState(false);
 
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
@@ -150,7 +169,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       playbookKeys: playbook ? Object.keys(playbook) : [],
     }, null, 2));
   }, [playbook]);
-  const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Save action steps when they change or when navigating away
@@ -267,24 +285,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </>
     );
   }
-
-  // --- Animated swipe logic for top card ---
   const gestureHandlerRef = useRef(null);
   const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
   const translateY = useSharedValue(0);
   const isTransitioning = useSharedValue(false);
 
-  // View state
-  const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
-  const [currentCard, setCurrentCard] = useState(0);
-
-  // Hide SwipeUpIndicator after leaving the first card
-  useEffect(() => {
-    if (currentCard > 0 && !hasSeenSwipeUp) {
-      setHasSeenSwipeUp(true);
-    }
-  }, [currentCard, hasSeenSwipeUp]);
-
+  // ... rest of the code
   // Card data with explicit typing and null checks
   const cardData: CardData[] = [
     {
@@ -429,15 +435,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
   });
 
-  // Nudge animation for the first card and bounce for new front cards
-  const nudgeY = useSharedValue(0);
-  const bounceY = useSharedValue(0);
-  const prevCardRef = useRef(currentCard);
-
-  // Animation for card press
-  const cardScale = useSharedValue(1);
-  const shadowElevation = useSharedValue(4);
-  const shadowOpacity = useSharedValue(0.15);
+  // Animation values are now defined at the top of the component
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     transform: [
@@ -517,10 +515,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       viewMode,
     });
   };
-
-  const [showUserInput, setShowUserInput] = useState(false);
-  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
-  const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
 
   // Animation for chevron rotation
   const chevronAnim = useSharedValue(0);
