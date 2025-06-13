@@ -376,7 +376,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       console.error('Error in groupPlaybooksByMonth:', error);
       return [];
     }
-  }, []);
+  }, [filter]);
 
   const sections = useMemo(() => {
     // Ensure filteredPlaybooks is an array before passing to groupPlaybooksByMonth
