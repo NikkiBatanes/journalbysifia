@@ -450,9 +450,23 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     if (viewMode === 'stack' && isChallengeCardVisible) {
       setHasReachedLastCard(true);
     } else if (viewMode === 'document') {
-      setHasReachedLastCard(false); // Reset when switching to document view
+      setHasReachedLastCard(false);
     }
   }, [viewMode, isChallengeCardVisible]);
+
+  // Nudge animation for the first card
+  useEffect(() => {
+    if (currentCard === 0) {
+      nudgeY.value = withSequence(
+        withTiming(-24, { duration: 350 }),
+        withTiming(0, { duration: 350 }),
+        withTiming(-14, { duration: 250 }),
+        withTiming(0, { duration: 250 }),
+        withTiming(-8, { duration: 180 }),
+        withTiming(0, { duration: 180 })
+      );
+    }
+  }, [currentCard, nudgeY]);
 
   // Animation values are now defined at the top of the component
 
@@ -473,15 +487,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     shadowColor: '#000',
   }));
 
+  // This effect handles bounce animation when changing cards
   useEffect(() => {
-    if (currentCard === 0) {
-      nudgeY.value = withSequence(
-        withTiming(-24, { duration: 350 }),
-        withTiming(0, { duration: 350 }),
-        withTiming(-14, { duration: 250 }),
-        withTiming(0, { duration: 250 }),
-        withTiming(-8, { duration: 180 }),
-        withTiming(0, { duration: 180 })
+    if (currentCard !== prevCardRef.current) {
+      bounceY.value = withSequence(
+        withTiming(-15, { duration: 100 }),
+        withSpring(0, {
+          damping: 12,
+          stiffness: 100,
+          mass: 1.5,
+          overshootClamping: false,
+        })
       );
     }
 
