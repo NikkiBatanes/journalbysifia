@@ -1,4 +1,15 @@
 {
   "extends": "@react-native/typescript-config/tsconfig.json",
-  "exclude": ["supabase"]
+  "compilerOptions": {
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/@types"
+    ],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "exclude": ["supabase"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

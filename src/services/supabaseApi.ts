@@ -3,10 +3,27 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-url-polyfill/auto';
 import { Playbook } from '../interfaces/playbook';
 
-// Supabase project details
-const SUPABASE_URL = 'https://aesmrjinczhknchlrsmt.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM';
+// Import environment variables
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@env';
+
+// Session key for AsyncStorage
 const SESSION_KEY = '@supabase_session';
+
+// Fallback values for development
+const DEFAULT_SUPABASE_URL = 'https://aesmrjinczhknchlrsmt.supabase.co';
+const DEFAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM';
+
+// Use environment variables with fallbacks
+const config = {
+  url: SUPABASE_URL || DEFAULT_SUPABASE_URL,
+  anonKey: SUPABASE_ANON_KEY || DEFAULT_ANON_KEY
+};
+
+// Log configuration (remove in production)
+console.log('Supabase Config:', {
+  usingEnv: !!(SUPABASE_URL && SUPABASE_ANON_KEY),
+  url: config.url === DEFAULT_SUPABASE_URL ? 'Using default URL' : 'Using custom URL'
+});
 
 // Session management
 export const storeSession = async (session: any) => {
@@ -48,13 +65,13 @@ export const checkAuth = async () => {
 // Sign in with email and password
 export async function signIn(email: string, password: string) {
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    const response = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
+        'apikey': config.anonKey,
       },
-      body: JSON.stringify({ email, password, client_id: SUPABASE_ANON_KEY, grant_type: 'password' }),
+      body: JSON.stringify({ email, password, client_id: config.anonKey, grant_type: 'password' }),
     });
 
     const data = await response.json();
@@ -74,13 +91,13 @@ export async function signIn(email: string, password: string) {
 // Sign up with email and password
 export async function signUp(email: string, password: string) {
   try {
-    const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+    const response = await fetch(`${config.url}/auth/v1/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
+        'apikey': config.anonKey,
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password })
     });
 
     const data = await response.json();
@@ -98,14 +115,14 @@ export async function signUp(email: string, password: string) {
 }
 
 // Helper to get the REST endpoint
-function getApiUrl(table: string) {
-  return `${SUPABASE_URL}/rest/v1/${table}`;
+function getApiUrl(path: string): string {
+  return `${config.url}/rest/v1${path}`;
 }
 
 // Helper to get default headers with authentication
 async function getHeadersWithAuth(): Promise<Record<string, string>> {
   const headers: Record<string, string> = {
-    'apikey': SUPABASE_ANON_KEY,
+    'apikey': config.anonKey,
     'Content-Type': 'application/json',
     'Prefer': 'return=representation',
   };
@@ -130,11 +147,11 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
     if (isExpired && session.refresh_token) {
       console.log('[Auth] Token expired, attempting to refresh...');
       try {
-        const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+        const response = await fetch(`${config.url}/auth/v1/token?grant_type=refresh_token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'apikey': SUPABASE_ANON_KEY,
+            'apikey': config.anonKey,
           },
           body: JSON.stringify({
             refresh_token: session.refresh_token,
@@ -175,7 +192,7 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
     console.error('[Auth] Error in getHeadersWithAuth:', error);
     // Return minimal headers without auth if something goes wrong
     return {
-      'apikey': SUPABASE_ANON_KEY,
+      'apikey': config.anonKey,
       'Content-Type': 'application/json',
     };
   }
@@ -183,7 +200,7 @@ async function getHeadersWithAuth(): Promise<Record<string, string>> {
 
 // Example: Fetch all rows from a table
 export async function fetchTable(table: string) {
-  const res = await fetch(getApiUrl(table), {
+  const res = await fetch(getApiUrl(`/${table}`), {
     method: 'GET',
     headers: await getHeadersWithAuth(),
   });
@@ -196,7 +213,7 @@ export async function fetchTable(table: string) {
 
 // Example: Insert a row
 export async function insertRow(table: string, data: Record<string, any>) {
-  const res = await fetch(getApiUrl(table), {
+  const res = await fetch(getApiUrl(`/${table}`), {
     method: 'POST',
     headers: await getHeadersWithAuth(),
     body: JSON.stringify([data]),
@@ -209,7 +226,7 @@ export async function insertRow(table: string, data: Record<string, any>) {
 
 // Example: Update a row by primary key (id)
 export async function updateRow(table: string, id: string, data: Record<string, any>) {
-  const url = getApiUrl(table) + `?id=eq.${id}`;
+  const url = getApiUrl(`/${table}?id=eq.${id}`);
   const response = await fetch(url, {
     method: 'PATCH',
     headers: await getHeadersWithAuth(),
@@ -224,7 +241,7 @@ export async function updateRow(table: string, id: string, data: Record<string, 
 // Example: Delete a row by primary key (id)
 export async function deleteRow(table: string, id: string) {
   console.log('[deleteRow] Deleting row:', { table, id });
-  const url = getApiUrl(table) + `?id=eq.${id}`;
+  const url = getApiUrl(`/${table}?id=eq.${id}`);
   const response = await fetch(url, {
     method: 'DELETE',
     headers: await getHeadersWithAuth(),
@@ -472,7 +489,7 @@ export async function getPlaybooks(userId: string) {
   try {
     const headers = await getHeadersWithAuth();
     const response = await fetch(
-      `${getApiUrl('playbooks')}?user_id=eq.${userId}&order=created_at.desc`,
+      `${getApiUrl('/playbooks')}?user_id=eq.${userId}&order=created_at.desc`,
       {
         method: 'GET',
         headers: new Headers(headers),
@@ -591,14 +608,15 @@ export async function deletePlaybook(id: string, _userId: string): Promise<{ suc
 
 // Generate Playbook via Supabase Edge Function
 export async function generatePlaybook(userInput: string, userName: string) {
-  const functionUrl = 'https://aesmrjinczhknchlrsmt.functions.supabase.co/generate-playbook';
+  const functionUrl = `${config.url}/functions/v1/generate-playbook`;
   try {
+    const session = await getSession();
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': config.anonKey,
+        'Authorization': `Bearer ${session?.access_token || ''}`,
       },
       body: JSON.stringify({ userInput, userName }),
     });
