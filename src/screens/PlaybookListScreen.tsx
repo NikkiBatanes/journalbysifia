@@ -245,7 +245,7 @@ setTimeout(() => {
     }
     const progress = calculateProgress(playbook);
     if (filter === 'ongoing') {
-      return progress > 0 && progress < 1;
+      return progress < 1; // Include both not-started (0%) and in-progress (1-99%)
     }
     if (filter === 'completed') {
       return progress === 1;
@@ -415,7 +415,7 @@ setTimeout(() => {
               onPress={() => setFilter(tab)}
             >
               <Text style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}>
-                {tab === 'all' ? 'All' : tab === 'ongoing' ? 'Ongoing' : 'Completed'}
+                {tab === 'all' ? 'All' : tab === 'ongoing' ? 'In Progress' : 'Completed'}
               </Text>
             </Pressable>
           ))}
