@@ -181,7 +181,7 @@ const SwipeableRow = forwardRef<any, SwipeableRowProps>(({ item, onDelete, child
 const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   // Store refs for all rows
   const rowRefs = useRef<{ [key: string]: any }>({});
-  const [filter, setFilter] = useState<'all' | 'ongoing' | 'accomplished'>('all');
+  const [filter, setFilter] = useState<'all' | 'ongoing' | 'accomplished'>('ongoing');
   const { id: userId } = useUser();
   const [playbooks, setPlaybooks] = React.useState<Playbook[]>([]);
   const [refreshing, setRefreshing] = React.useState(false);
