@@ -368,13 +368,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerOpacity = useSharedValue(1);
   const headerHeight = useSharedValue(1); // 1 = fully expanded, 0 = fully collapsed
 
-  const animatedHeaderStyle = useAnimatedStyle(() => ({
-    opacity: headerOpacity.value,
-    height: withTiming(headerHeight.value ? 60 : 0, { duration: 250 }),
-    marginBottom: withTiming(headerHeight.value ? 0 : -10, { duration: 250 }),
-    overflow: 'hidden',
-  }));
-
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: GestureContext) => {
       ctx.startY = translateY.value;
@@ -384,7 +377,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       if (!isTransitioning.value) {
         if (Math.abs(event.translationY) > Math.abs(event.translationX)) {
           translateY.value = ctx.startY + event.translationY;
-          const threshold = -SWIPE_THRESHOLD / 2;
           // Calculate fade and collapse based on scroll position
           const fadeThreshold = -SWIPE_THRESHOLD / 2;
           const collapseThreshold = -SWIPE_THRESHOLD * 0.8;
