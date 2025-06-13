@@ -195,7 +195,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     return () => {
       saveProgress().catch(console.error);
     };
-  }, [actionSteps, playbook?.id, playbook?.user_id, isInitialized, isSaving, saveActionSteps]);
+  }, [actionSteps, playbook?.id, playbook?.user_id, isInitialized, isSaving, saveActionSteps, setIsSaving]);
 
   // Initialize action steps when playbook loads
   useEffect(() => {
@@ -356,11 +356,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   useEffect(() => {
     cardCount.value = cardData.length;
-  }, [cardData.length]);
+  }, [cardData.length, cardCount]);
 
   useEffect(() => {
     currentCardShared.value = currentCard;
-  }, [currentCard]);
+  }, [currentCard, currentCardShared]);
 
   const headerFaded = useSharedValue(false);
   const headerOpacity = useSharedValue(1);
