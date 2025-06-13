@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Pressable,
   Button,
+
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format } from 'date-fns';
@@ -495,15 +496,8 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     },
   });
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={loadingStyles.safeArea}>
-        <View style={loadingStyles.container} />
-      </SafeAreaView>
-    );
-  }
-
-  if (playbooks.length === 0) {
+  // Show empty state only when we're not loading and there are no playbooks
+  if (playbooks.length === 0 && !isLoading) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.container, styles.centered]}>
@@ -512,10 +506,9 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           <Button
             title="Refresh"
             onPress={() => {
-              // Force reload playbooks
               if (userId) {
-      loadPlaybooks(userId);
-    }
+                loadPlaybooks(userId);
+              }
             }}
           />
         </View>
