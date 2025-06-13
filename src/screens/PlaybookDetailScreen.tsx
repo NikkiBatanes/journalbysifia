@@ -629,32 +629,26 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           style={[
             styles.stackCard,
             card.type === 'affirmation'
-              ? {
-                  backgroundColor: 'transparent',
-                  borderRadius: 28,
-                  elevation: 0,
-                  shadowColor: 'transparent',
-                  transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
-                  zIndex,
-                  opacity: !isTopCard ? opacity : 1,
-                  position: stackIndex === 0 ? 'relative' : 'absolute',
-                  top: 0,
-                  alignSelf: 'center',
-                }
-              : {
-                  backgroundColor: getCardColor(stackIndex),
-                  transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
-                  zIndex,
-                  opacity: !isTopCard ? opacity : 1,
-                  position: stackIndex === 0 ? 'relative' : 'absolute',
-                  top: 0,
-                  alignSelf: 'center',
-                  elevation: 5 - stackIndex,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 3.84,
-                },
+              ? [
+                  styles.affirmationCardStyle,
+                  {
+                    transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
+                    zIndex,
+                    opacity: !isTopCard ? opacity : 1,
+                    position: stackIndex === 0 ? 'relative' : 'absolute',
+                  },
+                ]
+              : [
+                  styles.nonAffirmationCardStyle,
+                  {
+                    backgroundColor: getCardColor(stackIndex),
+                    transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
+                    zIndex,
+                    opacity: !isTopCard ? opacity : 1,
+                    position: stackIndex === 0 ? 'relative' : 'absolute',
+                    elevation: 5 - stackIndex,
+                  },
+                ],
             extraStyle,
           ]}
         >
@@ -673,10 +667,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       <View style={styles.cardStackContainer}>
         {backCards}
         <PanGestureHandler ref={gestureHandlerRef} onGestureEvent={gestureHandler}>
-          <Animated.View style={[animatedCardStyle, { width: '100%', position: 'relative', zIndex: 200 }]}>
+          <Animated.View style={[animatedCardStyle, styles.cardWrapperStyle]}>
             <TouchableOpacity
               activeOpacity={0.85}
-              style={{ flex: 1 }}
+              style={styles.cardContentStyle}
               onPress={() => {
                 const card = cardData[currentCard];
                 handleCardPress(card.type, card);
@@ -790,6 +784,10 @@ interface PlaybookDetailStyles {
   bottomButtonContainer: ViewStyle;
   bottomButtonExpanded: ViewStyle;
   devotionalButtonWrapper: ViewStyle;
+  affirmationCardStyle: ViewStyle;
+  nonAffirmationCardStyle: ViewStyle;
+  cardWrapperStyle: ViewStyle;
+  cardContentStyle: ViewStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
@@ -1179,5 +1177,33 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4,
+  },
+  affirmationCardStyle: {
+    backgroundColor: 'transparent',
+    borderRadius: 28,
+    elevation: 0,
+    shadowColor: 'transparent',
+    opacity: 1,
+    position: 'absolute',
+    top: 0,
+    alignSelf: 'center',
+  },
+  nonAffirmationCardStyle: {
+    backgroundColor: 'transparent',
+    opacity: 1,
+    position: 'absolute',
+    top: 0,
+    alignSelf: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  cardWrapperStyle: {
+    width: '100%',
+    position: 'relative',
+    zIndex: 200,
+  },
+  cardContentStyle: {
+    flex: 1,
   },
 });
