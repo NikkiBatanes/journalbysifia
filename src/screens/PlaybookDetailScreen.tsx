@@ -122,13 +122,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerHeight = useSharedValue(1);
   const isInitialRender = useRef(true);
 
-  // Update current card shared value when currentCard changes
-  useEffect(() => {
-    if (!isLoading && !isInitialRender.current) {
-      currentCardShared.value = currentCard;
-    }
-  }, [currentCard, currentCardShared, isLoading]);
-
   // Initialize cardData with empty array first
   const cardData: CardData[] = playbook ? [
     {
@@ -185,6 +178,27 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       setIsLoading(false);
     }
   }, [playbook]);
+
+  // Handle initial render and loading state
+  useEffect(() => {
+    if (isLoading) {
+      isInitialRender.current = true;
+    } else if (isInitialRender.current) {
+      isInitialRender.current = false;
+      // Initialize values after first render when not loading
+      if (cardData) {
+        cardCount.value = cardData.length;
+        currentCardShared.value = currentCard;
+      }
+    }
+  }, [isLoading, cardData, currentCard, cardCount, currentCardShared]);
+
+  // Update current card shared value when currentCard changes
+  useEffect(() => {
+    if (!isLoading && !isInitialRender.current) {
+      currentCardShared.value = currentCard;
+    }
+  }, [currentCard, currentCardShared, isLoading]);
 
   // Header left component
   const headerLeft = React.useCallback(() => (
@@ -352,18 +366,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   }
 
   // Card data is now defined at the top of the component
-
-  // Handle initial render
-  useEffect(() => {
-    if (isLoading) {
-      isInitialRender.current = true;
-    } else if (isInitialRender.current) {
-      isInitialRender.current = false;
-      // Initialize values after first render when not loading
-      cardCount.value = cardData.length;
-      currentCardShared.value = currentCard;
-    }
-  }, [isLoading, cardData.length, currentCard, cardCount, currentCardShared]);
 
   const onSwipeComplete = (direction: 'up' | 'down') => {
     if (direction === 'up') {
