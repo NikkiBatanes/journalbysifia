@@ -250,7 +250,9 @@ const PLAYBOOKS_KEY = 'playbooks';
  */
 // Helper function to check if a string is a valid UUID
 function isValidUUID(uuid: string | undefined): boolean {
-  if (!uuid) return false;
+  if (!uuid) {
+    return false;
+  }
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 }
@@ -270,7 +272,7 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
   try {
     // Only try to update in Supabase if we have a valid UUID
     const isUuid = isValidUUID(playbookId);
-    
+
     if (isUuid) {
       try {
         await updateRow('playbooks', playbookId, {
@@ -287,15 +289,15 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
     try {
       const stored = await AsyncStorage.getItem(PLAYBOOKS_KEY);
       const playbooks = stored ? JSON.parse(stored) : [];
-      
+
       // Update the specific playbook's action steps
       const updatedPlaybooks = playbooks.map((pb: any) =>
         pb.id === playbookId ? { ...pb, action_steps: actionSteps, updated_at: new Date().toISOString() } : pb
       );
-      
+
       await AsyncStorage.setItem(PLAYBOOKS_KEY, JSON.stringify(updatedPlaybooks));
       console.log(`[updatePlaybookActionSteps] Updated local storage for playbook ${playbookId}`);
-      
+
       return { success: true };
     } catch (storageError) {
       console.error('[updatePlaybookActionSteps] Error updating local storage:', storageError);
@@ -310,7 +312,7 @@ export async function updatePlaybookActionSteps(playbookId: string | undefined, 
 export async function savePlaybook(playbook: any, userId: string) {
   console.log('[savePlaybook] userId:', userId);
   console.log('[savePlaybook] playbook:', playbook);
-  
+
   // 1. Save to Supabase
   let supabasePlaybook;
   try {
@@ -334,12 +336,12 @@ export async function savePlaybook(playbook: any, userId: string) {
       challenge_cta: playbook.challengeCTA,
       profile_image: playbook.profileImage,
     };
-    
+
     // Remove undefined fields
     Object.keys(playbookForSupabase).forEach(
       (key) => playbookForSupabase[key] === undefined && delete playbookForSupabase[key]
     );
-    
+
     const [inserted] = await insertRow('playbooks', playbookForSupabase);
     supabasePlaybook = inserted;
     console.log('[savePlaybook] Saved to Supabase:', inserted);
