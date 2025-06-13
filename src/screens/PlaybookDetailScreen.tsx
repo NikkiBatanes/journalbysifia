@@ -87,6 +87,7 @@ interface CardData {
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   // State management
   const playbook = route.params.playbook;
+  const [isLoading, setIsLoading] = useState(!playbook);
 
   // Card state
   const [currentCard, setCurrentCard] = useState(0);
@@ -117,20 +118,23 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const cardScale = useSharedValue(1);
   const shadowElevation = useSharedValue(4);
   const shadowOpacity = useSharedValue(0.15);
-
-  // Scroll position tracking for compact header using reanimated
   const scrollY = useSharedValue(0);
-
-  // Animation and gesture related hooks
   const gestureHandlerRef = useRef<PanGestureHandler>(null);
   const SWIPE_THRESHOLD = 120; // px, for iOS-like swipe
   const translateY = useSharedValue(0);
   const isTransitioning = useSharedValue(false);
-  const cardCount = useSharedValue(0); // Will be updated in useEffect
+  const cardCount = useSharedValue(0);
   const currentCardShared = useSharedValue(currentCard);
   const headerFaded = useSharedValue(false);
   const headerOpacity = useSharedValue(1);
-  const headerHeight = useSharedValue(1); // 1 = fully expanded, 0 = fully collapsed
+  const headerHeight = useSharedValue(1);
+  
+  // Set loading state when playbook is loaded
+  useEffect(() => {
+    if (playbook) {
+      setIsLoading(false);
+    }
+  }, [playbook]);
 
   // Set navigation options based on scroll state
   React.useLayoutEffect(() => {
@@ -282,7 +286,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     scrollY.value = currentScrollY;
   };
 
-  if (!playbook) {
+  useEffect(() => {
+    if (playbook) {
+      setIsLoading(false);
+    }
+  }, [playbook]);
+
+  if (isLoading) {
     return (
       <>
         <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
@@ -358,11 +368,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Update shared values when dependencies change
   useEffect(() => {
     cardCount.value = cardData.length;
-  }, [cardData.length]);
+  }, [cardData.length, cardCount]);
 
   useEffect(() => {
     currentCardShared.value = currentCard;
-  }, [currentCard]);
+  }, [currentCard, currentCardShared]);
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: GestureContext) => {
