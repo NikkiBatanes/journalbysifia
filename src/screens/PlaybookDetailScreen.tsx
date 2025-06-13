@@ -444,6 +444,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
   });
 
+  // Track if we're on the challenge card (last card in the array)
+  const isChallengeCardVisible = currentCard === cardData.length - 1;
+  useEffect(() => {
+    if (viewMode === 'stack' && isChallengeCardVisible) {
+      setHasReachedLastCard(true);
+    } else if (viewMode === 'document') {
+      setHasReachedLastCard(false); // Reset when switching to document view
+    }
+  }, [viewMode, isChallengeCardVisible]);
+
   // Animation values are now defined at the top of the component
 
   const animatedCardStyle = useAnimatedStyle(() => ({
@@ -700,16 +710,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </View>
     );
   };
-
-  // Check if we're on the challenge card (last card in the array)
-  const isChallengeCardVisible = currentCard === cardData.length - 1;
-  useEffect(() => {
-    if (viewMode === 'stack' && isChallengeCardVisible) {
-      setHasReachedLastCard(true);
-    } else if (viewMode === 'document') {
-      setHasReachedLastCard(false); // Reset when switching to document view
-    }
-  }, [viewMode, isChallengeCardVisible]);
 
   return (
     <View style={styles.container}>
