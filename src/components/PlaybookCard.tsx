@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, TouchableOpacityProps } from 'react-native';
 import { format } from 'date-fns';
 import { Playbook } from '../interfaces/playbook';
@@ -29,8 +29,8 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
   ...props
 }) => {
   const formattedDate = format(new Date(playbook.createdAt || ''), 'EEEE, MMM d, yyyy').toUpperCase();
-  const { completed, total } = calculateTaskStats(playbook.actionSteps);
-  const progress = total > 0 ? (completed / total) * 100 : 0;
+  const { completed, total } = useMemo(() => calculateTaskStats(playbook.actionSteps), [playbook.actionSteps]);
+  const progress = useMemo(() => total > 0 ? Math.max(0, Math.min(100, (completed / total) * 100)) : 0, [completed, total]);
 
   return (
     <TouchableOpacity
@@ -57,9 +57,13 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
               <View style={progressBarStyles.progressWrapper}>
                 <View style={progressBarStyles.barBg}>
                   <View
+                    key={`progress-${progress}`}
                     style={[
                       progressBarStyles.barFill,
-                      { width: progress > 0 ? `${progress}%` : '0%' },
+                      { 
+                        width: progress > 0 ? `${progress}%` : '0%',
+                        minWidth: progress > 0 ? 1 : 0,
+                      },
                     ]}
                   />
                 </View>
