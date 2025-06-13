@@ -157,7 +157,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           Breathe in peace, breathe out worry.
         </Animated.Text>
         <Animated.Text style={[styles.textLine, { opacity: textOpacity }]}>
-          {`${userName}'s playbook is being crafted with care.`}
+          Your playbook is being crafted with care.
         </Animated.Text>
       </Animated.View>
     </Animated.View>
