@@ -27,7 +27,7 @@ import LoadingScreen from './src/components/LoadingScreen';
 import { TabBarIcons } from './src/constants/tabBarIcons';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
-import { checkAuth, signOut } from './src/services/supabaseApi';
+import { checkAuth, clearSession } from './src/services/supabaseApi';
 
 // Screens
 
@@ -118,7 +118,7 @@ function App(): React.JSX.Element {
   // Handle logout
   const handleLogout = useCallback(async () => {
     try {
-      await signOut();
+      await clearSession();
       setIsAuthenticated(false);
     } catch (error) {
       console.error('Logout error:', error);

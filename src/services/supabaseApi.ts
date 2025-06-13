@@ -42,6 +42,58 @@ export const checkAuth = async () => {
   return !!session?.access_token;
 };
 
+// Sign in with email and password
+export async function signIn(email: string, password: string) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ email, password, client_id: SUPABASE_ANON_KEY, grant_type: 'password' })
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return { error: data };
+    }
+
+    await storeSession(data);
+    return { data, error: null };
+  } catch (error) {
+    console.error('Sign in error:', error);
+    return { data: null, error: { message: 'Network error' } };
+  }
+}
+
+// Sign up with email and password
+export async function signUp(email: string, password: string) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+    
+    if (!response.ok) {
+      return { error: data };
+    }
+
+    await storeSession(data);
+    return { data, error: null };
+  } catch (error) {
+    console.error('Sign up error:', error);
+    return { data: null, error: { message: 'Network error' } };
+  }
+}
+
 // Helper to get the REST endpoint
 function getApiUrl(table: string) {
   return `${SUPABASE_URL}/rest/v1/${table}`;
