@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Animated, Dimensions, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -90,13 +90,6 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     }, [])
   );
 
-  const handleBack = () => {
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }],
-    });
-  };
-
   return (
     <Animated.View
       style={[
@@ -107,9 +100,6 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       <View style={StyleSheet.absoluteFill}>
         <View style={styles.background} />
       </View>
-      <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-        <Text style={styles.closeIcon}>×</Text>
-      </TouchableOpacity>
       <View style={styles.linesContainer}>
         {animations.current.map((anim, index) => (
           <Animated.View
@@ -177,19 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
   },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    zIndex: 10,
-    padding: 10,
-  },
-  closeIcon: {
-    color: Colors.hopeWhite,
-    fontSize: 32,
-    lineHeight: 32,
-    marginTop: -5,
-  },
+
   linesContainer: {
     alignItems: 'center',
     marginBottom: 30,

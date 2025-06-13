@@ -59,7 +59,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
                   <View
                     style={[
                       progressBarStyles.barFill,
-                      { width: `${progress}%` },
+                      { width: progress > 0 ? `${progress}%` : '0%' },
                     ]}
                   />
                 </View>

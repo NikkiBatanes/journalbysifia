@@ -27,7 +27,6 @@ export const progressBarStyles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.growthGreen,
     borderRadius: 4,
-    minWidth: 8, // Ensure minimum width for visibility
   },
   textContainer: {
     width: 60, // Fixed width for text container
