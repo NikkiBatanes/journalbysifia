@@ -23,7 +23,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   } = route.params;
 
   // Get the latest progress and task counts from context
-  const { getCompletedStepsCount } = useActionSteps();
+  const { getCompletedStepsCount, actionSteps } = useActionSteps();
   const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
@@ -48,14 +48,13 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   );
 
   // Render the appropriate card component
-  const renderCard = () => {
+  const renderCard = (cardSteps: any) => {
     switch (cardType) {
       case 'truth':
         return <TruthInLoveCard {...cardData} expanded={true} textColor={Colors.anchorBlue} />;
       case 'action':
-        const { actionSteps } = useActionSteps();
         return <ActionStepsCard
-          steps={actionSteps}
+          steps={cardSteps}
           textColor={Colors.anchorBlue}
           solidCardBackground={true}
           checkboxColor={Colors.anchorBlue}
@@ -158,7 +157,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       >
         <View style={styles.contentContainer}>
           <View style={styles.cardContainer}>
-            {renderCard()}
+            {renderCard(actionSteps)}
           </View>
         </View>
       </ScrollView>
