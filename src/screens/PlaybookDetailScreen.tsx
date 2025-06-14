@@ -739,8 +739,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       <View style={[styles.bottomButtonContainer, showUserInput && styles.bottomButtonExpanded]}>
         {/* Devotional Button - Show if last card reached in either view and not already created */}
         {/* Show button if we've ever reached the last card (in stack view) or if we're at the last card (in document view) */}
-        {((viewMode === 'document' && hasReachedLastCard) || 
-          (viewMode === 'stack' && hasReachedLastCard)) 
+        {((viewMode === 'document' && hasReachedLastCard) ||
+          (viewMode === 'stack' && hasReachedLastCard))
           && !hasCreatedDevotional && (
           <View style={styles.devotionalButtonWrapper}>
             <DevotionalButton
