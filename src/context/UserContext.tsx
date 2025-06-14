@@ -65,14 +65,9 @@ type SessionData = {
 };
 
 const getWebSession = (): SessionData | null => {
-  try {
-    // This is a no-op in React Native
-    // For web, this will be replaced with the actual implementation during build
-    return null;
-  } catch (e) {
-    console.error('Error accessing session:', e);
-    return null;
-  }
+  // This is a no-op in React Native
+  // For web, this will be replaced with the actual implementation during build
+  return null;
 };
 
 export const useUser = () => {

@@ -9,8 +9,7 @@ import type { RootStackParamList } from '../navigation/types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
 
-const GeneratingPlaybookScreen: React.FC<Props> = ({ route }) => {
-  const userName = route?.params?.userName || 'Friend';
+const GeneratingPlaybookScreen: React.FC<Props> = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [animationKey, setAnimationKey] = useState(0);
   const animations = useRef<Animated.Value[]>([]);
