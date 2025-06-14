@@ -281,7 +281,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Save action steps when they change or when navigating away
   useEffect(() => {
     // Don't save if we haven't initialized yet or if we're currently saving
-    if (!isInitialized || isSaving) {return;}
+    if (!isInitialized || isSaving) {
+      return;
+    }
 
     const saveProgress = async () => {
       try {
@@ -574,14 +576,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Update hasReachedLastCard when currentCard changes
   useEffect(() => {
-    if (cardData.length === 0) return;
-    
-    const isLastCard = currentCard === cardData.length - 1;
+    const isLastCard = cardData.length > 0 && currentCard === cardData.length - 1;
     setHasReachedLastCard(isLastCard);
   }, [currentCard, cardData.length]);
 
   const renderStackCards = () => {
-    if (cardData.length === 0) {return null;}
+    if (cardData.length === 0) {
+      return null;
+    }
 
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
 
@@ -592,7 +594,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
     const renderCard = (cardIndex: number, stackIndex: number, _onToggleView: (mode: 'stack' | 'document') => void) => {
       const card = cardData[cardIndex];
-      if (!card) {return null;}
+      if (!card) {
+        return null;
+      }
 
       const scaleY = 1 - stackIndex * 0.01;
       const scaleX = 1 - stackIndex * 0.03;
