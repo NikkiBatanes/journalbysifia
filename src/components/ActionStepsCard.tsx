@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native'; // Removed unused TextStyle
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
@@ -20,7 +20,7 @@ type ActionStep = {
 };
 
 type ActionStepsCardProps = {
-  steps?: ActionStep[]; // Made optional to allow using context directly
+  steps?: ActionStep[];
   style?: StyleProp<ViewStyle>;
   textColor?: string;
   solidCardBackground?: boolean;
@@ -30,60 +30,50 @@ type ActionStepsCardProps = {
 
 import { useActionSteps } from '../context/ActionStepsContext';
 
-// Helper function to clean markdown formatting from text
 const cleanMarkdown = (text: string | undefined): string => {
   if (!text) {return '';}
-  // Remove markdown formatting like **bold**, __bold__, *italic*, _italic_, ~~strikethrough~~, etc.
   return text
-    .replace(/\*\*|__/g, '') // Remove ** and __ used for bold
-    .replace(/\*|_/g, '')    // Remove * and _ used for italics
-    .replace(/~~/g, '')       // Remove ~~ used for strikethrough
+    .replace(/\*\*|__/g, '')
+    .replace(/\*|_/g, '')
+    .replace(/~~/g, '')
     .trim();
 };
 
-// Helper function to normalize subtasks to the expected format
 const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTask[] => {
-  if (!subTasks) {return [];}
-  return subTasks.map((task, index) => {
-    if (typeof task === 'string') {
-      return {
-        id: stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`,
-        text: cleanMarkdown(task),
-        completed: false,
-      };
-    }
-    // If it's already an object but missing required fields
-    return {
-      id: task.id || (stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`),
-      text: cleanMarkdown(task.text) || cleanMarkdown(task.toString()),
-      completed: Boolean(task.completed),
-    };
-  });
-};
-
-// Helper function to check if a step has subtasks
-const hasSubTasks = (step: ActionStep): boolean => {
-  return Array.isArray(step.subTasks) && step.subTasks.length > 0;
-};
-
-// Process steps to ensure proper format
-const processSteps = (steps: ActionStep[]): ActionStep[] => {
-  return steps.map(step => ({
-    ...step,
-    subTasks: normalizeSubTasks(step.subTasks, step.id), // Pass step ID to generate stable subtask IDs
+  if (!subTasks) {
+    return [];
+  }
+  return subTasks.map((task, index) => ({
+    id: typeof task === 'string'
+      ? stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`
+      : task.id || (stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`),
+    text: cleanMarkdown(typeof task === 'string' ? task : task.text || task.toString()),
+    completed: typeof task === 'string' ? false : Boolean(task.completed),
   }));
 };
 
-export default function ActionStepsCard({ steps: propSteps, style, textColor, solidCardBackground, checkboxColor, stepCircleBackground }: ActionStepsCardProps) {
-  // Get steps and handlers from context
+const processSteps = (steps: ActionStep[]): ActionStep[] => {
+  return steps.map(step => ({
+    ...step,
+    subTasks: normalizeSubTasks(step.subTasks, step.id),
+  }));
+};
+
+export default function ActionStepsCard({
+  steps: propSteps,
+  style,
+  textColor,
+  solidCardBackground,
+  checkboxColor,
+  stepCircleBackground,
+}: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
 
-  // Process steps to ensure proper format and clean markdown
   const steps = useMemo(() => {
-    // Use propSteps if provided, otherwise use contextSteps
     const rawSteps = (propSteps && propSteps.length > 0) ? propSteps : contextSteps;
-
-    if (!rawSteps || rawSteps.length === 0) {return [];}
+    if (!rawSteps || rawSteps.length === 0) {
+      return [];
+    }
 
     return processSteps(rawSteps).map(step => ({
       ...step,
@@ -96,39 +86,39 @@ export default function ActionStepsCard({ steps: propSteps, style, textColor, so
     }));
   }, [propSteps, contextSteps]);
 
-  // Handle sub-task toggle
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
     handleToggleStep(stepId, subTaskId);
   }, [handleToggleStep]);
 
-  // Debug log when steps change
-  React.useEffect(() => {
-    console.log('[ActionStepsCard] Steps updated:', JSON.stringify(steps, null, 2));
-  }, [steps]);
-
-  // Log initial steps data
-  React.useEffect(() => {
-    console.log('[DEBUG] ActionStepsCard - Initial steps:', {
-      stepsLength: steps.length,
-      steps: steps.map(step => ({
-        id: step.id,
-        title: step.title,
-        description: step.description,
-        hasSubtasks: hasSubTasks(step),
-        subtasksCount: step.subTasks ? step.subTasks.length : 0,
-        subtasks: step.subTasks || [],
-        stepRaw: JSON.stringify(step, null, 2),
-      })),
-    });
-
-    steps.forEach((step, index) => {
-      console.log(`[DEBUG] Step ${index + 1}: ${step.title}`);
-      console.log(`- Has subTasks: ${hasSubTasks(step)}`);
-      console.log('- subTasks:', step.subTasks || 'None');
-      console.log('- Raw step data:', JSON.stringify(step, null, 2));
-    });
-  }, [steps]);
+  // Create dynamic styles based on props
+  const dynamicStyles = useMemo(() => ({
+    dynamicStepNumber: {
+      ...styles.stepNumber,
+      color: textColor || styles.stepNumber.color,
+    },
+    dynamicStepTitle: {
+      ...styles.stepTitle,
+      color: textColor || styles.stepTitle.color,
+    },
+    dynamicSubTaskText: {
+      ...styles.subTaskText,
+      marginLeft: 8,
+      color: textColor || styles.subTaskText.color,
+    },
+    dynamicExampleText: {
+      ...styles.exampleText,
+      fontStyle: 'italic',
+      color: solidCardBackground ? Colors.anchorBlue : styles.exampleText.color,
+    },
+    dynamicCircle: {
+      ...styles.circle,
+      backgroundColor: stepCircleBackground || 'rgba(255, 255, 255, 0.1)',
+    },
+    dynamicCheckbox: {
+      color: checkboxColor || 'rgba(255,255,255,0.7)',
+    },
+  }), [textColor, solidCardBackground, stepCircleBackground, checkboxColor]);
 
   return (
     <View style={style}>
@@ -139,24 +129,39 @@ export default function ActionStepsCard({ steps: propSteps, style, textColor, so
           color={Colors.faithGold}
           style={styles.icon}
         />
-        <Text style={[styles.heading, !!textColor && { color: textColor }]}>{steps.length} Action steps</Text>
+        <Text style={[styles.heading, textColor ? { color: textColor } : {}]}>
+          {steps.length} Action steps
+        </Text>
       </View>
 
       <View>
         {steps.length === 0 ? (
           <View style={styles.stepsContainer}>
-            <Text style={[styles.stepTitle, { color: textColor || Colors.hopeWhite, textAlign: 'center', opacity: 0.7 }]}>
+            <Text style={[
+              styles.stepTitle,
+              styles.noStepsText,
+              { color: textColor || Colors.hopeWhite },
+            ]}>
               No action steps available.
             </Text>
           </View>
         ) : (
           <View style={styles.stepsContainer}>
             {steps.map((step, index) => {
-              // Normalize examples: look for step.examples or subtasks with isExample/text starting with 'Example:'
               const examples = Array.isArray((step as any).examples)
-                ? (step as any).examples.map((ex: string, i: number) => ({ id: `ex-${i}`, text: ex }))
-                : (step.subTasks || []).filter(st => typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:')).map((st, i) => ({ id: st.id || `ex-${i}`, text: st.text.replace(/^Example:/i, '').trim() }));
-              const subtasks = (step.subTasks || []).filter(st => typeof st.text === 'string' && !st.text.toLowerCase().startsWith('example:'));
+                ? (step as any).examples.map((ex: string, i: number) => ({
+                    id: `ex-${i}`,
+                    text: ex,
+                  }))
+                : (step.subTasks || [])
+                    .filter((st) => typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:'))
+                    .map((st, i) => ({
+                      id: st.id || `ex-${i}`,
+                      text: st.text.replace(/^Example:/i, '').trim(),
+                    }));
+              const subtasks = (step.subTasks || []).filter(
+                (st) => typeof st.text === 'string' && !st.text.toLowerCase().startsWith('example:')
+              );
 
               return (
                 <View
@@ -168,81 +173,88 @@ export default function ActionStepsCard({ steps: propSteps, style, textColor, so
                 >
                   <View style={styles.stepHeader}>
                     <View style={styles.stepNumberContainer}>
-                      <View style={[
-                        styles.circle,
-                        { backgroundColor: stepCircleBackground || 'rgba(255, 255, 255, 0.1)' },
-                        step.completed && styles.completedCircle,
-                      ]}>
-                        <Text style={[styles.stepNumber, !!textColor && { color: textColor }]}>{index + 1}</Text>
+                      <View
+                        style={[
+                          dynamicStyles.dynamicCircle,
+                          step.completed && styles.completedCircle,
+                        ]}
+                      >
+                        <Text style={dynamicStyles.dynamicStepNumber}>
+                          {index + 1}
+                        </Text>
                       </View>
                     </View>
                     <View style={styles.titleContainer}>
-                      <Text style={[
-                        styles.stepTitle,
-                        step.completed && styles.completedText,
-                        !!textColor && { color: textColor },
-                      ]}>
-                        {cleanMarkdown(step.title)}
+                      <Text
+                        style={[
+                          dynamicStyles.dynamicStepTitle,
+                          step.completed && styles.completedText,
+                        ]}
+                      >
+                        {step.title}
                       </Text>
                     </View>
                   </View>
 
-                  {/* Subtasks checklist */}
+
                   {subtasks.length > 0 && (
                     <View style={styles.subTasksList}>
                       {subtasks.map((subTask) => (
                         <TouchableOpacity
                           key={subTask.id}
-                          style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}
+                          style={styles.subTaskButton}
                           onPress={() => onToggleSubTask(step.id, subTask.id)}
                           activeOpacity={0.7}
                         >
                           <View style={styles.checkboxContainer}>
                             <MaterialCommunityIcons
-                              name={subTask.completed ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
+                              name={
+                                subTask.completed
+                                  ? 'checkbox-marked-circle'
+                                  : 'checkbox-blank-circle-outline'
+                              }
                               size={24}
-                              color={subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)')}
-                              style={styles.checkboxIcon}
+                              style={[
+                                styles.checkboxIcon,
+                                { color: subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)') },
+                              ]}
                             />
                           </View>
-                          <Text style={[
-                            styles.subTaskText,
-                            { marginLeft: 8 },
-                            subTask.completed && styles.completedText,
-                            !!textColor && { color: textColor },
-                          ]}>
-                            {cleanMarkdown(subTask.text)}
+                          <Text
+                            style={[
+                              dynamicStyles.dynamicSubTaskText,
+                              subTask.completed && styles.completedText,
+                            ]}
+                          >
+                            {subTask.text}
                           </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
                   )}
 
-                  {/* Step description if no subtasks */}
                   {subtasks.length === 0 && step.description && (
-                    <Text style={styles.stepDescription}>{cleanMarkdown(step.description)}</Text>
+                    <Text style={styles.stepDescription}>
+                      {step.description}
+                    </Text>
                   )}
 
-                  {/* Examples block */}
                   {examples.length > 0 && (
                     <View style={styles.examplesContainer}>
-                      <Text style={[
-                        styles.examplesTitle,
-                        solidCardBackground && { color: Colors.anchorBlue },
-                      ]}>
+                      <Text
+                        style={[
+                          styles.examplesTitle,
+                          solidCardBackground && { color: Colors.anchorBlue },
+                        ]}
+                      >
                         {examples.length === 1 ? 'EXAMPLE:' : 'EXAMPLES:'}
                       </Text>
-                      {examples.map((example: {id: string, text: string}) => (
+                      {examples.map((example: { id: string; text: string }) => (
                         <Text
                           key={example.id}
-                          style={[
-                            styles.exampleText,
-                            {
-                              fontStyle: 'italic',
-                              color: solidCardBackground ? Colors.anchorBlue : styles.exampleText.color,
-                            },
-                          ]}>
-                          {cleanMarkdown(example.text)}
+                          style={dynamicStyles.dynamicExampleText}
+                        >
+                          {example.text}
                         </Text>
                       ))}
                     </View>
@@ -273,38 +285,31 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
   },
   solidStepCard: {
-    backgroundColor: '#d9dfe7', // Light blue-gray for step container
-    borderRadius: 24,          // More rounded corners
-    padding: 22,               // Comfortable padding
-    marginBottom: 20,          // More space between steps
+    backgroundColor: '#d9dfe7',
+    borderRadius: 24,
+    padding: 22,
+    marginBottom: 20,
     width: '100%',
     alignSelf: 'center',
   },
   subTasksList: {
     marginTop: 8,
-    marginLeft: 0, // Remove left margin so checkbox aligns with step number
+    marginLeft: 0,
   },
-  exampleBox: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 6,
-  },
-
   headingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8, // Match TruthInLoveCard
+    marginBottom: 8,
   },
   icon: {
-    marginRight: 8, // Match TruthInLoveCard's heart icon margin
+    marginRight: 8,
   },
   heading: {
-    ...Typography.interBold, // Match TruthInLoveCard
+    ...Typography.interBold,
     fontSize: 20,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
-    textTransform: 'none', // Match TruthInLoveCard
+    textTransform: 'none',
   },
   stepsContainer: {
     width: '100%',
@@ -333,7 +338,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
-    flexShrink: 0, // Prevent shrinking
+    flexShrink: 0,
   },
   circle: {
     width: 24,
@@ -359,35 +364,16 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     flexWrap: 'wrap',
     textTransform: 'uppercase',
-    paddingRight: 8, // Add padding to prevent text from touching the edge
+    paddingRight: 8,
   },
   completedText: {
     textDecorationLine: 'line-through',
     opacity: 0.7,
   },
-  subTaskContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-    marginLeft: 16,
-    marginRight: 8,
-    padding: 12,
-    width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-    elevation: 2,
-  },
   subTaskButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    paddingVertical: 4,
+    marginBottom: 6,
     width: '100%',
   },
   checkboxContainer: {
@@ -402,24 +388,23 @@ const styles = StyleSheet.create({
     // Size will be controlled by the container
   },
   subTaskText: {
-    color: 'white', // Brighter text for better visibility
-    fontSize: 16, // Slightly larger font
+    color: 'white',
+    fontSize: 16,
     flexShrink: 1,
     lineHeight: 22,
     paddingRight: 12,
-    fontWeight: '500', // Slightly bolder
-    flex: 1, // Take up available space
+    fontWeight: '500',
+    flex: 1,
   },
   exampleText: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 13,
     lineHeight: 18,
-    fontStyle: 'italic',
     marginTop: 2,
   },
   examplesContainer: {
     marginTop: 8,
-    marginLeft: 28, // Align with subtasks
+    marginLeft: 28,
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(255,255,255,0.2)',
     paddingLeft: 12,
@@ -432,19 +417,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  exampleContainer: {
-    marginBottom: 6,
-  },
   titleContainer: {
     flex: 1,
     marginLeft: 12,
     marginRight: 8,
     justifyContent: 'center',
-    minWidth: 0, // Allow text to shrink properly
-  },
-  chevron: {
-    opacity: 0.7,
-    marginLeft: 'auto', // Push chevron to the right
+    minWidth: 0,
   },
   stepDescription: {
     ...Typography.interRegular,
@@ -452,7 +430,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 8,
-    paddingHorizontal: 4, // Reduced padding for better space usage
+    paddingHorizontal: 4,
     width: '100%',
+  },
+  noStepsText: {
+    textAlign: 'center',
+    opacity: 0.7,
   },
 });
