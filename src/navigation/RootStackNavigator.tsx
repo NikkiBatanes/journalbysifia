@@ -14,7 +14,7 @@ import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import { useNavigation, RouteProp, useRoute } from '@react-navigation/native';
 
 type RootStackParamList = {
-  MainTabs: { onLogout: () => void };
+  MainTabs: undefined;
   GeneratingPlaybook: undefined;
   PlaybookDetail: undefined;
   CardDetail: undefined;
@@ -74,9 +74,9 @@ const renderWhiteProfileImage = () => (
   <ProfileImage containerStyle={styles.whiteProfileImageContainer} />
 );
 
+import { useLogout } from '../context/LogoutContext';
 const MainTabsScreen: React.FC = React.memo(() => {
-  const route = useRoute<RouteProp<RootStackParamList, 'MainTabs'>>();
-  const { onLogout } = route.params;
+  const onLogout = useLogout();
   return <BottomTabNavigator onLogout={onLogout} />;
 });
 
@@ -135,7 +135,6 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="MainTabs"
             component={MainTabsScreen}
-            initialParams={{ onLogout: handleLogout }}
           />
           <Stack.Screen
             name="GeneratingPlaybook"

@@ -111,16 +111,14 @@ const ProfileHeader = React.memo(({ onLogout }: { onLogout: () => void }) => (
 
 // Profile screen options with memoized header
 const useProfileScreenOptions = (onLogout: () => void) => {
-  const profileHeader = React.useMemo(
-    () => <ProfileHeader onLogout={onLogout} />,
+  return React.useMemo(
+    () => ({
+      tabBarLabel: 'Profile',
+      title: 'Profile',
+      headerRight: () => <ProfileHeader onLogout={onLogout} />,
+    }),
     [onLogout]
   );
-
-  return React.useMemo(() => ({
-    tabBarLabel: 'Profile',
-    title: 'Profile',
-    headerRight: () => profileHeader,
-  }), [profileHeader]);
 };
 
 export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps) {
