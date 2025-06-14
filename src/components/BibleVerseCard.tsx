@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Colors, Fonts } from '../theme';
+import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { formatBibleVerse } from '../utils/textFormatting';
 

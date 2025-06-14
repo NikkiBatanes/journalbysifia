@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextStyle } from 'react-native';
 import { BorderRadii } from '../theme/styles';
-import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 
 interface AffirmationCardProps {
