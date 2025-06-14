@@ -85,6 +85,24 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Card state
   const [currentCard, setCurrentCard] = useState(0);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
+  const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
+
+  // UI state
+  const [showCompactHeader, setShowCompactHeader] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Animation refs - must be at the top level
+  const animationRefs = useRef<{
+    headerOpacityAnimation?: any;
+    rafId?: number;
+  }>({});
+
+  const gestureAnimationRefs = useRef({
+    headerFadeAnimation: null as any,
+    headerShowAnimation: null as any,
+    translateYAnimation: null as any,
+    springAnimation: null as any,
+  });
 
   // Handle view mode changes separately to ensure proper state reset
   useEffect(() => {
@@ -93,11 +111,31 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       setHasReachedLastCard(false);
     }
   }, [viewMode]);
-  const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
 
-  // UI state
-  const [showCompactHeader, setShowCompactHeader] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  // Cleanup effect for animations
+  useEffect(() => {
+    // Store current ref values in variables to ensure they're captured in the closure
+    const currentAnimationRefs = animationRefs.current;
+    const currentGestureRefs = gestureAnimationRefs.current;
+
+    return () => {
+      // Clean up any running animations when component unmounts
+      if (currentAnimationRefs.rafId) {
+        cancelAnimationFrame(currentAnimationRefs.rafId);
+      }
+      // Cancel any running timing animations
+      if (currentAnimationRefs.headerOpacityAnimation?.cancel) {
+        currentAnimationRefs.headerOpacityAnimation.cancel();
+      }
+
+      // Clean up gesture animations
+      Object.values(currentGestureRefs).forEach(anim => {
+        if (anim?.cancel) {
+          anim.cancel();
+        }
+      });
+    };
+  }, [animationRefs, gestureAnimationRefs]); // Add refs to dependency array
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
@@ -161,7 +199,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Effect to handle chevron animation
   useEffect(() => {
-    chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
+    const animation = withTiming(showUserInput ? 1 : 0, { duration: 200 });
+    chevronAnim.value = animation;
+
+    return () => {
+      // Cancel any running animations when component unmounts
+      // or when dependencies change
+      if (animation && typeof animation === 'object' && 'cancel' in animation) {
+        // @ts-ignore - cancel exists on the animation object
+        animation.cancel();
+      }
+    };
   }, [showUserInput, chevronAnim]);
 
   // Initialize cardData with useMemo for performance
@@ -438,28 +486,42 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     );
   }
 
+
+
   // Card data is now defined at the top of the component
 
   const onSwipeComplete = (direction: 'up' | 'down') => {
     if (direction === 'up') {
       goToNextCard();
-      headerOpacity.value = withTiming(1, { duration: 200 });
-      headerHeight.value = 1;
-      headerFaded.value = false;
     } else {
       goToPrevCard();
-      headerOpacity.value = withTiming(1, { duration: 200 });
-      headerHeight.value = 1;
-      headerFaded.value = false;
     }
-    requestAnimationFrame(() => {
+
+    // Store the animation for potential cleanup
+    animationRefs.current.headerOpacityAnimation = withTiming(1, { duration: 200 }, (finished) => {
+      if (finished) {
+        headerOpacity.value = 1;
+        headerHeight.value = 1;
+        headerFaded.value = false;
+      }
+    });
+
+    // Store the RAF ID for cleanup
+    animationRefs.current.rafId = requestAnimationFrame(() => {
       translateY.value = 0;
       isTransitioning.value = false;
     });
   };
 
+
+
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, ctx: GestureContext) => {
+      // Cancel any running animations when a new gesture starts
+      Object.values(gestureAnimationRefs.current).forEach(anim => {
+        if (anim?.cancel) {anim.cancel();}
+      });
+
       ctx.startY = translateY.value;
       ctx.startX = 0;
     },
@@ -474,8 +536,22 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           if (translateY.value < fadeThreshold) {
             // Start fading and collapsing header
             const fadeProgress = Math.min(1, Math.abs(translateY.value - fadeThreshold) / (SWIPE_THRESHOLD - fadeThreshold));
-            headerOpacity.value = withTiming(1 - fadeProgress * 0.8, { duration: 100 });
-            headerHeight.value = 1 - fadeProgress * 0.8;
+
+            // Cancel any previous fade animation
+            if (gestureAnimationRefs.current.headerFadeAnimation?.cancel) {
+              gestureAnimationRefs.current.headerFadeAnimation.cancel();
+            }
+
+            gestureAnimationRefs.current.headerFadeAnimation = withTiming(
+              1 - fadeProgress * 0.8,
+              { duration: 100 },
+              (finished) => {
+                if (finished) {
+                  headerOpacity.value = 1 - fadeProgress * 0.8;
+                  headerHeight.value = 1 - fadeProgress * 0.8;
+                }
+              }
+            );
 
             if (translateY.value < collapseThreshold && !headerFaded.value) {
               headerFaded.value = true;
@@ -483,8 +559,21 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           } else if (translateY.value >= fadeThreshold && headerFaded.value) {
             // Expand and show header
             headerFaded.value = false;
-            headerOpacity.value = withTiming(1, { duration: 200 });
-            headerHeight.value = 1;
+
+            if (gestureAnimationRefs.current.headerShowAnimation?.cancel) {
+              gestureAnimationRefs.current.headerShowAnimation.cancel();
+            }
+
+            gestureAnimationRefs.current.headerShowAnimation = withTiming(
+              1,
+              { duration: 200 },
+              (finished) => {
+                if (finished) {
+                  headerOpacity.value = 1;
+                  headerHeight.value = 1;
+                }
+              }
+            );
           }
         }
       }
@@ -496,23 +585,73 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       if (isVerticalSwipe) {
         if (event.translationY < -SWIPE_THRESHOLD && currentCardShared.value < cardCount.value - 1) {
           isTransitioning.value = true;
-          translateY.value = withTiming(-SCREEN_HEIGHT, { duration: 250 }, (finished) => {
-            if (finished) {
-              runOnJS(onSwipeComplete)('up');
+
+          if (gestureAnimationRefs.current.translateYAnimation?.cancel) {
+            gestureAnimationRefs.current.translateYAnimation.cancel();
+          }
+
+          gestureAnimationRefs.current.translateYAnimation = withTiming(
+            -SCREEN_HEIGHT,
+            { duration: 250 },
+            (finished) => {
+              if (finished) {
+                runOnJS(onSwipeComplete)('up');
+              }
             }
-          });
+          );
+
+          translateY.value = gestureAnimationRefs.current.translateYAnimation;
+
         } else if (event.translationY > SWIPE_THRESHOLD && currentCardShared.value > 0) {
           isTransitioning.value = true;
-          translateY.value = withTiming(SCREEN_HEIGHT, { duration: 250 }, (finished) => {
+
+          if (gestureAnimationRefs.current.translateYAnimation?.cancel) {
+            gestureAnimationRefs.current.translateYAnimation.cancel();
+          }
+
+          gestureAnimationRefs.current.translateYAnimation = withTiming(
+            SCREEN_HEIGHT,
+            { duration: 250 },
+            (finished) => {
+              if (finished) {
+                runOnJS(onSwipeComplete)('down');
+              }
+            }
+          );
+
+          translateY.value = gestureAnimationRefs.current.translateYAnimation;
+
+        } else {
+          if (gestureAnimationRefs.current.springAnimation?.cancel) {
+            gestureAnimationRefs.current.springAnimation.cancel();
+          }
+
+          gestureAnimationRefs.current.springAnimation = withSpring(0, {
+            damping: 10,
+            stiffness: 150,
+          }, (finished) => {
             if (finished) {
-              runOnJS(onSwipeComplete)('down');
+              translateY.value = 0;
             }
           });
-        } else {
-          translateY.value = withSpring(0, { damping: 10, stiffness: 150 });
+
+          translateY.value = gestureAnimationRefs.current.springAnimation;
         }
       } else {
-        translateY.value = withSpring(0, { damping: 10, stiffness: 150 });
+        if (gestureAnimationRefs.current.springAnimation?.cancel) {
+          gestureAnimationRefs.current.springAnimation.cancel();
+        }
+
+        gestureAnimationRefs.current.springAnimation = withSpring(0, {
+          damping: 10,
+          stiffness: 150,
+        }, (finished) => {
+          if (finished) {
+            translateY.value = 0;
+          }
+        });
+
+        translateY.value = gestureAnimationRefs.current.springAnimation;
       }
     },
   });
