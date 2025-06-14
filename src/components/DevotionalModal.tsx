@@ -70,16 +70,17 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   React.useEffect(() => {
     let isMounted = true;
+    let animation: Animated.CompositeAnimation | null = null;
 
     if (visible) {
       setIsVisible(true);
       // Small delay to ensure content is measured
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         measureContent();
       }, 10);
 
       // Fade in backdrop and slide up modal
-      Animated.parallel([
+      animation = Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
           duration: 200,
@@ -90,13 +91,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           useNativeDriver: true,
           damping: 20,
         }),
-      ]).start();
+      ]);
+      animation.start();
     } else {
       // Calculate the distance to slide down (full screen height + modal height + some extra)
       const slideDownDistance = Dimensions.get('window').height + 100; // Ensure it goes completely off screen
 
       // Fade out backdrop quickly while sliding down
-      Animated.parallel([
+      animation = Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 100, // Very fast fade out
@@ -108,7 +110,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           useNativeDriver: true,
           easing: Easing.out(Easing.quad),
         }),
-      ]).start(({ finished }) => {
+      ]);
+      
+      animation.start(({ finished }) => {
         if (finished && isMounted) {
           setIsVisible(false);
           // Reset translateY for next open
@@ -117,10 +121,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
     }
 
+
     return () => {
       isMounted = false;
+      if (animation) {
+        animation.stop();
+      }
     };
-  }, [visible, contentHeight]);
+  }, [visible, contentHeight, fadeAnim, translateY, SCREEN_HEIGHT]);
 
   const togglePlaybookInfo = () => {
     const toValue = showPlaybookInfo ? 0 : 1;
