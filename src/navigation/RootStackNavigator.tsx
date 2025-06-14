@@ -1,7 +1,7 @@
 // src/navigation/RootStackNavigator.tsx
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { TouchableOpacity, View, Image } from 'react-native';
+import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
@@ -16,7 +16,7 @@ interface RootStackNavigatorProps {
   handleLogout: () => void;
   handleLogin: () => void;
   AuthStack: React.ComponentType<{ onLogin: () => void }>;
-} // (No change needed, prop type is already generic, just ensure usage is correct)
+}
 
 export default function RootStackNavigator({
   isAuthenticated,
@@ -45,36 +45,24 @@ export default function RootStackNavigator({
               headerLeft: () => (
                 <TouchableOpacity
                   onPress={() => navigation.goBack()}
-                  style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
+                  style={styles.backButton}
                 >
                   <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
                 </TouchableOpacity>
               ),
               headerRight: () => (
-                <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16 }}>
+                <View style={styles.profileImageContainer}>
                   <Image
                     source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-                    style={{ width: 32, height: 32, borderRadius: 16 }}
+                    style={styles.profileImage}
                     resizeMode="cover"
                   />
                 </View>
               ),
-              headerStyle: {
-                backgroundColor: '#f2f5f7',
-              },
+              headerStyle: styles.headerStyle,
               headerTitleAlign: 'center',
-              headerTitleStyle: {
-                fontSize: 18,
-                fontWeight: '800',
-                color: Colors.anchorBlue,
-                textAlign: 'center',
-                marginTop: 2,
-                maxWidth: '70%', // Ensure title doesn't overlap with back button and profile
-              },
-              headerTitleContainerStyle: {
-                width: '100%',
-                paddingHorizontal: 16,
-              },
+              headerTitleStyle: styles.headerTitle,
+              headerTitleContainerStyle: styles.headerTitleContainer,
               headerShadowVisible: false,
             })}
           />
@@ -88,23 +76,21 @@ export default function RootStackNavigator({
               headerLeft: () => (
                 <TouchableOpacity
                   onPress={() => navigation.goBack()}
-                  style={{ marginLeft: 0, padding: 8, paddingLeft: 0 }}
+                  style={styles.backButton}
                 >
                   <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
                 </TouchableOpacity>
               ),
               headerRight: () => (
-                <View style={{ marginRight: 16, overflow: 'hidden', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
+                <View style={styles.whiteProfileImageContainer}>
                   <Image
                     source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-                    style={{ width: 32, height: 32, borderRadius: 16 }}
+                    style={styles.profileImage}
                     resizeMode="cover"
                   />
                 </View>
               ),
-              headerStyle: {
-                backgroundColor: Colors.anchorBlue,
-              },
+              headerStyle: styles.darkHeaderStyle,
               headerTintColor: Colors.hopeWhite,
               headerShadowVisible: false,
             })}
@@ -118,3 +104,46 @@ export default function RootStackNavigator({
     </Stack.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  backButton: {
+    marginLeft: 0,
+    padding: 8,
+    paddingLeft: 0,
+  },
+  profileImageContainer: {
+    marginRight: 16,
+    overflow: 'hidden',
+    borderRadius: 16,
+  },
+  whiteProfileImageContainer: {
+    marginRight: 16,
+    overflow: 'hidden',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  profileImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.anchorBlue,
+    textAlign: 'center',
+    marginTop: 2,
+    maxWidth: '70%',
+  },
+  headerStyle: {
+    backgroundColor: '#f2f5f7',
+  },
+  headerTitleContainer: {
+    width: '100%',
+    paddingHorizontal: 16,
+  },
+  darkHeaderStyle: {
+    backgroundColor: Colors.anchorBlue,
+  },
+});
