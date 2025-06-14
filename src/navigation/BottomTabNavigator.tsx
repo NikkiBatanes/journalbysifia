@@ -2,6 +2,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
 import { Spacing, FontSizes } from '../theme/styles';
@@ -13,11 +14,29 @@ import DevotionalsScreen from '../screens/DevotionalsScreen';
 
 const Tab = createBottomTabNavigator();
 
-// Custom tab bar component
-const CustomTabBar = ({ state, descriptors, navigation }: any) => {
+// Define the props for our custom tab bar
+type CustomTabBarProps = {
+  state: TabNavigationState<ParamListBase>;
+  descriptors: Record<string, any>;
+  navigation: any;
+};
+
+// Logout button component
+const LogoutButton = ({ onPress }: { onPress: () => void }) => (
+  <Text style={styles.logoutButton} onPress={onPress}>
+    🚪
+  </Text>
+);
+
+// Custom tab bar component with proper TypeScript types
+const CustomTabBarComponent = ({
+  state,
+  descriptors,
+  navigation,
+}: CustomTabBarProps) => {
   return (
     <View style={styles.tabBarContainer}>
-      {state.routes.map((route: any, index: number) => {
+      {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
         const label = options.tabBarLabel || options.title || route.name;
         const isFocused = state.index === index;
@@ -81,10 +100,40 @@ const CustomTabBar = ({ state, descriptors, navigation }: any) => {
 };
 
 // Main App Tabs
-export default function BottomTabNavigator({ onLogout }: { onLogout: () => void }) {
+interface BottomTabNavigatorProps {
+  onLogout: () => void;
+}
+
+// Memoized profile header component
+const ProfileHeader = React.memo(({ onLogout }: { onLogout: () => void }) => (
+  <LogoutButton onPress={onLogout} />
+));
+
+// Profile screen options with memoized header
+const useProfileScreenOptions = (onLogout: () => void) => {
+  const profileHeader = React.useMemo(
+    () => <ProfileHeader onLogout={onLogout} />,
+    [onLogout]
+  );
+
+  return React.useMemo(() => ({
+    tabBarLabel: 'Profile',
+    title: 'Profile',
+    headerRight: () => profileHeader,
+  }), [profileHeader]);
+};
+
+export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps) {
+  const profileScreenOptions = useProfileScreenOptions(onLogout);
+  // Move tabBar render function outside
+  const renderTabBar = React.useCallback(
+    (props: any) => <CustomTabBarComponent {...props} />,
+    []
+  );
+
   return (
     <Tab.Navigator
-      tabBar={props => <CustomTabBar {...props} />}
+      tabBar={renderTabBar}
       screenOptions={{
         headerShown: true,
         headerShadowVisible: false,
@@ -126,18 +175,7 @@ export default function BottomTabNavigator({ onLogout }: { onLogout: () => void 
       <Tab.Screen
         name="Profile"
         component={UserProfileScreen}
-        options={{
-          tabBarLabel: 'Profile',
-          title: 'Profile',
-          headerRight: () => (
-            <Text
-              style={styles.logoutButton}
-              onPress={onLogout}
-            >
-              🚪
-            </Text>
-          ),
-        }}
+        options={profileScreenOptions}
       />
     </Tab.Navigator>
   );

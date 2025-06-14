@@ -1,6 +1,9 @@
 // src/navigation/RootStackNavigator.tsx
-import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React, { useMemo, useCallback } from 'react';
+import {
+  createNativeStackNavigator,
+  NativeStackNavigationOptions,
+} from '@react-navigation/native-stack';
 import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
@@ -8,6 +11,74 @@ import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreen';
 import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
+import { useNavigation, RouteProp, useRoute } from '@react-navigation/native';
+
+type RootStackParamList = {
+  MainTabs: { onLogout: () => void };
+  GeneratingPlaybook: undefined;
+  PlaybookDetail: undefined;
+  CardDetail: undefined;
+  AuthStack: undefined;
+};
+
+// Header Components
+interface BackButtonProps {
+  onPress: () => void;
+  color?: string;
+}
+
+const BackButton = React.memo<BackButtonProps>(({ onPress, color = Colors.anchorBlue }) => (
+  <TouchableOpacity onPress={onPress} style={styles.backButton}>
+    <Ionicons name="chevron-back" size={24} color={color} />
+  </TouchableOpacity>
+));
+
+interface ProfileImageProps {
+  containerStyle?: object;
+}
+
+const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle }) => (
+  <View style={[styles.profileImageContainer, containerStyle]}>
+    <Image
+      source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
+      style={styles.profileImage}
+      resizeMode="cover"
+    />
+  </View>
+));
+
+// Memoized header components
+const HeaderLeft = React.memo(({ color = Colors.anchorBlue }: { color?: string }) => {
+  const navigation = useNavigation();
+  const handlePress = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  return <BackButton onPress={handlePress} color={color} />;
+});
+
+// Header left components as functions
+const renderAnchorBlueHeaderLeft = () => (
+  <HeaderLeft color={Colors.anchorBlue} />
+);
+
+const renderHopeWhiteHeaderLeft = () => (
+  <HeaderLeft color={Colors.hopeWhite} />
+);
+
+// Header right components as functions
+// These are used in navigation options below
+const renderDefaultProfileImage = () => <ProfileImage />;
+
+const renderWhiteProfileImage = () => (
+  <ProfileImage containerStyle={styles.whiteProfileImageContainer} />
+);
+
+const MainTabsScreen: React.FC = React.memo(() => {
+  const route = useRoute<RouteProp<RootStackParamList, 'MainTabs'>>();
+  const { onLogout } = route.params;
+  return <BottomTabNavigator onLogout={onLogout} />;
+});
 
 const Stack = createNativeStackNavigator();
 
@@ -24,13 +95,48 @@ export default function RootStackNavigator({
   handleLogin,
   AuthStack,
 }: RootStackNavigatorProps) {
+  // Memoize screen options
+  const playbookDetailOptions = useMemo<NativeStackNavigationOptions>(
+    () => ({
+      headerShown: true,
+      title: '',
+      headerBackVisible: false,
+      headerLeft: renderAnchorBlueHeaderLeft,
+      headerRight: renderDefaultProfileImage,
+      headerStyle: styles.headerStyle,
+      headerTitleAlign: 'center',
+      headerTitleStyle: styles.headerTitle,
+      headerTitleContainerStyle: styles.headerTitleContainer,
+      headerShadowVisible: false,
+    }),
+    []
+  );
+
+  const cardDetailOptions = useMemo<NativeStackNavigationOptions>(
+    () => ({
+      headerShown: true,
+      title: '',
+      headerBackVisible: false,
+      headerLeft: renderHopeWhiteHeaderLeft,
+      headerRight: renderWhiteProfileImage,
+      headerStyle: styles.darkHeaderStyle,
+      headerTintColor: Colors.hopeWhite,
+      headerShadowVisible: false,
+    }),
+    []
+  );
+
+  // Remove unused renderMainTabs since we're using component prop directly
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
         <>
-          <Stack.Screen name="MainTabs">
-            {() => <BottomTabNavigator onLogout={handleLogout} />}
-          </Stack.Screen>
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabsScreen}
+            initialParams={{ onLogout: handleLogout }}
+          />
           <Stack.Screen
             name="GeneratingPlaybook"
             component={GeneratingPlaybookScreen as React.ComponentType}
@@ -38,62 +144,12 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="PlaybookDetail"
             component={PlaybookDetailScreen as React.ComponentType}
-            options={({ navigation }) => ({
-              headerShown: true,
-              title: '',
-              headerBackVisible: false,
-              headerLeft: () => (
-                <TouchableOpacity
-                  onPress={() => navigation.goBack()}
-                  style={styles.backButton}
-                >
-                  <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-                </TouchableOpacity>
-              ),
-              headerRight: () => (
-                <View style={styles.profileImageContainer}>
-                  <Image
-                    source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-                    style={styles.profileImage}
-                    resizeMode="cover"
-                  />
-                </View>
-              ),
-              headerStyle: styles.headerStyle,
-              headerTitleAlign: 'center',
-              headerTitleStyle: styles.headerTitle,
-              headerTitleContainerStyle: styles.headerTitleContainer,
-              headerShadowVisible: false,
-            })}
+            options={playbookDetailOptions}
           />
           <Stack.Screen
             name="CardDetail"
             component={CardDetailScreen as React.ComponentType}
-            options={({ navigation }) => ({
-              headerShown: true,
-              title: '',
-              headerBackVisible: false,
-              headerLeft: () => (
-                <TouchableOpacity
-                  onPress={() => navigation.goBack()}
-                  style={styles.backButton}
-                >
-                  <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
-                </TouchableOpacity>
-              ),
-              headerRight: () => (
-                <View style={styles.whiteProfileImageContainer}>
-                  <Image
-                    source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-                    style={styles.profileImage}
-                    resizeMode="cover"
-                  />
-                </View>
-              ),
-              headerStyle: styles.darkHeaderStyle,
-              headerTintColor: Colors.hopeWhite,
-              headerShadowVisible: false,
-            })}
+            options={cardDetailOptions}
           />
         </>
       ) : (
