@@ -52,11 +52,11 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     return (
       <View style={[propStyles.affirmationsCard, styles.affirmationsContainer]}>
         <View style={propStyles.affirmationsHeader}>
-          <MaterialCommunityIcons 
-            name="format-quote-open" 
-            size={20} 
-            color={Colors.hopeWhite} 
-            style={styles.affirmationIcon} 
+          <MaterialCommunityIcons
+            name="format-quote-open"
+            size={20}
+            color={Colors.hopeWhite}
+            style={styles.affirmationIcon}
           />
           <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
         </View>
