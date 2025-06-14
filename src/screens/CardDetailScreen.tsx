@@ -20,20 +20,12 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     cardType,
     cardData,
     playbook,
-    viewMode: initialViewMode = 'stack',
   } = route.params;
 
   // Get the latest progress and task counts from context
   const { getCompletedStepsCount } = useActionSteps();
   const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-
-  const parentToggleView = (mode: 'stack' | 'document') => {
-    // Update local state
-    setViewMode(mode);
-    // If we need to update the parent screen, we can use navigation.setParams
-    // or use a different approach like a shared context or state management
-  };
 
   const [showUserInput, setShowUserInput] = useState(false);
 
@@ -46,26 +38,19 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
     marginLeft: 4,
   }));
-  const [viewMode, setViewMode] = useState<'stack' | 'document'>(initialViewMode);
   const [userInput, setUserInput] = useState(playbook?.userInput || '');
 
-  // Sync with parent's view mode when screen comes into focus
+  // Force re-render to get updated progress
   useFocusEffect(
     useCallback(() => {
-      if (route.params?.viewMode) {
-        setViewMode(route.params.viewMode);
-      }
       // Force re-render to get updated progress
-    }, [route.params?.viewMode, getCompletedStepsCount])
+    }, [getCompletedStepsCount])
   );
 
-  // Handle view mode toggle
+  // Handle view mode toggle - kept for potential parent component usage
   const handleToggleView = useCallback((mode: 'stack' | 'document') => {
-    setViewMode(mode);
-    if (parentToggleView) {
-      parentToggleView(mode);
-    }
-  }, [parentToggleView]);
+    // No-op since view mode is not used in this component
+  }, []);
 
   // Render the appropriate card component
   const renderCard = () => {
