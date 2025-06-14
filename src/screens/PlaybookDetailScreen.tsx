@@ -118,6 +118,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerHeight = useSharedValue(1);
   const isInitialRender = useRef(true);
   const chevronAnim = useSharedValue(0);
+  
+  // Animated styles
+  const chevronStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
+    marginLeft: 4,
+  }));
 
   // Animated styles
   const animatedCardStyle = useAnimatedStyle(() => ({
@@ -500,11 +506,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     });
   };
 
-  // Animated style for chevron rotation
-  const chevronStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
-    marginLeft: 4,
-  }));
+  // chevronStyle is now defined at the top with other animation values
 
   const renderContent = () => {
     return (
