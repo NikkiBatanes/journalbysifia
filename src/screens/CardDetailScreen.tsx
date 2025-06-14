@@ -33,7 +33,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   const chevronAnim = useSharedValue(0);
   React.useEffect(() => {
     chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
-  }, [showUserInput]);
+  }, [showUserInput, chevronAnim]);
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
     marginLeft: 4,
@@ -44,7 +44,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   useFocusEffect(
     useCallback(() => {
       // Force re-render to get updated progress
-    }, [getCompletedStepsCount])
+    }, [])
   );
 
   // Render the appropriate card component
@@ -64,7 +64,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       case 'affirmation':
         if (Array.isArray(cardData.affirmations)) {
           return (
-            <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
+            <View style={[styles.affirmationsCard, styles.fullWidthContainer]}>
               <View style={styles.affirmationsHeader}>
                 <MaterialCommunityIcons name="format-quote-close" size={24} color={Colors.faithGold} style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
                 <Text style={styles.affirmationsTitle}>Affirmations</Text>
@@ -77,7 +77,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
                     text={affirmation.text}
                     completed={affirmation.completed}
                     color={Colors.anchorBlue}
-                    containerStyle={{ backgroundColor: 'rgba(80,80,80,0.15)', borderRadius: 16, padding: 16, marginBottom: 12 }}
+                    containerStyle={styles.cardBackground}
                   />
                 ))}
               </View>
@@ -85,7 +85,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           );
         }
         return (
-          <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
+          <View style={[styles.affirmationsCard, styles.fullWidthContainer]}>
             <View style={styles.affirmationsHeader}>
               <MaterialCommunityIcons name="format-quote-close" size={24} color={Colors.faithGold} style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
               <Text style={styles.affirmationsTitle}>Affirmations</Text>
@@ -95,7 +95,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
               text={cardData.text}
               completed={cardData.completed}
               color={Colors.anchorBlue}
-              containerStyle={{ backgroundColor: 'rgba(80,80,80,0.15)', borderRadius: 16, padding: 16, marginBottom: 12 }}
+              containerStyle={styles.cardBackground}
             />
           </View>
         );
@@ -264,6 +264,16 @@ const styles = StyleSheet.create({
   },
   affirmationsList: {
     width: '100%',
+  },
+  fullWidthContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  cardBackground: {
+    backgroundColor: 'rgba(80,80,80,0.15)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
   },
   progressBarBg: {
     width: 120,
