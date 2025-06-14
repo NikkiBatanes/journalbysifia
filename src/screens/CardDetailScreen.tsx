@@ -1,9 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { TouchableOpacity, Image, View, ScrollView, StyleSheet, StatusBar, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, StatusBar, Text } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import PlaybookHeader from '../components/PlaybookHeader';
 import { Colors } from '../theme';
 import TruthInLoveCard from '../components/TruthInLoveCard';
@@ -13,7 +12,7 @@ import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
 import { RootStackParamList } from '../navigation/types';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 export default function CardDetailScreen({ route, navigation }: StackScreenProps<RootStackParamList, 'CardDetail'>) {
   const [headerHeight, setHeaderHeight] = useState(150); // Default header height
