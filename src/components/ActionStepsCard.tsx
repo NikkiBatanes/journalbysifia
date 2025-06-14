@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native'; // Removed unused TextStyle
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
@@ -31,7 +31,7 @@ type ActionStepsCardProps = {
 import { useActionSteps } from '../context/ActionStepsContext';
 
 const cleanMarkdown = (text: string | undefined): string => {
-  if (!text) {return '';}
+  if (!text) return '';
   return text
     .replace(/\*\*|__/g, '')
     .replace(/\*|_/g, '')
@@ -44,7 +44,7 @@ const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTas
     return [];
   }
   return subTasks.map((task, index) => ({
-    id: typeof task === 'string'
+    id: typeof task === 'string' 
       ? stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`
       : task.id || (stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`),
     text: cleanMarkdown(typeof task === 'string' ? task : task.text || task.toString()),
@@ -59,13 +59,13 @@ const processSteps = (steps: ActionStep[]): ActionStep[] => {
   }));
 };
 
-export default function ActionStepsCard({
-  steps: propSteps,
-  style,
-  textColor,
-  solidCardBackground,
-  checkboxColor,
-  stepCircleBackground,
+export default function ActionStepsCard({ 
+  steps: propSteps, 
+  style, 
+  textColor, 
+  solidCardBackground, 
+  checkboxColor, 
+  stepCircleBackground 
 }: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
 
@@ -74,7 +74,6 @@ export default function ActionStepsCard({
     if (!rawSteps || rawSteps.length === 0) {
       return [];
     }
-
     return processSteps(rawSteps).map(step => ({
       ...step,
       title: cleanMarkdown(step.title),
@@ -93,32 +92,34 @@ export default function ActionStepsCard({
 
   // Create dynamic styles based on props
   const dynamicStyles = useMemo(() => ({
-    dynamicStepNumber: {
+    stepNumber: {
       ...styles.stepNumber,
       color: textColor || styles.stepNumber.color,
     },
-    dynamicStepTitle: {
+    stepTitle: {
       ...styles.stepTitle,
       color: textColor || styles.stepTitle.color,
     },
-    dynamicSubTaskText: {
+    subTaskText: {
       ...styles.subTaskText,
       marginLeft: 8,
       color: textColor || styles.subTaskText.color,
     },
-    dynamicExampleText: {
+    exampleText: {
       ...styles.exampleText,
-      fontStyle: 'italic',
+      fontStyle: 'italic' as const,  // Use 'as const' to ensure type is 'italic' literal
       color: solidCardBackground ? Colors.anchorBlue : styles.exampleText.color,
     },
-    dynamicCircle: {
+    circle: {
       ...styles.circle,
       backgroundColor: stepCircleBackground || 'rgba(255, 255, 255, 0.1)',
     },
-    dynamicCheckbox: {
-      color: checkboxColor || 'rgba(255,255,255,0.7)',
-    },
-  }), [textColor, solidCardBackground, stepCircleBackground, checkboxColor]);
+  }), [textColor, solidCardBackground, stepCircleBackground]);
+
+  // Helper function to get checkbox color
+  const getCheckboxColor = (completed: boolean) => ({
+    color: completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)'),
+  });
 
   return (
     <View style={style}>
@@ -175,11 +176,11 @@ export default function ActionStepsCard({
                     <View style={styles.stepNumberContainer}>
                       <View
                         style={[
-                          dynamicStyles.dynamicCircle,
+                          dynamicStyles.circle,
                           step.completed && styles.completedCircle,
                         ]}
                       >
-                        <Text style={dynamicStyles.dynamicStepNumber}>
+                        <Text style={dynamicStyles.stepNumber}>
                           {index + 1}
                         </Text>
                       </View>
@@ -187,7 +188,7 @@ export default function ActionStepsCard({
                     <View style={styles.titleContainer}>
                       <Text
                         style={[
-                          dynamicStyles.dynamicStepTitle,
+                          dynamicStyles.stepTitle,
                           step.completed && styles.completedText,
                         ]}
                       >
@@ -195,7 +196,6 @@ export default function ActionStepsCard({
                       </Text>
                     </View>
                   </View>
-
 
                   {subtasks.length > 0 && (
                     <View style={styles.subTasksList}>
@@ -216,13 +216,13 @@ export default function ActionStepsCard({
                               size={24}
                               style={[
                                 styles.checkboxIcon,
-                                { color: subTask.completed ? Colors.faithGold : (checkboxColor || 'rgba(255,255,255,0.7)') },
+                                getCheckboxColor(subTask.completed),
                               ]}
                             />
                           </View>
                           <Text
                             style={[
-                              dynamicStyles.dynamicSubTaskText,
+                              dynamicStyles.subTaskText,
                               subTask.completed && styles.completedText,
                             ]}
                           >
@@ -252,7 +252,7 @@ export default function ActionStepsCard({
                       {examples.map((example: { id: string; text: string }) => (
                         <Text
                           key={example.id}
-                          style={dynamicStyles.dynamicExampleText}
+                          style={dynamicStyles.exampleText}
                         >
                           {example.text}
                         </Text>
