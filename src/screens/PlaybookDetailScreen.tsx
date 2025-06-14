@@ -139,6 +139,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
+  const [showDevotionalButton, setShowDevotionalButton] = useState(false);
 
   // Move useActionSteps to the top level to avoid conditional hook calls
   const {
@@ -356,6 +357,25 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   const lastScrollY = useRef(0);
   const scrollThreshold = 100; // Pixels to scroll before showing compact header
+
+  // Show devotional button with delay when last card is reached in stack view
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    if (hasReachedLastCard && !hasCreatedDevotional && viewMode === 'stack') {
+      timeoutId = setTimeout(() => {
+        setShowDevotionalButton(true);
+      }, 300); // 1 second delay
+    } else {
+      setShowDevotionalButton(false);
+    }
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [hasReachedLastCard, hasCreatedDevotional, viewMode]);
 
   // Debug: Log the playbook data when it's received
   useEffect(() => {
@@ -879,7 +899,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         {/* Devotional Button - Show if last card reached in either view and not already created */}
         {/* Show button if we've ever reached the last card (in stack view) or if we're at the last card (in document view) */}
         {((viewMode === 'document' && hasReachedLastCard) ||
-          (viewMode === 'stack' && hasReachedLastCard))
+          (viewMode === 'stack' && showDevotionalButton))
           && !hasCreatedDevotional && (
           <View style={styles.devotionalButtonWrapper}>
             <DevotionalButton
