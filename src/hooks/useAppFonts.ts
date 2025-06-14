@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import * as Font from 'expo-font';
-import { Fonts } from '../theme/fonts';
 
 export const useAppFonts = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);

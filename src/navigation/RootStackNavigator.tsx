@@ -38,7 +38,7 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="PlaybookDetail"
             component={PlaybookDetailScreen as React.ComponentType}
-            options={({ navigation, route }) => ({
+            options={({ navigation }) => ({
               headerShown: true,
               title: '',
               headerBackVisible: false,

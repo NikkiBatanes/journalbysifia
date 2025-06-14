@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Animated from 'react-native-reanimated';
 import { Colors } from '../theme';
-import { opacity } from 'react-native-reanimated/lib/typescript/Colors';
+
 
 interface PlaybookHeaderProps {
   title: string;
@@ -40,7 +40,6 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   progress,
   completedTasks,
   totalTasks,
-  onBack,
   showToggle = false,
   viewMode,
   onToggleView,
@@ -56,7 +55,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInputBorderColor,
   userInputTextColor,
   chevronAnimatedStyle,
-  showTitle = true,
+
 }) => {
   // Split title at newlines to handle title and subtitle on separate lines
   const titleLines = title.split('\n').map(part => part.trim()).filter(part => part.length > 0);

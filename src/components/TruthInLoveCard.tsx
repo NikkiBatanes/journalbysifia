@@ -1,8 +1,8 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import { Colors, Fonts } from '../theme';
+import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { useUser } from '../context/UserContext';
 

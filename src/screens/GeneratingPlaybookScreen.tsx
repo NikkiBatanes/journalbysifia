@@ -1,15 +1,15 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { View, StyleSheet, Animated } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 
-const { width } = Dimensions.get('window');
+
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
 
-const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
+const GeneratingPlaybookScreen: React.FC<Props> = ({ route }) => {
   const userName = route?.params?.userName || 'Friend';
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [animationKey, setAnimationKey] = useState(0);
