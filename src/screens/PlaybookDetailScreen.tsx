@@ -178,18 +178,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Animated styles
   const animatedCardStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY:
-          translateY.value +
-          (currentCard === 0 ? nudgeY.value : 0) +
-          (currentCard > 0 ? bounceY.value : 0),
-      },
-      { scale: cardScale.value },
-    ],
-    shadowOpacity: shadowOpacity.value,
-    elevation: shadowElevation.value,
-  }), [currentCard]);
+  transform: [
+    {
+      translateY: translateY.value + nudgeY.value + bounceY.value,
+    },
+    { scale: cardScale.value },
+  ],
+  shadowOpacity: shadowOpacity.value,
+  elevation: shadowElevation.value,
+}));
 
   // Effect to handle loading state
   useEffect(() => {
@@ -511,13 +508,25 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Card data is now defined at the top of the component
 
   const onSwipeComplete = (direction: 'up' | 'down') => {
+    // Update card index
     if (direction === 'up') {
       goToNextCard();
     } else {
       goToPrevCard();
     }
-
-    // Store the animation for potential cleanup
+  
+    // Trigger bounce animation for the new top card
+    bounceY.value = withSpring(-10, { damping: 10, stiffness: 200 }, (finished) => {
+      if (finished) {
+        bounceY.value = withSpring(5, { damping: 10, stiffness: 200 }, (finished2) => {
+          if (finished2) {
+            bounceY.value = withSpring(0, { damping: 10, stiffness: 200 });
+          }
+        });
+      }
+    });
+  
+    // Reset header animations
     animationRefs.current.headerOpacityAnimation = withTiming(1, { duration: 200 }, (finished) => {
       if (finished) {
         headerOpacity.value = 1;
@@ -525,8 +534,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         headerFaded.value = false;
       }
     });
-
-    // Store the RAF ID for cleanup
+  
+    // Reset translateY and transition state
     animationRefs.current.rafId = requestAnimationFrame(() => {
       translateY.value = 0;
       isTransitioning.value = false;
