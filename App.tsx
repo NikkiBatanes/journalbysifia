@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, ActivityIndicator } from 'react-native';
+import { View, StatusBar, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -26,8 +26,6 @@ function App(): React.JSX.Element {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [playbook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
-
-
 
   // Load custom fonts and icon fonts
   useEffect(() => {
@@ -99,17 +97,15 @@ function App(): React.JSX.Element {
   // Show loading state while app is getting ready
   if (!isAppReady) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.hopeWhite }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.anchorBlue} />
       </View>
     );
   }
 
-
-
   return (
     <UserProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={styles.gestureHandler}>
         <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
           <NavigationContainer>
             <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
@@ -125,5 +121,17 @@ function App(): React.JSX.Element {
     </UserProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  gestureHandler: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.hopeWhite,
+  },
+});
 
 export default App;
