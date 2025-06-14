@@ -34,33 +34,20 @@ export default function TruthInLoveCard({
   };
 
   return (
-    <View style={[style, { flex: 1, justifyContent: 'space-between' }]}>
-      <View style={{ flexShrink: 0 }}>
+    <View style={[style, styles.container]}>
+      <View style={styles.headerContainer}>
         <View style={styles.headingContainer}>
           <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
           <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
         </View>
-        <Text style={[styles.content, { color: textColor, marginTop: 16 }]}>
+        <Text style={[styles.content, styles.contentWithMargin, { color: textColor }]}>
           <Text style={[styles.username, { color: textColor }]}>{username}, </Text>
           <Text style={[styles.summary, { color: textColor }]}>{summary}</Text>
         </Text>
       </View>
 
-      <View style={[{
-        flex: 1,
-        minHeight: 0,
-        marginTop: 16,
-        // Ensure the container has a defined height and can shrink
-        flexShrink: 1,
-        // Debug styles
-        // backgroundColor: 'rgba(255,0,0,0.1)'
-      }, debugStyle]}>
-        <View style={{
-          flex: 1,
-          minHeight: 0,
-          // Ensure the text container can shrink and respects parent bounds
-          overflow: 'hidden',
-        }}>
+      <View style={[styles.contentWrapper, debugStyle]}>
+        <View style={styles.textContainer}>
           <Text
             style={[styles.truth, {
               color: textColor,
@@ -82,6 +69,27 @@ export default function TruthInLoveCard({
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'space-between',
+  },
+  headerContainer: {
+    flexShrink: 0,
+  },
+  contentWithMargin: {
+    marginTop: 16,
+  },
+  contentWrapper: {
+    flex: 1,
+    minHeight: 0,
+    marginTop: 16,
+    flexShrink: 1,
+  },
+  textContainer: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
   headingContainer: {
     flexDirection: 'row',
     alignItems: 'center',

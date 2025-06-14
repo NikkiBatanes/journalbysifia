@@ -131,12 +131,7 @@ export default function BottomTabNavigator({ onLogout }: { onLogout: () => void 
           title: 'Profile',
           headerRight: () => (
             <Text
-              style={{
-                fontSize: FontSizes.profileLogout,
-                color: Colors.dangerRed,
-                marginRight: Spacing.profileLogoutMarginRight,
-                padding: 10,
-              }}
+              style={styles.logoutButton}
               onPress={onLogout}
             >
               🚪
@@ -197,5 +192,11 @@ const styles = StyleSheet.create({
   },
   icon: {
     margin: 0, // Remove any margins
+  },
+  logoutButton: {
+    fontSize: FontSizes.profileLogout,
+    color: Colors.dangerRed,
+    marginRight: Spacing.profileLogoutMarginRight,
+    padding: 10,
   },
 });
