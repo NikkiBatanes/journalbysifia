@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
   },
   affirmationIcon: {
     marginRight: 8,
+    transform: [{ rotate: '180deg' }],
   },
 });
 
