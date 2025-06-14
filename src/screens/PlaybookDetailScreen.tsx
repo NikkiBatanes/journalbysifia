@@ -121,6 +121,19 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerOpacity = useSharedValue(1);
   const headerHeight = useSharedValue(1);
   const isInitialRender = useRef(true);
+  const chevronAnim = useSharedValue(0);
+
+  // Effect to handle loading state
+  useEffect(() => {
+    if (playbook) {
+      setIsLoading(false);
+    }
+  }, [playbook]);
+
+  // Effect to handle chevron animation
+  useEffect(() => {
+    chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
+  }, [showUserInput, chevronAnim]);
 
   // Initialize cardData with empty array first
   const cardData: CardData[] = playbook ? [
@@ -348,12 +361,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     scrollY.value = currentScrollY;
   };
 
-  useEffect(() => {
-    if (playbook) {
-      setIsLoading(false);
-    }
-  }, [playbook]);
-
   if (isLoading) {
     return (
       <>
@@ -444,30 +451,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
   });
 
-  // Track if we're on the challenge card (last card in the array)
-  const isChallengeCardVisible = currentCard === cardData.length - 1;
-  useEffect(() => {
-    if (viewMode === 'stack' && isChallengeCardVisible) {
-      setHasReachedLastCard(true);
-    } else if (viewMode === 'document') {
-      setHasReachedLastCard(false);
-    }
-  }, [viewMode, isChallengeCardVisible]);
-
-  // Nudge animation for the first card
-  useEffect(() => {
-    if (currentCard === 0) {
-      nudgeY.value = withSequence(
-        withTiming(-24, { duration: 350 }),
-        withTiming(0, { duration: 350 }),
-        withTiming(-14, { duration: 250 }),
-        withTiming(0, { duration: 250 }),
-        withTiming(-8, { duration: 180 }),
-        withTiming(0, { duration: 180 })
-      );
-    }
-  }, [currentCard, nudgeY]);
-
   // Animation values are now defined at the top of the component
 
   const animatedCardStyle = useAnimatedStyle(() => ({
@@ -482,38 +465,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     ],
     shadowOpacity: shadowOpacity.value,
     elevation: shadowElevation.value,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 4,
-    shadowColor: '#000',
   }));
-
-  // This effect handles bounce animation when changing cards
-  useEffect(() => {
-    if (currentCard !== prevCardRef.current) {
-      bounceY.value = withSequence(
-        withTiming(-15, { duration: 100 }),
-        withSpring(0, {
-          damping: 12,
-          stiffness: 100,
-          mass: 1.5,
-          overshootClamping: false,
-        })
-      );
-    }
-
-    if (currentCard !== prevCardRef.current) {
-      bounceY.value = withSequence(
-        withTiming(-15, { duration: 100 }),
-        withSpring(0, {
-          damping: 12,
-          stiffness: 100,
-          mass: 1.5,
-          overshootClamping: false,
-        })
-      );
-      prevCardRef.current = currentCard;
-    }
-  }, [currentCard, bounceY, nudgeY]);
 
   const goToNextCard = () => {
     if (currentCard < cardData.length - 1) {
@@ -550,14 +502,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       viewMode,
     });
   };
-
-  // Animation for chevron rotation
-  const chevronAnim = useSharedValue(0);
-
-  // Update chevron animation when showUserInput changes
-  useEffect(() => {
-    chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
-  }, [showUserInput, chevronAnim]);
 
   // Animated style for chevron rotation
   const chevronStyle = useAnimatedStyle(() => ({
