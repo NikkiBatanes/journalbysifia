@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';
 import AffirmationCard from './AffirmationCard';
@@ -51,6 +52,12 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     return (
       <View style={[propStyles.affirmationsCard, styles.affirmationsContainer]}>
         <View style={propStyles.affirmationsHeader}>
+          <MaterialIcons 
+            name="stars" 
+            size={20} 
+            color={Colors.hopeWhite} 
+            style={styles.affirmationIcon} 
+          />
           <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
         </View>
         <View style={propStyles.affirmationsList}>
@@ -125,6 +132,9 @@ const styles = StyleSheet.create({
   defaultContainer: {
     flex: 1,
     padding: 24,
+  },
+  affirmationIcon: {
+    marginRight: 8,
   },
 });
 
