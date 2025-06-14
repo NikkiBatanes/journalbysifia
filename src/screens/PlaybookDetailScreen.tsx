@@ -198,6 +198,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       tappable: false,
     },
   ] : [], [playbook, actionSteps]);
+
+  // Update hasReachedLastCard when currentCard changes
+  useEffect(() => {
+    const isLastCard = cardData.length > 0 && currentCard === cardData.length - 1;
+    setHasReachedLastCard(isLastCard);
+  }, [currentCard, cardData.length]);
+
   // Update card count when cardData changes
   useEffect(() => {
     if (!isLoading && !isInitialRender.current) {
@@ -573,12 +580,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </View>
     );
   };
-
-  // Update hasReachedLastCard when currentCard changes
-  useEffect(() => {
-    const isLastCard = cardData.length > 0 && currentCard === cardData.length - 1;
-    setHasReachedLastCard(isLastCard);
-  }, [currentCard, cardData.length]);
 
   const renderStackCards = () => {
     if (cardData.length === 0) {
