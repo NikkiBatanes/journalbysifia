@@ -1,5 +1,5 @@
 // React & React Native
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -118,7 +118,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerHeight = useSharedValue(1);
   const isInitialRender = useRef(true);
   const chevronAnim = useSharedValue(0);
-  
+
   // Animated styles
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
@@ -152,8 +152,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
   }, [showUserInput, chevronAnim]);
 
-  // Initialize cardData with empty array first
-  const cardData: CardData[] = playbook ? [
+  // Initialize cardData with useMemo for performance
+  const cardData: CardData[] = useMemo(() => playbook ? [
     {
       type: 'truth' as const,
       truth: playbook.truthInLove?.text ?? '',
@@ -193,8 +193,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       challengeCTA: playbook.challengeCTA ?? '',
       tappable: false,
     },
-  ] : [];
-
+  ] : [], [playbook, actionSteps]);
   // Update card count when cardData changes
   useEffect(() => {
     if (!isLoading && !isInitialRender.current) {
