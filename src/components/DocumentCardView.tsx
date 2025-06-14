@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   },
   affirmationIcon: {
     marginRight: 8,
-    transform: [{ scaleX: -1 }],
+    transform: [{ scaleY: -1 }],
   },
 });
 
