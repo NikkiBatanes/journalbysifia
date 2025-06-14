@@ -207,14 +207,30 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
   ] : [], [playbook, actionSteps]);
 
+  // Track if we've ever reached the last card
+  const hasEverReachedLastCard = useRef(false);
+
   // Update hasReachedLastCard when currentCard changes or when view mode changes
   useEffect(() => {
     if (viewMode === 'stack') {
       const isLastCard = cardData.length > 0 && currentCard === cardData.length - 1;
-      setHasReachedLastCard(isLastCard);
+      if (isLastCard) {
+        hasEverReachedLastCard.current = true;
+      }
+      // Only update hasReachedLastCard if we're on the last card or if we've never reached it
+      if (isLastCard || !hasEverReachedLastCard.current) {
+        setHasReachedLastCard(isLastCard);
+      }
     }
     // For document view, we rely on the onLastCardVisible callback from DocumentCards
   }, [currentCard, cardData.length, viewMode]);
+
+  // Reset hasEverReachedLastCard when unmounting (when navigating away)
+  useEffect(() => {
+    return () => {
+      hasEverReachedLastCard.current = false;
+    };
+  }, []);
 
   const handleLastCardVisible = useCallback((visible: boolean) => {
     // Only update if we're in document view and the value has changed
@@ -714,7 +730,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   return (
     <View style={styles.container}>
       {renderContent()}
-      {viewMode === 'stack' && currentCard === 0 && !showUserInput && (
+      {viewMode === 'stack' && currentCard === 0 && !showUserInput && !hasReachedLastCard && (
         <View style={styles.swipeUpIndicatorContainer}>
           <SwipeUpIndicator />
         </View>
@@ -722,9 +738,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
       <View style={[styles.bottomButtonContainer, showUserInput && styles.bottomButtonExpanded]}>
         {/* Devotional Button - Show if last card reached in either view and not already created */}
-        {/* Ensure we only show the button when we're actually on the last card in the current view */}
-        {((viewMode === 'document' && hasReachedLastCard) ||
-          (viewMode === 'stack' && cardData.length > 0 && currentCard === cardData.length - 1))
+        {/* Show button if we've ever reached the last card (in stack view) or if we're at the last card (in document view) */}
+        {((viewMode === 'document' && hasReachedLastCard) || 
+          (viewMode === 'stack' && hasReachedLastCard)) 
           && !hasCreatedDevotional && (
           <View style={styles.devotionalButtonWrapper}>
             <DevotionalButton
