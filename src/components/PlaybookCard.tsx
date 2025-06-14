@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { Playbook } from '../interfaces/playbook';
 import { Colors, Fonts } from '../theme';
 import { progressBarStyles } from '../styles/ProgressBarStyles';
+import { calculateTaskStats } from '../screens/PlaybookListScreen';
 
 interface PlaybookCardProps extends TouchableOpacityProps {
   playbook: Playbook;
@@ -15,7 +16,10 @@ interface PlaybookCardProps extends TouchableOpacityProps {
   showProgressBar?: boolean;
 }
 
-import { calculateTaskStats } from '../screens/PlaybookListScreen';
+const getProgressBarStyle = (progress: number) => ({
+  width: `${progress}%`,
+  minWidth: progress > 0 ? 1 : 0,
+});
 
 const PlaybookCard: React.FC<PlaybookCardProps> = ({
   playbook,
@@ -31,6 +35,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
   const formattedDate = format(new Date(playbook.createdAt || ''), 'EEEE, MMM d, yyyy').toUpperCase();
   const { completed, total } = useMemo(() => calculateTaskStats(playbook.actionSteps), [playbook.actionSteps]);
   const progress = useMemo(() => total > 0 ? Math.max(0, Math.min(100, (completed / total) * 100)) : 0, [completed, total]);
+  const progressBarFillStyle = getProgressBarStyle(progress);
 
   return (
     <TouchableOpacity
@@ -60,10 +65,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
                     key={`progress-${progress}`}
                     style={[
                       progressBarStyles.barFill,
-                      {
-                        width: progress > 0 ? `${progress}%` : '0%',
-                        minWidth: progress > 0 ? 1 : 0,
-                      },
+                      progressBarFillStyle,
                     ]}
                   />
                 </View>

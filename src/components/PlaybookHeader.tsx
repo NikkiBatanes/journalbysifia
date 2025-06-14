@@ -89,7 +89,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
         : 'rgba(26, 60, 109, 0.1)',
     },
     progressBarFill: {
-      width: `${progress}%`,
+      width: `${Math.max(0, Math.min(100, progress))}%` as unknown as number,
     },
   };
 
