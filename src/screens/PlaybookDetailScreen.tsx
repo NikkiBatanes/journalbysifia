@@ -96,7 +96,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const {
     actionSteps,
     setActionSteps,
-    handleToggleStep,
     getCompletedStepsCount,
     saveActionSteps,
   } = useActionSteps();
@@ -119,6 +118,21 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerHeight = useSharedValue(1);
   const isInitialRender = useRef(true);
   const chevronAnim = useSharedValue(0);
+
+  // Animated styles
+  const animatedCardStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY:
+          translateY.value +
+          (currentCard === 0 ? nudgeY.value : 0) +
+          (currentCard > 0 ? bounceY.value : 0),
+      },
+      { scale: cardScale.value },
+    ],
+    shadowOpacity: shadowOpacity.value,
+    elevation: shadowElevation.value,
+  }), [currentCard]);
 
   // Effect to handle loading state
   useEffect(() => {
@@ -449,20 +463,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   });
 
   // Animation values are now defined at the top of the component
-
-  const animatedCardStyle = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY:
-          translateY.value +
-          (currentCard === 0 ? nudgeY.value : 0) +
-          (currentCard > 0 ? bounceY.value : 0),
-      },
-      { scale: cardScale.value },
-    ],
-    shadowOpacity: shadowOpacity.value,
-    elevation: shadowElevation.value,
-  }));
 
   const goToNextCard = () => {
     if (currentCard < cardData.length - 1) {
