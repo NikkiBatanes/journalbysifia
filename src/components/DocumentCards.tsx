@@ -1,12 +1,12 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { ScrollView, View, Text } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';
 import AffirmationCard from './AffirmationCard';
 import BibleVerseCard from './BibleVerseCard';
 import DirectChallengeCard from './DirectChallengeCard';
-import { Colors } from '../theme';
+
 import { Playbook } from '../interfaces/playbook';
 
 import { ActionStep } from '../interfaces/playbook';

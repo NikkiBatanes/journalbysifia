@@ -47,7 +47,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   visible,
   onClose,
   onSelectDuration,
-  userStruggle,
   playbookInfo,
 }) => {
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
@@ -63,7 +62,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   const measureContent = () => {
     if (contentRef.current) {
-      contentRef.current.measureInWindow((x, y, width, height) => {
+      contentRef.current.measureInWindow((_x, _y, _width, height) => {
         setContentHeight(height);
       });
     }
@@ -166,9 +165,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     outputRange: ['0deg', '180deg'],
   });
 
-  const getPersonalizedMessage = () => {
-    return 'Based on what you\'ve shared, we\'ll craft a devotional tailored to your journey.';
-  };
 
   if (!isVisible && !visible) {return null;}
 
