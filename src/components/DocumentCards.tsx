@@ -91,11 +91,11 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
       />
       <View key="affirmation" style={[propStyles.docCard, propStyles.affirmationsCard]}>
         <View style={propStyles.affirmationsHeader}>
-          <MaterialCommunityIcons 
-            name="format-quote-close" 
-            size={24} 
-            color="white" 
-            style={[propStyles.icon, styles.quoteIcon]} 
+          <MaterialCommunityIcons
+            name="format-quote-close"
+            size={24}
+            color="white"
+            style={[propStyles.icon, styles.quoteIcon]}
           />
           <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
         </View>

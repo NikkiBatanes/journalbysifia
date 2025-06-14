@@ -111,7 +111,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           easing: Easing.out(Easing.quad),
         }),
       ]);
-      
+
       animation.start(({ finished }) => {
         if (finished && isMounted) {
           setIsVisible(false);
