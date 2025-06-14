@@ -572,6 +572,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     );
   };
 
+  // Update hasReachedLastCard when currentCard changes
+  useEffect(() => {
+    if (cardData.length === 0) return;
+    
+    const isLastCard = currentCard === cardData.length - 1;
+    setHasReachedLastCard(isLastCard);
+  }, [currentCard, cardData.length]);
+
   const renderStackCards = () => {
     if (cardData.length === 0) {return null;}
 
@@ -688,7 +696,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           <View style={styles.devotionalButtonWrapper}>
             <DevotionalButton
               onPress={() => setShowDevotionalModal(true)}
-              visible={hasReachedLastCard}
+              visible={true}
             />
           </View>
         )}
