@@ -24,7 +24,6 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
-  withSequence,
 } from 'react-native-reanimated';
 
 // Icons
@@ -85,7 +84,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [currentCard, setCurrentCard] = useState(0);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
-  const [hasSeenSwipeUp, setHasSeenSwipeUp] = useState(false);
 
   // UI state
   const [showCompactHeader, setShowCompactHeader] = useState(false);
@@ -106,7 +104,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Animation values
   const nudgeY = useSharedValue(0);
   const bounceY = useSharedValue(0);
-  const prevCardRef = useRef(currentCard);
   const cardScale = useSharedValue(1);
   const shadowElevation = useSharedValue(4);
   const shadowOpacity = useSharedValue(0.15);
@@ -674,7 +671,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   return (
     <View style={styles.container}>
       {renderContent()}
-      {viewMode === 'stack' && currentCard === 0 && !showUserInput && !hasSeenSwipeUp && (
+      {viewMode === 'stack' && currentCard === 0 && !showUserInput && (
         <View style={styles.swipeUpIndicatorContainer}>
           <SwipeUpIndicator />
         </View>
