@@ -5,7 +5,6 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import Animated from 'react-native-reanimated';
 import { Colors } from '../theme';
 
-
 interface PlaybookHeaderProps {
   title: string;
   showTitle?: boolean;
@@ -28,9 +27,6 @@ interface PlaybookHeaderProps {
   userInputBackgroundColor?: string;
   userInputBorderColor?: string;
   userInputTextColor?: string;
-  /**
-   * Optional animated style for the chevron icon (e.g. from react-native-reanimated)
-   */
   chevronAnimatedStyle?: any;
 }
 
@@ -48,117 +44,182 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   onPlaybookLabelPress,
   showUserInput,
   userInput,
-  backgroundColor,
-  textColor,
+  backgroundColor = Colors.hopeWhite,
+  textColor = Colors.anchorBlue,
   alignTasksLeft = false,
   userInputBackgroundColor,
   userInputBorderColor,
   userInputTextColor,
   chevronAnimatedStyle,
-
 }) => {
   // Split title at newlines to handle title and subtitle on separate lines
   const titleLines = title.split('\n').map(part => part.trim()).filter(part => part.length > 0);
 
-  const bgColor = backgroundColor || Colors.hopeWhite;
-  const txtColor = textColor || Colors.anchorBlue;
+  // Generate dynamic styles
+  const dynamicStyles = {
+    container: {
+      backgroundColor,
+    },
+    headerContainer: {
+      backgroundColor,
+    },
+    playbookLabel: {
+      color: textColor,
+    },
+    title: {
+      color: textColor,
+    },
+    subtitle: {
+      color: textColor,
+    },
+    progressText: {
+      color: textColor,
+      textAlign: alignTasksLeft ? 'left' as const : 'center' as const,
+    },
+    userInputCard: {
+      backgroundColor: userInputBackgroundColor || 'rgba(26, 60, 109, 0.1)',
+      borderColor: userInputBorderColor || 'rgba(26, 60, 109, 0.2)',
+    },
+    userInputText: {
+      color: userInputTextColor || textColor,
+    },
+    progressBarBg: {
+      backgroundColor: backgroundColor === Colors.anchorBlue
+        ? 'rgba(255,255,255,0.15)'
+        : 'rgba(26, 60, 109, 0.1)',
+    },
+    progressBarFill: {
+      width: `${progress}%`,
+    },
+  };
+
+  const renderChevron = () => (
+    chevronAnimatedStyle ? (
+      <Animated.View style={chevronAnimatedStyle}>
+        <Ionicons name="chevron-down" size={15} color={textColor} />
+      </Animated.View>
+    ) : (
+      <Ionicons
+        name="chevron-down"
+        size={15}
+        color={textColor}
+        style={styles.chevronIcon}
+      />
+    )
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={[styles.container, { backgroundColor: bgColor }]}>
-      <View style={[styles.headerContainer, { backgroundColor: bgColor }]}>
-        <View style={styles.headerCenter}>
-          {onPlaybookLabelPress ? (
-  <TouchableOpacity style={styles.row} onPress={onPlaybookLabelPress} activeOpacity={0.7}>
-    <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
-    {chevronAnimatedStyle ? (
-      <Animated.View style={chevronAnimatedStyle}>
-        <Ionicons name="chevron-down" size={15} color={txtColor} />
-      </Animated.View>
-    ) : (
-      <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
-    )}
-  </TouchableOpacity>
-) : (
-  <View style={styles.row}>
-    <Text style={[styles.playbookLabel, { color: txtColor }]}>PLAYBOOK</Text>
-    {chevronAnimatedStyle ? (
-      <Animated.View style={chevronAnimatedStyle}>
-        <Ionicons name="chevron-down" size={15} color={txtColor} />
-      </Animated.View>
-    ) : (
-      <Ionicons name="chevron-down" size={15} color={txtColor} style={{ marginLeft: 4 }} />
-    )}
-  </View>
-)}
-
-          {/* Collapsible user input card between PLAYBOOK and title */}
-          {showUserInput && userInput ? (
-            <View
-              style={[
-                styles.userInputCardHeader,
-                userInputBackgroundColor && { backgroundColor: userInputBackgroundColor },
-                userInputBorderColor && { borderColor: userInputBorderColor, borderWidth: 1 },
-              ]}
-            >
-              <Text style={[styles.userInputTextHeader, userInputTextColor ? { color: userInputTextColor } : { color: txtColor }]}>{userInput}</Text>
-            </View>
-          ) : null}
-
-          {titleLines.map((line, index) => (
-            <Text
-              key={index}
-              style={[
-                styles.title,
-                { color: txtColor },
-                index > 0 && { marginTop: -4 },
-              ]}
-            >
-              {line}
-            </Text>
-          ))}
-          {subtitle ? <Text style={[styles.subtitle, { color: txtColor }]}>{subtitle.toUpperCase()}</Text> : null}
-          <View style={[styles.progressRow, alignTasksLeft && styles.progressRowLeftAligned]}>
-            <View style={[styles.progressBarBg, bgColor === Colors.anchorBlue && { backgroundColor: 'rgba(255,255,255,0.15)' }]}>
-              <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
-            </View>
-            <Text style={[styles.progressText, {
-              color: txtColor,
-              marginLeft: 8,
-              minWidth: 80,
-              textAlign: alignTasksLeft ? 'left' : 'center',
-            }]}>
-              {completedTasks}/{totalTasks} Tasks
-            </Text>
-            {showToggle && (
-              <View style={styles.toggleRow}>
-                <TouchableOpacity
-                  style={styles.toggleBtn}
-                  onPress={() => onToggleView && onToggleView('stack')}
-                >
-                  <View style={[styles.iconContainer, viewMode === 'stack' && styles.iconContainerActive]}>
-                    <Ionicons name="albums" size={20} color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey} style={{ transform: [{ rotate: '180deg' }] }} />
-                  </View>
-                </TouchableOpacity>
-                <View style={styles.toggleDivider} />
-                <TouchableOpacity
-                  style={styles.toggleBtn}
-                  onPress={() => onToggleView && onToggleView('document')}
-                >
-                  <View style={[styles.iconContainer, viewMode === 'document' && styles.iconContainerActive]}>
-                    <MaterialCommunityIcons name="view-agenda" size={20} color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey} />
-                  </View>
-                </TouchableOpacity>
+      <View style={[styles.container, dynamicStyles.container]}>
+        <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
+          <View style={styles.headerCenter}>
+            {onPlaybookLabelPress ? (
+              <TouchableOpacity
+                style={styles.row}
+                onPress={onPlaybookLabelPress}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.playbookLabel, dynamicStyles.playbookLabel]}>
+                  PLAYBOOK
+                </Text>
+                {renderChevron()}
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.row}>
+                <Text style={[styles.playbookLabel, dynamicStyles.playbookLabel]}>
+                  PLAYBOOK
+                </Text>
+                {renderChevron()}
               </View>
             )}
+
+            {showUserInput && userInput && (
+              <View style={[styles.userInputCard, dynamicStyles.userInputCard]}>
+                <Text style={[styles.userInputText, dynamicStyles.userInputText]}>
+                  {userInput}
+                </Text>
+              </View>
+            )}
+
+            {titleLines.map((line, index) => (
+              <Text
+                key={index}
+                style={[
+                  styles.title,
+                  dynamicStyles.title,
+                  index > 0 && styles.titleLineSpacing,
+                ]}
+              >
+                {line}
+              </Text>
+            ))}
+
+            {subtitle && (
+              <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+                {subtitle.toUpperCase()}
+              </Text>
+            )}
+
+            <View style={[
+              styles.progressRow,
+              alignTasksLeft && styles.progressRowLeftAligned,
+            ]}>
+              <View style={[styles.progressBarBg, dynamicStyles.progressBarBg]}>
+                <View style={[styles.progressBarFill, dynamicStyles.progressBarFill]} />
+              </View>
+              <Text style={[styles.progressText, dynamicStyles.progressText]}>
+                {completedTasks}/{totalTasks} Tasks
+              </Text>
+
+              {showToggle && onToggleView && (
+                <View style={styles.toggleRow}>
+                  <TouchableOpacity
+                    style={styles.toggleBtn}
+                    onPress={() => onToggleView('stack')}
+                  >
+                    <View style={[
+                      styles.iconContainer,
+                      viewMode === 'stack' && styles.iconContainerActive,
+                    ]}>
+                      <Ionicons
+                        name="albums"
+                        size={20}
+                        color={viewMode === 'stack' ? Colors.hopeWhite : Colors.trustGrey}
+                        style={styles.rotatedIcon}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                  <View style={styles.toggleDivider} />
+                  <TouchableOpacity
+                    style={styles.toggleBtn}
+                    onPress={() => onToggleView('document')}
+                  >
+                    <View style={[
+                      styles.iconContainer,
+                      viewMode === 'document' && styles.iconContainerActive,
+                    ]}>
+                      <MaterialCommunityIcons
+                        name="view-agenda"
+                        size={20}
+                        color={viewMode === 'document' ? Colors.hopeWhite : Colors.trustGrey}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
+
+          {showProfileImage && profileImageUri && (
+            <View style={styles.headerRight}>
+              <Image
+                source={{ uri: profileImageUri }}
+                style={styles.profileImage}
+                resizeMode="cover"
+              />
+            </View>
+          )}
         </View>
-        {showProfileImage && profileImageUri && (
-          <View style={styles.headerRight}>
-            <Image source={{ uri: profileImageUri }} style={styles.profileImage} resizeMode="cover" />
-          </View>
-        )}
-      </View>
       </View>
     </SafeAreaView>
   );
@@ -168,7 +229,7 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: 'transparent',
     width: '100%',
-    paddingTop: 0, // Remove any default padding that might interfere
+    paddingTop: 0,
   },
   container: {
     width: '100%',
@@ -176,50 +237,20 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
     overflow: 'hidden',
     backgroundColor: Colors.hopeWhite,
-    // Add shadow for better visual separation
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  userInputCardHeader: {
-    backgroundColor: 'rgba(26, 60, 109, 0.1)',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginTop: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(26, 60, 109, 0.2)',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    width: '100%',
-    minHeight: 24,
-    flexShrink: 1,
-  },
-  userInputTextHeader: {
-    fontSize: 13,
-    color: Colors.anchorBlue,
-    fontWeight: '400',
-    letterSpacing: 0.1,
-    lineHeight: 18, // Ensure consistent line height for multi-line text
-  },
   headerContainer: {
     flexDirection: 'column',
     alignItems: 'stretch',
-    paddingTop: 5, // Reduced from 24 to decrease space above PLAYBOOK
+    paddingTop: 5,
     paddingBottom: 16,
     paddingHorizontal: 22,
-    backgroundColor: 'transparent', // Make container transparent to show parent's background
-    borderBottomWidth: 0, // Remove border as we're using shadow now
+    backgroundColor: 'transparent',
     width: '100%',
-  },
-  headerLeft: {
-    flex: 1,
-    alignItems: 'flex-start',
   },
   headerCenter: {
     width: '100%',
@@ -229,7 +260,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     top: 24,
-    width: 44, // Standard touch target size
+    width: 44,
     height: 44,
     justifyContent: 'center',
     alignItems: 'flex-end',
@@ -240,22 +271,25 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   playbookLabel: {
-    color: Colors.anchorBlue,
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'left',
     marginTop: 2,
   },
+  chevronIcon: {
+    marginLeft: 4,
+  },
   title: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.anchorBlue,
     textAlign: 'left',
     marginTop: 2,
   },
+  titleLineSpacing: {
+    marginTop: -4,
+  },
   subtitle: {
     fontSize: 11,
-    color: Colors.trustGrey,
     marginTop: 2,
     marginBottom: 2,
     fontWeight: '600',
@@ -277,7 +311,6 @@ const styles = StyleSheet.create({
     flex: 1,
     maxWidth: 200,
     height: 12,
-    backgroundColor: 'rgba(26, 60, 109, 0.1)',
     borderRadius: 6,
     overflow: 'hidden',
     marginRight: 8,
@@ -289,12 +322,9 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    color: Colors.trustGrey,
     fontWeight: '600',
     marginLeft: 8,
-    marginRight: 0,
-    textAlign: 'left',
-    minWidth: 60, // Ensure consistent width for the text
+    minWidth: 80,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -306,17 +336,41 @@ const styles = StyleSheet.create({
   toggleBtn: {
     padding: 1,
   },
+  toggleDivider: {
+    width: 0,
+  },
   iconContainer: {
     backgroundColor: Colors.hopeWhite,
     borderRadius: 12,
     padding: 5,
-    marginHorizontal: 1, // Reduced horizontal margin between icons
+    marginHorizontal: 1,
   },
   iconContainerActive: {
     backgroundColor: Colors.faithGold,
   },
-  toggleDivider: {
-    width: 0,
+  rotatedIcon: {
+    transform: [{ rotate: '180deg' }],
+  },
+  userInputCard: {
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    width: '100%',
+    minHeight: 24,
+    flexShrink: 1,
+  },
+  userInputText: {
+    fontSize: 13,
+    fontWeight: '400',
+    letterSpacing: 0.1,
+    lineHeight: 18,
   },
   profileImage: {
     width: 32,
