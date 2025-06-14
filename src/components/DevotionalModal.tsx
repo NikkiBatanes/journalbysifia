@@ -71,11 +71,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   React.useEffect(() => {
     let isMounted = true;
     let animation: Animated.CompositeAnimation | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
     if (visible) {
       setIsVisible(true);
       // Small delay to ensure content is measured
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
         measureContent();
       }, 10);
 
@@ -127,8 +128,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       if (animation) {
         animation.stop();
       }
+      if (timer) {
+        clearTimeout(timer);
+      }
     };
-  }, [visible, contentHeight, fadeAnim, translateY, SCREEN_HEIGHT]);
+  }, [visible, contentHeight, fadeAnim, translateY]);
 
   const togglePlaybookInfo = () => {
     const toValue = showPlaybookInfo ? 0 : 1;

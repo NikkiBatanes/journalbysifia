@@ -879,6 +879,16 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     lineHeight: 34,
     textAlign: 'center',
   },
+  playbookTitleSecondLine: {
+    fontFamily: 'System',
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.anchorBlue,
+    marginTop: -8,
+    marginBottom: 2,
+    lineHeight: 34,
+    textAlign: 'center',
+  },
   creationDate: {
     fontFamily: Fonts.regular,
     fontSize: 10,

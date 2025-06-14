@@ -59,7 +59,7 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
           {firstLine}
         </Text>
         {secondLine ? (
-          <Text style={[styles.playbookTitle, { marginTop: -8 }]}>
+          <Text style={styles.playbookTitleSecondLine}>
             {secondLine}
           </Text>
         ) : null}

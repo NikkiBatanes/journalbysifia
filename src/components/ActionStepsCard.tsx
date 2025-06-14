@@ -31,7 +31,7 @@ type ActionStepsCardProps = {
 import { useActionSteps } from '../context/ActionStepsContext';
 
 const cleanMarkdown = (text: string | undefined): string => {
-  if (!text) return '';
+  if (!text) {return '';}
   return text
     .replace(/\*\*|__/g, '')
     .replace(/\*|_/g, '')
@@ -44,7 +44,7 @@ const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTas
     return [];
   }
   return subTasks.map((task, index) => ({
-    id: typeof task === 'string' 
+    id: typeof task === 'string'
       ? stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`
       : task.id || (stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`),
     text: cleanMarkdown(typeof task === 'string' ? task : task.text || task.toString()),
@@ -59,13 +59,13 @@ const processSteps = (steps: ActionStep[]): ActionStep[] => {
   }));
 };
 
-export default function ActionStepsCard({ 
-  steps: propSteps, 
-  style, 
-  textColor, 
-  solidCardBackground, 
-  checkboxColor, 
-  stepCircleBackground 
+export default function ActionStepsCard({
+  steps: propSteps,
+  style,
+  textColor,
+  solidCardBackground,
+  checkboxColor,
+  stepCircleBackground,
 }: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
 
