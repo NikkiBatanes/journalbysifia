@@ -1,6 +1,6 @@
 // React & React Native
 import * as React from 'react';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -85,6 +85,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Card state
   const [currentCard, setCurrentCard] = useState(0);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
+
+  // Handle view mode changes separately to ensure proper state reset
+  useEffect(() => {
+    // When switching to document view, reset hasReachedLastCard
+    if (viewMode === 'document') {
+      setHasReachedLastCard(false);
+    }
+  }, [viewMode]);
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
 
   // UI state
@@ -199,11 +207,24 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
   ] : [], [playbook, actionSteps]);
 
-  // Update hasReachedLastCard when currentCard changes
+  // Update hasReachedLastCard when currentCard changes or when view mode changes
   useEffect(() => {
-    const isLastCard = cardData.length > 0 && currentCard === cardData.length - 1;
-    setHasReachedLastCard(isLastCard);
-  }, [currentCard, cardData.length]);
+    if (viewMode === 'stack') {
+      const isLastCard = cardData.length > 0 && currentCard === cardData.length - 1;
+      setHasReachedLastCard(isLastCard);
+    }
+    // For document view, we rely on the onLastCardVisible callback from DocumentCards
+  }, [currentCard, cardData.length, viewMode]);
+
+  const handleLastCardVisible = useCallback((visible: boolean) => {
+    // Only update if we're in document view and the value has changed
+    if (viewMode === 'document') {
+      setHasReachedLastCard(prev => {
+        // Only update if the value has changed
+        return prev !== visible ? visible : prev;
+      });
+    }
+  }, [viewMode]);
 
   // Update card count when cardData changes
   useEffect(() => {
@@ -542,7 +563,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             totalTasks={totalTasksCount}
             showToggle={true}
             viewMode={viewMode}
-            onToggleView={(mode: 'stack' | 'document') => setViewMode(mode)}
+            onToggleView={(mode: 'stack' | 'document') => {
+              // Reset last card state when switching views
+              setHasReachedLastCard(false);
+              setViewMode(mode);
+            }}
             onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
             showUserInput={showUserInput}
             userInput={playbook.userInput}
@@ -573,7 +598,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               styles={styles}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              onLastCardVisible={setHasReachedLastCard}
+              onLastCardVisible={handleLastCardVisible}
             />
           )}
         </View>
@@ -697,7 +722,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
       <View style={[styles.bottomButtonContainer, showUserInput && styles.bottomButtonExpanded]}>
         {/* Devotional Button - Show if last card reached in either view and not already created */}
-        {hasReachedLastCard && !hasCreatedDevotional && (
+        {/* Ensure we only show the button when we're actually on the last card in the current view */}
+        {((viewMode === 'document' && hasReachedLastCard) ||
+          (viewMode === 'stack' && cardData.length > 0 && currentCard === cardData.length - 1))
+          && !hasCreatedDevotional && (
           <View style={styles.devotionalButtonWrapper}>
             <DevotionalButton
               onPress={() => setShowDevotionalModal(true)}
