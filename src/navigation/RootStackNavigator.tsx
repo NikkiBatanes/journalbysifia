@@ -11,15 +11,7 @@ import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreen';
 import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
-import { useNavigation, RouteProp, useRoute } from '@react-navigation/native';
-
-type RootStackParamList = {
-  MainTabs: undefined;
-  GeneratingPlaybook: undefined;
-  PlaybookDetail: undefined;
-  CardDetail: undefined;
-  AuthStack: undefined;
-};
+import { useNavigation } from '@react-navigation/native';
 
 // Header Components
 interface BackButtonProps {
@@ -84,14 +76,12 @@ const Stack = createNativeStackNavigator();
 
 interface RootStackNavigatorProps {
   isAuthenticated: boolean;
-  handleLogout: () => void;
   handleLogin: () => void;
   AuthStack: React.ComponentType<{ onLogin: () => void }>;
 }
 
 export default function RootStackNavigator({
   isAuthenticated,
-  handleLogout,
   handleLogin,
   AuthStack,
 }: RootStackNavigatorProps) {
