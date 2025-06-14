@@ -25,6 +25,7 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
+  Easing,
 } from 'react-native-reanimated';
 
 // Icons
@@ -571,16 +572,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               gestureAnimationRefs.current.headerFadeAnimation.cancel();
             }
 
-            gestureAnimationRefs.current.headerFadeAnimation = withTiming(
-              1 - fadeProgress * 0.8,
-              { duration: 100 },
-              (finished) => {
-                if (finished) {
-                  headerOpacity.value = 1 - fadeProgress * 0.8;
-                  headerHeight.value = 1 - fadeProgress * 0.8;
-                }
-              }
-            );
+            gestureAnimationRefs.current.headerFadeAnimation = {
+              opacity: withSpring(1 - fadeProgress * 0.8, { damping: 18, stiffness: 120, mass: 0.7 }),
+              height: withSpring(1 - fadeProgress * 0.8, { damping: 18, stiffness: 120, mass: 0.7 })
+            };
+            headerOpacity.value = 1 - fadeProgress * 0.8;
+            headerHeight.value = 1 - fadeProgress * 0.8;
 
             if (translateY.value < collapseThreshold && !headerFaded.value) {
               headerFaded.value = true;
@@ -593,16 +590,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               gestureAnimationRefs.current.headerShowAnimation.cancel();
             }
 
-            gestureAnimationRefs.current.headerShowAnimation = withTiming(
-              1,
-              { duration: 200 },
-              (finished) => {
-                if (finished) {
-                  headerOpacity.value = 1;
-                  headerHeight.value = 1;
-                }
-              }
-            );
+            gestureAnimationRefs.current.headerShowAnimation = {
+              opacity: withSpring(1, { damping: 18, stiffness: 120, mass: 0.7 }),
+              height: withSpring(1, { damping: 18, stiffness: 120, mass: 0.7 })
+            };
+            headerOpacity.value = 1;
+            headerHeight.value = 1;
           }
         }
       }
