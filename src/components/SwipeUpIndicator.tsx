@@ -7,13 +7,17 @@ import { Colors } from '../theme';
 export default function SwipeUpIndicator() {
   const translateY = useSharedValue(0);
 
-  React.useEffect(() => {
+  const animation = React.useCallback(() => {
     translateY.value = withRepeat(
       withTiming(-16, { duration: 700, easing: Easing.inOut(Easing.quad) }),
       -1,
       true
     );
-  }, []);
+  }, [translateY]);
+
+  React.useEffect(() => {
+    animation();
+  }, [animation]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
