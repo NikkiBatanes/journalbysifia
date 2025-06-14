@@ -5,59 +5,27 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, StatusBar, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
-
-
-// Import theme colors
-import { Colors } from './src/theme/colors'; // (Keep this if App.tsx is at project root)
-// If this still fails, try: import { Colors } from './theme/colors';
-// (But based on your structure, the current path should be correct)
-import LoadingScreen from './src/components/LoadingScreen';
-
-// Import vector icons
-
-
-import { TabBarIcons } from './src/constants/tabBarIcons';
-import BottomTabNavigator from './src/navigation/BottomTabNavigator';
+import { Colors } from './src/theme/colors';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 import { checkAuth, clearSession } from './src/services/supabaseApi';
-
-// Screens
-
-import LoginScreen from './src/screens/LoginScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
-import UserInputScreen from './src/screens/UserInputScreen';
-import PlaybookListScreen from './src/screens/PlaybookListScreen';
-import UserProfileScreen from './src/screens/UserProfileScreen';
-import PlaybookDetailScreen from './src/screens/PlaybookDetailScreen';
-
-import CardDetailScreen from './src/screens/CardDetailScreen';
 import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
-
-
-// Types
-import { RootStackParamList, BottomTabParamList } from './src/navigation/types';
-
-const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
+import { UserProvider } from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 
-import { UserProvider } from './src/context/UserContext';
+// Stack navigator removed as it's not currently used
 
 // Main App Component
 function App(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
-  const [playbook, setPlaybook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
+  const [playbook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
 
 
 
@@ -157,28 +125,5 @@ function App(): React.JSX.Element {
     </UserProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
 
 export default App;
