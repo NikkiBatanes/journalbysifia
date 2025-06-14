@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';
 import AffirmationCard from './AffirmationCard';
@@ -29,15 +29,15 @@ interface DocumentCardViewProps {
   styles: any;
 }
 
-const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles }) => {
+const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles }) => {
   if (card.type === 'truth') {
     return (
-      <View style={{ flex: 1, padding: 32, paddingBottom: 40, overflow: 'hidden' }}>
+      <View style={styles.truthCardContainer}>
         <TruthInLoveCard
           truth={card.truth ?? ''}
           summary={card.summary ?? ''}
           expanded={false} // Set to false for stack view
-          style={{ flex: 1 }}
+          style={styles.truthCardContent}
           numberOfLines={5}
           ellipsizeMode="tail"
         />
@@ -45,15 +45,15 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles }) => 
     );
   }
   if (card.type === 'action') {
-    return <ActionStepsCard steps={card.steps ?? []} style={{ flex: 1, padding: 24 }} />;
+    return <ActionStepsCard steps={card.steps ?? []} style={styles.actionCard} />;
   }
   if (card.type === 'affirmation') {
     return (
-      <View style={[styles.affirmationsCard, { flex: 1, width: '100%' }]}>
-        <View style={styles.affirmationsHeader}>
-          <Text style={styles.affirmationsTitle}>Affirmations</Text>
+      <View style={[propStyles.affirmationsCard, styles.affirmationsContainer]}>
+        <View style={propStyles.affirmationsHeader}>
+          <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
         </View>
-        <View style={styles.affirmationsList}>
+        <View style={propStyles.affirmationsList}>
           {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
             card.affirmations
               .filter((affirmation): affirmation is Required<Affirmation> =>
@@ -70,7 +70,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles }) => 
                 />
               ))
           ) : (
-            <Text style={styles.noAffirmationsText}>No affirmations</Text>
+            <Text style={propStyles.noAffirmationsText}>No affirmations</Text>
           )}
         </View>
       </View>
@@ -88,7 +88,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles }) => 
   }
   if (card.type === 'challenge') {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.alertCoral, borderRadius: 24 }}>
+      <View style={styles.challengeCardContainer}>
         <DirectChallengeCard
           challenge={typeof card.challenge === 'string' ? card.challenge : card.challenge?.text ?? ''}
           challengeCTA={card.challengeCTA ?? ''}
@@ -96,7 +96,36 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles }) => 
       </View>
     );
   }
-  return <View style={{ flex: 1, padding: 24 }} />;
+  return <View style={styles.defaultContainer} />;
 };
+
+const styles = StyleSheet.create({
+  truthCardContainer: {
+    flex: 1,
+    padding: 32,
+    paddingBottom: 40,
+    overflow: 'hidden',
+  },
+  truthCardContent: {
+    flex: 1,
+  },
+  actionCard: {
+    flex: 1,
+    padding: 24,
+  },
+  affirmationsContainer: {
+    flex: 1,
+    width: '100%',
+  },
+  challengeCardContainer: {
+    flex: 1,
+    backgroundColor: Colors.alertCoral,
+    borderRadius: 24,
+  },
+  defaultContainer: {
+    flex: 1,
+    padding: 24,
+  },
+});
 
 export default DocumentCardView;

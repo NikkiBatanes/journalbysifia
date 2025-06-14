@@ -1,14 +1,12 @@
 import React from 'react';
-import { ScrollView, View, Text } from 'react-native';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';
 import AffirmationCard from './AffirmationCard';
 import BibleVerseCard from './BibleVerseCard';
 import DirectChallengeCard from './DirectChallengeCard';
-
 import { Playbook } from '../interfaces/playbook';
-
 import { ActionStep } from '../interfaces/playbook';
 
 interface DocumentCardsProps {
@@ -23,7 +21,7 @@ interface DocumentCardsProps {
 const DocumentCards: React.FC<DocumentCardsProps> = ({
   playbook,
   actionSteps,
-  styles,
+  styles: propStyles,
   onScroll,
   scrollEventThrottle = 16,
   onLastCardVisible,
@@ -73,64 +71,81 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
 
   return (
     <ScrollView
-      style={styles.docContainer}
-      contentContainerStyle={{ ...styles.docContentContainer, paddingBottom: 96 }}
+      style={propStyles.docContainer}
+      contentContainerStyle={[propStyles.docContentContainer, styles.contentContainer]}
       onScroll={handleScroll}
       scrollEventThrottle={scrollEventThrottle}
       showsVerticalScrollIndicator={false}
     >
-    <TruthInLoveCard
-      key="truth"
-      truth={playbook.truthInLove?.text}
-      summary={playbook.truthInLove?.summary}
-      expanded={true}
-      style={[styles.docCard, styles.truthCard]}
-    />
-    <ActionStepsCard
-      key="action"
-      steps={actionSteps || playbook.actionSteps || []}
-      style={[styles.docCard, styles.actionCard]}
-    />
-    <View key="affirmation" style={[styles.docCard, styles.affirmationsCard]}>
-      <View style={styles.affirmationsHeader}>
-        <MaterialCommunityIcons name="format-quote-close" size={24} color="white" style={[styles.icon, { transform: [{ scaleX: -1 }] }]} />
-        <Text style={styles.affirmationsTitle}>Affirmations</Text>
-      </View>
-      <View style={styles.affirmationsList}>
-        {playbook.affirmations?.map((affirmation) => (
-          <AffirmationCard
-            key={affirmation.id}
-            id={affirmation.id}
-            text={affirmation.text}
-            completed={affirmation.completed}
-          />
-        ))}
-      </View>
-    </View>
-    <BibleVerseCard
-      key="bible"
-      verse={playbook.bibleVerse}
-      style={[styles.docCard, styles.bibleCard, { marginTop: 16 }]}
-    />
-    <View
-      key="challenge"
-      style={styles.challengeCard}
-      onLayout={event => {
-        challengeCardY.current = event.nativeEvent.layout.y;
-        challengeCardHeight.current = event.nativeEvent.layout.height;
-      }}
-    >
-      <DirectChallengeCard
-        challenge={
-          typeof playbook.directChallenge === 'string'
-            ? playbook.directChallenge
-            : playbook.directChallenge?.text ?? ''
-        }
-        challengeCTA={playbook.challengeCTA ?? ''}
+      <TruthInLoveCard
+        key="truth"
+        truth={playbook.truthInLove?.text}
+        summary={playbook.truthInLove?.summary}
+        expanded={true}
+        style={[propStyles.docCard, propStyles.truthCard]}
       />
-    </View>
-  </ScrollView>
+      <ActionStepsCard
+        key="action"
+        steps={actionSteps || playbook.actionSteps || []}
+        style={[propStyles.docCard, propStyles.actionCard]}
+      />
+      <View key="affirmation" style={[propStyles.docCard, propStyles.affirmationsCard]}>
+        <View style={propStyles.affirmationsHeader}>
+          <MaterialCommunityIcons 
+            name="format-quote-close" 
+            size={24} 
+            color="white" 
+            style={[propStyles.icon, styles.quoteIcon]} 
+          />
+          <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
+        </View>
+        <View style={propStyles.affirmationsList}>
+          {playbook.affirmations?.map((affirmation) => (
+            <AffirmationCard
+              key={affirmation.id}
+              id={affirmation.id}
+              text={affirmation.text}
+              completed={affirmation.completed}
+            />
+          ))}
+        </View>
+      </View>
+      <BibleVerseCard
+        key="bible"
+        verse={playbook.bibleVerse}
+        style={[propStyles.docCard, propStyles.bibleCard, styles.bibleVerseCard]}
+      />
+      <View
+        key="challenge"
+        style={propStyles.challengeCard}
+        onLayout={event => {
+          challengeCardY.current = event.nativeEvent.layout.y;
+          challengeCardHeight.current = event.nativeEvent.layout.height;
+        }}
+      >
+        <DirectChallengeCard
+          challenge={
+            typeof playbook.directChallenge === 'string'
+              ? playbook.directChallenge
+              : playbook.directChallenge?.text ?? ''
+          }
+          challengeCTA={playbook.challengeCTA ?? ''}
+        />
+      </View>
+    </ScrollView>
   );
 };
+
+const styles = StyleSheet.create({
+  contentContainer: {
+    paddingBottom: 96,
+  },
+  quoteIcon: {
+    transform: [{ scaleX: -1 }],
+  },
+  bibleVerseCard: {
+    marginTop: 16,
+  },
+});
 
 export default DocumentCards;
