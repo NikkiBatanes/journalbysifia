@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import * as React from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../theme/colors';

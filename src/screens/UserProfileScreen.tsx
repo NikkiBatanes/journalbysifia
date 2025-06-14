@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { useUser } from '../context/UserContext';
 
@@ -12,7 +13,9 @@ export default function UserProfileScreen() {
   }, [name]);
 
   const handleSave = async () => {
-    await setName(input);
+    if (input) {
+      await setName(input);
+    }
   };
 
   return (

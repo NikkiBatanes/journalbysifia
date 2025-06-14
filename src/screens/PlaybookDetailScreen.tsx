@@ -1,5 +1,6 @@
 // React & React Native
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import * as React from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   TouchableOpacity,
@@ -57,6 +58,7 @@ import { RootStackParamList } from '../navigation/types'; // Adjust path if need
 type PlaybookScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'PlaybookDetail'>;
   route: { params: { playbook: Playbook } };
+  params?: { playbook: Playbook }; // Make params optional for type safety
 };
 
 
@@ -92,13 +94,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
 
-  // Action steps
+  // Move useActionSteps to the top level to avoid conditional hook calls
   const {
     actionSteps,
     setActionSteps,
     getCompletedStepsCount,
     saveActionSteps,
   } = useActionSteps();
+
+  // State management
 
   // Animation values
   const nudgeY = useSharedValue(0);
