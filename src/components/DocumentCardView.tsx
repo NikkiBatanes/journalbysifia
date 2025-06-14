@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';
 import AffirmationCard from './AffirmationCard';
@@ -52,8 +52,8 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     return (
       <View style={[propStyles.affirmationsCard, styles.affirmationsContainer]}>
         <View style={propStyles.affirmationsHeader}>
-          <MaterialIcons 
-            name="stars" 
+          <MaterialCommunityIcons 
+            name="format-quote-close" 
             size={20} 
             color={Colors.hopeWhite} 
             style={styles.affirmationIcon} 
