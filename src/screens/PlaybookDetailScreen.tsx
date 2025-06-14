@@ -514,7 +514,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     } else {
       goToPrevCard();
     }
-  
+
     // Trigger bounce animation for the new top card
     bounceY.value = withSpring(-10, { damping: 10, stiffness: 200 }, (finished) => {
       if (finished) {
@@ -525,7 +525,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         });
       }
     });
-  
+
     // Reset header animations
     animationRefs.current.headerOpacityAnimation = withTiming(1, { duration: 200 }, (finished) => {
       if (finished) {
@@ -534,7 +534,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         headerFaded.value = false;
       }
     });
-  
+
     // Reset translateY and transition state
     animationRefs.current.rafId = requestAnimationFrame(() => {
       translateY.value = 0;
