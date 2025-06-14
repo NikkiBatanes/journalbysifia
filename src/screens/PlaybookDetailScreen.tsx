@@ -641,12 +641,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       }
 
       const scaleY = 1 - stackIndex * 0.01;
-      const scaleX = 1 - stackIndex * 0.03;
-      const cardTranslateY = stackIndex * 8;
+      const scaleX = 1 - stackIndex * 0.05;
+      const cardTranslateY = stackIndex * 12;
       const zIndex = 100 - stackIndex;
       const isLastCard = cardIndex === cardData.length - 1;
       const isCurrentCard = cardIndex === currentCard;
-      const opacity = isLastCard && !isCurrentCard ? 0.7 : 1;
+      const opacity = isLastCard && !isCurrentCard ? 1 : 1;
       const isTopCard = stackIndex === 0;
       const extraStyle = isTopCard ? animatedCardStyle : {};
 
