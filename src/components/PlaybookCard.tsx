@@ -16,8 +16,8 @@ interface PlaybookCardProps extends TouchableOpacityProps {
   showProgressBar?: boolean;
 }
 
-const getProgressBarStyle = (progress: number) => ({
-  width: `${progress}%`,
+const getProgressBarStyle = (progress: number): ViewStyle => ({
+  width: `${progress}%` as any, // Using any to bypass the DimensionValue type restriction
   minWidth: progress > 0 ? 1 : 0,
 });
 
