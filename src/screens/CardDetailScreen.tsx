@@ -38,7 +38,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
     marginLeft: 4,
   }));
-  const [userInput, setUserInput] = useState(playbook?.userInput || '');
+  const [userInput] = useState(playbook?.userInput || '');
 
   // Force re-render to get updated progress
   useFocusEffect(
@@ -46,11 +46,6 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       // Force re-render to get updated progress
     }, [getCompletedStepsCount])
   );
-
-  // Handle view mode toggle - kept for potential parent component usage
-  const handleToggleView = useCallback((mode: 'stack' | 'document') => {
-    // No-op since view mode is not used in this component
-  }, []);
 
   // Render the appropriate card component
   const renderCard = () => {
