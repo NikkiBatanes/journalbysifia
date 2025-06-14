@@ -361,7 +361,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Show devotional button with delay when last card is reached in stack view
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout>;
-    
+
     if (hasReachedLastCard && !hasCreatedDevotional && viewMode === 'stack') {
       timeoutId = setTimeout(() => {
         setShowDevotionalButton(true);
@@ -369,7 +369,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     } else {
       setShowDevotionalButton(false);
     }
-    
+
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
