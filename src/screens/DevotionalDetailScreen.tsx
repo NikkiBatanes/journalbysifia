@@ -47,15 +47,21 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     setLoading(false);
   }, [devotionalId, devotionals]);
 
+  // Ensure currentDay is always defined in render
+  const currentDay = devotional?.days?.[currentDayIndex];
+  // Debug log for prayer data
+  console.log('DevotionalDetailScreen currentDay:', currentDay);
+  console.log('DevotionalDetailScreen prayer:', currentDay?.prayer);
+
   const handleMarkComplete = async () => {
     if (!devotional) {return;}
 
     // Get the actual day number (1-based) from the current day index
-    const currentDay = devotional.days[currentDayIndex];
-    if (!currentDay) {return;}
+    const dayToMark = devotional.days[currentDayIndex];
+    if (!dayToMark) {return;}
 
     // Mark the current day as complete
-    const success = await markDayComplete(devotional.id, currentDay.dayNumber);
+    const success = await markDayComplete(devotional.id, dayToMark.dayNumber);
 
     if (success) {
       // Find the next incomplete day
@@ -139,8 +145,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     );
   }
 
-  const currentDay = devotional.days[currentDayIndex];
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -169,7 +173,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       {/* Day Title */}
       <View style={styles.dayTitleContainer}>
         <Text style={styles.dayNumber}>Day {currentDayIndex + 1}</Text>
-        <Text style={styles.dayTitle}>{currentDay.title}</Text>
+        <Text style={styles.dayTitle}>{currentDay?.title || ''}</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
@@ -181,11 +185,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         >
           <View>
             <Text style={styles.scriptureText}>{currentDay?.scripture?.text || ''}</Text>
-            {currentDay?.scripture?.reference && (
-              <Text style={styles.scriptureReference}>
-                {currentDay.scripture.reference.toUpperCase()}
-              </Text>
-            )}
+{currentDay?.scripture?.reference ? (
+  <Text style={styles.scriptureReference}>
+    {'– ' + currentDay.scripture.reference}
+  </Text>
+) : null}            
           </View>
         </DevotionalSectionCard>
 
@@ -224,11 +228,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           title="Prayer"
           subtitle="Connect with God"
         >
-          <Text style={styles.prayerText}>{currentDay?.prayer || ''}</Text>
+          <View style={styles.prayerContainer}>
+            <Text style={styles.prayerText}>
+              {currentDay && currentDay.prayer && currentDay.prayer.trim().length > 0
+                ? currentDay.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
+                : 'No prayer for today.'}
+            </Text>
+          </View>
         </DevotionalSectionCard>
 
         {/* Complete Button */}
-        {!currentDay.completed && (
+        {currentDay && !currentDay.completed && (
           <TouchableOpacity
             style={styles.completeButton}
             onPress={handleMarkComplete}
@@ -237,7 +247,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           </TouchableOpacity>
         )}
 
-        {currentDay.completed && (
+        {currentDay?.completed && (
           <View style={styles.completedBadge}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.faithGold} />
             <Text style={styles.completedText}>Completed</Text>
