@@ -1,24 +1,24 @@
-export interface Scripture {
-  reference: string;
-  text: string;
-}
-
 export interface ReflectionQuestion {
   id: string;
   text: string;
   userResponse?: string;
 }
 
+export interface Scripture {
+  text: string;
+  reference: string;
+}
+
 export interface DevotionalDay {
   id: string;
   dayNumber: number;
   title: string;
-  scripture: Scripture;
   reflection: string;
   reflectionQuestions: ReflectionQuestion[];
   prayer: string;
   completed: boolean;
   completedAt?: string;
+  scripture: Scripture; // Add scripture property to match backend structure
 }
 
 export interface Devotional {

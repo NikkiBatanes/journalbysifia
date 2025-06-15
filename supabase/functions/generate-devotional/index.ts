@@ -1,4 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { serve } from 'https://deno.land/std/http/server.ts';
 
 interface Scripture {
   text: string;
@@ -107,43 +107,9 @@ function cleanMarkdown(text: unknown): string {
 function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: string, userInput?: string): Devotional {
   const timestamp = Date.now();
 
-  // Helper function to create a default day
-  const createDefaultDay = (dayNumber: number, isError = false): DevotionalDay => {
-    if (isError) {
-      return {
-        id: `${timestamp}-day-${dayNumber}`,
-        dayNumber,
-        title: 'Welcome to Your Devotional',
-        scripture: {
-          text: 'Your word is a lamp for my feet, a light on my path.',
-          reference: 'Psalm 119:105',
-        },
-        reflection: 'There was an error generating today\'s devotional. Please try again later.',
-        reflectionQuestions: [
-          { id: 'q1', text: 'What does this scripture mean to you?' },
-          { id: 'q2', text: 'How can you apply this to your life today?' },
-        ],
-        prayer: '',
-        completed: false,
-      };
-    }
-
-    return {
-      id: `${timestamp}-day-${dayNumber}`,
-      dayNumber,
-      title: 'Start Your Journey',
-      scripture: {
-        text: 'Have I not commanded you? Be strong and courageous. Do not be afraid; do not be discouraged, for the LORD your God will be with you wherever you go.',
-        reference: 'Joshua 1:9',
-      },
-      reflection: 'Welcome to your devotional journey. Take time each day to reflect on God\'s word and grow in your faith.',
-      reflectionQuestions: [
-        { id: 'q1', text: 'What are you hoping to gain from this devotional time?' },
-        { id: 'q2', text: 'How can you make space for God in your daily routine?' },
-      ],
-      prayer: '',
-      completed: false,
-    };
+  // Helper function to create an error day
+  const createErrorDay = (dayNumber: number): never => {
+    throw new Error(`Failed to create devotional day ${dayNumber}: Missing required scripture data`);
   };
 
   // Helper function to process reflection questions from content
@@ -172,10 +138,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       } catch (error) {
         console.error('Error processing reflection questions:', error);
         // Return default questions if parsing fails
-        return [
-          { id: 'q1', text: 'What stood out to you from today\'s scripture?' },
-          { id: 'q2', text: 'How can you apply this to your life today?' },
-        ];
+        return [];
       }
     }
 
@@ -191,12 +154,17 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     // Log the raw AI data for debugging (be careful with sensitive data)
     console.log('Raw AI data type:', typeof aiData);
 
+    // DEBUG: Confirm function is triggered
+    console.log('FUNCTION TRIGGERED');
     // Safely extract content with type checking
     const response = aiData as Record<string, unknown>;
     const choices = Array.isArray(response?.choices) ? response.choices : [];
     const firstChoice = choices[0] as Record<string, unknown> | undefined;
     const message = firstChoice?.message as Record<string, unknown> | undefined;
     const content = (message?.content as string) || '';
+
+    // DEBUG: Print the full AI content for troubleshooting
+    console.log('RAW AI CONTENT:', JSON.stringify(content));
 
     console.log('Extracted content length:', content.length);
     console.log('Content preview:', content.substring(0, 200) + (content.length > 200 ? '...' : ''));
@@ -226,12 +194,21 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     try {
       const lines = content.split('\n').filter(line => line.trim());
       if (lines.length > 0) {
-        // Remove 'DEVOTIONAL TITLE:' prefix if it exists
-        const titleLine = lines[0].replace(/^DEVOTIONAL TITLE:\s*/i, '');
+        // Remove any title prefixes like 'DEVOTIONAL TITLE:', 'TITLE:', 'SERIES TITLE:'
+        const titleLine = lines[0]
+          .replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '') // Fixed regex to properly capture SERIES TITLE:
+          .replace(/^"(.*)"$/, '$1') // Remove surrounding quotes if present
+          .trim();
         devotional.title = cleanMarkdown(titleLine);
+        
+        // Debug log to verify title extraction
+        console.log('Original title line:', lines[0]);
+        console.log('Extracted title:', devotional.title);
       }
       if (lines.length > 1) {
-        devotional.description = cleanMarkdown(lines[1]);
+        // Extract description, removing any prefix
+        const descLine = lines[1].replace(/^DESCRIPTION:\s*/i, '').trim();
+        devotional.description = cleanMarkdown(descLine);
       }
     } catch (e) {
       console.error('Error extracting title/description:', e);
@@ -245,72 +222,67 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         try {
           const dayNumber = parseInt(dayMatch[1], 10);
           const dayContent = dayMatch[2].trim();
+          // DEBUG: Log the raw day content for troubleshooting
+          console.log('RAW DAY CONTENT:', JSON.stringify(dayContent));
 
-          // Extract day details
-          const dayTitleMatch = dayContent.match(/TITLE:\s*([\s\S]*?)(?=SCRIPTURE:|$)/i);
-          const dayTitle = dayTitleMatch ? cleanMarkdown(dayTitleMatch[1].trim()) : `Day ${dayNumber}`;
-
-          // Extract scripture - handle multiple formats
+          // Robust extraction of day title and scripture
+          let dayTitle = `Day ${dayNumber}`;
           let scriptureText = '';
           let scriptureRef = '';
 
-          const scriptureSectionMatch = dayContent.match(/SCRIPTURE:([\s\S]*?)(?=REFLECTION:|$)/i);
-
-          if (scriptureSectionMatch) {
-            const scriptureContent = scriptureSectionMatch[1].trim();
-
-            // Preferred format: "[text]" - [reference]
-            const preferredFormatMatch = scriptureContent.match(/^\s*"([\s\S]*?)"\s*-\s*([^\n]+)/i);
-            if (preferredFormatMatch) {
-              scriptureText = cleanMarkdown(preferredFormatMatch[1].trim());
-              scriptureRef = cleanMarkdown(preferredFormatMatch[2].trim());
-            }
-            // Fallback format: reference - text
-            else if (scriptureContent.includes(' - ')) {
-              const parts = scriptureContent.split(' - ');
-              if (parts.length >= 2) {
-                scriptureText = cleanMarkdown(parts.slice(1).join(' - ').trim());
-                scriptureRef = cleanMarkdown(parts[0].trim());
+          // 1. Try to match TITLE and SCRIPTURE on separate lines
+          const titleLine = dayContent.match(/TITLE:\s*([^\n]+)/i);
+          if (titleLine) {
+            // If SCRIPTURE is embedded in the title line, extract both
+            if (/SCRIPTURE:/i.test(titleLine[1])) {
+              const comboMatch = titleLine[1].match(/(.*?)\s*SCRIPTURE:\s*"([^\"]+)"\s*-\s*([^\n]+)/i);
+              if (comboMatch) {
+                dayTitle = cleanMarkdown(comboMatch[1].trim());
+                scriptureText = cleanMarkdown(comboMatch[2].trim());
+                scriptureRef = cleanMarkdown(comboMatch[3].trim());
+              } else {
+                // If can't parse, just use as title
+                dayTitle = cleanMarkdown(titleLine[1].replace(/SCRIPTURE:.*/, '').trim());
               }
-            }
-            // Fallback format: reference\ntext
-            else {
-              const fallbackMatch = scriptureContent.match(/^([\w\s\d:,-]+)\n([\s\S]*)/);
-              if (fallbackMatch) {
-                scriptureText = cleanMarkdown(fallbackMatch[2].trim());
-                scriptureRef = cleanMarkdown(fallbackMatch[1].trim());
-              }
+            } else {
+              dayTitle = cleanMarkdown(titleLine[1].trim());
             }
           }
 
-          // If we still don't have scripture, use default values
+          // 2. Try to match SCRIPTURE section followed by two quoted or unquoted lines (verse then reference)
           if (!scriptureText || !scriptureRef) {
-            scriptureText = scriptureText || 'The Lord is my shepherd, I lack nothing. He makes me lie down in green pastures, he leads me beside quiet waters, he refreshes my soul. He guides me along the right paths for his name\'s sake.';
-            scriptureRef = scriptureRef || 'Psalm 23:1-3';
-          }
-
-          // If we still don't have both reference and text, try to extract from the combined string
-          if ((!scriptureText || !scriptureRef) && scriptureSectionMatch) {
-            const combined = scriptureSectionMatch[1].trim();
-            // If it looks like a reference is at the start (e.g., "John 3:16 For God so loved...")
-            const refMatch = combined.match(/^([\w\s\d:,-]+?)\s+([A-Z].*)/);
-            if (refMatch) {
-              if (!scriptureText) {scriptureText = cleanMarkdown(refMatch[2].trim());}
-              if (!scriptureRef) {scriptureRef = cleanMarkdown(refMatch[1].trim());}
+            const scriptureSectionMatch = dayContent.match(/SCRIPTURE:\s*\n?["“]?([^"\n]+)["”]?\s*\n["“]?([^"\n]+)["”]?/i);
+            if (scriptureSectionMatch) {
+              scriptureText = cleanMarkdown(scriptureSectionMatch[1].trim());
+              scriptureRef = cleanMarkdown(scriptureSectionMatch[2].trim());
             }
           }
-
-          // If we still don't have scripture, use default values
+          // 3. Try to match SCRIPTURE: "verse" - reference (flexible, allows whitespace and line breaks)
           if (!scriptureText || !scriptureRef) {
-            scriptureText = scriptureText || 'The Lord is my shepherd, I lack nothing. He makes me lie down in green pastures, he leads me beside quiet waters, he refreshes my soul. He guides me along the right paths for his name\'s sake.';
-            scriptureRef = scriptureRef || 'Psalm 23:1-3';
+            const scriptureFlexibleMatch = dayContent.match(/SCRIPTURE:\s*["“]?([^"\n]+)["”]?\s*-\s*([^\n]+)/i);
+            if (scriptureFlexibleMatch) {
+              scriptureText = cleanMarkdown(scriptureFlexibleMatch[1].trim());
+              scriptureRef = cleanMarkdown(scriptureFlexibleMatch[2].trim());
+            }
           }
+          // 4. Fallback: If still missing, try to find any quoted string and a reference-like pattern
+          if (!scriptureText) {
+            const quoteMatch = dayContent.match(/"([^\"]+)"/);
+            if (quoteMatch) scriptureText = cleanMarkdown(quoteMatch[1].trim());
+          }
+          if (!scriptureRef) {
+            const refMatch = dayContent.match(/([1-3]? ?[A-Za-z]+\s*\d{1,3}:\d{1,3}(-\d{1,3})?)/);
+            if (refMatch) scriptureRef = cleanMarkdown(refMatch[1].trim().toUpperCase());
+          }
+          // 5. Final fallback
+          if (!scriptureText) scriptureText = "God's word brings light and life to our hearts.";
+          if (!scriptureRef) scriptureRef = 'PSALM 119:105';
 
           // Extract reflection
-          const reflectionMatch = dayContent.match(/REFLECTION:\s*([\s\S]*?)(?=REFLECTION QUESTIONS:|$)/i);
+          const reflectionMatch = dayContent.match(/REFLECTION:\s*([\s\S]*?)(?=REFLECTION QUESTIONS:|PRAYER:|$)/i);
           const reflection = reflectionMatch ? cleanMarkdown(reflectionMatch[1].trim()) : '';
 
-          // Process reflection questions and extract prayer
+          // Process reflection questions
           const reflectionQuestions = processReflectionQuestions(dayContent);
 
           // Extract prayer
@@ -350,7 +322,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
     // Ensure we have at least one day
     if (devotional.days.length === 0) {
-      devotional.days.push(createDefaultDay(1));
+      createErrorDay(1);
     }
 
     // Sort days by day number
@@ -378,11 +350,11 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         id: `${timestamp}-day-1`,
         dayNumber: 1,
         title: 'Error',
-        scripture: {
-          text: 'God is our refuge and strength, an ever-present help in trouble.',
-          reference: 'Psalm 46:1',
-        },
         reflection: 'We encountered an error while generating your devotional. Please try again later.',
+        scripture: {
+          text: 'The Lord is my shepherd; I shall not want.',
+          reference: 'PSALM 23:1'
+        },
         reflectionQuestions: [
           { id: 'q1', text: 'What are you hoping to learn from this devotional?' },
           { id: 'q2', text: 'How can you trust God in times of difficulty?' },
@@ -477,13 +449,13 @@ serve(async (req: Request): Promise<Response> => {
 
   // Compose prompt for OpenAI
   const prompt = `
-You are a compassionate, biblically grounded devotional writer, an expert in Bible knowledge, a follower of Christ who loves Christ and puts Christ above all, creating a ${duration}-day devotional series to help someone grow in their faith. 
-The devotional should be based on the following user input: "${userInput || 'spiritual growth'}".
+You are a compassionate, biblically grounded devotional writer, an expert in Bible knowledge, a follower of Christ who loves Christ and puts Christ above all, creating a ${duration}-day devotional to help someone grow in their faith. 
+The devotional should be based on the following user input: "${userInput || 'spiritual growth'}" and incorporate relevant spiritual guidance from the playbook content including Truth in Love, Action Steps, Affirmations, and Challenges.
 
 Create a structured ${duration}-day devotional that follows this format:
 
-DEVOTIONAL TITLE:
-[Create a meaningful, engaging title for the devotional series]
+${duration > 1 ? 'SERIES TITLE:' : 'DEVOTIONAL TITLE:'}
+[${duration > 1 ? 'Create a meaningful, engaging title for the overall devotional series that encapsulates the theme' : 'Create a meaningful, engaging title for this single devotional'}]
 
 CATEGORY:
 [Choose ONE category that best fits this devotional: Prayer, Growth, Healing, Wisdom, Relationships, Purpose, Career, Finances, Mental Health, Parenting, Health]
@@ -494,9 +466,9 @@ DESCRIPTION:
 For each day (${duration} days total), create the following structure:
 
 DAY 1:
-TITLE: [Create a meaningful title for this day's devotional]
+${duration > 1 ? 'TITLE:' : ''} ${duration > 1 ? '[Create a unique title for this specific day that differs from the series title]' : ''}
 SCRIPTURE: "[Full Bible verse text]" - [Reference (book chapter:verse)] (Ensure the scripture text is enclosed in quotes, followed by a dash, then the reference)
-REFLECTION: [Write a 150-250 word reflection that connects the Scripture to the user's situation, offers spiritual insight, and points to Jesus as the source of hope/strength/transformation]
+REFLECTION: [Write a 150-250 word reflection that connects the Scripture to the user's situation, offers spiritual insight, and points to Jesus as the source of hope/strength/transformation. Include practical guidance that aligns with Truth in Love, Action Steps, Affirmations, or Challenges as appropriate.]
 REFLECTION QUESTIONS:
 1. [Question that encourages introspection]
 2. [Question that encourages application]

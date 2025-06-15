@@ -13,8 +13,8 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
-import { Devotional } from '../interfaces/devotional';
-import { Typography } from '../theme/typography';
+import { Devotional, Scripture } from '../interfaces/devotional';
+import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 
@@ -32,6 +32,22 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [scripture, setScripture] = useState<Scripture>({
+    text: "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
+    reference: "JOHN 3:16"
+  });
+
+  // Update scripture when currentDay changes
+  useEffect(() => {
+    const currentDay = devotional?.days?.[currentDayIndex];
+    if (currentDay?.scripture) {
+      // Use the scripture data directly from the backend
+      setScripture({
+        text: currentDay.scripture.text || "God's word brings light and life to our hearts.",
+        reference: currentDay.scripture.reference || "PSALM 119:105"
+      });
+    }
+  }, [devotional, currentDayIndex]);
 
   useEffect(() => {
     // Find the devotional by ID
@@ -158,7 +174,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>{devotional.title}</Text>
+            <Text style={styles.headerTitle}>
+              {devotional.title.replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '')}
+            </Text>
             <View style={styles.dayCounterContainer}>
               <Ionicons name="calendar-outline" size={16} color={Colors.anchorBlue} style={styles.calendarIcon} />
               <Text style={styles.dayCounterText}>
@@ -197,14 +215,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           title="Today's Scripture"
           subtitle="God's Word for today"
         >
-          <View>
-            <Text style={styles.scriptureText}>{currentDay?.scripture?.text || ''}</Text>
-{currentDay?.scripture?.reference ? (
-  <Text style={styles.scriptureReference}>
-    {'– ' + currentDay.scripture.reference}
-  </Text>
-) : null}
-          </View>
+          <Text style={styles.scriptureText}>
+            {scripture.text}
+          </Text>
+          <Text style={styles.scriptureReference}>
+            - {scripture.reference}
+          </Text>
         </DevotionalSectionCard>
 
         {/* Reflection Card */}
@@ -396,36 +412,63 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scriptureCard: {
+    marginBottom: 16,
+    padding: CARD_CONTENT_PADDING,
+    backgroundColor: 'rgba(26,60,109,0.08)',
+    borderRadius: 12,
+  },
+  scriptureHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  scriptureIconContainer: {
+    backgroundColor: 'rgba(0, 82, 155, 0.1)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  scriptureTitle: {
+    ...TypographyStyles.interSemiBold,
+    fontSize: 16,
+    color: Colors.anchorBlue,
+    marginBottom: 4,
+  },
+  scriptureSubtitle: {
+    ...TypographyStyles.interRegular,
+    fontSize: 14,
+    color: Colors.trustGrey,
+    marginBottom: 4,
+  },
+  scriptureContent: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    marginTop: 0,
+  },
+  scriptureText: {
+    ...TypographyStyles.interRegular,
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    marginTop: 12,
+    fontStyle: 'italic',
+  },
+  scriptureReference: {
+    ...TypographyStyles.interSemiBold,
+    fontSize: 14,
+    color: Colors.faithGold,
+    textAlign: 'right',
+    marginTop: 8,
+  },
   contentContainer: {
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
     paddingTop: CARD_CONTENT_PADDING,
     paddingBottom: 80,
-  },
-  scriptureContainer: {
-    backgroundColor: 'rgba(255, 215, 0, 0.1)',
-    borderRadius: 12,
-    padding: CARD_CONTENT_PADDING,
-    marginBottom: 24,
-  },
-  scriptureLabel: {
-    fontSize: 14,
-    color: Colors.faithGold,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-
-  scriptureText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.hopeWhite,
-    fontStyle: 'italic',
-    marginBottom: 8,
-  },
-  scriptureReference: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'right',
-    fontStyle: 'normal',
   },
   reflectionContainer: {
     marginBottom: 24,
@@ -461,7 +504,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   questionCardNumber: {
-    ...Typography.interBold,
+    ...TypographyStyles.interBold as any,
     color: Colors.hopeWhite,
     marginRight: 12,
     fontSize: 14,
