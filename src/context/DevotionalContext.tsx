@@ -2,6 +2,8 @@ import React, { createContext, useState, useContext, useEffect, useCallback } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Devotional, DevotionalCreationParams } from '../interfaces/devotional';
 import { generateDevotional } from '../services/supabaseApi';
+import { supabase } from '../services/supabaseApi';
+import { Playbook } from '../interfaces/playbook';
 
 interface DevotionalContextType {
   devotionals: Devotional[];
@@ -12,17 +14,19 @@ interface DevotionalContextType {
   markDayComplete: (devotionalId: string, dayNumber: number) => Promise<boolean>;
   deleteDevotional: (id: string) => Promise<boolean>;
   refreshDevotionals: () => Promise<void>;
+  fetchPlaybookById: (id: string) => Promise<Playbook | null>;
 }
 
 const DevotionalContext = createContext<DevotionalContextType>({
   devotionals: [],
   isLoading: false,
   error: null,
-  createDevotional: async () => null,
+  createDevotional: () => Promise.resolve(null),
   getDevotionalById: () => undefined,
-  markDayComplete: async () => false,
-  deleteDevotional: async () => false,
-  refreshDevotionals: async () => {},
+  markDayComplete: () => Promise.resolve(false),
+  deleteDevotional: () => Promise.resolve(false),
+  refreshDevotionals: () => Promise.resolve(),
+  fetchPlaybookById: () => Promise.resolve(null),
 });
 
 const DEVOTIONALS_STORAGE_KEY = '@devotionals';
@@ -89,6 +93,24 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     } catch (err) {
       console.error('Error saving devotionals:', err);
       throw new Error('Failed to save devotionals');
+    }
+  };
+
+  // Fetch playbook by ID
+  const fetchPlaybookById = async (playbookId: string): Promise<Playbook | null> => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('playbooks')
+        .select('*')
+        .eq('id', playbookId)
+        .single();
+      if (fetchError) {
+        throw fetchError;
+      }
+      return data as Playbook;
+    } catch (fetchError) {
+      console.error('Error fetching playbook:', fetchError);
+      return null;
     }
   };
 
@@ -234,6 +256,7 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         isLoading,
         error,
         createDevotional,
+        fetchPlaybookById,
         getDevotionalById,
         markDayComplete,
         deleteDevotional,

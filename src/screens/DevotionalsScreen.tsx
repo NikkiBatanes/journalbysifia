@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -13,47 +13,33 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
+
 import { Devotional } from '../interfaces/devotional';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors } from '../theme';
-import ProgressBar from '../components/ProgressBar';
+import { Colors, Fonts } from '../theme';
+import { format } from 'date-fns';
+import { Swipeable, RectButton } from 'react-native-gesture-handler';
+import 'react-native-gesture-handler';
 
 type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
 
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
-  const { devotionals, refreshDevotionals, deleteDevotional } = useDevotional();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const loadDevotionals = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await refreshDevotionals();
-    } catch (error) {
-      console.error('Error loading devotionals:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [refreshDevotionals]);
-
-  useEffect(() => {
-    loadDevotionals();
-  }, [loadDevotionals]);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await refreshDevotionals();
-    } catch (error) {
-      console.error('Error refreshing devotionals:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [refreshDevotionals]);
+  const { devotionals, deleteDevotional, fetchPlaybookById, isLoading } = useDevotional();
 
   const handleDevotionalPress = (devotional: Devotional) => {
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
+  };
+
+  const handlePlaybookPress = async (playbookId: string) => {
+    try {
+      const playbookData = await fetchPlaybookById(playbookId);
+      if (playbookData) {
+        navigation.navigate('PlaybookDetail', { playbook: playbookData });
+      }
+    } catch (error) {
+      console.error('Error fetching playbook:', error);
+    }
   };
 
   const handleDeleteDevotional = async (devotionalId: string) => {
@@ -64,53 +50,134 @@ const DevotionalsScreen = () => {
     }
   };
 
+  // Use any type for rowRefs to avoid TypeScript errors with Swipeable
+  const rowRefs = useRef<{ [key: string]: any }>({});
+
+  const renderRightActions = (devotionalId: string) => {
+    return (
+      <RectButton
+        style={styles.deleteButton}
+        onPress={() => handleDeleteDevotional(devotionalId)}
+      >
+        <Ionicons name="trash-outline" size={24} color="white" />
+      </RectButton>
+    );
+  };
+
+  const formatDate = (dateString: string) => {
+    return format(new Date(dateString), 'EEEE, MMM d, yyyy').toUpperCase();
+  };
+
   const renderDevotionalItem = ({ item }: { item: Devotional }) => {
-    const progress = item.progress / item.totalDays;
-    const daysLeft = item.totalDays - item.progress;
+    // Calculate progress percentage (0-100)
+    const progress = item.progress; // Already comes as a percentage from the backend
+    
+    // Calculate current day (1-based index) based on progress
+    const currentDay = item.totalDays > 0 
+      ? Math.min(Math.max(1, Math.ceil((progress / 100) * item.totalDays)), item.totalDays) 
+      : 0;
+    const isComplete = progress >= 100;
+    const formattedDate = formatDate(item.createdAt);
+
+    // Log the entire item for debugging
+    console.log('Devotional item:', JSON.stringify(item, null, 2));
+
+    // Format category - handle different possible formats
+    const formatCategory = (category: string) => {
+      // If it's already a valid category, return it as is
+      const validCategories = ['Prayer', 'Growth', 'Healing', 'Wisdom', 'Relationships', 'Purpose', 'Career', 'Finances', 'Mental Health', 'Parenting', 'Health'];
+      if (validCategories.includes(category)) {
+        return category;
+      }
+      // Try to extract category from string like "CATEGORY: Relationships"
+      const match = category.match(/^(?:category|categories)?[\s:]*([^\s:]+)/i);
+      const extracted = match ? match[1] : category;
+      // Capitalize first letter
+      return extracted.charAt(0).toUpperCase() + extracted.slice(1).toLowerCase();
+    };
+
+    const displayCategory = formatCategory(item.category);
+
+    // Remove prefixes from title
+    const cleanTitle = item.title.replace(/^(?:DEVOTIONAL|SERIES)\s*TITLE:\s*/i, '');
 
     return (
-      <TouchableOpacity
-        style={styles.devotionalCard}
-        onPress={() => handleDevotionalPress(item)}
-      >
-        <View style={styles.devotionalHeader}>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{item.category}</Text>
-          </View>
+      <View style={styles.swipeableContainer}>
+        <Swipeable
+          ref={(ref) => {
+            if (ref) {rowRefs.current[item.id] = ref;}
+          }}
+          renderRightActions={() => renderRightActions(item.id)}
+          rightThreshold={40}
+          friction={2}
+          overshootRight={false}
+          containerStyle={styles.swipeableInner}
+        >
           <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => handleDeleteDevotional(item.id)}
+            style={styles.devotionalCard}
+            onPress={() => handleDevotionalPress(item)}
+            activeOpacity={1}
           >
-            <Ionicons name="trash-outline" size={18} color={Colors.textGray} />
+            <View style={styles.cardContent}>
+              <Text style={styles.date}>{formattedDate}</Text>
+
+              <Text style={styles.devotionalTitle} numberOfLines={1}>{cleanTitle}</Text>
+
+              {item.description && (
+                <Text style={styles.description} numberOfLines={2}>
+                  {item.description.replace(/^CATEGORY:[^\n]*\n?/i, '')}
+                </Text>
+              )}
+
+              <View style={styles.tagRow}>
+                <TouchableOpacity style={styles.categoryBadge}>
+                  <Ionicons name="pricetag-outline" size={12} color={Colors.hopeWhite} style={styles.playbookIcon} />
+                  <Text style={styles.categoryText}>
+                    {displayCategory}
+                  </Text>
+                </TouchableOpacity>
+
+                {item.playbookId && (
+                  <TouchableOpacity
+                    style={styles.playbookBadge}
+                    onPress={() => handlePlaybookPress(item.playbookId!)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="book-outline" size={12} color={Colors.hopeWhite} style={styles.playbookIcon} />
+                    <Text style={styles.playbookText}>From Playbook</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressHeader}>
+                  <View style={styles.progressLabel}>
+                    <Ionicons name="time-outline" size={14} color="rgba(255, 255, 255, 0.8)" style={styles.progressIcon} />
+                    <Text style={styles.progressLabelText}>Progress</Text>
+                  </View>
+                  <Text style={styles.dayCounter}>
+                    {currentDay}/{item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
+                  </Text>
+                </View>
+                <View style={styles.progressBarRow}>
+                  <View style={styles.progressWrapper}>
+                    <View style={styles.barBg}>
+                      <View style={[styles.barFill, { width: `${progress}%` }]} />
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.nextDayContainer}>
+                  {!isComplete && currentDay < item.totalDays && (
+                    <Text style={styles.nextDayText}>
+                      NEXT: Day {currentDay + 1}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            </View>
           </TouchableOpacity>
-        </View>
-
-        <Text style={styles.devotionalTitle}>{item.title}</Text>
-
-        <View style={styles.progressSection}>
-          <ProgressBar
-            progress={progress}
-            width={null}
-            color={Colors.faithGold}
-          />
-          <View style={styles.progressTextContainer}>
-            <Text style={styles.progressText}>
-              {item.progress} of {item.totalDays} days completed
-            </Text>
-            {daysLeft > 0 && (
-              <Text style={styles.daysLeftText}>
-                {daysLeft} day{daysLeft !== 1 ? 's' : ''} left
-              </Text>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.devotionalFooter}>
-          <Text style={styles.dateText}>
-            Created: {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
-        </View>
-      </TouchableOpacity>
+        </Swipeable>
+      </View>
     );
   };
 
@@ -153,8 +220,6 @@ const DevotionalsScreen = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmptyState}
-        refreshing={isRefreshing}
-        onRefresh={handleRefresh}
       />
     </SafeAreaView>
   );
@@ -164,6 +229,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
+  },
+  swipeableContainer: {
+    width: '100%',
+    marginBottom: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    height: 200, // Increased height
+    backgroundColor: Colors.alertCoral, // Match delete button color
+  },
+  swipeableInner: {
+    width: '100%',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -181,70 +259,171 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 2,
   },
   devotionalCard: {
-    backgroundColor: 'white',
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 3,
+    elevation: 2,
+    height: 200, // Increased height
+    position: 'relative',
   },
-  devotionalHeader: {
+  cardContent: {
+    flex: 1,
+  },
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 8, // Reduced bottom margin
+    gap: 8,
+  },
+  categoryBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  playbookBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  playbookIcon: {
+    marginRight: 4,
+  },
+  playbookText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  deleteButton: {
+    backgroundColor: Colors.alertCoral,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    borderRadius: 16,
+    marginLeft: 8,
+    height: '100%',
+  },
+  date: {
+    fontSize: 10,
+    fontFamily: Fonts.bold,
+    color: 'rgba(255, 255, 255, 0.8)',
+    letterSpacing: 0.8,
+    lineHeight: 14,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  devotionalTitle: {
+    fontSize: 17,
+    fontFamily: Fonts.bold,
+    color: Colors.hopeWhite,
+    lineHeight: 24,
+    paddingVertical: 1,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  description: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  progressBarContainer: {
+    width: '100%',
+    marginTop: 16,
+    marginHorizontal: -4, // Extend beyond parent's padding
+    paddingTop: 12,
+    paddingBottom: 8,
+    paddingHorizontal: 4, // Compensate for negative margin
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 6,
   },
-  categoryBadge: {
-    backgroundColor: Colors.anchorBlue,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  categoryText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  deleteButton: {
-    padding: 4,
-  },
-  devotionalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textDark,
-    marginBottom: 16,
-  },
-  progressSection: {
-    marginBottom: 16,
-  },
-  progressTextContainer: {
+  progressLabel: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressLabelText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginLeft: 4,
+    fontFamily: Fonts.medium,
+  },
+  progressIcon: {
+    marginRight: 4,
+  },
+  dayCounter: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontFamily: Fonts.medium,
+  },
+  progressBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
     marginTop: 8,
   },
-  progressText: {
-    fontSize: 14,
-    color: Colors.textGray,
+  nextDayContainer: {
+    marginTop: 6,
+    alignItems: 'flex-start',
   },
-  daysLeftText: {
-    fontSize: 14,
+  nextDayText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.95)',
+    fontFamily: Fonts.medium,
     fontWeight: '600',
-    color: Colors.faithGold,
+    marginTop: 4,
   },
-  devotionalFooter: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0, 0, 0, 0.05)',
-    paddingTop: 12,
+  progressWrapper: {
+    flex: 1,
   },
-  dateText: {
+  barBg: {
+    width: '100%',
+    height: 10, // Slightly thicker bar
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 5,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 4,
+  },
+  progressTextContainer: {
+    width: 50,
+    alignItems: 'flex-end',
+    marginLeft: 0,
+  },
+  progressText: {
+    fontFamily: 'System',
+    fontWeight: '500',
     fontSize: 12,
-    color: Colors.textGray,
+    lineHeight: 16,
+    color: Colors.hopeWhite,
+    marginRight: 4,
+    textAlign: 'right',
   },
   emptyStateContainer: {
     flex: 1,

@@ -16,7 +16,7 @@ import { useDevotional } from '../context/DevotionalContext';
 import { Devotional, Scripture } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING, Fonts } from '../theme';
+import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressTextContainer: {
-    width: 50,
+    width: 60,
     alignItems: 'flex-end',
     marginLeft: 0, // Changed from 'auto' to remove extra space
   },

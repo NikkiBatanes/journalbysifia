@@ -3,6 +3,9 @@
  * A React Native application for managing playbooks and user content
  */
 
+// Polyfill for URL API in React Native
+import 'react-native-url-polyfill/auto';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, StatusBar, ActivityIndicator, StyleSheet } from 'react-native';

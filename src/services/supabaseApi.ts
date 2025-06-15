@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-get-random-values';
+import { createClient } from '@supabase/supabase-js';
 import { Playbook } from '../interfaces/playbook';
 
 // Import environment variables
@@ -12,10 +13,16 @@ const SESSION_KEY = '@supabase_session';
 const DEFAULT_SUPABASE_URL = 'https://aesmrjinczhknchlrsmt.supabase.co';
 const DEFAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM';
 
+const supabaseUrl = SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseAnonKey = SUPABASE_ANON_KEY || DEFAULT_ANON_KEY;
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export { supabase };
+
 // Use environment variables with fallbacks
 const config = {
-  url: SUPABASE_URL || DEFAULT_SUPABASE_URL,
-  anonKey: SUPABASE_ANON_KEY || DEFAULT_ANON_KEY,
+  url: supabaseUrl,
+  anonKey: supabaseAnonKey,
 };
 
 // Log configuration (remove in production)
