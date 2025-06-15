@@ -18,7 +18,6 @@ import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING, Fonts } from '../theme';
 
-import ProgressBar from '../components/ProgressBar';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 
 type DevotionalDetailScreenProps = {
@@ -119,7 +118,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['right', 'top', 'left']} mode='margin'>
+    <SafeAreaView style={styles.container} edges={['right', 'top', 'left']} mode="margin">
       <StatusBar barStyle="dark-content" />
 
       {/* Fixed Header */}
@@ -150,11 +149,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           <View style={styles.progressBarContainer}>
             <View style={styles.progressWrapper}>
               <View style={styles.barBg}>
-                <View 
+                <View
                   style={[
-                    styles.barFill, 
-                    { width: `${devotional.progress}%` }
-                  ]} 
+                    styles.barFill,
+                    { width: `${devotional.progress}%` },
+                  ]}
                 />
               </View>
             </View>
@@ -168,8 +167,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       </View>
 
       {/* Scrollable Content */}
-      <ScrollView 
-        style={styles.scrollView} 
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
