@@ -28,7 +28,9 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
     </View>
-    <View style={styles.content}>{children}</View>
+    <View style={styles.content}>
+      {typeof children === 'string' ? <Text style={styles.defaultText}>{children}</Text> : children}
+    </View>
   </View>
 );
 
@@ -78,6 +80,12 @@ const styles = StyleSheet.create({
   },
   content: {
     marginTop: 4,
+  },
+  defaultText: {
+    color: Colors.hopeWhite,
+    fontFamily: 'System',
+    fontSize: 16,
+    lineHeight: 22,
   },
 });
 

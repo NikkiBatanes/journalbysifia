@@ -226,10 +226,9 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     try {
       const lines = content.split('\n').filter(line => line.trim());
       if (lines.length > 0) {
-        let title = lines[0];
         // Remove 'DEVOTIONAL TITLE:' prefix if it exists
-        title = title.replace(/^DEVOTIONAL TITLE:\s*/i, '');
-        devotional.title = cleanMarkdown(title);
+        const titleLine = lines[0].replace(/^DEVOTIONAL TITLE:\s*/i, '');
+        devotional.title = cleanMarkdown(titleLine);
       }
       if (lines.length > 1) {
         devotional.description = cleanMarkdown(lines[1]);
@@ -254,12 +253,12 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           // Extract scripture - handle multiple formats
           let scriptureText = '';
           let scriptureRef = '';
-          
+
           const scriptureSectionMatch = dayContent.match(/SCRIPTURE:([\s\S]*?)(?=REFLECTION:|$)/i);
-          
+
           if (scriptureSectionMatch) {
             const scriptureContent = scriptureSectionMatch[1].trim();
-          
+
             // Preferred format: "[text]" - [reference]
             const preferredFormatMatch = scriptureContent.match(/^\s*"([\s\S]*?)"\s*-\s*([^\n]+)/i);
             if (preferredFormatMatch) {
@@ -283,7 +282,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
               }
             }
           }
-          
+
           // If we still don't have scripture, use default values
           if (!scriptureText || !scriptureRef) {
             scriptureText = scriptureText || 'The Lord is my shepherd, I lack nothing. He makes me lie down in green pastures, he leads me beside quiet waters, he refreshes my soul. He guides me along the right paths for his name\'s sake.';
