@@ -6,9 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
@@ -119,7 +119,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['right', 'top', 'left']} mode='margin'>
       <StatusBar barStyle="dark-content" />
 
       {/* Fixed Header */}
@@ -136,7 +136,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               {devotional.title.replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '')}
             </Text>
             <View style={styles.dayCounterContainer}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.anchorBlue} style={styles.calendarIcon} />
+              <Ionicons name="calendar-clear-outline" size={16} color={Colors.anchorBlue} style={styles.calendarIcon} />
               <Text style={styles.dayCounterText}>
                 Day {currentDayIndex + 1} of {devotional.totalDays}
               </Text>
