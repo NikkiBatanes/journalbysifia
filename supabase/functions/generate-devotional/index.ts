@@ -226,7 +226,10 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     try {
       const lines = content.split('\n').filter(line => line.trim());
       if (lines.length > 0) {
-        devotional.title = cleanMarkdown(lines[0]);
+        let title = lines[0];
+        // Remove 'DEVOTIONAL TITLE:' prefix if it exists
+        title = title.replace(/^DEVOTIONAL TITLE:\s*/i, '');
+        devotional.title = cleanMarkdown(title);
       }
       if (lines.length > 1) {
         devotional.description = cleanMarkdown(lines[1]);
@@ -251,36 +254,40 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           // Extract scripture - handle multiple formats
           let scriptureText = '';
           let scriptureRef = '';
-
-          // Try to extract scripture section
+          
           const scriptureSectionMatch = dayContent.match(/SCRIPTURE:([\s\S]*?)(?=REFLECTION:|$)/i);
-
+          
           if (scriptureSectionMatch) {
             const scriptureContent = scriptureSectionMatch[1].trim();
-
-            // Format 1: Reference first, then text (e.g., "John 3:16\nFor God so loved...")
-            const format1Match = scriptureContent.match(/^([\w\s\d:,-]+)\n([\s\S]*)/);
-            if (format1Match) {
-              scriptureText = cleanMarkdown(format1Match[2].trim());
-              scriptureRef = cleanMarkdown(format1Match[1].trim());
+          
+            // Preferred format: "[text]" - [reference]
+            const preferredFormatMatch = scriptureContent.match(/^\s*"([\s\S]*?)"\s*-\s*([^\n]+)/i);
+            if (preferredFormatMatch) {
+              scriptureText = cleanMarkdown(preferredFormatMatch[1].trim());
+              scriptureRef = cleanMarkdown(preferredFormatMatch[2].trim());
             }
-            // Format 2: "text" - reference (e.g., "The Lord is my shepherd..." - Psalm 23:1)
+            // Fallback format: reference - text
+            else if (scriptureContent.includes(' - ')) {
+              const parts = scriptureContent.split(' - ');
+              if (parts.length >= 2) {
+                scriptureText = cleanMarkdown(parts.slice(1).join(' - ').trim());
+                scriptureRef = cleanMarkdown(parts[0].trim());
+              }
+            }
+            // Fallback format: reference\ntext
             else {
-              const format2Match = scriptureContent.match(/^\s*"([\s\S]*?)"\s*-\s*([^\n]+)/i);
-              if (format2Match) {
-                // Swap the order - reference first, then text
-                scriptureText = cleanMarkdown(format2Match[1].trim());
-                scriptureRef = cleanMarkdown(format2Match[2].trim());
-              }
-              // Format 3: reference - text (e.g., John 3:16 - For God so loved the world...)
-              else if (scriptureContent.includes(' - ')) {
-                const parts = scriptureContent.split(' - ');
-                if (parts.length >= 2) {
-                  scriptureText = cleanMarkdown(parts.slice(1).join(' - ').trim());
-                  scriptureRef = cleanMarkdown(parts[0].trim());
-                }
+              const fallbackMatch = scriptureContent.match(/^([\w\s\d:,-]+)\n([\s\S]*)/);
+              if (fallbackMatch) {
+                scriptureText = cleanMarkdown(fallbackMatch[2].trim());
+                scriptureRef = cleanMarkdown(fallbackMatch[1].trim());
               }
             }
+          }
+          
+          // If we still don't have scripture, use default values
+          if (!scriptureText || !scriptureRef) {
+            scriptureText = scriptureText || 'The Lord is my shepherd, I lack nothing. He makes me lie down in green pastures, he leads me beside quiet waters, he refreshes my soul. He guides me along the right paths for his name\'s sake.';
+            scriptureRef = scriptureRef || 'Psalm 23:1-3';
           }
 
           // If we still don't have both reference and text, try to extract from the combined string
@@ -321,7 +328,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             title: dayTitle,
             scripture: {
               text: scriptureText,
-              reference: scriptureRef.toUpperCase(), // Convert reference to uppercase as per example
+              reference: scriptureRef.toUpperCase(),
             },
             reflection,
             reflectionQuestions: reflectionQuestions, // Corrected variable name
@@ -471,7 +478,7 @@ serve(async (req: Request): Promise<Response> => {
 
   // Compose prompt for OpenAI
   const prompt = `
-You are a compassionate biblically grounded devotional writer expert in Bible knowldge, a follower of Christ, who loves Christ, and puts Christ above all creating a ${duration}-day devotional series to help someone grow in their faith. 
+You are a compassionate, biblically grounded devotional writer, an expert in Bible knowledge, a follower of Christ who loves Christ and puts Christ above all, creating a ${duration}-day devotional series to help someone grow in their faith. 
 The devotional should be based on the following user input: "${userInput || 'spiritual growth'}".
 
 Create a structured ${duration}-day devotional that follows this format:
@@ -489,7 +496,7 @@ For each day (${duration} days total), create the following structure:
 
 DAY 1:
 TITLE: [Create a meaningful title for this day's devotional]
-SCRIPTURE: "[Full Bible verse text]" - [Reference (book chapter:verse)]
+SCRIPTURE: "[Full Bible verse text]" - [Reference (book chapter:verse)] (Ensure the scripture text is enclosed in quotes, followed by a dash, then the reference)
 REFLECTION: [Write a 150-250 word reflection that connects the Scripture to the user's situation, offers spiritual insight, and points to Jesus as the source of hope/strength/transformation]
 REFLECTION QUESTIONS:
 1. [Question that encourages introspection]
@@ -499,7 +506,7 @@ PRAYER: [Write a 50-100 word prayer addressing God directly, seeking His help fo
 
 [Repeat the above structure for each day, from DAY 1 to DAY ${duration}]
 
-Make sure each day builds on the previous one, creating a cohesive journey toward spiritual growth and practical application. Each day should have strategic purpose in helping the reader grow in their faith and address their specific situation.
+Make sure each day builds on the previous one, creating a cohesive journey toward spiritual growth and practical application. Each day should have strategic purpose in helping the reader grow in their faith and address their specific situation. Ensure the scripture format is strictly followed: the verse text in quotes, followed by a dash, then the reference (e.g., "For God so loved the world..." - John 3:16).
 `;
 
   // Validate required fields
