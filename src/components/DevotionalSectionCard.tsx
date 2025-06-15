@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, defaultFontFamily } from '../theme';
+import { Colors, defaultFontFamily, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 
 interface DevotionalSectionCardProps {
   icon: string;
@@ -36,8 +36,9 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 20,
-    padding: 20,
+    padding: CARD_CONTENT_PADDING,
     marginBottom: 18,
+    marginHorizontal: CARD_HORIZONTAL_PADDING,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,

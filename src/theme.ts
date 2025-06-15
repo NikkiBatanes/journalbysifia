@@ -14,6 +14,10 @@ export const Colors = {
   textLight: '#9CA3AF',
 };
 
+// Shared card padding constants
+export const CARD_HORIZONTAL_PADDING = 14;
+export const CARD_CONTENT_PADDING = 30;
+
 // Re-export fonts from fonts.ts
 export * from './theme/fonts';
 

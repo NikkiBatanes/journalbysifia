@@ -15,7 +15,8 @@ import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
 import { Devotional, DevotionalDay } from '../interfaces/devotional';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, Fonts } from '../theme';
+import { Colors, Fonts, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import { Typography } from '../theme/typography';
 import ProgressBar from '../components/ProgressBar';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 
@@ -101,15 +102,19 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     );
   };
 
+  const QuestionCard = ({ number, text }: { number: number; text: string }) => (
+    <View style={styles.questionCardContainer}>
+      <Text style={styles.questionCardNumber}>{number}.</Text>
+      <Text style={styles.questionCardText}>{text}</Text>
+    </View>
+  );
+
   const renderQuestions = (day: DevotionalDay) => {
     return (
       <View style={styles.questionsContainer}>
-        <Text style={styles.sectionTitle}>Questions</Text>
+        <Text style={styles.sectionTitle}>Questions to Ponder</Text>
         {day.reflectionQuestions.map((question, index) => (
-          <View key={index} style={styles.questionItem}>
-            <Text style={styles.questionNumber}>{index + 1}</Text>
-            <Text style={styles.questionText}>{question.text}</Text>
-          </View>
+          <QuestionCard key={index} number={index + 1} text={question.text} />
         ))}
       </View>
     );
@@ -249,18 +254,18 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         >
           {currentDay?.reflectionQuestions?.length ? (
             currentDay.reflectionQuestions.map((question, idx) => (
-              <Text key={question.id || idx} style={styles.questionText}>
-                • {question.text}
-              </Text>
+              <View key={question.id || idx} style={styles.questionCardContainer}>
+                <Text style={styles.questionCardNumber}>{idx + 1}</Text>
+                <Text style={styles.questionCardText}>{question.text}</Text>
+              </View>
             ))
           ) : (
-            <Text style={styles.questionText}>No questions for today.</Text>
+            <Text style={styles.questionCardText}>No questions for today.</Text>
           )}
         </DevotionalSectionCard>
-
+        
         {/* Prayer Card */}
         <DevotionalSectionCard
-          icon="heart-outline"
           title="Prayer"
           subtitle="Connect with God"
         >
@@ -377,13 +382,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    paddingHorizontal: CARD_HORIZONTAL_PADDING,
+    paddingTop: CARD_CONTENT_PADDING,
     paddingBottom: 80,
   },
   scriptureContainer: {
     backgroundColor: 'rgba(255, 215, 0, 0.1)',
     borderRadius: 12,
-    padding: 16,
+    padding: CARD_CONTENT_PADDING,
     marginBottom: 24,
   },
   scriptureLabel: {
@@ -413,6 +419,9 @@ const styles = StyleSheet.create({
   },
   reflectionContainer: {
     marginBottom: 24,
+    padding: CARD_CONTENT_PADDING,
+    backgroundColor: 'rgba(26,60,109,0.08)',
+    borderRadius: 12,
   },
   sectionTitle: {
     fontSize: 18,
@@ -427,31 +436,42 @@ const styles = StyleSheet.create({
   },
   questionsContainer: {
     marginBottom: 24,
+    // No background or padding here so QuestionCard stands out
   },
-  questionItem: {
+  questionCardContainer: {
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 14,
+    padding: CARD_CONTENT_PADDING,
+    marginBottom: 14,
     flexDirection: 'row',
-    marginBottom: 16,
+    alignItems: 'flex-start',
+    width: '100%',
   },
-  questionNumber: {
+  questionCardNumber: {
+    ...Typography.interSemiBold,
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.anchorBlue,
-    color: Colors.hopeWhite,
     textAlign: 'center',
+    textAlignVertical: 'center',
     lineHeight: 24,
-    fontSize: 14,
-    fontWeight: '600',
     marginRight: 12,
   },
-  questionText: {
+  questionCardText: {
     flex: 1,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
   },
+
   prayerContainer: {
     marginBottom: 24,
+    padding: CARD_CONTENT_PADDING,
+    backgroundColor: 'rgba(26,60,109,0.08)',
+    borderRadius: 12,
   },
   prayerText: {
     fontSize: 16,
