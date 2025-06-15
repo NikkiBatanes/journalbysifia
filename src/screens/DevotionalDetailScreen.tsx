@@ -14,6 +14,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
 import { Devotional } from '../interfaces/devotional';
+import { Typography } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 
@@ -207,7 +208,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             currentDay.reflectionQuestions.map((question, idx) => (
               <View key={question.id || idx} style={styles.questionCardWrapper}>
                 <View style={styles.questionCardContainer}>
-                  <Text style={styles.questionCardNumber}>{idx + 1}.</Text>
+                  <Text style={styles.questionCardNumber}>{idx + 1}</Text>
                   <Text style={styles.questionCardText}>{question.text}</Text>
                 </View>
               </View>
@@ -389,22 +390,28 @@ const styles = StyleSheet.create({
   },
   questionCardWrapper: {
     width: '100%',
+    marginBottom: 8,
   },
   questionCardContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 10,
-    padding: 12,
-    marginBottom: 8,
+    padding: 14,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     width: '100%',
   },
   questionCardNumber: {
-    fontFamily: 'Inter-SemiBold',
+    ...Typography.interBold,
     color: Colors.hopeWhite,
-    marginRight: 8,
-    fontSize: 16,
-    lineHeight: 24,
+    marginRight: 12,
+    fontSize: 14,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    textAlign: 'center',
+    lineHeight: 20,
+    overflow: 'hidden',
   },
   questionCardText: {
     flex: 1,
