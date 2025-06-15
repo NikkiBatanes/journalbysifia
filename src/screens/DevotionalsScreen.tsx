@@ -71,11 +71,11 @@ const DevotionalsScreen = () => {
   const renderDevotionalItem = ({ item }: { item: Devotional }) => {
     // Calculate progress percentage (0-100)
     const progress = item.progress; // Already comes as a percentage from the backend
-    
-    // Calculate current day (1-based index) based on progress
-    const currentDay = item.totalDays > 0 
-      ? Math.min(Math.max(1, Math.ceil((progress / 100) * item.totalDays)), item.totalDays) 
-      : 0;
+
+    // Find the first incomplete day or use the last day if all are complete
+    const currentDayIndex = item.days?.findIndex(day => !day.completed) ?? -1;
+    const completedDays = item.days?.filter(day => day.completed).length || 0;
+    const currentDay = currentDayIndex >= 0 ? currentDayIndex + 1 : item.totalDays;
     const isComplete = progress >= 100;
     const formattedDate = formatDate(item.createdAt);
 
@@ -156,7 +156,7 @@ const DevotionalsScreen = () => {
                     <Text style={styles.progressLabelText}>Progress</Text>
                   </View>
                   <Text style={styles.dayCounter}>
-                    {currentDay}/{item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'}
+                    {completedDays}/{item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'} Completed
                   </Text>
                 </View>
                 <View style={styles.progressBarRow}>

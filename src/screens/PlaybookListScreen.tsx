@@ -208,17 +208,16 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           if (!playbook?.actionSteps) {return false;}
 
           const { completed, total } = calculateTaskStats(playbook.actionSteps);
-          const allStepsCompleted = total > 0 && completed === total;
-          const completedAt = playbook.completedAt ? new Date(playbook.completedAt).getTime() : 0;
-          const hasValidCompletedAt = !isNaN(completedAt);
+          const progress = total > 0 ? (completed / total) * 100 : 0;
+          const isCompleted = progress >= 100;
 
           switch (filter) {
             case 'all':
               return true;
             case 'ongoing':
-              return !allStepsCompleted || !hasValidCompletedAt;
+              return progress > 0 && progress < 100; // Only show playbooks that are in progress
             case 'completed':
-              return allStepsCompleted && hasValidCompletedAt;
+              return isCompleted;
             default:
               return false;
           }

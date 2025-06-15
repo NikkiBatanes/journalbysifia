@@ -159,7 +159,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             </View>
             <View style={styles.progressTextContainer}>
               <Text style={styles.progressText}>
-                {currentDayIndex + 1}/{devotional.totalDays} {devotional.totalDays === 1 ? 'Day' : 'Days'}
+                {devotional.days?.filter(day => day.completed).length || 0}/{devotional.totalDays} {devotional.totalDays === 1 ? 'Day' : 'Days'}
               </Text>
             </View>
           </View>

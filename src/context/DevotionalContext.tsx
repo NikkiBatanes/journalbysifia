@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Devotional, DevotionalCreationParams } from '../interfaces/devotional';
+import { Devotional, DevotionalCreationParams, DevotionalDay } from '../interfaces/devotional';
 import { generateDevotional } from '../services/supabaseApi';
 import { supabase } from '../services/supabaseApi';
 import { Playbook } from '../interfaces/playbook';
@@ -127,12 +127,22 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         params.userInput
       );
 
+      // Ensure progress is initialized to 0 for new devotionals
+      const devotionalWithProgress = {
+        ...devotional,
+        progress: 0, // Initialize progress to 0 for new devotionals
+        days: devotional.days?.map((day: DevotionalDay) => ({
+          ...day,
+          completed: false, // Ensure all days start as not completed
+        })) || [],
+      };
+
       // Add to state and save
-      const updatedDevotionals = [...devotionals, devotional];
+      const updatedDevotionals = [...devotionals, devotionalWithProgress];
       setDevotionals(updatedDevotionals);
       await saveDevotionals(updatedDevotionals);
 
-      return devotional;
+      return devotionalWithProgress;
     } catch (err) {
       console.error('Error creating devotional:', err);
       setError('Failed to create devotional');
