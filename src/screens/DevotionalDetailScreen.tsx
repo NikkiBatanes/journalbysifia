@@ -16,7 +16,7 @@ import { useDevotional } from '../context/DevotionalContext';
 import { Devotional, Scripture } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING, Fonts } from '../theme';
 
 import ProgressBar from '../components/ProgressBar';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
@@ -96,48 +96,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
   };
 
-  const navigateToDay = (index: number) => {
-    if (devotional && index >= 0 && index < devotional.days.length) {
-      setCurrentDayIndex(index);
-    }
-  };
-
-
-  const renderDayNavigation = () => {
-    if (!devotional) {return null;}
-
-    return (
-      <View style={styles.dayNavigation}>
-        <TouchableOpacity
-          style={[styles.navButton, currentDayIndex === 0 && styles.navButtonDisabled]}
-          onPress={() => navigateToDay(currentDayIndex - 1)}
-          disabled={currentDayIndex === 0}
-        >
-          <Ionicons name="chevron-back" size={18} color="white" />
-          <Text style={styles.navButtonText}>Previous</Text>
-        </TouchableOpacity>
-
-        <View style={styles.dayIndicator}>
-          <Text style={styles.dayIndicatorText}>
-            Day {currentDayIndex + 1} of {devotional.days.length}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.navButton,
-            currentDayIndex === devotional.days.length - 1 && styles.navButtonDisabled,
-          ]}
-          onPress={() => navigateToDay(currentDayIndex + 1)}
-          disabled={currentDayIndex === devotional.days.length - 1}
-        >
-          <Text style={styles.navButtonText}>Next</Text>
-          <Ionicons name="chevron-forward" size={18} color="white" />
-        </TouchableOpacity>
-      </View>
-    );
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -164,8 +122,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
-      <View>
+      {/* Fixed Header */}
+      <View style={styles.fixedHeader}>
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -174,7 +132,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>
+            <Text style={styles.headerTitle} numberOfLines={2} ellipsizeMode="tail">
               {devotional.title.replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '')}
             </Text>
             <View style={styles.dayCounterContainer}>
@@ -190,25 +148,38 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         {/* Progress Bar Section */}
         <View style={styles.progressSection}>
           <View style={styles.progressBarContainer}>
-            <ProgressBar
-              progress={devotional.progress}
-              width={null}
-              color={Colors.faithGold}
-            />
-            <Text style={styles.progressPercentage}>
-              {Math.round(devotional.progress)}%
-            </Text>
+            <View style={styles.progressWrapper}>
+              <View style={styles.barBg}>
+                <View 
+                  style={[
+                    styles.barFill, 
+                    { width: `${devotional.progress}%` }
+                  ]} 
+                />
+              </View>
+            </View>
+            <View style={styles.progressTextContainer}>
+              <Text style={styles.progressText}>
+                {currentDayIndex + 1}/{devotional.totalDays} days
+              </Text>
+            </View>
           </View>
         </View>
       </View>
 
-      {/* Day Title */}
-      <View style={styles.dayTitleContainer}>
-        <Text style={styles.dayNumber}>Day {currentDayIndex + 1}</Text>
-        <Text style={styles.dayTitle}>{currentDay?.title || ''}</Text>
-      </View>
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
+      {/* Scrollable Content */}
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Day Title - Moved below progress bar */}
+        <View style={styles.dayTitleContainer}>
+          <Text style={styles.dayNumber}>Day {currentDayIndex + 1}</Text>
+          <Text style={styles.dayTitle} numberOfLines={2} ellipsizeMode="tail">
+            {currentDay?.title || ''}
+          </Text>
+        </View>
         {/* Scripture Card */}
         <DevotionalSectionCard
           icon="book-outline"
@@ -286,9 +257,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           </View>
         )}
       </ScrollView>
-
-      {/* Day Navigation */}
-      {renderDayNavigation()}
     </SafeAreaView>
   );
 }
@@ -297,6 +265,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
+  },
+  fixedHeader: {
+    backgroundColor: Colors.hopeWhite,
+    paddingBottom: 0, // Reduced padding bottom to bring progress bar closer to content
+    zIndex: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -325,23 +298,53 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
     backgroundColor: Colors.hopeWhite,
   },
   progressSection: {
-    padding: 16,
-    paddingTop: 0,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     backgroundColor: Colors.hopeWhite,
   },
   progressBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    width: '100%',
+  },
+  progressWrapper: {
+    flex: 1,
+    marginRight: 12,
+    minWidth: 250, // Match Playbook minWidth
+  },
+  barBg: {
+    width: '100%',
+    height: 8, // Match Playbook height
+    backgroundColor: 'rgba(26, 60, 109, 0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  barFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 4,
+  },
+  progressTextContainer: {
+    width: 60, // Match Playbook width
+    alignItems: 'flex-end',
+    marginLeft: 'auto',
+  },
+  progressText: {
+    fontSize: 12,
+    fontFamily: Fonts.medium, // Match Playbook font
+    color: 'rgba(26, 60, 109, 0.9)', // Match Playbook text color
+    textAlign: 'right',
+    minWidth: 60, // Match Playbook minWidth
   },
   backButton: {
     padding: 8,
+    zIndex: 1,
   },
   backButtonText: {
     color: Colors.anchorBlue,
@@ -349,15 +352,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
     color: Colors.anchorBlue,
     textAlign: 'center',
+    flexShrink: 1,
+    paddingHorizontal: 8,
+    flexWrap: 'wrap',
+    flex: 1,
+    textAlignVertical: 'center',
   },
   headerContent: {
     flex: 1,
     alignItems: 'center',
-    marginLeft: 8,
+    justifyContent: 'center',
+    marginLeft: 4,
+    marginRight: 4,
+    minHeight: 40,
+    flexDirection: 'column',
   },
   dayCounterContainer: {
     flexDirection: 'row',
@@ -367,6 +379,7 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     width: 40,
+    zIndex: 1,
   },
   calendarIcon: {
     marginRight: 4,
@@ -387,16 +400,17 @@ const styles = StyleSheet.create({
   progressContainer: {
     flex: 1,
   },
-  progressText: {
+  progressPercentageText: {
     fontSize: 14,
     color: Colors.textGray,
     marginTop: 8,
     textAlign: 'center',
   },
   dayTitleContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 4,
+    paddingTop: 0,
+    paddingBottom: 4, // Reduced bottom padding
+    marginBottom: 10,  // Reduced margin bottom
   },
   dayNumber: {
     fontSize: 14,
@@ -407,67 +421,16 @@ const styles = StyleSheet.create({
   dayTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
+    lineHeight: 28,
   },
   scrollView: {
     flex: 1,
-  },
-  scriptureCard: {
-    marginBottom: 16,
-    padding: CARD_CONTENT_PADDING,
-    backgroundColor: 'rgba(26,60,109,0.08)',
-    borderRadius: 12,
-  },
-  scriptureHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  scriptureIconContainer: {
-    backgroundColor: 'rgba(0, 82, 155, 0.1)',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  scriptureTitle: {
-    ...TypographyStyles.interSemiBold,
-    fontSize: 16,
-    color: Colors.anchorBlue,
-    marginBottom: 4,
-  },
-  scriptureSubtitle: {
-    ...TypographyStyles.interRegular,
-    fontSize: 14,
-    color: Colors.trustGrey,
-    marginBottom: 4,
-  },
-  scriptureContent: {
-    backgroundColor: 'transparent',
-    borderRadius: 0,
-    padding: 0,
     marginTop: 0,
-  },
-  scriptureText: {
-    ...TypographyStyles.interRegular,
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.hopeWhite,
-    marginTop: 12,
-    fontStyle: 'italic',
-  },
-  scriptureReference: {
-    ...TypographyStyles.interSemiBold,
-    fontSize: 14,
-    color: Colors.faithGold,
-    textAlign: 'right',
-    marginTop: 8,
   },
   contentContainer: {
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
-    paddingTop: CARD_CONTENT_PADDING,
+    paddingTop: 2, // Further reduced to bring content even closer to progress bar
     paddingBottom: 80,
   },
   reflectionContainer: {
@@ -567,44 +530,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
+  scriptureText: {
+    ...TypographyStyles.interRegular,
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    marginTop: 12,
+    fontStyle: 'italic',
+  },
+  scriptureReference: {
+    ...TypographyStyles.interSemiBold,
+    fontSize: 14,
+    color: Colors.faithGold,
+    textAlign: 'right',
+    marginTop: 8,
+  },
   dayNavigation: {
     position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-  navButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(25, 57, 104, 0.7)',
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  navButtonDisabled: {
-    backgroundColor: 'rgba(25, 57, 104, 0.3)',
-    opacity: 0.5,
-  },
-  navButtonText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
     marginHorizontal: 8,
   },
   dayIndicator: {
-    backgroundColor: 'rgba(25, 57, 104, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     borderRadius: 15,
     paddingVertical: 4,
-    paddingHorizontal: 12,
   },
   dayIndicatorText: {
     color: 'white',
