@@ -84,7 +84,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       <View style={styles.scriptureContainer}>
         <Text style={styles.scriptureLabel}>Scripture</Text>
         <Text style={styles.scriptureReference}>
-          {day.scripture.reference}
+          {day.scripture.reference.toUpperCase()}
         </Text>
         <Text style={styles.scriptureText}>
           {day.scripture.text}
@@ -231,7 +231,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             <Text style={styles.scriptureText}>{currentDay?.scripture?.text || ''}</Text>
             {currentDay?.scripture?.reference && (
               <Text style={styles.scriptureReference}>
-                — {currentDay.scripture.reference.toUpperCase()}
+                {currentDay.scripture.reference.toUpperCase()}
               </Text>
             )}
           </View>
@@ -266,6 +266,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         
         {/* Prayer Card */}
         <DevotionalSectionCard
+          icon="heart-outline"
           title="Prayer"
           subtitle="Connect with God"
         >
@@ -398,12 +399,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 8,
   },
-  scriptureReference: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textDark,
-    marginBottom: 8,
-  },
+
   scriptureText: {
     fontSize: 16,
     lineHeight: 24,

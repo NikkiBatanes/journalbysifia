@@ -27,7 +27,24 @@ console.log('Supabase Config:', {
 // Session management
 export const storeSession = async (session: any) => {
   try {
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    if (!session) {
+      console.error('Cannot store null or undefined session');
+      return false;
+    }
+
+    // Add expires_at if we have expires_in
+    const sessionToStore = { ...session };
+    if (session.expires_in && !session.expires_at) {
+      sessionToStore.expires_at = Math.floor(Date.now() / 1000) + session.expires_in;
+    }
+
+    console.log('Storing session:', {
+      hasToken: !!sessionToStore.access_token,
+      tokenLength: sessionToStore.access_token?.length,
+      expiresAt: sessionToStore.expires_at ? new Date(sessionToStore.expires_at * 1000).toISOString() : 'Not set'
+    });
+
+    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(sessionToStore));
     return true;
   } catch (error) {
     console.error('Error storing session:', error);
@@ -37,8 +54,27 @@ export const storeSession = async (session: any) => {
 
 export const getSession = async () => {
   try {
-    const session = await AsyncStorage.getItem(SESSION_KEY);
-    return session ? JSON.parse(session) : null;
+    const sessionString = await AsyncStorage.getItem(SESSION_KEY);
+    if (!sessionString) {
+      console.log('No session found in storage');
+      return null;
+    }
+    
+    const session = JSON.parse(sessionString);
+    console.log('Retrieved session:', { 
+      hasToken: !!session?.access_token,
+      tokenLength: session?.access_token?.length,
+      expiresIn: session?.expires_in
+    });
+    
+    // Check if token is expired
+    if (session?.expires_at && Date.now() >= session.expires_at * 1000) {
+      console.log('Session token has expired');
+      await clearSession();
+      return null;
+    }
+    
+    return session;
   } catch (error) {
     console.error('Error getting session:', error);
     return null;
@@ -64,26 +100,64 @@ export const checkAuth = async () => {
 // Sign in with email and password
 export async function signIn(email: string, password: string) {
   try {
+    console.log('Attempting to sign in with:', { email });
+    
     const response = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': config.anonKey,
       },
-      body: JSON.stringify({ email, password, client_id: config.anonKey, grant_type: 'password' }),
+      body: JSON.stringify({ 
+        email, 
+        password, 
+        client_id: config.anonKey, 
+        grant_type: 'password' 
+      }),
     });
 
     const data = await response.json();
+    console.log('Auth response:', { status: response.status, data });
 
     if (!response.ok) {
-      return { error: data };
+      console.error('Authentication failed:', data);
+      return { data: null, error: data };
     }
 
-    await storeSession(data);
-    return { data, error: null };
+    // Ensure we have a valid session with access_token
+    if (!data.access_token) {
+      const error = 'No access token received from server';
+      console.error(error);
+      return { data: null, error: { message: error } };
+    }
+
+    // Store the session
+    const session = {
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_in: data.expires_in,
+      token_type: data.token_type,
+      user: data.user
+    };
+
+    console.log('Storing session:', { 
+      hasToken: !!session.access_token,
+      tokenLength: session.access_token?.length,
+      expiresIn: session.expires_in
+    });
+
+    await storeSession(session);
+    console.log('Session stored successfully');
+    
+    return { data: session, error: null };
   } catch (error) {
     console.error('Sign in error:', error);
-    return { data: null, error: { message: 'Network error' } };
+    return { 
+      data: null, 
+      error: { 
+        message: error instanceof Error ? error.message : 'Network error' 
+      } 
+    };
   }
 }
 
@@ -652,20 +726,43 @@ export async function generateDevotional(duration: number, playbookId?: string, 
   const functionUrl = `${config.url}/functions/v1/generate-devotional`;
   try {
     const session = await getSession();
+    
+    if (!session) {
+      throw new Error('No active session. Please sign in.');
+    }
+    
+    console.log('Generating devotional with session:', {
+      hasToken: !!session.access_token,
+      tokenLength: session.access_token?.length,
+      url: functionUrl
+    });
+    
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': config.anonKey,
-        'Authorization': `Bearer ${session?.access_token || ''}`,
+        'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ duration, playbookId, userInput }),
+      body: JSON.stringify({ 
+        duration, 
+        playbookId, 
+        userInput: userInput || 'General spiritual growth' 
+      }),
     });
+
+    console.log('Devotional response status:', response.status);
+    
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Devotional generation failed:', errorText);
       throw new Error(errorText || 'Failed to generate devotional');
     }
-    return await response.json();
+    
+    const result = await response.json();
+    console.log('Devotional generated successfully');
+    return result;
+    
   } catch (err: any) {
     console.error('generateDevotional error:', err);
     throw err;
