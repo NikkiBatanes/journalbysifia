@@ -19,10 +19,10 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import ProgressBar from '../components/ProgressBar';
 
-type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
+type DevotionalListNavigationProp = StackNavigationProp<RootStackParamList, 'DevotionalList'>;
 
-const DevotionalsScreen = () => {
-  const navigation = useNavigation<DevotionalsScreenNavigationProp>();
+export default function DevotionalListScreen() {
+  const navigation = useNavigation<DevotionalListNavigationProp>();
   const { devotionals, refreshDevotionals, deleteDevotional } = useDevotional();
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -66,8 +66,10 @@ const DevotionalsScreen = () => {
   };
 
   const renderDevotionalItem = ({ item }: { item: Devotional }) => {
-    const progress = item.progress / item.totalDays;
-    const daysLeft = item.totalDays - item.progress;
+    // Progress is stored as a percentage (0-100)
+    const progress = item.progress / 100; // Convert to 0-1 range for ProgressBar
+    const completedDays = Math.floor((item.progress / 100) * item.totalDays);
+    const daysLeft = item.totalDays - completedDays;
     
     return (
       <TouchableOpacity 
@@ -96,7 +98,7 @@ const DevotionalsScreen = () => {
           />
           <View style={styles.progressTextContainer}>
             <Text style={styles.progressText}>
-              {item.progress} of {item.totalDays} days completed
+              {completedDays} of {item.totalDays} days completed
             </Text>
             {daysLeft > 0 && (
               <Text style={styles.daysLeftText}>
@@ -159,7 +161,7 @@ const DevotionalsScreen = () => {
       />
     </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -281,5 +283,3 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
-
-export default DevotionalsScreen;

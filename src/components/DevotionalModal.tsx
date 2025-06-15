@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing } from 'react-native';
-import { Colors } from '../theme/colors';
-import { Fonts } from '../theme/fonts';
+import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing, ActivityIndicator } from 'react-native';
+import { Colors, defaultFontFamily } from '../theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useDevotional } from '../context/DevotionalContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -38,9 +38,12 @@ const DURATION_OPTIONS: DurationOption[] = [
 interface DevotionalModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelectDuration: (days: number) => void;
+  onSelectDuration?: (days: number) => void;
   userStruggle?: string;
   playbookInfo?: string;
+  playbookId?: string;
+  userInput?: string;
+  onDevotionalCreated?: (devotionalId: string) => void;
 }
 
 const DevotionalModal: React.FC<DevotionalModalProps> = ({
@@ -48,7 +51,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   onClose,
   onSelectDuration,
   playbookInfo,
+  playbookId,
+  userInput,
+  onDevotionalCreated,
 }) => {
+  const { createDevotional, isLoading, error } = useDevotional();
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isVisible, setIsVisible] = useState(false);
@@ -144,6 +151,31 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       tension: 100,
       friction: 10,
     }).start();
+  };
+
+  const handleSelectDuration = async (days: number) => {
+    try {
+      if (onSelectDuration) {
+        onSelectDuration(days);
+        return;
+      }
+      
+      // If no onSelectDuration provided, handle devotional creation here
+      if (playbookId && userInput) {
+        const devotional = await createDevotional({
+          duration: days,
+          playbookId,
+          userInput
+        });
+        
+        if (devotional && onDevotionalCreated) {
+          onDevotionalCreated(devotional.id);
+          handleClose();
+        }
+      }
+    } catch (err) {
+      console.error('Error creating devotional:', err);
+    }
   };
 
   const handleClose = () => {
@@ -251,26 +283,46 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     styles.playbookInfoContent,
                     showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed,
                   ]}>
-                    <Text style={styles.playbookInfoText}>{playbookInfo}</Text>
+                    <Text style={styles.playbookInfoText}>{userInput || playbookInfo}</Text>
                   </View>
                 </View>
               )}
 
               <View style={styles.optionsContainer}>
-                <Text style={styles.durationPrompt}>
-                  Choose the duration that works best for you
-                </Text>
-                {DURATION_OPTIONS.map((option) => (
-                  <TouchableOpacity
-                    key={option.days}
-                    style={styles.optionButton}
-                    onPress={() => onSelectDuration(option.days)}
-                  >
-                    <Text style={styles.optionDays}>{option.days} Day{option.days > 1 ? 's' : ''}</Text>
-                    <Text style={styles.optionTitle}>{option.title}</Text>
-                    <Text style={styles.optionDescription}>{option.description}</Text>
-                  </TouchableOpacity>
-                ))}
+                <Text style={styles.durationPrompt}>Select a devotional duration:</Text>
+                {isLoading ? (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={Colors.hopeWhite} />
+                    <Text style={styles.loadingText}>Creating your devotional...</Text>
+                  </View>
+                ) : error ? (
+                  <View style={styles.errorContainer}>
+                    <Text style={styles.errorText}>{error}</Text>
+                    <TouchableOpacity 
+                      style={styles.retryButton}
+                      onPress={handleClose}
+                    >
+                      <Text style={styles.retryButtonText}>Try Again</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.optionsContainer}>
+                    {DURATION_OPTIONS.map((option) => (
+                      <TouchableOpacity
+                        key={option.days}
+                        style={styles.optionButton}
+                        onPress={() => handleSelectDuration(option.days)}
+                        disabled={isLoading}
+                      >
+                        <Text style={styles.optionDays}>{option.days} DAY</Text>
+                        <Text style={styles.optionTitle}>{option.title}</Text>
+                        <Text style={styles.optionDescription}>
+                          {option.description}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
                 <Text style={styles.footerText}>
                   God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
                 </Text>
@@ -335,7 +387,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: Fonts.bold,
+    fontFamily: defaultFontFamily.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 12,
     textAlign: 'center',
@@ -355,7 +407,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: defaultFontFamily.semiBold,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     marginBottom: 0,
@@ -363,7 +415,7 @@ const styles = StyleSheet.create({
   },
   durationPrompt: {
     fontSize: 13,
-    fontFamily: Fonts.regular,
+    fontFamily: defaultFontFamily.semiBold,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'left',
     lineHeight: 20,
@@ -382,20 +434,20 @@ const styles = StyleSheet.create({
   },
   optionDays: {
     fontSize: 12,
-    fontFamily: Fonts.bold,
+    fontFamily: defaultFontFamily.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 2,
   },
   optionTitle: {
     fontSize: 16,
-    fontFamily: Fonts.bold,
+    fontFamily: defaultFontFamily.semiBold,
     color: Colors.hopeWhite,
     fontWeight: '600',
     marginBottom: 4,
   },
   optionDescription: {
     fontSize: 12,
-    fontFamily: Fonts.regular,
+    fontFamily: defaultFontFamily.semiBold,
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 16,
   },
@@ -417,7 +469,7 @@ const styles = StyleSheet.create({
   },
   playbookInfoLabel: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
+    fontFamily: defaultFontFamily.semiBold,
     fontWeight: '600',
     fontSize: 12,
     letterSpacing: 1,
@@ -449,18 +501,63 @@ const styles = StyleSheet.create({
   },
   playbookInfoText: {
     color: 'rgba(255, 255, 255, 0.9)',
-    fontFamily: Fonts.regular,
+    fontFamily: defaultFontFamily.semiBold,
     fontSize: 13,
     lineHeight: 18,
   },
   footerText: {
     fontSize: 13,
-    fontFamily: Fonts.regular,
+    fontFamily: defaultFontFamily.semiBold,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginTop: 24,
     lineHeight: 20,
     fontStyle: 'italic',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 10,
+  },
+  loadingText: {
+    color: Colors.hopeWhite,
+    fontFamily: defaultFontFamily.semiBold,
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 0, 0, 0.3)',
+    marginVertical: 10,
+  },
+  errorText: {
+    color: Colors.hopeWhite,
+    fontFamily: defaultFontFamily.semiBold,
+    fontSize: 16,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: Colors.hopeWhite,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  retryButtonText: {
+    color: Colors.anchorBlue,
+    fontFamily: defaultFontFamily.semiBold,
+    fontSize: 14,
   },
 });
 

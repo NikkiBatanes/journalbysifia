@@ -8,6 +8,10 @@ export const Colors = {
   growthGreen: '#2F855A',
   alertCoral: '#F87171',
   darkBackground: '#1C2526',
+  // Text colors
+  textDark: '#333333',
+  textGray: '#6B7280',
+  textLight: '#9CA3AF',
 };
 
 // Re-export fonts from fonts.ts

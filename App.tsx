@@ -18,6 +18,7 @@ import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper
 import { UserProvider } from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import { LogoutContext } from './src/context/LogoutContext';
+import { DevotionalProvider } from './src/context/DevotionalContext';
 
 // Stack navigator removed as it's not currently used
 
@@ -107,19 +108,21 @@ function App(): React.JSX.Element {
   return (
     <UserProvider>
       <LogoutContext.Provider value={{ onLogout: handleLogout }}>
-        <GestureHandlerRootView style={styles.gestureHandler}>
-          <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
-            <NavigationContainer>
-              <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
-              <RootStackNavigator
-                isAuthenticated={isAuthenticated}
-                handleLogout={handleLogout}
-                handleLogin={handleLogin}
-                AuthStack={AuthStackNavigator}
-              />
-            </NavigationContainer>
-          </ActionStepsProviderWrapper>
-        </GestureHandlerRootView>
+        <DevotionalProvider>
+          <GestureHandlerRootView style={styles.gestureHandler}>
+            <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
+              <NavigationContainer>
+                <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
+                <RootStackNavigator
+                  isAuthenticated={isAuthenticated}
+                  handleLogout={handleLogout}
+                  handleLogin={handleLogin}
+                  AuthStack={AuthStackNavigator}
+                />
+              </NavigationContainer>
+            </ActionStepsProviderWrapper>
+          </GestureHandlerRootView>
+        </DevotionalProvider>
       </LogoutContext.Provider>
     </UserProvider>
   );

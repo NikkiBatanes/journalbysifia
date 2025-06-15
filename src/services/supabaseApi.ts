@@ -647,3 +647,28 @@ export async function generatePlaybook(userInput: string, userName: string) {
   }
 }
 
+// Generate Devotional via Supabase Edge Function
+export async function generateDevotional(duration: number, playbookId?: string, userInput?: string) {
+  const functionUrl = `${config.url}/functions/v1/generate-devotional`;
+  try {
+    const session = await getSession();
+    const response = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': config.anonKey,
+        'Authorization': `Bearer ${session?.access_token || ''}`,
+      },
+      body: JSON.stringify({ duration, playbookId, userInput }),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to generate devotional');
+    }
+    return await response.json();
+  } catch (err: any) {
+    console.error('generateDevotional error:', err);
+    throw err;
+  }
+}
+

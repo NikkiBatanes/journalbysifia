@@ -46,6 +46,8 @@ import { Playbook, ActionStep, Affirmation } from '../interfaces/playbook';
 import { useActionSteps } from '../context/ActionStepsContext';
 import DevotionalButton from '../components/DevotionalButton';
 import DevotionalModal from '../components/DevotionalModal';
+import { useDevotional } from '../context/DevotionalContext';
+import { useNavigation } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -87,10 +89,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [currentCard, setCurrentCard] = useState(0);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
   const [hasReachedLastCard, setHasReachedLastCard] = useState(false);
+  
+  // Devotional state
+  const { createDevotional } = useDevotional();
+  const rootNavigation = useNavigation<any>();
 
   // UI state
   const [showCompactHeader, setShowCompactHeader] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
 
   // Animation refs - must be at the top level
   const animationRefs = useRef<{
@@ -138,8 +146,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     };
   }, [animationRefs, gestureAnimationRefs]); // Add refs to dependency array
   const [showUserInput, setShowUserInput] = useState(false);
-  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
-  const [hasCreatedDevotional, setHasCreatedDevotional] = useState(false);
   const [showDevotionalButton, setShowDevotionalButton] = useState(false);
 
   // Move useActionSteps to the top level to avoid conditional hook calls
@@ -692,11 +698,36 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     }
   };
 
-  const handleCreateDevotional = (days: number) => {
-    console.log(`Creating ${days}-day devotional`);
-    // TODO: Implement actual devotional creation logic
-    setHasCreatedDevotional(true);
-    setShowDevotionalModal(false);
+  const handleCreateDevotional = async (days: number) => {
+    try {
+      console.log(`Creating ${days}-day devotional from playbook ${playbook.id}`);
+      
+      // Extract user input from the playbook
+      const userInput = playbook.userInput || '';
+      
+      // Create devotional using the DevotionalContext
+      const devotional = await createDevotional({
+        duration: days,
+        playbookId: playbook.id,
+        userInput: userInput
+      });
+      
+      if (devotional) {
+        setHasCreatedDevotional(true);
+        setShowDevotionalModal(false);
+        
+        // Navigate to the devotional detail screen
+        setTimeout(() => {
+          rootNavigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error creating devotional:', error);
+    }
+  };
+
+  const handleDevotionalButtonPress = () => {
+    setShowDevotionalModal(true);
   };
 
   const handleCardPress = (cardType: CardType, cardItem: CardData) => {
@@ -916,9 +947,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       <DevotionalModal
         visible={showDevotionalModal}
         onClose={() => setShowDevotionalModal(false)}
-        onSelectDuration={handleCreateDevotional}
-        userStruggle={playbook.userInput}
-        playbookInfo={playbook.userInput}
+        playbookId={playbook.id}
+        playbookInfo={playbook.title}
+        userInput={playbook.userInput}
+        onDevotionalCreated={(devotionalId) => {
+          setHasCreatedDevotional(true);
+          setShowDevotionalModal(false);
+          setTimeout(() => {
+            rootNavigation.navigate('DevotionalDetail', { devotionalId });
+          }, 500);
+        }}
       />
     </View>
   );

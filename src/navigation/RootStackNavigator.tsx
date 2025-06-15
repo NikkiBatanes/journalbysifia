@@ -11,6 +11,8 @@ import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreen';
 import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
+import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
+import DevotionalListScreen from '../screens/DevotionalListScreen';
 import { useNavigation } from '@react-navigation/native';
 
 // Header Components
@@ -116,6 +118,20 @@ export default function RootStackNavigator({
     []
   );
 
+  const devotionalDetailOptions = useMemo<NativeStackNavigationOptions>(
+    () => ({
+      headerShown: false, // We're handling the header in the component
+    }),
+    []
+  );
+
+  const devotionalListOptions = useMemo<NativeStackNavigationOptions>(
+    () => ({
+      headerShown: false, // We're handling the header in the component
+    }),
+    []
+  );
+
   // Remove unused renderMainTabs since we're using component prop directly
 
   return (
@@ -139,6 +155,16 @@ export default function RootStackNavigator({
             name="CardDetail"
             component={CardDetailScreen as React.ComponentType}
             options={cardDetailOptions}
+          />
+          <Stack.Screen
+            name="DevotionalDetail"
+            component={DevotionalDetailScreen as React.ComponentType}
+            options={devotionalDetailOptions}
+          />
+          <Stack.Screen
+            name="DevotionalList"
+            component={DevotionalListScreen as React.ComponentType}
+            options={devotionalListOptions}
           />
         </>
       ) : (

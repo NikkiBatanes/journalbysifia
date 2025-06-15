@@ -23,6 +23,10 @@ export type RootStackParamList = {
     userInput: string;
     userName: string;
   };
+  // Devotional screens
+  Devotionals: undefined;
+  DevotionalDetail: { devotionalId: string };
+  DevotionalList: undefined;
 };
 
 export type BottomTabParamList = {
