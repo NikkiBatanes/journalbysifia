@@ -200,7 +200,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           .replace(/^"(.*)"$/, '$1') // Remove surrounding quotes if present
           .trim();
         devotional.title = cleanMarkdown(titleLine);
-        
+
         // Debug log to verify title extraction
         console.log('Original title line:', lines[0]);
         console.log('Extracted title:', devotional.title);
@@ -235,7 +235,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           if (titleLine) {
             // If SCRIPTURE is embedded in the title line, extract both
             if (/SCRIPTURE:/i.test(titleLine[1])) {
-              const comboMatch = titleLine[1].match(/(.*?)\s*SCRIPTURE:\s*"([^\"]+)"\s*-\s*([^\n]+)/i);
+              const comboMatch = titleLine[1].match(/(.*?)\s*SCRIPTURE:\s*"([^"]+)"\s*-\s*([^\n]+)/i);
               if (comboMatch) {
                 dayTitle = cleanMarkdown(comboMatch[1].trim());
                 scriptureText = cleanMarkdown(comboMatch[2].trim());
@@ -267,16 +267,16 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           }
           // 4. Fallback: If still missing, try to find any quoted string and a reference-like pattern
           if (!scriptureText) {
-            const quoteMatch = dayContent.match(/"([^\"]+)"/);
-            if (quoteMatch) scriptureText = cleanMarkdown(quoteMatch[1].trim());
+            const quoteMatch = dayContent.match(/"([^"]+)"/);
+            if (quoteMatch) {scriptureText = cleanMarkdown(quoteMatch[1].trim());}
           }
           if (!scriptureRef) {
             const refMatch = dayContent.match(/([1-3]? ?[A-Za-z]+\s*\d{1,3}:\d{1,3}(-\d{1,3})?)/);
-            if (refMatch) scriptureRef = cleanMarkdown(refMatch[1].trim().toUpperCase());
+            if (refMatch) {scriptureRef = cleanMarkdown(refMatch[1].trim().toUpperCase());}
           }
           // 5. Final fallback
-          if (!scriptureText) scriptureText = "God's word brings light and life to our hearts.";
-          if (!scriptureRef) scriptureRef = 'PSALM 119:105';
+          if (!scriptureText) {scriptureText = "God's word brings light and life to our hearts.";}
+          if (!scriptureRef) {scriptureRef = 'PSALM 119:105';}
 
           // Extract reflection
           const reflectionMatch = dayContent.match(/REFLECTION:\s*([\s\S]*?)(?=REFLECTION QUESTIONS:|PRAYER:|$)/i);
@@ -353,7 +353,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         reflection: 'We encountered an error while generating your devotional. Please try again later.',
         scripture: {
           text: 'The Lord is my shepherd; I shall not want.',
-          reference: 'PSALM 23:1'
+          reference: 'PSALM 23:1',
         },
         reflectionQuestions: [
           { id: 'q1', text: 'What are you hoping to learn from this devotional?' },

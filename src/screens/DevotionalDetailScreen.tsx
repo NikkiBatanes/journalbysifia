@@ -33,8 +33,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [scripture, setScripture] = useState<Scripture>({
-    text: "For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.",
-    reference: "JOHN 3:16"
+    text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
+    reference: 'JOHN 3:16',
   });
 
   // Update scripture when currentDay changes
@@ -44,7 +44,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       // Use the scripture data directly from the backend
       setScripture({
         text: currentDay.scripture.text || "God's word brings light and life to our hearts.",
-        reference: currentDay.scripture.reference || "PSALM 119:105"
+        reference: currentDay.scripture.reference || 'PSALM 119:105',
       });
     }
   }, [devotional, currentDayIndex]);
