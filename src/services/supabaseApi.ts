@@ -41,7 +41,7 @@ export const storeSession = async (session: any) => {
     console.log('Storing session:', {
       hasToken: !!sessionToStore.access_token,
       tokenLength: sessionToStore.access_token?.length,
-      expiresAt: sessionToStore.expires_at ? new Date(sessionToStore.expires_at * 1000).toISOString() : 'Not set'
+      expiresAt: sessionToStore.expires_at ? new Date(sessionToStore.expires_at * 1000).toISOString() : 'Not set',
     });
 
     await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(sessionToStore));
@@ -59,21 +59,21 @@ export const getSession = async () => {
       console.log('No session found in storage');
       return null;
     }
-    
+
     const session = JSON.parse(sessionString);
-    console.log('Retrieved session:', { 
+    console.log('Retrieved session:', {
       hasToken: !!session?.access_token,
       tokenLength: session?.access_token?.length,
-      expiresIn: session?.expires_in
+      expiresIn: session?.expires_in,
     });
-    
+
     // Check if token is expired
     if (session?.expires_at && Date.now() >= session.expires_at * 1000) {
       console.log('Session token has expired');
       await clearSession();
       return null;
     }
-    
+
     return session;
   } catch (error) {
     console.error('Error getting session:', error);
@@ -101,18 +101,18 @@ export const checkAuth = async () => {
 export async function signIn(email: string, password: string) {
   try {
     console.log('Attempting to sign in with:', { email });
-    
+
     const response = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': config.anonKey,
       },
-      body: JSON.stringify({ 
-        email, 
-        password, 
-        client_id: config.anonKey, 
-        grant_type: 'password' 
+      body: JSON.stringify({
+        email,
+        password,
+        client_id: config.anonKey,
+        grant_type: 'password',
       }),
     });
 
@@ -137,26 +137,26 @@ export async function signIn(email: string, password: string) {
       refresh_token: data.refresh_token,
       expires_in: data.expires_in,
       token_type: data.token_type,
-      user: data.user
+      user: data.user,
     };
 
-    console.log('Storing session:', { 
+    console.log('Storing session:', {
       hasToken: !!session.access_token,
       tokenLength: session.access_token?.length,
-      expiresIn: session.expires_in
+      expiresIn: session.expires_in,
     });
 
     await storeSession(session);
     console.log('Session stored successfully');
-    
+
     return { data: session, error: null };
   } catch (error) {
     console.error('Sign in error:', error);
-    return { 
-      data: null, 
-      error: { 
-        message: error instanceof Error ? error.message : 'Network error' 
-      } 
+    return {
+      data: null,
+      error: {
+        message: error instanceof Error ? error.message : 'Network error',
+      },
     };
   }
 }
@@ -726,17 +726,17 @@ export async function generateDevotional(duration: number, playbookId?: string, 
   const functionUrl = `${config.url}/functions/v1/generate-devotional`;
   try {
     const session = await getSession();
-    
+
     if (!session) {
       throw new Error('No active session. Please sign in.');
     }
-    
+
     console.log('Generating devotional with session:', {
       hasToken: !!session.access_token,
       tokenLength: session.access_token?.length,
-      url: functionUrl
+      url: functionUrl,
     });
-    
+
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
@@ -744,25 +744,25 @@ export async function generateDevotional(duration: number, playbookId?: string, 
         'apikey': config.anonKey,
         'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ 
-        duration, 
-        playbookId, 
-        userInput: userInput || 'General spiritual growth' 
+      body: JSON.stringify({
+        duration,
+        playbookId,
+        userInput: userInput || 'General spiritual growth',
       }),
     });
 
     console.log('Devotional response status:', response.status);
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Devotional generation failed:', errorText);
       throw new Error(errorText || 'Failed to generate devotional');
     }
-    
+
     const result = await response.json();
     console.log('Devotional generated successfully');
     return result;
-    
+
   } catch (err: any) {
     console.error('generateDevotional error:', err);
     throw err;

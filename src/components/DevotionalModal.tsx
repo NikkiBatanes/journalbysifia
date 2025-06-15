@@ -159,15 +159,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         onSelectDuration(days);
         return;
       }
-      
+
       // If no onSelectDuration provided, handle devotional creation here
       if (playbookId && userInput) {
         const devotional = await createDevotional({
           duration: days,
           playbookId,
-          userInput
+          userInput,
         });
-        
+
         if (devotional && onDevotionalCreated) {
           onDevotionalCreated(devotional.id);
           handleClose();
@@ -298,7 +298,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 ) : error ? (
                   <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.retryButton}
                       onPress={handleClose}
                     >

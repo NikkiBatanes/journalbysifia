@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
-  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -27,11 +26,7 @@ const DevotionalsScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadDevotionals();
-  }, []);
-
-  const loadDevotionals = async () => {
+  const loadDevotionals = useCallback(async () => {
     setIsLoading(true);
     try {
       await refreshDevotionals();
@@ -40,9 +35,13 @@ const DevotionalsScreen = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [refreshDevotionals]);
 
-  const handleRefresh = async () => {
+  useEffect(() => {
+    loadDevotionals();
+  }, [loadDevotionals]);
+
+  const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
       await refreshDevotionals();
@@ -51,7 +50,7 @@ const DevotionalsScreen = () => {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [refreshDevotionals]);
 
   const handleDevotionalPress = (devotional: Devotional) => {
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
@@ -68,9 +67,9 @@ const DevotionalsScreen = () => {
   const renderDevotionalItem = ({ item }: { item: Devotional }) => {
     const progress = item.progress / item.totalDays;
     const daysLeft = item.totalDays - item.progress;
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.devotionalCard}
         onPress={() => handleDevotionalPress(item)}
       >
@@ -78,20 +77,20 @@ const DevotionalsScreen = () => {
           <View style={styles.categoryBadge}>
             <Text style={styles.categoryText}>{item.category}</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => handleDeleteDevotional(item.id)}
           >
             <Ionicons name="trash-outline" size={18} color={Colors.textGray} />
           </TouchableOpacity>
         </View>
-        
+
         <Text style={styles.devotionalTitle}>{item.title}</Text>
-        
+
         <View style={styles.progressSection}>
-          <ProgressBar 
-            progress={progress} 
-            width={null} 
+          <ProgressBar
+            progress={progress}
+            width={null}
             color={Colors.faithGold}
           />
           <View style={styles.progressTextContainer}>
@@ -105,7 +104,7 @@ const DevotionalsScreen = () => {
             )}
           </View>
         </View>
-        
+
         <View style={styles.devotionalFooter}>
           <Text style={styles.dateText}>
             Created: {new Date(item.createdAt).toLocaleDateString()}
@@ -142,12 +141,12 @@ const DevotionalsScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Devotionals</Text>
       </View>
-      
+
       <FlatList
         data={devotionals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
         renderItem={renderDevotionalItem}

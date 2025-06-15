@@ -13,10 +13,10 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
-import { Devotional, DevotionalDay } from '../interfaces/devotional';
+import { Devotional } from '../interfaces/devotional';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, Fonts, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
-import { Typography } from '../theme/typography';
+import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+
 import ProgressBar from '../components/ProgressBar';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 
@@ -37,7 +37,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     const foundDevotional = devotionals.find(d => d.id === devotionalId);
     if (foundDevotional) {
       setDevotional(foundDevotional);
-      
+
       // Set current day index to the first incomplete day or the last day
       const incompleteIndex = foundDevotional.days.findIndex(day => !day.completed);
       const newIndex = incompleteIndex >= 0 ? incompleteIndex : foundDevotional.days.length - 1;
@@ -47,21 +47,21 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   }, [devotionalId, devotionals]);
 
   const handleMarkComplete = async () => {
-    if (!devotional) return;
-    
+    if (!devotional) {return;}
+
     // Get the actual day number (1-based) from the current day index
     const currentDay = devotional.days[currentDayIndex];
-    if (!currentDay) return;
-    
+    if (!currentDay) {return;}
+
     // Mark the current day as complete
     const success = await markDayComplete(devotional.id, currentDay.dayNumber);
-    
+
     if (success) {
       // Find the next incomplete day
       const nextIncompleteIndex = devotional.days.findIndex(
         (day, index) => index > currentDayIndex && !day.completed
       );
-      
+
       if (nextIncompleteIndex !== -1) {
         // Move to the next incomplete day
         setCurrentDayIndex(nextIncompleteIndex);
@@ -79,59 +79,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
   };
 
-  const renderScripture = (day: DevotionalDay) => {
-    return (
-      <View style={styles.scriptureContainer}>
-        <Text style={styles.scriptureLabel}>Scripture</Text>
-        <Text style={styles.scriptureReference}>
-          {day.scripture.reference.toUpperCase()}
-        </Text>
-        <Text style={styles.scriptureText}>
-          {day.scripture.text}
-        </Text>
-      </View>
-    );
-  };
-
-  const renderReflection = (day: DevotionalDay) => {
-    return (
-      <View style={styles.reflectionContainer}>
-        <Text style={styles.sectionTitle}>Reflection</Text>
-        <Text style={styles.reflectionText}>{day.reflection}</Text>
-      </View>
-    );
-  };
-
-  const QuestionCard = ({ number, text }: { number: number; text: string }) => (
-    <View style={styles.questionCardContainer}>
-      <Text style={styles.questionCardNumber}>{number}.</Text>
-      <Text style={styles.questionCardText}>{text}</Text>
-    </View>
-  );
-
-  const renderQuestions = (day: DevotionalDay) => {
-    return (
-      <View style={styles.questionsContainer}>
-        <Text style={styles.sectionTitle}>Questions to Ponder</Text>
-        {day.reflectionQuestions.map((question, index) => (
-          <QuestionCard key={index} number={index + 1} text={question.text} />
-        ))}
-      </View>
-    );
-  };
-
-  const renderPrayer = (day: DevotionalDay) => {
-    return (
-      <View style={styles.prayerContainer}>
-        <Text style={styles.sectionTitle}>Prayer</Text>
-        <Text style={styles.prayerText}>{day.prayer}</Text>
-      </View>
-    );
-  };
 
   const renderDayNavigation = () => {
-    if (!devotional) return null;
-    
+    if (!devotional) {return null;}
+
     return (
       <View style={styles.dayNavigation}>
         <TouchableOpacity
@@ -151,8 +102,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
         <TouchableOpacity
           style={[
-            styles.navButton, 
-            currentDayIndex === devotional.days.length - 1 && styles.navButtonDisabled
+            styles.navButton,
+            currentDayIndex === devotional.days.length - 1 && styles.navButtonDisabled,
           ]}
           onPress={() => navigateToDay(currentDayIndex + 1)}
           disabled={currentDayIndex === devotional.days.length - 1}
@@ -177,7 +128,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     return (
       <SafeAreaView style={styles.errorContainer}>
         <Text style={styles.errorText}>Devotional not found</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -192,10 +143,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      
+
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
@@ -206,20 +157,20 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           <Text style={styles.progressText}>
             {devotional.progress}% Complete
           </Text>
-          <ProgressBar 
-            progress={devotional.progress} 
-            width={null} 
+          <ProgressBar
+            progress={devotional.progress}
+            width={null}
             color={Colors.faithGold}
           />
         </View>
       </View>
-      
+
       {/* Day Title */}
       <View style={styles.dayTitleContainer}>
         <Text style={styles.dayNumber}>Day {currentDayIndex + 1}</Text>
         <Text style={styles.dayTitle}>{currentDay.title}</Text>
       </View>
-      
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         {/* Scripture Card */}
         <DevotionalSectionCard
@@ -254,16 +205,18 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         >
           {currentDay?.reflectionQuestions?.length ? (
             currentDay.reflectionQuestions.map((question, idx) => (
-              <View key={question.id || idx} style={styles.questionCardContainer}>
-                <Text style={styles.questionCardNumber}>{idx + 1}</Text>
-                <Text style={styles.questionCardText}>{question.text}</Text>
+              <View key={question.id || idx} style={styles.questionCardWrapper}>
+                <View style={styles.questionCardContainer}>
+                  <Text style={styles.questionCardNumber}>{idx + 1}.</Text>
+                  <Text style={styles.questionCardText}>{question.text}</Text>
+                </View>
               </View>
             ))
           ) : (
             <Text style={styles.questionCardText}>No questions for today.</Text>
           )}
         </DevotionalSectionCard>
-        
+
         {/* Prayer Card */}
         <DevotionalSectionCard
           icon="heart-outline"
@@ -272,17 +225,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         >
           <Text style={styles.prayerText}>{currentDay?.prayer || ''}</Text>
         </DevotionalSectionCard>
-        
+
         {/* Complete Button */}
         {!currentDay.completed && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.completeButton}
             onPress={handleMarkComplete}
           >
             <Text style={styles.completeButtonText}>Mark Day Complete</Text>
           </TouchableOpacity>
         )}
-        
+
         {currentDay.completed && (
           <View style={styles.completedBadge}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.faithGold} />
@@ -290,7 +243,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           </View>
         )}
       </ScrollView>
-      
+
       {/* Day Navigation */}
       {renderDayNavigation()}
     </SafeAreaView>
@@ -434,27 +387,24 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     // No background or padding here so QuestionCard stands out
   },
+  questionCardWrapper: {
+    width: '100%',
+  },
   questionCardContainer: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderRadius: 14,
-    padding: CARD_CONTENT_PADDING,
-    marginBottom: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
     flexDirection: 'row',
     alignItems: 'flex-start',
     width: '100%',
   },
   questionCardNumber: {
-    ...Typography.interSemiBold,
-    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
     color: Colors.hopeWhite,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    textAlign: 'center',
-    textAlignVertical: 'center',
+    marginRight: 8,
+    fontSize: 16,
     lineHeight: 24,
-    marginRight: 12,
   },
   questionCardText: {
     flex: 1,

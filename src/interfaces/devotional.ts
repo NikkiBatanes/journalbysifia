@@ -37,7 +37,7 @@ export interface Devotional {
   userInput?: string; // The user input from the playbook
 }
 
-export type DevotionalCategory = 
+export type DevotionalCategory =
   | 'Prayer'
   | 'Growth'
   | 'Healing'
@@ -61,7 +61,7 @@ export const DEVOTIONAL_CATEGORIES: DevotionalCategory[] = [
   'Finances',
   'Mental Health',
   'Parenting',
-  'Health'
+  'Health',
 ];
 
 export interface DevotionalCreationParams {
