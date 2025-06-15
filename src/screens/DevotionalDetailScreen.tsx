@@ -159,7 +159,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             </View>
             <View style={styles.progressTextContainer}>
               <Text style={styles.progressText}>
-                {currentDayIndex + 1}/{devotional.totalDays} days
+                {currentDayIndex + 1}/{devotional.totalDays} {devotional.totalDays === 1 ? 'Day' : 'Days'}
               </Text>
             </View>
           </View>
@@ -314,8 +314,8 @@ const styles = StyleSheet.create({
   },
   progressWrapper: {
     flex: 1,
-    marginRight: 12,
-    minWidth: 250, // Match Playbook minWidth
+    marginRight: 8, // Reduced from 12 to bring text closer
+    minWidth: 250,
   },
   barBg: {
     width: '100%',
@@ -330,16 +330,18 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressTextContainer: {
-    width: 60, // Match Playbook width
+    width: 50,
     alignItems: 'flex-end',
-    marginLeft: 'auto',
+    marginLeft: 0, // Changed from 'auto' to remove extra space
   },
   progressText: {
+    fontFamily: 'System',
+    fontWeight: '500',
     fontSize: 12,
-    fontFamily: Fonts.medium, // Match Playbook font
-    color: 'rgba(26, 60, 109, 0.9)', // Match Playbook text color
+    lineHeight: 16,
+    color: Colors.anchorBlue,
+    marginRight: 4,
     textAlign: 'right',
-    minWidth: 60, // Match Playbook minWidth
   },
   backButton: {
     padding: 8,
