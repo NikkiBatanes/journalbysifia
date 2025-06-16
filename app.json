@@ -1,50 +1,30 @@
 {
   "name": "AnchoredApp",
   "displayName": "AnchoredApp",
-  "expo": {
-    "name": "AnchoredApp",
-    "slug": "AnchoredApp",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/AnchoredWhite.png",
-    "splash": {
-      "image": "./assets/images/AnchoredWhite.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1A3C6D",
-      "imageDisplay": "cover",
-      "androidScaleType": "centerCrop"
-    },
-    "androidStatusBar": {
-      "backgroundColor": "#1A3C6D",
-      "barStyle": "light-content"
-    },
-    "androidNavigationBar": {
+  "version": "1.0.0",
+  "orientation": "portrait",
+  "icon": "./assets/images/AnchoredWhite.png",
+  "splash": {
+    "image": "./assets/images/AnchoredWhite.png",
+    "resizeMode": "contain",
+    "backgroundColor": "#1A3C6D"
+  },
+  "ios": {
+    "supportsTablet": true,
+    "bundleIdentifier": "com.anchored.app",
+    "buildNumber": "1.0.0"
+  },
+  "android": {
+    "adaptiveIcon": {
+      "foregroundImage": "./assets/images/AnchoredWhite.png",
       "backgroundColor": "#1A3C6D"
     },
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.anchored.app"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/AnchoredWhite.png",
-        "backgroundColor": "#1A3C6D"
-      },
-      "package": "com.anchored.app"
-    },
-    "web": {
-      "favicon": "./assets/images/AnchoredWhite.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "your-project-id"
-      }
+    "package": "com.anchored.app",
+    "versionCode": 1
+  },
+  "extra": {
+    "eas": {
+      "projectId": "your-project-id"
     }
   }
 }

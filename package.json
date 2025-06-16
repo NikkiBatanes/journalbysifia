@@ -10,10 +10,6 @@
     "test": "jest"
   },
   "dependencies": {
-    "@expo-google-fonts/inter": "^0.4.1",
-    "@expo-google-fonts/lora": "^0.4.1",
-    "@expo-google-fonts/playfair-display": "^0.4.0",
-    "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/blur": "^4.4.1",
     "@react-navigation/bottom-tabs": "^7.3.14",
@@ -24,10 +20,6 @@
     "@types/react-native-vector-icons": "^6.4.18",
     "base-64": "^1.0.0",
     "date-fns": "^4.1.0",
-    "expo": "^53.0.9",
-    "expo-font": "^13.3.1",
-    "expo-modules-core": "^2.3.13",
-    "expo-splash-screen": "^0.30.8",
     "prop-types": "^15.8.1",
     "react": "19.0.0",
     "react-is": "^19.1.0",

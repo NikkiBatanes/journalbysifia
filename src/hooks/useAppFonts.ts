@@ -1,40 +1,26 @@
 import { useState, useEffect } from 'react';
-import * as Font from 'expo-font';
 
 export const useAppFonts = () => {
   const [fontsLoaded, setFontsLoaded] = useState(false);
-  const [fontError, setFontError] = useState<Error | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const loadFonts = async () => {
       try {
-        await Font.loadAsync({
-          // Inter fonts (from react-native-vector-icons)
-          'Inter_400Regular': require('@expo-google-fonts/inter/Inter_400Regular.ttf'),
-          'Inter_500Medium': require('@expo-google-fonts/inter/Inter_500Medium.ttf'),
-          'Inter_600SemiBold': require('@expo-google-fonts/inter/Inter_600SemiBold.ttf'),
-          'Inter_700Bold': require('@expo-google-fonts/inter/Inter_700Bold.ttf'),
+        // For React Native without Expo, we'll use the fonts that are already linked
+        // in the native projects. Make sure you've followed the linking steps for your fonts.
+        // The fonts should be defined in your app.json or info.plist (iOS) and styles.xml (Android)
 
-          // Playfair Display fonts
-          'PlayfairDisplay-Regular': require('@expo-google-fonts/playfair-display/PlayfairDisplay_400Regular.ttf'),
-          'PlayfairDisplay-Bold': require('@expo-google-fonts/playfair-display/PlayfairDisplay_700Bold.ttf'),
-
-          // Lora fonts
-          'Lora_400Regular': require('@expo-google-fonts/lora/Lora_400Regular.ttf'),
-          'Lora_400Regular_Italic': require('@expo-google-fonts/lora/Lora_400Regular_Italic.ttf'),
-          'Lora_600SemiBold': require('@expo-google-fonts/lora/Lora_600SemiBold.ttf'),
-          'Lora_600SemiBold_Italic': require('@expo-google-fonts/lora/Lora_600SemiBold_Italic.ttf'),
-        });
-
+        // For now, we'll just set fontsLoaded to true since the fonts should be loaded natively
         setFontsLoaded(true);
-      } catch (error) {
-        console.error('Error loading fonts:', error);
-        setFontError(error as Error);
+      } catch (e) {
+        console.error('Error loading fonts:', e);
+        setError(e as Error);
       }
     };
 
     loadFonts();
   }, []);
 
-  return { fontsLoaded, fontError };
+  return { fontsLoaded, error };
 };

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Animated, StyleSheet, View, Dimensions, TouchableOpacity } from 'react-native';
 import { BorderRadii } from '../theme/styles';
-import { MaterialIcons } from '@expo/vector-icons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SWIPEABLE_WIDTH = 80;

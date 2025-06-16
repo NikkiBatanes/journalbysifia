@@ -193,18 +193,100 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     // Try to extract title and description from the content
     try {
       const lines = content.split('\n').filter(line => line.trim());
-      if (lines.length > 0) {
-        // Remove any title prefixes like 'DEVOTIONAL TITLE:', 'TITLE:', 'SERIES TITLE:'
-        const titleLine = lines[0]
-          .replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '') // Fixed regex to properly capture SERIES TITLE:
-          .replace(/^"(.*)"$/, '$1') // Remove surrounding quotes if present
-          .trim();
-        devotional.title = cleanMarkdown(titleLine);
+      // Debug: log all candidate lines
+      console.log('AI Response lines:', lines.slice(0, 20));
 
-        // Debug log to verify title extraction
-        console.log('Original title line:', lines[0]);
-        console.log('Extracted title:', devotional.title);
+      // More robust title extraction - scan more lines and handle more formats
+      let foundTitle = '';
+
+      // First pass: Look for explicit title markers in the first 20 lines
+      for (let i = 0; i < Math.min(20, lines.length); i++) {
+        const match = lines[i].match(/^(DEVOTIONAL TITLE:|SERIES TITLE:|TITLE:)\s*(.*)$/i);
+        if (match && match[2]) {
+          foundTitle = match[2].replace(/^"(.*)"$/, '$1').trim();
+          console.log(`Found title with prefix at line ${i}:`, foundTitle);
+          break;
+        }
       }
+
+      // Second pass: If no explicit title found, look for a line that might be a title
+      // (first non-empty line or line after a blank line that doesn't look like a category or description)
+      if (!foundTitle) {
+        for (let i = 0; i < Math.min(20, lines.length); i++) {
+          // Skip lines that look like category, description, or other structured content
+          if (lines[i].match(/^(CATEGORY|DESCRIPTION|DAY|SCRIPTURE|REFLECTION):/i)) {
+            continue;
+          }
+
+          // If this is the first line or follows a blank line, it might be a title
+          if (i === 0 || (i > 0 && !lines[i - 1].trim())) {
+            foundTitle = lines[i].trim();
+            console.log(`Found potential title at line ${i} without prefix:`, foundTitle);
+            break;
+          }
+        }
+      }
+
+      // Third pass: If still no title, try the first line as a last resort
+      if (!foundTitle && lines.length > 0) {
+        foundTitle = lines[0]
+          .replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '')
+          .replace(/^"(.*)"$/, '$1')
+          .trim();
+        console.log('Using first line as fallback title:', foundTitle);
+      }
+
+      // Clean the title of any markdown or extra formatting
+      const cleanedTitle = cleanMarkdown(foundTitle);
+      console.log('Cleaned title:', cleanedTitle);
+
+      // More comprehensive generic title detection
+      const genericTitles = ['devotional', 'daily devotional', 'devotionals', 'series',
+                           'devotional series', 'bible study', 'reflection', 'reflections'];
+      const isGeneric =
+        !cleanedTitle ||
+        genericTitles.includes(cleanedTitle.toLowerCase()) ||
+        (userInput && cleanedTitle.trim().toLowerCase() === userInput.trim().toLowerCase()) ||
+        cleanedTitle.length < 3; // Too short to be meaningful
+
+      if (isGeneric) {
+        // Use a creative fallback title - expanded list for more variety
+        const fallbackTitles = [
+          'A Fresh Start',
+          'New Mercies',
+          'Anchored in Hope',
+          'Light for Today',
+          'Strength for the Journey',
+          'Grace Unfolding',
+          'Faith Over Fear',
+          'Rooted and Grounded',
+          'Unshakeable',
+          'Purpose Renewed',
+          'Divine Guidance',
+          'Faithful Steps',
+          'Living Waters',
+          'Steadfast Love',
+          'Renewed Mind',
+          'Sacred Journey',
+          'Abundant Grace',
+          'Deeper Faith',
+          'Joyful Heart',
+          'Peaceful Presence',
+        ];
+        devotional.title = fallbackTitles[Math.floor(Math.random() * fallbackTitles.length)];
+        console.log('Using fallback title due to generic or missing title:', devotional.title);
+      } else {
+        devotional.title = cleanedTitle;
+      }
+
+      // Ensure the title doesn't have any remaining prefixes
+      devotional.title = devotional.title
+        .replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '')
+        .trim();
+
+      // Debug log to verify final title
+      console.log('Final extracted devotional title:', devotional.title);
+
       if (lines.length > 1) {
         // Extract description, removing any prefix
         const descLine = lines[1].replace(/^DESCRIPTION:\s*/i, '').trim();
@@ -455,10 +537,10 @@ The devotional should be based on the following user input: "${userInput || 'spi
 Create a structured ${duration}-day devotional that follows this format:
 
 ${duration > 1 ? 'SERIES TITLE:' : 'DEVOTIONAL TITLE:'}
-[${duration > 1 ? 'Create a meaningful, engaging title for the overall devotional series that encapsulates the theme' : 'Create a meaningful, engaging title for this single devotional'}]
+[${duration > 1 ? 'Create a meaningful, engaging title for the overall devotional series that encapsulates the theme. DO NOT use generic titles like "Devotional" or "Daily Devotional". DO NOT use the user\'s input as the title. The title must be creative and inspired by the devotional\'s theme, not a direct copy of the input.' : 'Create a unique, meaningful, and specific title for this single devotional that reflects its content and theme. DO NOT use generic titles like "Devotional" or "Daily Devotional". DO NOT use the user\'s input as the title. The title must be creative and inspired by the devotional\'s theme, not a direct copy of the input. Examples of good titles: "Finding Peace in Chaos", "Strength for Today", "Walking in Faith", etc.'}]
 
 CATEGORY:
-[Choose ONE category that best fits this devotional: Prayer, Growth, Healing, Wisdom, Relationships, Purpose, Career, Finances, Mental Health, Parenting, Health]
+[Choose ONE specific category that best fits this devotional based on the content and theme. Select from: Prayer, Growth, Healing, Wisdom, Relationships, Purpose, Career, Finances, Mental Health, Parenting, Health. DO NOT use 'General' as a category. If none of these fit perfectly, choose the closest match or create a more specific subcategory of one of these.]
 
 DESCRIPTION:
 [Write a brief 2-3 sentence description of what this devotional journey will help the reader accomplish]
@@ -466,7 +548,7 @@ DESCRIPTION:
 For each day (${duration} days total), create the following structure:
 
 DAY 1:
-${duration > 1 ? 'TITLE:' : ''} ${duration > 1 ? '[Create a unique title for this specific day that differs from the series title]' : ''}
+TITLE: ${duration > 1 ? '[Create a unique, meaningful title for this specific day that differs from the series title]' : '[Use the same title as the devotional title for consistency]'}
 SCRIPTURE: "[Full Bible verse text]" - [Reference (book chapter:verse)] (Ensure the scripture text is enclosed in quotes, followed by a dash, then the reference)
 REFLECTION: [Write a 150-250 word reflection that connects the Scripture to the user's situation, offers spiritual insight, and points to Jesus as the source of hope/strength/transformation. Include practical guidance that aligns with Truth in Love, Action Steps, Affirmations, or Challenges as appropriate.]
 REFLECTION QUESTIONS:

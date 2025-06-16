@@ -17,6 +17,7 @@ import { Devotional, Scripture } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import { extractCleanTitle } from '../utils/titleUtils';
 
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 
@@ -47,6 +48,20 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       });
     }
   }, [devotional, currentDayIndex]);
+
+  useEffect(() => {
+    // Log for debugging
+    console.log('Devotional:', devotional);
+
+    // Debug title extraction
+    if (devotional?.title) {
+      console.log('Title extraction debug:', {
+        originalTitle: devotional.title,
+        extractedTitle: extractCleanTitle(devotional.title),
+        devotionalId: devotional.id,
+      });
+    }
+  }, [devotional]);
 
   useEffect(() => {
     // Find the devotional by ID
@@ -132,7 +147,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle} numberOfLines={2} ellipsizeMode="tail">
-              {devotional.title ? (devotional.title.includes(':') ? devotional.title.split(':')[1].trim() : devotional.title) : 'Devotional'}
+              {extractCleanTitle(devotional.title, 'Devotional')}
             </Text>
             <View style={styles.dayCounterContainer}>
               <Ionicons name="calendar-clear-outline" size={16} color={Colors.anchorBlue} style={styles.calendarIcon} />
@@ -176,9 +191,16 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         <View style={styles.dayTitleContainer}>
           <Text style={styles.dayNumber}>Day {currentDayIndex + 1}</Text>
           <Text style={styles.dayTitle} numberOfLines={2} ellipsizeMode="tail">
-            {devotional.totalDays === 1
-              ? (devotional.title ? (devotional.title.includes(':') ? devotional.title.split(':')[1].trim() : devotional.title) : 'Devotional')
-              : (currentDay?.title || 'Untitled Day')}
+            {devotional.totalDays === 1 ? (
+              // For single-day devotionals, use the main title
+              extractCleanTitle(devotional.title, 'Devotional')
+            ) : (
+              // For multi-day devotionals, use the day title if it exists and is meaningful
+              currentDay?.title && currentDay.title !== `Day ${currentDayIndex + 1}` ?
+                extractCleanTitle(currentDay.title) :
+                // Fall back to series title if day title is generic
+                extractCleanTitle(devotional.title, 'Devotional')
+            )}
           </Text>
         </View>
         {/* Scripture Card */}

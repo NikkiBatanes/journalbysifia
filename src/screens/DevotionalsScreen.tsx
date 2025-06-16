@@ -15,10 +15,11 @@ import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
 
 import { Devotional } from '../interfaces/devotional';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors, Fonts } from '../theme';
 import { format } from 'date-fns';
 import { Swipeable, RectButton } from 'react-native-gesture-handler';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { extractCleanTitle } from '../utils/titleUtils';
+import { Colors, Fonts } from '../theme';
 import 'react-native-gesture-handler';
 
 type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
@@ -28,6 +29,8 @@ const DevotionalsScreen = () => {
   const { devotionals, deleteDevotional, fetchPlaybookById, isLoading } = useDevotional();
 
   const handleDevotionalPress = (devotional: Devotional) => {
+    // Log title extraction for debugging
+    createTitleExtractionMemory(devotional);
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
   };
 
@@ -69,7 +72,7 @@ const DevotionalsScreen = () => {
   };
 
   const renderDevotionalItem = ({ item }: { item: Devotional }) => {
-    // Calculate progress based on completed days
+    // Calculate progress percentage (0-100)
     const completedDays = item.days?.filter(day => day.completed).length || 0;
     const progress = (completedDays / item.totalDays) * 100;
     // Find the first incomplete day or use the last day if all are complete
@@ -97,8 +100,8 @@ const DevotionalsScreen = () => {
 
     const displayCategory = formatCategory(item.category);
 
-    // Remove prefixes from title and ensure we have a title
-    const cleanTitle = item.title ? (item.title.includes(':') ? item.title.split(':')[1].trim() : item.title) : 'Devotional';
+    // Use the utility function to extract a clean title
+    const cleanTitle = extractCleanTitle(item.title, 'Devotional');
 
     return (
       <View style={styles.swipeableContainer}>
@@ -118,16 +121,20 @@ const DevotionalsScreen = () => {
             activeOpacity={1}
           >
             <View style={styles.cardContent}>
+              {/* Date */}
               <Text style={styles.date}>{formattedDate}</Text>
 
+              {/* Series Title or Devotional Title */}
               <Text style={styles.devotionalTitle} numberOfLines={1}>{cleanTitle}</Text>
 
+              {/* Description */}
               {item.description && (
                 <Text style={styles.description} numberOfLines={2}>
                   {item.description.replace(/^CATEGORY:[^\n]*\n?/i, '')}
                 </Text>
               )}
 
+              {/* Categories + From Playbook Buttons */}
               <View style={styles.tagRow}>
                 <TouchableOpacity style={styles.categoryBadge}>
                   <Ionicons name="pricetag-outline" size={12} color={Colors.hopeWhite} style={styles.playbookIcon} />
@@ -214,7 +221,9 @@ const DevotionalsScreen = () => {
       </View>
 
       <FlatList
-        data={devotionals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())}
+        data={devotionals.sort((a: Devotional, b: Devotional) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        })}
         renderItem={renderDevotionalItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -222,6 +231,17 @@ const DevotionalsScreen = () => {
       />
     </SafeAreaView>
   );
+};
+
+// Create a memory of the title extraction logic for debugging purposes
+const createTitleExtractionMemory = (devotional: Devotional) => {
+  if (!devotional) {return;}
+
+  console.log('Title extraction debug:', {
+    originalTitle: devotional.title,
+    extractedTitle: extractCleanTitle(devotional.title),
+    devotionalId: devotional.id,
+  });
 };
 
 const styles = StyleSheet.create({
@@ -234,7 +254,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
-    height: 200, // Increased height
+    height: 260, // Further increased height to fit all content
     backgroundColor: Colors.alertCoral, // Match delete button color
   },
   swipeableInner: {
@@ -269,7 +289,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-    height: 200, // Increased height
+    height: 260, // Further increased height to fit all content
     position: 'relative',
   },
   cardContent: {
@@ -330,13 +350,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   devotionalTitle: {
-    fontSize: 20, // Increased font size
+    fontSize: 22, // Larger font size for consistency
     fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
     lineHeight: 28, // Increased line height
     paddingVertical: 2,
     fontWeight: '700',
-    marginBottom: 6, // Increased margin
+    marginBottom: 8, // Increased margin
   },
   description: {
     fontSize: 14,
@@ -346,7 +366,8 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     width: '100%',
-    marginTop: 16,
+    marginTop: 'auto', // Push to bottom of card
+    marginBottom: 4,
     marginHorizontal: -4, // Extend beyond parent's padding
     paddingTop: 12,
     paddingBottom: 8,
