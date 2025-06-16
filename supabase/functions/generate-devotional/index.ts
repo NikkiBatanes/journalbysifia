@@ -114,7 +114,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
   // Helper function to process reflection questions from content
   const processReflectionQuestions = (content: string): ReflectionQuestion[] => {
-    const questionsMatch = content.match(/REFLECTION QUESTIONS:\s*([\s\S]*?)(?=PRAYER:|$)/i);
+    // Try to match both new "QUESTIONS TO PONDER:" and old "REFLECTION QUESTIONS:" formats
+    const questionsMatch = content.match(/(?:QUESTIONS TO PONDER|REFLECTION QUESTIONS):\s*([\s\S]*?)(?=PRAYER:|$)/i);
 
     if (questionsMatch && questionsMatch[1]) {
       try {
@@ -146,6 +147,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     return [
       { id: 'q1', text: 'What stood out to you from today\'s scripture?' },
       { id: 'q2', text: 'How can you apply this to your life today?' },
+      { id: 'q3', text: 'How does this devotional point you to Christ?' },
     ];
   };
 
@@ -190,31 +192,165 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       throw new Error('No content found in AI response');
     }
 
-    // Try to extract title and description from the content
+    // Try to extract title, description, and categories from the content
     try {
       const lines = content.split('\n').filter(line => line.trim());
-      // Debug: log all candidate lines
-      console.log('AI Response lines:', lines.slice(0, 20));
-
-      // More robust title extraction - scan more lines and handle more formats
+      // --- Title Extraction Logic ---
       let foundTitle = '';
-
+      let foundDescription = '';
+      let foundCategories: string[] = [];
       // First pass: Look for explicit title markers in the first 20 lines
       for (let i = 0; i < Math.min(20, lines.length); i++) {
-        const match = lines[i].match(/^(DEVOTIONAL TITLE:|SERIES TITLE:|TITLE:)\s*(.*)$/i);
-        if (match && match[2]) {
-          foundTitle = match[2].replace(/^"(.*)"$/, '$1').trim();
-          console.log(`Found title with prefix at line ${i}:`, foundTitle);
+        const titleMatch = lines[i].match(/^(DEVOTIONAL TITLE:|SERIES TITLE:|TITLE:)[ \t]*(.*)$/i);
+        if (titleMatch && titleMatch[2]) {
+          foundTitle = titleMatch[2].replace(/^"(.*)"$/, '$1').trim();
           break;
+        }
+      }
+      // Second pass: If no explicit title found, look for a line that might be a title
+      if (!foundTitle) {
+        for (let i = 0; i < Math.min(20, lines.length); i++) {
+          if (lines[i].match(/^(CATEGORY|DESCRIPTION|DAY|SCRIPTURE|REFLECTION|QUESTIONS|PRAYER):/i)) continue;
+          if (lines[i].length > 3 && lines[i].length <= 40) {
+            foundTitle = lines[i].replace(/^"(.*)"$/, '$1').trim();
+            break;
+          }
+        }
+      }
+      // Third pass: If still no title, try the first line as a last resort
+      if (!foundTitle && lines.length > 0) {
+        foundTitle = lines[0].replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '').replace(/^"(.*)"$/, '$1').trim();
+      }
+      // Clean and truncate
+      let cleanedTitle = cleanMarkdown(foundTitle);
+      if (cleanedTitle.length > 32) {
+        cleanedTitle = cleanedTitle.slice(0, 32).replace(/\s+\S*$/, '').trim();
+      }
+      // Fallback if generic/incomplete
+      const fallbackTitles = [
+        'A Fresh Start',
+        'New Mercies',
+        'Anchored in Hope',
+        'Light for Today',
+        'Strength for the Journey',
+        'Grace Unfolding',
+        'Faith Over Fear',
+        'Rooted and Grounded',
+        'Unshakeable',
+        'Purpose Renewed',
+        'Divine Guidance',
+        'Faithful Steps',
+        'Living Waters',
+        'Steadfast Love',
+        'Renewed Mind',
+        'Sacred Journey',
+        'Abundant Grace',
+        'Deeper Faith',
+        'Joyful Heart',
+        'Peaceful Presence'
+      ];
+      if (!cleanedTitle || cleanedTitle.length < 3 || /\b(of|in|for|with|by|to|from|through|on|at|about|into|over|after|before|under|above|around|across|between|without|within|along|upon|amid|among)$/i.test(cleanedTitle)) {
+        devotional.title = fallbackTitles[Math.floor(Math.random() * fallbackTitles.length)];
+        console.log('Fallback title used:', devotional.title);
+      } else {
+        devotional.title = cleanedTitle;
+      }
+      // --- End Title Extraction Logic ---
+
+      // Debug log to verify final title
+      console.log('Final extracted devotional title:', devotional.title);
+
+      // --- Description Extraction ---
+      let foundDescription = '';
+      for (let i = 0; i < Math.min(20, lines.length); i++) {
+        const descMatch = lines[i].match(/^DESCRIPTION:\s*(.*)$/i);
+        if (descMatch && descMatch[1]) {
+          foundDescription = descMatch[1].trim();
+          break;
+        }
+      }
+      if (!foundDescription) {
+        // Fallback: try to find a likely description line
+        for (let i = 0; i < Math.min(20, lines.length); i++) {
+          if (lines[i].toLowerCase().includes('journey') || lines[i].toLowerCase().includes('explore') || lines[i].toLowerCase().includes('discover') || lines[i].toLowerCase().includes('guide')) {
+            foundDescription = cleanMarkdown(lines[i]);
+            break;
+          }
+        }
+      }
+      if (!foundDescription) {
+        foundDescription = `A ${duration}-day journey to deepen your faith and spiritual growth.`;
+      }
+      devotional.description = foundDescription;
+
+      // --- Category Extraction ---
+      let foundCategories: string[] = [];
+      for (let i = 0; i < Math.min(20, lines.length); i++) {
+        const catMatch = lines[i].match(/^CATEGORY:\s*(.*)$/i);
+        if (catMatch && catMatch[1]) {
+          const categoryText = catMatch[1].trim();
+          const extractedCategories = categoryText.replace(/[\[\]]/g, '').split(/,|\s+and\s+/).map(cat => cat.trim()).filter(cat => cat.length > 0);
+          foundCategories = extractedCategories;
+          break;
+        }
+      }
+      if (foundCategories.length > 0) {
+        devotional.category = foundCategories.join(', ');
+      } else {
+        // Default category based on user input
+        const inputLower = (userInput || '').toLowerCase();
+        if (inputLower.includes('anxiety') || inputLower.includes('worry') || inputLower.includes('stress')) {
+          devotional.category = 'Peace, Mental Health';
+        } else if (inputLower.includes('marriage') || inputLower.includes('relationship')) {
+          devotional.category = 'Relationships, Love';
+        } else if (inputLower.includes('purpose') || inputLower.includes('meaning')) {
+          devotional.category = 'Purpose, Identity';
+        } else {
+          devotional.category = 'Faith, Growth';
+        }
+      }
+      // --- End description and category extraction ---
+
+      // --- Continue with description, categories, etc. ---
+
+      for (let i = 0; i < Math.min(20, lines.length); i++) {
+        const titleMatch = lines[i].match(/^(DEVOTIONAL TITLE:|SERIES TITLE:|TITLE:)\s*(.*)$/i);
+        if (titleMatch && titleMatch[2]) {
+          foundTitle = titleMatch[2].replace(/^"(.*)"$/, '$1').trim();
+          console.log(`Found title with prefix at line ${i}:`, foundTitle);
+          continue;
+        }
+
+        // Look for description
+        const descMatch = lines[i].match(/^DESCRIPTION:\s*(.*)$/i);
+        if (descMatch && descMatch[1]) {
+          foundDescription = descMatch[1].trim();
+          console.log(`Found description at line ${i}:`, foundDescription);
+          continue;
+        }
+
+        // Look for categories/tags
+        const catMatch = lines[i].match(/^CATEGORY:\s*(.*)$/i);
+        if (catMatch && catMatch[1]) {
+          const categoryText = catMatch[1].trim();
+          // Extract categories - could be comma-separated or in brackets
+          const extractedCategories = categoryText
+            .replace(/[\[\]]/g, '') // Remove brackets
+            .split(/,|\s+and\s+/) // Split by comma or 'and'
+            .map(cat => cat.trim())
+            .filter(cat => cat.length > 0);
+          
+          foundCategories = extractedCategories;
+          console.log(`Found categories at line ${i}:`, foundCategories);
+          continue;
         }
       }
 
       // Second pass: If no explicit title found, look for a line that might be a title
-      // (first non-empty line or line after a blank line that doesn't look like a category or description)
       if (!foundTitle) {
         for (let i = 0; i < Math.min(20, lines.length); i++) {
           // Skip lines that look like category, description, or other structured content
-          if (lines[i].match(/^(CATEGORY|DESCRIPTION|DAY|SCRIPTURE|REFLECTION):/i)) {
+          if (lines[i].match(/^(CATEGORY|DESCRIPTION|DAY|SCRIPTURE|REFLECTION|QUESTIONS|PRAYER):/i)) {
             continue;
           }
 
@@ -236,65 +372,11 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         console.log('Using first line as fallback title:', foundTitle);
       }
 
-      // Clean the title of any markdown or extra formatting
-      const cleanedTitle = cleanMarkdown(foundTitle);
-      console.log('Cleaned title:', cleanedTitle);
+  if (!content) {
+    throw new Error('No content found in AI response');
+  }
 
-      // More comprehensive generic title detection
-      const genericTitles = ['devotional', 'daily devotional', 'devotionals', 'series',
-                           'devotional series', 'bible study', 'reflection', 'reflections'];
-      const isGeneric =
-        !cleanedTitle ||
-        genericTitles.includes(cleanedTitle.toLowerCase()) ||
-        (userInput && cleanedTitle.trim().toLowerCase() === userInput.trim().toLowerCase()) ||
-        cleanedTitle.length < 3; // Too short to be meaningful
-
-      if (isGeneric) {
-        // Use a creative fallback title - expanded list for more variety
-        const fallbackTitles = [
-          'A Fresh Start',
-          'New Mercies',
-          'Anchored in Hope',
-          'Light for Today',
-          'Strength for the Journey',
-          'Grace Unfolding',
-          'Faith Over Fear',
-          'Rooted and Grounded',
-          'Unshakeable',
-          'Purpose Renewed',
-          'Divine Guidance',
-          'Faithful Steps',
-          'Living Waters',
-          'Steadfast Love',
-          'Renewed Mind',
-          'Sacred Journey',
-          'Abundant Grace',
-          'Deeper Faith',
-          'Joyful Heart',
-          'Peaceful Presence',
-        ];
-        devotional.title = fallbackTitles[Math.floor(Math.random() * fallbackTitles.length)];
-        console.log('Using fallback title due to generic or missing title:', devotional.title);
-      } else {
-        devotional.title = cleanedTitle;
-      }
-
-      // Ensure the title doesn't have any remaining prefixes
-      devotional.title = devotional.title
-        .replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '')
-        .trim();
-
-      // Debug log to verify final title
-      console.log('Final extracted devotional title:', devotional.title);
-
-      if (lines.length > 1) {
-        // Extract description, removing any prefix
-        const descLine = lines[1].replace(/^DESCRIPTION:\s*/i, '').trim();
-        devotional.description = cleanMarkdown(descLine);
-      }
-    } catch (e) {
-      console.error('Error extracting title/description:', e);
-    }
+  // Try to extract title, description, and categories from the content
 
     // Extract days from content
     try {
@@ -329,49 +411,101 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             } else {
               dayTitle = cleanMarkdown(titleLine[1].trim());
             }
+          } else if (duration > 1) {
+            // For multi-day devotionals, try to extract a meaningful day title from the content
+            // Look for patterns that might indicate a title in the first few lines
+            const dayContentLines = dayContent.split('\n').filter(line => line.trim());
+            
+            // Skip lines that are clearly not titles
+            for (let i = 0; i < Math.min(5, dayContentLines.length); i++) {
+              const line = dayContentLines[i].trim();
+              // Skip lines that are part of the structure
+              if (line.match(/^(SCRIPTURE|REFLECTION|QUESTIONS|PRAYER):/i)) {
+                continue;
+              }
+              
+              // If line is short enough and doesn't look like part of the content, it might be a title
+              if (line.length < 60 && !line.match(/^["\d]/) && !line.includes('TITLE:')) {
+                dayTitle = cleanMarkdown(line);
+                break;
+              }
+            }
+            
+            // If we still don't have a good title, create one based on the day number and progression
+            if (dayTitle === `Day ${dayNumber}`) {
+              // Create titles based on the progression pattern
+              if (duration === 3) {
+                const titles = ['Beginning the Journey', 'Finding Healing', 'Embracing Hope'];
+                dayTitle = titles[dayNumber - 1] || `Day ${dayNumber}`;
+              } else if (duration === 5) {
+                const titles = ['Awareness', 'Building Trust', 'Finding Healing', 'Taking Action', 'Renewal'];
+                dayTitle = titles[dayNumber - 1] || `Day ${dayNumber}`;
+              } else if (duration === 7) {
+                const titles = ['Facing the Challenge', 'Trusting God', 'Growing in Faith', 
+                               'Taking Action', 'Finding Community', 'Renewing Your Mind', 'Celebrating Victory'];
+                dayTitle = titles[dayNumber - 1] || `Day ${dayNumber}`;
+              }
+            }
           }
 
-          // 2. Try to match SCRIPTURE section followed by two quoted or unquoted lines (verse then reference)
-          if (!scriptureText || !scriptureRef) {
-            const scriptureSectionMatch = dayContent.match(/SCRIPTURE:\s*\n?["“]?([^"\n]+)["”]?\s*\n["“]?([^"\n]+)["”]?/i);
-            if (scriptureSectionMatch) {
-              scriptureText = cleanMarkdown(scriptureSectionMatch[1].trim());
-              scriptureRef = cleanMarkdown(scriptureSectionMatch[2].trim());
-            }
+          // Extract scripture
+          const scriptureMatch = dayContent.match(/SCRIPTURE:\s*"([^"]+)"\s*-\s*([^\n]+)/i);
+          if (scriptureMatch) {
+            scriptureText = cleanMarkdown(scriptureMatch[1].trim());
+            scriptureRef = cleanMarkdown(scriptureMatch[2].trim());
           }
-          // 3. Try to match SCRIPTURE: "verse" - reference (flexible, allows whitespace and line breaks)
-          if (!scriptureText || !scriptureRef) {
-            const scriptureFlexibleMatch = dayContent.match(/SCRIPTURE:\s*["“]?([^"\n]+)["”]?\s*-\s*([^\n]+)/i);
-            if (scriptureFlexibleMatch) {
-              scriptureText = cleanMarkdown(scriptureFlexibleMatch[1].trim());
-              scriptureRef = cleanMarkdown(scriptureFlexibleMatch[2].trim());
-            }
-          }
-          // 4. Fallback: If still missing, try to find any quoted string and a reference-like pattern
-          if (!scriptureText) {
-            const quoteMatch = dayContent.match(/"([^"]+)"/);
-            if (quoteMatch) {scriptureText = cleanMarkdown(quoteMatch[1].trim());}
-          }
-          if (!scriptureRef) {
-            const refMatch = dayContent.match(/([1-3]? ?[A-Za-z]+\s*\d{1,3}:\d{1,3}(-\d{1,3})?)/);
-            if (refMatch) {scriptureRef = cleanMarkdown(refMatch[1].trim().toUpperCase());}
-          }
-          // 5. Final fallback
-          if (!scriptureText) {scriptureText = "God's word brings light and life to our hearts.";}
-          if (!scriptureRef) {scriptureRef = 'PSALM 119:105';}
 
           // Extract reflection
-          const reflectionMatch = dayContent.match(/REFLECTION:\s*([\s\S]*?)(?=REFLECTION QUESTIONS:|PRAYER:|$)/i);
-          const reflection = reflectionMatch ? cleanMarkdown(reflectionMatch[1].trim()) : '';
+          let reflection = '';
+          const reflectionMatch = dayContent.match(/REFLECTION:\s*([\s\S]*?)(?=QUESTIONS TO PONDER:|PRAYER:|$)/i);
+          if (reflectionMatch && reflectionMatch[1]) {
+            reflection = cleanMarkdown(reflectionMatch[1].trim());
+          }
 
-          // Process reflection questions
-          const reflectionQuestions = processReflectionQuestions(dayContent);
+          // Extract reflection questions
+          let reflectionQuestions: DevotionalQuestion[] = [];
+          const questionsMatch = dayContent.match(/QUESTIONS TO PONDER:\s*([\s\S]*?)(?=PRAYER:|$)/i);
+          if (questionsMatch && questionsMatch[1]) {
+            const questionsText = cleanMarkdown(questionsMatch[1].trim());
+            reflectionQuestions = questionsText.split('\n').filter(Boolean).map((question, idx) => ({
+              id: `q${idx + 1}`,
+              text: question.trim(),
+            }));
+          }
 
-          // Extract prayer
+          // Extract prayer with improved handling for the structured format
           let prayer = '';
           const prayerMatch = dayContent.match(/PRAYER:\s*([\s\S]*?)(?=DAY \d+:|$)/i);
           if (prayerMatch && prayerMatch[1]) {
-            prayer = cleanMarkdown(prayerMatch[1].trim());
+            let rawPrayer = prayerMatch[1].trim();
+            // Preserve line breaks, but clean markdown from each line
+            let lines = rawPrayer.split(/\r?\n/).map(line => cleanMarkdown(line.trim())).filter(Boolean);
+
+            // Remove any duplicate "In Jesus' Name" or "Amen" lines except for the last two
+            lines = lines.filter((line, idx, arr) => {
+              const lower = line.toLowerCase();
+              if ((lower.includes("in jesus' name") || lower.includes("in jesus’s name") || lower.includes("in jesus\"s name")) && idx !== arr.length - 2) return false;
+              if ((lower === 'amen' || lower === 'amen.') && idx !== arr.length - 1) return false;
+              return true;
+            });
+
+            // Ensure prayer starts with addressing the Father
+            if (!lines[0].match(/^(Heavenly|Almighty|Loving|Gracious|Dear|Holy)\s+Father,/i)) {
+              lines.unshift('Heavenly Father,');
+            }
+
+            // Remove any trailing empty lines
+            while (lines.length > 0 && !lines[lines.length - 1].trim()) lines.pop();
+
+            // Remove any existing "In Jesus' Name" and "Amen" at the end to avoid duplication
+            while (lines.length > 0 && (lines[lines.length - 1].toLowerCase().includes("in jesus' name") || lines[lines.length - 1].toLowerCase() === 'amen' || lines[lines.length - 1].toLowerCase() === 'amen.')) {
+              lines.pop();
+            }
+
+            // Add the correct closing
+            lines.push("", "In Jesus' Name,", "Amen");
+
+            prayer = lines.join('\n');
           }
 
           // Create and add the day to the devotional
@@ -456,37 +590,38 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
   }
 }
 
-// Helper function to create error responses
-const createErrorResponse = (status: number, error: string, details?: any) => {
-  console.error(`Error ${status}:`, error, details);
-  return new Response(
-    JSON.stringify({
-      error,
-      details: details?.message || String(details),
-    }),
-    {
-      status,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    }
-  );
-};
-
-// Helper function to log request details
-const logRequest = (req: Request, body?: any) => {
-  console.log('=== Request Details ===');
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('Headers:', Object.fromEntries(req.headers.entries()));
-  if (body) {
-    console.log('Body:', JSON.stringify(body, null, 2));
-  }
-  console.log('========================');
-};
-
+// Main server handler
 serve(async (req: Request): Promise<Response> => {
+  // Helper function to create error responses
+  const createErrorResponse = (status: number, error: string, details?: any) => {
+    console.error(`Error ${status}:`, error, details);
+    return new Response(
+      JSON.stringify({
+        error,
+        details: details?.message || String(details),
+      }),
+      {
+        status,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        },
+      }
+    );
+  };
+
+  // Helper function to log request details
+  const logRequest = (req: Request, body?: any) => {
+    console.log('=== Request Details ===');
+    console.log('Method:', req.method);
+    console.log('URL:', req.url);
+    console.log('Headers:', Object.fromEntries(req.headers.entries()));
+    if (body) {
+      console.log('Body:', JSON.stringify(body, null, 2));
+    }
+    console.log('========================');
+  };
+
   // Set CORS headers for preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', {
@@ -531,36 +666,57 @@ serve(async (req: Request): Promise<Response> => {
 
   // Compose prompt for OpenAI
   const prompt = `
-You are a compassionate, biblically grounded devotional writer, an expert in Bible knowledge, a follower of Christ who loves Christ and puts Christ above all, creating a ${duration}-day devotional to help someone grow in their faith. 
-The devotional should be based on the following user input: "${userInput || 'spiritual growth'}" and incorporate relevant spiritual guidance from the playbook content including Truth in Love, Action Steps, Affirmations, and Challenges.
+You are a compassionate, biblically grounded devotional writer, an expert in Bible knowledge, a follower of Christ who loves Christ and puts Christ above all, creating a ${duration}-day devotional to help someone grow in their faith.
 
-Create a structured ${duration}-day devotional that follows this format:
+To generate a devotional, base it on the user's input: "${userInput || 'spiritual growth'}" and incorporate relevant spiritual guidance from the playbook content including Truth in Love, Action Steps, Affirmations, Bible verse, and Challenge card.
+
+${duration === 1 ? 'This will be a single-day devotional with a Devotional Title.' : `This will be a ${duration}-day devotional series with a Series Title and individual Daily Titles for each day.`}
 
 ${duration > 1 ? 'SERIES TITLE:' : 'DEVOTIONAL TITLE:'}
-[${duration > 1 ? 'Create a meaningful, engaging title for the overall devotional series that encapsulates the theme. DO NOT use generic titles like "Devotional" or "Daily Devotional". DO NOT use the user\'s input as the title. The title must be creative and inspired by the devotional\'s theme, not a direct copy of the input.' : 'Create a unique, meaningful, and specific title for this single devotional that reflects its content and theme. DO NOT use generic titles like "Devotional" or "Daily Devotional". DO NOT use the user\'s input as the title. The title must be creative and inspired by the devotional\'s theme, not a direct copy of the input. Examples of good titles: "Finding Peace in Chaos", "Strength for Today", "Walking in Faith", etc.'}]
-
-CATEGORY:
-[Choose ONE specific category that best fits this devotional based on the content and theme. Select from: Prayer, Growth, Healing, Wisdom, Relationships, Purpose, Career, Finances, Mental Health, Parenting, Health. DO NOT use 'General' as a category. If none of these fit perfectly, choose the closest match or create a more specific subcategory of one of these.]
+[Create a meaningful, complete, and natural-sounding title ${duration > 1 ? 'for the overall devotional series' : ''} that encapsulates the theme. The title MUST be a finished phrase or sentence, never cut off or incomplete, and MUST fit within 32 characters. NEVER end with a preposition or leave the thought hanging.]
 
 DESCRIPTION:
-[Write a brief 2-3 sentence description of what this devotional journey will help the reader accomplish]
+[Write a brief description of what this devotional journey will help the reader accomplish.]
+
+CATEGORY:
+[Choose 2-3 specific tags that best fit this devotional based on the content and theme. DO NOT use 'General' as a category.]
 
 For each day (${duration} days total), create the following structure:
 
 DAY 1:
-TITLE: ${duration > 1 ? '[Create a unique, meaningful title for this specific day that differs from the series title]' : '[Use the same title as the devotional title for consistency]'}
-SCRIPTURE: "[Full Bible verse text]" - [Reference (book chapter:verse)] (Ensure the scripture text is enclosed in quotes, followed by a dash, then the reference)
-REFLECTION: [Write a 150-250 word reflection that connects the Scripture to the user's situation, offers spiritual insight, and points to Jesus as the source of hope/strength/transformation. Include practical guidance that aligns with Truth in Love, Action Steps, Affirmations, or Challenges as appropriate.]
-REFLECTION QUESTIONS:
-1. [Question that encourages introspection]
-2. [Question that encourages application]
-3. [Question that encourages spiritual growth]
-PRAYER: [Write a 50-100 word prayer addressing God directly, seeking His help for the specific situation, incorporating the theme and Scripture]
+${duration > 1 ? 'TITLE: [Create a unique, meaningful, and complete title for this specific day that fits within 32 characters and differs from the series title]' : ''}
+SCRIPTURE: "[Full Bible verse text]" - [Reference (book chapter:verse)] (Strictly separate the verse text and the reference. The verse must be in quotes, then a dash, then the reference. DO NOT include the verse text in the reference field. Avoid most common verses unless truly fitting.)
+
+REFLECTION:
+[Write a warm, personal reflection that speaks directly to the reader (use "you"), resonates deeply with their input, and is broken into 2–4 short, readable paragraphs. DO NOT include Questions to Ponder or Prayer in the reflection.]
+
+QUESTIONS TO PONDER:
+[2-3 Christ-centered, introspective questions.]
+
+PRAYER:
+[Write a personal prayer as a letter, broken into 3–5 short lines. Start with "Heavenly Father," or similar, then a line break. Include adoration, confession, supplication, and thanksgiving, but allow for natural, flexible language. End with "In Jesus' Name," on its own line, then "Amen" on its own line. NEVER repeat the ending. Example:
+Almighty Father,
+
+I praise You for being the ultimate Healer.
+I confess my struggle to let go of my pain and anger.
+Please help me to embrace Your healing, trusting that You are working all things for my good.
+Thank You for Your gentle care and the promise of restoration.
+
+In Jesus' Name,
+Amen]
 
 [Repeat the above structure for each day, from DAY 1 to DAY ${duration}]
 
-Make sure each day builds on the previous one, creating a cohesive journey toward spiritual growth and practical application. Each day should have strategic purpose in helping the reader grow in their faith and address their specific situation. Ensure the scripture format is strictly followed: the verse text in quotes, followed by a dash, then the reference (e.g., "For God so loved the world..." - John 3:16).
+${duration > 1 ? `For multi-day devotionals, follow this progression:
+- 3 Days: Problem → Healing → Hope
+- 5 Days: Awareness → Trust → Healing → Action → Renewal
+- 7 Days: Problem → Trust → Growth → Action → Community → Renewal → Celebration
+
+Ensure each day builds on the previous one, creating a cohesive journey toward spiritual growth and practical application.` : ''}
+
+Strictly follow the format for each section. Never let one section bleed into another. Ensure the scripture format is strictly followed: the verse text in quotes, followed by a dash, then the reference (e.g., "For God so loved the world..." - John 3:16).
 `;
+
 
   // Validate required fields
   if (!duration || typeof duration !== 'number' || duration < 1 || duration > 7) {
@@ -592,10 +748,10 @@ Make sure each day builds on the previous one, creating a cohesive journey towar
       'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
-      max_tokens: 2500,
+      max_tokens: 4000,
     }),
   });
 
@@ -646,5 +802,4 @@ Make sure each day builds on the previous one, creating a cohesive journey towar
     status: 500,
     headers: { 'Content-Type': 'application/json' },
   });
-}
 });
