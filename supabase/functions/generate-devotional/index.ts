@@ -140,9 +140,11 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     const response = aiData as Record<string, unknown>;
     const choices = Array.isArray(response?.choices) ? response.choices : [];
     const firstChoice = choices[0] as Record<string, unknown> | undefined;
-    const message = firstChoice?.message as Record<string, unknown> | undefined;
-    const content = (message?.content as string) || '';
+    const content = (firstChoice?.message as Record<string, unknown> | undefined)?.content as string || '';
     if (!content) return errorDevotional('No content found in AI response.', playbookId, userInput);
+    
+    // Log the raw content for debugging
+    console.log('[DEVOTIONAL PARSER] Raw content start:', JSON.stringify(content).substring(0, 500) + (content.length > 500 ? '...' : ''));
 
     const devotional: Devotional = {
       id: `${Date.now()}`,
@@ -160,18 +162,26 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       userInput,
     };
 
-    // Extract title from DEVOTIONAL TITLE, SERIES TITLE, or TITLE (with or without **/#)
-    const titleMatch = content.match(/^(?:[#*\s]*)?(DEVOTIONAL TITLE|SERIES TITLE|TITLE):\s*\n?([^\n]+)/im);
-    devotional.title = titleMatch ? cleanMarkdown(titleMatch[2]).trim().slice(0, 32) : 'Daily Devotional';
+    // Extract title (handle the exact format from OpenAI response)
+    let title = 'Daily Devotional';
+    const titleMatch = content.match(/\*\*SERIES TITLE:\*\*\s*\n([^\n]+)/i);
+    if (titleMatch && titleMatch[1]) {
+      title = cleanMarkdown(titleMatch[1]).trim().slice(0, 32);
+    }
+    devotional.title = title;
+    console.log('[DEVOTIONAL PARSER] Extracted title:', title);
 
-    // Extract description (with or without **/#)
-    const descMatch = content.match(/^(?:[#*\s]*)?DESCRIPTION:\s*\n?([^\n]+)/im);
-    devotional.description = descMatch 
-      ? cleanMarkdown(descMatch[1].trim())
-      : `A ${duration}-day journey to deepen your faith.`;
+    // Extract description (handle the exact format from OpenAI response)
+    let description = `A ${duration}-day journey to deepen your faith.`;
+    const descMatch = content.match(/\*\*DESCRIPTION:\*\*\s*\n([^\n]+)(?:\n\n|\n---|$)/i);
+    if (descMatch && descMatch[1]) {
+      description = cleanMarkdown(descMatch[1]).trim();
+    }
+    devotional.description = description;
+    console.log('[DEVOTIONAL PARSER] Extracted description:', description);
 
-    // Extract categories (with or without **/#)
-    const catMatch = content.match(/^(?:[#*\s]*)?CATEGORY:\s*\n?([^\n]+)/im);
+    // Extract categories
+    const catMatch = content.match(/^(?:[#*]\s*)*CATEGORY:\s*([\s\S]*?)(?=\n{2,}|$)/im);
     const categories = catMatch
       ? cleanMarkdown(catMatch[1])
           .split(/\n|,|;/)
@@ -183,111 +193,162 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         : ['Faith', 'Growth'];
     devotional.category = categories.join(', ');
 
-    // Extract days from markdown format with **, ###, ####, or plain colon
-    const dayRegex = /^(?:[#*]{2,4}\s*|###\s*|####\s*)?DAY (\d+):\s*\n?([\s\S]*?)(?=^(?:[#*]{2,4}\s*|###\s*|####\s*)?DAY \d+:|^(?:[#*\s]*)?CATEGORY:|$)/gim;
+    // Extract days - handle the specific format from OpenAI response
+    console.log('[DEVOTIONAL PARSER] Trying to parse days...');
+    
+    // First try with the exact format from OpenAI: **DAY X:**
     let dayMatches: Array<[unknown, string, string]> = [];
-    let match: RegExpExecArray | null;
-    const foundDayHeaders: string[] = [];
-    while ((match = dayRegex.exec(content)) !== null) {
-      const dayNum = match[1];
-      const dayContent = match[2];
-      foundDayHeaders.push(match[0].split('\n')[0]);
-      dayMatches.push([null, dayNum, dayContent]);
+    const dayRegex = /\*\*DAY\s*(\d+):\*\*\s*\n([\s\S]*?)(?=\*\*DAY\s*\d+:|\.{3}|$)/gi;
+    
+    let match;
+    while ((match = dayRegex.exec('\n' + content)) !== null) {
+      console.log(`[DEVOTIONAL PARSER] Found day ${match[1]} with content length:`, match[2].length);
+      dayMatches.push([null, match[1], match[2].trim()]);
     }
-    console.log('[DEVOTIONAL PARSER] Days parsed:', dayMatches.length, 'Headers:', foundDayHeaders);
+    
+    console.log('[DEVOTIONAL PARSER] Days parsed (markdown format):', dayMatches.length);
+    
+    // If no days found, try with the exact format but without the **
+    if (dayMatches.length === 0) {
+      console.log('[DEVOTIONAL PARSER] Trying alternative day parsing...');
+      const altDayRegex = /DAY\s*(\d+):\s*\n([\s\S]*?)(?=DAY\s*\d+:|$)/gi;
+      let altMatch;
+      while ((altMatch = altDayRegex.exec(content)) !== null) {
+        console.log(`[DEVOTIONAL PARSER] Found day ${altMatch[1]} (alt format) with content length:`, altMatch[2].length);
+        dayMatches.push([null, altMatch[1], altMatch[2].trim()]);
+      }
+    }
+    
+    // If still no days found, try splitting by the separator (---)
+    if (dayMatches.length === 0) {
+      console.log('[DEVOTIONAL PARSER] Trying separator-based parsing...');
+      const daySections = content.split(/\n---\n/);
+      
+      daySections.forEach((section, index) => {
+        const dayMatch = section.match(/DAY\s*(\d+):/i);
+        if (dayMatch && dayMatch.index !== undefined) {
+          const dayNum = dayMatch[1];
+          const dayContent = section.substring(dayMatch.index + dayMatch[0].length).trim();
+          console.log(`[DEVOTIONAL PARSER] Found day ${dayNum} (separator format) with content length:`, dayContent.length);
+          dayMatches.push([null, dayNum, dayContent]);
+        } else if (index > 0 && dayMatches.length > 0) {
+          // If we can't parse the day number but we have previous days,
+          // assume it's a continuation of the previous day
+          console.log(`[DEVOTIONAL PARSER] Adding content to previous day (${section.length} chars)`);
+          const lastDay = dayMatches[dayMatches.length - 1];
+          lastDay[2] = (lastDay[2] + '\n\n' + section).trim();
+        }
+      });
+    }
+    
+    console.log('[DEVOTIONAL PARSER] Total days parsed:', dayMatches.length);
+    
+    // Fallback for single-day devotionals
     if (dayMatches.length === 0 && duration === 1) {
-      // fallback for single-day devotionals
-      const singleDayMatch = content.match(/^(?:[#*\s]*)?DAY 1:[\s\S]*?(?:DAILY TITLE:|\*\*DAILY TITLE:\*\*)[\s\S]*?(?:SCRIPTURE:|\*\*SCRIPTURE:\*\*)[\s\S]*?(?:DAILY REFLECTION:|\*\*DAILY REFLECTION:\*\*)[\s\S]*?(?:REFLECTION QUESTIONS:|\*\*REFLECTION QUESTIONS:\*\*)[\s\S]*?(?:PRAYER:|\*\*PRAYER:\*\*)/i);
-      if (singleDayMatch) dayMatches = [[null, '1', singleDayMatch[0]]];
-      console.log('[DEVOTIONAL PARSER] Fallback single day triggered:', !!singleDayMatch);
+      console.log('[DEVOTIONAL PARSER] No days found, using full content as single day');
+      dayMatches = [[null, '1', content]];
     }
 
     for (const [, dayNum, dayContent] of dayMatches) {
       try {
         const dayNumber = parseInt(dayNum, 10);
-        
-        // Extract day title (with or without **/#, allow optional newline/space after colon)
-        const dayTitleMatch = dayContent.match(/(?:[#*\s]*)?DAILY TITLE:\s*(?:\n+)?([^\n]+)/i);
-        console.log('[DEVOTIONAL PARSER] DayTitleMatch:', dayTitleMatch ? dayTitleMatch[1] : null);
-        const dayTitle = duration > 1
-          ? (dayTitleMatch ? dayTitleMatch[1] : `Day ${dayNumber}`)
-          : devotional.title;
+        console.log(`[DEVOTIONAL PARSER] Processing Day ${dayNum}...`);
+
+        // Log day content for debugging
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} content (first 100 chars):`, JSON.stringify(dayContent.substring(0, 100)));
+
+        // Extract day title (handle the exact format from OpenAI response)
+        let dayTitle = `Day ${dayNumber}`; // Default title
+        const dayTitleMatch = dayContent.match(/\*\*DAILY TITLE:\*\*\s*\n([^\n]+)/i);
+        if (dayTitleMatch && dayTitleMatch[1]) {
+          dayTitle = dayTitleMatch[1].trim();
+        }
         const cleanDayTitle = cleanMarkdown(dayTitle).trim().slice(0, 32);
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Title:`, cleanDayTitle);
 
-        // Extract scripture (with or without **/#, allow same-line and flexible reference, allow optional newline/space after colon)
-        const scriptureMatch = dayContent.match(/(?:[#*\s]*)?SCRIPTURE:\s*(?:\n+)?"?([^"\n]+?)"?\s*-\s*([^\n]+)/i);
-        console.log('[DEVOTIONAL PARSER] ScriptureMatch:', scriptureMatch ? [scriptureMatch[1], scriptureMatch[2]] : null);
-        const scripture = scriptureMatch
-          ? {
-              text: cleanMarkdown(scriptureMatch[1]).trim(),
-              reference: cleanMarkdown(scriptureMatch[2]).trim(),
-            }
-          : {
-              text: 'Your word is a lamp to my feet and a light to my path.',
-              reference: 'PSALM 119:105',
-            };
+        // Extract scripture (handle the exact format from OpenAI response)
+        let scriptureText = 'Your word is a lamp to my feet and a light to my path.';
+        let scriptureRef = 'PSALM 119:105';
+        
+        // Try to match the exact format from OpenAI response
+        const scriptureMatch = dayContent.match(/\*\*SCRIPTURE:\*\*\s*\n\\"([^\"]+)\"\s*-\s*([A-Z0-9\s:]+)/i) ||
+                              dayContent.match(/\*\*SCRIPTURE:\*\*\s*\n([^\n-]+)\s*-\s*([A-Z0-9\s:]+)/i);
+        
+        if (scriptureMatch) {
+          scriptureText = scriptureMatch[1].trim();
+          scriptureRef = scriptureMatch[2].trim();
+        } else {
+          // Fallback: Try to find anything that looks like a scripture reference
+          const possibleScripture = dayContent.match(/\*\*SCRIPTURE:\*\*[\s\n]*([^\n]+?)([A-Z0-9\s]+:[0-9]+(?:-[0-9]+)?)/i);
+          if (possibleScripture) {
+            scriptureText = possibleScripture[1].replace(/[-"]/g, '').trim();
+            scriptureRef = possibleScripture[2].trim();
+          }
+        }
+        
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Scripture:`, { text: scriptureText, reference: scriptureRef });
+        const scripture = {
+          text: cleanMarkdown(scriptureText),
+          reference: cleanMarkdown(scriptureRef)
+        };
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Scripture:`, scripture);
 
-        // Extract reflection (with or without **/#, allow optional newline/space after colon)
-        const reflectionMatch = dayContent.match(/(?:[#*\s]*)?DAILY REFLECTION:\s*(?:\n+)?([\s\S]*?)(?=(?:[#*\s]*)?REFLECTION QUESTIONS:|(?:[#*\s]*)?PRAYER:|$)/i);
-        console.log('[DEVOTIONAL PARSER] ReflectionMatch:', reflectionMatch ? (reflectionMatch[1] || reflectionMatch[0]) : null);
+        // Extract reflection (handle both DAILY REFLECTION and REFLECTION headers)
         let reflection = '';
+        const reflectionMatch = dayContent.match(/(?:DAILY REFLECTION|REFLECTION):\s*([\s\S]*?)(?=(?:REFLECTION QUESTIONS|QUESTIONS|PRAYER):|$)/i);
         if (reflectionMatch) {
-          // For g flag, reflectionMatch[1] may be undefined, so fallback to [0] and strip header
-          let reflectionRaw = reflectionMatch[1] || reflectionMatch[0].replace(/^(?:[#*\s]*)?DAILY REFLECTION:\s*/i, '');
-          reflection = cleanMarkdown(reflectionRaw).trim();
-          // If there are no double newlines, insert after every 2 sentences
+          reflection = cleanMarkdown(reflectionMatch[1]).trim();
+          // Format into paragraphs if not already
           if (!/\n{2,}/.test(reflection)) {
-            // Split by sentence (naive: period/question/exclamation followed by space or end)
             const sentences = reflection.split(/(?<=[.!?])\s+/);
             const paragraphs = [];
             for (let i = 0; i < sentences.length; i += 2) {
               paragraphs.push(sentences.slice(i, i + 2).join(' '));
             }
             reflection = paragraphs.join('\n\n');
-          } else {
-            // Just normalize double newlines
-            reflection = reflection.replace(/\n{2,}/g, '\n\n');
           }
+        } else {
+          reflection = 'Take time to reflect on today\'s scripture and how it speaks to your current situation.';
         }
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Reflection length:`, reflection.length);
 
-        // Extract questions (with or without **/#, allow optional newline/space after colon)
-        const questionsMatch = dayContent.match(/(?:[#*\s]*)?REFLECTION QUESTIONS:\s*(?:\n+)?([\s\S]*?)(?=(?:[#*\s]*)?PRAYER:|$)/i);
-        console.log('[DEVOTIONAL PARSER] QuestionsMatch:', questionsMatch ? (questionsMatch[1] || questionsMatch[0]) : null);
-        let questionsRaw = '';
+        // Extract questions (handle both REFLECTION QUESTIONS and QUESTIONS headers)
+        let reflectionQuestions: ReflectionQuestion[] = [];
+        const questionsMatch = dayContent.match(/(?:REFLECTION QUESTIONS|QUESTIONS):\s*([\s\S]*?)(?=PRAYER:|$)/i);
         if (questionsMatch) {
-          questionsRaw = questionsMatch[1] || questionsMatch[0].replace(/^(?:[#*\s]*)?REFLECTION QUESTIONS:\s*/i, '');
+          const questionsRaw = questionsMatch[1];
+          reflectionQuestions = questionsRaw
+            .split('\n')
+            .map(q => q.trim())
+            .filter(q => q && q.match(/^\d+\./))
+            .map((q, i) => ({
+              id: `q${i + 1}`,
+              text: cleanMarkdown(q.replace(/^\d+\.\s*/, '')).trim(),
+            }));
         }
-        const reflectionQuestions = questionsRaw
-          ? questionsRaw
-              .split('\n')
-              .map((q) => q.trim())
-              .filter((q) => q && q.match(/^\d+\./))
-              .map((q, i) => ({
-                id: `q${i + 1}`,
-                text: cleanMarkdown(q.replace(/^\d+\.\s*/, '')).trim(),
-              }))
-          : [
-              { id: 'q1', text: 'What stood out to you today?' },
-              { id: 'q2', text: 'How can you apply this to your life?' },
-              { id: 'q3', text: 'How does this point you to Christ?' },
-            ];
+        if (reflectionQuestions.length === 0) {
+          reflectionQuestions = [
+            { id: 'q1', text: 'What stood out to you today?' },
+            { id: 'q2', text: 'How can you apply this to your life?' },
+            { id: 'q3', text: 'How does this point you to Christ?' },
+          ];
+        }
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Questions count:`, reflectionQuestions.length);
 
-        // Extract prayer (with or without **/#, allow optional newline/space after colon)
-        const prayerMatch = dayContent.match(/(?:[#*\s]*)?PRAYER:\s*(?:\n+)?([\s\S]*?)(?=In Jesus'? Name,?\s*?Amen|$)/i);
-        console.log('[DEVOTIONAL PARSER] PrayerMatch:', prayerMatch ? (prayerMatch[1] || prayerMatch[0]) : null);
+        // Extract prayer (handle different prayer formats)
         let prayerText = '';
+        const prayerMatch = dayContent.match(/PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus'? Name,?\s*?Amen|$)/i);
         if (prayerMatch) {
-          let prayerBody = cleanMarkdown(prayerMatch[1] || prayerMatch[0].replace(/^(?:[#*\s]*)?PRAYER:\s*/i, '')).trim();
-          // Remove leading/trailing blank lines
+          let prayerBody = cleanMarkdown(prayerMatch[1]).trim();
           prayerBody = prayerBody.replace(/^\s+|\s+$/g, '');
-
-          // Only prepend 'Heavenly Father,' if not present
+          
+          // Ensure proper prayer format
           if (!/^Heavenly Father,?/i.test(prayerBody)) {
             prayerText += 'Heavenly Father,\n';
           }
           prayerText += prayerBody;
-
-          // Only append 'In Jesus' Name,\nAmen' if not present
+          
+          // Ensure proper closing
           if (!/In Jesus'? Name,?\s*\n?Amen\.?$/i.test(prayerText)) {
             if (!/In Jesus'? Name,?/i.test(prayerText)) {
               prayerText += '\nIn Jesus\' Name,';
@@ -297,15 +358,10 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             }
           }
         } else {
-          prayerText = 'Heavenly Father,\n';
-          prayerText += 'Thank You for this time together.\n';
-          prayerText += 'Guide me in Your truth today.\n';
-          prayerText += 'Forgive me for doubting Your path.\n';
-          prayerText += 'Help me trust Your plan.\n';
-          prayerText += 'Thank You for Your faithfulness.\n';
-          prayerText += 'In Jesus\' Name,\nAmen';
+          // Default prayer if none found
+          prayerText = 'Heavenly Father,\nThank You for this time together.\nGuide me in Your truth today.\nForgive me for doubting Your path.\nHelp me trust Your plan.\nThank You for Your faithfulness.\nIn Jesus\' Name,\nAmen';
         }
-        const prayer = prayerText;
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Prayer:`, prayerText.substring(0, 100));
 
         devotional.days.push({
           id: `${Date.now()}-day-${dayNumber}`,
@@ -314,7 +370,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           scripture,
           reflection,
           reflectionQuestions,
-          prayer,
+          prayer: prayerText,
           completed: false,
         });
       } catch (error) {
@@ -455,7 +511,10 @@ Amen
 `}
 
 CATEGORY:
-[2-3 specific AI-generated tags, e.g., "Peace, Trust, Healing", based on theme. Avoid "General".]
+2-3 specific AI-generated tags, e.g., "Peace, Trust, Healing", based on theme. Avoid "General".
+[AI-generated category tag 1]
+[AI-generated category tag 2]
+[AI-generated category tag 3 (if applicable)]
 
 ${duration > 1 ? `
 SERIES ARC GUIDE:
