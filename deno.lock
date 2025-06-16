@@ -1,0 +1,70 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://deno.land/std/http/server.ts": "https://deno.land/std@0.224.0/http/server.ts"
+  },
+  "remote": {
+    "https://deno.land/std@0.224.0/async/delay.ts": "f90dd685b97c2f142b8069082993e437b1602b8e2561134827eeb7c12b95c499",
+    "https://deno.land/std@0.224.0/http/server.ts": "f9313804bf6467a1704f45f76cb6cd0a3396a3b31c316035e6a4c2035d1ea514"
+  },
+  "workspace": {
+    "packageJson": {
+      "dependencies": [
+        "npm:@babel/core@^7.25.2",
+        "npm:@babel/preset-env@^7.25.3",
+        "npm:@babel/runtime@^7.27.4",
+        "npm:@bam.tech/react-native-make@^3.0.3",
+        "npm:@expo/vector-icons@^14.1.0",
+        "npm:@react-native-async-storage/async-storage@^2.1.2",
+        "npm:@react-native-community/blur@^4.4.1",
+        "npm:@react-native-community/cli-platform-android@18.0.0",
+        "npm:@react-native-community/cli-platform-ios@18.0.0",
+        "npm:@react-native-community/cli@18.0.0",
+        "npm:@react-native-community/netinfo@^11.4.1",
+        "npm:@react-native/babel-preset@0.79.2",
+        "npm:@react-native/eslint-config@0.79.2",
+        "npm:@react-native/metro-config@0.79.2",
+        "npm:@react-native/typescript-config@0.79.2",
+        "npm:@react-navigation/bottom-tabs@^7.3.14",
+        "npm:@react-navigation/native-stack@^7.3.14",
+        "npm:@react-navigation/native@^7.1.10",
+        "npm:@react-navigation/stack@^7.3.3",
+        "npm:@supabase/supabase-js@^2.49.8",
+        "npm:@types/express@^5.0.3",
+        "npm:@types/jest@^29.5.13",
+        "npm:@types/node-fetch@^2.6.12",
+        "npm:@types/react-native-vector-icons@^6.4.18",
+        "npm:@types/react-test-renderer@19",
+        "npm:@types/react@19",
+        "npm:base-64@1",
+        "npm:date-fns@^4.1.0",
+        "npm:eslint@^8.19.0",
+        "npm:jest@^29.6.3",
+        "npm:node-fetch@^3.3.2",
+        "npm:prettier@2.8.8",
+        "npm:prop-types@^15.8.1",
+        "npm:react-is@^19.1.0",
+        "npm:react-native-dotenv@^3.4.11",
+        "npm:react-native-fetch-api@3",
+        "npm:react-native-gesture-handler@^2.25.0",
+        "npm:react-native-get-random-values@^1.11.0",
+        "npm:react-native-linear-gradient@^2.8.3",
+        "npm:react-native-polyfill-globals@^3.1.0",
+        "npm:react-native-reanimated@^3.18.0",
+        "npm:react-native-safe-area-context@^5.4.1",
+        "npm:react-native-screens@^4.11.1",
+        "npm:react-native-svg@^15.12.0",
+        "npm:react-native-url-polyfill@2",
+        "npm:react-native-vector-icons@^10.2.0",
+        "npm:react-native@0.79.2",
+        "npm:react-navigation-shared-element@^3.1.3",
+        "npm:react-test-renderer@19.0.0",
+        "npm:react@19.0.0",
+        "npm:text-encoding@0.7",
+        "npm:typescript@5.0.4",
+        "npm:web-streams-polyfill@3.2.1",
+        "npm:zustand@^5.0.5"
+      ]
+    }
+  }
+}
