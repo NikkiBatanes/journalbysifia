@@ -132,7 +132,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           </TouchableOpacity>
           <View style={styles.headerContent}>
             <Text style={styles.headerTitle} numberOfLines={2} ellipsizeMode="tail">
-              {devotional.title ? devotional.title.replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '') : ''}
+              {devotional.title ? (devotional.title.includes(':') ? devotional.title.split(':')[1].trim() : devotional.title) : 'Devotional'}
             </Text>
             <View style={styles.dayCounterContainer}>
               <Ionicons name="calendar-clear-outline" size={16} color={Colors.anchorBlue} style={styles.calendarIcon} />
@@ -176,7 +176,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         <View style={styles.dayTitleContainer}>
           <Text style={styles.dayNumber}>Day {currentDayIndex + 1}</Text>
           <Text style={styles.dayTitle} numberOfLines={2} ellipsizeMode="tail">
-            {devotional.title ? devotional.title.replace(/^(?:DEVOTIONAL|SERIES)?\s*TITLE:\s*/i, '') : ''}
+            {devotional.totalDays === 1
+              ? (devotional.title ? (devotional.title.includes(':') ? devotional.title.split(':')[1].trim() : devotional.title) : 'Devotional')
+              : (currentDay?.title || 'Untitled Day')}
           </Text>
         </View>
         {/* Scripture Card */}

@@ -69,12 +69,11 @@ const DevotionalsScreen = () => {
   };
 
   const renderDevotionalItem = ({ item }: { item: Devotional }) => {
-    // Calculate progress percentage (0-100)
-    const progress = item.progress; // Already comes as a percentage from the backend
-
+    // Calculate progress based on completed days
+    const completedDays = item.days?.filter(day => day.completed).length || 0;
+    const progress = (completedDays / item.totalDays) * 100;
     // Find the first incomplete day or use the last day if all are complete
     const currentDayIndex = item.days?.findIndex(day => !day.completed) ?? -1;
-    const completedDays = item.days?.filter(day => day.completed).length || 0;
     const currentDay = currentDayIndex >= 0 ? currentDayIndex + 1 : item.totalDays;
     const isComplete = progress >= 100;
     const formattedDate = formatDate(item.createdAt);
@@ -98,8 +97,8 @@ const DevotionalsScreen = () => {
 
     const displayCategory = formatCategory(item.category);
 
-    // Remove prefixes from title
-    const cleanTitle = item.title.replace(/^(?:DEVOTIONAL|SERIES)\s*TITLE:\s*/i, '');
+    // Remove prefixes from title and ensure we have a title
+    const cleanTitle = item.title ? (item.title.includes(':') ? item.title.split(':')[1].trim() : item.title) : 'Devotional';
 
     return (
       <View style={styles.swipeableContainer}>
@@ -331,13 +330,13 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   devotionalTitle: {
-    fontSize: 17,
+    fontSize: 20, // Increased font size
     fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
-    lineHeight: 24,
-    paddingVertical: 1,
+    lineHeight: 28, // Increased line height
+    paddingVertical: 2,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 6, // Increased margin
   },
   description: {
     fontSize: 14,
@@ -401,15 +400,15 @@ const styles = StyleSheet.create({
   },
   barBg: {
     width: '100%',
-    height: 10, // Slightly thicker bar
+    height: 12, // Thicker bar for better visibility
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 5,
+    borderRadius: 6,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   progressTextContainer: {
     width: 50,
