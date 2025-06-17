@@ -169,8 +169,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   // Handle rating submission
   const handleRatingSubmit = async (rating: number) => {
     if (!devotional || completedDayIndex === null) {
-      setShowCompletionModal(false);
-      setCompletedDayIndex(null);
       return;
     }
 
@@ -178,19 +176,23 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       // Submit the rating
       await submitDevotionalRating(devotional.id, rating);
 
-      // Mark the day as complete (optional, since this should already be done)
+      // Update local state to reflect the completed day if needed
       const completedDay = devotional.days[completedDayIndex];
-      if (completedDay) {
-        await markDayComplete(devotional.id, completedDay.dayNumber);
+      if (completedDay && !completedDay.completed) {
+        const updatedDays = [...devotional.days];
+        updatedDays[completedDayIndex] = {
+          ...completedDay,
+          completed: true,
+          completedAt: completedDay.completedAt || new Date().toISOString(),
+        };
+        setDevotional({
+          ...devotional,
+          days: updatedDays,
+        });
       }
-
-      // Do NOT advance the day here. Only close the modal.
-      setShowCompletionModal(false);
-      setCompletedDayIndex(null);
     } catch (error) {
-      console.error('Error submitting rating or marking day as complete:', error);
-      setShowCompletionModal(false);
-      setCompletedDayIndex(null);
+      console.error('Error submitting rating:', error);
+      // Don't close the modal on error - let the user try again
     }
   };
 

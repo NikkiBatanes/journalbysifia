@@ -189,8 +189,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             setTimeout(() => {
               setIsSuccess(false);
               checkmarkAnim.setValue(0);
-            }, 100); // Match slide down duration
-          }, 320); // Wait 350ms before starting close
+            }, 150); // Match slide down duration
+          }, 350); // Wait 350ms before starting close
         }, 280); // Checkmark animates in for 280ms
         }
       }

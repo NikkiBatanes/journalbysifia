@@ -98,25 +98,13 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     });
   }, [onClose, slideAnim]);
 
-  const handleRatingSubmit = useCallback(async (selectedRating: number) => {
-    if (selectedRating > 0) {
-      try {
-        await onRatingSubmit(selectedRating);
-        // Use setTimeout to defer the close to the next tick
-        setTimeout(handleClose, 0);
-      } catch (error) {
-        console.error('Error submitting rating:', error);
-      }
-    }
-  }, [onRatingSubmit, handleClose]);
-
   const handleStarPress = useCallback((index: number) => {
     const selectedRating = index + 1;
-    // Only update the UI state immediately
+    // Update the UI state immediately
     setRating(selectedRating);
-    // Handle the async submission separately
-    handleRatingSubmit(selectedRating).catch(console.error);
-  }, [handleRatingSubmit]);
+    // Submit the rating in the background
+    onRatingSubmit(selectedRating).catch(console.error);
+  }, [onRatingSubmit]);
 
   const renderStars = () => {
     return (
@@ -167,7 +155,10 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     >
       <View style={styles.overlay}>
         <TouchableWithoutFeedback onPress={handleClose}>
-          <Animated.View style={[styles.backdrop, { opacity: visible ? 1 : 0 }]} />
+          <Animated.View style={[
+            styles.backdrop,
+            visible && styles.backdropVisible
+          ]} />
         </TouchableWithoutFeedback>
         <Animated.View
           style={[
@@ -176,6 +167,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           ]}
         >
           <View style={styles.header}>
+            <View style={styles.handle} />
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.hopeWhite} />
             </TouchableOpacity>
@@ -193,9 +185,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 {devotional.title && (
                   <View style={styles.titleContainer}>
                     <Text style={styles.devotionalTitle} numberOfLines={2}>
-                      {devotional.totalDays > 1 
-                        ? `${extractCleanTitle(devotional.title)}: ${currentDay?.title || ''}`
-                        : extractCleanTitle(devotional.title)}
+                      {extractCleanTitle(devotional.title)}
                     </Text>
                   </View>
                 )}
@@ -216,7 +206,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 </Animated.View>
 
                 <Text style={styles.dayIndicator}>
-                  {completedDays}/{totalDays} Days Completed
+                  {completedDays}/{totalDays} {completedDays === 1 ? 'Day' : 'Days'} Completed
                 </Text>
 
                 <View style={styles.progressContainer}>
@@ -240,18 +230,20 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
               </>
             ) : (
               <>
-                <Text style={styles.devotionalTitle}>
-                  {devotional.totalDays > 1 && currentDay
-                    ? `${extractCleanTitle(devotional.title)}: ${currentDay.title}`
-                    : extractCleanTitle(devotional.title)}
-                </Text>
                 {devotional.totalDays > 1 && (
                   <Text style={styles.dayIndicator}>
                     Day {currentDayNumber} of {totalDays}
                   </Text>
                 )}
+                <View style={styles.titleContainer}>
+                  <Text style={styles.devotionalTitle}>
+                    {devotional.totalDays > 1 && currentDay
+                      ? `${extractCleanTitle(devotional.title)}: ${currentDay.title}`
+                      : extractCleanTitle(devotional.title)}
+                  </Text>
+                </View>
                 <Text style={styles.completedText}>
-                  Completed!
+                  COMPLETED!
                 </Text>
 
                 <Animated.View
@@ -306,6 +298,10 @@ const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    opacity: 0,
+  },
+  backdropVisible: {
+    opacity: 1,
   },
   modalContent: {
     backgroundColor: Colors.anchorBlue,
@@ -318,17 +314,29 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: 16,
+    paddingTop: 24,
+    position: 'relative',
   },
   closeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 12,
     padding: 8,
-    alignSelf: 'flex-end',
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 2,
+    marginTop: 4,
   },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 0,
+    paddingTop: 20, // Added top padding to push content down
     paddingBottom: 20,
     alignItems: 'center',
     justifyContent: 'flex-start',
@@ -340,11 +348,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   completedText: {
-    ...TypographyStyles.interRegular,
+    ...TypographyStyles.interBold,
     fontSize: 18,
     color: Colors.growthGreen,
-    marginTop: 8,
-    fontWeight: '500',
+    marginTop: 16, // Increased top margin for more spacing
+    marginBottom: 8, // Added bottom margin for more spacing
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   congratsTitle: {
     ...TypographyStyles.interBold,
@@ -372,7 +382,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   progressContainer: {
-    width: '80%',
+    width: '100%',
     marginTop: 10,
     marginBottom: 30,
   },
@@ -385,7 +395,7 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 6,
+    borderRadius: 4,
   },
   progressText: {
     ...TypographyStyles.interSemiBold,
@@ -413,8 +423,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
     padding: 16,
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 24, // Increased top margin for more spacing
+    marginBottom: 24, // Increased bottom margin for more spacing
     width: '100%',
     alignSelf: 'center',
   },
