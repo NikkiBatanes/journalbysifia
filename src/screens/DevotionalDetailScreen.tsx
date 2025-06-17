@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
@@ -32,6 +33,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showFAB, setShowFAB] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
   const [scripture, setScripture] = useState<Scripture>({
     text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
     reference: 'JOHN 3:16',
@@ -132,9 +136,37 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     );
   }
 
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    {
+      useNativeDriver: false,
+      listener: (event: any) => {
+        const offsetY = event.nativeEvent.contentOffset.y;
+        const contentHeight = event.nativeEvent.contentSize.height;
+        const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+
+        // Show FAB when scrolled to bottom
+        const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 50;
+        setShowFAB(isAtBottom);
+      },
+    }
+  );
+
+
   return (
     <SafeAreaView style={styles.container} edges={['right', 'top', 'left']} mode="margin">
       <StatusBar barStyle="dark-content" />
+
+      {/* Floating Action Button */}
+      {currentDay && !currentDay.completed && showFAB && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleMarkComplete}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="checkmark-sharp" size={32} color={Colors.hopeWhite} />
+        </TouchableOpacity>
+      )}
 
       {/* Fixed Header */}
       <View style={styles.fixedHeader}>
@@ -183,9 +215,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
       {/* Scrollable Content */}
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         {/* Day Title - Moved below progress bar */}
         <View style={styles.dayTitleContainer}>
@@ -263,19 +298,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           </View>
         </DevotionalSectionCard>
 
-        {/* Complete Button */}
-        {currentDay && !currentDay.completed && (
-          <TouchableOpacity
-            style={styles.completeButton}
-            onPress={handleMarkComplete}
-          >
-            <Text style={styles.completeButtonText}>Mark Day Complete</Text>
-          </TouchableOpacity>
-        )}
+        {/* Removed the bottom complete button in favor of FAB */}
 
         {currentDay?.completed && (
           <View style={styles.completedBadge}>
-            <Ionicons name="checkmark-circle" size={20} color={Colors.faithGold} />
+            <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
             <Text style={styles.completedText}>Completed</Text>
           </View>
         )}
@@ -523,23 +550,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontStyle: 'italic',
   },
-  sectionSubtitleCard: {
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  completeButton: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  completeButtonText: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    fontWeight: '600',
-  },
   completedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -550,10 +560,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   completedText: {
-    color: Colors.faithGold,
-    fontSize: 16,
-    fontWeight: '600',
     marginLeft: 8,
+    color: Colors.growthGreen,
+    fontWeight: '600',
   },
   scriptureText: {
     ...TypographyStyles.interRegular,
@@ -561,6 +570,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: Colors.hopeWhite,
     marginTop: 12,
+    marginBottom: 12,
     fontStyle: 'italic',
   },
   scriptureReference: {
@@ -583,5 +593,23 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 28,
+    left: '50%',
+    marginLeft: -30, // Half of the width to center it perfectly
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.growthGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 100,
   },
 });
