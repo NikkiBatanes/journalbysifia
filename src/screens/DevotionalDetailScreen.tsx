@@ -34,11 +34,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showFAB, setShowFAB] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  const [dayCompleted, setDayCompleted] = useState<number | null>(null);
+  // Store the index of the completed day for modal display
+  const [completedDayIndex, setCompletedDayIndex] = useState<number | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [showFAB, setShowFAB] = useState(false);
   const [scripture, setScripture] = useState<Scripture>({
     text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
     reference: 'JOHN 3:16',
@@ -75,14 +76,24 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     const foundDevotional = devotionals.find(d => d.id === devotionalId);
     if (foundDevotional) {
       setDevotional(foundDevotional);
-
-      // Set current day index to the first incomplete day or the last day
-      const incompleteIndex = foundDevotional.days.findIndex(day => !day.completed);
-      const newIndex = incompleteIndex >= 0 ? incompleteIndex : foundDevotional.days.length - 1;
-      setCurrentDayIndex(newIndex);
     }
     setLoading(false);
   }, [devotionalId, devotionals]);
+
+  // Set current day index ONLY on initial devotional load
+  useEffect(() => {
+    if (devotional) {
+      // Only run this effect the first time devotional is loaded (not on every update)
+      setCurrentDayIndex(prevIndex => {
+        // If already set (not 0), don't reset
+        if (prevIndex !== 0) {return prevIndex;}
+        const incompleteIndex = devotional.days.findIndex(day => !day.completed);
+        return incompleteIndex >= 0 ? incompleteIndex : devotional.days.length - 1;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [devotional?.id]); // Only run when devotional id changes (first load)
+
 
   // Ensure currentDay is always defined in render
   const currentDay = devotional?.days?.[currentDayIndex];
@@ -90,49 +101,63 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   console.log('DevotionalDetailScreen currentDay:', currentDay);
   console.log('DevotionalDetailScreen prayer:', currentDay?.prayer);
 
-  const handleMarkComplete = () => {
-    if (!devotional) {return;}
+  const handleMarkComplete = async () => {
+    if (!devotional) {
+      return;
+    }
 
     // Get the current day
     const dayToMark = devotional.days[currentDayIndex];
-    if (!dayToMark) {return;}
-
-    // Set the day that will be marked as complete (but don't mark it yet)
-    setDayCompleted(dayToMark.dayNumber);
-
-    // Show the completion modal first
-    setShowCompletionModal(true);
-  };
-
-  // Handle continuing after completion modal
-  const handleCompletionContinue = async () => {
-    if (!devotional || dayCompleted === null) {
-      setShowCompletionModal(false);
+    if (!dayToMark) {
       return;
     }
 
     try {
-      // Mark the day as complete when continuing
-      await markDayComplete(devotional.id, dayCompleted);
-
-      // Find the next day
-      const nextDayIndex = currentDayIndex + 1;
-
-      // If there's a next day, go to it and scroll to top
-      if (nextDayIndex < devotional.days.length) {
-        setCurrentDayIndex(nextDayIndex);
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        }, 50);
+      // Mark the day as complete in the database
+      const success = await markDayComplete(devotional.id, dayToMark.dayNumber);
+      if (success) {
+        // Update local state to reflect the completed day
+        const updatedDays = [...devotional.days];
+        const dayIndex = updatedDays.findIndex(d => d.dayNumber === dayToMark.dayNumber);
+        if (dayIndex !== -1) {
+          updatedDays[dayIndex] = {
+            ...updatedDays[dayIndex],
+            completed: true,
+            completedAt: new Date().toISOString(),
+          };
+          // Update the local devotional state
+          setDevotional({
+            ...devotional,
+            days: updatedDays,
+          });
+          // Store the completed day index for modal display
+          setCompletedDayIndex(currentDayIndex);
+          setShowCompletionModal(true);
+        }
+      } else {
+        console.error('Failed to mark day as complete');
       }
-
-      // Close the modal
-      setShowCompletionModal(false);
-
     } catch (error) {
       console.error('Error marking day as complete:', error);
-      setShowCompletionModal(false);
     }
+  };
+
+  // Handle continuing after completion modal
+  const handleCompletionContinue = () => {
+    if (!devotional) {
+      setShowCompletionModal(false);
+      setCompletedDayIndex(null);
+      return;
+    }
+    const nextDayIndex = currentDayIndex + 1;
+    if (nextDayIndex < devotional.days.length) {
+      setCurrentDayIndex(nextDayIndex);
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }, 50);
+    }
+    setShowCompletionModal(false);
+    setCompletedDayIndex(null);
   };
 
   // Handle closing the modal by pressing the X button or backdrop
@@ -143,8 +168,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
   // Handle rating submission
   const handleRatingSubmit = async (rating: number) => {
-    if (!devotional || dayCompleted === null) {
+    if (!devotional || completedDayIndex === null) {
       setShowCompletionModal(false);
+      setCompletedDayIndex(null);
       return;
     }
 
@@ -152,28 +178,19 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       // Submit the rating
       await submitDevotionalRating(devotional.id, rating);
 
-      // Mark the day as complete
-      await markDayComplete(devotional.id, dayCompleted);
-
-      // Find the next day
-      const nextDayIndex = currentDayIndex + 1;
-
-      // If there's a next day, go to it and scroll to top
-      if (nextDayIndex < devotional.days.length) {
-        setCurrentDayIndex(nextDayIndex);
-        // Scroll to top after state update
-        setTimeout(() => {
-          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-        }, 50);
+      // Mark the day as complete (optional, since this should already be done)
+      const completedDay = devotional.days[completedDayIndex];
+      if (completedDay) {
+        await markDayComplete(devotional.id, completedDay.dayNumber);
       }
 
-      // Close the modal
+      // Do NOT advance the day here. Only close the modal.
       setShowCompletionModal(false);
-
+      setCompletedDayIndex(null);
     } catch (error) {
       console.error('Error submitting rating or marking day as complete:', error);
-      // Still close the modal even if there was an error
       setShowCompletionModal(false);
+      setCompletedDayIndex(null);
     }
   };
 
@@ -199,22 +216,18 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     );
   }
 
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    {
-      useNativeDriver: false,
-      listener: (event: any) => {
-        const offsetY = event.nativeEvent.contentOffset.y;
-        const contentHeight = event.nativeEvent.contentSize.height;
-        const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
+  const handleScroll = (event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    const contentHeight = event.nativeEvent.contentSize.height;
+    const scrollViewHeight = event.nativeEvent.layoutMeasurement.height;
 
-        // Show FAB when scrolled to bottom
-        const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 50;
-        setShowFAB(isAtBottom);
-      },
-    }
-  );
+    // Show FAB when scrolled to bottom
+    const isAtBottom = offsetY + scrollViewHeight >= contentHeight - 50;
+    setShowFAB(prev => prev !== isAtBottom ? isAtBottom : prev);
 
+    // Update scrollY for any animations
+    scrollY.setValue(offsetY);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['right', 'top', 'left']} mode="margin">
@@ -236,8 +249,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         <DevotionalCompletionModal
           visible={showCompletionModal}
           devotional={devotional}
-          currentDayNumber={dayCompleted || 0}
-          completedDays={devotional.days.filter(day => day.completed).length + (dayCompleted ? 1 : 0)}
+          currentDayNumber={(completedDayIndex ?? 0) + 1}
+          completedDays={devotional.days.filter(day => day.completed).length}
           onContinue={handleCompletionContinue}
           onClose={handleModalClose}
           onRatingSubmit={handleRatingSubmit}
@@ -282,8 +295,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         style={styles.scrollView}
         contentContainerStyle={[styles.contentContainer, styles.scrollViewContent]}
         showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false, listener: handleScroll }
+        )}
+        scrollEventThrottle={100}
       >
         {/* Day Title - Moved below progress bar */}
         <View style={styles.dayTitleContainer}>

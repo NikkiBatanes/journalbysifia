@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
   Dimensions,
   Animated,
@@ -13,6 +14,7 @@ import { Colors } from '../theme';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Devotional } from '../interfaces/devotional';
+import { extractCleanTitle } from '../utils/titleUtils';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -84,7 +86,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     }
   }, [visible, slideAnim, progressAnim, checkAnim, progress]);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     Animated.timing(slideAnim, {
       toValue: SCREEN_HEIGHT,
       duration: 300,
@@ -94,31 +96,48 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       onClose();
       setRating(0);
     });
-  };
+  }, [onClose, slideAnim]);
 
-  const handleRatingSubmit = async () => {
-    if (rating > 0) {
-      await onRatingSubmit(rating);
-    } else {
-      // If no rating selected, just close the modal
-      handleClose();
+  const handleRatingSubmit = useCallback(async (selectedRating: number) => {
+    if (selectedRating > 0) {
+      try {
+        await onRatingSubmit(selectedRating);
+        // Use setTimeout to defer the close to the next tick
+        setTimeout(handleClose, 0);
+      } catch (error) {
+        console.error('Error submitting rating:', error);
+      }
     }
-  };
+  }, [onRatingSubmit, handleClose]);
+
+  const handleStarPress = useCallback((index: number) => {
+    const selectedRating = index + 1;
+    // Only update the UI state immediately
+    setRating(selectedRating);
+    // Handle the async submission separately
+    handleRatingSubmit(selectedRating).catch(console.error);
+  }, [handleRatingSubmit]);
 
   const renderStars = () => {
-    return Array(5).fill(0).map((_, index) => (
-      <TouchableOpacity
-        key={index}
-        onPress={() => setRating(index + 1)}
-        style={styles.starContainer}
-      >
-        <Ionicons
-          name={index < rating ? 'star' : 'star-outline'}
-          size={36}
-          color={Colors.faithGold}
-        />
-      </TouchableOpacity>
-    ));
+    return (
+      <View style={styles.starsRow}>
+        {Array(5).fill(0).map((_, index) => (
+          <TouchableOpacity
+            key={index}
+            onPress={() => handleStarPress(index)}
+            style={styles.starButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={index < rating ? 'star' : 'star-outline'}
+              size={24}
+              color={Colors.faithGold}
+              style={styles.starIcon}
+            />
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
   };
 
   const progressWidth = progressAnim.interpolate({
@@ -136,6 +155,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     outputRange: [0, 1],
   });
 
+  // Get the current day's data
+  const currentDay = devotional.days.find(day => day.dayNumber === currentDayNumber);
+
   return (
     <Modal
       animationType="none"
@@ -144,6 +166,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
       onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={handleClose}>
+          <Animated.View style={[styles.backdrop, { opacity: visible ? 1 : 0 }]} />
+        </TouchableWithoutFeedback>
         <Animated.View
           style={[
             styles.modalContent,
@@ -152,7 +177,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         >
           <View style={styles.header}>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.textDark} />
+              <Ionicons name="close" size={24} color={Colors.hopeWhite} />
             </TouchableOpacity>
           </View>
 
@@ -165,6 +190,15 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 <Text style={styles.congratsSubtitle}>
                   You've completed the entire devotional!
                 </Text>
+                {devotional.title && (
+                  <View style={styles.titleContainer}>
+                    <Text style={styles.devotionalTitle} numberOfLines={2}>
+                      {devotional.totalDays > 1 
+                        ? `${extractCleanTitle(devotional.title)}: ${currentDay?.title || ''}`
+                        : extractCleanTitle(devotional.title)}
+                    </Text>
+                  </View>
+                )}
                 <Animated.View
                   style={[
                     styles.checkContainer,
@@ -203,21 +237,19 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 <View style={styles.starsContainer}>
                   {renderStars()}
                 </View>
-
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={handleRatingSubmit}
-                >
-                  <Text style={styles.submitButtonText}>
-                    Submit Rating
-                  </Text>
-                </TouchableOpacity>
               </>
             ) : (
               <>
-                <Text style={styles.dayIndicator}>
-                  Day {currentDayNumber} of {totalDays}
+                <Text style={styles.devotionalTitle}>
+                  {devotional.totalDays > 1 && currentDay
+                    ? `${extractCleanTitle(devotional.title)}: ${currentDay.title}`
+                    : extractCleanTitle(devotional.title)}
                 </Text>
+                {devotional.totalDays > 1 && (
+                  <Text style={styles.dayIndicator}>
+                    Day {currentDayNumber} of {totalDays}
+                  </Text>
+                )}
                 <Text style={styles.completedText}>
                   Completed!
                 </Text>
@@ -249,10 +281,6 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                   </View>
                 </View>
 
-                <Text style={styles.progressText}>
-                  {completedDays}/{totalDays} Days Completed
-                </Text>
-
                 <TouchableOpacity
                   style={styles.continueButton}
                   onPress={onContinue}
@@ -273,15 +301,20 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   modalContent: {
-    backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 34,
+    borderTopRightRadius: 34,
+    padding: 10,
     paddingBottom: 40,
     height: SCREEN_HEIGHT * 0.7,
+    justifyContent: 'flex-start',
   },
   header: {
     flexDirection: 'row',
@@ -290,11 +323,15 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 8,
+    alignSelf: 'flex-end',
   },
   contentContainer: {
     flex: 1,
-    alignItems: 'center',
     paddingHorizontal: 24,
+    paddingTop: 0,
+    paddingBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   dayTitle: {
     ...TypographyStyles.interSemiBold,
@@ -312,29 +349,36 @@ const styles = StyleSheet.create({
   congratsTitle: {
     ...TypographyStyles.interBold,
     fontSize: 28,
-    color: Colors.anchorBlue,
-    marginTop: 20,
+    color: Colors.hopeWhite,
+    marginTop: 24,
+    marginBottom: 4,
+    lineHeight: 34,
+    textAlign: 'center',
   },
   congratsSubtitle: {
     ...TypographyStyles.interRegular,
     fontSize: 18,
-    color: Colors.trustGrey,
-    marginTop: 8,
+    color: Colors.hopeWhite,
+    marginTop: 0,
+    marginBottom: 16,
     textAlign: 'center',
-    fontWeight: '500',
+    lineHeight: 24,
+    opacity: 0.9,
   },
   checkContainer: {
-    marginVertical: 30,
+    marginTop: 10,
+    marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   progressContainer: {
-    width: '100%',
-    marginTop: 20,
+    width: '80%',
+    marginTop: 10,
+    marginBottom: 30,
   },
   progressBackground: {
     height: 12,
-    backgroundColor: Colors.trustGrey,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 6,
     overflow: 'hidden',
   },
@@ -344,18 +388,35 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   progressText: {
-    ...TypographyStyles.interRegular,
-    fontSize: 16,
-    color: Colors.trustGrey,
-    marginTop: 12,
-    fontWeight: '500',
+    ...TypographyStyles.interSemiBold,
+    fontSize: 18,
+    color: Colors.anchorBlue,
+    marginTop: 16,
+    fontWeight: '600',
   },
   dayIndicator: {
-    ...TypographyStyles.interRegular,
+    ...TypographyStyles.interSemiBold,
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+    fontWeight: '600',
+    opacity: 0.9,
+  },
+  devotionalTitle: {
+    ...TypographyStyles.interSemiBold,
     fontSize: 16,
-    color: Colors.trustGrey,
-    marginBottom: 12,
-    fontWeight: '500',
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  titleContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    width: '100%',
+    alignSelf: 'center',
   },
   continueButton: {
     backgroundColor: Colors.growthGreen,
@@ -373,19 +434,31 @@ const styles = StyleSheet.create({
   },
   ratingTitle: {
     ...TypographyStyles.interRegular,
-    fontSize: 18,
-    color: Colors.anchorBlue,
-    marginTop: 30,
-    marginBottom: 16,
-    fontWeight: '500',
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginTop: 10,
+    marginBottom: 0,
+    fontWeight: '400',
+    lineHeight: 22,
+    opacity: 0.9,
+    textAlign: 'center',
   },
   starsContainer: {
+    marginVertical: 12,
+  },
+  starsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginVertical: 16,
+    alignItems: 'center',
   },
-  starContainer: {
-    padding: 8,
+  starButton: {
+    padding: 6,
+    borderRadius: 12,
+  },
+  starIcon: {
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   submitButton: {
     backgroundColor: Colors.faithGold,
