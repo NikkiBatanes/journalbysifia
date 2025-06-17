@@ -138,12 +138,12 @@ const DevotionalsScreen = () => {
               {/* Categories + From Playbook Buttons */}
               <View style={styles.tagRow}>
                 <View style={styles.tagList}>
-                  {Array.isArray(item.categories) && item.categories.slice(0, 3).map((cat, idx) => (
-                    <View key={cat + idx} style={styles.categoryBadge}>
+                  {item.category && (
+                    <View style={styles.categoryBadge}>
                       <Ionicons name="pricetag-outline" size={10} color={Colors.hopeWhite} style={styles.tagIcon} />
-                      <Text style={styles.categoryText}>{cat}</Text>
+                      <Text style={styles.categoryText}>{item.category}</Text>
                     </View>
-                  ))}
+                  )}
                 </View>
                 {item.playbookId && (
                   <TouchableOpacity

@@ -22,6 +22,7 @@ import { UserProvider } from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import { LogoutContext } from './src/context/LogoutContext';
 import { DevotionalProvider } from './src/context/DevotionalContext';
+import AppNotification from './src/components/AppNotification';
 
 // Stack navigator removed as it's not currently used
 
@@ -120,8 +121,10 @@ function App(): React.JSX.Element {
                   isAuthenticated={isAuthenticated}
                   handleLogout={handleLogout}
                   handleLogin={handleLogin}
+                  onLogin={handleLogin}
                   AuthStack={AuthStackNavigator}
                 />
+                <AppNotification />
               </NavigationContainer>
             </ActionStepsProviderWrapper>
           </GestureHandlerRootView>

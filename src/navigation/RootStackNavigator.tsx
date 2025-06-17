@@ -79,13 +79,17 @@ const Stack = createNativeStackNavigator();
 interface RootStackNavigatorProps {
   isAuthenticated: boolean;
   handleLogin: () => void;
+  handleLogout: () => Promise<void>;
   AuthStack: React.ComponentType<{ onLogin: () => void }>;
+  onLogin: () => void;
 }
 
 export default function RootStackNavigator({
   isAuthenticated,
   handleLogin,
+  handleLogout,
   AuthStack,
+  onLogin,
 }: RootStackNavigatorProps) {
   // Memoize screen options
   const playbookDetailOptions = useMemo<NativeStackNavigationOptions>(

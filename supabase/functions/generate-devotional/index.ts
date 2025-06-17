@@ -126,6 +126,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     title: 'Error Generating Devotional',
     description: msg,
     category: 'Error',
+    categories: ['Error'],
     days: [createDefaultDay(1, true)],
     currentDay: 1,
     totalDays: 1,
