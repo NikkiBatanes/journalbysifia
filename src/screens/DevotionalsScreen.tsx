@@ -18,6 +18,7 @@ import { Devotional } from '../interfaces/devotional';
 import { format } from 'date-fns';
 import { Swipeable, RectButton } from 'react-native-gesture-handler';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { extractCleanTitle } from '../utils/titleUtils';
 import { Colors, Fonts } from '../theme';
 import 'react-native-gesture-handler';
@@ -136,13 +137,14 @@ const DevotionalsScreen = () => {
 
               {/* Categories + From Playbook Buttons */}
               <View style={styles.tagRow}>
-                <TouchableOpacity style={styles.categoryBadge}>
-                  <Ionicons name="pricetag-outline" size={12} color={Colors.hopeWhite} style={styles.playbookIcon} />
-                  <Text style={styles.categoryText}>
-                    {displayCategory}
-                  </Text>
-                </TouchableOpacity>
-
+                <View style={styles.tagList}>
+                  {Array.isArray(item.categories) && item.categories.slice(0, 3).map((cat, idx) => (
+                    <View key={cat + idx} style={styles.categoryBadge}>
+                      <Ionicons name="pricetag-outline" size={10} color={Colors.hopeWhite} style={styles.tagIcon} />
+                      <Text style={styles.categoryText}>{cat}</Text>
+                    </View>
+                  ))}
+                </View>
                 {item.playbookId && (
                   <TouchableOpacity
                     style={styles.playbookBadge}
@@ -158,7 +160,7 @@ const DevotionalsScreen = () => {
               <View style={styles.progressBarContainer}>
                 <View style={styles.progressHeader}>
                   <View style={styles.progressLabel}>
-                    <Ionicons name="time-outline" size={14} color="rgba(255, 255, 255, 0.8)" style={styles.progressIcon} />
+                    <MaterialCommunityIcons name="chart-timeline-variant-shimmer" size={16} color="rgba(255, 255, 255, 0.8)" style={styles.progressIcon} />
                     <Text style={styles.progressLabelText}>Progress</Text>
                   </View>
                   <Text style={styles.dayCounter}>
@@ -173,11 +175,18 @@ const DevotionalsScreen = () => {
                   </View>
                 </View>
                 <View style={styles.nextDayContainer}>
-                  {!isComplete && currentDay < item.totalDays && (
-                    <Text style={styles.nextDayText}>
-                      NEXT: Day {currentDay + 1}
-                    </Text>
-                  )}
+                  {/* Show NEXT: Day X only if not complete, and there is an incomplete day */}
+                  {!isComplete && item.days && item.days.some(day => !day.completed) && (() => {
+                    const nextIdx = item.days.findIndex(day => !day.completed);
+                    if (nextIdx !== -1) {
+                      return (
+                        <Text style={styles.nextDayText}>
+                          NEXT: Day {nextIdx + 1}
+                        </Text>
+                      );
+                    }
+                    return null;
+                  })()}
                 </View>
               </View>
             </View>
@@ -254,7 +263,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
-    height: 260, // Further increased height to fit all content
+    minHeight: 200, // Minimum height
     backgroundColor: Colors.alertCoral, // Match delete button color
   },
   swipeableInner: {
@@ -289,17 +298,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-    height: 260, // Further increased height to fit all content
+    minHeight: 180, // Reduced minimum height
     position: 'relative',
   },
   cardContent: {
     flex: 1,
   },
   tagRow: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginTop: 8,
+    marginBottom: 12,
+    minHeight: 40, // Reduced minimum height for tags
+  },
+  tagList: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-    marginBottom: 8, // Reduced bottom margin
+    flexWrap: 'wrap',
+    marginBottom: 8,
     gap: 8,
   },
   categoryBadge: {
@@ -324,6 +339,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   playbookIcon: {
+    marginRight: 4,
+  },
+  tagIcon: {
     marginRight: 4,
   },
   playbookText: {
@@ -361,8 +379,9 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 4,
+    marginBottom: 8,
     lineHeight: 20,
+    minHeight: 40, // Ensure consistent height for 2 lines
   },
   progressBarContainer: {
     width: '100%',
@@ -374,6 +393,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4, // Compensate for negative margin
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.15)',
+    // Removed fixed minHeight to allow dynamic sizing
   },
   progressHeader: {
     flexDirection: 'row',

@@ -26,6 +26,7 @@ interface Devotional {
   title: string;
   description: string;
   category: string;
+  categories: string[];
   days: DevotionalDay[];
   currentDay: number;
   totalDays: number;
@@ -111,7 +112,7 @@ function createDefaultDay(dayNumber: number, isError = false): DevotionalDay {
     ],
     prayer: isError
       ? ''
-      : 'Heavenly Father,\n\nThank You for Your guiding word.\nForgive me for doubting Your path.\nGuide me in Your truth today.\nThank You for Your faithfulness.\nIn Jesus’ Name,\nAmen',
+      : 'Heavenly Father,\n\nThank You for Your guiding word.\nForgive me for doubting Your path.\nGuide me in Your truth today.\nThank You for Your faithfulness.\n\nIn Jesus’ Name, Amen',
     completed: false,
   };
 }
@@ -151,6 +152,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       title: '',
       description: '',
       category: '',
+      categories: [], // Add categories: [] here
       days: [],
       currentDay: 1,
       totalDays: duration,
@@ -180,18 +182,22 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     devotional.description = description;
     console.log('[DEVOTIONAL PARSER] Extracted description:', description);
 
+    // Extract up to 3 categories/tags from CATEGORY section
+    let categories: string[] = [];
+    const catMatch = content.match(/CATEGORY:\s*([\s\S]*?)(?=\n{2,}|$)/i);
+    if (catMatch && catMatch[1]) {
+      categories = catMatch[1]
+        .split(/\n|,|;/)
+        .map((c) => cleanMarkdown(c).trim())
+        .filter(Boolean)
+        .slice(0, 3);
+    }
+    devotional.categories = categories;
+    console.log('[DEVOTIONAL PARSER] Extracted categories:', categories);
+
     // Extract categories
-    const catMatch = content.match(/^(?:[#*]\s*)*CATEGORY:\s*([\s\S]*?)(?=\n{2,}|$)/im);
-    const categories = catMatch
-      ? cleanMarkdown(catMatch[1])
-          .split(/\n|,|;/)
-          .map(c => c.trim())
-          .filter(c => c)
-          .slice(0, 3)
-      : userInput?.toLowerCase().includes('rest')
-        ? ['Peace', 'Rest', 'Trust']
-        : ['Faith', 'Growth'];
     devotional.category = categories.join(', ');
+    console.log('[DEVOTIONAL PARSER] Extracted category:', devotional.category);
 
     // Extract days - handle the specific format from OpenAI response
     console.log('[DEVOTIONAL PARSER] Trying to parse days...');
@@ -464,7 +470,7 @@ ${duration > 1 ? 'SERIES TITLE:' : 'DEVOTIONAL TITLE:'}
 [Create a unique title under 32 characters, inspired by the theme, not user input. Avoid generic titles like "Devotional" or "Daily Devotional". Examples: "Finding Peace", "Steadfast Faith".]
 
 DESCRIPTION:
-[One sentence describing the ${duration}-day journey, e.g., "A ${duration}-day journey exploring how prayer brings peace."]
+[One sentence (max 80 characters) describing the ${duration}-day journey, e.g., "A ${duration}-day journey on prayer's peace."]
 
 ${duration > 1
   ? Array.from({ length: duration }, (_, i) => `
@@ -478,12 +484,13 @@ REFLECTION QUESTIONS:
 3. [Practical, actionable question]
 PRAYER:
 Heavenly Father,
+
 [1-2 sentences of adoration]
 [1 sentence of confession]
 [1-2 sentences of petition]
 [1 sentence of thanksgiving]
-In Jesus’ Name,
-Amen
+
+In Jesus' Name, Amen
 `).join('\n')
   : `
 DAY 1:
@@ -496,16 +503,17 @@ REFLECTION QUESTIONS:
 3. [Practical, actionable question]
 PRAYER:
 Heavenly Father,
+
 [1-2 sentences of adoration]
 [1 sentence of confession]
 [1-2 sentences of petition]
 [1 sentence of thanksgiving]
-In Jesus’ Name,
-Amen
+
+In Jesus' Name, Amen
 `}
 
 CATEGORY:
-2-3 specific AI-generated tags, e.g., "Peace, Trust, Healing", based on theme. Avoid "General".
+- 2-3 specific, relevant, AI-generated tags. Each tag must be ONE WORD ONLY (no spaces or punctuation). Examples: Peace, Trust, Healing. Avoid "General".
 [AI-generated category tag 1]
 [AI-generated category tag 2]
 [AI-generated category tag 3 (if applicable)]

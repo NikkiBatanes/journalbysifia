@@ -99,14 +99,33 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Fetch playbook by ID
   const fetchPlaybookById = async (playbookId: string): Promise<Playbook | null> => {
     try {
+      // Clean up the playbook ID by removing any pipe characters and trimming whitespace
+      const cleanPlaybookId = playbookId.replace(/\|/g, '').trim();
+      
+      if (!cleanPlaybookId) {
+        console.error('Invalid playbook ID after cleanup');
+        return null;
+      }
+
+      console.log('Fetching playbook with ID:', cleanPlaybookId);
+      
       const { data, error: fetchError } = await supabase
         .from('playbooks')
         .select('*')
-        .eq('id', playbookId)
+        .eq('id', cleanPlaybookId)
         .single();
+        
       if (fetchError) {
+        console.error('Supabase fetch error:', fetchError);
         throw fetchError;
       }
+      
+      if (!data) {
+        console.error('No playbook found with ID:', cleanPlaybookId);
+        return null;
+      }
+      
+      console.log('Successfully fetched playbook:', { id: data.id, title: data.title });
       return data as Playbook;
     } catch (fetchError) {
       console.error('Error fetching playbook:', fetchError);
@@ -127,15 +146,24 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         params.userInput
       );
 
-      // Ensure progress is initialized to 0 for new devotionals
+      // Ensure progress is initialized to 0 for new devotionals and include playbook info
       const devotionalWithProgress = {
         ...devotional,
+        playbookId: params.playbookId, // Ensure playbookId is included
+        userInput: params.userInput,   // Include userInput as well
         progress: 0, // Initialize progress to 0 for new devotionals
         days: devotional.days?.map((day: DevotionalDay) => ({
           ...day,
           completed: false, // Ensure all days start as not completed
         })) || [],
       };
+      
+      console.log('Created devotional with playbook:', {
+        playbookId: params.playbookId,
+        hasPlaybookId: !!params.playbookId,
+        userInput: params.userInput,
+        devotionalId: devotional.id
+      });
 
       // Add to state and save
       const updatedDevotionals = [...devotionals, devotionalWithProgress];
