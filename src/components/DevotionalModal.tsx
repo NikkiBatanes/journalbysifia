@@ -321,13 +321,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       ) : (
         <>
           <Animated.View
-            style={{
-              marginBottom: 12,
-              transform: [{ scale: checkmarkAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }],
-              opacity: checkmarkAnim,
-            }}
+            style={[
+              styles.checkmarkContainer,
+              {
+                transform: [{ scale: checkmarkAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }],
+                opacity: checkmarkAnim,
+              },
+            ]}
           >
-            <Ionicons name="checkmark-circle" size={64} color={Colors.growthGreen || '#4BB543'} />
+            <Ionicons name="checkmark-circle" size={64} color={Colors.growthGreen || '#4BB543'}/>
           </Animated.View>
           <Text style={styles.loadingText}>Devotional Created!</Text>
         </>
@@ -374,6 +376,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 };
 
 const styles = StyleSheet.create({
+  centeredView: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  checkmarkContainer: {
+    marginBottom: 12,
+  },
   modalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',

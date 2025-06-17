@@ -77,8 +77,7 @@ const DevotionalsScreen = () => {
     const completedDays = item.days?.filter(day => day.completed).length || 0;
     const progress = (completedDays / item.totalDays) * 100;
     // Find the first incomplete day or use the last day if all are complete
-    const currentDayIndex = item.days?.findIndex(day => !day.completed) ?? -1;
-    const currentDay = currentDayIndex >= 0 ? currentDayIndex + 1 : item.totalDays;
+    // currentDayIndex was previously calculated but not used
     const isComplete = progress >= 100;
     const formattedDate = formatDate(item.createdAt);
 
@@ -99,7 +98,8 @@ const DevotionalsScreen = () => {
       return extracted.charAt(0).toUpperCase() + extracted.slice(1).toLowerCase();
     };
 
-    const displayCategory = formatCategory(item.category);
+    // Format category but don't store it since it's not used
+    formatCategory(item.category);
 
     // Use the utility function to extract a clean title
     const cleanTitle = extractCleanTitle(item.title, 'Devotional');

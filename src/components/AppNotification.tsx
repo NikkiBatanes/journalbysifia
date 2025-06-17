@@ -48,16 +48,16 @@ const AppNotification: React.FC = () => {
     }
   }, [successMessage, clearSuccessMessage, fadeAnim, slideAnim]);
 
-  if (!successMessage) return null;
+  if (!successMessage) {return null;}
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.container,
         {
           opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }
+          transform: [{ translateY: slideAnim }],
+        },
       ]}
       pointerEvents="box-none"
     >

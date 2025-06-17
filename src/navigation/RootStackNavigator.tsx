@@ -87,9 +87,9 @@ interface RootStackNavigatorProps {
 export default function RootStackNavigator({
   isAuthenticated,
   handleLogin,
-  handleLogout,
+  handleLogout: _handleLogout, // Prefix with underscore to indicate intentionally unused
   AuthStack,
-  onLogin,
+  onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
   // Memoize screen options
   const playbookDetailOptions = useMemo<NativeStackNavigationOptions>(

@@ -45,9 +45,9 @@ interface Devotional {
  */
 function cleanMarkdown(text: unknown): string {
   const safeString = (value: unknown): string => {
-    if (value === null || value === undefined) return '';
-    if (typeof value === 'string') return value;
-    if (typeof value.toString === 'function') return value.toString();
+    if (value === null || value === undefined) {return '';}
+    if (typeof value === 'string') {return value;}
+    if (typeof value.toString === 'function') {return value.toString();}
     return '';
   };
 
@@ -57,7 +57,7 @@ function cleanMarkdown(text: unknown): string {
       console.warn('cleanMarkdown: Failed to convert input to string. Type:', typeof text);
       return '';
     }
-    if (!str.trim()) return '';
+    if (!str.trim()) {return '';}
 
     let result = str;
     try {
@@ -121,7 +121,7 @@ function createDefaultDay(dayNumber: number, isError = false): DevotionalDay {
  * Safely parses the OpenAI response into a structured devotional format
  */
 function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: string, userInput?: string): Devotional {
-  const errorDevotional = (msg: string, playbookId?: string, userInput?: string): Devotional => ({
+  const errorDevotional = (msg: string, _pbId?: string, _uInput?: string): Devotional => ({
     id: `${Date.now()}`,
     title: 'Error Generating Devotional',
     description: msg,
@@ -129,13 +129,13 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     categories: ['Error'],
     days: [createDefaultDay(1, true)],
     currentDay: 1,
-    totalDays: 1,
+    totalDays: duration || 1,
     progress: 0,
     completed: false,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    playbookId,
-    userInput,
+    playbookId: _pbId,
+    userInput: _uInput || '',
   });
 
   try {
@@ -143,8 +143,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     const choices = Array.isArray(response?.choices) ? response.choices : [];
     const firstChoice = choices[0] as Record<string, unknown> | undefined;
     const content = (firstChoice?.message as Record<string, unknown> | undefined)?.content as string || '';
-    if (!content) return errorDevotional('No content found in AI response.', playbookId, userInput);
-    
+    if (!content) {return errorDevotional('No content found in AI response.', playbookId, userInput);}
+
     // Log the raw content for debugging
     console.log('[DEVOTIONAL PARSER] Raw content start:', JSON.stringify(content).substring(0, 500) + (content.length > 500 ? '...' : ''));
 
@@ -202,19 +202,19 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
     // Extract days - handle the specific format from OpenAI response
     console.log('[DEVOTIONAL PARSER] Trying to parse days...');
-    
+
     // First try with the exact format from OpenAI: **DAY X:**
     let dayMatches: Array<[unknown, string, string]> = [];
     const dayRegex = /\*\*DAY\s*(\d+):\*\*\s*\n([\s\S]*?)(?=\*\*DAY\s*\d+:|\.{3}|$)/gi;
-    
+
     let match;
     while ((match = dayRegex.exec('\n' + content)) !== null) {
       console.log(`[DEVOTIONAL PARSER] Found day ${match[1]} with content length:`, match[2].length);
       dayMatches.push([null, match[1], match[2].trim()]);
     }
-    
+
     console.log('[DEVOTIONAL PARSER] Days parsed (markdown format):', dayMatches.length);
-    
+
     // If no days found, try with the exact format but without the **
     if (dayMatches.length === 0) {
       console.log('[DEVOTIONAL PARSER] Trying alternative day parsing...');
@@ -225,12 +225,12 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         dayMatches.push([null, altMatch[1], altMatch[2].trim()]);
       }
     }
-    
+
     // If still no days found, try splitting by the separator (---)
     if (dayMatches.length === 0) {
       console.log('[DEVOTIONAL PARSER] Trying separator-based parsing...');
       const daySections = content.split(/\n---\n/);
-      
+
       daySections.forEach((section, index) => {
         const dayMatch = section.match(/DAY\s*(\d+):/i);
         if (dayMatch && dayMatch.index !== undefined) {
@@ -247,9 +247,9 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         }
       });
     }
-    
+
     console.log('[DEVOTIONAL PARSER] Total days parsed:', dayMatches.length);
-    
+
     // Fallback for single-day devotionals
     if (dayMatches.length === 0 && duration === 1) {
       console.log('[DEVOTIONAL PARSER] No days found, using full content as single day');
@@ -290,7 +290,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Scripture:`, { text: scriptureText, reference: scriptureRef });
         const scripture = {
           text: cleanMarkdown(scriptureText),
-          reference: cleanMarkdown(scriptureRef)
+          reference: cleanMarkdown(scriptureRef),
         };
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Scripture:`, scripture);
 
@@ -342,13 +342,13 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         if (prayerMatch) {
           let prayerBody = cleanMarkdown(prayerMatch[1]).trim();
           prayerBody = prayerBody.replace(/^\s+|\s+$/g, '');
-          
+
           // Ensure proper prayer format
           if (!/^Heavenly Father,?/i.test(prayerBody)) {
             prayerText += 'Heavenly Father,\n';
           }
           prayerText += prayerBody;
-          
+
           // Ensure proper closing
           if (!/In Jesus'? Name,?\s*\n?Amen\.?$/i.test(prayerText)) {
             if (!/In Jesus'? Name,?/i.test(prayerText)) {
@@ -417,12 +417,12 @@ serve(async (req: Request): Promise<Response> => {
     );
   };
 
-  const logRequest = (req: Request, body?: unknown) => {
+  const logRequest = (request: Request, body?: unknown) => {
     console.log('=== Request Details ===');
-    console.log('Method:', req.method);
-    console.log('URL:', req.url);
-    console.log('Headers:', Object.fromEntries(req.headers.entries()));
-    if (body) console.log('Body:', JSON.stringify(body, null, 2));
+    console.log('Method:', request.method);
+    console.log('URL:', request.url);
+    console.log('Headers:', Object.fromEntries(request.headers.entries()));
+    if (body) {console.log('Body:', JSON.stringify(body, null, 2));}
     console.log('========================');
   };
 

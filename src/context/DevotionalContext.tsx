@@ -40,11 +40,11 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
+
   const clearSuccessMessage = useCallback(() => {
     setSuccessMessage(null);
   }, []);
-  
+
   const showSuccess = useCallback((message: string) => {
     setSuccessMessage(message);
     // Clear the message after 3 seconds
@@ -119,30 +119,30 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       // Clean up the playbook ID by removing any pipe characters and trimming whitespace
       const cleanPlaybookId = playbookId.replace(/\|/g, '').trim();
-      
+
       if (!cleanPlaybookId) {
         console.error('Invalid playbook ID after cleanup');
         return null;
       }
 
       console.log('Fetching playbook with ID:', cleanPlaybookId);
-      
+
       const { data, error: fetchError } = await supabase
         .from('playbooks')
         .select('*')
         .eq('id', cleanPlaybookId)
         .single();
-        
+
       if (fetchError) {
         console.error('Supabase fetch error:', fetchError);
         throw fetchError;
       }
-      
+
       if (!data) {
         console.error('No playbook found with ID:', cleanPlaybookId);
         return null;
       }
-      
+
       console.log('Successfully fetched playbook:', { id: data.id, title: data.title });
       return data as Playbook;
     } catch (fetchError) {
@@ -175,19 +175,19 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           completed: false, // Ensure all days start as not completed
         })) || [],
       };
-      
+
       console.log('Created devotional with playbook:', {
         playbookId: params.playbookId,
         hasPlaybookId: !!params.playbookId,
         userInput: params.userInput,
-        devotionalId: devotional.id
+        devotionalId: devotional.id,
       });
 
       // Add to state and save
       const updatedDevotionals = [...devotionals, devotionalWithProgress];
       setDevotionals(updatedDevotionals);
       await saveDevotionals(updatedDevotionals);
-      
+
       // Show success message
       showSuccess('Devotional created successfully!');
 
