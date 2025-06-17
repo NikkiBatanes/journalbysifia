@@ -16,7 +16,7 @@ interface DevotionalContextType {
   deleteDevotional: (id: string) => Promise<boolean>;
   refreshDevotionals: () => Promise<void>;
   fetchPlaybookById: (id: string) => Promise<Playbook | null>;
-
+  submitDevotionalRating: (devotionalId: string, rating: number) => Promise<boolean>;
 }
 
 export const DevotionalContext = createContext<DevotionalContextType>({
@@ -30,7 +30,7 @@ export const DevotionalContext = createContext<DevotionalContextType>({
   deleteDevotional: () => Promise.resolve(false),
   refreshDevotionals: () => Promise.resolve(),
   fetchPlaybookById: () => Promise.resolve(null),
-
+  submitDevotionalRating: () => Promise.resolve(false),
 });
 
 const DEVOTIONALS_STORAGE_KEY = '@devotionals';
@@ -297,6 +297,39 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
   }, [loadDevotionalsData]);
 
+  // Submit a rating for a completed devotional
+  const submitDevotionalRating = async (devotionalId: string, rating: number): Promise<boolean> => {
+    try {
+      const devotionalIndex = devotionals.findIndex(d => d.id === devotionalId);
+      if (devotionalIndex === -1) {
+        console.error('Devotional not found:', devotionalId);
+        return false;
+      }
+
+      const devotional = { ...devotionals[devotionalIndex] };
+
+      // Update the devotional with the rating
+      const updatedDevotional = {
+        ...devotional,
+        rating,
+        ratedAt: new Date().toISOString(),
+      };
+
+      // Update state and save
+      const updatedDevotionals = [...devotionals];
+      updatedDevotionals[devotionalIndex] = updatedDevotional;
+      setDevotionals(updatedDevotionals);
+      await saveDevotionals(updatedDevotionals);
+
+      console.log(`Rating of ${rating} submitted for devotional ${devotionalId}`);
+      return true;
+    } catch (err) {
+      console.error('Error submitting rating:', err);
+      setError('Failed to submit rating');
+      return false;
+    }
+  };
+
   return (
     <DevotionalContext.Provider
       value={{
@@ -309,6 +342,7 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         deleteDevotional,
         refreshDevotionals,
         fetchPlaybookById,
+        submitDevotionalRating,
       }}
     >
       {children}

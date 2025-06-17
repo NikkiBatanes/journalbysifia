@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  StatusBar,
   Animated,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
@@ -17,6 +17,7 @@ import { useDevotional } from '../context/DevotionalContext';
 import { Devotional, Scripture } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 import { extractCleanTitle } from '../utils/titleUtils';
 
@@ -29,13 +30,15 @@ type DevotionalDetailScreenProps = {
 
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
   const { devotionalId } = route.params;
-  const { devotionals, markDayComplete } = useDevotional();
+  const { devotionals, markDayComplete, submitDevotionalRating } = useDevotional();
   const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showFAB, setShowFAB] = useState(false);
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [dayCompleted, setDayCompleted] = useState<number | null>(null);
   const scrollViewRef = useRef<ScrollView>(null);
+  const scrollY = useRef(new Animated.Value(0)).current;
   const [scripture, setScripture] = useState<Scripture>({
     text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
     reference: 'JOHN 3:16',
@@ -87,30 +90,103 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   console.log('DevotionalDetailScreen currentDay:', currentDay);
   console.log('DevotionalDetailScreen prayer:', currentDay?.prayer);
 
-  const handleMarkComplete = async () => {
+  const handleMarkComplete = () => {
     if (!devotional) {return;}
 
-    // Get the actual day number (1-based) from the current day index
+    // Get the current day
     const dayToMark = devotional.days[currentDayIndex];
     if (!dayToMark) {return;}
 
-    // Mark the current day as complete
-    const success = await markDayComplete(devotional.id, dayToMark.dayNumber);
+    // Set the day that will be marked as complete (but don't mark it yet)
+    setDayCompleted(dayToMark.dayNumber);
+    
+    // Show the completion modal first
+    setShowCompletionModal(true);
+  };
 
-    if (success) {
-      // Find the next incomplete day
-      const nextIncompleteIndex = devotional.days.findIndex(
-        (day, index) => index > currentDayIndex && !day.completed
-      );
-
-      if (nextIncompleteIndex !== -1) {
-        // Move to the next incomplete day
-        setCurrentDayIndex(nextIncompleteIndex);
-      } else if (currentDayIndex < devotional.days.length - 1) {
-        // If no more incomplete days but not at the end, just move to next day
-        setCurrentDayIndex(currentDayIndex + 1);
+  // Handle continuing after completion modal
+  const handleCompletionContinue = async (shouldNavigateBack = false) => {
+    if (!devotional || dayCompleted === null) {
+      setShowCompletionModal(false);
+      if (shouldNavigateBack) {
+        navigation.goBack();
       }
-      // If we're at the last day, stay there
+      return;
+    }
+
+    try {
+      // Mark the day as complete when continuing
+      await markDayComplete(devotional.id, dayCompleted);
+      
+      // If we should navigate back, do that now
+      if (shouldNavigateBack) {
+        navigation.goBack();
+        return;
+      }
+      
+      // Otherwise, find the next day
+      const nextDayIndex = currentDayIndex + 1;
+      
+      // If there's a next day, go to it and scroll to top
+      if (nextDayIndex < devotional.days.length) {
+        setCurrentDayIndex(nextDayIndex);
+        // Scroll to top after state update
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }, 50);
+      }
+      
+      // Close the modal
+      setShowCompletionModal(false);
+      
+    } catch (error) {
+      console.error('Error marking day as complete:', error);
+      // Still close the modal even if there was an error
+      setShowCompletionModal(false);
+      if (shouldNavigateBack) {
+        navigation.goBack();
+      }
+    }
+  };
+  
+  // Handle closing the modal by pressing the X button or backdrop
+  const handleModalClose = () => {
+    handleCompletionContinue(true);
+  };
+
+  // Handle rating submission
+  const handleRatingSubmit = async (rating: number) => {
+    if (!devotional || dayCompleted === null) {
+      setShowCompletionModal(false);
+      return;
+    }
+
+    try {
+      // Submit the rating
+      await submitDevotionalRating(devotional.id, rating);
+      
+      // Mark the day as complete
+      await markDayComplete(devotional.id, dayCompleted);
+      
+      // Find the next day
+      const nextDayIndex = currentDayIndex + 1;
+      
+      // If there's a next day, go to it and scroll to top
+      if (nextDayIndex < devotional.days.length) {
+        setCurrentDayIndex(nextDayIndex);
+        // Scroll to top after state update
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }, 50);
+      }
+      
+      // Close the modal
+      setShowCompletionModal(false);
+      
+    } catch (error) {
+      console.error('Error submitting rating or marking day as complete:', error);
+      // Still close the modal even if there was an error
+      setShowCompletionModal(false);
     }
   };
 
@@ -168,6 +244,19 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         </TouchableOpacity>
       )}
 
+      {/* Devotional Completion Modal */}
+      {devotional && (
+        <DevotionalCompletionModal
+          visible={showCompletionModal}
+          devotional={devotional}
+          currentDayNumber={dayCompleted || 0}
+          completedDays={devotional.days.filter(day => day.completed).length + (dayCompleted ? 1 : 0)}
+          onContinue={handleCompletionContinue}
+          onClose={handleModalClose}
+          onRatingSubmit={handleRatingSubmit}
+        />
+      )}
+
       {/* Fixed Header */}
       <View style={styles.fixedHeader}>
         <View style={styles.header}>
@@ -217,7 +306,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       <ScrollView
         ref={scrollViewRef}
         style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, styles.scrollViewContent]}
         showsVerticalScrollIndicator={false}
         onScroll={handleScroll}
         scrollEventThrottle={16}
@@ -484,6 +573,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
     paddingTop: 2, // Further reduced to bring content even closer to progress bar
     paddingBottom: 80,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
   },
   reflectionContainer: {
     marginBottom: 24,
