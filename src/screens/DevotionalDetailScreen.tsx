@@ -99,7 +99,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
     // Set the day that will be marked as complete (but don't mark it yet)
     setDayCompleted(dayToMark.dayNumber);
-    
+
     // Show the completion modal first
     setShowCompletionModal(true);
   };
@@ -114,10 +114,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     try {
       // Mark the day as complete when continuing
       await markDayComplete(devotional.id, dayCompleted);
-      
+
       // Find the next day
       const nextDayIndex = currentDayIndex + 1;
-      
+
       // If there's a next day, go to it and scroll to top
       if (nextDayIndex < devotional.days.length) {
         setCurrentDayIndex(nextDayIndex);
@@ -125,16 +125,16 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           scrollViewRef.current?.scrollTo({ y: 0, animated: true });
         }, 50);
       }
-      
+
       // Close the modal
       setShowCompletionModal(false);
-      
+
     } catch (error) {
       console.error('Error marking day as complete:', error);
       setShowCompletionModal(false);
     }
   };
-  
+
   // Handle closing the modal by pressing the X button or backdrop
   const handleModalClose = () => {
     setShowCompletionModal(false);
@@ -151,13 +151,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     try {
       // Submit the rating
       await submitDevotionalRating(devotional.id, rating);
-      
+
       // Mark the day as complete
       await markDayComplete(devotional.id, dayCompleted);
-      
+
       // Find the next day
       const nextDayIndex = currentDayIndex + 1;
-      
+
       // If there's a next day, go to it and scroll to top
       if (nextDayIndex < devotional.days.length) {
         setCurrentDayIndex(nextDayIndex);
@@ -166,10 +166,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           scrollViewRef.current?.scrollTo({ y: 0, animated: true });
         }, 50);
       }
-      
+
       // Close the modal
       setShowCompletionModal(false);
-      
+
     } catch (error) {
       console.error('Error submitting rating or marking day as complete:', error);
       // Still close the modal even if there was an error
@@ -263,11 +263,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                 Day {currentDayIndex + 1} of {devotional.totalDays}
               </Text>
               {currentDay?.completed && (
-                <Ionicons 
-                  name="checkmark-circle" 
-                  size={16} 
-                  color={Colors.growthGreen} 
-                  style={styles.completedIcon} 
+                <Ionicons
+                  name="checkmark-circle"
+                  size={16}
+                  color={Colors.growthGreen}
+                  style={styles.completedIcon}
                 />
               )}
             </View>
