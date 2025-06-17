@@ -257,35 +257,29 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         // Log day content for debugging
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} content (first 100 chars):`, JSON.stringify(dayContent.substring(0, 100)));
 
-        // Extract day title (handle the exact format from OpenAI response)
+        // Extract day title (match plain format, not markdown)
         let dayTitle = `Day ${dayNumber}`; // Default title
-        const dayTitleMatch = dayContent.match(/\*\*DAILY TITLE:\*\*\s*\n([^\n]+)/i);
+        const dayTitleMatch = dayContent.match(/DAILY TITLE:\s*\n?([^\n]+)/i);
         if (dayTitleMatch && dayTitleMatch[1]) {
           dayTitle = dayTitleMatch[1].trim();
+        }
+        // Prevent day title from being the same as the series title
+        if (dayTitle === devotional.title) {
+          dayTitle = `Day ${dayNumber}`;
         }
         const cleanDayTitle = cleanMarkdown(dayTitle).trim().slice(0, 32);
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Title:`, cleanDayTitle);
 
-        // Extract scripture (handle the exact format from OpenAI response)
+        // Extract scripture (match plain format, allow curly quotes, dash, and whitespace)
         let scriptureText = 'Your word is a lamp to my feet and a light to my path.';
         let scriptureRef = 'PSALM 119:105';
-        
-        // Try to match the exact format from OpenAI response
-        const scriptureMatch = dayContent.match(/\*\*SCRIPTURE:\*\*\s*\n\\"([^\"]+)\"\s*-\s*([A-Z0-9\s:]+)/i) ||
-                              dayContent.match(/\*\*SCRIPTURE:\*\*\s*\n([^\n-]+)\s*-\s*([A-Z0-9\s:]+)/i);
-        
-        if (scriptureMatch) {
+        // Match: SCRIPTURE:  \n“Be still, and know that I am God.” - PSALM 46:10
+        // Allow both curly and straight quotes, and optional spaces
+        const scriptureMatch = dayContent.match(/SCRIPTURE:\s*\n?[“"]?([^”"\n]+)[”"]?\s*-\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i);
+        if (scriptureMatch && scriptureMatch[1] && scriptureMatch[2]) {
           scriptureText = scriptureMatch[1].trim();
           scriptureRef = scriptureMatch[2].trim();
-        } else {
-          // Fallback: Try to find anything that looks like a scripture reference
-          const possibleScripture = dayContent.match(/\*\*SCRIPTURE:\*\*[\s\n]*([^\n]+?)([A-Z0-9\s]+:[0-9]+(?:-[0-9]+)?)/i);
-          if (possibleScripture) {
-            scriptureText = possibleScripture[1].replace(/[-"]/g, '').trim();
-            scriptureRef = possibleScripture[2].trim();
-          }
         }
-        
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Scripture:`, { text: scriptureText, reference: scriptureRef });
         const scripture = {
           text: cleanMarkdown(scriptureText),
