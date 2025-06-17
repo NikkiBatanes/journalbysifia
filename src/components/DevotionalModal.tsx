@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing, ActivityIndicator } from 'react-native';
 import { Colors, defaultFontFamily } from '../theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -62,6 +62,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
   const contentRef = React.useRef<View>(null);
+
+  // Success state and checkmark animation
+  const [isSuccess, setIsSuccess] = useState(false);
+  const checkmarkAnim = useRef(new Animated.Value(0)).current;
 
   // Animation for the overlay (fade in/out)
   // Fade animation for backdrop dim
@@ -169,8 +173,25 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         });
 
         if (devotional && onDevotionalCreated) {
-          onDevotionalCreated(devotional.id);
-          handleClose();
+          setIsSuccess(true);
+          Animated.timing(checkmarkAnim, {
+          toValue: 1,
+          duration: 280,
+          useNativeDriver: true,
+        }).start();
+        setTimeout(() => {
+          // Delay before modal swipes down
+          setTimeout(() => {
+            handleClose(); // Starts sliding down (150ms duration)
+            // Navigate immediately after modal starts closing
+            onDevotionalCreated(devotional.id);
+            // Reset animation state after navigation
+            setTimeout(() => {
+              setIsSuccess(false);
+              checkmarkAnim.setValue(0);
+            }, 100); // Match slide down duration
+          }, 320); // Wait 350ms before starting close
+        }, 280); // Checkmark animates in for 280ms
         }
       }
     } catch (err) {
@@ -191,7 +212,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       }),
       Animated.timing(translateY, {
         toValue: slideDownDistance,
-        duration: 300, // Slide down duration
+        duration: 150, // Faster slide down duration
         useNativeDriver: true,
         easing: Easing.out(Easing.quad),
       }),
@@ -289,44 +310,61 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               )}
 
               <View style={styles.optionsContainer}>
-                <Text style={styles.durationPrompt}>Select a devotional duration:</Text>
-                {isLoading ? (
-                  <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={Colors.hopeWhite} />
-                    <Text style={styles.loadingText}>Creating your devotional...</Text>
-                  </View>
-                ) : error ? (
-                  <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity
-                      style={styles.retryButton}
-                      onPress={handleClose}
-                    >
-                      <Text style={styles.retryButtonText}>Try Again</Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.optionsContainer}>
-                    {DURATION_OPTIONS.map((option) => (
-                      <TouchableOpacity
-                        key={option.days}
-                        style={styles.optionButton}
-                        onPress={() => handleSelectDuration(option.days)}
-                        disabled={isLoading}
-                      >
-                        <Text style={styles.optionDays}>{option.days} DAY</Text>
-                        <Text style={styles.optionTitle}>{option.title}</Text>
-                        <Text style={styles.optionDescription}>
-                          {option.description}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-                <Text style={styles.footerText}>
-                  God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
-                </Text>
-              </View>
+  <Text style={styles.durationPrompt}>Select a devotional duration:</Text>
+  {(isLoading || isSuccess) ? (
+    <View style={styles.loadingContainer}>
+      {!isSuccess ? (
+        <>
+          <ActivityIndicator size="large" color={Colors.hopeWhite} />
+          <Text style={styles.loadingText}>Creating a devotional...</Text>
+        </>
+      ) : (
+        <>
+          <Animated.View
+            style={{
+              marginBottom: 12,
+              transform: [{ scale: checkmarkAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }) }],
+              opacity: checkmarkAnim,
+            }}
+          >
+            <Ionicons name="checkmark-circle" size={64} color={Colors.growthGreen || '#4BB543'} />
+          </Animated.View>
+          <Text style={styles.loadingText}>Devotional Created!</Text>
+        </>
+      )}
+    </View>
+  ) : error ? (
+    <View style={styles.errorContainer}>
+      <Text style={styles.errorText}>{error}</Text>
+      <TouchableOpacity
+        style={styles.retryButton}
+        onPress={handleClose}
+      >
+        <Text style={styles.retryButtonText}>Try Again</Text>
+      </TouchableOpacity>
+    </View>
+  ) : (
+    <View style={styles.optionsContainer}>
+      {DURATION_OPTIONS.map((option) => (
+        <TouchableOpacity
+          key={option.days}
+          style={styles.optionButton}
+          onPress={() => handleSelectDuration(option.days)}
+          disabled={isLoading}
+        >
+          <Text style={styles.optionDays}>{option.days} DAY</Text>
+          <Text style={styles.optionTitle}>{option.title}</Text>
+          <Text style={styles.optionDescription}>
+            {option.description}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  )}
+  <Text style={styles.footerText}>
+    God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
+  </Text>
+</View>
             </View>
           </View>
         </Animated.View>
