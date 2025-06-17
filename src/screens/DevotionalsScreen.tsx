@@ -231,7 +231,11 @@ const DevotionalsScreen = () => {
 
       <FlatList
         data={devotionals.sort((a: Devotional, b: Devotional) => {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          // Sort by updatedAt in descending order (newest first)
+          // Fall back to createdAt if updatedAt is not available
+          const dateA = new Date(a.updatedAt || a.createdAt).getTime();
+          const dateB = new Date(b.updatedAt || b.createdAt).getTime();
+          return dateB - dateA;
         })}
         renderItem={renderDevotionalItem}
         keyExtractor={(item) => item.id}
