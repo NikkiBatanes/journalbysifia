@@ -255,7 +255,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
 
                 <TouchableOpacity
                   style={styles.continueButton}
-                  onPress={handleClose}
+                  onPress={onContinue}
                 >
                   <Text style={styles.continueButtonText}>
                     Continue to Next Day

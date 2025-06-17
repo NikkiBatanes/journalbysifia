@@ -105,12 +105,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   };
 
   // Handle continuing after completion modal
-  const handleCompletionContinue = async (shouldNavigateBack = false) => {
+  const handleCompletionContinue = async () => {
     if (!devotional || dayCompleted === null) {
       setShowCompletionModal(false);
-      if (shouldNavigateBack) {
-        navigation.goBack();
-      }
       return;
     }
 
@@ -118,19 +115,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       // Mark the day as complete when continuing
       await markDayComplete(devotional.id, dayCompleted);
       
-      // If we should navigate back, do that now
-      if (shouldNavigateBack) {
-        navigation.goBack();
-        return;
-      }
-      
-      // Otherwise, find the next day
+      // Find the next day
       const nextDayIndex = currentDayIndex + 1;
       
       // If there's a next day, go to it and scroll to top
       if (nextDayIndex < devotional.days.length) {
         setCurrentDayIndex(nextDayIndex);
-        // Scroll to top after state update
         setTimeout(() => {
           scrollViewRef.current?.scrollTo({ y: 0, animated: true });
         }, 50);
@@ -141,17 +131,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       
     } catch (error) {
       console.error('Error marking day as complete:', error);
-      // Still close the modal even if there was an error
       setShowCompletionModal(false);
-      if (shouldNavigateBack) {
-        navigation.goBack();
-      }
     }
   };
   
   // Handle closing the modal by pressing the X button or backdrop
   const handleModalClose = () => {
-    handleCompletionContinue(true);
+    setShowCompletionModal(false);
+    navigation.goBack();
   };
 
   // Handle rating submission
@@ -275,30 +262,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <Text style={styles.dayCounterText}>
                 Day {currentDayIndex + 1} of {devotional.totalDays}
               </Text>
+              {currentDay?.completed && (
+                <Ionicons 
+                  name="checkmark-circle" 
+                  size={16} 
+                  color={Colors.growthGreen} 
+                  style={styles.completedIcon} 
+                />
+              )}
             </View>
           </View>
           <View style={styles.headerSpacer} />
-        </View>
-
-        {/* Progress Bar Section */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressBarContainer}>
-            <View style={styles.progressWrapper}>
-              <View style={styles.barBg}>
-                <View
-                  style={[
-                    styles.barFill,
-                    { width: `${devotional.progress}%` },
-                  ]}
-                />
-              </View>
-            </View>
-            <View style={styles.progressTextContainer}>
-              <Text style={styles.progressText}>
-                {devotional.days?.filter(day => day.completed).length || 0}/{devotional.totalDays} {devotional.totalDays === 1 ? 'Day' : 'Days'}
-              </Text>
-            </View>
-          </View>
         </View>
       </View>
 
@@ -389,12 +363,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
         {/* Removed the bottom complete button in favor of FAB */}
 
-        {currentDay?.completed && (
-          <View style={styles.completedBadge}>
-            <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <Text style={styles.completedText}>Completed</Text>
-          </View>
-        )}
+        {/* Completion indicator moved to header */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -527,26 +496,14 @@ const styles = StyleSheet.create({
   },
   dayCounterText: {
     fontSize: 14,
-    color: Colors.textGray,
-    textAlign: 'center',
-  },
-  progressPercentage: {
-    marginLeft: 12,
-    fontSize: 14,
     color: Colors.anchorBlue,
-    fontWeight: '600',
-    minWidth: 40,
-    textAlign: 'right',
+    marginLeft: 4,
+    marginRight: 4,
   },
-  progressContainer: {
-    flex: 1,
+  completedIcon: {
+    marginLeft: 4,
   },
-  progressPercentageText: {
-    fontSize: 14,
-    color: Colors.textGray,
-    marginTop: 8,
-    textAlign: 'center',
-  },
+
   dayTitleContainer: {
     paddingHorizontal: 4,
     paddingTop: 0,
