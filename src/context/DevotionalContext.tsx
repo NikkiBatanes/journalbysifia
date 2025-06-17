@@ -9,28 +9,28 @@ interface DevotionalContextType {
   devotionals: Devotional[];
   isLoading: boolean;
   error: string | null;
-  successMessage: string | null;
+
   createDevotional: (params: DevotionalCreationParams) => Promise<Devotional | null>;
   getDevotionalById: (id: string) => Devotional | undefined;
   markDayComplete: (devotionalId: string, dayNumber: number) => Promise<boolean>;
   deleteDevotional: (id: string) => Promise<boolean>;
   refreshDevotionals: () => Promise<void>;
   fetchPlaybookById: (id: string) => Promise<Playbook | null>;
-  clearSuccessMessage: () => void;
+
 }
 
 export const DevotionalContext = createContext<DevotionalContextType>({
   devotionals: [],
   isLoading: false,
   error: null,
-  successMessage: null,
+
   createDevotional: () => Promise.resolve(null),
   getDevotionalById: () => undefined,
   markDayComplete: () => Promise.resolve(false),
   deleteDevotional: () => Promise.resolve(false),
   refreshDevotionals: () => Promise.resolve(),
   fetchPlaybookById: () => Promise.resolve(null),
-  clearSuccessMessage: () => {},
+
 });
 
 const DEVOTIONALS_STORAGE_KEY = '@devotionals';
@@ -39,19 +39,8 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [devotionals, setDevotionals] = useState<Devotional[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const clearSuccessMessage = useCallback(() => {
-    setSuccessMessage(null);
-  }, []);
-
   const showSuccess = useCallback((message: string) => {
-    setSuccessMessage(message);
-    // Clear the message after 3 seconds
-    const timer = setTimeout(() => {
-      setSuccessMessage(null);
-    }, 3000);
-    return () => clearTimeout(timer);
+    console.log('Success:', message);
   }, []);
 
   const loadDevotionalsData = useCallback(async (): Promise<Devotional[]> => {
@@ -314,14 +303,12 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         devotionals,
         isLoading,
         error,
-        successMessage,
         createDevotional,
         getDevotionalById,
         markDayComplete,
         deleteDevotional,
         refreshDevotionals,
         fetchPlaybookById,
-        clearSuccessMessage,
       }}
     >
       {children}
