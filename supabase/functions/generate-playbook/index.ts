@@ -140,11 +140,15 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   const affMatch = content.match(/AFFIRMATIONS?:\s*([\s\S]*?)(?=BIBLE VERSE:|CHALLENGE:|$)/i);
   if (affMatch) {
     const affirmations = affMatch[1].split(/\n/).filter(l => l.trim().length > 0);
-    playbook.affirmations = affirmations.map((text, idx) => ({
-      id: `${timestamp}-aff-${idx}`,
-      text: text.replace(/^\d+\.\s*/, '').trim(),
-      completed: false,
-    }));
+    playbook.affirmations = affirmations.map((text, idx) => {
+      // Remove any leading numbers, dots, dashes, or other punctuation
+      const cleanText = text.replace(/^[\s\d\-*•.]+/, '').trim();
+      return {
+        id: `${timestamp}-aff-${idx}`,
+        text: cleanText,
+        completed: false,
+      };
+    });
   }
 
   // Parse Bible Verse
