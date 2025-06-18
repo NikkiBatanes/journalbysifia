@@ -179,8 +179,8 @@ const UserInputScreen: React.FC = () => {
               value={userInput}
               onChangeText={setUserInput}
               multiline
-              maxLength={500}
               textAlignVertical="top"
+              scrollEnabled={true}
               autoCapitalize="sentences"
               keyboardAppearance="dark"
               textBreakStrategy="simple"
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     paddingRight: 60, // Space for send button
     width: '100%',
     minHeight: 150,
-    maxHeight: 240, // Increased max height
+    maxHeight: 300, // Increased max height to allow more text
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     flexDirection: 'column',
