@@ -21,7 +21,7 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
   <View style={[styles.card, style]}>
     <View style={styles.headerRow}>
       <View style={styles.iconContainer}>
-        <Ionicons name={icon} size={20} color={Colors.hopeWhite} />
+        <Ionicons name={icon} size={20} color={Colors.alertCoral} />
       </View>
       <View>
         <Text style={styles.title}>{title}</Text>
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 107, 107, 0.3)', // Lighter alertCoral with 30% opacity
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,

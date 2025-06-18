@@ -40,13 +40,6 @@ interface Devotional {
   userInput?: string;
 }
 
-interface OpenAIData {
-  choices: Array<{
-    message: {
-      content: string;
-    };
-  }>;
-}
 
 interface DevotionalRequestBody {
   duration?: number;
@@ -228,26 +221,26 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       content.match(/^#\s*([^\n]+)/),  // Markdown H1
       content.match(/^TITLE:\s*\n([^\n]+)/i),  // Simple TITLE: format
       content.match(/DEVOTIONAL TITLE:\s*([^\n]+)/i),  // DEVOTIONAL TITLE: format
-      content.match(/^([^\n]{5,64})(?=\n|$)/)  // First line that's 5-64 chars long
+      content.match(/^([^\n]{5,64})(?=\n|$)/),  // First line that's 5-64 chars long
     ];
-    
+
     for (const match of titleMatches) {
       if (match && match[1]) {
         title = cleanMarkdown(match[1]).trim().slice(0, 64);
-        if (title) break;
+        if (title) {break;}
       } else if (match && match[0]) {
         // Handle patterns where the entire match is the title
         title = cleanMarkdown(match[0]).trim().slice(0, 64);
-        if (title) break;
+        if (title) {break;}
       }
     }
-    
+
     // Clean up common title artifacts
     title = title
       .replace(/^[\s\d\-*•.]+/, '')  // Remove leading bullets/numbers
-      .replace(/[\[\]"]/g, '')         // Remove brackets and quotes
+      .replace(/[\]["]/g, '')         // Remove brackets and quotes
       .trim();
-    
+
     // Fallback to user input if no valid title found
     if (!title || title.toLowerCase() === 'daily devotional') {
       title = (userInput || 'Daily Devotional')
@@ -256,7 +249,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         .trim()
         .slice(0, 64);
     }
-    
+
     devotional.title = title;
     console.log('[DEVOTIONAL PARSER] Extracted title:', title);
 
@@ -265,9 +258,9 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     const descMatches = [
       content.match(/DESCRIPTION:\s*\n([\s\S]*?)(?=\n\n|\n---|$)/i),
       content.match(/\*\*DESCRIPTION:\*\*\s*\n([\s\S]*?)(?=\n\n|\n---|$)/i),
-      content.match(/^[^\n]+\n([\s\S]*?)(?=^#|^\*\*|$)/m)
+      content.match(/^[^\n]+\n([\s\S]*?)(?=^#|^\*\*|$)/m),
     ];
-    
+
     for (const match of descMatches) {
       if (match && match[1]) {
         const desc = cleanMarkdown(match[1]).trim();
@@ -364,11 +357,11 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         // Extract day title - handle multiple formats
         let dayTitle = `Day ${dayNumber}`; // Default title
         const seriesTitle = devotional.title.toLowerCase();
-        
+
         // First, try to find a suitable title in the day content
         const dayTitleMatches = [
           // Look for patterns like "DAY 1: Title" or "DAY 1 - Title"
-          dayContent.match(/DAY\s+\d+[.:\-]?\s*([^\n]+)/i),
+          dayContent.match(/DAY\s+\d+[.:-]?\s*([^\n]+)/i),
           // Look for TITLE: format
           dayContent.match(/TITLE:\s*([^\n]+)/i),
           // Look for markdown headers
@@ -378,27 +371,27 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           // Look for any line that might be a title
           dayContent.match(/^(.+?)\n\n/),
           // Look for lines that look like titles (sentence case, 3-10 words)
-          dayContent.match(/^([A-Z][^\n.!?]{10,60}[^\n.!?])(?=\n|$)/m)
+          dayContent.match(/^([A-Z][^\n.!?]{10,60}[^\n.!?])(?=\n|$)/m),
         ];
-        
+
         // Try each pattern until we find a suitable title
-        for (const match of dayTitleMatches) {
-          if (match && match[1]) {
-            let candidate = cleanMarkdown(match[1])
+        for (const titleMatch of dayTitleMatches) {
+          if (titleMatch && titleMatch[1]) {
+            let candidate = cleanMarkdown(titleMatch[1])
               .trim()
-              .replace(/^[\d.:\-\s*#]+/, '') // Remove any leading numbers, colons, dashes, or special chars
-              .replace(/[\[\]"]/g, '') // Remove brackets and quotes
+              .replace(/^[\d.:-\s*#]+/, '') // Remove any leading numbers, colons, dashes, or special chars
+              .replace(/[\]["]/g, '') // Remove brackets and quotes
               .trim();
-            
+
             // Additional cleaning for common patterns
             candidate = candidate
               .replace(/^[\s\d\-*•.]+/, '')  // Remove leading bullets/numbers
-              .replace(/[\[\]"]/g, '')         // Remove brackets and quotes
+              .replace(/[\]["]/g, '')         // Remove brackets and quotes
               .trim();
-            
+
             // Basic validation
-            if (candidate && 
-                candidate.length > 3 && 
+            if (candidate &&
+                candidate.length > 3 &&
                 candidate.length <= 64 &&
                 !candidate.toLowerCase().includes(seriesTitle) &&
                 !candidate.match(/^(day\s*\d+|devotional|title|scripture|reflection|prayer)/i) &&
@@ -409,33 +402,33 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             }
           }
         }
-        
+
         // If the extracted title is too similar to the series title, use a default
-        if (dayTitle.toLowerCase() === seriesTitle || 
+        if (dayTitle.toLowerCase() === seriesTitle ||
             dayTitle.toLowerCase().includes(seriesTitle) ||
             seriesTitle.includes(dayTitle.toLowerCase())) {
           dayTitle = `Day ${dayNumber}`;
         }
-        
+
         // Ensure the title isn't too long
         dayTitle = dayTitle.slice(0, 32).trim();
-        
+
         // Ensure title is meaningful, not too long, and not the same as series title
         const cleanDayTitle = (() => {
           // Clean and trim the title
           let result = cleanMarkdown(dayTitle).trim().slice(0, 64);
-          
+
           // Fallback to default if empty or too generic
           if (!result || result === `Day ${dayNumber}` || result.length > 64) {
             result = `Day ${dayNumber}`;
           }
-          
+
           // Ensure it's not the same as the series title
-          const seriesTitle = devotional.title.toLowerCase();
-          if (result.toLowerCase() === seriesTitle) {
+          const seriesTitleLower = devotional.title.toLowerCase();
+          if (result.toLowerCase() === seriesTitleLower) {
             result = `Day ${dayNumber}: ${result}`.slice(0, 64);
           }
-          
+
           return result;
         })();
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Title:`, cleanDayTitle);
@@ -497,36 +490,38 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             { id: 'q3', text: 'How does this point you to Christ?' },
           ];
         }
-        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Questions count:`, reflectionQuestions.length);
 
-          // Extract prayer text
-          let prayerText = '';
-          const prayerMatch = dayContent.match(/PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus' Name|$)/i);
-          if (prayerMatch && prayerMatch[1]) {
-            const prayerBody = cleanMarkdown(prayerMatch[1])
-              .trim()
-              .replace(/^[\s\d\-*•.]+/, '')  // Remove leading bullets/numbers
-              .replace(/[\[\]"]/g, '')         // Remove brackets and quotes
-              .trim();
-            
-            // Format prayer with compact spacing - no extra space after body
-            prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
-          } else {
-            // Default prayer with compact spacing - no extra space after body
-            prayerText = `Heavenly Father,\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\nIn Jesus' Name, Amen`;
-          }
-          console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Prayer:`, prayerText.substring(0, 100));
+        // Extract prayer text
+        let prayerText = '';
+        const prayerMatch = dayContent.match(/PRAYER:[\s\n]*([\s\S]*?)(?=In Jesus' Name|$)/i);
+        if (prayerMatch && prayerMatch[1]) {
+          let prayerBody = cleanMarkdown(prayerMatch[1])
+            .trim()
+            .replace(/^[\s\d\-*•.]+/, '')  // Remove leading bullets/numbers
+            .replace(/[\]["]/g, '')         // Remove brackets and quotes
+            .trim();
 
-          // Clean up day title if needed
-          const finalDayTitle = dayTitle || `Day ${dayNum}`;
+          // Remove any existing 'Heavenly Father' from the prayer body
+          prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
           
+          // Format prayer with compact spacing - no extra space after body
+          prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
+        } else {
+          // Default prayer with compact spacing - no extra space after body
+          prayerText = 'Heavenly Father,\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\nIn Jesus\' Name, Amen';
+        }
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Prayer:`, prayerText.substring(0, 100));
+
+        // Clean up day title if needed
+          const finalDayTitle = dayTitle || `Day ${dayNum}`;
+
           devotional.days.push({
             id: `${Date.now()}-day-${dayNumber}`,
             dayNumber,
             title: finalDayTitle,
             scripture: {
               text: scriptureText || 'The Lord is my shepherd, I lack nothing.',
-              reference: scriptureRef || 'Psalm 23:1'
+              reference: scriptureRef || 'Psalm 23:1',
             },
             reflection: reflection || 'Reflect on God\'s word today.',
             reflectionQuestions,
@@ -605,7 +600,7 @@ serve(async (req: Request): Promise<Response> => {
   try {
     requestBody = await req.json();
     console.log('Request body parsed successfully');
-    
+
     // Validate required fields
     if (!requestBody.userInput) {
       return createErrorResponse(400, 'Missing required field: userInput');

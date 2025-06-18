@@ -50,7 +50,10 @@ import { useNavigation } from '@react-navigation/native';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Gesture context type
-type GestureContext = { startY: number; startX: number };
+interface GestureContext {
+  startY: number;
+  startX: number;
+}
 
 // Types
 import { StackNavigationProp } from '@react-navigation/stack';

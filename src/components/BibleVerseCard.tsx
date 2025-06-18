@@ -21,14 +21,14 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         <MaterialCommunityIcons
           name="book"
           size={24}
-          color={textColor}
+          color={Colors.alertCoral}
           style={styles.icon}
         />
         <Text style={[styles.heading, { color: textColor }]}>Bible Verse</Text>
       </View>
       <View style={styles.contentContainer}>
         <Text style={[styles.verseText, { color: textColor }]}>{formatBibleVerse(verse.text)}</Text>
-        <Text style={[styles.reference, { color: textColor }]}>— {verse.reference}</Text>
+        <Text style={[styles.reference, { color: Colors.alertCoral }]}>— {verse.reference}</Text>
       </View>
     </View>
   );
@@ -73,15 +73,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   reference: {
-    ...Typography.interSemiBold,
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.9)',
+    ...Typography.interBold,
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.alertCoral,
+    marginTop: 24,
     textAlign: 'right',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: 40, // Increased from 16 to 40 to move the reference text down
+    paddingBottom: 5,
     opacity: 0.9,
-    paddingHorizontal: 8,
-    alignSelf: 'flex-end',
   },
 });

@@ -642,10 +642,13 @@ const styles = StyleSheet.create({
   },
   scriptureReference: {
     ...TypographyStyles.interSemiBold,
-    fontSize: 14,
-    color: Colors.faithGold,
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
+    color: Colors.alertCoral,
     textAlign: 'right',
     marginTop: 8,
+    opacity: 0.9,
   },
   dayNavigation: {
     position: 'absolute',

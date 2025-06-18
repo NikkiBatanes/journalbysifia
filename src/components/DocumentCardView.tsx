@@ -55,7 +55,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
           <MaterialCommunityIcons
             name="format-quote-open"
             size={20}
-            color={Colors.hopeWhite}
+            color={Colors.alertCoral}
             style={styles.affirmationIcon}
           />
           <Text style={propStyles.affirmationsTitle}>Affirmations</Text>

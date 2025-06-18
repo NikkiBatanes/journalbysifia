@@ -127,7 +127,7 @@ export default function ActionStepsCard({
         <MaterialCommunityIcons
           name="playlist-check"
           size={24}
-          color={Colors.faithGold}
+          color={Colors.alertCoral}
           style={styles.icon}
         />
         <Text style={[styles.heading, textColor ? { color: textColor } : {}]}>

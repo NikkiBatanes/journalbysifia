@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Colors } from '../theme';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';
 import AffirmationCard from './AffirmationCard';
@@ -94,7 +95,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
           <MaterialCommunityIcons
             name="format-quote-close"
             size={24}
-            color="white"
+            color={Colors.alertCoral}
             style={[propStyles.icon, styles.quoteIcon]}
           />
           <Text style={propStyles.affirmationsTitle}>Affirmations</Text>

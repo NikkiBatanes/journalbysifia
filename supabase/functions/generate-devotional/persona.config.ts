@@ -12,7 +12,7 @@ export const devotionalAdvisorPersona: Persona = {
     'Christian Theology',
     'Spiritual Formation',
     'Pastoral Counseling',
-    'Devotional Writing'
+    'Devotional Writing',
   ],
   tone: [
     'Compassionate',
@@ -20,7 +20,7 @@ export const devotionalAdvisorPersona: Persona = {
     'Biblically-Sound',
     'Personal',
     'Challenging',
-    'Hopeful'
+    'Hopeful',
   ],
   systemPrompt: `You are a Devotional Writer with deep biblical knowledge and pastoral wisdom. Your role is to create spiritually enriching devotionals that are deeply rooted in Scripture and practically applicable to daily life.
 
@@ -102,36 +102,36 @@ In Jesus' name, Amen
 - Be compassionate yet challenging
 - Offer hope without compromising truth
 - Use clear, accessible language
-- Avoid Christian clichés and religious jargon`
+- Avoid Christian clichés and religious jargon`,
 };
 
 const BIBLE_CHARACTERS = [
-  'Abraham', 'Moses', 'David', 'Esther', 'Ruth', 'Daniel', 'Mary', 'Peter', 'Paul', 'Priscilla', 'Timothy', 'Lydia'
+  'Abraham', 'Moses', 'David', 'Esther', 'Ruth', 'Daniel', 'Mary', 'Peter', 'Paul', 'Priscilla', 'Timothy', 'Lydia',
 ];
 
 const FAITH_HEROES = [
   'Corrie ten Boom', 'George Müller', 'Hudson Taylor', 'Amy Carmichael', 'Jim Elliot',
   'Elisabeth Elliot', 'Dietrich Bonhoeffer', 'Oswald Chambers', 'Charles Spurgeon',
-  'D.L. Moody', 'Fanny Crosby', 'William Wilberforce', 'Gladys Aylward', 'Eric Liddell'
+  'D.L. Moody', 'Fanny Crosby', 'William Wilberforce', 'Gladys Aylward', 'Eric Liddell',
 ];
 
 export const applyPersonaContext = (persona: Persona, userInput: string): string => {
   const randomBibleCharacter = BIBLE_CHARACTERS[Math.floor(Math.random() * BIBLE_CHARACTERS.length)];
   const randomHero = FAITH_HEROES[Math.floor(Math.random() * FAITH_HEROES.length)];
-  
-  return `[BIBLICAL DEVOTIONAL WRITER - SPEAK GOD'S TRUTH IN LOVE]\n` +
+
+  return '[BIBLICAL DEVOTIONAL WRITER - SPEAK GOD\'S TRUTH IN LOVE]\n' +
     `Role: ${persona.role} - You are a shepherd guiding God's people with wisdom and grace.\n\n` +
-    `BIBLICAL MANDATE:\n` +
-    `• "Preach the Word; be prepared in season and out of season" (2 Timothy 4:2)\n` +
-    `• "Speak the truth in love" (Ephesians 4:15)\n` +
-    `• "Encourage one another and build each other up" (1 Thessalonians 5:11)\n\n` +
-    `STORYTELLING GUIDELINES:\n` +
-    `• Include relevant biblical narratives that illustrate the passage's truth\n` +
+    'BIBLICAL MANDATE:\n' +
+    '• "Preach the Word; be prepared in season and out of season" (2 Timothy 4:2)\n' +
+    '• "Speak the truth in love" (Ephesians 4:15)\n' +
+    '• "Encourage one another and build each other up" (1 Thessalonians 5:11)\n\n' +
+    'STORYTELLING GUIDELINES:\n' +
+    '• Include relevant biblical narratives that illustrate the passage\'s truth\n' +
     `• Share stories of faithful Christians (e.g., ${randomHero}) when they demonstrate the passage's application\n` +
     `• Highlight how God worked through ${randomBibleCharacter}'s life in ways that connect to the theme\n` +
-    `• Ensure all stories are historically accurate and biblically sound\n\n` +
+    '• Ensure all stories are historically accurate and biblically sound\n\n' +
     `USER'S REQUEST:\n${userInput}\n\n` +
-    `IMPORTANT: Your response must be deeply rooted in Scripture, Christ-centered, and include relevant biblical or historical Christian stories that illustrate the truth being taught.`;
+    'IMPORTANT: Your response must be deeply rooted in Scripture, Christ-centered, and include relevant biblical or historical Christian stories that illustrate the truth being taught.';
 };
 
 export const enforcePersona = (response: string, _persona: Persona): string => {
@@ -141,11 +141,11 @@ export const enforcePersona = (response: string, _persona: Persona): string => {
     'SCRIPTURE',
     'REFLECTION',
     'REFLECTION QUESTIONS',
-    'PRAYER'
+    'PRAYER',
   ];
 
   let enforcedResponse = response;
-  
+
   // Ensure all required sections are present and properly formatted
   for (const section of requiredSections) {
     const sectionRegex = new RegExp(`\\b${section}:\\s*\\n`, 'i');
@@ -189,18 +189,18 @@ export const formatDevotionalResponse = (content: string, isMultiDay: boolean = 
   // Extract the title (first line after TITLE:)
   const titleMatch = content.match(/TITLE:\s*([^\n]+)/i);
   const title = titleMatch ? titleMatch[1].trim() : 'Daily Devotional';
-  
+
   // For multi-day devotionals, add series and day information
   if (isMultiDay) {
     const seriesTitle = content.match(/SERIES TITLE:\s*([^\n]+)/i)?.[1]?.trim() || 'Devotional Series';
     const description = content.match(/DESCRIPTION:\s*([^\n]+)/i)?.[1]?.trim() || 'A journey through God\'s Word';
-    
+
     return `SERIES TITLE: ${seriesTitle}\n\n` +
       `DESCRIPTION: ${description}\n\n` +
       `DAY ${dayNumber}: ${title}\n\n` +
       content.substring(content.indexOf('SCRIPTURE:'));
   }
-  
+
   // For single devotionals
   return `TITLE: ${title}\n\n` +
     content.substring(content.indexOf('SCRIPTURE:'));

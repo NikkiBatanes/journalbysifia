@@ -17,7 +17,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
         <MaterialCommunityIcons
           name="lightning-bolt"
           size={24}
-          color={Colors.hopeWhite}
+          color={Colors.anchorBlue}
           style={styles.icon}
         />
         <Text style={styles.heading}>Rise in Faith</Text>
