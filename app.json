@@ -3,9 +3,9 @@
   "displayName": "siFia",
   "version": "1.0.0",
   "orientation": "portrait",
-  "icon": "./assets/images/siFia.png",
+  "icon": "./assets/images/siFiaAppIcon.png",
   "splash": {
-    "image": "./assets/images/siFia.png",
+    "image": "./assets/images/siFiaAppIcon.png",
     "resizeMode": "contain",
     "backgroundColor": "#1A3C6D"
   },
@@ -16,7 +16,7 @@
   },
   "android": {
     "adaptiveIcon": {
-      "foregroundImage": "./assets/images/siFia.png",
+      "foregroundImage": "./assets/images/siFiaAppIcon.png",
       "backgroundColor": "#1A3C6D"
     },
     "package": "com.anchored.app",
