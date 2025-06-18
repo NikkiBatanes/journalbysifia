@@ -476,25 +476,22 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         if (prayerMatch) {
           let prayerBody = cleanMarkdown(prayerMatch[1]).trim();
           prayerBody = prayerBody.replace(/^\s+|\s+$/g, '');
+          
+          // Remove any existing opening/closing phrases
+          prayerBody = prayerBody
+            .replace(/^Heavenly Father,?\s*/i, '')
+            .replace(/In Jesus'? Name,?\s*Amen[\s\S]*$/i, '')
+            .trim();
 
-          // Ensure proper prayer format
-          if (!/^Heavenly Father,?/i.test(prayerBody)) {
-            prayerText += 'Heavenly Father,\n';
-          }
-          prayerText += prayerBody;
-
-          // Ensure proper closing
-          if (!/In Jesus'? Name,?\s*\n?Amen\.?$/i.test(prayerText)) {
-            if (!/In Jesus'? Name,?/i.test(prayerText)) {
-              prayerText += '\nIn Jesus\' Name,';
-            }
-            if (!/Amen\.?$/i.test(prayerText)) {
-              prayerText += '\nAmen';
-            }
-          }
+          // Format prayer with compact spacing - no extra space after body
+          prayerText = `Heavenly Father,
+${prayerBody}
+In Jesus' Name, Amen`;
         } else {
-          // Default prayer if none found
-          prayerText = 'Heavenly Father,\nThank You for this time together.\nGuide me in Your truth today.\nForgive me for doubting Your path.\nHelp me trust Your plan.\nThank You for Your faithfulness.\nIn Jesus\' Name,\nAmen';
+          // Default prayer with compact spacing - no extra space after body
+          prayerText = `Heavenly Father,
+Thank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.
+In Jesus' Name, Amen`;
         }
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Prayer:`, prayerText.substring(0, 100));
 
