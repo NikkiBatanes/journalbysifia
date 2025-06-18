@@ -157,7 +157,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         <TouchableWithoutFeedback onPress={handleClose}>
           <Animated.View style={[
             styles.backdrop,
-            visible && styles.backdropVisible
+            visible && styles.backdropVisible,
           ]} />
         </TouchableWithoutFeedback>
         <Animated.View

@@ -145,19 +145,19 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
       }}
     >
       <Tab.Screen
-        name="Playbooks"
-        component={PlaybookListScreen}
+        name="UserInput"
+        component={UserInputScreen}
         options={{
           tabBarLabel: 'Home',
-          title: 'Playbooks',
           headerShown: false,
         }}
       />
       <Tab.Screen
-        name="UserInput"
-        component={UserInputScreen}
+        name="Playbooks"
+        component={PlaybookListScreen}
         options={{
-          tabBarLabel: '',
+          tabBarLabel: 'Playbooks',
+          title: 'Playbooks',
           headerShown: false,
         }}
       />
@@ -182,22 +182,24 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
-    height: 80, // Slightly increased height for better touch targets
+    height: 80,
     backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 30, // Increased corner radius
-    borderTopRightRadius: 30, // Increased corner radius
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     position: 'absolute',
     bottom: 0,
-    left: 0, // Full width
-    right: 0, // Full width
+    left: 0,
+    right: 0,
     elevation: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
     shadowRadius: 15,
-    paddingHorizontal: 20, // Increased horizontal padding
-    justifyContent: 'space-around',
+    paddingHorizontal: 10, // Reduced horizontal padding
+    justifyContent: 'space-between', // Evenly distribute space
     alignItems: 'center',
+    paddingLeft: 25, // Add left padding
+    paddingRight: 25, // Add right padding
     paddingBottom: Platform.OS === 'ios' ? 25 : 15,
   },
   tab: {
@@ -207,18 +209,21 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   middleTab: {
-    width: 60, // Slightly larger for better visibility
-    height: 60, // Slightly larger for better visibility
-    borderRadius: 30, // Half of width/height for perfect circle
-    backgroundColor: Colors.anchorBlueLight,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.anchorBlue,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -30, // Half of height to make it float
-    elevation: 8,
-    shadowColor: Colors.anchorBlue,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    marginTop: -20,
+    borderWidth: 3,
+    borderColor: Colors.hopeWhite,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    marginHorizontal: 10, // Add horizontal margin for better spacing
   },
   middleTabActive: {
     backgroundColor: Colors.anchorBlue,

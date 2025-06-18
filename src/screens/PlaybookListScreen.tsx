@@ -196,107 +196,51 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
         return [];
       }
 
-      // Process in chunks to avoid blocking the JS thread
-      const chunkSize = 50;
-      let result: Playbook[] = [];
+      // Define type for our intermediate playbook object
+      type PlaybookWithMetadata = {
+        playbook: Playbook;
+        progress: number;
+        isCompleted: boolean;
+        sortDate: number;
+      };
 
-      // Process filtering in chunks
-      for (let i = 0; i < playbooks.length; i += chunkSize) {
-        const chunk = playbooks.slice(i, i + chunkSize);
-
-        const filteredChunk = chunk.filter((playbook) => {
-          if (!playbook?.actionSteps) {return false;}
+      // Process filtering and sorting in a single pass
+      const result = playbooks
+        .map(playbook => {
+          if (!playbook?.actionSteps) {return null;}
 
           const { completed, total } = calculateTaskStats(playbook.actionSteps);
           const progress = total > 0 ? (completed / total) * 100 : 0;
           const isCompleted = progress >= 100;
 
+          // Calculate sort date once per playbook
+          const getSortableDate = () => {
+            if (playbook.completedAt) {return new Date(playbook.completedAt).getTime();}
+            if (playbook.updatedAt) {return new Date(playbook.updatedAt).getTime();}
+            if (playbook.createdAt) {return new Date(playbook.createdAt).getTime();}
+            return 0;
+          };
+
+          return { playbook, progress, isCompleted, sortDate: getSortableDate() } as PlaybookWithMetadata;
+        })
+        .filter((item): item is PlaybookWithMetadata => item !== null)
+        .filter(({ progress: _progress, isCompleted }) => {
           switch (filter) {
             case 'all':
               return true;
             case 'ongoing':
-              return progress > 0 && progress < 100; // Only show playbooks that are in progress
+              // Include playbooks that are started (progress > 0) or newly created (progress = 0)
+              return !isCompleted;
             case 'completed':
               return isCompleted;
             default:
               return false;
           }
-        });
-
-        result = [...result, ...filteredChunk];
-      }
-
-      // Sort based on filter
-      if (filter === 'completed') {
-        console.log('Sorting completed playbooks...');
-
-        // Log all playbooks with their dates before sorting
-        result.forEach(pb => {
-          console.log(`Playbook: ${pb.title}`);
-          console.log(`- completedAt: ${pb.completedAt}`);
-          console.log(`- updatedAt: ${pb.updatedAt}`);
-          console.log(`- createdAt: ${pb.createdAt}`);
-        });
-
-        result.sort((a, b) => {
-          // For completed playbooks, sort by completedAt in descending order (newest first)
-          // If completedAt is not available, fall back to updatedAt or createdAt
-          const getSortableDate = (pb: Playbook) => {
-            if (pb.completedAt) {
-              const date = new Date(pb.completedAt).getTime();
-              if (!isNaN(date)) {return { date, priority: 1, source: 'completedAt' };}
-            }
-            if (pb.updatedAt) {
-              const date = new Date(pb.updatedAt).getTime();
-              if (!isNaN(date)) {return { date, priority: 2, source: 'updatedAt' };}
-            }
-            if (pb.createdAt) {
-              const date = new Date(pb.createdAt).getTime();
-              if (!isNaN(date)) {return { date, priority: 3, source: 'createdAt' };}
-            }
-            return { date: 0, priority: 4, source: 'none' };
-          };
-
-          const dateA = getSortableDate(a);
-          const dateB = getSortableDate(b);
-
-          // Log comparison for debugging
-          console.log(`Comparing: ${a.title} (${new Date(dateA.date).toISOString()}, ${dateA.source}) vs ${b.title} (${new Date(dateB.date).toISOString()}, ${dateB.source})`);
-
-          // First sort by date in descending order (newest first)
-          if (dateA.date !== dateB.date) {
-            return dateB.date - dateA.date;
-          }
-
-          // If dates are equal, sort by priority (prefer completedAt over updatedAt over createdAt)
-          return dateA.priority - dateB.priority;
-        });
-
-        // Log the final order after sorting
-        console.log('Final order after sorting:');
-        result.forEach((pb, index) => {
-          console.log(`${index + 1}. ${pb.title} (${pb.completedAt || 'no completedAt'})`);
-        });
-      } else if (filter === 'ongoing') {
-        result.sort((a, b) => {
-          const getSortableDate = (pb: Playbook) => {
-            if (pb.updatedAt) {
-              const updatedAt = new Date(pb.updatedAt).getTime();
-              if (!isNaN(updatedAt)) {return updatedAt;}
-            }
-            if (pb.createdAt) {
-              const createdAt = new Date(pb.createdAt).getTime();
-              if (!isNaN(createdAt)) {return createdAt;}
-            }
-            return 0;
-          };
-
-          return getSortableDate(b) - getSortableDate(a);
-        });
-      }
+        })
+        .sort((a, b) => b.sortDate - a.sortDate)
+        .map(({ playbook }) => playbook);
 
       return result;
-
     } catch (error) {
       console.error('Error filtering playbooks:', error);
       return [];

@@ -166,7 +166,7 @@ const UserInputScreen: React.FC = () => {
       <StatusBar barStyle="light-content" />
       <View style={styles.content}>
         <View style={styles.header}>
-          <Image source={require('../../assets/images/AnchoredWhite.png')} style={styles.logo} resizeMode="contain" />
+          <Image source={require('../../assets/images/siFia.png')} style={styles.logo} resizeMode="contain" />
         </View>
         <View style={styles.spacer} />
         <View style={styles.inputContainer}>
@@ -232,12 +232,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     paddingHorizontal: 40,
-    paddingTop: 200, // Increased top padding to push logo down
+    paddingTop: 180, // Adjusted top padding to better position the larger logo
     paddingBottom: 20,
   },
   logo: {
-    width: '100%',
-    height: 100,
+    width: '120%',
+    height: 150,
+    marginTop: -20,
+    marginBottom: 10,
   },
   spacer: {
     flex: 1,

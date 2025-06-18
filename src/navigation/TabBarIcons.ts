@@ -5,8 +5,8 @@
  */
 export const TabBarIcons = {
   UserInput: {
-    name: 'add-circle-outline',
-    focused: 'add-circle',
+    name: 'home-outline',
+    focused: 'home',
   },
   Playbooks: {
     name: 'book-outline',

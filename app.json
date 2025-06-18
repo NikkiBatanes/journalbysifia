@@ -3,9 +3,9 @@
   "displayName": "AnchoredApp",
   "version": "1.0.0",
   "orientation": "portrait",
-  "icon": "./assets/images/AnchoredWhite.png",
+  "icon": "./assets/images/siFia.png",
   "splash": {
-    "image": "./assets/images/AnchoredWhite.png",
+    "image": "./assets/images/siFia.png",
     "resizeMode": "contain",
     "backgroundColor": "#1A3C6D"
   },
@@ -16,7 +16,7 @@
   },
   "android": {
     "adaptiveIcon": {
-      "foregroundImage": "./assets/images/AnchoredWhite.png",
+      "foregroundImage": "./assets/images/siFia.png",
       "backgroundColor": "#1A3C6D"
     },
     "package": "com.anchored.app",
