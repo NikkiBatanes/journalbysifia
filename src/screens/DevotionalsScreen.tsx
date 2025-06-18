@@ -139,7 +139,7 @@ const DevotionalsScreen = () => {
               <View style={styles.tagRow}>
                 <View style={styles.tagList}>
                   {item.category && (
-                    <View style={[styles.categoryBadge, item.playbookId && { marginRight: 4 }]}>
+                    <View style={item.playbookId ? styles.categoryBadgeWithPlaybook : styles.categoryBadge}>
                       <Ionicons name="pricetag-outline" size={10} color={Colors.hopeWhite} style={styles.tagIcon} />
                       <Text style={styles.categoryText}>{item.category}</Text>
                     </View>
@@ -320,6 +320,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   categoryBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  categoryBadgeWithPlaybook: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 4,

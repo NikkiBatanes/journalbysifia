@@ -82,15 +82,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Animate the ellipsis
   React.useEffect(() => {
-    if (!isLoading) return;
-    
+    if (!isLoading) {return;}
+
     const timer = setInterval(() => {
       setEllipsis((prev: string) => {
-        if (prev.length >= 3) return '';
+        if (prev.length >= 3) {return '';}
         return prev + '.';
       });
     }, 300);
-    
+
     return () => clearInterval(timer);
   }, [isLoading]);
 
@@ -175,7 +175,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const handleSelectDuration = async (days: number) => {
     try {
       setSelectedDuration(days);
-      
+
       if (onSelectDuration) {
         onSelectDuration(days);
         return;

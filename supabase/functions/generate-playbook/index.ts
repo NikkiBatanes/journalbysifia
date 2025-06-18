@@ -44,7 +44,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   // Extract playbook title and subtitle
   let mainTitle = '';
   let subtitle = '';
-  
+
   // First try to match the exact format with angle brackets
   const titleMatch = content.match(/PLAYBOOK TITLE:\s*\n<([^>]+)>\n<([^>]*)>/i);
   if (titleMatch) {
@@ -113,10 +113,10 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
         const trimmedLine = line.trim();
         if (/^-\s*Sub-task:/i.test(trimmedLine)) {
           const subTask = trimmedLine.replace(/^-\s*Sub-task:\s*/i, '').trim();
-          if (subTask) subTasks.push(subTask);
+          if (subTask) {subTasks.push(subTask);}
         } else if (/^-\s*Example:/i.test(trimmedLine)) {
           const example = trimmedLine.replace(/^-\s*Example:\s*/i, '').trim();
-          if (example) examples.push(example);
+          if (example) {examples.push(example);}
         } else if (subTasks.length > 0 && !trimmedLine.startsWith('- ')) {
           // Handle multi-line sub-tasks or examples
           const lastIndex = subTasks.length - 1;
@@ -176,27 +176,28 @@ interface RequestBody {
 
 serve(async (req: Request) => {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { 
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
-  
+
   let requestBody: RequestBody;
   try {
     requestBody = await req.json();
   } catch (_error) {
     return new Response(JSON.stringify({ error: 'Invalid request body' }), {
       status: 400,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
   }
-  
+
   const { userInput, userName } = requestBody;
 
   try {
-    // Apply persona context to user input (currently not used in the API call but kept for future use)
-    const _personaContext = applyPersonaContext(strategicAdvisorPersona, userInput);
+    // Persona context is applied through the system prompt
+    // Keeping the function call for future use
+    applyPersonaContext(strategicAdvisorPersona, userInput);
 
     // Call OpenAI API with persona context
     const openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -210,12 +211,12 @@ serve(async (req: Request) => {
         messages: [
           {
             role: 'system',
-            content: strategicAdvisorPersona.systemPrompt
+            content: strategicAdvisorPersona.systemPrompt,
           },
           {
             role: 'user',
-            content: `User: ${userName}\nStruggle: ${userInput}`
-          }
+            content: `User: ${userName}\nStruggle: ${userInput}`,
+          },
         ],
         temperature: 0.7,
         max_tokens: 2500,
@@ -235,14 +236,14 @@ serve(async (req: Request) => {
 
     // Parse the playbook
     let playbook = parseOpenAIResponse(aiData, userName, userInput);
-    
+
     // Enforce persona rules on the response
     if (aiData.choices?.[0]?.message?.content) {
       const enforcedContent = enforcePersona(
         aiData.choices[0].message.content,
         strategicAdvisorPersona
       );
-      
+
       // Update playbook with enforced content if needed
       if (enforcedContent !== aiData.choices[0].message.content) {
         playbook = parseOpenAIResponse(
@@ -252,7 +253,7 @@ serve(async (req: Request) => {
         );
       }
     }
-    
+
     // Set totalTasks to the number of main action steps
     playbook.totalTasks = playbook.actionSteps.length;
     playbook.progress = 0; // Reset progress to 0 since no tasks are completed yet
@@ -265,9 +266,9 @@ serve(async (req: Request) => {
     console.error('Error generating playbook:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
     return new Response(
-      JSON.stringify({ 
-        error: 'Failed to generate playbook', 
-        details: errorMessage
+      JSON.stringify({
+        error: 'Failed to generate playbook',
+        details: errorMessage,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
