@@ -55,18 +55,19 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   userInput,
   onDevotionalCreated,
 }) => {
+  const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const { createDevotional, isLoading, error } = useDevotional();
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isVisible, setIsVisible] = useState(false);
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
+  const [ellipsis, setEllipsis] = useState('');
   const contentRef = React.useRef<View>(null);
+  const checkmarkAnim = useRef(new Animated.Value(0)).current;
 
   // Success state and checkmark animation
   const [isSuccess, setIsSuccess] = useState(false);
-  const checkmarkAnim = useRef(new Animated.Value(0)).current;
-
   // Animation for the overlay (fade in/out)
   // Fade animation for backdrop dim
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -78,6 +79,20 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
     }
   };
+
+  // Animate the ellipsis
+  React.useEffect(() => {
+    if (!isLoading) return;
+    
+    const timer = setInterval(() => {
+      setEllipsis((prev: string) => {
+        if (prev.length >= 3) return '';
+        return prev + '.';
+      });
+    }, 300);
+    
+    return () => clearInterval(timer);
+  }, [isLoading]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -159,6 +174,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   const handleSelectDuration = async (days: number) => {
     try {
+      setSelectedDuration(days);
+      
       if (onSelectDuration) {
         onSelectDuration(days);
         return;
@@ -316,7 +333,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       {!isSuccess ? (
         <>
           <ActivityIndicator size="large" color={Colors.hopeWhite} />
-          <Text style={styles.loadingText}>Creating a devotional...</Text>
+          <Text style={styles.loadingText}>
+            {selectedDuration ? `Creating your ${selectedDuration}-day devotional${ellipsis}` : `Creating your devotional${ellipsis}`}
+          </Text>
         </>
       ) : (
         <>
