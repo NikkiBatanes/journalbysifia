@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 export default function HomeScreen({ navigation, onLogout }: any) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to AnchoredApp</Text>
+      <Text style={styles.title}>Welcome to siFia</Text>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity

@@ -1,6 +1,7 @@
 {
-  "name": "AnchoredApp",
+  "name": "siFia",
   "version": "0.0.1",
+  "description": "siFia mobile app",
   "private": true,
   "scripts": {
     "android": "react-native run-android",

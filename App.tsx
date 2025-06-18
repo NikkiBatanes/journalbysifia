@@ -1,5 +1,5 @@
 /**
- * AnchoredApp - Main Application Component
+ * siFia - Main Application Component
  * A React Native application for managing playbooks and user content
  */
 
