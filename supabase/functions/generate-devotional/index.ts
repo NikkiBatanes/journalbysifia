@@ -503,7 +503,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
           // Remove any existing 'Heavenly Father' from the prayer body
           prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
-          
+
           // Format prayer with compact spacing - no extra space after body
           prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
         } else {
