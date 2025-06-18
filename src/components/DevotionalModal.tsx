@@ -327,8 +327,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               )}
 
               <View style={styles.optionsContainer}>
-  <Text style={styles.durationPrompt}>Select a devotional duration:</Text>
-  {(isLoading || isSuccess) ? (
+                {!(isLoading || isSuccess) && (
+                  <Text style={styles.durationPrompt}>Select a devotional duration:</Text>
+                )}
+                {(isLoading || isSuccess) ? (
     <View style={styles.loadingContainer}>
       {!isSuccess ? (
         <>
