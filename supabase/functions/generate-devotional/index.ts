@@ -1,4 +1,59 @@
-import { serve } from 'https://deno.land/std/http/server.ts';
+/** @deno-types="https://deno.land/x/types/http/server.d.ts" */
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from './persona.config.ts';
+
+interface Scripture {
+  text: string;
+  reference: string;
+}
+
+interface ReflectionQuestion {
+  id: string;
+  text: string;
+}
+
+interface DevotionalDay {
+  id: string;
+  dayNumber: number;
+  title: string;
+  scripture: Scripture;
+  reflection: string;
+  reflectionQuestions: ReflectionQuestion[];
+  prayer: string;
+  completed: boolean;
+}
+
+interface Devotional {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  categories: string[];
+  days: DevotionalDay[];
+  currentDay: number;
+  totalDays: number;
+  progress: number;
+  completed: boolean;
+  createdAt: string;
+  updatedAt: string;
+  playbookId?: string;
+  userInput?: string;
+}
+
+interface OpenAIData {
+  choices: Array<{
+    message: {
+      content: string;
+    };
+  }>;
+}
+
+interface DevotionalRequestBody {
+  duration?: number;
+  playbookId?: string;
+  userInput?: string;
+  userName?: string;
+}
 
 interface Scripture {
   text: string;
@@ -165,20 +220,46 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       userInput,
     };
 
-    // Extract title (handle the exact format from OpenAI response)
+    // Extract title - handle multiple possible formats
     let title = 'Daily Devotional';
-    const titleMatch = content.match(/\*\*SERIES TITLE:\*\*\s*\n([^\n]+)/i);
-    if (titleMatch && titleMatch[1]) {
-      title = cleanMarkdown(titleMatch[1]).trim().slice(0, 32);
+    const titleMatches = [
+      content.match(/SERIES TITLE:\s*\n([^\n]+)/i),  // Plain format
+      content.match(/\*\*SERIES TITLE:\*\*\s*\n([^\n]+)/i),  // Markdown format
+      content.match(/^#\s*([^\n]+)/),  // Markdown H1
+      content.match(/^TITLE:\s*\n([^\n]+)/i)  // Simple TITLE: format
+    ];
+    
+    for (const match of titleMatches) {
+      if (match && match[1]) {
+        title = cleanMarkdown(match[1]).trim().slice(0, 64);
+        if (title) break;
+      }
     }
+    
+    // Fallback to user input if no title found
+    if (!title || title.toLowerCase() === 'daily devotional') {
+      title = (userInput || 'Daily Devotional').split('.')[0].slice(0, 64);
+    }
+    
     devotional.title = title;
     console.log('[DEVOTIONAL PARSER] Extracted title:', title);
 
-    // Extract description (handle the exact format from OpenAI response)
+    // Extract description - handle multiple possible formats
     let description = `A ${duration}-day journey to deepen your faith.`;
-    const descMatch = content.match(/\*\*DESCRIPTION:\*\*\s*\n([^\n]+)(?:\n\n|\n---|$)/i);
-    if (descMatch && descMatch[1]) {
-      description = cleanMarkdown(descMatch[1]).trim();
+    const descMatches = [
+      content.match(/DESCRIPTION:\s*\n([\s\S]*?)(?=\n\n|\n---|$)/i),
+      content.match(/\*\*DESCRIPTION:\*\*\s*\n([\s\S]*?)(?=\n\n|\n---|$)/i),
+      content.match(/^[^\n]+\n([\s\S]*?)(?=^#|^\*\*|$)/m)
+    ];
+    
+    for (const match of descMatches) {
+      if (match && match[1]) {
+        const desc = cleanMarkdown(match[1]).trim();
+        if (desc) {
+          description = desc;
+          break;
+        }
+      }
     }
     devotional.description = description;
     console.log('[DEVOTIONAL PARSER] Extracted description:', description);
@@ -264,17 +345,70 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         // Log day content for debugging
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} content (first 100 chars):`, JSON.stringify(dayContent.substring(0, 100)));
 
-        // Extract day title (match plain format, not markdown)
+        // Extract day title - handle multiple formats
         let dayTitle = `Day ${dayNumber}`; // Default title
-        const dayTitleMatch = dayContent.match(/DAILY TITLE:\s*\n?([^\n]+)/i);
-        if (dayTitleMatch && dayTitleMatch[1]) {
-          dayTitle = dayTitleMatch[1].trim();
+        const seriesTitle = devotional.title.toLowerCase();
+        
+        // First, try to find a suitable title in the day content
+        const dayTitleMatches = [
+          // Look for patterns like "DAY 1: Title" or "DAY 1 - Title"
+          dayContent.match(/DAY\s+\d+[.:\-]?\s*([^\n]+)/i),
+          // Look for markdown headers
+          dayContent.match(/^#+\s*([^\n]+)/m),
+          // Look for bold text that might be a title
+          dayContent.match(/\*\*([^*]+)\*\*/),
+          // Look for any line that might be a title
+          dayContent.match(/^(.+?)\n\n/)
+        ];
+        
+        // Try each pattern until we find a suitable title
+        for (const match of dayTitleMatches) {
+          if (match && match[1]) {
+            const candidate = cleanMarkdown(match[1])
+              .trim()
+              .replace(/^[\d.:\-\s]+/, '') // Remove any leading numbers, colons, dashes, or spaces
+              .trim();
+            
+            // Basic validation
+            if (candidate && 
+                candidate.length > 3 && 
+                !candidate.toLowerCase().includes(seriesTitle) &&
+                !candidate.match(/^day\s+\d+/i) &&
+                !candidate.toLowerCase().includes('devotional')) {
+              dayTitle = candidate;
+              break;
+            }
+          }
         }
-        // Prevent day title from being the same as the series title
-        if (dayTitle === devotional.title) {
+        
+        // If the extracted title is too similar to the series title, use a default
+        if (dayTitle.toLowerCase() === seriesTitle || 
+            dayTitle.toLowerCase().includes(seriesTitle) ||
+            seriesTitle.includes(dayTitle.toLowerCase())) {
           dayTitle = `Day ${dayNumber}`;
         }
-        const cleanDayTitle = cleanMarkdown(dayTitle).trim().slice(0, 32);
+        
+        // Ensure the title isn't too long
+        dayTitle = dayTitle.slice(0, 32).trim();
+        
+        // Ensure title is meaningful, not too long, and not the same as series title
+        const cleanDayTitle = (() => {
+          // Clean and trim the title
+          let result = cleanMarkdown(dayTitle).trim().slice(0, 64);
+          
+          // Fallback to default if empty or too generic
+          if (!result || result === `Day ${dayNumber}` || result.length > 64) {
+            result = `Day ${dayNumber}`;
+          }
+          
+          // Ensure it's not the same as the series title
+          const seriesTitle = devotional.title.toLowerCase();
+          if (result.toLowerCase() === seriesTitle) {
+            result = `Day ${dayNumber}: ${result}`.slice(0, 64);
+          }
+          
+          return result;
+        })();
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Title:`, cleanDayTitle);
 
         // Extract scripture (match plain format, allow curly quotes, dash, and whitespace)
@@ -442,110 +576,28 @@ serve(async (req: Request): Promise<Response> => {
     return createErrorResponse(405, 'Method not allowed', 'hustle and bustle - Only POST requests are accepted');
   }
 
-  interface DevotionalRequestBody {
-    duration?: number;
-    playbookId?: string;
-    userInput?: string;
-    [key: string]: unknown;
-  }
   let requestBody: DevotionalRequestBody;
   try {
     requestBody = await req.json();
     console.log('Request body parsed successfully');
+    
+    // Validate required fields
+    if (!requestBody.userInput) {
+      return createErrorResponse(400, 'Missing required field: userInput');
+    }
   } catch (error) {
-    return createErrorResponse(400, 'Invalid request body', error);
+    return createErrorResponse(400, 'Invalid request body', error instanceof Error ? error.message : 'Unknown error');
   }
 
-  logRequest(req, requestBody);
+  const { duration = 1, playbookId, userInput = '', userName = 'User' } = requestBody;
 
-  const { duration, playbookId, userInput } = requestBody;
-
-  if (!duration || typeof duration !== 'number' || duration < 1 || duration > 7) {
+  if (typeof duration !== 'number' || duration < 1 || duration > 7) {
     return createErrorResponse(400, 'Invalid duration', 'Must be a number between 1 and 7.');
   }
 
-  const prompt = `
-You are a compassionate, biblically grounded devotional writer, an expert in Bible knowledge, and a follower of Christ who prioritizes Jesus above all. Create a ${duration}-day devotional based on the user input: "${userInput || 'spiritual growth'}" and playbook content (Truth in Love, Action Steps, Affirmations, Bible verse, Challenge card). Use less common scriptures unless none are suitable.
-
-${duration > 1 ? 'SERIES TITLE:' : 'DEVOTIONAL TITLE:'}
-[Create a unique title under 32 characters, inspired by the theme, not user input. Avoid generic titles like "Devotional" or "Daily Devotional". Examples: "Finding Peace", "Steadfast Faith".]
-
-DESCRIPTION:
-[One sentence (max 80 characters) describing the ${duration}-day journey, e.g., "A ${duration}-day journey on prayer's peace."]
-
-${duration > 1
-  ? Array.from({ length: duration }, (_, i) => `
-DAY ${i + 1}:
-DAILY TITLE: [Unique title under 32 characters, distinct from series title]
-SCRIPTURE: "[Full verse text]" - [BOOK CHAPTER:VERSE]
-DAILY REFLECTION: [200-300 words, empathetic, Christ-centered, with short paragraphs (2-4 sentences, line breaks). Follow the series arc (Day ${i + 1}: ${['Problem', 'Healing', 'Hope'][i] || `Step ${i + 1}`}). Acknowledge the struggle, share biblical truth, offer practical steps, highlight God's character, end with hope.]
-REFLECTION QUESTIONS:
-1. [Personal, Christ-centered question]
-2. [God’s character-focused question]
-3. [Practical, actionable question]
-PRAYER:
-Heavenly Father,
-
-[1-2 sentences of adoration]
-[1 sentence of confession]
-[1-2 sentences of petition]
-[1 sentence of thanksgiving]
-
-In Jesus' Name, Amen
-`).join('\n')
-  : `
-DAY 1:
-DAILY TITLE: [Same as devotional title]
-SCRIPTURE: "[Full verse text]" - [BOOK CHAPTER:VERSE]
-DAILY REFLECTION: [200-300 words, empathetic, Christ-centered, with short paragraphs (2-4 sentences, line breaks). Acknowledge the struggle, share biblical truth, offer practical steps, highlight God's character, end with hope.]
-REFLECTION QUESTIONS:
-1. [Personal, Christ-centered question]
-2. [God’s character-focused question]
-3. [Practical, actionable question]
-PRAYER:
-Heavenly Father,
-
-[1-2 sentences of adoration]
-[1 sentence of confession]
-[1-2 sentences of petition]
-[1 sentence of thanksgiving]
-
-In Jesus' Name, Amen
-`}
-
-CATEGORY:
-- A single, most relevant word that best represents the devotional's theme. 
-- Choose from: 
-  - Life Areas: Career, Business, Finance, Work, Leadership, Success, Productivity, Entrepreneurship, Vocation, Calling, WorkLife, Ministry, Service, Relationships, Family, Parenting, Marriage, Friendship, Health, Wellness, Purpose, Identity, Calling, Creativity, Art, Music, Writing, Education, Learning, Growth, Change, Transition, Grief, Loss, Healing, Recovery
-[Select the single most fitting word from the above categories that best represents the devotional's theme]
-
-${duration > 1 ? `
-SERIES ARC GUIDE:
-${duration === 3 ? `
-- Day 1: Problem - Acknowledge the struggle
-- Day 2: Healing - Biblical perspective
-- Day 3: Hope - Resolution and application
-` : duration === 5 ? `
-- Day 1: Awareness - Identify the struggle
-- Day 2: Trust - God’s character
-- Day 3: Healing - Biblical foundation
-- Day 4: Action - Practical steps
-- Day 5: Renewal - Hopeful commitment
-` : `
-- Day 1: Problem - Face the struggle
-- Day 2: Trust - God’s faithfulness
-- Day 3: Growth - Spiritual development
-- Day 4: Action - Practical steps
-- Day 5: Community - Connection with others
-- Day 6: Renewal - Changed perspective
-- Day 7: Celebration - God’s promises
-`}` : ''}
-
-Follow this format strictly. Titles must be under 32 characters. Scripture reference in uppercase, e.g., "Verse text" - JOHN 3:16. Prayer must use exact line-break structure. Categories must be specific and relevant.
-`;
-
   try {
-    console.log('Making OpenAI API request...');
+    applyPersonaContext(devotionalAdvisorPersona, userInput);
+
     const openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -554,30 +606,54 @@ Follow this format strictly. Titles must be under 32 characters. Scripture refer
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          {
+            role: 'system',
+            content: devotionalAdvisorPersona.systemPrompt,
+          },
+          {
+            role: 'user',
+            content: `User: ${userName}\nRequest: ${userInput}\nDuration: ${duration} day${duration > 1 ? 's' : ''}`,
+          },
+        ],
         temperature: 0.7,
         max_tokens: 4000,
       }),
     });
 
     if (!openAIRes.ok) {
-      const err = await openAIRes.text();
-      console.error('OpenAI API error status:', openAIRes.status);
-      console.error('OpenAI API error response:', err);
-      return createErrorResponse(openAIRes.status, 'Error from OpenAI API', err);
+      const error = await openAIRes.text();
+      console.error('OpenAI API Error:', error);
+      return createErrorResponse(openAIRes.status, 'Error from OpenAI API', error);
     }
 
     const aiData = await openAIRes.json();
-    console.log('OpenAI API response received:', JSON.stringify(aiData, null, 2));
-    const devotional = parseOpenAIResponse(aiData, duration, playbookId, userInput);
+
+    let content = aiData.choices?.[0]?.message?.content || '';
+    if (content) {
+      content = enforcePersona(content, devotionalAdvisorPersona);
+    }
+
+    const devotional = parseOpenAIResponse(
+      { choices: [{ message: { content } }] },
+      duration,
+      playbookId,
+      userInput
+    );
+
     return new Response(JSON.stringify(devotional), {
-      status: 200,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
       },
     });
   } catch (error) {
-    return createErrorResponse(500, 'Internal server error', error);
+    console.error('Error generating devotional:', error);
+    return createErrorResponse(
+      500,
+      'Failed to generate devotional',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
   }
 });

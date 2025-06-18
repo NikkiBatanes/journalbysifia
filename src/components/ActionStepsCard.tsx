@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     ...Typography.interSemiBold,
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     flexShrink: 1,
@@ -389,11 +389,11 @@ const styles = StyleSheet.create({
   },
   subTaskText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 15,
     flexShrink: 1,
     lineHeight: 22,
     paddingRight: 12,
-    fontWeight: '500',
+    fontWeight: '400',
     flex: 1,
   },
   exampleText: {
