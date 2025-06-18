@@ -516,7 +516,6 @@ In Jesus' Name, Amen
 CATEGORY:
 - A single, most relevant word that best represents the devotional's theme. 
 - Choose from: 
-  - Spiritual: Faith, Hope, Love, Peace, Joy, Patience, Kindness, Goodness, Faithfulness, Gentleness, SelfControl, Wisdom, Courage, Strength, Grace, Mercy, Forgiveness, Humility, Gratitude, Contentment, Trust, Surrender, Obedience, Worship, Prayer, Scripture, Discipleship, Evangelism, Fellowship, Stewardship
   - Life Areas: Career, Business, Finance, Work, Leadership, Success, Productivity, Entrepreneurship, Vocation, Calling, WorkLife, Ministry, Service, Relationships, Family, Parenting, Marriage, Friendship, Health, Wellness, Purpose, Identity, Calling, Creativity, Art, Music, Writing, Education, Learning, Growth, Change, Transition, Grief, Loss, Healing, Recovery
 [Select the single most fitting word from the above categories that best represents the devotional's theme]
 

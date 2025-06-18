@@ -139,22 +139,22 @@ const DevotionalsScreen = () => {
               <View style={styles.tagRow}>
                 <View style={styles.tagList}>
                   {item.category && (
-                    <View style={styles.categoryBadge}>
+                    <View style={[styles.categoryBadge, item.playbookId && { marginRight: 4 }]}>
                       <Ionicons name="pricetag-outline" size={10} color={Colors.hopeWhite} style={styles.tagIcon} />
                       <Text style={styles.categoryText}>{item.category}</Text>
                     </View>
                   )}
+                  {item.playbookId && (
+                    <TouchableOpacity
+                      style={styles.playbookBadge}
+                      onPress={() => handlePlaybookPress(item.playbookId!)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name="book-outline" size={12} color={Colors.hopeWhite} style={styles.playbookIcon} />
+                      <Text style={styles.playbookText}>From Playbook</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-                {item.playbookId && (
-                  <TouchableOpacity
-                    style={styles.playbookBadge}
-                    onPress={() => handlePlaybookPress(item.playbookId!)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="book-outline" size={12} color={Colors.hopeWhite} style={styles.playbookIcon} />
-                    <Text style={styles.playbookText}>From Playbook</Text>
-                  </TouchableOpacity>
-                )}
               </View>
 
               <View style={styles.progressBarContainer}>
@@ -302,32 +302,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
-    minHeight: 180, // Reduced minimum height
     position: 'relative',
   },
   cardContent: {
     flex: 1,
   },
   tagRow: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
-    marginBottom: 12,
-    minHeight: 40, // Reduced minimum height for tags
+    marginBottom: 8,
+    paddingHorizontal: 2,
   },
   tagList: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 8,
-    gap: 8,
+    alignItems: 'center',
   },
   categoryBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 4,
   },
   categoryText: {
     color: Colors.hopeWhite,
@@ -336,11 +335,12 @@ const styles = StyleSheet.create({
   },
   playbookBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 4,
   },
   playbookIcon: {
     marginRight: 4,
@@ -385,19 +385,13 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 8,
     lineHeight: 20,
-    minHeight: 40, // Ensure consistent height for 2 lines
   },
   progressBarContainer: {
     width: '100%',
-    marginTop: 'auto', // Push to bottom of card
-    marginBottom: 4,
-    marginHorizontal: -4, // Extend beyond parent's padding
+    marginTop: 12,
     paddingTop: 12,
-    paddingBottom: 8,
-    paddingHorizontal: 4, // Compensate for negative margin
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.15)',
-    // Removed fixed minHeight to allow dynamic sizing
   },
   progressHeader: {
     flexDirection: 'row',
@@ -437,8 +431,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.95)',
     fontFamily: Fonts.medium,
-    fontWeight: '600',
-    marginTop: 4,
   },
   progressWrapper: {
     flex: 1,
