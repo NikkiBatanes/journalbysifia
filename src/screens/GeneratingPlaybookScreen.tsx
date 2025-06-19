@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Animated } from 'react-native';
+import { View, StyleSheet, Animated, Image } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,14 +15,48 @@ const GeneratingPlaybookScreen: React.FC<Props> = () => {
   const [animationKey, setAnimationKey] = useState(0);
   const animations = useRef<Animated.Value[]>([]);
 
-  // Fade in animation when component mounts
+  // Pulse animation values
+  const pulseValue = useRef(new Animated.Value(0.8)).current;
+
+  // Fade in and pulse animation when component mounts
   useEffect(() => {
-    Animated.timing(fadeAnim, {
+    // Start fade in animation
+    const fadeIn = Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 300,
       useNativeDriver: true,
-    }).start();
-  }, [fadeAnim]);
+    });
+
+    // Create pulse animation
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseValue, {
+          toValue: 1.1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseValue, {
+          toValue: 0.9,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    // Start both animations
+    fadeIn.start();
+    pulseAnimation.start();
+
+    // Cleanup function
+    return () => {
+      fadeIn.stop();
+      pulseAnimation.stop();
+      pulseValue.setValue(0.8); // Reset to initial scale
+    };
+  }, [fadeAnim, pulseValue]);
+
+  // Scale transform for pulse effect
+  const scale = pulseValue;
 
   // Initialize animations for each line
   useEffect(() => {
@@ -100,29 +134,22 @@ const GeneratingPlaybookScreen: React.FC<Props> = () => {
       <View style={StyleSheet.absoluteFill}>
         <View style={styles.background} />
       </View>
-      <View style={styles.linesContainer}>
-        {animations.current.map((anim, index) => (
-          <Animated.View
-            key={index}
-            style={[
-              styles.line,
-              {
-                opacity: anim,
-                transform: [
-                  { scaleX: anim.interpolate({
-                    inputRange: [0.3, 1],
-                    outputRange: [0.8, 1.2],
-                  })},
-                  { scaleY: anim.interpolate({
-                    inputRange: [0.3, 1],
-                    outputRange: [0.8, 1.2],
-                  })},
-                ],
-              },
-            ]}
-          />
-        ))}
-      </View>
+      <Animated.View
+        style={[
+          styles.logoContainer,
+          {
+            transform: [
+              { scale: scale },
+            ],
+          },
+        ]}
+      >
+        <Image
+          source={require('../../assets/images/siFiaAppIcon.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </Animated.View>
       <Animated.Text style={[styles.generatingText, { opacity: textOpacity }]}>
         GENERATING
       </Animated.Text>
@@ -168,18 +195,17 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
 
-  linesContainer: {
-    alignItems: 'center',
+  logoContainer: {
+    width: 120,
+    height: 120,
     marginBottom: 30,
-    height: 150,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  line: {
-    width: 120,  // Reduced from 160
-    height: 8,    // Increased from 6
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 4, // Slightly increased to match thicker line
-    marginVertical: 5, // Slightly reduced to compensate for thicker lines
+  logo: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
   },
   textContainer: {
     width: '100%',
