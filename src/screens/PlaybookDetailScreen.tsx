@@ -49,11 +49,7 @@ import { useNavigation } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-// Gesture context type
-interface GestureContext {
-  startY: number;
-  startX: number;
-}
+// Gesture state is now managed with useSharedValue
 
 // Types
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -158,7 +154,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // State management
 
-  // Animation values
+  // Animation values - all hooks must be called unconditionally at the top level
   const nudgeY = useSharedValue(0);
   const bounceY = useSharedValue(0);
   const cardScale = useSharedValue(1);
@@ -176,6 +172,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerHeight = useSharedValue(1);
   const isInitialRender = useRef(true);
   const chevronAnim = useSharedValue(0);
+
+  // Gesture state values - moved to top level
+  const gestureState = useSharedValue({ isSwiping: false });
+  const gestureStartY = useSharedValue(0);
+  const gestureVelocityY = useSharedValue(0);
+  const gestureTranslationY = useSharedValue(0);
+  const gestureStartTime = useSharedValue(0);
+
+  // Swipe configuration
+  const MIN_SWIPE_DISTANCE = 10; // Minimum distance to start a swipe (in pixels)
+  const MIN_SWIPE_VELOCITY = 500; // Minimum velocity to consider it a swipe (pixels/second)
 
   // Animated styles
   const chevronStyle = useAnimatedStyle(() => ({
@@ -551,136 +558,128 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
 
 
+  // These declarations have been moved to the top of the component
+  // to ensure all hooks are called unconditionally at the top level
+
   const gestureHandler = useAnimatedGestureHandler({
-    onStart: (_, ctx: GestureContext) => {
+    onStart: (_event) => {
       // Cancel any running animations when a new gesture starts
       Object.values(gestureAnimationRefs.current).forEach(anim => {
         if (anim?.cancel) {anim.cancel();}
       });
 
-      ctx.startY = translateY.value;
-      ctx.startX = 0;
+      gestureStartY.value = translateY.value;
+      gestureState.value = { isSwiping: false };
+      gestureStartTime.value = Date.now();
+      gestureTranslationY.value = 0;
+      gestureVelocityY.value = 0;
     },
-    onActive: (event, ctx: GestureContext) => {
-      if (!isTransitioning.value) {
-        if (Math.abs(event.translationY) > Math.abs(event.translationX)) {
-          translateY.value = ctx.startY + event.translationY;
-          // Calculate fade and collapse based on scroll position
-          const fadeThreshold = -SWIPE_THRESHOLD / 2;
-          const collapseThreshold = -SWIPE_THRESHOLD * 0.8;
+    onActive: (event) => {
+      if (isTransitioning.value) {return;}
 
-          if (translateY.value < fadeThreshold) {
-            // Start fading and collapsing header
-            const fadeProgress = Math.min(1, Math.abs(translateY.value - fadeThreshold) / (SWIPE_THRESHOLD - fadeThreshold));
+      gestureTranslationY.value = event.translationY;
+      gestureVelocityY.value = event.velocityY;
 
-            // Cancel any previous fade animation
-            if (gestureAnimationRefs.current.headerFadeAnimation?.cancel) {
-              gestureAnimationRefs.current.headerFadeAnimation.cancel();
-            }
+      const distanceY = Math.abs(gestureTranslationY.value);
+      const distanceX = Math.abs(event.translationX);
+      const isVerticalSwipe = distanceY > distanceX * 1.5;
 
-            gestureAnimationRefs.current.headerFadeAnimation = {
-              opacity: withSpring(1 - fadeProgress * 0.8, { damping: 18, stiffness: 120, mass: 0.7 }),
-              height: withSpring(1 - fadeProgress * 0.8, { damping: 18, stiffness: 120, mass: 0.7 }),
-            };
-            headerOpacity.value = 1 - fadeProgress * 0.8;
-            headerHeight.value = 1 - fadeProgress * 0.8;
+      // Only start swiping after minimum distance is reached
+      if (!gestureState.value.isSwiping && distanceY < MIN_SWIPE_DISTANCE) {return;}
 
-            if (translateY.value < collapseThreshold && !headerFaded.value) {
-              headerFaded.value = true;
-            }
-          } else if (translateY.value >= fadeThreshold && headerFaded.value) {
-            // Expand and show header
-            headerFaded.value = false;
+      gestureState.value = { isSwiping: true };
 
-            if (gestureAnimationRefs.current.headerShowAnimation?.cancel) {
-              gestureAnimationRefs.current.headerShowAnimation.cancel();
-            }
+      if (isVerticalSwipe) {
+        translateY.value = gestureStartY.value + gestureTranslationY.value;
 
-            gestureAnimationRefs.current.headerShowAnimation = {
-              opacity: withSpring(1, { damping: 18, stiffness: 120, mass: 0.7 }),
-              height: withSpring(1, { damping: 18, stiffness: 120, mass: 0.7 }),
-            };
-            headerOpacity.value = 1;
-            headerHeight.value = 1;
+        // Calculate fade and collapse based on scroll position
+        const fadeThreshold = -SWIPE_THRESHOLD / 2;
+        const collapseThreshold = -SWIPE_THRESHOLD * 0.8;
+
+        if (translateY.value < fadeThreshold) {
+          const fadeProgress = Math.min(1, Math.abs(translateY.value - fadeThreshold) / (SWIPE_THRESHOLD - fadeThreshold));
+          headerOpacity.value = 1 - fadeProgress * 0.8;
+          headerHeight.value = 1 - fadeProgress * 0.8;
+
+          if (translateY.value < collapseThreshold && !headerFaded.value) {
+            headerFaded.value = true;
           }
+        } else if (translateY.value >= fadeThreshold && headerFaded.value) {
+          headerFaded.value = false;
+          headerOpacity.value = 1;
+          headerHeight.value = 1;
         }
       }
     },
-    onEnd: (event, _ctx: GestureContext) => {
-      if (isTransitioning.value) {return;}
+    onEnd: (event) => {
+      if (isTransitioning.value || !gestureState.value.isSwiping) {return;}
 
-      const isVerticalSwipe = Math.abs(event.translationY) > Math.abs(event.translationX);
+      // Calculate velocity without storing unused elapsedTime
+      const velocityY = (gestureVelocityY.value || 0) * 1000;
+      const isFastSwipe = Math.abs(velocityY) > MIN_SWIPE_VELOCITY;
+      const isVerticalSwipe = Math.abs(gestureTranslationY.value) > Math.abs(event.translationX) * 1.5;
+
       if (isVerticalSwipe) {
-        if (event.translationY < -SWIPE_THRESHOLD && currentCardShared.value < cardCount.value - 1) {
+        const isSwipeUp = gestureTranslationY.value < 0;
+        const isSwipeDown = gestureTranslationY.value > 0;
+        const isPastThreshold = Math.abs(gestureTranslationY.value) > SWIPE_THRESHOLD;
+
+        const handleSwipe = (direction: 'up' | 'down') => {
           isTransitioning.value = true;
+          const targetY = direction === 'up' ? -SCREEN_HEIGHT : SCREEN_HEIGHT;
 
           if (gestureAnimationRefs.current.translateYAnimation?.cancel) {
             gestureAnimationRefs.current.translateYAnimation.cancel();
           }
 
           gestureAnimationRefs.current.translateYAnimation = withTiming(
-            -SCREEN_HEIGHT,
-            { duration: 250 },
+            targetY,
+            { duration: isFastSwipe ? 200 : 250 },
             (finished) => {
               if (finished) {
-                runOnJS(onSwipeComplete)('up');
+                runOnJS(onSwipeComplete)(direction);
               }
             }
           );
-
           translateY.value = gestureAnimationRefs.current.translateYAnimation;
+        };
 
-        } else if (event.translationY > SWIPE_THRESHOLD && currentCardShared.value > 0) {
-          isTransitioning.value = true;
-
-          if (gestureAnimationRefs.current.translateYAnimation?.cancel) {
-            gestureAnimationRefs.current.translateYAnimation.cancel();
-          }
-
-          gestureAnimationRefs.current.translateYAnimation = withTiming(
-            SCREEN_HEIGHT,
-            { duration: 250 },
-            (finished) => {
-              if (finished) {
-                runOnJS(onSwipeComplete)('down');
-              }
-            }
-          );
-
-          translateY.value = gestureAnimationRefs.current.translateYAnimation;
-
+        if (isSwipeUp && (isPastThreshold || isFastSwipe) && currentCardShared.value < cardCount.value - 1) {
+          handleSwipe('up');
+        } else if (isSwipeDown && (isPastThreshold || isFastSwipe) && currentCardShared.value > 0) {
+          handleSwipe('down');
         } else {
+          // Snap back if not enough movement
           if (gestureAnimationRefs.current.springAnimation?.cancel) {
             gestureAnimationRefs.current.springAnimation.cancel();
           }
 
           gestureAnimationRefs.current.springAnimation = withSpring(0, {
-            damping: 10,
-            stiffness: 150,
+            damping: 20,
+            stiffness: 300,
+            velocity: gestureVelocityY.value,
           }, (finished) => {
-            if (finished) {
-              translateY.value = 0;
-            }
+            if (finished) {translateY.value = 0;}
           });
-
           translateY.value = gestureAnimationRefs.current.springAnimation;
         }
       } else {
+        // Reset position for horizontal movement
         if (gestureAnimationRefs.current.springAnimation?.cancel) {
           gestureAnimationRefs.current.springAnimation.cancel();
         }
 
         gestureAnimationRefs.current.springAnimation = withSpring(0, {
-          damping: 10,
-          stiffness: 150,
+          damping: 20,
+          stiffness: 300,
+          velocity: gestureVelocityY.value,
         }, (finished) => {
-          if (finished) {
-            translateY.value = 0;
-          }
+          if (finished) {translateY.value = 0;}
         });
-
         translateY.value = gestureAnimationRefs.current.springAnimation;
       }
+
+      gestureState.value = { isSwiping: false };
     },
   });
 

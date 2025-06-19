@@ -31,13 +31,12 @@ const LogoutButton = ({ onPress }: { onPress: () => void }) => (
 // Custom tab bar component with proper TypeScript types
 const CustomTabBarComponent = ({
   state,
-  descriptors,
+  descriptors: _descriptors, // Prefix with underscore to indicate intentionally unused
   navigation,
 }: CustomTabBarProps) => {
   return (
     <View style={styles.tabBarContainer}>
       {state.routes.map((route, index) => {
-        const { options } = descriptors[route.key];
         const isFocused = state.index === index;
 
         const onPress = () => {
