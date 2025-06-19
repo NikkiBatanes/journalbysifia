@@ -43,6 +43,7 @@ import CompactHeader from '../components/CompactHeader';
 // Types & Context
 import { Playbook, ActionStep, Affirmation } from '../interfaces/playbook';
 import { useActionSteps } from '../context/ActionStepsContext';
+import { getCompletedStepsCount as getTaskStats } from '../utils/taskUtils';
 import DevotionalButton from '../components/DevotionalButton';
 import DevotionalModal from '../components/DevotionalModal';
 import { useNavigation } from '@react-navigation/native';
@@ -145,12 +146,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [showDevotionalButton, setShowDevotionalButton] = useState(false);
 
   // Move useActionSteps to the top level to avoid conditional hook calls
-  const {
-    actionSteps,
-    setActionSteps,
-    getCompletedStepsCount,
-    saveActionSteps,
-  } = useActionSteps();
+  const { actionSteps, setActionSteps, saveActionSteps } = useActionSteps();
+  const getCompletedStepsCount = useCallback(() => getTaskStats(actionSteps), [actionSteps]);
 
   // State management
 
@@ -468,7 +465,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   console.log('[DEBUG] PlaybookDetailScreen - Playbook actionSteps:', playbook?.actionSteps);
 
   // Calculate progress
-  const { completed, total } = getCompletedStepsCount();
+  const { completed, total } = useMemo(() => getTaskStats(actionSteps), [actionSteps]);
 
   // Ensure we don't show more than 100% progress
   const safeCompleted = Math.min(completed, total);

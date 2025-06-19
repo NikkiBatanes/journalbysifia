@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Playbook } from '../interfaces/playbook';
 import { Colors, Fonts } from '../theme';
 import { progressBarStyles } from '../styles/ProgressBarStyles';
-import { calculateTaskStats } from '../screens/PlaybookListScreen';
+import { getCompletedStepsCount } from '../utils/taskUtils';
 
 interface PlaybookCardProps extends TouchableOpacityProps {
   playbook: Playbook;
@@ -33,7 +33,9 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
   ...props
 }) => {
   const formattedDate = format(new Date(playbook.createdAt || ''), 'EEEE, MMM d, yyyy').toUpperCase();
-  const { completed, total } = useMemo(() => calculateTaskStats(playbook.actionSteps), [playbook.actionSteps]);
+  // Use shared utility for task stats (matches detail screen)
+  const { completed, total } = useMemo(() => getCompletedStepsCount(playbook.actionSteps), [playbook.actionSteps]);
+
   const progress = useMemo(() => total > 0 ? Math.max(0, Math.min(100, (completed / total) * 100)) : 0, [completed, total]);
   const progressBarFillStyle = getProgressBarStyle(progress);
 
@@ -72,7 +74,7 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
               </View>
               <View style={progressBarStyles.textContainer}>
                 <Text style={progressBarStyles.text}>
-                  {completed}/{total} tasks
+                  {completed}/{total} Tasks
                 </Text>
               </View>
             </View>

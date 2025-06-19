@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
 import { updatePlaybookActionSteps, calculateTaskStats } from '../services/supabaseApi';
 import { usePlaybookStore } from '../store/usePlaybookStore';
+import { Playbook } from '../interfaces/playbook';
 
 export type SubTask = {
   id: string;
@@ -26,13 +27,21 @@ type ActionStepsContextType = {
 
 const ActionStepsContext = createContext<ActionStepsContextType | undefined>(undefined);
 
-export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; children: React.ReactNode }> = ({
+interface ActionStepsProviderProps {
+  initialSteps: ActionStep[];
+  children: ReactNode;
+  playbookId?: string;
+}
+
+export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
   initialSteps,
   children,
+  playbookId,
 }) => {
   const [actionSteps, setActionSteps] = useState<ActionStep[]>(initialSteps);
+  const { updatePlaybook } = usePlaybookStore();
 
-  const getCompletedStepsCount = () => {
+  const getCompletedStepsCount = useCallback(() => {
     let completed = 0;
     let total = 0;
 
@@ -42,7 +51,7 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
 
       if (hasSubTasks) {
         // For steps with subtasks, only count the step as completed if all subtasks are completed
-        const allSubTasksCompleted = subTasks.length > 0 && subTasks.every(st => st.completed);
+        const allSubTasksCompleted = subTasks.every(st => st.completed);
         total++; // Count the main step
         if (allSubTasksCompleted) {
           completed++; // Only count as completed if all subtasks are done
@@ -64,9 +73,9 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
 
     console.log('[DEBUG] Task count:', { completed, total });
     return { completed, total };
-  };
+  }, [actionSteps]);
 
-  const normalizeSubTask = (task: any, index: number, stepId: string): SubTask => {
+  const normalizeSubTask = useCallback((task: SubTask | string, index: number, stepId: string): SubTask => {
     if (typeof task === 'string') {
       return {
         id: `${stepId}-subtask-${index}`,
@@ -80,156 +89,142 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
       text: task.text || '',
       completed: Boolean(task.completed),
     };
-  };
+  }, []);
 
   // Helper to determine if all steps/subtasks are completed
-  function areAllStepsCompleted(steps: ActionStep[]): boolean {
-    let total = 0, completed = 0;
-    steps.forEach(step => {
-      if (step.subTasks && step.subTasks.length > 0) {
-        total += step.subTasks.length;
-        completed += step.subTasks.filter(st => st.completed).length;
-      } else {
-        total++;
-        if (step.completed) {completed++;}
-      }
-    });
+  const areAllStepsCompleted = useCallback((steps: ActionStep[]): boolean => {
+    const { completed, total } = calculateTaskStats(steps);
     return total > 0 && completed === total;
-  }
+  }, []);
 
-  const handleToggleStep = (stepId: string, subTaskId?: string) => {
+  const handleToggleStep = useCallback((stepId: string, subTaskId?: string) => {
     console.log('[DEBUG] handleToggleStep called with:', { stepId, subTaskId });
 
     setActionSteps(prev => {
-      // Create a deep copy of the previous state to ensure immutability
-      const prevCopy = JSON.parse(JSON.stringify(prev));
-      console.log('[DEBUG] Current steps before update:', JSON.stringify(prevCopy, null, 2));
+      const prevCopy = [...prev];
+      const stepIndex = prevCopy.findIndex(step => step.id === stepId);
 
-      // Find the step to update
-      const stepIndex = prevCopy.findIndex((step: any) => step.id === stepId);
       if (stepIndex === -1) {
         console.warn(`[WARNING] Step with id ${stepId} not found`);
         return prevCopy;
       }
 
-      const step = prevCopy[stepIndex];
+      const updatedSteps = [...prevCopy];
+      const step = { ...updatedSteps[stepIndex] };
 
-      // Ensure subTasks is an array and properly normalized
+      // Ensure subTasks is an array
       if (!Array.isArray(step.subTasks)) {
         step.subTasks = [];
       } else {
-        // Normalize any string subtasks to objects
-        step.subTasks = step.subTasks.map((task: any, index: number) =>
+        step.subTasks = step.subTasks.map((task, index) =>
           normalizeSubTask(task, index, stepId)
         );
       }
 
-      // If toggling a sub-task
       if (subTaskId && step.subTasks.length > 0) {
         console.log('[DEBUG] Toggling subtask for step:', step.title);
 
-        // Find the subtask by ID
-        const subTaskIndex = step.subTasks.findIndex((st: any) => st.id === subTaskId);
+        // Toggle the subtask
+        const subTaskIndex = step.subTasks.findIndex(st => st.id === subTaskId);
+        if (subTaskIndex !== -1) {
+          const updatedSubTasks = [...step.subTasks];
+          updatedSubTasks[subTaskIndex] = {
+            ...updatedSubTasks[subTaskIndex],
+            completed: !updatedSubTasks[subTaskIndex].completed,
+          };
 
-        if (subTaskIndex === -1) {
-          console.warn(`[WARNING] Subtask with id ${subTaskId} not found in step ${stepId}`);
-          console.log('[DEBUG] Available subtask IDs:', step.subTasks.map((st: any) => ({
-            id: st.id,
-            text: st.text,
-            type: typeof st,
-          })));
-          return prevCopy;
+          step.subTasks = updatedSubTasks;
+          const allSubTasksCompleted = step.subTasks.every(st => st.completed);
+          step.completed = allSubTasksCompleted;
         }
-
-        // Toggle the found subtask
-        step.subTasks[subTaskIndex] = {
-          ...step.subTasks[subTaskIndex],
-          completed: !step.subTasks[subTaskIndex].completed,
-        };
-
-        console.log('[DEBUG] Updated subTasks:', JSON.stringify(step.subTasks, null, 2));
-
-        // Check if all sub-tasks are completed
-        const allSubTasksCompleted = step.subTasks.every((st: any) => st.completed);
-        console.log('[DEBUG] All subtasks completed?', allSubTasksCompleted);
-
-        // Update step completion status - only mark as complete if all subtasks are completed
-        step.completed = allSubTasksCompleted && step.subTasks.length > 0;
-      }
-      // Toggle main step (only if no sub-tasks)
-      else if (!step.subTasks || step.subTasks.length === 0) {
-        console.log('[DEBUG] Toggling main step without subtasks:', step.title);
-        // Only allow toggling if there are no subtasks
+      } else if (!step.subTasks || step.subTasks.length === 0) {
+        // Toggle step completion if no subTasks
         step.completed = !step.completed;
       }
 
-      // Create a new array to trigger re-render
-      const updated = [...prevCopy];
+      updatedSteps[stepIndex] = step;
 
-      // --- COMPLETED AT LOGIC ---
-      // If this context is used for a playbook, and the parent playbook object is available,
-      // update its completedAt property in the save function (see below).
-      // Here, we just ensure the steps state is up to date.
+      // Update the global playbook store if playbookId is provided
+      if (playbookId) {
+        const stats = calculateTaskStats(updatedSteps);
 
-      return updated;
+        // Get the current playbook from the store to preserve other fields
+        const currentPlaybook = usePlaybookStore.getState().playbooks.find(p => p.id === playbookId);
+
+        if (currentPlaybook) {
+          const updatedPlaybook: Playbook = {
+            ...currentPlaybook,
+            actionSteps: updatedSteps,
+            progress: stats.completed / Math.max(stats.total, 1),
+            updatedAt: new Date().toISOString(),
+            totalTasks: stats.total,
+            status: stats.completed === stats.total && stats.total > 0 ? 'completed' : 'inProgress',
+          };
+          updatePlaybook(updatedPlaybook);
+        }
+      }
+
+      return updatedSteps;
     });
-  };
+  }, [playbookId, updatePlaybook, normalizeSubTask]);
 
   // Function to save action steps to the database
   // Accepts a playbookId and updates completedAt based on current state
-  const saveActionSteps = useCallback(async (playbookId: string) => {
+  const saveActionSteps = useCallback(async (pbId: string) => {
     try {
-      if (!playbookId) {
+      if (!pbId) {
         console.warn('[ActionStepsContext] No playbookId provided to saveActionSteps!');
         return;
       }
-      // Find the playbook in Zustand store
-      const store = usePlaybookStore.getState();
-      const playbook = store.playbooks.find(pb => pb.id === playbookId);
-      if (!playbook) {
-        console.warn('[ActionStepsContext] Could not find playbook in Zustand store for id:', playbookId);
+
+      const stats = calculateTaskStats(actionSteps);
+      const allCompleted = areAllStepsCompleted(actionSteps);
+
+      // Get the current playbook to preserve other fields
+      const currentPlaybook = usePlaybookStore.getState().playbooks.find(p => p.id === pbId);
+
+      if (!currentPlaybook) {
+        console.warn(`[ActionStepsContext] Playbook with id ${pbId} not found`);
         return;
       }
-      // Determine if all steps are completed
-      const allCompleted = areAllStepsCompleted(actionSteps);
-      // Update completedAt accordingly
-      let completedAt: string | null = null;
-      if (allCompleted) {
-        completedAt = new Date().toISOString();
-        console.log('[ActionStepsContext] All steps completed. Setting completedAt:', completedAt);
-      } else {
-        completedAt = null;
-        console.log('[ActionStepsContext] Not all steps completed. Clearing completedAt.');
-      }
-      // Save to API (and local)
-      await updatePlaybookActionSteps(playbookId, actionSteps, completedAt);
-      // --- Sync to Zustand global store ---
-      // Calculate completed/total and progress for UI
-      const { completed, total } = calculateTaskStats(actionSteps);
-      const progress = total > 0 ? completed / total : 0;
-      store.updatePlaybook({
-        ...playbook,
-        actionSteps: [...actionSteps],
-        completedAt,
-        progress,
-        totalTasks: total,
+
+      // Update the local store first for immediate feedback
+      const updatedPlaybook: Playbook = {
+        ...currentPlaybook,
+        actionSteps,
+        progress: stats.completed / Math.max(stats.total, 1),
+        status: allCompleted ? 'completed' : 'inProgress',
         updatedAt: new Date().toISOString(),
-      });
-      console.log('[ActionStepsContext] Successfully saved action steps and updated Zustand store');
+        totalTasks: stats.total,
+      };
+
+      updatePlaybook(updatedPlaybook);
+
+      // Then save to the database
+      await updatePlaybookActionSteps(
+        pbId,
+        actionSteps,
+        allCompleted ? new Date().toISOString() : null
+      );
+
+      console.log('[ActionStepsContext] Successfully saved action steps to database');
     } catch (error) {
       console.error('[ActionStepsContext] Error saving action steps:', error);
       throw error;
     }
-  }, [actionSteps]);
+  }, [actionSteps, updatePlaybook, areAllStepsCompleted]);
+
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    actionSteps,
+    setActionSteps,
+    handleToggleStep,
+    getCompletedStepsCount,
+    saveActionSteps,
+  }), [actionSteps, handleToggleStep, getCompletedStepsCount, saveActionSteps]);
 
   return (
-    <ActionStepsContext.Provider value={{
-      actionSteps,
-      setActionSteps,
-      handleToggleStep,
-      getCompletedStepsCount,
-      saveActionSteps,
-    }}>
+    <ActionStepsContext.Provider value={contextValue}>
       {children}
     </ActionStepsContext.Provider>
   );
