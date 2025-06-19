@@ -41,16 +41,18 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
       const hasSubTasks = subTasks.length > 0;
 
       if (hasSubTasks) {
-        // For steps with subtasks, count each subtask individually
-        const completedSubTasks = subTasks.filter(st => st.completed).length;
-        completed += completedSubTasks;
-        total += subTasks.length;
+        // For steps with subtasks, only count the step as completed if all subtasks are completed
+        const allSubTasksCompleted = subTasks.length > 0 && subTasks.every(st => st.completed);
+        total++; // Count the main step
+        if (allSubTasksCompleted) {
+          completed++; // Only count as completed if all subtasks are done
+        }
       } else {
         // For steps without subtasks, count the step itself
+        total++;
         if (step.completed) {
           completed++;
         }
-        total++;
       }
     });
 
@@ -151,12 +153,13 @@ export const ActionStepsProvider: React.FC<{ initialSteps: ActionStep[]; childre
         const allSubTasksCompleted = step.subTasks.every((st: any) => st.completed);
         console.log('[DEBUG] All subtasks completed?', allSubTasksCompleted);
 
-        // Update step completion status
-        step.completed = allSubTasksCompleted;
+        // Update step completion status - only mark as complete if all subtasks are completed
+        step.completed = allSubTasksCompleted && step.subTasks.length > 0;
       }
       // Toggle main step (only if no sub-tasks)
       else if (!step.subTasks || step.subTasks.length === 0) {
         console.log('[DEBUG] Toggling main step without subtasks:', step.title);
+        // Only allow toggling if there are no subtasks
         step.completed = !step.completed;
       }
 
