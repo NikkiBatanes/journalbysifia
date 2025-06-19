@@ -5,19 +5,19 @@
  */
 export const TabBarIcons = {
   UserInput: {
-    name: 'home-outline',
-    focused: 'home',
+    name: 'chatbubble',
+    focused: 'chatbubble',
   },
   Playbooks: {
-    name: 'book-outline',
+    name: 'book',
     focused: 'book',
   },
   Devotionals: {
-    name: 'journal-outline',
+    name: 'journal',
     focused: 'journal',
   },
   Profile: {
-    name: 'person-outline',
+    name: 'person',
     focused: 'person',
   },
 } as const;

@@ -38,7 +38,6 @@ const CustomTabBarComponent = ({
     <View style={styles.tabBarContainer}>
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
-        const label = options.tabBarLabel || options.title || route.name;
         const isFocused = state.index === index;
 
         const onPress = () => {
@@ -53,22 +52,7 @@ const CustomTabBarComponent = ({
           }
         };
 
-        // Custom icon rendering for the middle tab
-        if (route.name === 'UserInput') {
-          return (
-            <TouchableOpacity
-              key={route.key}
-              onPress={onPress}
-              style={[styles.middleTab, isFocused && styles.middleTabActive]}
-            >
-              <Ionicons
-                name="add-circle"
-                size={36}
-                color={isFocused ? Colors.hopeWhite : Colors.anchorBlue}
-              />
-            </TouchableOpacity>
-          );
-        }
+        // No special handling needed for UserInput tab - it will be rendered like other tabs
 
         const iconName = isFocused
           ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
@@ -82,16 +66,10 @@ const CustomTabBarComponent = ({
           >
             <Ionicons
               name={iconName}
-              size={24}
-              color={isFocused ? Colors.anchorBlue : Colors.trustGrey}
+              size={28}
+              color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
               style={styles.icon}
             />
-            <Text style={[
-              styles.label,
-              { color: isFocused ? Colors.anchorBlue : Colors.trustGrey },
-            ]}>
-              {label}
-            </Text>
           </TouchableOpacity>
         );
       })}
@@ -182,10 +160,10 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
-    height: 80,
-    backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    height: 80,  // Increased from 60 to 80
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     position: 'absolute',
     bottom: 0,
     left: 0,
@@ -194,45 +172,28 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
-    shadowRadius: 15,
-    paddingHorizontal: 10, // Reduced horizontal padding
-    justifyContent: 'space-between', // Evenly distribute space
+    shadowRadius: 10,
+    paddingHorizontal: 10,
+    justifyContent: 'space-around',
     alignItems: 'center',
-    paddingLeft: 25, // Add left padding
-    paddingRight: 25, // Add right padding
-    paddingBottom: Platform.OS === 'ios' ? 25 : 15,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 15,  // Increased padding at the bottom
   },
   tab: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 4,
+    height: '100%',
   },
-  middleTab: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.anchorBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: -20,
-    borderWidth: 3,
-    borderColor: Colors.hopeWhite,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    marginHorizontal: 10, // Add horizontal margin for better spacing
-  },
-  middleTabActive: {
-    backgroundColor: Colors.anchorBlue,
-  },
+  // Removed middle tab floating button styles
   label: {
-    display: 'none', // Hide the label text
+    fontSize: 14,  // Slightly larger font
+    marginTop: 6,   // More space between icon and text
+    color: Colors.trustGrey,
+    fontWeight: '500',  // Slightly bolder text
   },
   icon: {
-    margin: 0, // Remove any margins
+    margin: 0,
+    fontSize: 30,  // Slightly larger icons for better visibility without labels
   },
   logoutButton: {
     fontSize: FontSizes.profileLogout,
