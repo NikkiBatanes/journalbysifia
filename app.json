@@ -5,7 +5,7 @@
   "orientation": "portrait",
   "icon": "./assets/images/siFiaAppIcon.png",
   "splash": {
-    "image": "./assets/images/siFiaAppIcon.png",
+    "image": "./assets/images/siFiaTransparent.png",
     "resizeMode": "contain",
     "backgroundColor": "#1A3C6D"
   },

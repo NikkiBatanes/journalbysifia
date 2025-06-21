@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useRef, useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Animated, Image } from 'react-native';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { View, StyleSheet, Animated, Image, Text } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -63,8 +63,85 @@ const GeneratingPlaybookScreen: React.FC<Props> = () => {
     animations.current = Array(5).fill(0).map(() => new Animated.Value(0.3));
   }, []);
 
-  // Text fade animation
-  const textOpacity = useRef(new Animated.Value(1)).current;
+  // Animation values
+  const [dots, setDots] = useState('');
+  const [currentText, setCurrentText] = useState('');
+  const [currentLine, setCurrentLine] = useState(0);
+  const textAnim = useRef(new Animated.Value(0)).current;
+  const lines = useMemo(() => [
+    'Breathe in peace...',
+    'Breathe out worry...',
+    'Your playbook is being crafted with care.',
+  ], []); // Empty dependency array ensures this is only created once
+
+  // Animate the dots after GENERATING
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots(prev => {
+        if (prev.length >= 3) {return '';}
+        return prev + '.';
+      });
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Typewriter effect with smooth animations
+  useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    let animationTimeout: NodeJS.Timeout;
+    let currentCharIndex = 0;
+    let isMounted = true;
+
+    const typeNextCharacter = () => {
+      if (!isMounted) {return;}
+
+      const currentLineText = lines[currentLine];
+
+      if (currentCharIndex < currentLineText.length) {
+        setCurrentText(currentLineText.substring(0, currentCharIndex + 1));
+        currentCharIndex++;
+        timeout = setTimeout(typeNextCharacter, 30); // Faster typing speed
+      } else {
+        // Start fade out animation after delay
+        animationTimeout = setTimeout(() => {
+          Animated.timing(textAnim, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }).start(() => {
+            if (isMounted) {
+              // Move to next line or reset
+              const nextLine = (currentLine + 1) % lines.length;
+              setCurrentLine(nextLine);
+              setCurrentText('');
+              currentCharIndex = 0;
+
+              // Fade in new text
+              Animated.timing(textAnim, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+              }).start(typeNextCharacter);
+            }
+          });
+        }, 1500); // Pause before fading out
+      }
+    };
+
+    // Start the animation
+    Animated.timing(textAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(typeNextCharacter);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+      clearTimeout(animationTimeout);
+      textAnim.setValue(0);
+    };
+  }, [currentLine, lines, textAnim]); // Added missing dependencies: lines and textAnim
 
   // Start line animations
   useEffect(() => {
@@ -87,34 +164,16 @@ const GeneratingPlaybookScreen: React.FC<Props> = () => {
       )
     );
 
-    // Text fade animation
-    const textFade = Animated.loop(
-      Animated.sequence([
-        Animated.timing(textOpacity, {
-          toValue: 0.7,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // Start all animations
+    // Start line animations
     const lineAnimation = Animated.stagger(100, lineAnimations);
     lineAnimation.start();
-    textFade.start();
 
     // Cleanup function
     return () => {
       lineAnimation.stop();
-      textFade.stop();
       animations.current.forEach(anim => anim.setValue(0.3));
     };
-  }, [animationKey, textOpacity]);
+  }, [animationKey]);
 
   // Reset animations when screen comes into focus
   useFocusEffect(
@@ -140,6 +199,10 @@ const GeneratingPlaybookScreen: React.FC<Props> = () => {
           {
             transform: [
               { scale: scale },
+              { translateY: textAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -10],
+              })},
             ],
           },
         ]}
@@ -150,31 +213,43 @@ const GeneratingPlaybookScreen: React.FC<Props> = () => {
           resizeMode="contain"
         />
       </Animated.View>
-      <Animated.Text style={[styles.generatingText, { opacity: textOpacity }]}>
-        GENERATING
-      </Animated.Text>
+      <View style={styles.generatingContainer}>
+        <Text style={styles.generatingText}>
+          GENERATING
+        </Text>
+        <Text style={styles.dotsText}>
+          {dots}
+        </Text>
+      </View>
       <Animated.View
         style={[
           styles.textContainer,
           {
-            opacity: textOpacity.interpolate({
-              inputRange: [0.7, 1],
-              outputRange: [0.9, 1],
-            }),
+            opacity: textAnim,
             transform: [{
-              scale: textOpacity.interpolate({
-                inputRange: [0.7, 1],
-                outputRange: [0.98, 1.02],
+              scale: textAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.98, 1],
               }),
             }],
           },
         ]}
       >
-        <Animated.Text style={[styles.textLine, { opacity: textOpacity }]}>
-          Breathe in peace, breathe out worry.
-        </Animated.Text>
-        <Animated.Text style={[styles.textLine, { opacity: textOpacity }]}>
-          Your playbook is being crafted with care.
+        <Animated.Text
+          style={[
+            styles.textLine,
+            {
+              opacity: textAnim,
+              transform: [{
+                translateY: textAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [10, 0],
+                }),
+              }],
+            },
+          ]}
+        >
+          {currentText}
         </Animated.Text>
       </Animated.View>
     </Animated.View>
@@ -212,27 +287,41 @@ const styles = StyleSheet.create({
     marginTop: 24,
     backgroundColor: Colors.inputBackground,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 22,
     alignItems: 'center',
   },
   textLine: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    textAlign: 'center',
-    fontWeight: '400',
+    textAlign: 'center' as const,
+    fontWeight: '400' as const,
     letterSpacing: 0.2,
-    lineHeight: 22,
+    lineHeight: 24, // Increased from 22 to 24 for better spacing
     opacity: 0.9,
+    marginBottom: 8, // Add bottom margin to text lines
+  },
+  generatingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   generatingText: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: Colors.hopeWhite,
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: 2.5,
-    marginTop: 24,
     textAlign: 'center',
-    textTransform: 'uppercase',
+    lineHeight: 24, // Added line height for better spacing
+    letterSpacing: 1, // Slight letter spacing for better readability
   },
+  dotsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.hopeWhite,
+    width: 32, // Reduced width for better alignment
+    textAlign: 'left',
+    lineHeight: 24, // Match line height with generatingText
+  },
+
 });
 
 export default GeneratingPlaybookScreen;

@@ -13,20 +13,26 @@ export const progressBarStyles = StyleSheet.create({
   },
   progressWrapper: {
     flex: 1,
-    marginRight: 12, // Consistent spacing between bar and text
-    minWidth: 250, // Increased minimum width for longer progress bar
+    marginRight: 16, // Increased spacing between bar and text
+    minWidth: '75%', // Use percentage for better responsiveness
+    maxWidth: '85%', // Limit maximum width
   },
   barBg: {
     width: '100%',
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
+    height: 10, // Slightly thicker bar
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 5,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 4,
+    borderRadius: 5,
+    shadowColor: Colors.growthGreen,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 3,
+    elevation: 2,
   },
   textContainer: {
     width: 60, // Fixed width for text container

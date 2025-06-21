@@ -28,7 +28,9 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
       </View>
       <View style={styles.contentContainer}>
         <Text style={[styles.verseText, { color: textColor }]}>{formatBibleVerse(verse.text)}</Text>
-        <Text style={[styles.reference, { color: Colors.alertCoral }]}>— {verse.reference}</Text>
+        <View style={styles.referenceContainer}>
+          <Text style={[styles.reference, { color: Colors.alertCoral }]}>{verse.reference}</Text>
+        </View>
       </View>
     </View>
   );
@@ -72,14 +74,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     width: '100%',
   },
+  referenceContainer: {
+    width: '100%',
+    marginTop: 24,
+    alignItems: 'flex-end',
+  },
   reference: {
     ...Typography.interBold,
     fontSize: 13,
     lineHeight: 18,
     color: Colors.alertCoral,
-    marginTop: 24,
-    textAlign: 'right',
     paddingBottom: 5,
     opacity: 0.9,
+    textAlign: 'right',
+    marginRight: 8, // Match the left padding of the verse text
   },
 });

@@ -8,7 +8,7 @@ import 'react-native-url-polyfill/auto';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, StatusBar, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -24,6 +24,10 @@ import { LogoutContext } from './src/context/LogoutContext';
 import { DevotionalProvider } from './src/context/DevotionalContext';
 
 // Stack navigator removed as it's not currently used
+
+// Hide debug notifications
+LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
+LogBox.ignoreAllLogs(); // Ignore all log notifications
 
 // Main App Component
 function App(): React.JSX.Element {

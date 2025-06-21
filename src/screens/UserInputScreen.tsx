@@ -4,10 +4,13 @@ import {
   View,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  Keyboard,
   StyleSheet,
   StatusBar,
   Image,
   KeyboardAvoidingView,
+  ScrollView,
   Platform,
   ActivityIndicator,
   Alert,
@@ -54,12 +57,10 @@ const UserInputScreen: React.FC = () => {
   // Animate placeholder text
   useEffect(() => {
     const placeholderTexts = [
-      'help you navigate a relationship challenge...',
-      'offer encouragement in difficult times...',
-      'help you discern your purpose...',
-      'guide your spiritual growth...',
-      'help you find peace in uncertainty...',
-      'provide insight for a big decision...',
+      'How can Fia help you today?\nShare your struggles...',
+      'How can Fia help you today?\nShare your circumstances...',
+      'How can Fia help you today?\nShare your decisions...',
+      'How can Fia help you today?\nShare your challenges...',
     ];
 
     const currentText = placeholderTexts[placeholderIndex.current];
@@ -157,60 +158,74 @@ const UserInputScreen: React.FC = () => {
     inputRef.current?.focus();
   };
 
+  const dismissKeyboard = () => {
+    Keyboard.dismiss();
+  };
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-    >
-      <StatusBar barStyle="light-content" />
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Image source={require('../../assets/images/siFia.png')} style={styles.logo} resizeMode="contain" />
-        </View>
-        <View style={styles.spacer} />
-        <View style={styles.inputContainer}>
-          <View style={styles.askBox}>
-            <TextInput
-              ref={inputRef}
-              style={styles.askInput}
-              placeholder={`Ask Anchored to ${placeholderText}`}
-              placeholderTextColor={Colors.trustGrey}
-              value={userInput}
-              onChangeText={setUserInput}
-              multiline
-              textAlignVertical="top"
-              scrollEnabled={true}
-              autoCapitalize="sentences"
-              keyboardAppearance="dark"
-              textBreakStrategy="simple"
-              underlineColorAndroid="transparent"
-              autoCorrect={true}
-              autoFocus={false}
-              onTouchStart={handleInputPress}
-            />
-            <TouchableOpacity
-              style={[
-                styles.askSendButton,
-                (!userInput || !userInput.trim()) && styles.disabledButton,
-              ]}
-              onPress={handleGeneratePlaybook}
-              disabled={isLoading || !userInput || !userInput.trim()}
-            >
-              {isLoading ? (
-                <ActivityIndicator color={Colors.hopeWhite} />
-              ) : (
-                <Ionicons
-                  name="arrow-up-circle"
-                  size={34}
-                  color={(!userInput || !userInput.trim()) ? 'rgba(255, 255, 255, 0.5)' : Colors.hopeWhite}
+    <TouchableWithoutFeedback onPress={dismissKeyboard} accessible={false}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <StatusBar barStyle="light-content" />
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+        >
+          <View style={styles.content}>
+            <View style={styles.header}>
+              <Image source={require('../../assets/images/siFia.png')} style={styles.logo} resizeMode="contain" />
+            </View>
+            <View style={styles.spacer} />
+            <View style={styles.inputContainer}>
+              <View style={styles.askBox}>
+                <TextInput
+                  ref={inputRef}
+                  style={styles.askInput}
+                  placeholder={placeholderText}
+                  placeholderTextColor={Colors.trustGrey}
+                  value={userInput}
+                  onChangeText={setUserInput}
+                  multiline
+                  textAlignVertical="top"
+                  scrollEnabled={true}
+                  autoCapitalize="sentences"
+                  keyboardAppearance="dark"
+                  textBreakStrategy="simple"
+                  underlineColorAndroid="transparent"
+                  autoCorrect={true}
+                  autoFocus={false}
+                  maxLength={1000}
+                  onTouchStart={handleInputPress}
+                  blurOnSubmit={false}
                 />
-              )}
-            </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.askSendButton,
+                    (!userInput || !userInput.trim()) && styles.disabledButton,
+                  ]}
+                  onPress={handleGeneratePlaybook}
+                  disabled={isLoading || !userInput || !userInput.trim()}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={Colors.hopeWhite} />
+                  ) : (
+                    <Ionicons
+                      name="arrow-up-circle"
+                      size={34}
+                      color={(!userInput || !userInput.trim()) ? 'rgba(255, 255, 255, 0.5)' : Colors.hopeWhite}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -219,6 +234,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
     paddingBottom: 0,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   content: {
     flex: 1,
