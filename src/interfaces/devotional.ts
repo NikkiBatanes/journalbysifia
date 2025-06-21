@@ -26,6 +26,7 @@ export interface Devotional {
   title: string;
   description: string;
   category: DevotionalCategory;
+  categories: string[]; // For backward compatibility with API responses
   days: DevotionalDay[];
   currentDay: number;
   totalDays: number;
@@ -35,6 +36,7 @@ export interface Devotional {
   updatedAt: string;
   playbookId?: string; // Reference to the playbook that generated this devotional
   userInput?: string; // The user input from the playbook
+  isFallback?: boolean; // Indicates if this is a fallback devotional
 }
 
 export type DevotionalCategory =

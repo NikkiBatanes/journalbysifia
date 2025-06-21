@@ -728,51 +728,70 @@ export async function generatePlaybook(userInput: string, userName: string) {
   }
 }
 
-// Generate Devotional via Supabase Edge Function
-export async function generateDevotional(duration: number, playbookId?: string, userInput?: string) {
+// Generate Devotional via Supabase Edge Function with retry logic
+export async function generateDevotional(duration: number, playbookId?: string, userInput?: string, maxRetries = 2) {
   const functionUrl = `${config.url}/functions/v1/generate-devotional`;
-  try {
-    const session = await getSession();
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const session = await getSession();
+      if (!session) {
+        throw new Error('No active session. Please sign in.');
+      }
 
-    if (!session) {
-      throw new Error('No active session. Please sign in.');
+      console.log(`Generating devotional (attempt ${attempt + 1}/${maxRetries + 1})`, {
+        hasToken: !!session.access_token,
+        tokenLength: session.access_token?.length,
+        url: functionUrl,
+      });
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': config.anonKey,
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          duration,
+          playbookId,
+          userInput: userInput || 'General spiritual growth',
+        }),
+      });
+
+      console.log('Devotional response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Validate the response structure
+      if (result && Array.isArray(result.days) && result.days.length > 0) {
+        console.log('Devotional generated successfully');
+        return result;
+      } else {
+        throw new Error('Invalid devotional format received from server');
+      }
+    } catch (err: unknown) {
+      const error = err as Error;
+      lastError = error;
+      console.warn(`Attempt ${attempt + 1} failed:`, error);
+      if (attempt < maxRetries) {
+        // Wait before retrying (exponential backoff)
+        const delay = 1000 * Math.pow(2, attempt);
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-
-    console.log('Generating devotional with session:', {
-      hasToken: !!session.access_token,
-      tokenLength: session.access_token?.length,
-      url: functionUrl,
-    });
-
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': config.anonKey,
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        duration,
-        playbookId,
-        userInput: userInput || 'General spiritual growth',
-      }),
-    });
-
-    console.log('Devotional response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Devotional generation failed:', errorText);
-      throw new Error(errorText || 'Failed to generate devotional');
-    }
-
-    const result = await response.json();
-    console.log('Devotional generated successfully');
-    return result;
-
-  } catch (err: any) {
-    console.error('generateDevotional error:', err);
-    throw err;
   }
+
+  // If we get here, all retries failed
+  const errorMessage = lastError?.message || 'Failed to generate devotional after multiple attempts';
+  console.error('All devotional generation attempts failed:', errorMessage);
+  throw new Error(errorMessage);
 }
 

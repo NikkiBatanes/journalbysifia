@@ -1,9 +1,10 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Devotional, DevotionalCreationParams, DevotionalDay } from '../interfaces/devotional';
+import { Devotional, DevotionalCreationParams } from '../interfaces/devotional';
 import { generateDevotional } from '../services/supabaseApi';
 import { supabase } from '../services/supabaseApi';
 import { Playbook } from '../interfaces/playbook';
+import { createFallbackDevotional } from '../utils/devotionalUtils';
 
 interface DevotionalContextType {
   devotionals: Devotional[];
@@ -146,39 +147,59 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsLoading(true);
       setError(null);
 
-      // Generate devotional using OpenAI
-      const devotional = await generateDevotional(
-        params.duration,
-        params.playbookId,
-        params.userInput
-      );
+      let devotional;
+      try {
+        // Try to generate a devotional with retries
+        devotional = await generateDevotional(
+          params.duration,
+          params.playbookId,
+          params.userInput,
+          2 // Number of retries
+        );
+        
+        // Log success if we got here
+        console.log('Devotional generated successfully:', {
+          id: devotional.id,
+          days: devotional.days?.length,
+          playbookId: params.playbookId,
+        });
+      } catch (error) {
+        console.error('Error generating devotional, using fallback:', error);
+        // Create a fallback devotional if generation fails
+        devotional = createFallbackDevotional(
+          params.duration,
+          params.playbookId,
+          params.userInput
+        );
+        
+        // Show a warning to the user
+        showSuccess('Using fallback devotional content');
+      }
 
-      // Ensure progress is initialized to 0 for new devotionals and include playbook info
+      // Ensure the devotional has all required fields and proper structure
       const devotionalWithProgress = {
         ...devotional,
-        playbookId: params.playbookId, // Ensure playbookId is included
-        userInput: params.userInput,   // Include userInput as well
+        id: devotional.id || `dev_${Date.now()}`,
+        playbookId: params.playbookId,
+        userInput: params.userInput || devotional.userInput,
         progress: 0, // Initialize progress to 0 for new devotionals
-        days: devotional.days?.map((day: DevotionalDay) => ({
+        days: (devotional.days || []).map((day: Devotional['days'][number]) => ({
           ...day,
           completed: false, // Ensure all days start as not completed
-        })) || [],
+        })),
+        createdAt: devotional.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-
-      console.log('Created devotional with playbook:', {
-        playbookId: params.playbookId,
-        hasPlaybookId: !!params.playbookId,
-        userInput: params.userInput,
-        devotionalId: devotional.id,
-      });
 
       // Add to state and save
       const updatedDevotionals = [...devotionals, devotionalWithProgress];
       setDevotionals(updatedDevotionals);
       await saveDevotionals(updatedDevotionals);
 
-      // Show success message
-      showSuccess('Devotional created successfully!');
+      // Show success message if we didn't already show a fallback message
+      if (!devotional.isFallback) {
+        showSuccess('Devotional created successfully!');
+      }
 
       return devotionalWithProgress;
     } catch (err) {
