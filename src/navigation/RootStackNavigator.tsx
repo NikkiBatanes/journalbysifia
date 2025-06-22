@@ -125,6 +125,7 @@ export default function RootStackNavigator({
   const devotionalDetailOptions = useMemo<NativeStackNavigationOptions>(
     () => ({
       headerShown: false, // We're handling the header in the component
+      headerBackVisible: false, // Hide the back button
       animation: 'slide_from_bottom', // Slide from bottom animation
       animationDuration: 300, // Duration of the animation in milliseconds
       presentation: 'modal', // This gives it a card-like appearance when sliding up

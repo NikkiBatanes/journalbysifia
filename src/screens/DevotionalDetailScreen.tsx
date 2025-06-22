@@ -260,34 +260,23 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       )}
 
       {/* Fixed Header */}
-      <View style={styles.fixedHeader}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle} numberOfLines={2} ellipsizeMode="tail">
-              {extractCleanTitle(devotional.title, 'Devotional')}
-            </Text>
-            <View style={styles.dayCounterContainer}>
-              <Ionicons name="calendar-clear-outline" size={16} color={Colors.anchorBlue} style={styles.calendarIcon} />
-              <Text style={styles.dayCounterText}>
-                Day {currentDayIndex + 1} of {devotional.totalDays}
-              </Text>
-              {currentDay?.completed && (
-                <Ionicons
-                  name="checkmark-circle"
-                  size={16}
-                  color={Colors.growthGreen}
-                  style={styles.completedIcon}
-                />
-              )}
-            </View>
-          </View>
-          <View style={styles.headerSpacer} />
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          {extractCleanTitle(devotional.title, 'Devotional')}
+        </Text>
+        <View style={styles.dayCounterContainer}>
+          <Ionicons name="calendar-clear-outline" size={14} color={Colors.anchorBlue} />
+          <Text style={styles.dayCounterText}>
+            Day {currentDayIndex + 1} of {devotional.totalDays}
+          </Text>
+          {currentDay?.completed && (
+            <Ionicons
+              name="checkmark-circle"
+              size={14}
+              color={Colors.growthGreen}
+              style={styles.completedIcon}
+            />
+          )}
         </View>
       </View>
 
@@ -392,10 +381,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.hopeWhite,
   },
-  fixedHeader: {
+  headerContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     backgroundColor: Colors.hopeWhite,
-    paddingBottom: 0, // Reduced padding bottom to bring progress bar closer to content
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     zIndex: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   loadingContainer: {
     flex: 1,
@@ -421,12 +419,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-  header: {
+
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.anchorBlue,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  dayCounterContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    backgroundColor: Colors.hopeWhite,
+    justifyContent: 'center',
   },
   progressSection: {
     paddingHorizontal: 16,
@@ -479,32 +483,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.anchorBlue,
-    textAlign: 'center',
-    flexShrink: 1,
-    paddingHorizontal: 8,
-    flexWrap: 'wrap',
-    flex: 1,
-    textAlignVertical: 'center',
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 4,
-    marginRight: 4,
-    minHeight: 40,
-    flexDirection: 'column',
-  },
-  dayCounterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4,
-  },
+
+
+
   headerSpacer: {
     width: 40,
     zIndex: 1,
@@ -542,7 +523,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    marginTop: 0,
+    paddingTop: 70, // Add padding to prevent content from being hidden behind the header
   },
   contentContainer: {
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
