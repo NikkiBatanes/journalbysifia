@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { FlatList } from 'react-native-gesture-handler';
+import { FlatList, Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -262,8 +262,36 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     scrollY.setValue(offsetY);
   };
 
+  // Handle swipe down to dismiss
+  const panGesture = Gesture.Pan()
+    .onStart(() => {
+      // Reset any existing animations or states
+    })
+    .onUpdate((e: { translationY: number; translationX: number }) => {
+      // Only track vertical movement with minimal horizontal movement
+      if (Math.abs(e.translationX) < 10 && e.translationY > 0) {
+        // You could add visual feedback here (e.g., slight background dimming)
+      }
+    })
+    .onEnd((e: { translationY: number; velocityY: number }) => {
+      // Only trigger dismiss if:
+      // 1. User swiped down more than 100px
+      // 2. OR swiped down more than 50px quickly (velocity > 1000)
+      if (e.translationY > 100 || (e.translationY > 50 && e.velocityY > 1000)) {
+        navigation.goBack();
+      }
+    })
+    .minDistance(5) // Small distance to start detecting
+    .activeOffsetY([0, 0]) // Allow vertical movement
+    .withTestId('swipe-down-to-dismiss');
+
   return (
-    <SafeAreaView style={styles.container} edges={['right', 'top', 'left']} mode="margin">
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView 
+        style={styles.container} 
+        edges={['right', 'top', 'left']} 
+        mode="margin"
+      >
       <StatusBar barStyle="dark-content" />
 
       {/* Floating Action Button */}
@@ -311,8 +339,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         </View>
       </View>
 
-      {/* Swipeable Content */}
-      <FlatList
+      {/* Main content with swipe down to dismiss */}
+      <GestureDetector gesture={panGesture}>
+        <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+          <FlatList
         ref={flatListRef}
         data={devotional.days}
         horizontal
@@ -411,10 +441,28 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             </DevotionalSectionCard>
           </View>
         )}
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
-      />
-    </SafeAreaView>
+          style={styles.scrollView}
+          scrollEventThrottle={16}
+          onScrollBeginDrag={() => {
+            // Allow normal scrolling behavior
+            return true;
+          }}
+          // Disable bounce effect at the top to prevent interference with swipe down
+          bounces={false}
+          overScrollMode="never"
+          contentContainerStyle={[
+            styles.scrollViewContent,
+            { paddingTop: 20 } // Add some top padding for better swipe area
+          ]}
+        />
+        {/* Visual indicator for swipe down to dismiss */}
+        <View style={styles.swipeIndicatorContainer}>
+          <View style={styles.swipeIndicator} />
+        </View>
+        </View>
+      </GestureDetector>
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -627,7 +675,39 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: Colors.hopeWhite,
   },
-
+  fab: {
+    position: 'absolute',
+    bottom: 28,
+    left: '50%',
+    marginLeft: -30, // Half of the width to center it perfectly
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.growthGreen,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 100,
+  },
+  swipeIndicatorContainer: {
+    position: 'absolute',
+    top: 10,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  swipeIndicator: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    marginBottom: 10,
+  },
   prayerContainer: {
     marginBottom: 24,
     padding: CARD_CONTENT_PADDING,
@@ -686,23 +766,4 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 28,
-    left: '50%',
-    marginLeft: -30, // Half of the width to center it perfectly
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: Colors.growthGreen,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 100,
-  },
 });
