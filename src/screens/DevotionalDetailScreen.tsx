@@ -267,13 +267,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     .onStart(() => {
       // Reset any existing animations or states
     })
-    .onUpdate((e: { translationY: number; translationX: number }) => {
+    .onUpdate((e) => {
       // Only track vertical movement with minimal horizontal movement
       if (Math.abs(e.translationX) < 10 && e.translationY > 0) {
         // You could add visual feedback here (e.g., slight background dimming)
       }
     })
-    .onEnd((e: { translationY: number; velocityY: number }) => {
+    .onEnd((e) => {
       // Only trigger dismiss if:
       // 1. User swiped down more than 100px
       // 2. OR swiped down more than 50px quickly (velocity > 1000)
@@ -282,8 +282,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       }
     })
     .minDistance(5) // Small distance to start detecting
-    .activeOffsetY([0, 0]) // Allow vertical movement
-    .withTestId('swipe-down-to-dismiss');
+    .activeOffsetY([0, 0]); // Allow vertical movement
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -766,4 +765,5 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
+  }
 });
