@@ -98,11 +98,23 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   // Scroll to the correct day when currentDayIndex changes
   useEffect(() => {
     if (flatListRef.current && devotional) {
+      const safeIndex = Math.min(currentDayIndex, devotional.days.length - 1);
       flatListRef.current.scrollToIndex({
-        index: currentDayIndex,
+        index: safeIndex,
         animated: false,
         viewPosition: 0.5,
       });
+      
+      // Force update the scroll position if we're at the last day
+      if (safeIndex === devotional.days.length - 1) {
+        setTimeout(() => {
+          flatListRef.current?.scrollToIndex({
+            index: safeIndex,
+            animated: false,
+            viewPosition: 0.5,
+          });
+        }, 100);
+      }
     }
   }, [currentDayIndex, devotional]);
 
@@ -307,14 +319,20 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         keyExtractor={(_, idx) => idx.toString()}
-        initialScrollIndex={currentDayIndex}
+        initialScrollIndex={Math.min(currentDayIndex, devotional.days.length - 1)}
+        initialNumToRender={devotional.days.length}
+        maxToRenderPerBatch={devotional.days.length}
+        windowSize={devotional.days.length}
         getItemLayout={(_, index) => ({
           length: Dimensions.get('window').width,
           offset: Dimensions.get('window').width * index,
           index,
         })}
         onMomentumScrollEnd={event => {
-          const newIndex = Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+          const newIndex = Math.min(
+            Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width),
+            devotional.days.length - 1
+          );
           if (newIndex !== currentDayIndex) setCurrentDayIndex(newIndex);
         }}
         renderItem={({ item: day, index }) => (
