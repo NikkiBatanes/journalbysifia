@@ -1,15 +1,16 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Animated,
   StatusBar,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
+  TouchableOpacity,
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { FlatList, Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { FlatList, Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -96,33 +97,28 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   }, [devotional?.id]); // Only run when devotional id changes (first load)
 
   // Scroll to the correct day when currentDayIndex changes
-  useEffect(() => {
+  const scrollToDay = useCallback((index: number) => {
     if (flatListRef.current && devotional) {
-      const safeIndex = Math.min(currentDayIndex, devotional.days.length - 1);
+      const safeIndex = Math.min(index, devotional.days.length - 1);
       flatListRef.current.scrollToIndex({
         index: safeIndex,
-        animated: false,
+        animated: true,
         viewPosition: 0.5,
       });
-      
-      // Force update the scroll position if we're at the last day
-      if (safeIndex === devotional.days.length - 1) {
-        setTimeout(() => {
-          flatListRef.current?.scrollToIndex({
-            index: safeIndex,
-            animated: false,
-            viewPosition: 0.5,
-          });
-        }, 100);
-      }
     }
-  }, [currentDayIndex, devotional]);
+  }, [devotional]);
+
+  // Initial scroll to current day
+  useEffect(() => {
+    if (devotional && currentDayIndex >= 0) {
+      scrollToDay(currentDayIndex);
+    }
+  }, [currentDayIndex, scrollToDay, devotional]);
 
   // Ensure currentDay is always defined in render
   const currentDay = devotional?.days?.[currentDayIndex];
   // Debug log for prayer data
   console.log('DevotionalDetailScreen currentDay:', currentDay);
-  console.log('DevotionalDetailScreen prayer:', currentDay?.prayer);
 
   const handleMarkComplete = async () => {
     if (!devotional) {
@@ -274,11 +270,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       }
     })
     .onEnd((e) => {
+      'worklet';
       // Only trigger dismiss if:
       // 1. User swiped down more than 100px
       // 2. OR swiped down more than 50px quickly (velocity > 1000)
       if (e.translationY > 100 || (e.translationY > 50 && e.velocityY > 1000)) {
-        navigation.goBack();
+        runOnJS(navigation.goBack)();
       }
     })
     .minDistance(5) // Small distance to start detecting
@@ -317,149 +314,160 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         />
       )}
 
-      {/* Fixed Header */}
-      <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
-          {extractCleanTitle(devotional.title, 'Devotional')}
-        </Text>
-        <View style={styles.dayCounterContainer}>
-          <Ionicons name="calendar-clear-outline" size={14} color={Colors.anchorBlue} />
-          <Text style={styles.dayCounterText}>
-            Day {currentDayIndex + 1} of {devotional.totalDays}
-          </Text>
-          {currentDay?.completed && (
-            <Ionicons
-              name="checkmark-circle"
-              size={14}
-              color={Colors.growthGreen}
-              style={styles.completedIcon}
-            />
-          )}
-        </View>
-      </View>
-
-      {/* Main content with swipe down to dismiss */}
+      {/* Header with gesture detector for swipe-to-dismiss */}
       <GestureDetector gesture={panGesture}>
-        <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-          <FlatList
-        ref={flatListRef}
-        data={devotional.days}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(_, idx) => idx.toString()}
-        initialScrollIndex={Math.min(currentDayIndex, devotional.days.length - 1)}
-        initialNumToRender={devotional.days.length}
-        maxToRenderPerBatch={devotional.days.length}
-        windowSize={devotional.days.length}
-        getItemLayout={(_, index) => ({
-          length: Dimensions.get('window').width,
-          offset: Dimensions.get('window').width * index,
-          index,
-        })}
-        onMomentumScrollEnd={event => {
-          const newIndex = Math.min(
-            Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width),
-            devotional.days.length - 1
-          );
-          if (newIndex !== currentDayIndex) setCurrentDayIndex(newIndex);
-        }}
-        renderItem={({ item: day, index }) => (
-          <View style={{ width: Dimensions.get('window').width, paddingHorizontal: CARD_HORIZONTAL_PADDING }}>
-            {/* Day Title - Moved below progress bar */}
-            <View style={styles.dayTitleContainer}>
-              <Text style={styles.dayNumber}>Day {index + 1}</Text>
-              <Text style={styles.dayTitle} numberOfLines={2} ellipsizeMode="tail">
-                {devotional.totalDays === 1 ? (
-                  extractCleanTitle(devotional.title, 'Devotional')
-                ) : (
-                  day?.title && day.title !== `Day ${index + 1}` ?
-                    extractCleanTitle(day.title) :
-                    extractCleanTitle(devotional.title, 'Devotional')
-                )}
-              </Text>
-            </View>
-            {/* Scripture Card */}
-            <DevotionalSectionCard
-              icon="book-outline"
-              title="Today's Scripture"
-              subtitle="God's Word for today"
-            >
-              <Text style={styles.scriptureText}>
-                {day.scripture?.text || ''}
-              </Text>
-              <Text style={styles.scriptureReference}>
-                - {day.scripture?.reference || ''}
-              </Text>
-            </DevotionalSectionCard>
-
-            {/* Reflection Card */}
-            <DevotionalSectionCard
-              icon="bookmark-outline"
-              title="Daily Reflection"
-              subtitle="Meditate on this"
-            >
-              <Text style={styles.reflectionText}>{day?.reflection || ''}</Text>
-            </DevotionalSectionCard>
-
-            {/* Questions Card */}
-            <DevotionalSectionCard
-              icon="help-circle-outline"
-              title="Questions to Ponder"
-              subtitle="Reflect deeply"
-            >
-              {day?.reflectionQuestions?.length ? (
-                day.reflectionQuestions.map((question: any, idx: number) => (
-                  <View key={question.id || idx} style={styles.questionCardWrapper}>
-                    <View style={styles.questionCardContainer}>
-                      <Text style={styles.questionCardNumber}>{idx + 1}</Text>
-                      <Text style={styles.questionCardText}>
-                        {question.text || 'Reflection question'}
-                      </Text>
-                    </View>
-                  </View>
-                ))
-              ) : (
-                <Text style={styles.questionCardText}>No questions for today.</Text>
-              )}
-            </DevotionalSectionCard>
-
-            {/* Prayer Card */}
-            <DevotionalSectionCard
-              icon="heart-outline"
-              title="Prayer"
-              subtitle="Connect with God"
-            >
-              <View style={styles.prayerContainer}>
-                <Text style={styles.prayerText}>
-                  {day.prayer && day.prayer.trim().length > 0
-                    ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
-                    : 'No prayer for today.'}
-                </Text>
-              </View>
-            </DevotionalSectionCard>
+        <View style={styles.headerContainer}>
+          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+            {extractCleanTitle(devotional.title, 'Devotional')}
+          </Text>
+          <View style={styles.dayCounterContainer}>
+            <Ionicons name="calendar-clear-outline" size={14} color={Colors.anchorBlue} />
+            <Text style={styles.dayCounterText}>
+              Day {currentDayIndex + 1} of {devotional.totalDays}
+            </Text>
+            {currentDay?.completed && (
+              <Ionicons
+                name="checkmark-circle"
+                size={14}
+                color={Colors.growthGreen}
+                style={styles.completedIcon}
+              />
+            )}
           </View>
-        )}
-          style={styles.scrollView}
-          scrollEventThrottle={16}
+        </View>
+      </GestureDetector>
+
+      {/* Main content */}
+      <View style={{ flex: 1 }}>
+        <FlatList
+          ref={flatListRef}
+          data={devotional.days}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(_, idx) => idx.toString()}
+          initialScrollIndex={Math.min(currentDayIndex, devotional.days.length - 1)}
+          initialNumToRender={devotional.days.length}
+          maxToRenderPerBatch={devotional.days.length}
+          windowSize={devotional.days.length}
+          getItemLayout={(_, index) => ({
+            length: Dimensions.get('window').width,
+            offset: Dimensions.get('window').width * index,
+            index,
+          })}
+          onMomentumScrollEnd={event => {
+            const newIndex = Math.min(
+              Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width),
+              devotional.days.length - 1
+            );
+            // Only update if the index actually changed and is within bounds
+            if (newIndex !== currentDayIndex && newIndex >= 0 && newIndex < devotional.days.length) {
+              setCurrentDayIndex(newIndex);
+            }
+          }}
           onScrollBeginDrag={() => {
-            // Allow normal scrolling behavior
+            // Prevent any potential scroll jank
             return true;
           }}
-          // Disable bounce effect at the top to prevent interference with swipe down
+          scrollEventThrottle={16}
+          onScrollToIndexFailed={info => {
+            const wait = new Promise(resolve => setTimeout(resolve, 500));
+            wait.then(() => {
+              flatListRef.current?.scrollToIndex({ index: info.index, animated: true });
+            });
+          }}
+          renderItem={({ item: day, index }) => (
+            <View style={{ width: Dimensions.get('window').width, paddingHorizontal: CARD_HORIZONTAL_PADDING }}>
+              {/* Scrollable content area */}
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: 20, paddingBottom: 80 }}
+                nestedScrollEnabled={true}>
+                {/* Day Title - Moved below progress bar */}
+                <View style={styles.dayTitleContainer}>
+                  <Text style={styles.dayNumber}>Day {index + 1}</Text>
+                  <Text style={styles.dayTitle} numberOfLines={2} ellipsizeMode="tail">
+                    {devotional.totalDays === 1 ? (
+                      extractCleanTitle(devotional.title, 'Devotional')
+                    ) : (
+                      day?.title && day.title !== `Day ${index + 1}` ?
+                        extractCleanTitle(day.title) :
+                        extractCleanTitle(devotional.title, 'Devotional')
+                    )}
+                  </Text>
+                </View>
+                {/* Scripture Card */}
+                <DevotionalSectionCard
+                  icon="book-outline"
+                  title="Today's Scripture"
+                  subtitle="God's Word for today"
+                >
+                  <Text style={styles.scriptureText}>
+                    {day.scripture?.text || ''}
+                  </Text>
+                  <Text style={styles.scriptureReference}>
+                    - {day.scripture?.reference || ''}
+                  </Text>
+                </DevotionalSectionCard>
+
+                {/* Reflection Card */}
+                <DevotionalSectionCard
+                  icon="bookmark-outline"
+                  title="Daily Reflection"
+                  subtitle="Meditate on this"
+                >
+                  <Text style={styles.reflectionText}>{day?.reflection || ''}</Text>
+                </DevotionalSectionCard>
+
+                {/* Questions Card */}
+                <DevotionalSectionCard
+                  icon="help-circle-outline"
+                  title="Questions to Ponder"
+                  subtitle="Reflect deeply"
+                >
+                  {day?.reflectionQuestions?.length ? (
+                    day.reflectionQuestions.map((question: any, idx: number) => (
+                      <View key={question.id || idx} style={styles.questionCardWrapper}>
+                        <View style={styles.questionCardContainer}>
+                          <Text style={styles.questionCardNumber}>{idx + 1}</Text>
+                          <Text style={styles.questionCardText}>
+                            {question.text || 'Reflection question'}
+                          </Text>
+                        </View>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.questionCardText}>No questions for today.</Text>
+                  )}
+                </DevotionalSectionCard>
+
+                {/* Prayer Card */}
+                <DevotionalSectionCard
+                  icon="heart-outline"
+                  title="Prayer"
+                  subtitle="Connect with God"
+                >
+                  <View style={styles.prayerContainer}>
+                    <Text style={styles.prayerText}>
+                      {day.prayer && day.prayer.trim().length > 0
+                        ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
+                        : 'No prayer for today.'}
+                    </Text>
+                  </View>
+                </DevotionalSectionCard>
+              </ScrollView>
+            </View>
+          )}
+          style={styles.scrollView}
+          scrollEventThrottle={16}
           bounces={false}
           overScrollMode="never"
-          contentContainerStyle={[
-            styles.scrollViewContent,
-            { paddingTop: 20 } // Add some top padding for better swipe area
-          ]}
         />
         {/* Visual indicator for swipe down to dismiss */}
         <View style={styles.swipeIndicatorContainer}>
           <View style={styles.swipeIndicator} />
         </View>
-        </View>
-      </GestureDetector>
+      </View>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -612,7 +620,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingTop: 70, // Add padding to prevent content from being hidden behind the header
+    paddingTop: 50, // Increased padding to prevent content from being hidden behind the header
   },
   contentContainer: {
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
