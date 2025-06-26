@@ -42,6 +42,28 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const flatListRef = useRef<FlatList>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showFAB, setShowFAB] = useState(false);
+  // Track scroll positions for each day to reset when needed
+  const [scrollPositions, setScrollPositions] = useState<{[key: number]: number}>({});
+
+  useEffect(() => {
+    // Log for debugging
+    console.log('Current day index:', currentDayIndex);
+    
+    // Reset FAB visibility when changing days
+    setShowFAB(false);
+    
+    // Force a re-render of the ScrollView with a reset position
+    // This ensures content starts at the top when changing days
+    const timer = setTimeout(() => {
+      // Update scroll positions to ensure we start at the top for the current day
+      setScrollPositions(prev => ({
+        ...prev,
+        [currentDayIndex]: 0
+      }));
+    }, 50);
+    
+    return () => clearTimeout(timer);
+  }, [currentDayIndex]);
 
   useEffect(() => {
     // Log for debugging
@@ -397,6 +419,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             if (newIndex !== currentDayIndex && newIndex >= 0 && newIndex < devotional.days.length) {
               console.log('Momentum scroll ended at day:', newIndex + 1); // Debug log
               setCurrentDayIndex(newIndex);
+              // Reset FAB visibility when changing pages
+              setShowFAB(false);
             }
           }}
           onScrollBeginDrag={() => {
@@ -416,8 +440,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               contentContainerStyle={styles.scrollViewContent}
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
-              onScroll={handleScroll}
+              onScroll={(event) => {
+                // Reset scroll position when changing pages
+                if (index === currentDayIndex) {
+                  handleScroll(event);
+                }
+              }}
               scrollEventThrottle={16}
+              keyboardShouldPersistTaps="handled"
+              // Reset scroll position when this item becomes visible
+              contentOffset={{x: 0, y: index === currentDayIndex ? 0 : (scrollPositions[index] || 0)}}
+              key={`scroll-${index}-${currentDayIndex === index ? 'active' : 'inactive'}`}
             >
             {/* Day Title - Moved below progress bar */}
             <View style={styles.dayTitleContainer}>
