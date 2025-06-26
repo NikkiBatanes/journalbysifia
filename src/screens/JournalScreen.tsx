@@ -5,6 +5,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isToday, isSameDay, addWeeks } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { TodaysFocus } from '../components/journal/TodaysFocus';
+import { Todos } from '../components/journal/Todos';
+import { TimeBlock } from '../components/journal/TimeBlock';
+import { GuidedReflection } from '../components/journal/GuidedReflection';
+import { GratitudeList } from '../components/journal/GratitudeList';
+import { JournalEntries } from '../components/journal/JournalEntries';
+import { TodayWin } from '../components/journal/TodayWin';
+import { LookingForward } from '../components/journal/LookingForward';
 
 type TabType = 'journal' | 'schedule' | 'prayer' | 'finance';
 
@@ -296,9 +304,32 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     switch (activeTab) {
       case 'journal':
         return (
-          <View style={styles.tabContent}>
-            <Text style={styles.tabText}>Journal Content</Text>
-          </View>
+          <ScrollView style={styles.tabContent}>
+            <View style={styles.componentSpacing}>
+              <TodaysFocus />
+            </View>
+            <View style={styles.componentSpacing}>
+              <Todos />
+            </View>
+            <View style={styles.componentSpacing}>
+              <TimeBlock />
+            </View>
+            <View style={styles.componentSpacing}>
+              <GuidedReflection />
+            </View>
+            <View style={styles.componentSpacing}>
+              <GratitudeList />
+            </View>
+            <View style={styles.componentSpacing}>
+              <JournalEntries />
+            </View>
+            <View style={styles.componentSpacing}>
+              <TodayWin />
+            </View>
+            <View style={styles.componentSpacing}>
+              <LookingForward />
+            </View>
+          </ScrollView>
         );
       case 'schedule':
         return (
@@ -384,6 +415,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.hopeWhite,
   },
+  componentSpacing: {
+    marginBottom: 16,
+  },
   tabBar: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
@@ -410,7 +444,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.darkGray,
     textAlign: 'center',
-    marginTop: 20,
+    marginVertical: 12,
   },
   header: {
     backgroundColor: Colors.anchorBlue,
