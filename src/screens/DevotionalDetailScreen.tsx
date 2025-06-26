@@ -87,11 +87,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     if (devotional) {
       // Check if this is a newly created devotional (all days are incomplete)
       const isNewDevotional = devotional.days.every(day => !day.completed);
-      
+
       if (isNewDevotional) {
         // For newly created devotionals, always start with day 1 (index 0)
         setCurrentDayIndex(0);
-        
+
         // Force scroll to day 1 after a short delay
         setTimeout(() => {
           if (flatListRef.current) {
@@ -105,9 +105,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         // For existing devotionals, find the first incomplete day
         const firstIncompleteIndex = devotional.days.findIndex(day => !day.completed);
         const targetIndex = firstIncompleteIndex >= 0 ? firstIncompleteIndex : 0;
-        
+
         setCurrentDayIndex(targetIndex);
-        
+
         // Scroll to the target day
         setTimeout(() => {
           if (flatListRef.current) {
@@ -127,15 +127,15 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     if (flatListRef.current && devotional) {
       // Always ensure we're using a valid index
       const safeIndex = Math.min(Math.max(0, index), devotional.days.length - 1);
-      
+
       console.log('Scrolling to day:', safeIndex + 1); // Debug log
-      
+
       flatListRef.current.scrollToIndex({
         index: safeIndex,
         animated: false,
         viewPosition: 0.5,
       });
-      
+
       // Force update the scroll position after a short delay to ensure it takes effect
       setTimeout(() => {
         if (flatListRef.current) {
@@ -148,7 +148,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       }, 100);
     }
   }, [devotional]);
-  
+
   // Use the callback in the effect, but only when currentDayIndex changes after initial load
   useEffect(() => {
     // Skip the initial render to avoid conflicts with the initial day index setting
@@ -207,21 +207,21 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
   // Handle continuing after completion modal
   const handleCompletionContinue = () => {
-    if (!devotional) return;
-    
+    if (!devotional) {return;}
+
     // If we're on the last day, close the modal and return to the list
     if (currentDayIndex === devotional.days.length - 1) {
       setShowCompletionModal(false);
       setCompletedDayIndex(null);
       return;
     }
-    
+
     const nextDayIndex = currentDayIndex + 1;
     if (nextDayIndex < devotional.days.length) {
       // Reset the FAB visibility when moving to the next day
       setShowFAB(false);
       setCurrentDayIndex(nextDayIndex);
-      
+
       // Scroll to the next day after state updates
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({
@@ -331,10 +331,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     .activeOffsetY([0, 0]); // Allow vertical movement
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView 
-        style={styles.container} 
-        edges={['right', 'top', 'left']} 
+    <GestureHandlerRootView style={styles.gestureRoot}>
+      <SafeAreaView
+        style={styles.container}
+        edges={['right', 'top', 'left']}
         mode="margin"
       >
       <StatusBar barStyle="dark-content" />
@@ -387,7 +387,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       </GestureDetector>
 
       {/* Main content */}
-      <View style={{ flex: 1 }}>
+      <View style={styles.mainContent}>
         <FlatList
           ref={flatListRef}
           data={devotional.days}
@@ -427,13 +427,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             });
           }}
           renderItem={({ item: day, index }) => (
-            <ScrollView 
-              style={{ width: Dimensions.get('window').width }}
-              contentContainerStyle={{ 
-                paddingHorizontal: CARD_HORIZONTAL_PADDING,
-                paddingBottom: 80, // Add padding to bottom to prevent FAB overlap
-                paddingTop: 80 // Set scrollable padding to 60px
-              }}
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollViewContent}
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
               onScroll={handleScroll}
@@ -824,5 +820,19 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: '500',
-  }
+  },
+  gestureRoot: {
+    flex: 1,
+  },
+  mainContent: {
+    flex: 1,
+  },
+  scrollView: {
+    width: Dimensions.get('window').width,
+  },
+  scrollViewContent: {
+    paddingHorizontal: CARD_HORIZONTAL_PADDING,
+    paddingBottom: 80, // Add padding to bottom to prevent FAB overlap
+    paddingTop: 80, // Set scrollable padding to 60px
+  },
 });

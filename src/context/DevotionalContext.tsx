@@ -156,22 +156,22 @@ export const DevotionalProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           params.userInput,
           2 // Number of retries
         );
-        
+
         // Log success if we got here
         console.log('Devotional generated successfully:', {
           id: devotional.id,
           days: devotional.days?.length,
           playbookId: params.playbookId,
         });
-      } catch (error) {
-        console.error('Error generating devotional, using fallback:', error);
+      } catch (generationError) {
+        console.error('Error generating devotional, using fallback:', generationError);
         // Create a fallback devotional if generation fails
         devotional = createFallbackDevotional(
           params.duration,
           params.playbookId,
           params.userInput
         );
-        
+
         // Show a warning to the user
         showSuccess('Using fallback devotional content');
       }
