@@ -507,40 +507,40 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
         // Define scripture patterns with cleaned up regex (no unnecessary escapes)
         const scripturePatterns = [
-          // Format: SCRIPTURE:\n"verse" - BOOK 1:1 (with dash)
+          // Format: SCRIPTURE:\n"verse" - BOOK 1:19-20 (with dash and optional newlines)
           {
-            pattern: /SCRIPTURE:[\s\n]*['"]([^'"\n]+)['"]\s*[-—]\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
-            name: 'format 1a (SCRIPTURE:\n"verse" - BOOK 1:1 with dash)',
+            pattern: /SCRIPTURE:[\s\n]*['"]([^'"\n]+)['"][\s\n]*[-—][\s\n]*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            name: 'format 1a (SCRIPTURE:\n"verse" - BOOK 1:19-20 with dash)',
           },
-          // Format: SCRIPTURE:\n"verse" BOOK 1:1 (without dash)
+          // Format: SCRIPTURE:\n"verse" BOOK 1:19-20 (without dash)
           {
-            pattern: /SCRIPTURE:[\s\n]*['"]([^'"\n]+)['"]\s+([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
-            name: 'format 1b (SCRIPTURE:\n"verse" BOOK 1:1 without dash)',
+            pattern: /SCRIPTURE:[\s\n]*['"]([^'"\n]+)['"]\s+([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            name: 'format 1b (SCRIPTURE:\n"verse" BOOK 1:19-20 without dash)',
           },
-          // Format: SCRIPTURE:\nBOOK 1:1 - "verse"
+          // Format: SCRIPTURE:\nBOOK 1:19-20 - "verse"
           {
-            pattern: /SCRIPTURE:[\s\n]*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)\s*-\s*['"]([^'"\n]+)['"]/i,
-            name: 'format 2 (SCRIPTURE:\nBOOK 1:1 - "verse")',
+            pattern: /SCRIPTURE:[\s\n]*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
+            name: 'format 2 (SCRIPTURE:\nBOOK 1:19-20 - "verse")',
           },
-          // Format: SCRIPTURE: verse - BOOK 1:1 (all on one line)
+          // Format: SCRIPTURE: verse - BOOK 1:19-20 (all on one line)
           {
-            pattern: /SCRIPTURE:[\s\n]*([^\n"']+?)\s*-\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
-            name: 'format 3 (SCRIPTURE: verse - BOOK 1:1)',
-  },
+            pattern: /SCRIPTURE:[\s\n]*([^\n"']+?)\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            name: 'format 3 (SCRIPTURE: verse - BOOK 1:19-20)',
+          },
           // More flexible format: Any line containing "SCRIPTURE"
           {
-            pattern: /SCRIPTURE:[\s\n]*([^\n]+?)\s*[-—]\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
-            name: 'format 4 (flexible SCRIPTURE: verse - BOOK 1:1)',
+            pattern: /SCRIPTURE:[\s\n]*([^\n]+?)\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            name: 'format 4 (flexible SCRIPTURE: verse - BOOK 1:19-20)',
           },
           // Just look for any verse reference pattern
           {
-            pattern: /([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
-            name: 'format 5 (BOOK 1:1 - "verse")',
+            pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
+            name: 'format 5 (BOOK 1:19-20 - "verse")',
           },
           // Look for quoted text followed by a reference
           {
-            pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
-            name: 'format 6 ("verse" - BOOK 1:1)',
+            pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+            name: 'format 6 ("verse" - BOOK 1:19-20)',
           },
         ];
 
@@ -777,6 +777,11 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const aiData = await openAIRes.json();
+    
+    // Log the raw OpenAI response for debugging
+    console.log('=== RAW OPENAI RESPONSE ===');
+    console.log(JSON.stringify(aiData, null, 2));
+    console.log('==========================');
 
     let content = aiData.choices?.[0]?.message?.content || '';
     if (content) {

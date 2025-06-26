@@ -3,6 +3,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
+import { JournalScreenRef } from '../screens/JournalScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
 import { Spacing, FontSizes } from '../theme/styles';
@@ -35,6 +36,8 @@ const CustomTabBarComponent = ({
   descriptors: _descriptors, // Prefix with underscore to indicate intentionally unused
   navigation,
 }: CustomTabBarProps) => {
+  const { onTabPress } = React.useContext(TabPressContext);
+
   return (
     <View style={styles.tabBarContainer}>
       {state.routes.map((route, index) => {
@@ -46,6 +49,9 @@ const CustomTabBarComponent = ({
             target: route.key,
             canPreventDefault: true,
           });
+
+          // Notify parent component about tab press
+          onTabPress(route.name);
 
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(route.name);
@@ -99,12 +105,33 @@ const useProfileScreenOptions = (onLogout: () => void) => {
   );
 };
 
+// Create a context to share tab press handlers
+const TabPressContext = React.createContext<{
+  onTabPress: (tabName: string) => void;
+}>({ onTabPress: () => {} });
+
 export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps) {
   const profileScreenOptions = useProfileScreenOptions(onLogout);
+  const [currentTab, setCurrentTab] = React.useState<string>('UserInput');
+  const journalScreenRef = React.useRef<JournalScreenRef>(null);
+
+  // Handle tab press
+  const handleTabPress = React.useCallback((tabName: string) => {
+    if (tabName === 'Journal' && currentTab === 'Journal' && journalScreenRef.current) {
+      // Toggle between current date and last selected date
+      journalScreenRef.current.resetToCurrentDate();
+    }
+    setCurrentTab(tabName);
+  }, [currentTab]);
+
   // Move tabBar render function outside
   const renderTabBar = React.useCallback(
-    (props: any) => <CustomTabBarComponent {...props} />,
-    []
+    (props: any) => (
+      <TabPressContext.Provider value={{ onTabPress: handleTabPress }}>
+        <CustomTabBarComponent {...props} />
+      </TabPressContext.Provider>
+    ),
+    [handleTabPress]
   );
 
   return (
@@ -150,13 +177,14 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
       />
       <Tab.Screen
         name="Journal"
-        component={JournalScreen}
         options={{
           tabBarLabel: 'Journal',
           title: 'Journal',
           headerShown: false,
         }}
-      />
+      >
+        {() => <JournalScreen ref={journalScreenRef} />}
+      </Tab.Screen>
       <Tab.Screen
         name="Profile"
         component={UserProfileScreen}

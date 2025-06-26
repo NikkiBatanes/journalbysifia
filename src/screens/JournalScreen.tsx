@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isToday, isSameDay, addWeeks } from 'date-fns';
@@ -7,8 +7,33 @@ import { Fonts } from '../theme/fonts';
 
 type ViewMode = 'daily' | 'weekly' | 'monthly';
 
-const JournalScreen: React.FC = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export type JournalScreenRef = {
+  resetToCurrentDate: () => void;
+};
+
+const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const lastSelectedDate = useRef<Date | null>(null);
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    resetToCurrentDate: () => {
+      const now = new Date();
+
+      setCurrentDate(prevDate => {
+        // If we have a last selected date and it's different from now
+        if (lastSelectedDate.current && !isSameDay(lastSelectedDate.current, now)) {
+          const prev = new Date(lastSelectedDate.current);
+          lastSelectedDate.current = null;
+          return prev; // Return the last selected date
+        } else {
+          // Save current date before switching to now
+          lastSelectedDate.current = new Date(prevDate);
+          return now; // Return current date
+        }
+      });
+    },
+  }));
   const [viewMode, setViewMode] = useState<ViewMode>('daily');
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(new Date().getDay());
   // Unused state variable - keeping for potential future use
@@ -265,7 +290,7 @@ const JournalScreen: React.FC = () => {
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
