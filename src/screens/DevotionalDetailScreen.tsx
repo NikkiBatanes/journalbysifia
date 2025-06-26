@@ -42,22 +42,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const flatListRef = useRef<FlatList>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showFAB, setShowFAB] = useState(false);
-  const [scripture, setScripture] = useState<Scripture>({
-    text: 'For God so loved the world that he gave his one and only Son, that whoever believes in him shall not perish but have eternal life.',
-    reference: 'JOHN 3:16',
-  });
-
-  // Update scripture when currentDay changes
-  useEffect(() => {
-    const currentDay = devotional?.days?.[currentDayIndex];
-    if (currentDay?.scripture) {
-      // Use the scripture data directly from the backend
-      setScripture({
-        text: currentDay.scripture.text || "God's word brings light and life to our hearts.",
-        reference: currentDay.scripture.reference || 'PSALM 119:105',
-      });
-    }
-  }, [devotional, currentDayIndex]);
 
   useEffect(() => {
     // Log for debugging
@@ -667,7 +651,8 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingTop: 70, // Add padding to prevent content from being hidden behind the header
+    width: Dimensions.get('window').width,
+    paddingTop: 0, // No top padding as per design
   },
   contentContainer: {
     paddingHorizontal: CARD_HORIZONTAL_PADDING,
@@ -676,6 +661,9 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
+    paddingHorizontal: CARD_HORIZONTAL_PADDING,
+    paddingBottom: 80, // Add padding to bottom to prevent FAB overlap
+    paddingTop: 80, // Set scrollable padding to 60px
   },
   reflectionContainer: {
     marginBottom: 24,
@@ -827,12 +815,6 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
   },
-  scrollView: {
-    width: Dimensions.get('window').width,
-  },
-  scrollViewContent: {
-    paddingHorizontal: CARD_HORIZONTAL_PADDING,
-    paddingBottom: 80, // Add padding to bottom to prevent FAB overlap
-    paddingTop: 80, // Set scrollable padding to 60px
-  },
+
+
 });
