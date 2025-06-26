@@ -28,6 +28,9 @@ export const devotionalAdvisorPersona: Persona = {
 
 ## FOR SINGLE-DAY DEVOTIONAL:
 
+CATEGORY:
+[Choose ONE word from: Faith, Prayer, Love, Marriage, Family, Parenting, Work, Career, Business, Finance, Stewardship, Giving, Time Management, Health, Mental Health, Self-Care, Anxiety/Worry, Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace, Conflict Resolution, Joy, Hope, Wisdom, Forgiveness, Gratitude, Grief, Community, Relationships, Leadership, Contentment]
+
 TITLE:
 [Concise, engaging title that reflects the theme - max 32 characters]
 
@@ -59,6 +62,9 @@ Heavenly Father,
 In Jesus' name, Amen
 
 ## FOR MULTI-DAY DEVOTIONAL:
+
+CATEGORY:
+[Choose ONE word from: Faith, Prayer, Love, Marriage, Family, Parenting, Work, Career, Business, Finance, Stewardship, Giving, Time Management, Health, Mental Health, Self-Care, Anxiety/Worry, Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace, Conflict Resolution, Joy, Hope, Wisdom, Forgiveness, Gratitude, Grief, Community, Relationships, Leadership, Contentment]
 
 SERIES TITLE:
 [Series title - max 32 characters]
@@ -189,25 +195,61 @@ export const enforcePersona = (response: string, _persona: Persona): string => {
 };
 
 export const formatDevotionalResponse = (content: string, isMultiDay: boolean = false, dayNumber: number = 1): string => {
-  // Extract the title (first line after TITLE:)
-  const titleMatch = content.match(/TITLE:\s*([^\n]+)/i);
+  // Extract the title (first line after TITLE: or SERIES TITLE:)
+  const titleMatch = content.match(/(?:SERIES )?TITLE:\s*([^\n]+)/i);
   const title = titleMatch ? titleMatch[1].trim() : 'Daily Devotional';
+  
+  // Extract category if present
+  const catMatch = content.match(/CATEGORY:\s*([^\n]+)/i);
+  const category = catMatch ? `CATEGORY: ${catMatch[1].trim()}\n\n` : '';
 
   // For multi-day devotionals, add series and day information
   if (isMultiDay) {
-    const seriesTitle = content.match(/SERIES TITLE:\s*([^\n]+)/i)?.[1]?.trim() || 'Devotional Series';
-    const description = content.match(/DESCRIPTION:\s*([^\n]+)/i)?.[1]?.trim() || 'A journey through God\'s Word';
+    const dayRegex = /(?:DAY|DAY\s+\d+|#+\s*Day\s+\d+)[^\n]*\n([\s\S]*?)(?=\n(?:DAY|DAY\s+\d+|#+\s*Day\s+\d+|$))/gi;
+    let match;
+    let dayCount = 0;
 
-    return `SERIES TITLE: ${seriesTitle}\n\n` +
-      `DESCRIPTION: ${description}\n\n` +
-      `DAY ${dayNumber}: ${title}\n\n` +
-      content.substring(content.indexOf('SCRIPTURE:'));
+    while ((match = dayRegex.exec(content)) !== null) {
+      dayCount++;
+      if (dayCount === dayNumber) {
+        return category + formatDevotionalResponse(match[1].trim(), false);
+      }
+    }
+
+    // If we're here, we couldn't find the specific day, so return the first day
+    if (dayCount > 0) {
+      return category + formatDevotionalResponse(content.split(/DAY\s+1|#+\s*Day\s+1/i)[1] || content, false);
+    }
   }
-
-  // For single devotionals
-  const description = content.match(/DESCRIPTION:\s*([^\n]+)/i)?.[1]?.trim() || 'This 1-day devotional will help you grow in your faith and draw closer to God.';
   
-  return `TITLE: ${title}\n\n` +
-    `DESCRIPTION: ${description}\n\n` +
-    content.substring(content.indexOf('SCRIPTURE:'));
+  // For single devotionals
+  let result = category; // Add category at the top if present
+  
+  // Add title
+  result += `TITLE: ${title}\n\n`;
+  
+  // Add description
+  const description = content.match(/DESCRIPTION:\s*([^\n]+)/i)?.[1]?.trim() || 
+    (isMultiDay ? 'A devotional series to help you grow in your faith.' : 'This 1-day devotional will help you grow in your faith and draw closer to God.');
+  result += `DESCRIPTION: ${description}\n\n`;
+  
+  // Find the first section after description (SCRIPTURE: or next section)
+  let contentStart = 0;
+  const nextSection = content.match(/\n\n(SCRIPTURE:|REFLECTION:|PRAYER:)/i);
+  if (nextSection) {
+    contentStart = content.indexOf(nextSection[1]);
+  } else if (content.includes('SCRIPTURE:')) {
+    contentStart = content.indexOf('SCRIPTURE:');
+  }
+  
+  // Add the rest of the content
+  if (contentStart > 0) {
+    result += content.substring(contentStart);
+  } else if (content.trim()) {
+    result += content.trim();
+  } else {
+    result += 'SCRIPTURE: [Bible passage reference]\n\nREFLECTION: [Your devotional content here]';
+  }
+  
+  return result;
 };

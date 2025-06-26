@@ -213,25 +213,64 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       userInput,
     };
 
-    // Extract title - handle multiple possible formats
+    // Extract title - handle multiple possible formats (but not from category)
     let title = 'Daily Devotional';
     const titleMatches = [
-      content.match(/SERIES TITLE:\s*\n([^\n]+)/i),  // Plain format
-      content.match(/\*\*SERIES TITLE:\*\*\s*\n([^\n]+)/i),  // Markdown format
-      content.match(/^#\s*([^\n]+)/),  // Markdown H1
-      content.match(/^TITLE:\s*\n([^\n]+)/i),  // Simple TITLE: format
+      content.match(/TITLE:\s*([^\n]+)/i),  // TITLE: format
+      content.match(/SERIES TITLE:\s*([^\n]+)/i),  // SERIES TITLE: format
       content.match(/DEVOTIONAL TITLE:\s*([^\n]+)/i),  // DEVOTIONAL TITLE: format
+      content.match(/^#\s*([^\n]+)/),  // Markdown H1
       content.match(/^([^\n]{5,64})(?=\n|$)/),  // First line that's 5-64 chars long
     ];
 
+
+    // Extract category first to ensure we don't use it as title
+    let category = 'Faith'; // Default category
+    const catMatch = content.match(/CATEGORY:\s*([^\n]+)/i) || content.match(/CATEGORY:\s*\n([^\n]+)/i);
+    
+    if (catMatch && catMatch[1]) {
+      const extractedCategory = cleanMarkdown(catMatch[1]).trim();
+      // Take only the first word if multiple words are provided
+      const singleWordCategory = extractedCategory.split(/\s+/)[0];
+      if (singleWordCategory) {
+        category = singleWordCategory;
+      }
+    }
+    
+    // Ensure the category is valid, otherwise use default
+    const validCategories = [
+      'Faith', 'Prayer', 'Love', 'Marriage', 'Family', 'Parenting', 
+      'Work', 'Career', 'Business', 'Finance', 'Stewardship', 'Giving', 
+      'Time Management', 'Health', 'Mental Health', 'Self-Care', 
+      'Anxiety/Worry', 'Purpose', 'Calling', 'Ministry', 'Worship', 
+      'Quiet Time', 'Rest', 'Peace', 'Conflict Resolution', 'Joy', 
+      'Wisdom', 'Forgiveness', 'Gratitude', 'Grief', 'Evangelism',
+      'Discipleship', 'Mission', 'Community', 'Relationships', 'Leadership', 'Contentment'
+    ];
+    
+    if (!validCategories.includes(category)) {
+      console.log(`[DEVOTIONAL PARSER] Invalid category '${category}', defaulting to 'Faith'`);
+      category = 'Faith';
+    }
+    
+    devotional.category = category;
+    devotional.categories = [category];
+    console.log('[DEVOTIONAL PARSER] Extracted category:', category);
+
+    // Now extract title, making sure it's not the same as the category
     for (const match of titleMatches) {
       if (match && match[1]) {
-        title = cleanMarkdown(match[1]).trim().slice(0, 64);
-        if (title) {break;}
+        const potentialTitle = cleanMarkdown(match[1]).trim();
+        if (potentialTitle && potentialTitle !== category) {
+          title = potentialTitle.slice(0, 64);
+          break;
+        }
       } else if (match && match[0]) {
-        // Handle patterns where the entire match is the title
-        title = cleanMarkdown(match[0]).trim().slice(0, 64);
-        if (title) {break;}
+        const potentialTitle = cleanMarkdown(match[0]).trim();
+        if (potentialTitle && potentialTitle !== category) {
+          title = potentialTitle.slice(0, 64);
+          break;
+        }
       }
     }
 
@@ -242,7 +281,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       .trim();
 
     // Fallback to user input if no valid title found
-    if (!title || title.toLowerCase() === 'daily devotional') {
+    if (!title || title.toLowerCase() === 'daily devotional' || title === category) {
       title = (userInput || 'Daily Devotional')
         .split('.')[0]
         .replace(/[^\w\s-]/g, '')
@@ -279,22 +318,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     devotional.description = description;
     console.log('[DEVOTIONAL PARSER] Extracted description:', description);
 
-    // Extract up to 3 categories/tags from CATEGORY section
-    let categories: string[] = [];
-    const catMatch = content.match(/CATEGORY:\s*([\s\S]*?)(?=\n{2,}|$)/i);
-    if (catMatch && catMatch[1]) {
-      categories = catMatch[1]
-        .split(/\n|,|;/)
-        .map((c) => cleanMarkdown(c).trim())
-        .filter(Boolean)
-        .slice(0, 3);
-    }
-    devotional.categories = categories;
-    console.log('[DEVOTIONAL PARSER] Extracted categories:', categories);
-
-    // Extract categories
-    devotional.category = categories.join(', ');
-    console.log('[DEVOTIONAL PARSER] Extracted category:', devotional.category);
+    // Category is already extracted at the beginning of the function
+    console.log('[DEVOTIONAL PARSER] Using category:', devotional.category);
 
     // Extract days - handle the specific format from OpenAI response
     console.log('[DEVOTIONAL PARSER] Trying to parse days...');
