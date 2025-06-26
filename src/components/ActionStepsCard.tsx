@@ -359,6 +359,7 @@ const styles = StyleSheet.create({
   stepTitle: {
     ...Typography.interSemiBold,
     fontSize: 15,
+    fontWeight: '600',
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     flexShrink: 1,
