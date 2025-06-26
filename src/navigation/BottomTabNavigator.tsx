@@ -11,6 +11,7 @@ import PlaybookListScreen from '../screens/PlaybookListScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 import DevotionalsScreen from '../screens/DevotionalsScreen';
+import JournalScreen from '../screens/JournalScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -148,9 +149,21 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
         }}
       />
       <Tab.Screen
+        name="Journal"
+        component={JournalScreen}
+        options={{
+          tabBarLabel: 'Journal',
+          title: 'Journal',
+          headerShown: false,
+        }}
+      />
+      <Tab.Screen
         name="Profile"
         component={UserProfileScreen}
-        options={profileScreenOptions}
+        options={{
+          ...profileScreenOptions,
+          headerShown: false,
+        }}
       />
     </Tab.Navigator>
   );

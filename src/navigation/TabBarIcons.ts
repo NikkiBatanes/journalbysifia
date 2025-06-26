@@ -20,4 +20,8 @@ export const TabBarIcons = {
     name: 'person',
     focused: 'person',
   },
+  Journal: {
+    name: 'calendar-outline',
+    focused: 'calendar',
+  },
 } as const;

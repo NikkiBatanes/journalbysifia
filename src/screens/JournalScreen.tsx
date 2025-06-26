@@ -81,12 +81,28 @@ const JournalScreen: React.FC = () => {
     }
   }, [weeks, currentDate, screenWidth]);
   
-  // Track scroll position with debounce to reduce updates
+  // Track the selected day of the week (0 = Sunday, 1 = Monday, etc.)
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number>(() => currentDate.getDay());
+
+  // Track scroll position and update current date based on visible week
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    // Only update if the change is significant (more than 1 pixel)
-    if (Math.abs(scrollX.current - offsetX) > 1) {
-      scrollX.current = offsetX;
+    // Update scroll position for tracking
+    scrollX.current = offsetX;
+    
+    // Calculate the current week index based on scroll position
+    const weekIndex = Math.round(offsetX / screenWidth);
+    
+    // Only update the date if we've scrolled to a new week
+    const currentWeekIndex = weeks.findIndex(week => 
+      week.some(day => isSameDay(day, currentDate))
+    );
+    
+    if (weekIndex !== currentWeekIndex && weeks[weekIndex] && weeks[weekIndex][selectedDayOfWeek]) {
+      const targetDay = weeks[weekIndex][selectedDayOfWeek];
+      if (!isSameDay(targetDay, currentDate)) {
+        setCurrentDate(new Date(targetDay.getTime()));
+      }
     }
   };
 
@@ -94,8 +110,9 @@ const JournalScreen: React.FC = () => {
     // Create a new date object with just the date part (no time)
     const newDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     
-    // Update the current date
+    // Update the current date and the selected day of week
     setCurrentDate(newDate);
+    setSelectedDayOfWeek(newDate.getDay());
     
     // Find which week this date is in
     const weekIndex = weeks.findIndex(week => 
@@ -162,11 +179,26 @@ const JournalScreen: React.FC = () => {
 
       {/* Day names */}
       <View style={styles.daysHeader}>
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-          <Text key={index} style={styles.dayName}>
-            {day}
-          </Text>
-        ))}
+        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
+          // Get the date for this day in the currently visible week
+          const firstDayOfWeek = startOfWeek(currentDate);
+          const dayDate = addDays(firstDayOfWeek, index);
+          
+          // Only show 'TODAY' if this is the actual current date
+          const isCurrentDay = isToday(dayDate);
+          const displayText = isCurrentDay ? 'TODAY' : day;
+          
+          return (
+            <View key={index} style={styles.dayNameContainer}>
+              <Text style={[
+                styles.dayName,
+                isCurrentDay && styles.todayText
+              ]}>
+                {displayText}
+              </Text>
+            </View>
+          );
+        })}
       </View>
 
       {/* Weeks */}
@@ -180,7 +212,8 @@ const JournalScreen: React.FC = () => {
           snapToAlignment="start"
           decelerationRate="fast"
           pagingEnabled
-          onScroll={handleScroll}
+          onMomentumScrollEnd={handleScroll}
+          onScrollBeginDrag={() => {}}
           scrollEventThrottle={16}
         >
           {weeks.map(renderWeek)}
@@ -293,23 +326,30 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
-    marginLeft: 2, // Align with the days of the week
   },
   daysHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16, // Match the month year padding
+    paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.anchorBlue,
   },
-  dayName: {
+  dayNameContainer: {
     width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayName: {
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
+    width: '100%',
+  },
+  todayText: {
+    fontWeight: 'bold',
     color: Colors.hopeWhite,
-    fontSize: 12,
-    opacity: 0.8,
-    fontFamily: Fonts.regular,
-    marginHorizontal: 2,
+    fontSize: 10,
   },
   weeksContainer: {
     flexDirection: 'row',

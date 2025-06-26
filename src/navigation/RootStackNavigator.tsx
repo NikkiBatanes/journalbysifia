@@ -133,6 +133,13 @@ export default function RootStackNavigator({
     []
   );
 
+  const devotionalListOptions = useMemo<NativeStackNavigationOptions>(
+    () => ({
+      headerShown: false, // We're handling the header in the component
+    }),
+    []
+  );
+
   // Remove unused renderMainTabs since we're using component prop directly
 
   return (
