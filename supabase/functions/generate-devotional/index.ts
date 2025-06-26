@@ -304,29 +304,43 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     let description = duration > 1 
       ? `This ${duration}-day devotional series will help you grow in faith.`
       : 'This 1-day devotional will help you draw closer to God.';
+    
+    console.log('[DEVOTIONAL PARSER] Content start for description extraction:', content.substring(0, 300) + (content.length > 300 ? '...' : ''));
       
     const descMatches = [
-      // Match formats with DESCRIPTION: prefix
+      // Match formats with DESCRIPTION: prefix (single line)
       content.match(/DESCRIPTION:[\s\n]+([^\n]{10,80})(?=\n|$)/i),
+      // Match formats with DESCRIPTION: prefix (multi-line)
       content.match(/DESCRIPTION:[\s\n]+([^\n]{10,80})(?=\n\n|\n---|$)/i),
       // Match markdown bold format
       content.match(/\*\*DESCRIPTION:\*\*[\s\n]+([^\n]{10,80})(?=\n|$)/i),
+      // Match SERIES DESCRIPTION: for multi-day devotionals
+      content.match(/SERIES DESCRIPTION:[\s\n]+([^\n]{10,80})(?=\n|$)/i),
       // Match first line after title
       content.match(/^[^\n]+\n\s*([^\n]{10,80})(?=\n|$)/m),
     ];
 
-    for (const match of descMatches) {
+    console.log('[DEVOTIONAL PARSER] Trying to extract description...');
+    for (let i = 0; i < descMatches.length; i++) {
+      const match = descMatches[i];
       if (match && match[1]) {
         const desc = cleanMarkdown(match[1]).trim();
+        console.log(`[DEVOTIONAL PARSER] Match ${i} found:`, desc);
+        
         // Ensure description is within 80 characters and is a complete sentence
         if (desc && desc.length <= 80 && /[.!?]$/.test(desc)) {
           // If it's a multi-line description, take the first line
           const firstLine = desc.split('\n')[0].trim();
           if (firstLine.length <= 80) {
             description = firstLine;
+            console.log(`[DEVOTIONAL PARSER] Using description from match ${i}:`, description);
             break;
           }
+        } else {
+          console.log(`[DEVOTIONAL PARSER] Match ${i} rejected - invalid format or length`);
         }
+      } else {
+        console.log(`[DEVOTIONAL PARSER] No match found at index ${i}`);
       }
     }
     
