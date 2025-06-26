@@ -106,26 +106,41 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.hopeWhite,
+    // Option 1: Subtle Blue (lightest)
+    backgroundColor: 'rgba(26, 60, 109, 0.03)', // 3% opacity of anchorBlue
+    borderColor: 'rgba(26, 60, 109, 0.1)', // 10% opacity of anchorBlue
+    
+    // Option 2: Medium Blue (balanced)
+    // backgroundColor: 'rgba(26, 60, 109, 0.05)', // 5% opacity of anchorBlue
+    // borderColor: 'rgba(26, 60, 109, 0.15)', // 15% opacity of anchorBlue
+    
+    // Option 3: Rich Blue (most visible)
+    // backgroundColor: 'rgba(26, 60, 109, 0.08)', // 8% opacity of anchorBlue
+    // borderColor: 'rgba(26, 60, 109, 0.2)', // 20% opacity of anchorBlue
+    
     borderRadius: 8,
+    borderWidth: 1,
     padding: 16,
     marginBottom: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   cardEmpty: {
+    // Match the selected option from above
+    backgroundColor: 'rgba(26, 60, 109, 0.03)',
+    borderColor: 'rgba(26, 60, 109, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
     padding: 16,
     marginBottom: 2,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   headerEmpty: {
     marginBottom: 0,

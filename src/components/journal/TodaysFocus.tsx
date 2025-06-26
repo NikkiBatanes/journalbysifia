@@ -60,7 +60,7 @@ export const TodaysFocus: React.FC = () => {
         />
       }
       title="Today's Focus"
-      subtitle="Set your focus and priorities for the day"
+      subtitle="Your daily focus and priorities"
       showAddButton={!isEditing}
       onAdd={toggleEditing}
       isAdding={isEditing}
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.darkGray,
+    color: Colors.darkerGray, // Using theme color for consistency
     marginBottom: 8,
     lineHeight: 24,
   },
@@ -231,36 +231,39 @@ const styles = StyleSheet.create({
   // Input styles
   input: {
     flex: 1,
-    height: 40, // Fixed height for consistency
+    height: 40, // Adjusted for better text alignment
     fontFamily: Fonts.regular,
-    fontSize: 14,
+    fontSize: 13, // Match priority item size
     color: Colors.darkGray,
-    backgroundColor: 'transparent',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    marginBottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Slightly transparent white
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
     borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)', // Subtle blue border
   },
   focusInput: {
-    fontSize: 15,
-    fontWeight: '400',
+    fontSize: 14, // Slightly larger than other inputs
+    fontWeight: '500',
     marginBottom: 12,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.medium,
     height: 44, // Slightly taller for main focus input
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // More opaque for main input
   },
 
   // Priority item styles
   priorityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 2,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
-    minHeight: 32,
+    marginBottom: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Match input background
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 40,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)', // Match input border
   },
   priorityRow: {
     flexDirection: 'row',
@@ -282,6 +285,7 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
     flex: 1,
     lineHeight: 18,
+    opacity: 0.9, // Slightly transparent for softer look
   },
   priorityNumber: {
     fontFamily: Fonts.medium,

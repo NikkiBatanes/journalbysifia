@@ -13,6 +13,7 @@ export const Colors = {
   lightGray: '#E0E0E0',
   mediumGray: '#9E9E9E',
   darkGray: '#424242',
+  darkerGray: '#1A1A1A', // For better text contrast
   trustGrey: '#B0B8C1',
 
   // UI Colors
