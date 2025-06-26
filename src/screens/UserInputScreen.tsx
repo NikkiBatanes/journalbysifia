@@ -198,7 +198,6 @@ const UserInputScreen: React.FC = () => {
                   underlineColorAndroid="transparent"
                   autoCorrect={true}
                   autoFocus={false}
-                  maxLength={1000}
                   onTouchStart={handleInputPress}
                   blurOnSubmit={false}
                 />
