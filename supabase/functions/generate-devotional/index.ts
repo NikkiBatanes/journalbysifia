@@ -777,7 +777,7 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const aiData = await openAIRes.json();
-    
+
     // Log the raw OpenAI response for debugging
     console.log('=== RAW OPENAI RESPONSE ===');
     console.log(JSON.stringify(aiData, null, 2));

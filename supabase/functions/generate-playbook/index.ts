@@ -151,17 +151,83 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     });
   }
 
-  // Parse Bible Verse
+  // Parse Bible Verse with enhanced scripture patterns
   const verseMatch = content.match(/BIBLE VERSE:\s*([\s\S]*?)(?=CHALLENGE:|$)/i);
   if (verseMatch) {
-    const m = verseMatch[1].match(/["""'](.+?)["""']\s*[-—–]\s*(.+)/);
-    if (m) {
-      playbook.bibleVerse.text = m[1].trim();
-      playbook.bibleVerse.reference = m[2].trim().toUpperCase();
-    } else {
-      playbook.bibleVerse.text = verseMatch[1].trim();
-      playbook.bibleVerse.reference = '';
+    const verseContent = verseMatch[1].trim();
+
+    // Define scripture patterns to try in order of specificity
+    const scripturePatterns = [
+      // Format: "verse" - BOOK 1:19-20 (with dash)
+      {
+        pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+        name: 'format 1 ("verse" - BOOK 1:19-20 with dash)',
+      },
+      // Format: BOOK 1:19-20 - "verse"
+      {
+        pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
+        name: 'format 2 (BOOK 1:19-20 - "verse")',
+      },
+      // Format: BOOK 1:19-20 verse (without quotes)
+      {
+        pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s+([^\n]+)/i,
+        name: 'format 3 (BOOK 1:19-20 verse)',
+      },
+      // Fallback: Just look for a verse reference pattern
+      {
+        pattern: /([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i,
+        name: 'format 4 (just verse reference)',
+      },
+    ];
+
+    let verseText = '';
+    let verseRef = '';
+
+    // Try each pattern until we find a match
+    for (const { pattern, name } of scripturePatterns) {
+      const match = verseContent.match(pattern);
+      if (match) {
+        console.log(`Matched scripture format: ${name}`, match);
+
+        // Determine which group is the text and which is the reference
+        if (match[1] && match[2]) {
+          // If the first group looks like a reference, use it as such
+          if (match[1].match(/[A-Za-z]+\s*\d+[\s:]/i)) {
+            verseRef = match[1].trim().toUpperCase();
+            verseText = match[2].trim();
+          } else {
+            verseText = match[1].trim();
+            verseRef = match[2].trim().toUpperCase();
+          }
+          break;
+        } else if (match[1]) {
+          // If we only have one group, assume it's a reference
+          verseRef = match[1].trim().toUpperCase();
+          verseText = verseContent.replace(match[0], '').trim();
+          break;
+        }
+      }
     }
+
+    // If we found a reference but no text, use the entire content
+    if (verseRef && !verseText) {
+      verseText = verseContent.replace(verseRef, '').trim();
+    }
+    // If we found text but no reference, try to extract one from the text
+    else if (verseText && !verseRef) {
+      const refMatch = verseText.match(/([A-Za-z0-9 ]+\s*\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)/i);
+      if (refMatch) {
+        verseRef = refMatch[0].trim().toUpperCase();
+        verseText = verseText.replace(verseRef, '').trim();
+      }
+    }
+
+    // Clean up the verse text (remove any remaining quotes or dashes at the start/end)
+    verseText = verseText.replace(/^[\s"'`-]+|[\s"'`-]+$/g, '').trim();
+
+    // Set the values in the playbook
+    playbook.bibleVerse.text = verseText || verseContent;
+    playbook.bibleVerse.reference = verseRef || '';
   }
 
   // Parse Direct Challenge

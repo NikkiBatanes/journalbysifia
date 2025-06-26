@@ -12,10 +12,19 @@ interface GratitudeItem {
 }
 
 export const GratitudeList: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [gratitudeItems, setGratitudeItems] = useState<GratitudeItem[]>([]);
   const [newItem, setNewItem] = useState('');
   const MAX_ITEMS = 10;
+
+  const startAdding = () => {
+    setIsAdding(true);
+  };
+
+  const cancelAdding = () => {
+    setIsAdding(false);
+    setNewItem('');
+  };
 
   const addGratitudeItem = () => {
     if (newItem.trim() && gratitudeItems.length < MAX_ITEMS) {
@@ -25,6 +34,7 @@ export const GratitudeList: React.FC = () => {
         date: new Date(),
       }]);
       setNewItem('');
+      setIsAdding(false);
     }
   };
 
@@ -47,10 +57,10 @@ export const GratitudeList: React.FC = () => {
       icon="heart-circle-outline"
       title="Gratitude List"
       subtitle={`${gratitudeItems.length}/10 grateful things today`}
-      isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
-      showAddButton={gratitudeItems.length < MAX_ITEMS}
-      onAdd={addGratitudeItem}
+      showAddButton={!isAdding && gratitudeItems.length < MAX_ITEMS}
+      onAdd={startAdding}
+      isAdding={isAdding}
+      onCancelAdd={cancelAdding}
     >
       {gratitudeItems.length > 0 ? (
         <ScrollView style={styles.itemsContainer}>
@@ -81,7 +91,7 @@ export const GratitudeList: React.FC = () => {
         <Text style={styles.emptyText}>List 3-10 things you're grateful for today</Text>
       )}
 
-      {isExpanded && gratitudeItems.length < MAX_ITEMS && (
+      {isAdding && gratitudeItems.length < MAX_ITEMS && (
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}

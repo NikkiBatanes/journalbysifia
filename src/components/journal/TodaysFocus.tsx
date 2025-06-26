@@ -11,14 +11,26 @@ interface PriorityItem {
 }
 
 export const TodaysFocus: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [priorities, setPriorities] = useState<PriorityItem[]>([]);
   const [newPriority, setNewPriority] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+
+  const startAdding = () => {
+    if (priorities.length < 3) {
+      setIsAdding(true);
+    }
+  };
+
+  const cancelAdding = () => {
+    setIsAdding(false);
+    setNewPriority('');
+  };
 
   const addPriority = () => {
     if (newPriority.trim() && priorities.length < 3) {
       setPriorities([...priorities, { id: Date.now().toString(), text: newPriority }]);
       setNewPriority('');
+      setIsAdding(false);
     }
   };
 
@@ -31,57 +43,61 @@ export const TodaysFocus: React.FC = () => {
       icon="flag-outline"
       title="Today's Focus"
       subtitle="What's your main priority today?"
-      isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
-      showAddButton={priorities.length < 3}
-      onAdd={addPriority}
+      showAddButton={!isAdding && priorities.length < 3}
+      onAdd={startAdding}
+      isAdding={isAdding}
+      onCancelAdd={cancelAdding}
     >
-      {priorities.length > 0 && (
-        <View style={styles.prioritiesContainer}>
-          {priorities.map((item) => (
-            <View key={item.id} style={styles.priorityItem}>
-              <View style={styles.priorityBullet} />
-              <TextInput
-                style={styles.priorityInput}
-                value={item.text}
-                onChangeText={(text) => {
-                  const updated = priorities.map(p =>
-                    p.id === item.id ? { ...p, text } : p
-                  );
-                  setPriorities(updated);
-                }}
-                placeholder="Enter priority"
-                placeholderTextColor={Colors.mediumGray}
-              />
-              <TouchableOpacity
-                onPress={() => removePriority(item.id)}
-                style={styles.removeButton}
-              >
-                <Ionicons name="close" size={20} color={Colors.mediumGray} />
+      <View style={styles.prioritiesContainer}>
+        {priorities.map((item) => (
+          <View key={item.id} style={styles.priorityItem}>
+            <View style={styles.priorityBullet} />
+            <TextInput
+              style={styles.priorityInput}
+              value={item.text}
+              onChangeText={(text) => {
+                const updated = priorities.map(p =>
+                  p.id === item.id ? { ...p, text } : p
+                );
+                setPriorities(updated);
+              }}
+              placeholder="Enter priority"
+              placeholderTextColor={Colors.mediumGray}
+            />
+            <TouchableOpacity
+              onPress={() => removePriority(item.id)}
+              style={styles.removeButton}
+            >
+              <Ionicons name="close" size={20} color={Colors.mediumGray} />
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        {isAdding && (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={newPriority}
+              onChangeText={setNewPriority}
+              placeholder="Add a priority..."
+              placeholderTextColor={Colors.mediumGray}
+              onSubmitEditing={addPriority}
+              autoFocus
+            />
+            {newPriority.trim() && (
+              <TouchableOpacity onPress={addPriority} style={styles.saveButton}>
+                <Ionicons name="checkmark" size={24} color={Colors.alertCoral} />
               </TouchableOpacity>
-            </View>
-          ))}
-        </View>
-      )}
+            )}
+          </View>
+        )}
 
-      {priorities.length < 3 && isExpanded && (
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={newPriority}
-            onChangeText={setNewPriority}
-            placeholder="Add a priority..."
-            placeholderTextColor={Colors.mediumGray}
-            onSubmitEditing={addPriority}
-          />
-        </View>
-      )}
-
-      {priorities.length === 0 && isExpanded && (
-        <Text style={styles.hintText}>
-          Add up to 3 priorities for today
-        </Text>
-      )}
+        {priorities.length === 0 && !isAdding && (
+          <Text style={styles.hintText}>
+            Tap the + button to add up to 3 priorities for today
+          </Text>
+        )}
+      </View>
     </JournalCard>
   );
 };
@@ -115,16 +131,26 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
-  },
-  input: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
     borderWidth: 1,
     borderColor: Colors.lightGray,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    backgroundColor: Colors.hopeWhite,
+  },
+  saveButton: {
+    padding: 4,
+  },
+  input: {
+    flex: 1,
+    height: '100%',
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    paddingRight: 8,
+    backgroundColor: 'transparent',
   },
   hintText: {
     fontFamily: Fonts.regular,

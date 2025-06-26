@@ -25,7 +25,7 @@ const CATEGORIES = [
 ];
 
 export const TimeBlock: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlockItem[]>([]);
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
   const [newBlock, setNewBlock] = useState<{
@@ -43,13 +43,22 @@ export const TimeBlock: React.FC = () => {
   const addTimeBlock = () => {
     if (newBlock.title.trim()) {
       setTimeBlocks([...timeBlocks, { ...newBlock, id: Date.now().toString() }]);
-      setNewBlock({
-        title: '',
-        startTime: new Date(),
-        endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
-        category: CATEGORIES[0],
-      });
+      setIsAdding(false);
     }
+  };
+
+  const startAdding = () => {
+    setIsAdding(true);
+    setNewBlock({
+      title: '',
+      startTime: new Date(),
+      endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
+      category: CATEGORIES[0],
+    });
+  };
+
+  const cancelAdding = () => {
+    setIsAdding(false);
   };
 
   const removeTimeBlock = (id: string) => {
@@ -148,20 +157,20 @@ export const TimeBlock: React.FC = () => {
       icon="time-outline"
       title="Time Blocks"
       subtitle="Schedule your day efficiently"
-      isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
-      showAddButton={true}
-      onAdd={addTimeBlock}
+      showAddButton={!isAdding}
+      onAdd={startAdding}
+      isAdding={isAdding}
+      onCancelAdd={cancelAdding}
     >
       <ScrollView style={styles.timeBlocksContainer}>
         {timeBlocks.length > 0 ? (
           timeBlocks.map(block => renderTimeBlock(block))
-        ) : (
+        ) : !isAdding ? (
           <Text style={styles.emptyText}>No time blocks scheduled yet</Text>
-        )}
+        ) : null}
       </ScrollView>
 
-      {isExpanded && (
+      {isAdding && (
         <View style={styles.addBlockContainer}>
           <View style={styles.timeContainer}>
             <TouchableOpacity

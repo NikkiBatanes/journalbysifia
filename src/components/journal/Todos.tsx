@@ -12,14 +12,24 @@ interface TodoItem {
 }
 
 export const Todos: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [newTodo, setNewTodo] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+
+  const startAdding = () => {
+    setIsAdding(true);
+  };
+
+  const cancelAdding = () => {
+    setIsAdding(false);
+    setNewTodo('');
+  };
 
   const addTodo = () => {
     if (newTodo.trim()) {
       setTodos([...todos, { id: Date.now().toString(), text: newTodo, completed: false }]);
       setNewTodo('');
+      setIsAdding(false);
     }
   };
 
@@ -70,23 +80,21 @@ export const Todos: React.FC = () => {
     <JournalCard
       icon="list-outline"
       title="Todos"
-      isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
-      showAddButton={true}
-      onAdd={addTodo}
+      showAddButton={!isAdding}
+      onAdd={startAdding}
+      isAdding={isAdding}
+      onCancelAdd={cancelAdding}
     >
-      {todos.length > 0 ? (
+      {todos.length > 0 && (
         <FlatList
           data={todos}
           renderItem={renderTodo}
           keyExtractor={item => item.id}
           style={styles.todosList}
         />
-      ) : (
-        <Text style={styles.emptyText}>No tasks yet. Add one to get started!</Text>
       )}
 
-      {isExpanded && (
+      {isAdding && (
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -95,8 +103,18 @@ export const Todos: React.FC = () => {
             placeholder="Add a task..."
             placeholderTextColor={Colors.mediumGray}
             onSubmitEditing={addTodo}
+            autoFocus
           />
+          {newTodo.trim() && (
+            <TouchableOpacity onPress={addTodo} style={styles.saveButton}>
+              <Ionicons name="checkmark" size={24} color={Colors.alertCoral} />
+            </TouchableOpacity>
+          )}
         </View>
+      )}
+
+      {!isAdding && todos.length === 0 && (
+        <Text style={styles.emptyText}>No tasks yet. Tap the + button to add one!</Text>
       )}
     </JournalCard>
   );
@@ -132,22 +150,33 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginTop: 8,
-  },
-  input: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
     borderWidth: 1,
     borderColor: Colors.lightGray,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 44,
+    backgroundColor: Colors.hopeWhite,
+  },
+  saveButton: {
+    padding: 4,
+  },
+  input: {
+    flex: 1,
+    height: '100%',
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    paddingRight: 8,
+    backgroundColor: 'transparent',
   },
   emptyText: {
     fontFamily: Fonts.regular,
-    fontSize: 12,
     color: Colors.mediumGray,
+    fontStyle: 'italic',
     textAlign: 'center',
-    marginVertical: 8,
+    marginTop: 8,
+    padding: 8,
   },
 });

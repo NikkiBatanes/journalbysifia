@@ -26,11 +26,22 @@ interface Reflection {
 }
 
 export const GuidedReflection: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [selectedPrompt, setSelectedPrompt] = useState(REFLECTION_PROMPTS[0]);
   const [response, setResponse] = useState('');
   const [showPrompts, setShowPrompts] = useState(false);
+
+  const startAdding = () => {
+    setIsAdding(true);
+    setSelectedPrompt(REFLECTION_PROMPTS[0]);
+    setResponse('');
+  };
+
+  const cancelAdding = () => {
+    setIsAdding(false);
+    setResponse('');
+  };
 
   const addReflection = () => {
     if (response.trim()) {
@@ -40,8 +51,8 @@ export const GuidedReflection: React.FC = () => {
         response,
         date: new Date(),
       }]);
+      setIsAdding(false);
       setResponse('');
-      setSelectedPrompt(REFLECTION_PROMPTS[0]);
     }
   };
 
@@ -63,10 +74,10 @@ export const GuidedReflection: React.FC = () => {
       icon="book-outline"
       title="Guided Reflection"
       subtitle="Choose a prompt to guide your thoughts"
-      isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
-      showAddButton={true}
-      onAdd={addReflection}
+      showAddButton={!isAdding}
+      onAdd={startAdding}
+      isAdding={isAdding}
+      onCancelAdd={cancelAdding}
     >
       {reflections.length > 0 ? (
         <View style={styles.reflectionsContainer}>
@@ -87,7 +98,7 @@ export const GuidedReflection: React.FC = () => {
         <Text style={styles.emptyText}>No reflections yet. Add one to get started!</Text>
       )}
 
-      {isExpanded && (
+      {isAdding && (
         <View style={styles.formContainer}>
           <TouchableOpacity
             style={styles.promptSelector}

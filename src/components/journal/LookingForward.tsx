@@ -12,10 +12,19 @@ interface LookingForwardEntry {
 }
 
 export const LookingForward: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [entry, setEntry] = useState<LookingForwardEntry | null>(null);
   const [entryText, setEntryText] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+
+  const startAdding = () => {
+    setIsAdding(true);
+    setEntryText('');
+  };
+
+  const cancelAdding = () => {
+    setIsAdding(false);
+    setEntryText('');
+  };
 
   const saveEntry = () => {
     if (entryText.trim()) {
@@ -25,12 +34,20 @@ export const LookingForward: React.FC = () => {
         date: new Date(),
       });
       setEntryText('');
-      setIsEditing(false);
+      setIsAdding(false);
+    }
+  };
+
+  const editEntry = () => {
+    if (entry) {
+      setEntryText(entry.text);
+      setIsAdding(true);
     }
   };
 
   const removeEntry = () => {
     setEntry(null);
+    setEntryText('');
   };
 
   const formatDate = (date: Date) => {
@@ -42,10 +59,10 @@ export const LookingForward: React.FC = () => {
       icon="arrow-forward-outline"
       title="Looking Forward To"
       subtitle="What are you excited about tomorrow?"
-      isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
-      showAddButton={!entry && !isEditing}
-      onAdd={() => setIsEditing(true)}
+      showAddButton={!entry && !isAdding}
+      onAdd={startAdding}
+      isAdding={isAdding}
+      onCancelAdd={cancelAdding}
     >
       {entry ? (
         <View style={styles.entryContainer}>
@@ -60,7 +77,7 @@ export const LookingForward: React.FC = () => {
             <Ionicons name="create-outline" size={20} color={Colors.mediumGray} />
           </TouchableOpacity>
         </View>
-      ) : isEditing ? (
+      ) : isAdding ? (
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}
@@ -74,10 +91,7 @@ export const LookingForward: React.FC = () => {
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
-              onPress={() => {
-                setIsEditing(false);
-                setEntryText('');
-              }}
+              onPress={cancelAdding}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
@@ -122,7 +136,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   editButton: {
-    padding: 4,
+    padding: 8,
+  },
+  deleteButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   emptyText: {
     fontFamily: Fonts.regular,

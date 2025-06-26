@@ -12,10 +12,19 @@ interface WinEntry {
 }
 
 export const TodayWin: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [win, setWin] = useState<WinEntry | null>(null);
   const [winText, setWinText] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+
+  const startAdding = () => {
+    setIsAdding(true);
+    setWinText('');
+  };
+
+  const cancelAdding = () => {
+    setIsAdding(false);
+    setWinText('');
+  };
 
   const saveWin = () => {
     if (winText.trim()) {
@@ -25,12 +34,20 @@ export const TodayWin: React.FC = () => {
         date: new Date(),
       });
       setWinText('');
-      setIsEditing(false);
+      setIsAdding(false);
+    }
+  };
+
+  const editWin = () => {
+    if (win) {
+      setWinText(win.text);
+      setIsAdding(true);
     }
   };
 
   const removeWin = () => {
     setWin(null);
+    setWinText('');
   };
 
   const formatDate = (date: Date) => {
@@ -42,10 +59,10 @@ export const TodayWin: React.FC = () => {
       icon="trophy-outline"
       title="Today's Win"
       subtitle="Celebrate your daily victory"
-      isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
-      showAddButton={!win && !isEditing}
-      onAdd={() => setIsEditing(true)}
+      showAddButton={!win && !isAdding}
+      onAdd={startAdding}
+      isAdding={isAdding}
+      onCancelAdd={cancelAdding}
     >
       {win ? (
         <View style={styles.winContainer}>
@@ -53,14 +70,16 @@ export const TodayWin: React.FC = () => {
             <Text style={styles.winText}>{win.text}</Text>
             <Text style={styles.winTime}>{formatDate(win.date)}</Text>
           </View>
-          <TouchableOpacity
-            onPress={removeWin}
-            style={styles.editButton}
-          >
-            <Ionicons name="create-outline" size={20} color={Colors.mediumGray} />
-          </TouchableOpacity>
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity onPress={editWin} style={styles.editButton}>
+              <Ionicons name="create-outline" size={20} color={Colors.mediumGray} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={removeWin} style={styles.deleteButton}>
+              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} />
+            </TouchableOpacity>
+          </View>
         </View>
-      ) : isEditing ? (
+      ) : isAdding ? (
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}
@@ -69,29 +88,25 @@ export const TodayWin: React.FC = () => {
             placeholder="What's your win for today?"
             placeholderTextColor={Colors.mediumGray}
             multiline
-            autoFocus
           />
-          <View style={styles.buttonContainer}>
+          <View style={styles.buttonRow}>
             <TouchableOpacity
+              onPress={cancelAdding}
               style={[styles.button, styles.cancelButton]}
-              onPress={() => {
-                setIsEditing(false);
-                setWinText('');
-              }}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.saveButton, !winText.trim() && styles.disabledButton]}
               onPress={saveWin}
+              style={[styles.button, styles.saveButton]}
               disabled={!winText.trim()}
             >
-              <Text style={styles.saveButtonText}>Save Win</Text>
+              <Text style={styles.saveButtonText}>Save</Text>
             </TouchableOpacity>
           </View>
         </View>
       ) : (
-        <Text style={styles.emptyText}>What's your win for today?</Text>
+        <Text style={styles.emptyText}>No win recorded yet. Add one to celebrate!</Text>
       )}
     </JournalCard>
   );
@@ -122,7 +137,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   editButton: {
-    padding: 4,
+    padding: 8,
+  },
+  deleteButton: {
+    padding: 8,
+    marginLeft: 8,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
   },
   emptyText: {
     fontFamily: Fonts.regular,

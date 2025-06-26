@@ -9,10 +9,10 @@ interface JournalCardProps {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  isExpanded: boolean;
-  onToggle: () => void;
   showAddButton?: boolean;
   onAdd?: () => void;
+  isAdding?: boolean;
+  onCancelAdd?: () => void;
 }
 
 export const JournalCard: React.FC<JournalCardProps> = ({
@@ -20,14 +20,14 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   title,
   subtitle,
   children,
-  isExpanded,
-  onToggle,
   showAddButton = false,
   onAdd,
+  isAdding = false,
+  onCancelAdd,
 }) => {
   return (
     <View style={styles.card}>
-      <TouchableOpacity style={styles.header} onPress={onToggle}>
+      <View style={styles.header}>
         <View style={styles.headerContent}>
           <Ionicons
             name={icon as any}
@@ -40,24 +40,22 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           </View>
         </View>
-        <Ionicons
-          name={isExpanded ? 'chevron-up' : 'chevron-down'}
-          size={20}
-          color={Colors.mediumGray}
-        />
-      </TouchableOpacity>
+        {showAddButton && onAdd && !isAdding && (
+          <TouchableOpacity onPress={onAdd} style={styles.addButton}>
+            <Ionicons name="add-circle" size={24} color={Colors.alertCoral} />
+            <Text style={styles.addButtonText}>Add</Text>
+          </TouchableOpacity>
+        )}
+        {isAdding && onCancelAdd && (
+          <TouchableOpacity onPress={onCancelAdd} style={styles.cancelButton}>
+            <Ionicons name="close-circle" size={24} color={Colors.mediumGray} />
+          </TouchableOpacity>
+        )}
+      </View>
 
-      {isExpanded && (
-        <View style={styles.content}>
-          {children}
-          {showAddButton && onAdd && (
-            <TouchableOpacity style={styles.addButton} onPress={onAdd}>
-              <Ionicons name="add-circle" size={24} color={Colors.alertCoral} />
-              <Text style={styles.addButtonText}>Add</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+      <View style={styles.content}>
+        {children}
+      </View>
     </View>
   );
 };
@@ -78,6 +76,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 8,
   },
   headerContent: {
     flexDirection: 'row',
@@ -102,21 +101,25 @@ const styles = StyleSheet.create({
     color: Colors.mediumGray,
   },
   content: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: Colors.lightGray,
+    // Content is always visible
+    paddingTop: 8,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    paddingVertical: 8,
-    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    marginLeft: 8,
   },
   addButtonText: {
-    marginLeft: 8,
+    marginLeft: 4,
     color: Colors.alertCoral,
     fontFamily: Fonts.medium,
+    fontSize: 14,
+  },
+  cancelButton: {
+    padding: 4,
   },
 });
