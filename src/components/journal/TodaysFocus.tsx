@@ -120,7 +120,7 @@ export const TodaysFocus: React.FC = () => {
                         style={styles.priorityItem}
                         onPress={() => togglePriority(index)}
                       >
-                        <View style={[styles.tickCircle, priority.completed && styles.tickCircleCompleted]}>
+                        <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
                           {priority.completed && (
                             <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
                           )}
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     padding: 0,
   },
   prioritiesList: {
-    marginTop: 8,
+    marginTop: 4,
   },
   prioritiesContainer: {
     marginBottom: 8,
@@ -205,11 +205,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   focusText: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    fontSize: 18,
+    fontWeight: '600',
     color: Colors.darkGray,
-    marginBottom: 0,
-    lineHeight: 20,
+    marginBottom: 8,
+    lineHeight: 24,
   },
   placeholderText: {
     fontFamily: Fonts.regular,
@@ -243,22 +244,26 @@ const styles = StyleSheet.create({
   },
   focusInput: {
     fontSize: 16,
+    fontWeight: '400',
     marginBottom: 16,
+    fontFamily: Fonts.regular,
   },
 
   // Priority item styles
   priorityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 2,
     backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    minHeight: 32,
   },
   priorityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
     padding: 0,
   },
   priorityBullet: {
@@ -270,9 +275,10 @@ const styles = StyleSheet.create({
   },
   priorityText: {
     fontFamily: Fonts.regular,
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.darkGray,
     flex: 1,
+    lineHeight: 18,
   },
   priorityNumber: {
     fontFamily: Fonts.medium,
@@ -312,22 +318,22 @@ const styles = StyleSheet.create({
   removeButton: {
     padding: 4,
   },
-  tickCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  tickBox: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
     borderWidth: 1.5,
     borderColor: Colors.trustGrey,
-    backgroundColor: 'rgba(176, 184, 193, 0.1)', // 10% opacity of trustGrey
+    backgroundColor: 'rgba(176, 184, 193, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 8,
   },
-  tickCircleCompleted: {
-    backgroundColor: Colors.growthGreen, // 20% opacity of growthGreen
+  tickBoxCompleted: {
+    backgroundColor: Colors.growthGreen,
     borderColor: Colors.growthGreen,
   },
-  tickCircleText: {
+  tickBoxText: {
     fontFamily: Fonts.medium,
     fontSize: 10,
     color: Colors.hopeWhite,
@@ -341,11 +347,12 @@ const styles = StyleSheet.create({
   },
   prioritiesTitle: {
     fontFamily: Fonts.semiBold,
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.anchorBlue,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
+    letterSpacing: 0.5,
+    marginTop: 2,
+    marginBottom: 4,
     fontWeight: '600',
   },
 });
