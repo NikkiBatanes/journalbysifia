@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isToday, isSameDay, addWeeks } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+
+type TabType = 'journal' | 'schedule' | 'prayer' | 'finance';
 
 type ViewMode = 'daily' | 'weekly' | 'monthly';
 
@@ -36,6 +39,14 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   }));
   const [viewMode, setViewMode] = useState<ViewMode>('daily');
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(new Date().getDay());
+  const [activeTab, setActiveTab] = useState<TabType>('journal');
+
+  // Reset to Journal tab when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      setActiveTab('journal');
+    }, [])
+  );
   // Unused state variable - keeping for potential future use
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setWeekStart] = useState(startOfWeek(new Date()));
@@ -281,12 +292,88 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     );
   };
 
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'journal':
+        return (
+          <View style={styles.tabContent}>
+            <Text style={styles.tabText}>Journal Content</Text>
+          </View>
+        );
+      case 'schedule':
+        return (
+          <View style={styles.tabContent}>
+            <Text style={styles.tabText}>Schedule Content</Text>
+          </View>
+        );
+      case 'prayer':
+        return (
+          <View style={styles.tabContent}>
+            <Text style={styles.tabText}>Prayer Content</Text>
+          </View>
+        );
+      case 'finance':
+        return (
+          <View style={styles.tabContent}>
+            <Text style={styles.tabText}>Finance Content</Text>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const renderTabBar = () => (
+    <View style={styles.tabBar}>
+      <TouchableOpacity
+        style={[styles.tabItem, activeTab === 'journal' && styles.activeTab]}
+        onPress={() => setActiveTab('journal')}
+      >
+        <Ionicons
+          name="journal-outline"
+          size={20}
+          color={activeTab === 'journal' ? Colors.alertCoral : Colors.mediumGray}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tabItem, activeTab === 'schedule' && styles.activeTab]}
+        onPress={() => setActiveTab('schedule')}
+      >
+        <Ionicons
+          name="calendar-outline"
+          size={20}
+          color={activeTab === 'schedule' ? Colors.alertCoral : Colors.mediumGray}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tabItem, activeTab === 'prayer' && styles.activeTab]}
+        onPress={() => setActiveTab('prayer')}
+      >
+        <Ionicons
+          name="heart-outline"
+          size={20}
+          color={activeTab === 'prayer' ? Colors.alertCoral : Colors.mediumGray}
+        />
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.tabItem, activeTab === 'finance' && styles.activeTab]}
+        onPress={() => setActiveTab('finance')}
+      >
+        <Ionicons
+          name="wallet-outline"
+          size={20}
+          color={activeTab === 'finance' ? Colors.alertCoral : Colors.mediumGray}
+        />
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       {renderHeader()}
-      {/* Journal content will go here */}
+      {renderTabBar()}
       <View style={styles.content}>
-        {/* Journal entries will be rendered here */}
+        {renderTabContent()}
       </View>
     </View>
   );
@@ -296,6 +383,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    backgroundColor: Colors.hopeWhite,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  tabItem: {
+    padding: 8,
+    marginLeft: 12,
+    borderRadius: 20,
+  },
+  activeTab: {
+    backgroundColor: 'rgba(255, 107, 107, 0.2)', // alertCoral with 20% opacity
+  },
+  tabContent: {
+    flex: 1,
+    padding: 16,
+  },
+  tabText: {
+    fontSize: 16,
+    color: Colors.darkGray,
+    textAlign: 'center',
+    marginTop: 20,
   },
   header: {
     backgroundColor: Colors.anchorBlue,
