@@ -224,33 +224,31 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     ];
 
 
-    // Extract category first to ensure we don't use it as title
-    let category = 'Faith'; // Default category
+    // Extract category if provided
+    let category = '';
     const catMatch = content.match(/CATEGORY:\s*([^\n]+)/i) || content.match(/CATEGORY:\s*\n([^\n]+)/i);
     
     if (catMatch && catMatch[1]) {
       const extractedCategory = cleanMarkdown(catMatch[1]).trim();
       // Take only the first word if multiple words are provided
       const singleWordCategory = extractedCategory.split(/\s+/)[0];
-      if (singleWordCategory) {
+      
+      // Only set category if it's in the valid list
+      const validCategories = [
+        'Marriage', 'Family', 'Parenting', 
+        'Work', 'Career', 'Business', 'Finance', 'Stewardship', 'Giving', 
+        'Time Management', 'Health', 'Mental Health', 'Self-Care', 
+        'Anxiety/Worry', 'Purpose', 'Calling', 'Ministry', 'Worship', 
+        'Quiet Time', 'Rest', 'Peace', 'Conflict Resolution', 
+        'Forgiveness', 'Gratitude', 'Grief', 'Evangelism',
+        'Discipleship', 'Mission', 'Community', 'Relationships', 'Leadership', 'Contentment'
+      ];
+      
+      if (singleWordCategory && validCategories.includes(singleWordCategory)) {
         category = singleWordCategory;
+      } else if (singleWordCategory) {
+        console.log(`[DEVOTIONAL PARSER] Invalid category '${singleWordCategory}', skipping`);
       }
-    }
-    
-    // Ensure the category is valid, otherwise use default
-    const validCategories = [
-      'Faith', 'Prayer', 'Love', 'Marriage', 'Family', 'Parenting', 
-      'Work', 'Career', 'Business', 'Finance', 'Stewardship', 'Giving', 
-      'Time Management', 'Health', 'Mental Health', 'Self-Care', 
-      'Anxiety/Worry', 'Purpose', 'Calling', 'Ministry', 'Worship', 
-      'Quiet Time', 'Rest', 'Peace', 'Conflict Resolution', 'Joy', 
-      'Wisdom', 'Forgiveness', 'Gratitude', 'Grief', 'Evangelism',
-      'Discipleship', 'Mission', 'Community', 'Relationships', 'Leadership', 'Contentment'
-    ];
-    
-    if (!validCategories.includes(category)) {
-      console.log(`[DEVOTIONAL PARSER] Invalid category '${category}', defaulting to 'Faith'`);
-      category = 'Faith';
     }
     
     devotional.category = category;

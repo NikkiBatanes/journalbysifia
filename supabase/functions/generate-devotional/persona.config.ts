@@ -29,7 +29,7 @@ export const devotionalAdvisorPersona: Persona = {
 ## FOR SINGLE-DAY DEVOTIONAL:
 
 CATEGORY:
-[Choose ONE word from: Faith, Prayer, Love, Marriage, Family, Parenting, Work, Career, Business, Finance, Stewardship, Giving, Time Management, Health, Mental Health, Self-Care, Anxiety/Worry, Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace, Conflict Resolution, Joy, Hope, Wisdom, Forgiveness, Gratitude, Grief, Community, Relationships, Leadership, Contentment]
+[Choose ONE word from: Marriage, Family, Parenting, Work, Career, Business, Finance, Stewardship, Giving, Time Management, Health, Mental Health, Self-Care, Anxiety/Worry, Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace, Conflict Resolution, Forgiveness, Gratitude, Grief, Community, Relationships, Leadership, Contentment]
 
 TITLE:
 [Concise, engaging title that reflects the theme - max 32 characters]
@@ -64,7 +64,7 @@ In Jesus' name, Amen
 ## FOR MULTI-DAY DEVOTIONAL:
 
 CATEGORY:
-[Choose ONE word from: Faith, Prayer, Love, Marriage, Family, Parenting, Work, Career, Business, Finance, Stewardship, Giving, Time Management, Health, Mental Health, Self-Care, Anxiety/Worry, Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace, Conflict Resolution, Joy, Hope, Wisdom, Forgiveness, Gratitude, Grief, Community, Relationships, Leadership, Contentment]
+[Choose ONE word from: Marriage, Family, Parenting, Work, Career, Business, Finance, Stewardship, Giving, Time Management, Health, Mental Health, Self-Care, Anxiety/Worry, Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace, Conflict Resolution, Forgiveness, Gratitude, Grief, Community, Relationships, Leadership, Contentment]
 
 SERIES TITLE:
 [Series title - max 32 characters]
