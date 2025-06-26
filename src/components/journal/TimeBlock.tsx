@@ -215,7 +215,7 @@ export const TimeBlock: React.FC = () => {
                   </TouchableOpacity>
                 ))}
               </View>
-              
+
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={[styles.button, styles.cancelButton]}

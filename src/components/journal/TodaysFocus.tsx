@@ -22,8 +22,8 @@ export const TodaysFocus: React.FC = () => {
     priorities: [
       { id: '1', text: '', completed: false },
       { id: '2', text: '', completed: false },
-      { id: '3', text: '', completed: false }
-    ]
+      { id: '3', text: '', completed: false },
+    ],
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -43,9 +43,9 @@ export const TodaysFocus: React.FC = () => {
 
   const togglePriority = (index: number) => {
     const newPriorities = [...data.priorities];
-    newPriorities[index] = { 
-      ...newPriorities[index], 
-      completed: !newPriorities[index].completed 
+    newPriorities[index] = {
+      ...newPriorities[index],
+      completed: !newPriorities[index].completed,
     };
     setData(prev => ({ ...prev, priorities: newPriorities }));
   };
@@ -53,9 +53,9 @@ export const TodaysFocus: React.FC = () => {
   return (
     <JournalCard
       icon={
-        <Target 
-          size={24} 
-          color={Colors.alertCoral} 
+        <Target
+          size={24}
+          color={Colors.alertCoral}
           strokeWidth={2.5}
         />
       }
@@ -69,7 +69,7 @@ export const TodaysFocus: React.FC = () => {
       {isEditing
         ? (
           <View style={styles.editContainer}>
-            <Text style={[styles.sectionHeader, { marginBottom: 8 }]}>Today's Focus</Text>
+            <Text style={styles.sectionHeaderWithBottomMargin}>Today's Focus</Text>
             <TextInput
               style={[styles.input, styles.focusInput]}
               value={data.focus}
@@ -78,7 +78,7 @@ export const TodaysFocus: React.FC = () => {
               placeholderTextColor={Colors.mediumGray}
               autoFocus
             />
-            <Text style={[styles.sectionHeader, { marginTop: 24, marginBottom: 8 }]}>TOP PRIORITIES</Text>
+            <Text style={styles.sectionHeaderWithTopMargin}>TOP PRIORITIES</Text>
             {[0, 1, 2].map((index) => (
               <View key={index} style={styles.priorityRow}>
                 <Text style={styles.priorityNumber}>{index + 1}.</Text>
@@ -93,7 +93,7 @@ export const TodaysFocus: React.FC = () => {
               </View>
             ))}
             <View style={styles.buttonRow}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.button, styles.saveButton, (!data.focus.trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton]}
                 onPress={toggleEditing}
                 disabled={!data.focus.trim() && data.priorities.every(p => !p.text.trim())}
@@ -115,8 +115,8 @@ export const TodaysFocus: React.FC = () => {
                   {data.priorities
                     .filter(p => p.text.trim() !== '')
                     .map((priority, index) => (
-                      <TouchableOpacity 
-                        key={priority.id} 
+                      <TouchableOpacity
+                        key={priority.id}
                         style={styles.priorityItem}
                         onPress={() => togglePriority(index)}
                       >
@@ -128,7 +128,7 @@ export const TodaysFocus: React.FC = () => {
                         <Text
                           style={[
                             styles.priorityText,
-                            priority.completed && styles.completedText
+                            priority.completed && styles.completedText,
                           ]}>
                           {priority.text}
                         </Text>
@@ -185,6 +185,25 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontWeight: '600',
   },
+  sectionHeaderWithBottomMargin: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 12,
+    color: Colors.anchorBlue,
+    marginBottom: 8,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  sectionHeaderWithTopMargin: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 12,
+    color: Colors.anchorBlue,
+    marginTop: 24,
+    marginBottom: 8,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
   focusText: {
     fontFamily: Fonts.regular,
     fontSize: 14,
@@ -226,7 +245,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
   },
-  
+
   // Priority item styles
   priorityItem: {
     flexDirection: 'row',

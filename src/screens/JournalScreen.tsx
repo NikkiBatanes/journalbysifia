@@ -304,7 +304,10 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     switch (activeTab) {
       case 'journal':
         return (
-          <ScrollView style={styles.tabContent}>
+          <ScrollView
+            style={styles.tabContent}
+            contentContainerStyle={styles.scrollViewContent}
+          >
             <View style={styles.componentSpacing}>
               <TodaysFocus />
             </View>
@@ -438,7 +441,10 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
+  },
+  scrollViewContent: {
     padding: 16,
+    paddingBottom: 80, // Add extra padding at the bottom to prevent content from being hidden behind tab bar
   },
   tabText: {
     fontSize: 16,

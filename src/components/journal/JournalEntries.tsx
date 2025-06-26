@@ -13,7 +13,7 @@ interface JournalEntry {
 }
 
 export const JournalEntries: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [_isExpanded, _setIsExpanded] = useState(false);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [newEntry, setNewEntry] = useState({
