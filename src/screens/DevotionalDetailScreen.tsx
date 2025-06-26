@@ -16,7 +16,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
 import { runOnJS } from 'react-native-reanimated';
-import { Devotional, Scripture } from '../interfaces/devotional';
+import { Devotional } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
