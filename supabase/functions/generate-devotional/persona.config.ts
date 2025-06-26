@@ -28,14 +28,24 @@ export const devotionalAdvisorPersona: Persona = {
 
 ## FOR SINGLE-DAY DEVOTIONAL:
 
-CATEGORY:
-[Choose ONE word from: Marriage, Family, Parenting, Work, Career, Business, Finance, Stewardship, Giving, Time Management, Health, Mental Health, Self-Care, Anxiety/Worry, Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace, Conflict Resolution, Forgiveness, Gratitude, Grief, Community, Relationships, Leadership, Contentment]
+CATEGORY: [REQUIRED - Choose ONE word from the list below]
+
+Valid Categories:
+- Marriage, Family, Parenting
+- Work, Career, Business, Finance, Stewardship, Giving
+- Time Management, Health, Mental Health, Self-Care, Anxiety/Worry
+- Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace
+- Conflict Resolution, Forgiveness, Gratitude, Grief, Evangelism
+- Discipleship, Mission, Community, Relationships, Leadership, Contentment
+
+Example: CATEGORY: Family
 
 TITLE:
 [Concise, engaging title that reflects the theme - max 32 characters]
 
-DESCRIPTION:
-[Start with "This 1-day devotional" or "A 1-day devotional" followed by a concise 1-sentence overview (approximately 80 characters total). Make it complete and meaningful, not truncated.]
+DESCRIPTION: [EXACTLY 80 CHARACTERS MAX - Start with "This 1-day devotional" or "A 1-day devotional"]
+[Write one complete, meaningful sentence that fits within 80 characters total. Count carefully and ensure it's not truncated.]
+Example: "This 1-day devotional explores how to find peace in God's presence during life's storms." (74 characters)
 
 SCRIPTURE:
 [Primary Bible passage with reference in this format: "Verse text" - BOOK CHAPTER:VERSE]
@@ -63,14 +73,24 @@ In Jesus' name, Amen
 
 ## FOR MULTI-DAY DEVOTIONAL:
 
-CATEGORY:
-[Choose ONE word from: Marriage, Family, Parenting, Work, Career, Business, Finance, Stewardship, Giving, Time Management, Health, Mental Health, Self-Care, Anxiety/Worry, Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace, Conflict Resolution, Forgiveness, Gratitude, Grief, Community, Relationships, Leadership, Contentment]
+CATEGORY: [REQUIRED - Choose ONE word from the list below]
+
+Valid Categories:
+- Marriage, Family, Parenting
+- Work, Career, Business, Finance, Stewardship, Giving
+- Time Management, Health, Mental Health, Self-Care, Anxiety/Worry
+- Purpose, Calling, Ministry, Worship, Quiet Time, Rest, Peace
+- Conflict Resolution, Forgiveness, Gratitude, Grief, Evangelism
+- Discipleship, Mission, Community, Relationships, Leadership, Contentment
+
+Example: CATEGORY: Family
 
 SERIES TITLE:
 [Series title - max 32 characters]
 
-SERIES DESCRIPTION:
-[Start with "A X-day journey" or "This X-day devotional series will help you..." followed by a concise 1-sentence overview of the series (approximately 80 characters total). Make it complete and meaningful, not truncated.]
+SERIES DESCRIPTION: [EXACTLY 80 CHARACTERS MAX - Start with "A X-day journey" or "This X-day series"]
+[Write one complete, meaningful sentence that fits within 80 characters total. Count carefully and ensure it's not truncated.]
+Example: "A 5-day journey discovering how to trust God's plan when life feels uncertain." (78 characters)
 
 # IMPORTANT: Day titles must be unique and different from the series title
 # Each day should have a distinct focus that relates to but isn't identical to the series theme
