@@ -23,11 +23,9 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
       <View style={styles.iconContainer}>
         <Ionicons name={icon} size={20} color={Colors.alertCoral} />
       </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{title}</Text>
-        <Text style={styles.subtitle} numberOfLines={2} ellipsizeMode="tail">
-          {subtitle}
-        </Text>
+      <View>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
     </View>
     <View style={styles.content}>
@@ -51,9 +49,8 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start', // Align items to the start for better text wrapping
+    alignItems: 'center',
     marginBottom: 10,
-    flex: 1, // Take up available space
   },
   iconContainer: {
     width: 32,
@@ -63,11 +60,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-    marginTop: 2, // Add small top margin for better alignment
-  },
-  textContainer: {
-    flex: 1,
-    marginRight: 8, // Add some right margin to prevent text from touching the edge
   },
   icon: {
     marginRight: 0,
@@ -82,14 +74,9 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: defaultFontFamily.regular,
     fontSize: 13,
-    lineHeight: 16, // Slightly tighter line height for better two-line fit
+    lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 2,
-    flexShrink: 1, // Allow text to shrink if needed
-    maxWidth: '90%', // Prevent text from going to the edge
-    flexWrap: 'wrap', // Allow text to wrap
-    includeFontPadding: false, // Remove extra padding
-    textAlignVertical: 'center', // Better vertical alignment
   },
   content: {
     marginTop: 4,

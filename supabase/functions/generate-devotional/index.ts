@@ -254,8 +254,12 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     console.log('[DEVOTIONAL PARSER] Extracted title:', title);
 
     // Extract description - handle multiple possible formats
-    let description = `A ${duration}-day journey to deepen your faith.`;
+    let description = duration > 1 
+      ? `This ${duration}-day devotional series will help you deepen your faith and grow closer to God.`
+      : 'This 1-day devotional will help you grow in your faith and draw closer to God.';
+      
     const descMatches = [
+      content.match(/DESCRIPTION:\s*([^\n]+)/i),
       content.match(/DESCRIPTION:\s*\n([\s\S]*?)(?=\n\n|\n---|$)/i),
       content.match(/\*\*DESCRIPTION:\*\*\s*\n([\s\S]*?)(?=\n\n|\n---|$)/i),
       content.match(/^[^\n]+\n([\s\S]*?)(?=^#|^\*\*|$)/m),
@@ -270,6 +274,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         }
       }
     }
+    
+    // Description is expected to be concise and complete from the AI
     devotional.description = description;
     console.log('[DEVOTIONAL PARSER] Extracted description:', description);
 

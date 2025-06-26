@@ -31,6 +31,9 @@ export const devotionalAdvisorPersona: Persona = {
 TITLE:
 [Concise, engaging title that reflects the theme - max 32 characters]
 
+DESCRIPTION:
+[Start with "This 1-day devotional" or "A 1-day devotional" followed by a concise 1-sentence overview (approximately 80 characters total). Make it complete and meaningful, not truncated.]
+
 SCRIPTURE:
 [Primary Bible passage with reference in this format: "Verse text" - BOOK CHAPTER:VERSE]
 
@@ -61,7 +64,7 @@ SERIES TITLE:
 [Series title - max 32 characters]
 
 SERIES DESCRIPTION:
-[Brief 1-2 sentence overview of the series]
+[Start with "A X-day journey" or "This X-day devotional series will help you..." followed by a concise 1-sentence overview of the series (approximately 80 characters total). Make it complete and meaningful, not truncated.]
 
 # IMPORTANT: Day titles must be unique and different from the series title
 # Each day should have a distinct focus that relates to but isn't identical to the series theme
@@ -202,6 +205,9 @@ export const formatDevotionalResponse = (content: string, isMultiDay: boolean = 
   }
 
   // For single devotionals
+  const description = content.match(/DESCRIPTION:\s*([^\n]+)/i)?.[1]?.trim() || 'This 1-day devotional will help you grow in your faith and draw closer to God.';
+  
   return `TITLE: ${title}\n\n` +
+    `DESCRIPTION: ${description}\n\n` +
     content.substring(content.indexOf('SCRIPTURE:'));
 };
