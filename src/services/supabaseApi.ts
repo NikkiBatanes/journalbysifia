@@ -732,7 +732,7 @@ export async function generatePlaybook(userInput: string, userName: string) {
 export async function generateDevotional(duration: number, playbookId?: string, userInput?: string, maxRetries = 2) {
   const functionUrl = `${config.url}/functions/v1/generate-devotional`;
   let lastError;
-  
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const session = await getSession();
@@ -745,7 +745,7 @@ export async function generateDevotional(duration: number, playbookId?: string, 
         tokenLength: session.access_token?.length,
         url: functionUrl,
       });
-      
+
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
@@ -768,7 +768,7 @@ export async function generateDevotional(duration: number, playbookId?: string, 
       }
 
       const result = await response.json();
-      
+
       // Validate the response structure
       if (result && Array.isArray(result.days) && result.days.length > 0) {
         console.log('Devotional generated successfully');

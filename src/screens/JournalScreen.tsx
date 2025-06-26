@@ -1,75 +1,72 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { format, addDays, startOfWeek, endOfWeek, isToday, isSameDay, addWeeks, subWeeks } from 'date-fns';
+import { format, addDays, startOfWeek, isToday, isSameDay, addWeeks } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
-import { Spacing } from '../theme/styles';
 
 type ViewMode = 'daily' | 'weekly' | 'monthly';
 
 const JournalScreen: React.FC = () => {
-  const today = new Date();
-  const [currentDate, setCurrentDate] = useState<Date>(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  });
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<ViewMode>('daily');
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(new Date().getDay());
+  // Unused state variable - keeping for potential future use
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_, setWeekStart] = useState(startOfWeek(new Date()));
+  const [weeks, setWeeks] = useState<Date[][]>([]);
   const scrollViewRef = React.useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
   const scrollX = React.useRef(6 * screenWidth); // Start at the middle week
-  const dayWidth = screenWidth / 7;
+  // Day width is used for calculations but not directly in rendering
 
-  // Get the start and end of the current week
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 }); // Sunday as first day of week
-  const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+  useEffect(() => {
+    const generateWeeks = () => {
+      const weeksArray: Date[][] = [];
+      const now = new Date();
 
-  // Generate days for 12 weeks total (6 weeks before and 6 weeks after current week)
-  const weeks: Date[][] = [];
-  const weeksToShow = 12; // Total weeks to show (6 before + current + 5 after)
-  const startWeek = addWeeks(weekStart, -6); // Start 6 weeks before current week
-
-  // Generate each week's dates
-  for (let i = 0; i < weeksToShow; i++) {
-    const weekStartDate = addWeeks(startWeek, i);
-    const week: Date[] = [];
-
-    // Generate 7 days for each week
-    for (let j = 0; j < 7; j++) {
-      week.push(addDays(weekStartDate, j));
-    }
-    weeks.push(week);
-
-
-  }
-
-  const navigateWeek = (direction: 'prev' | 'next') => {
-    setCurrentDate(prevDate => {
-      const newDate = direction === 'prev' ? subWeeks(prevDate, 1) : addWeeks(prevDate, 1);
-      // Find the week index for the new date
-      const weekIndex = weeks.findIndex(week =>
-        week.some(day => isSameDay(day, newDate))
-      );
-
-      if (weekIndex >= 0 && scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({
-          x: weekIndex * screenWidth,
-          animated: true,
-        });
+      // Add previous weeks
+      for (let i = -4; i < 0; i++) {
+        const weekStart = startOfWeek(addWeeks(now, i));
+        const week: Date[] = [];
+        for (let j = 0; j < 7; j++) {
+          week.push(addDays(weekStart, j));
+        }
+        weeksArray.push(week);
       }
 
-      return newDate;
-    });
-  };
+      // Add current week
+      const currentWeekStart = startOfWeek(now);
+      const currentWeek: Date[] = [];
+      for (let i = 0; i < 7; i++) {
+        currentWeek.push(addDays(currentWeekStart, i));
+      }
+      weeksArray.push(currentWeek);
+
+      // Add next weeks
+      for (let i = 1; i <= 12; i++) {
+        const weekStart = startOfWeek(addWeeks(now, i));
+        const week: Date[] = [];
+        for (let j = 0; j < 7; j++) {
+          week.push(addDays(weekStart, j));
+        }
+        weeksArray.push(week);
+      }
+
+      return weeksArray;
+    };
+
+    setWeeks(generateWeeks());
+  }, []);
 
   // Auto-scroll to current week on mount and when weeks change
-  React.useEffect(() => {
+  useEffect(() => {
     if (scrollViewRef.current && weeks.length > 0) {
       // Find the index of the week containing currentDate
-      const weekIndex = weeks.findIndex(week => 
+      const weekIndex = weeks.findIndex(week =>
         week.some(day => isSameDay(day, currentDate))
       );
-      
+
       if (weekIndex >= 0) {
         const scrollTo = weekIndex * screenWidth;
         // Only scroll if not already at the correct position
@@ -80,24 +77,21 @@ const JournalScreen: React.FC = () => {
       }
     }
   }, [weeks, currentDate, screenWidth]);
-  
-  // Track the selected day of the week (0 = Sunday, 1 = Monday, etc.)
-  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState<number>(() => currentDate.getDay());
 
   // Track scroll position and update current date based on visible week
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     // Update scroll position for tracking
     scrollX.current = offsetX;
-    
+
     // Calculate the current week index based on scroll position
     const weekIndex = Math.round(offsetX / screenWidth);
-    
+
     // Only update the date if we've scrolled to a new week
-    const currentWeekIndex = weeks.findIndex(week => 
+    const currentWeekIndex = weeks.findIndex(week =>
       week.some(day => isSameDay(day, currentDate))
     );
-    
+
     if (weekIndex !== currentWeekIndex && weeks[weekIndex] && weeks[weekIndex][selectedDayOfWeek]) {
       const targetDay = weeks[weekIndex][selectedDayOfWeek];
       if (!isSameDay(targetDay, currentDate)) {
@@ -109,20 +103,20 @@ const JournalScreen: React.FC = () => {
   const handleDateSelect = (date: Date) => {
     // Create a new date object with just the date part (no time)
     const newDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    
+
     // Update the current date and the selected day of week
     setCurrentDate(newDate);
     setSelectedDayOfWeek(newDate.getDay());
-    
+
     // Find which week this date is in
-    const weekIndex = weeks.findIndex(week => 
+    const weekIndex = weeks.findIndex(week =>
       week.some(day => isSameDay(day, newDate))
     );
 
     if (weekIndex >= 0 && scrollViewRef.current) {
       // Calculate the currently visible week index
       const currentWeekIndex = Math.round(scrollX.current / screenWidth);
-      
+
       // Only scroll if the selected date is in a different week
       if (weekIndex !== currentWeekIndex) {
         scrollViewRef.current.scrollTo({
@@ -183,16 +177,16 @@ const JournalScreen: React.FC = () => {
           // Get the date for this day in the currently visible week
           const firstDayOfWeek = startOfWeek(currentDate);
           const dayDate = addDays(firstDayOfWeek, index);
-          
+
           // Only show 'TODAY' if this is the actual current date
           const isCurrentDay = isToday(dayDate);
           const displayText = isCurrentDay ? 'TODAY' : day;
-          
+
           return (
             <View key={index} style={styles.dayNameContainer}>
               <Text style={[
                 styles.dayName,
-                isCurrentDay && styles.todayText
+                isCurrentDay && styles.todayText,
               ]}>
                 {displayText}
               </Text>
@@ -202,10 +196,10 @@ const JournalScreen: React.FC = () => {
       </View>
 
       {/* Weeks */}
-      <View style={{ width: '100%' }}>
+      <View style={styles.scrollContainer}>
         <ScrollView
           ref={scrollViewRef}
-          horizontal 
+          horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.weeksContainer}
           snapToInterval={screenWidth}
@@ -216,7 +210,7 @@ const JournalScreen: React.FC = () => {
           onScrollBeginDrag={() => {}}
           scrollEventThrottle={16}
         >
-          {weeks.map(renderWeek)}
+          {weeks.map((week, index) => renderWeek(week, index))}
         </ScrollView>
       </View>
 
@@ -226,24 +220,24 @@ const JournalScreen: React.FC = () => {
 
   const renderWeek = (week: Date[], weekIndex: number) => {
     return (
-      <View 
-        key={`week-${weekIndex}`} 
+      <View
+        key={`week-${weekIndex}`}
         style={[
           styles.weekContainer,
-          { width: screenWidth }
+          { width: screenWidth },
         ]}
       >
-        {week.map((date, dayIndex) => {
+        {week.map((date) => {
           const isCurrentDay = isToday(date);
           const isSelected = isSameDay(date, currentDate);
-          
+
           return (
-            <TouchableOpacity 
+            <TouchableOpacity
               key={date.toISOString()}
               style={[
                 styles.dayContainer,
                 isCurrentDay && styles.currentDayContainer,
-                isSelected && styles.selectedDayContainer
+                isSelected && styles.selectedDayContainer,
               ]}
               onPress={() => handleDateSelect(date)}
               activeOpacity={0.7}
@@ -251,7 +245,7 @@ const JournalScreen: React.FC = () => {
               <Text style={[
                 styles.dayText,
                 isCurrentDay && styles.currentDayText,
-                isSelected && styles.selectedDayText
+                isSelected && styles.selectedDayText,
               ]}>
                 {format(date, 'd')}
               </Text>
@@ -418,6 +412,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  scrollContainer: {
+    width: '100%',
   },
   dateText: {
     fontFamily: Fonts.bold,

@@ -48,20 +48,20 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   useEffect(() => {
     // Log for debugging
     console.log('Current day index:', currentDayIndex);
-    
+
     // Reset FAB visibility when changing days
     setShowFAB(false);
-    
+
     // Force a re-render of the ScrollView with a reset position
     // This ensures content starts at the top when changing days
     const timer = setTimeout(() => {
       // Update scroll positions to ensure we start at the top for the current day
       setScrollPositions(prev => ({
         ...prev,
-        [currentDayIndex]: 0
+        [currentDayIndex]: 0,
       }));
     }, 50);
-    
+
     return () => clearTimeout(timer);
   }, [currentDayIndex]);
 

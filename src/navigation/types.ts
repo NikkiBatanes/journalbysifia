@@ -26,7 +26,7 @@ export type RootStackParamList = {
   // Devotional screens
   Devotionals: undefined;
   DevotionalDetail: { devotionalId: string };
-  
+
   // Journal screen
   Journal: undefined;
 };

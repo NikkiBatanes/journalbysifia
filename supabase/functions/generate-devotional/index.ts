@@ -226,41 +226,41 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
 
     // Define valid categories
     const validCategories = [
-      'Marriage', 'Family', 'Parenting', 'Work', 'Career', 'Business', 
-      'Finance', 'Stewardship', 'Giving', 'Time Management', 'Health', 
-      'Mental Health', 'Self-Care', 'Anxiety/Worry', 'Purpose', 'Calling', 
-      'Ministry', 'Worship', 'Quiet Time', 'Rest', 'Peace', 'Conflict Resolution', 
-      'Forgiveness', 'Gratitude', 'Grief', 'Evangelism', 'Discipleship', 
-      'Mission', 'Community', 'Relationships', 'Leadership', 'Contentment'
+      'Marriage', 'Family', 'Parenting', 'Work', 'Career', 'Business',
+      'Finance', 'Stewardship', 'Giving', 'Time Management', 'Health',
+      'Mental Health', 'Self-Care', 'Anxiety/Worry', 'Purpose', 'Calling',
+      'Ministry', 'Worship', 'Quiet Time', 'Rest', 'Peace', 'Conflict Resolution',
+      'Forgiveness', 'Gratitude', 'Grief', 'Evangelism', 'Discipleship',
+      'Mission', 'Community', 'Relationships', 'Leadership', 'Contentment',
     ];
-    
+
     // Extract category with multiple patterns
     let category = '';
-    const categoryMatch = content.match(/CATEGORY:[\s\n]+([^\n]+)/i) || 
-                         content.match(/Category:[\s\n]+([^\n]+)/i) || 
+    const categoryMatch = content.match(/CATEGORY:[\s\n]+([^\n]+)/i) ||
+                         content.match(/Category:[\s\n]+([^\n]+)/i) ||
                          content.match(/#\s*Category:[\s\n]+([^\n]+)/i);
 
     if (categoryMatch && categoryMatch[1]) {
       // Get the full line after CATEGORY:
       const extractedLine = cleanMarkdown(categoryMatch[1]).trim();
       console.log(`[DEVOTIONAL PARSER] Extracted category line: '${extractedLine}'`);
-      
+
       // Find the first valid category that matches the start of the line
-      const matchedCategory = validCategories.find(category => 
-        extractedLine.toLowerCase().startsWith(category.toLowerCase())
+      const matchedCategory = validCategories.find(validCategory =>
+        extractedLine.toLowerCase().startsWith(validCategory.toLowerCase())
       );
-      
+
       if (matchedCategory) {
         category = matchedCategory;
         console.log(`[DEVOTIONAL PARSER] Matched category: '${category}'`);
       } else {
         console.log(`[DEVOTIONAL PARSER] No valid category found in: '${extractedLine}'`);
-        console.log(`[DEVOTIONAL PARSER] Valid categories are:`, validCategories);
+        console.log('[DEVOTIONAL PARSER] Valid categories are:', validCategories);
       }
     } else {
       console.log('[DEVOTIONAL PARSER] No category match found in content');
     }
-    
+
     devotional.category = category;
     devotional.categories = [category];
     console.log('[DEVOTIONAL PARSER] Extracted category:', category);
@@ -301,12 +301,12 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     console.log('[DEVOTIONAL PARSER] Extracted title:', title);
 
     // Extract description - handle multiple possible formats and enforce 80-char limit
-    let description = duration > 1 
+    let description = duration > 1
       ? `This ${duration}-day devotional series will help you grow in faith.`
       : 'This 1-day devotional will help you draw closer to God.';
-    
+
     console.log('[DEVOTIONAL PARSER] Content start for description extraction:', content.substring(0, 300) + (content.length > 300 ? '...' : ''));
-      
+
     const descMatches = [
       // Match formats with DESCRIPTION: prefix (single line)
       content.match(/DESCRIPTION:[\s\n]+([^\n]{10,80})(?=\n|$)/i),
@@ -326,7 +326,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       if (match && match[1]) {
         const desc = cleanMarkdown(match[1]).trim();
         console.log(`[DEVOTIONAL PARSER] Match ${i} found:`, desc);
-        
+
         // Ensure description is within 80 characters and is a complete sentence
         if (desc && desc.length <= 80 && /[.!?]$/.test(desc)) {
           // If it's a multi-line description, take the first line
@@ -343,13 +343,13 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         console.log(`[DEVOTIONAL PARSER] No match found at index ${i}`);
       }
     }
-    
+
     // Ensure description is within 80 characters
     if (description.length > 80) {
       console.log(`[DEVOTIONAL PARSER] Truncating description from ${description.length} to 80 chars`);
       description = description.substring(0, 77) + '...';
     }
-    
+
     devotional.description = description;
     console.log('[DEVOTIONAL PARSER] Extracted description:', description);
 
@@ -502,31 +502,74 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         // Extract scripture with multiple format support
         let scriptureText = 'Your word is a lamp to my feet and a light to my path.';
         let scriptureRef = 'PSALM 119:105';
-        
-        // Try multiple patterns to match different scripture formats
+
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} - Raw day content:\n${dayContent}`);
+
+        // Define scripture patterns with cleaned up regex (no unnecessary escapes)
         const scripturePatterns = [
-          // Format: SCRIPTURE:\n"verse" - BOOK 1:1
-          /SCRIPTURE:[\s\n]*[\"']([^\"'\n]+)[\"']\s*-\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
+          // Format: SCRIPTURE:\n"verse" - BOOK 1:1 (with dash)
+          {
+            pattern: /SCRIPTURE:[\s\n]*['"]([^'"\n]+)['"]\s*[-—]\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
+            name: 'format 1a (SCRIPTURE:\n"verse" - BOOK 1:1 with dash)',
+          },
+          // Format: SCRIPTURE:\n"verse" BOOK 1:1 (without dash)
+          {
+            pattern: /SCRIPTURE:[\s\n]*['"]([^'"\n]+)['"]\s+([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
+            name: 'format 1b (SCRIPTURE:\n"verse" BOOK 1:1 without dash)',
+          },
           // Format: SCRIPTURE:\nBOOK 1:1 - "verse"
-          /SCRIPTURE:[\s\n]*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)\s*-\s*[\"']([^\"'\n]+)[\"']/i,
+          {
+            pattern: /SCRIPTURE:[\s\n]*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)\s*-\s*['"]([^'"\n]+)['"]/i,
+            name: 'format 2 (SCRIPTURE:\nBOOK 1:1 - "verse")',
+          },
           // Format: SCRIPTURE: verse - BOOK 1:1 (all on one line)
-          /SCRIPTURE:[\s\n]*([^\n"']+?)\s*-\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
+          {
+            pattern: /SCRIPTURE:[\s\n]*([^\n"']+?)\s*-\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
+            name: 'format 3 (SCRIPTURE: verse - BOOK 1:1)',
+  },
+          // More flexible format: Any line containing "SCRIPTURE"
+          {
+            pattern: /SCRIPTURE:[\s\n]*([^\n]+?)\s*[-—]\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
+            name: 'format 4 (flexible SCRIPTURE: verse - BOOK 1:1)',
+          },
+          // Just look for any verse reference pattern
+          {
+            pattern: /([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)\s*[-—]\s*['"]([^'"\n]+)['"]/i,
+            name: 'format 5 (BOOK 1:1 - "verse")',
+          },
+          // Look for quoted text followed by a reference
+          {
+            pattern: /['"]([^'"\n]+)['"]\s*[-—]\s*([A-Z0-9 ]+:[0-9]+(?:-[0-9]+)?)/i,
+            name: 'format 6 ("verse" - BOOK 1:1)',
+          },
         ];
-        
-        for (const pattern of scripturePatterns) {
-          const match = dayContent.match(pattern);
-          if (match && match[1] && match[2]) {
+
+        // First, try to find a scripture section
+        const scriptureSectionMatch = dayContent.match(/(SCRIPTURE|BIBLE VERSE|VERSE|TEXT):[\s\n]*([\s\S]*?)(?=(?:REFLECTION|PRAYER|QUESTIONS|$))/i);
+        const contentToSearch = scriptureSectionMatch ? scriptureSectionMatch[0] : dayContent;
+
+        console.log(`[DEVOTIONAL PARSER] Day ${dayNum} - Searching for scripture in: ${contentToSearch.substring(0, 200)}...`);
+
+        for (const { pattern, name } of scripturePatterns) {
+          const scriptureMatch = contentToSearch.match(pattern);
+          if (scriptureMatch && scriptureMatch[1] && scriptureMatch[2]) {
+            console.log(`[DEVOTIONAL PARSER] Day ${dayNum} - Matched scripture ${name}`);
+            console.log(`[DEVOTIONAL PARSER] Day ${dayNum} - Match groups:`, scriptureMatch[1], scriptureMatch[2]);
+
             // Determine which group is the text and which is the reference
-            if (match[1].match(/[A-Z]+\s*\d+:/)) {
-              // First group is the reference
-              scriptureRef = match[1].trim();
-              scriptureText = match[2].trim();
+            if (scriptureMatch[1].match(/[A-Z]+\s*\d+[:\d]*(?:\s*-\s*\d+)?/)) {
+              // First group looks like a reference (e.g., "JOHN 3:16" or "PSALM 23:1-6")
+              scriptureRef = scriptureMatch[1].trim();
+              scriptureText = scriptureMatch[2].trim();
             } else {
-              // First group is the text
-              scriptureText = match[1].trim();
-              scriptureRef = match[2].trim();
+              // First group is the text, second is the reference
+              scriptureText = scriptureMatch[1].trim();
+              scriptureRef = scriptureMatch[2].trim();
             }
+            console.log(`[DEVOTIONAL PARSER] Day ${dayNum} - Extracted scripture: "${scriptureText}" (${scriptureRef})`);
             break;
+          } else {
+            console.log(`[DEVOTIONAL PARSER] Day ${dayNum} - No match for ${name}`);
           }
         }
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Scripture:`, { text: scriptureText, reference: scriptureRef });

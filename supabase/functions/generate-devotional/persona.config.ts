@@ -218,7 +218,7 @@ export const formatDevotionalResponse = (content: string, isMultiDay: boolean = 
   // Extract the title (first line after TITLE: or SERIES TITLE:)
   const titleMatch = content.match(/(?:SERIES )?TITLE:\s*([^\n]+)/i);
   const title = titleMatch ? titleMatch[1].trim() : 'Daily Devotional';
-  
+
   // Extract category if present
   const catMatch = content.match(/CATEGORY:\s*([^\n]+)/i);
   const category = catMatch ? `CATEGORY: ${catMatch[1].trim()}\n\n` : '';
@@ -241,18 +241,18 @@ export const formatDevotionalResponse = (content: string, isMultiDay: boolean = 
       return category + formatDevotionalResponse(content.split(/DAY\s+1|#+\s*Day\s+1/i)[1] || content, false);
     }
   }
-  
+
   // For single devotionals
   let result = category; // Add category at the top if present
-  
+
   // Add title
   result += `TITLE: ${title}\n\n`;
-  
+
   // Add description
-  const description = content.match(/DESCRIPTION:\s*([^\n]+)/i)?.[1]?.trim() || 
+  const description = content.match(/DESCRIPTION:\s*([^\n]+)/i)?.[1]?.trim() ||
     (isMultiDay ? 'A devotional series to help you grow in your faith.' : 'This 1-day devotional will help you grow in your faith and draw closer to God.');
   result += `DESCRIPTION: ${description}\n\n`;
-  
+
   // Find the first section after description (SCRIPTURE: or next section)
   let contentStart = 0;
   const nextSection = content.match(/\n\n(SCRIPTURE:|REFLECTION:|PRAYER:)/i);
@@ -261,7 +261,7 @@ export const formatDevotionalResponse = (content: string, isMultiDay: boolean = 
   } else if (content.includes('SCRIPTURE:')) {
     contentStart = content.indexOf('SCRIPTURE:');
   }
-  
+
   // Add the rest of the content
   if (contentStart > 0) {
     result += content.substring(contentStart);
@@ -270,6 +270,6 @@ export const formatDevotionalResponse = (content: string, isMultiDay: boolean = 
   } else {
     result += 'SCRIPTURE: [Bible passage reference]\n\nREFLECTION: [Your devotional content here]';
   }
-  
+
   return result;
 };
