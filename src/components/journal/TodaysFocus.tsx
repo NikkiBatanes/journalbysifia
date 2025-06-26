@@ -231,22 +231,24 @@ const styles = StyleSheet.create({
   // Input styles
   input: {
     flex: 1,
-    height: '100%',
+    height: 40, // Fixed height for consistency
     fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.darkGray,
     backgroundColor: 'transparent',
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     marginBottom: 0,
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: Colors.lightGray,
   },
   focusInput: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '400',
-    marginBottom: 16,
+    marginBottom: 12,
     fontFamily: Fonts.regular,
+    height: 44, // Slightly taller for main focus input
   },
 
   // Priority item styles
@@ -263,8 +265,9 @@ const styles = StyleSheet.create({
   priorityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
     padding: 0,
+    minHeight: 36, // Ensure consistent row height
   },
   priorityBullet: {
     width: 8,
@@ -291,8 +294,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: Colors.darkGray,
     fontSize: 14,
-    marginLeft: 8,
-    marginBottom: 8,
+    marginLeft: 6,
+    marginBottom: 4,
+    height: 36, // Fixed height for priority inputs
   },
 
   // Button styles

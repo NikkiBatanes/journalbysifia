@@ -36,12 +36,13 @@ export const JournalCard: React.FC<JournalCardProps> = ({
         <View style={[styles.header, styles.headerEmpty]}>
           <View style={styles.headerContent}>
             {typeof icon === 'string' ? (
-              <Ionicons
-                name={icon as any}
-                size={24}
-                color={Colors.alertCoral}
-                style={styles.icon}
-              />
+              <View style={styles.icon}>
+                <Ionicons
+                  name={icon as any}
+                  size={16}
+                  color={Colors.alertCoral}
+                />
+              </View>
             ) : (
               <View style={styles.icon}>
                 {icon}
@@ -68,12 +69,13 @@ export const JournalCard: React.FC<JournalCardProps> = ({
       <View style={styles.header}>
         <View style={styles.headerContent}>
           {typeof icon === 'string' ? (
-            <Ionicons
-              name={icon as any}
-              size={24}
-              color={Colors.alertCoral}
-              style={styles.icon}
-            />
+            <View style={styles.icon}>
+              <Ionicons
+                name={icon as any}
+                size={20}
+                color={Colors.alertCoral}
+              />
+            </View>
           ) : (
             <View style={styles.icon}>
               {icon}
@@ -141,7 +143,20 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   icon: {
-    marginRight: 12,
+    marginRight: 10,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)', // 10% opacity of alertCoral
+    borderRadius: 5,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // For Ionicons that are passed as strings
+  iconWrapper: {
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   titleContainer: {
     flex: 1,
