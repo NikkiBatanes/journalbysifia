@@ -70,12 +70,20 @@ export const LookingForward: React.FC = () => {
             <Text style={styles.entryText}>{entry.text}</Text>
             <Text style={styles.entryTime}>{formatDate(entry.date)}</Text>
           </View>
-          <TouchableOpacity
-            onPress={removeEntry}
-            style={styles.editButton}
-          >
-            <Ionicons name="create-outline" size={20} color={Colors.mediumGray} />
-          </TouchableOpacity>
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity
+              onPress={editEntry}
+              style={styles.editButton}
+            >
+              <Ionicons name="create-outline" size={20} color={Colors.mediumGray} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={removeEntry}
+              style={styles.deleteButton}
+            >
+              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} />
+            </TouchableOpacity>
+          </View>
         </View>
       ) : isAdding ? (
         <View style={styles.formContainer}>
@@ -118,6 +126,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     borderRadius: 8,
     padding: 12,
+    justifyContent: 'space-between',
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    marginLeft: 8,
+    padding: 4,
   },
   entryContent: {
     flex: 1,
@@ -136,11 +153,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   editButton: {
-    padding: 8,
-  },
-  deleteButton: {
-    padding: 8,
-    marginLeft: 8,
+    padding: 4,
   },
   emptyText: {
     fontFamily: Fonts.regular,

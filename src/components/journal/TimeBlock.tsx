@@ -216,6 +216,22 @@ export const TimeBlock: React.FC = () => {
               </TouchableOpacity>
             ))}
           </View>
+          
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={cancelAdding}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton, !newBlock.title.trim() && styles.disabledButton]}
+              onPress={addTimeBlock}
+              disabled={!newBlock.title.trim()}
+            >
+              <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -339,5 +355,36 @@ const styles = StyleSheet.create({
   },
   flexTwo: {
     flex: 2,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    gap: 8,
+  },
+  button: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+  },
+  cancelButton: {
+    backgroundColor: Colors.hopeWhite,
+    borderWidth: 1,
+    borderColor: Colors.trustGrey,
+  },
+  saveButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  saveButtonText: {
+    color: Colors.hopeWhite,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });

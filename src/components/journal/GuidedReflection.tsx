@@ -149,6 +149,21 @@ export const GuidedReflection: React.FC = () => {
             numberOfLines={4}
             textAlignVertical="top"
           />
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={cancelAdding}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton, !response.trim() && styles.disabledButton]}
+              onPress={addReflection}
+              disabled={!response.trim()}
+            >
+              <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
     </JournalCard>
@@ -156,6 +171,37 @@ export const GuidedReflection: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 12,
+    gap: 8,
+  },
+  button: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+  },
+  cancelButton: {
+    backgroundColor: Colors.hopeWhite,
+    borderWidth: 1,
+    borderColor: Colors.trustGrey,
+  },
+  saveButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  saveButtonText: {
+    color: Colors.hopeWhite,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
   reflectionsContainer: {
     marginBottom: 8,
   },

@@ -1,134 +1,167 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { JournalCard } from './JournalCard';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { JournalCard } from './JournalCard';
+import { Check, Target } from 'lucide-react-native';
 
 interface PriorityItem {
   id: string;
   text: string;
+  completed: boolean;
+}
+
+interface TodayFocusData {
+  focus: string;
+  priorities: PriorityItem[];
 }
 
 export const TodaysFocus: React.FC = () => {
-  const [priorities, setPriorities] = useState<PriorityItem[]>([]);
-  const [newPriority, setNewPriority] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
+  const [data, setData] = useState<TodayFocusData>({
+    focus: '',
+    priorities: [
+      { id: '1', text: '', completed: false },
+      { id: '2', text: '', completed: false },
+      { id: '3', text: '', completed: false }
+    ]
+  });
+  const [isEditing, setIsEditing] = useState(false);
 
-  const startAdding = () => {
-    if (priorities.length < 3) {
-      setIsAdding(true);
-    }
+  const toggleEditing = () => {
+    setIsEditing(!isEditing);
   };
 
-  const cancelAdding = () => {
-    setIsAdding(false);
-    setNewPriority('');
+  const updateFocus = (text: string) => {
+    setData(prev => ({ ...prev, focus: text }));
   };
 
-  const addPriority = () => {
-    if (newPriority.trim() && priorities.length < 3) {
-      setPriorities([...priorities, { id: Date.now().toString(), text: newPriority }]);
-      setNewPriority('');
-      setIsAdding(false);
-    }
+  const updatePriority = (index: number, text: string) => {
+    const newPriorities = [...data.priorities];
+    newPriorities[index] = { ...newPriorities[index], text };
+    setData(prev => ({ ...prev, priorities: newPriorities }));
   };
 
-  const removePriority = (id: string) => {
-    setPriorities(priorities.filter(item => item.id !== id));
+  const togglePriority = (index: number) => {
+    const newPriorities = [...data.priorities];
+    newPriorities[index] = { 
+      ...newPriorities[index], 
+      completed: !newPriorities[index].completed 
+    };
+    setData(prev => ({ ...prev, priorities: newPriorities }));
   };
 
   return (
     <JournalCard
-      icon="flag-outline"
+      icon={
+        <Target 
+          size={24} 
+          color={Colors.alertCoral} 
+          strokeWidth={2.5}
+        />
+      }
       title="Today's Focus"
-      subtitle="What's your main priority today?"
-      showAddButton={!isAdding && priorities.length < 3}
-      onAdd={startAdding}
-      isAdding={isAdding}
-      onCancelAdd={cancelAdding}
+      subtitle="Set your focus and priorities for the day"
+      showAddButton={!isEditing}
+      onAdd={toggleEditing}
+      isAdding={isEditing}
+      onCancelAdd={toggleEditing}
     >
-      <View style={styles.prioritiesContainer}>
-        {priorities.map((item) => (
-          <View key={item.id} style={styles.priorityItem}>
-            <View style={styles.priorityBullet} />
-            <TextInput
-              style={styles.priorityInput}
-              value={item.text}
-              onChangeText={(text) => {
-                const updated = priorities.map(p =>
-                  p.id === item.id ? { ...p, text } : p
-                );
-                setPriorities(updated);
-              }}
-              placeholder="Enter priority"
-              placeholderTextColor={Colors.mediumGray}
-            />
-            <TouchableOpacity
-              onPress={() => removePriority(item.id)}
-              style={styles.removeButton}
+      {isEditing ? (
+        <View style={styles.editContainer}>
+          <Text style={[styles.sectionHeader, { marginBottom: 8 }]}>Today's Focus</Text>
+          <TextInput
+            style={[styles.input, styles.focusInput]}
+            value={data.focus}
+            onChangeText={updateFocus}
+            placeholder="What's your main focus today?"
+            placeholderTextColor={Colors.mediumGray}
+            autoFocus
+          />
+          
+          <Text style={[styles.sectionHeader, { marginTop: 24, marginBottom: 8 }]}>TOP PRIORITIES</Text>
+          {[0, 1, 2].map((index) => (
+            <View key={index} style={styles.priorityRow}>
+              <Text style={styles.priorityNumber}>{index + 1}.</Text>
+              <TextInput
+                style={[styles.input, styles.priorityInput]}
+                value={data.priorities[index].text}
+                onChangeText={(text) => updatePriority(index, text)}
+                placeholder={`Priority ${index + 1}`}
+                placeholderTextColor={Colors.mediumGray}
+                onSubmitEditing={toggleEditing}
+              />
+            </View>
+          ))}
+          <View style={styles.buttonRow}>
+            <TouchableOpacity 
+              style={[styles.button, styles.saveButton, (!data.focus.trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton]}
+              onPress={toggleEditing}
+              disabled={!data.focus.trim() && data.priorities.every(p => !p.text.trim())}
             >
-              <Ionicons name="close" size={20} color={Colors.mediumGray} />
+              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
             </TouchableOpacity>
           </View>
-        ))}
-
-        {isAdding && (
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={newPriority}
-              onChangeText={setNewPriority}
-              placeholder="Add a priority..."
-              placeholderTextColor={Colors.mediumGray}
-              onSubmitEditing={addPriority}
-              autoFocus
-            />
-            {newPriority.trim() && (
-              <TouchableOpacity onPress={addPriority} style={styles.saveButton}>
-                <Ionicons name="checkmark" size={24} color={Colors.alertCoral} />
-              </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.viewContainer}>
+          {data.focus ? (
+            <Text style={styles.focusText}>{data.focus}</Text>
+          ) : (
+            <Text style={styles.placeholderText}>No focus set for today</Text>
+          )}
+          
+          <View style={styles.prioritiesList}>
+            <Text style={styles.prioritiesTitle}>TOP PRIORITIES</Text>
+            {data.priorities
+              .filter(p => p.text.trim() !== '')
+              .map((priority, index) => (
+                <TouchableOpacity 
+                  key={priority.id} 
+                  style={styles.priorityItem}
+                  onPress={() => togglePriority(index)}
+                >
+                  <View style={[
+                    styles.tickCircle,
+                    priority.completed && styles.tickCircleCompleted
+                  ]}>
+                    {priority.completed ? (
+                      <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                    ) : (
+                      <Text style={styles.tickCircleText}>{index + 1}</Text>
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.priorityText,
+                    priority.completed && styles.completedText
+                  ]}>
+                    {priority.text}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            
+            {data.priorities.every(p => p.text.trim() === '') && (
+              <Text style={styles.placeholderText}>No priorities set</Text>
             )}
           </View>
-        )}
-
-        {priorities.length === 0 && !isAdding && (
-          <Text style={styles.hintText}>
-            Tap the + button to add up to 3 priorities for today
-          </Text>
-        )}
-      </View>
+        </View>
+      )}
     </JournalCard>
   );
 };
 
 const styles = StyleSheet.create({
+  // Container styles
+  editContainer: {
+    padding: 4,
+  },
+  viewContainer: {
+    padding: 4,
+  },
+  prioritiesList: {
+    marginTop: 8,
+  },
   prioritiesContainer: {
     marginBottom: 8,
-  },
-  priorityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 8,
-  },
-  priorityBullet: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.alertCoral,
-    marginRight: 12,
-  },
-  priorityInput: {
-    flex: 1,
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
-    fontSize: 14,
-  },
-  removeButton: {
-    padding: 4,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -141,16 +174,38 @@ const styles = StyleSheet.create({
     height: 44,
     backgroundColor: Colors.hopeWhite,
   },
-  saveButton: {
-    padding: 4,
-  },
-  input: {
-    flex: 1,
-    height: '100%',
-    fontFamily: Fonts.regular,
+
+  // Text styles
+  label: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
     color: Colors.darkGray,
-    paddingRight: 8,
-    backgroundColor: 'transparent',
+    marginBottom: 8,
+  },
+  sectionHeader: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 12,
+    color: Colors.anchorBlue,
+    marginBottom: 8,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  focusText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 16,
+    color: Colors.darkGray,
+    marginBottom: 16,
+    lineHeight: 24,
+    fontWeight: '500',
+  },
+  placeholderText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    fontStyle: 'italic',
+    marginBottom: 8,
+    textDecorationLine: 'none',
   },
   hintText: {
     fontFamily: Fonts.regular,
@@ -158,5 +213,125 @@ const styles = StyleSheet.create({
     color: Colors.mediumGray,
     textAlign: 'center',
     marginTop: 8,
+  },
+
+  // Input styles
+  input: {
+    flex: 1,
+    height: '100%',
+    fontFamily: Fonts.regular,
+    fontSize: 16,
+    color: Colors.darkGray,
+    backgroundColor: 'transparent',
+    padding: 12,
+    marginBottom: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+  },
+  focusInput: {
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  
+  // Priority item styles
+  priorityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 8,
+    padding: 8,
+  },
+  priorityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  priorityBullet: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.alertCoral,
+    marginRight: 12,
+  },
+  priorityText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.darkGray,
+    flex: 1,
+  },
+  priorityNumber: {
+    fontFamily: Fonts.medium,
+    fontSize: 16,
+    color: Colors.mediumGray,
+    width: 24,
+  },
+  priorityInput: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    fontSize: 14,
+    marginLeft: 8,
+    marginBottom: 8,
+  },
+
+  // Button styles
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 16,
+  },
+  button: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  saveButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  removeButton: {
+    padding: 4,
+  },
+  tickCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.trustGrey,
+    backgroundColor: 'rgba(176, 184, 193, 0.1)', // 10% opacity of trustGrey
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  tickCircleCompleted: {
+    backgroundColor: Colors.growthGreen, // 20% opacity of growthGreen
+    borderColor: Colors.growthGreen,
+  },
+  tickCircleText: {
+    fontFamily: Fonts.medium,
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  completedText: {
+    textDecorationLine: 'line-through',
+    color: Colors.mediumGray,
+    opacity: 0.7,
+  },
+  prioritiesTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 12,
+    color: Colors.anchorBlue,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    fontWeight: '600',
   },
 });

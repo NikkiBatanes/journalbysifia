@@ -2,10 +2,11 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { Pencil } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface JournalCardProps {
-  icon: string;
+  icon: string | React.ReactNode;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
@@ -29,12 +30,18 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     <View style={styles.card}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Ionicons
-            name={icon as any}
-            size={24}
-            color={Colors.alertCoral}
-            style={styles.icon}
-          />
+          {typeof icon === 'string' ? (
+            <Ionicons
+              name={icon as any}
+              size={24}
+              color={Colors.alertCoral}
+              style={styles.icon}
+            />
+          ) : (
+            <View style={styles.icon}>
+              {icon}
+            </View>
+          )}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
@@ -42,13 +49,12 @@ export const JournalCard: React.FC<JournalCardProps> = ({
         </View>
         {showAddButton && onAdd && !isAdding && (
           <TouchableOpacity onPress={onAdd} style={styles.addButton}>
-            <Ionicons name="add-circle" size={24} color={Colors.alertCoral} />
-            <Text style={styles.addButtonText}>Add</Text>
+            <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
           </TouchableOpacity>
         )}
         {isAdding && onCancelAdd && (
           <TouchableOpacity onPress={onCancelAdd} style={styles.cancelButton}>
-            <Ionicons name="close-circle" size={24} color={Colors.mediumGray} />
+            <Ionicons name="close" size={18} color={`${Colors.alertCoral}CC`} />
           </TouchableOpacity>
         )}
       </View>
@@ -92,8 +98,10 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Fonts.bold,
     fontSize: 16,
-    color: Colors.darkGray,
+    color: Colors.anchorBlue,
     marginBottom: 2,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   subtitle: {
     fontFamily: Fonts.regular,
@@ -105,21 +113,11 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    padding: 6,
     marginLeft: 8,
-  },
-  addButtonText: {
-    marginLeft: 4,
-    color: Colors.alertCoral,
-    fontFamily: Fonts.medium,
-    fontSize: 14,
   },
   cancelButton: {
     padding: 4,
+    backgroundColor: 'transparent',
   },
 });
