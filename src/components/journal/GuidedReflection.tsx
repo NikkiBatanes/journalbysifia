@@ -73,7 +73,7 @@ export const GuidedReflection: React.FC = () => {
     <JournalCard
       icon="book-outline"
       title="Guided Reflection"
-      subtitle="Choose a prompt to guide your thoughts"
+      subtitle="Reflect with prompts"
       showAddButton={!isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
@@ -94,11 +94,7 @@ export const GuidedReflection: React.FC = () => {
             </View>
           ))}
         </View>
-      ) : (
-        <Text style={styles.emptyText}>No reflections yet. Add one to get started!</Text>
-      )}
-
-      {isAdding && (
+      ) : isAdding ? (
         <View style={styles.formContainer}>
           <TouchableOpacity
             style={styles.promptSelector}
@@ -165,7 +161,7 @@ export const GuidedReflection: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-      )}
+      ) : null}
     </JournalCard>
   );
 };
@@ -240,11 +236,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   emptyText: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    marginVertical: 8,
+    display: 'none',
   },
   formContainer: {
     marginTop: 8,
@@ -257,7 +249,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: Colors.lightGray,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   selectedPrompt: {
     flex: 1,
@@ -301,7 +293,8 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
     borderWidth: 1,
     borderColor: Colors.lightGray,
-    minHeight: 100,
+    minHeight: 80,
     textAlignVertical: 'top',
+    fontSize: 14,
   },
 });

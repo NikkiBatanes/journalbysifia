@@ -66,85 +66,80 @@ export const TodaysFocus: React.FC = () => {
       isAdding={isEditing}
       onCancelAdd={toggleEditing}
     >
-      {isEditing ? (
-        <View style={styles.editContainer}>
-          <Text style={[styles.sectionHeader, { marginBottom: 8 }]}>Today's Focus</Text>
-          <TextInput
-            style={[styles.input, styles.focusInput]}
-            value={data.focus}
-            onChangeText={updateFocus}
-            placeholder="What's your main focus today?"
-            placeholderTextColor={Colors.mediumGray}
-            autoFocus
-          />
-          
-          <Text style={[styles.sectionHeader, { marginTop: 24, marginBottom: 8 }]}>TOP PRIORITIES</Text>
-          {[0, 1, 2].map((index) => (
-            <View key={index} style={styles.priorityRow}>
-              <Text style={styles.priorityNumber}>{index + 1}.</Text>
-              <TextInput
-                style={[styles.input, styles.priorityInput]}
-                value={data.priorities[index].text}
-                onChangeText={(text) => updatePriority(index, text)}
-                placeholder={`Priority ${index + 1}`}
-                placeholderTextColor={Colors.mediumGray}
-                onSubmitEditing={toggleEditing}
-              />
+      {isEditing
+        ? (
+          <View style={styles.editContainer}>
+            <Text style={[styles.sectionHeader, { marginBottom: 8 }]}>Today's Focus</Text>
+            <TextInput
+              style={[styles.input, styles.focusInput]}
+              value={data.focus}
+              onChangeText={updateFocus}
+              placeholder="What's your main focus today?"
+              placeholderTextColor={Colors.mediumGray}
+              autoFocus
+            />
+            <Text style={[styles.sectionHeader, { marginTop: 24, marginBottom: 8 }]}>TOP PRIORITIES</Text>
+            {[0, 1, 2].map((index) => (
+              <View key={index} style={styles.priorityRow}>
+                <Text style={styles.priorityNumber}>{index + 1}.</Text>
+                <TextInput
+                  style={[styles.input, styles.priorityInput]}
+                  value={data.priorities[index].text}
+                  onChangeText={(text) => updatePriority(index, text)}
+                  placeholder={`Priority ${index + 1}`}
+                  placeholderTextColor={Colors.mediumGray}
+                  onSubmitEditing={toggleEditing}
+                />
+              </View>
+            ))}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity 
+                style={[styles.button, styles.saveButton, (!data.focus.trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton]}
+                onPress={toggleEditing}
+                disabled={!data.focus.trim() && data.priorities.every(p => !p.text.trim())}
+              >
+                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
             </View>
-          ))}
-          <View style={styles.buttonRow}>
-            <TouchableOpacity 
-              style={[styles.button, styles.saveButton, (!data.focus.trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton]}
-              onPress={toggleEditing}
-              disabled={!data.focus.trim() && data.priorities.every(p => !p.text.trim())}
-            >
-              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-            </TouchableOpacity>
           </View>
-        </View>
-      ) : (
-        <View style={styles.viewContainer}>
-          {data.focus ? (
-            <Text style={styles.focusText}>{data.focus}</Text>
-          ) : (
-            <Text style={styles.placeholderText}>No focus set for today</Text>
-          )}
-          
-          <View style={styles.prioritiesList}>
-            <Text style={styles.prioritiesTitle}>TOP PRIORITIES</Text>
-            {data.priorities
-              .filter(p => p.text.trim() !== '')
-              .map((priority, index) => (
-                <TouchableOpacity 
-                  key={priority.id} 
-                  style={styles.priorityItem}
-                  onPress={() => togglePriority(index)}
-                >
-                  <View style={[
-                    styles.tickCircle,
-                    priority.completed && styles.tickCircleCompleted
-                  ]}>
-                    {priority.completed ? (
-                      <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                    ) : (
-                      <Text style={styles.tickCircleText}>{index + 1}</Text>
-                    )}
-                  </View>
-                  <Text style={[
-                    styles.priorityText,
-                    priority.completed && styles.completedText
-                  ]}>
-                    {priority.text}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            
-            {data.priorities.every(p => p.text.trim() === '') && (
-              <Text style={styles.placeholderText}>No priorities set</Text>
-            )}
-          </View>
-        </View>
-      )}
+        )
+        : (
+          (data.focus.trim() || data.priorities.some(p => p.text.trim() !== ''))
+            ? (
+              <View style={styles.viewContainer}>
+                {data.focus && <Text style={styles.focusText}>{data.focus}</Text>}
+                <View style={styles.prioritiesList}>
+                  {data.priorities.some(p => p.text.trim() !== '') && (
+                    <Text style={styles.prioritiesTitle}>TOP PRIORITIES</Text>
+                  )}
+                  {data.priorities
+                    .filter(p => p.text.trim() !== '')
+                    .map((priority, index) => (
+                      <TouchableOpacity 
+                        key={priority.id} 
+                        style={styles.priorityItem}
+                        onPress={() => togglePriority(index)}
+                      >
+                        <View style={[styles.tickCircle, priority.completed && styles.tickCircleCompleted]}>
+                          {priority.completed && (
+                            <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.priorityText,
+                            priority.completed && styles.completedText
+                          ]}>
+                          {priority.text}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              </View>
+            )
+            : null
+        )
+      }
     </JournalCard>
   );
 };
@@ -152,10 +147,10 @@ export const TodaysFocus: React.FC = () => {
 const styles = StyleSheet.create({
   // Container styles
   editContainer: {
-    padding: 4,
+    padding: 0,
   },
   viewContainer: {
-    padding: 4,
+    padding: 0,
   },
   prioritiesList: {
     marginTop: 8,
@@ -166,12 +161,11 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 0,
     borderWidth: 1,
     borderColor: Colors.lightGray,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 44,
+    padding: 12,
     backgroundColor: Colors.hopeWhite,
   },
 
@@ -192,12 +186,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   focusText: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 16,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
     color: Colors.darkGray,
-    marginBottom: 16,
-    lineHeight: 24,
-    fontWeight: '500',
+    marginBottom: 0,
+    lineHeight: 20,
   },
   placeholderText: {
     fontFamily: Fonts.regular,
@@ -220,11 +213,11 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     fontFamily: Fonts.regular,
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.darkGray,
     backgroundColor: 'transparent',
     padding: 12,
-    marginBottom: 12,
+    marginBottom: 0,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.lightGray,
@@ -241,12 +234,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: Colors.hopeWhite,
     borderRadius: 8,
-    padding: 8,
+    padding: 12,
   },
   priorityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
+    padding: 0,
   },
   priorityBullet: {
     width: 8,
@@ -280,7 +274,8 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 16,
+    marginTop: 12,
+    padding: 0,
   },
   button: {
     width: 24,

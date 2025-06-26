@@ -80,21 +80,20 @@ export const Todos: React.FC = () => {
     <JournalCard
       icon="list-outline"
       title="Todos"
+      subtitle="Track your daily tasks"
       showAddButton={!isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
       onCancelAdd={cancelAdding}
     >
-      {todos.length > 0 && (
+      {todos.length > 0 ? (
         <FlatList
           data={todos}
           renderItem={renderTodo}
           keyExtractor={item => item.id}
           style={styles.todosList}
         />
-      )}
-
-      {isAdding && (
+      ) : isAdding ? (
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -111,11 +110,7 @@ export const Todos: React.FC = () => {
             </TouchableOpacity>
           )}
         </View>
-      )}
-
-      {!isAdding && todos.length === 0 && (
-        <Text style={styles.emptyText}>No tasks yet. Tap the + button to add one!</Text>
-      )}
+      ) : null}
     </JournalCard>
   );
 };
@@ -123,7 +118,7 @@ export const Todos: React.FC = () => {
 const styles = StyleSheet.create({
   todosList: {
     maxHeight: 200,
-    marginBottom: 8,
+    marginBottom: 0,
   },
   todoItem: {
     flexDirection: 'row',
@@ -131,7 +126,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: Colors.hopeWhite,
     borderRadius: 8,
-    padding: 8,
+    padding: 12,
   },
   checkbox: {
     marginRight: 12,
@@ -152,12 +147,11 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 0,
     borderWidth: 1,
     borderColor: Colors.lightGray,
     borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 44,
+    padding: 12,
     backgroundColor: Colors.hopeWhite,
   },
   saveButton: {
@@ -172,11 +166,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   emptyText: {
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 8,
-    padding: 8,
+    display: 'none',
   },
 });

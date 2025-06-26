@@ -112,9 +112,7 @@ export const LookingForward: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-      ) : (
-        <Text style={styles.emptyText}>What are you looking forward to tomorrow?</Text>
-      )}
+      ) : null}
     </JournalCard>
   );
 };
@@ -156,11 +154,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   emptyText: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    marginVertical: 8,
+    display: 'none',
   },
   formContainer: {
     marginTop: 8,

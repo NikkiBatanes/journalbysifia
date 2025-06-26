@@ -105,9 +105,7 @@ export const TodayWin: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-      ) : (
-        <Text style={styles.emptyText}>No win recorded yet. Add one to celebrate!</Text>
-      )}
+      ) : null}
     </JournalCard>
   );
 };
@@ -119,6 +117,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     borderRadius: 8,
     padding: 12,
+    marginBottom: 0,
   },
   winContent: {
     flex: 1,
@@ -151,6 +150,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 12,
+    gap: 8,
   },
   emptyText: {
     fontFamily: Fonts.regular,
@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
     minHeight: 80,
     textAlignVertical: 'top',
     marginBottom: 12,
+    fontSize: 14,
   },
   buttonContainer: {
     flexDirection: 'row',

@@ -162,93 +162,93 @@ export const TimeBlock: React.FC = () => {
       isAdding={isAdding}
       onCancelAdd={cancelAdding}
     >
-      <ScrollView style={styles.timeBlocksContainer}>
-        {timeBlocks.length > 0 ? (
-          timeBlocks.map(block => renderTimeBlock(block))
-        ) : !isAdding ? (
-          <Text style={styles.emptyText}>No time blocks scheduled yet</Text>
-        ) : null}
-      </ScrollView>
+      {(timeBlocks.length > 0 || isAdding) ? (
+        <>
+          {timeBlocks.length > 0 && (
+            <ScrollView style={styles.timeBlocksContainer}>
+              {timeBlocks.map(block => renderTimeBlock(block))}
+            </ScrollView>
+          )}
+          {isAdding && (
+            <View style={styles.addBlockContainer}>
+              <View style={styles.timeContainer}>
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => setShowTimePicker({ start: true, end: false, id: null })}
+                >
+                  <Text style={styles.timeText}>{formatTime(newBlock.startTime)}</Text>
+                </TouchableOpacity>
+                <Text style={styles.timeSeparator}>-</Text>
+                <TouchableOpacity
+                  style={styles.timeButton}
+                  onPress={() => setShowTimePicker({ start: false, end: true, id: null })}
+                >
+                  <Text style={styles.timeText}>{formatTime(newBlock.endTime)}</Text>
+                </TouchableOpacity>
+              </View>
 
-      {isAdding && (
-        <View style={styles.addBlockContainer}>
-          <View style={styles.timeContainer}>
-            <TouchableOpacity
-              style={styles.timeButton}
-              onPress={() => setShowTimePicker({ start: true, end: false, id: null })}
-            >
-              <Text style={styles.timeText}>{formatTime(newBlock.startTime)}</Text>
-            </TouchableOpacity>
-            <Text style={styles.timeSeparator}>-</Text>
-            <TouchableOpacity
-              style={styles.timeButton}
-              onPress={() => setShowTimePicker({ start: false, end: true, id: null })}
-            >
-              <Text style={styles.timeText}>{formatTime(newBlock.endTime)}</Text>
-            </TouchableOpacity>
-          </View>
+              <View style={styles.inputRow}>
+                <TextInput
+                  style={[styles.input, styles.flexTwo]}
+                  value={newBlock.title}
+                  onChangeText={(text) => setNewBlock({...newBlock, title: text})}
+                  placeholder="Activity title"
+                  placeholderTextColor={Colors.mediumGray}
+                />
+                <View style={[styles.categorySelector, { backgroundColor: getCategoryColor(newBlock.category) }]}>
+                  <Text style={styles.categoryText}>{newBlock.category}</Text>
+                  <Ionicons name="chevron-down" size={16} color={Colors.darkGray} />
+                </View>
+              </View>
 
-          <View style={styles.inputRow}>
-            <TextInput
-              style={[styles.input, styles.flexTwo]}
-              value={newBlock.title}
-              onChangeText={(text) => setNewBlock({...newBlock, title: text})}
-              placeholder="Activity title"
-              placeholderTextColor={Colors.mediumGray}
-            />
-            <View style={[styles.categorySelector, { backgroundColor: getCategoryColor(newBlock.category) }]}>
-              <Text style={styles.categoryText}>{newBlock.category}</Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.darkGray} />
+              <View style={styles.categoriesContainer}>
+                {CATEGORIES.map(category => (
+                  <TouchableOpacity
+                    key={category}
+                    style={[
+                      getCategoryOptionStyle(newBlock.category === category),
+                      { backgroundColor: getCategoryColor(category) },
+                    ]}
+                    onPress={() => setNewBlock({...newBlock, category})}
+                  >
+                    <Text style={styles.categoryText}>{category}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={cancelAdding}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, styles.saveButton, !newBlock.title.trim() && styles.disabledButton]}
+                  onPress={addTimeBlock}
+                  disabled={!newBlock.title.trim()}
+                >
+                  <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-
-          <View style={styles.categoriesContainer}>
-            {CATEGORIES.map(category => (
-              <TouchableOpacity
-                key={category}
-                style={[
-                  getCategoryOptionStyle(newBlock.category === category),
-                  { backgroundColor: getCategoryColor(category) },
-                ]}
-                onPress={() => setNewBlock({...newBlock, category})}
-              >
-                <Text style={styles.categoryText}>{category}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={cancelAdding}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.saveButton, !newBlock.title.trim() && styles.disabledButton]}
-              onPress={addTimeBlock}
-              disabled={!newBlock.title.trim()}
-            >
-              <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {(showTimePicker.start || showTimePicker.end) && (
-        <DateTimePicker
-          value={showTimePicker.id
-            ? showTimePicker.start
-              ? timeBlocks.find(b => b.id === showTimePicker.id)?.startTime || new Date()
-              : timeBlocks.find(b => b.id === showTimePicker.id)?.endTime || new Date()
-            : showTimePicker.start
-              ? newBlock.startTime
-              : newBlock.endTime}
-          mode="time"
-          display="default"
-          onChange={(event, date) => onTimeChange(event, date, showTimePicker.start ? 'start' : 'end', showTimePicker.id || undefined)}
-        />
-      )}
+          )}
+          {(showTimePicker.start || showTimePicker.end) && (
+            <DateTimePicker
+              value={showTimePicker.id
+                ? showTimePicker.start
+                  ? timeBlocks.find(b => b.id === showTimePicker.id)?.startTime || new Date()
+                  : timeBlocks.find(b => b.id === showTimePicker.id)?.endTime || new Date()
+                : showTimePicker.start
+                  ? newBlock.startTime
+                  : newBlock.endTime}
+              mode="time"
+              display="default"
+              onChange={(event, date) => onTimeChange(event, date, showTimePicker.start ? 'start' : 'end', showTimePicker.id || undefined)}
+            />
+          )}
+        </>
+      ) : null}
     </JournalCard>
   );
 };
@@ -256,20 +256,22 @@ export const TimeBlock: React.FC = () => {
 const styles = StyleSheet.create({
   timeBlocksContainer: {
     maxHeight: 200,
-    marginBottom: 8,
+    marginBottom: 0,
+    padding: 0,
   },
   timeBlockItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
     backgroundColor: Colors.hopeWhite,
     borderRadius: 8,
     padding: 12,
+    marginBottom: 8,
   },
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
+    minWidth: 100,
   },
   timeButton: {
     padding: 4,
@@ -278,6 +280,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     color: Colors.darkGray,
     fontSize: 14,
+    minWidth: 40,
   },
   timeSeparator: {
     marginHorizontal: 4,
@@ -310,7 +313,7 @@ const styles = StyleSheet.create({
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 0,
   },
   input: {
     backgroundColor: Colors.hopeWhite,
@@ -336,7 +339,7 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 8,
+    marginTop: 0,
   },
   categoryOption: {
     paddingHorizontal: 10,
@@ -347,11 +350,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   emptyText: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    marginVertical: 8,
+    display: 'none',
   },
   flexTwo: {
     flex: 2,

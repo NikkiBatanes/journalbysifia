@@ -56,7 +56,7 @@ export const GratitudeList: React.FC = () => {
     <JournalCard
       icon="heart-circle-outline"
       title="Gratitude List"
-      subtitle={`${gratitudeItems.length}/10 grateful things today`}
+      subtitle="Reflect on what you're thankful for"
       showAddButton={!isAdding && gratitudeItems.length < MAX_ITEMS}
       onAdd={startAdding}
       isAdding={isAdding}
@@ -87,11 +87,7 @@ export const GratitudeList: React.FC = () => {
             </View>
           ))}
         </ScrollView>
-      ) : (
-        <Text style={styles.emptyText}>List 3-10 things you're grateful for today</Text>
-      )}
-
-      {isAdding && gratitudeItems.length < MAX_ITEMS && (
+      ) : isAdding && gratitudeItems.length < MAX_ITEMS ? (
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
@@ -108,7 +104,8 @@ export const GratitudeList: React.FC = () => {
               : `You can add up to ${MAX_ITEMS} items`}
           </Text>
         </View>
-      )}
+      ) : null}
+
     </JournalCard>
   );
 };
@@ -163,11 +160,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
   },
   emptyText: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    marginVertical: 8,
+    display: 'none',
   },
   inputContainer: {
     marginTop: 8,

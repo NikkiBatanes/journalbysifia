@@ -57,9 +57,7 @@ export const JournalEntries: React.FC = () => {
     <JournalCard
       icon="document-text-outline"
       title="Journal Entries"
-      subtitle={`${entries.length} ${entries.length === 1 ? 'entry' : 'entries'} today`}
-      isExpanded={isExpanded}
-      onToggle={() => setIsExpanded(!isExpanded)}
+      subtitle="Capture your thoughts and reflections"
       showAddButton={!isAdding}
       onAdd={startNewEntry}
     >
@@ -73,25 +71,15 @@ export const JournalEntries: React.FC = () => {
                   onPress={() => removeEntry(entry.id)}
                   style={styles.removeButton}
                 >
-                  <Ionicons name="trash-outline" size={18} color={Colors.mediumGray} />
+                  <Ionicons name="close" size={18} color={Colors.mediumGray} />
                 </TouchableOpacity>
               </View>
-              <Text
-                style={styles.entryContent}
-                numberOfLines={3}
-                ellipsizeMode="tail"
-              >
-                {entry.content}
-              </Text>
+              <Text style={styles.entryContent}>{entry.content}</Text>
               <Text style={styles.entryDate}>{formatDate(entry.date)}</Text>
             </View>
           ))}
         </ScrollView>
-      ) : !isAdding ? (
-        <Text style={styles.emptyText}>No entries yet. Tap + to add your first entry</Text>
-      ) : null}
-
-      {(isExpanded && isAdding) && (
+      ) : isAdding ? (
         <View style={styles.addForm}>
           <TextInput
             style={styles.input}
@@ -127,7 +115,8 @@ export const JournalEntries: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-      )}
+      ) : null}
+
     </JournalCard>
   );
 };
@@ -170,11 +159,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   emptyText: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    marginVertical: 8,
+    display: 'none',
   },
   removeButton: {
     padding: 4,
