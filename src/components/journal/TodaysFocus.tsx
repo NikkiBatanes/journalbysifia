@@ -95,6 +95,7 @@ export const TodaysFocus: React.FC = () => {
             <View style={styles.buttonRow}>
               <TouchableOpacity
                 style={[styles.button, styles.saveButton, (!data.focus.trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton]}
+                activeOpacity={1}
                 onPress={toggleEditing}
                 disabled={!data.focus.trim() && data.priorities.every(p => !p.text.trim())}
               >
@@ -118,6 +119,7 @@ export const TodaysFocus: React.FC = () => {
                       <TouchableOpacity
                         key={priority.id}
                         style={styles.priorityItem}
+                        activeOpacity={1}
                         onPress={() => togglePriority(index)}
                       >
                         <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
@@ -257,13 +259,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)', // Match input background
+    backgroundColor: '#ebeef2', // Match todo items background
     borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
     minHeight: 40,
     borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)', // Match input border
+    borderColor: 'rgba(26, 60, 109, 0.15)',
   },
   priorityRow: {
     flexDirection: 'row',

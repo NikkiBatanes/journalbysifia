@@ -12,9 +12,11 @@ interface SwipeableTodoItemProps {
     id: string;
     text: string;
     completed: boolean;
+    priority?: boolean;
   };
-  onToggle: (id: string) => void;
+  onToggle: (id: string, isPriority?: boolean) => void;
   onDelete: (id: string) => void;
+  onLongPress?: (id: string) => void;
   children: React.ReactNode;
 }
 
@@ -93,23 +95,40 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
         Vibration.vibrate(10);
       }}
     >
-      <View style={styles.todoItem}>
-        <TouchableOpacity
-          onPress={() => {
-            onToggle(item.id);
-            closeSwipeable();
-          }}
-          style={[
-            styles.checkbox,
-            item.completed && styles.checkboxCompleted,
-          ]}
-        >
-          {item.completed && (
-            <Check size={10} color={Colors.hopeWhite} strokeWidth={2.5} />
+      <TouchableOpacity 
+        style={styles.todoItem}
+        activeOpacity={1}
+        onPress={() => {
+          onToggle(item.id);
+          closeSwipeable();
+        }}
+        onLongPress={() => {
+          if (!item.completed) {
+            onToggle(item.id, true);
+          }
+        }}
+      >
+        <View style={styles.checkboxContainer}>
+          <View
+            style={[
+              styles.checkbox,
+              item.completed && styles.checkboxCompleted,
+            ]}
+          >
+            {item.completed && (
+              <Check size={10} color={Colors.hopeWhite} strokeWidth={2.5} />
+            )}
+          </View>
+        </View>
+        <View style={styles.textContainer}>
+          {children}
+          {item.priority && (
+            <View style={styles.priorityIndicator}>
+              <Ionicons name="star" size={12} color={Colors.alertCoral} />
+            </View>
           )}
-        </TouchableOpacity>
-        {children}
-      </View>
+        </View>
+      </TouchableOpacity>
     </Swipeable>
   );
 });
@@ -133,6 +152,20 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(26, 60, 109, 0.15)',
     position: 'relative',
     zIndex: 1,
+    opacity: 1,
+  },
+  textContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  checkboxContainer: {
+    position: 'relative',
+    marginRight: 10,
+  },
+  priorityIndicator: {
+    marginLeft: 8,
   },
   todoText: {
     flex: 1,
@@ -151,7 +184,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(176, 184, 193, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
   },
   checkboxCompleted: {
     backgroundColor: Colors.growthGreen,
