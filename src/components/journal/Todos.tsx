@@ -375,8 +375,8 @@ export const Todos: React.FC = () => {
                 onPress={handleAddInput}
                 style={[styles.button, styles.addAnotherButton]}
               >
-                <View style={styles.plusIcon}>
-                  <Ionicons name="close" size={16} color={Colors.alertCoral} />
+                <View style={[styles.plusIcon, { transform: [{ rotate: '45deg' }] }]}>
+                  <Ionicons name="close" size={13} color={Colors.alertCoral} style={{ fontWeight: 'bold' }} />
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -520,29 +520,44 @@ const styles = StyleSheet.create({
   buttonGroup: {
     flexDirection: 'row',
     gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   button: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    display: 'flex',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   addAnotherButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
+    width: 24,
+    height: 24,
+    shadowOpacity: 0,
+    elevation: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
   },
   disabledButton: {
     opacity: 0.5,
   },
   plusIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+    display: 'flex',
   },
 });
