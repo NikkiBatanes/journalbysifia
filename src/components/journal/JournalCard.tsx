@@ -14,6 +14,7 @@ interface JournalCardProps {
   onAdd?: () => void;
   isAdding?: boolean;
   onCancelAdd?: () => void;
+  headerRight?: React.ReactNode;
 }
 
 export const JournalCard: React.FC<JournalCardProps> = ({
@@ -25,6 +26,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   onAdd,
   isAdding = false,
   onCancelAdd,
+  headerRight,
 }) => {
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
@@ -86,11 +88,14 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           </View>
         </View>
-        {showAddButton && onAdd && !isAdding && (
-          <TouchableOpacity onPress={onAdd} style={styles.addButton}>
-            <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
-          </TouchableOpacity>
-        )}
+        <View style={styles.headerActions}>
+          {headerRight}
+          {showAddButton && onAdd && !isAdding && (
+            <TouchableOpacity onPress={onAdd} style={styles.addButton}>
+              <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
+            </TouchableOpacity>
+          )}
+        </View>
         {isAdding && onCancelAdd && (
           <TouchableOpacity onPress={onCancelAdd} style={styles.cancelButton}>
             <Ionicons name="close" size={18} color={`${Colors.alertCoral}CC`} />
@@ -149,13 +154,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 12,
+    paddingBottom: 8,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 8,
   },
   icon: {
     marginRight: 10,

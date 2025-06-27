@@ -18,6 +18,7 @@ export const Todos: React.FC = () => {
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [visibleCount, setVisibleCount] = useState<number>(5);
+  const [showCompletedAtBottom, setShowCompletedAtBottom] = useState(false);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
 
   const closeAllSwipeables = () => {
@@ -57,9 +58,19 @@ export const Todos: React.FC = () => {
   };
 
   const toggleTodo = (id: string) => {
-    setTodos(todos.map(todo =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+    setTodos(todos.map(todo => {
+      if (todo.id === id) {
+        // When toggling to completed, add a timestamp
+        const completed = !todo.completed;
+        return {
+          ...todo,
+          completed,
+          // @ts-ignore - Adding completedAt when marking as completed
+          completedAt: completed ? Date.now() : undefined
+        };
+      }
+      return todo;
+    }));
     setVisibleCount(5);
   };
 
@@ -68,7 +79,33 @@ export const Todos: React.FC = () => {
     setVisibleCount(5);
   };
 
-  const visibleTodos = isAdding ? todos : todos.slice(0, visibleCount);
+  const sortedTodos = React.useMemo(() => {
+    if (!showCompletedAtBottom) return [...todos];
+    
+    const completed: (TodoItem & { completedAt?: number })[] = [];
+    const notCompleted: TodoItem[] = [];
+    const now = Date.now();
+    
+    // First pass: separate completed and not completed
+    todos.forEach(todo => {
+      if (todo.completed) {
+        completed.push({
+          ...todo,
+          // @ts-ignore - Adding completedAt property to track completion time
+          completedAt: todo.completedAt || now
+        });
+      } else {
+        notCompleted.push(todo);
+      }
+    });
+    
+    // Sort completed items by completion time (oldest first)
+    completed.sort((a, b) => (a.completedAt || 0) - (b.completedAt || 0));
+    
+    return [...notCompleted, ...completed];
+  }, [todos, showCompletedAtBottom]);
+
+  const visibleTodos = isAdding ? sortedTodos : sortedTodos.slice(0, visibleCount);
   const hasMore = !isAdding && todos.length > visibleCount;
   const showLessOption = !isAdding && visibleCount > 5;
 
@@ -91,6 +128,19 @@ export const Todos: React.FC = () => {
       onAdd={startAdding}
       isAdding={isAdding}
       onCancelAdd={cancelAdding}
+      headerRight={todos.some(t => t.completed) ? (
+        <TouchableOpacity
+          onPress={() => setShowCompletedAtBottom(!showCompletedAtBottom)}
+          style={styles.sortButton}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons
+            name="filter"
+            size={16}
+            color={showCompletedAtBottom ? Colors.alertCoral : Colors.mediumGray}
+          />
+        </TouchableOpacity>
+      ) : undefined}
     >
       <View style={styles.todosContainer}>
         {visibleTodos.map((item) => (
@@ -250,6 +300,10 @@ const styles = StyleSheet.create({
   },
   showLessText: {
     color: Colors.mediumGray,
+  },
+  sortButton: {
+    marginLeft: 4,
+    padding: 2,
   },
 
   // Todo item styles
