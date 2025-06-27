@@ -23,6 +23,7 @@ export type JournalScreenRef = {
 };
 
 const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const lastSelectedDate = useRef<Date | null>(null);
 
@@ -49,10 +50,19 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(new Date().getDay());
   const [activeTab, setActiveTab] = useState<TabType>('journal');
 
+  // Track if we've handled the initial scroll
+  const hasInitializedScroll = useRef(false);
+
   // Reset to Journal tab when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      setActiveTab('journal');
+      setActiveTab(prevTab => prevTab === 'journal' ? prevTab : 'journal');
+      // Only reset scroll position if we haven't initialized yet
+      if (!hasInitializedScroll.current) {
+        const today = new Date();
+        setCurrentDate(today);
+        hasInitializedScroll.current = true;
+      }
     }, [])
   );
   // Unused state variable - keeping for potential future use
@@ -64,63 +74,76 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const scrollX = React.useRef(6 * screenWidth); // Start at the middle week
   // Day width is used for calculations but not directly in rendering
 
+  // Removed separate month tracking
+
+  // Generate weeks based on the current month being viewed
   useEffect(() => {
     const generateWeeks = () => {
       const weeksArray: Date[][] = [];
-      const now = new Date();
-
-      // Add previous weeks
-      for (let i = -4; i < 0; i++) {
-        const weekStart = startOfWeek(addWeeks(now, i));
+      
+      // Get the first day of the current month
+      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      // Get the last day of the current month
+      const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      
+      // Get the first day to show (previous Sunday from the 1st of the month)
+      let currentWeekStart = startOfWeek(firstDayOfMonth);
+      
+      // Generate 6 weeks to ensure we have enough weeks to display
+      for (let i = 0; i < 6; i++) {
         const week: Date[] = [];
+        // Generate 7 days for this week
         for (let j = 0; j < 7; j++) {
-          week.push(addDays(weekStart, j));
+          week.push(addDays(currentWeekStart, j));
         }
         weeksArray.push(week);
+        
+        // Move to next week
+        currentWeekStart = addWeeks(currentWeekStart, 1);
       }
-
-      // Add current week
-      const currentWeekStart = startOfWeek(now);
-      const currentWeek: Date[] = [];
-      for (let i = 0; i < 7; i++) {
-        currentWeek.push(addDays(currentWeekStart, i));
-      }
-      weeksArray.push(currentWeek);
-
-      // Add next weeks
-      for (let i = 1; i <= 12; i++) {
-        const weekStart = startOfWeek(addWeeks(now, i));
-        const week: Date[] = [];
-        for (let j = 0; j < 7; j++) {
-          week.push(addDays(weekStart, j));
-        }
-        weeksArray.push(week);
-      }
-
+      
       return weeksArray;
     };
 
     setWeeks(generateWeeks());
-  }, []);
+  }, [currentDate.getMonth(), currentDate.getFullYear()]); // Only regenerate when month or year changes
 
-  // Auto-scroll to current week on mount and when weeks change
+  // Remove the separate month tracking since we'll use currentDate directly
+
+  // Store the current week index separately to maintain position
+  const currentWeekIndex = useRef<number>(0);
+  
+  // Update the current week index when currentDate changes
   useEffect(() => {
-    if (scrollViewRef.current && weeks.length > 0) {
-      // Find the index of the week containing currentDate
-      const weekIndex = weeks.findIndex(week =>
+    if (weeks.length > 0) {
+      const index = weeks.findIndex(week =>
         week.some(day => isSameDay(day, currentDate))
       );
+      if (index >= 0) {
+        currentWeekIndex.current = index;
+      }
+    }
+  }, [currentDate, weeks]);
 
-      if (weekIndex >= 0) {
-        const scrollTo = weekIndex * screenWidth;
-        // Only scroll if not already at the correct position
-        if (Math.abs(scrollX.current - scrollTo) > 1) {
+  // Handle scroll position when header expands/collapses
+  useEffect(() => {
+    if (scrollViewRef.current && weeks.length > 0 && hasInitializedScroll.current) {
+      const scrollTo = currentWeekIndex.current * screenWidth;
+      
+      // Small delay to ensure the layout is updated
+      setTimeout(() => {
+        if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({ x: scrollTo, animated: false });
           scrollX.current = scrollTo;
         }
-      }
+      }, 10);
     }
-  }, [weeks, currentDate, screenWidth]);
+  }, [isHeaderCollapsed, weeks, screenWidth]);
+
+  // Always keep selectedDayOfWeek in sync with currentDate
+  useEffect(() => {
+    setSelectedDayOfWeek(currentDate.getDay());
+  }, [currentDate]);
 
   // Track scroll position and update current date based on visible week
   const handleScroll = (event: any) => {
@@ -131,14 +154,12 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     // Calculate the current week index based on scroll position
     const weekIndex = Math.round(offsetX / screenWidth);
 
-    // Only update the date if we've scrolled to a new week
-    const currentWeekIndex = weeks.findIndex(week =>
-      week.some(day => isSameDay(day, currentDate))
-    );
-
-    if (weekIndex !== currentWeekIndex && weeks[weekIndex] && weeks[weekIndex][selectedDayOfWeek]) {
+    // Only update if we have valid week data
+    if (weeks[weekIndex] && weeks[weekIndex][selectedDayOfWeek]) {
       const targetDay = weeks[weekIndex][selectedDayOfWeek];
+      // Only update if the day is different to prevent unnecessary re-renders
       if (!isSameDay(targetDay, currentDate)) {
+        // Update the date immediately for better UX
         setCurrentDate(new Date(targetDay.getTime()));
       }
     }
@@ -158,21 +179,17 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     );
 
     if (weekIndex >= 0 && scrollViewRef.current) {
-      // Calculate the currently visible week index
-      const currentWeekIndex = Math.round(scrollX.current / screenWidth);
-
-      // Only scroll if the selected date is in a different week
-      if (weekIndex !== currentWeekIndex) {
+      const scrollTo = weekIndex * screenWidth;
+      // Only scroll if not already at the correct position
+      if (Math.abs(scrollX.current - scrollTo) > 1) {
         scrollViewRef.current.scrollTo({
-          x: weekIndex * screenWidth,
+          x: scrollTo,
           animated: true,
         });
-        // Update the scroll position ref
-        scrollX.current = weekIndex * screenWidth;
+        scrollX.current = scrollTo;
       }
     }
   };
-
   const renderHeader = () => (
     <View style={styles.header}>
       <View style={styles.headerContent}>
@@ -188,7 +205,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
           >
             <Ionicons
               name="calendar"
-              size={20}
+              size={16}
               color={viewMode === 'daily' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
             />
           </TouchableOpacity>
@@ -198,7 +215,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
           >
             <Ionicons
               name="calendar-outline"
-              size={20}
+              size={16}
               color={viewMode === 'weekly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
             />
           </TouchableOpacity>
@@ -208,7 +225,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
           >
             <Ionicons
               name="calendar-sharp"
-              size={20}
+              size={16}
               color={viewMode === 'monthly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
             />
           </TouchableOpacity>
@@ -300,19 +317,37 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     );
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'journal':
-        return (
-          <ScrollView
-            style={styles.tabContent}
-            contentContainerStyle={styles.scrollViewContent}
-          >
-            <View style={styles.componentSpacing}>
-              <TodaysFocus />
-            </View>
-            <View style={styles.componentSpacing}>
-              <Todos />
+  const handleContentScroll = useCallback((event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const newIsCollapsed = y > 40;
+    
+    // Only update if the collapsed state actually changes
+    if (newIsCollapsed !== isHeaderCollapsed) {
+      // Save the current scroll position before updating
+      const currentScrollX = scrollX.current;
+      setIsHeaderCollapsed(newIsCollapsed);
+      
+      // Restore the horizontal scroll position after state update
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          scrollViewRef.current.scrollTo({ x: currentScrollX, animated: false });
+        }
+      }, 10);
+    }
+  }, [isHeaderCollapsed]);
+
+const renderTabContent = () => {
+  switch (activeTab) {
+    case 'journal':
+      return (
+        <ScrollView
+          style={styles.tabContent}
+          contentContainerStyle={styles.scrollViewContent}
+          onScroll={handleContentScroll}
+          scrollEventThrottle={16}
+        >
+          <View style={styles.componentSpacing}>
+            <TodaysFocus />
             </View>
             <View style={styles.componentSpacing}>
               <TimeBlock />
@@ -404,7 +439,84 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
 
   return (
     <View style={styles.container}>
-      {renderHeader()}
+      <View style={styles.header}>
+        <View style={[styles.monthYearContainer, styles.headerContent, {paddingBottom: isHeaderCollapsed ? 0 : 12}]}> 
+          <Text style={styles.monthYearText}>
+            {isHeaderCollapsed ? format(currentDate, 'MMMM d, yyyy') : format(currentDate, 'MMMM yyyy')}
+          </Text>
+          <View style={styles.viewModeContainer}>
+            <TouchableOpacity
+              style={[styles.viewModeButton, viewMode === 'daily' && styles.activeViewMode]}
+              onPress={() => setViewMode('daily')}
+            >
+              <Ionicons
+                name="calendar"
+                size={16}
+                color={viewMode === 'daily' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.viewModeButton, viewMode === 'weekly' && styles.activeViewMode]}
+              onPress={() => setViewMode('weekly')}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={16}
+                color={viewMode === 'weekly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.viewModeButton, viewMode === 'monthly' && styles.activeViewMode]}
+              onPress={() => setViewMode('monthly')}
+            >
+              <Ionicons
+                name="calendar-sharp"
+                size={16}
+                color={viewMode === 'monthly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+        {!isHeaderCollapsed && (
+          <>
+            <View style={styles.daysHeader}>
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
+                const firstDayOfWeek = startOfWeek(currentDate);
+                const dayDate = addDays(firstDayOfWeek, index);
+                const isCurrentDay = isToday(dayDate);
+                const displayText = isCurrentDay ? 'TODAY' : day;
+                return (
+                  <View key={index} style={styles.dayNameContainer}>
+                    <Text style={[
+                      styles.dayName,
+                      isCurrentDay && styles.todayText,
+                    ]}>
+                      {displayText}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+            <View style={styles.scrollContainer}>
+              <ScrollView
+                ref={scrollViewRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.weeksContainer}
+                snapToInterval={screenWidth}
+                snapToAlignment="start"
+                decelerationRate="fast"
+                pagingEnabled
+                onMomentumScrollEnd={handleScroll}
+                onScrollBeginDrag={() => {}}
+                scrollEventThrottle={16}
+              >
+                {weeks.map((week, index) => renderWeek(week, index))}
+              </ScrollView>
+            </View>
+          </>
+        )}
+      </View>
       {renderTabBar()}
       <View style={styles.content}>
         {renderTabContent()}
@@ -471,9 +583,9 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   viewModeButton: {
-    padding: 8,
-    borderRadius: 16,
-    marginHorizontal: 2,
+    padding: 6,
+    borderRadius: 14,
+    marginHorizontal: 1,
   },
   activeViewMode: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -488,42 +600,49 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
   monthYearContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 6, // Match the padding of the days header
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     backgroundColor: Colors.anchorBlue,
   },
-  monthYearText: {
-    fontSize: 18,
+  collapsedDateText: {
     fontFamily: Fonts.bold,
-    fontWeight: '600',
+    fontSize: 16,
     color: Colors.hopeWhite,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    marginRight: 12,
+  },
+  monthYearText: {
+    fontSize: 16,
+    fontFamily: Fonts.bold,
+    color: Colors.hopeWhite,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0.5, height: 0.5 },
+    textShadowRadius: 1,
   },
   daysHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: Colors.anchorBlue,
   },
   dayNameContainer: {
-    width: 40,
+    width: 36,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dayName: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: Fonts.medium,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     width: '100%',
+    letterSpacing: 0.2,
   },
   todayText: {
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-    fontSize: 10,
+    fontSize: 9,
+    letterSpacing: 0.2,
   },
   weeksContainer: {
     flexDirection: 'row',
@@ -535,9 +654,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   dayContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 0,
@@ -555,7 +674,7 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontFamily: Fonts.medium,
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite,
   },
   currentDayText: {
