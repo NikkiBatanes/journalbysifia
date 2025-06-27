@@ -114,6 +114,33 @@ export const ReflectionLog: React.FC = () => {
     </Modal>
   );
 
+  // Render entries in a list
+  const renderEntries = () => (
+    <ScrollView style={styles.entriesContainer}>
+      {entries.length === 0 ? (
+        <Text style={styles.emptyText}>No reflections yet. Tap + to add one.</Text>
+      ) : (
+        entries.map(entry => (
+          <View 
+            key={entry.id} 
+            style={[
+              styles.entryCard,
+              entry.type === 'guided' && styles.guidedEntry
+            ]}
+          >
+            {entry.type === 'guided' && entry.prompt && (
+              <Text style={styles.promptText}>{entry.prompt}</Text>
+            )}
+            <Text style={styles.entryContent}>{entry.content}</Text>
+            <Text style={styles.entryDate}>
+              {formatDate(entry.date)}
+            </Text>
+          </View>
+        ))
+      )}
+    </ScrollView>
+  );
+
   return (
     <JournalCard
       icon={
@@ -124,7 +151,7 @@ export const ReflectionLog: React.FC = () => {
         />
       }
       title="Reflection Log"
-      subtitle={viewMode === 'free-form' ? 'Record your thoughts' : 'Reflect with guidance'}
+      subtitle={isAdding ? (viewMode === 'free-form' ? 'Record your thoughts' : 'Reflect with guidance') : 'Your reflections'}
       showAddButton={!isAdding}
       isAdding={isAdding}
       onAdd={() => {
@@ -136,42 +163,25 @@ export const ReflectionLog: React.FC = () => {
         setNewEntry({ title: '', content: '' });
       }}
     >
-      {/* Toggle between modes */}
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity
-          style={[styles.toggleButton, viewMode === 'free-form' && styles.activeToggle]}
-          onPress={() => setViewMode('free-form')}
-        >
-          <Text style={styles.toggleText}>Free Form</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.toggleButton, viewMode === 'guided' && styles.activeToggle]}
-          onPress={() => setViewMode('guided')}
-        >
-          <Sparkles size={16} color={viewMode === 'guided' ? Colors.alertCoral : Colors.mediumGray} />
-          <Text style={[styles.toggleText, { marginLeft: 4 }]}>Guided</Text>
-        </TouchableOpacity>
-      </View>
-
-      {viewMode === 'free-form' ? (
-        // Free form entries
+      {isAdding ? (
         <>
-          {entries.filter(e => e.type === 'free-form').map(entry => (
-            <View key={entry.id} style={styles.entryCard}>
-              <View style={styles.entryHeader}>
-                <Text style={styles.entryTitle} numberOfLines={1}>{entry.title}</Text>
-                <TouchableOpacity onPress={() => removeEntry(entry.id)}>
-                  <Ionicons name="close" size={20} color={Colors.mediumGray} />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.entryContent}>{entry.content}</Text>
-              <Text style={styles.entryDate}>
-                {new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </Text>
-            </View>
-          ))}
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              style={[styles.toggleButton, viewMode === 'free-form' && styles.activeToggle]}
+              onPress={() => setViewMode('free-form')}
+            >
+              <Text style={styles.toggleText}>Free Form</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleButton, viewMode === 'guided' && styles.activeToggle]}
+              onPress={() => setViewMode('guided')}
+            >
+              <Sparkles size={16} color={viewMode === 'guided' ? Colors.alertCoral : Colors.mediumGray} />
+              <Text style={[styles.toggleText, { marginLeft: 4 }]}>Guided</Text>
+            </TouchableOpacity>
+          </View>
 
-          {isAdding && (
+          {viewMode === 'free-form' ? (
             <View style={styles.addForm}>
               <TextInput
                 style={styles.input}
@@ -197,9 +207,49 @@ export const ReflectionLog: React.FC = () => {
                   ]}
                   onPress={() => addEntry({
                     ...newEntry,
-                    type: 'free-form'
+                    type: 'free-form',
+                    title: newEntry.title.trim() || 'Untitled Reflection'
                   })}
                   disabled={!newEntry.title.trim() || !newEntry.content.trim()}
+                >
+                  <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.addForm}>
+              <View style={styles.promptSelector}>
+                <Text style={styles.promptLabel}>Reflection Prompt:</Text>
+                <TouchableOpacity 
+                  style={styles.pickerContainer}
+                  onPress={() => setShowPromptPicker(true)}
+                >
+                  <Text style={styles.selectedPrompt} numberOfLines={1}>{selectedPrompt}</Text>
+                  <Ionicons name="chevron-down" size={16} color={Colors.mediumGray} />
+                </TouchableOpacity>
+              </View>
+              <TextInput
+                style={[styles.input, styles.guidedInput]}
+                placeholder="Write your reflection..."
+                multiline
+                value={newEntry.content}
+                onChangeText={text => setNewEntry({...newEntry, content: text})}
+                placeholderTextColor={Colors.mediumGray}
+              />
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.button, 
+                    styles.saveButton,
+                    !newEntry.content.trim() && styles.disabledButton
+                  ]}
+                  onPress={() => addEntry({
+                    title: `Reflection: ${selectedPrompt.substring(0, 30)}...`,
+                    content: newEntry.content,
+                    type: 'guided',
+                    prompt: selectedPrompt
+                  })}
+                  disabled={!newEntry.content.trim()}
                 >
                   <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
                 </TouchableOpacity>
@@ -208,70 +258,33 @@ export const ReflectionLog: React.FC = () => {
           )}
         </>
       ) : (
-        // Guided reflection
-        <>
-          <View style={styles.promptSelector}>
-            <Text style={styles.promptLabel}>Reflection Prompt:</Text>
-            <TouchableOpacity 
-              style={styles.pickerContainer}
-              onPress={() => setShowPromptPicker(true)}
-            >
-              <Text style={styles.selectedPrompt} numberOfLines={1}>{selectedPrompt}</Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.mediumGray} />
-            </TouchableOpacity>
-          </View>
-
-          <TextInput
-            style={[styles.input, styles.guidedInput]}
-            placeholder="Write your reflection..."
-            multiline
-            value={newEntry.content}
-            onChangeText={text => setNewEntry({...newEntry, content: text})}
-            placeholderTextColor={Colors.mediumGray}
-          />
-
-          <View style={styles.buttonRow}>
-            <TouchableOpacity 
-              style={[styles.button, styles.cancelButton]}
-              onPress={() => setIsAdding(false)}
-            >
-              <Ionicons name="close" size={20} color={Colors.mediumGray} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.button, 
-                styles.saveButton,
-                !newEntry.content.trim() && styles.disabledButton
-              ]}
-              onPress={() => addEntry({
-                title: `Reflection: ${selectedPrompt.substring(0, 30)}...`,
-                content: newEntry.content,
-                type: 'guided',
-                prompt: selectedPrompt
-              })}
-              disabled={!newEntry.content.trim()}
-            >
-              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-            </TouchableOpacity>
-          </View>
-
-          {entries
-            .filter(e => e.type === 'guided')
-            .map(entry => (
-              <View key={entry.id} style={[styles.entryCard, styles.guidedEntry]}>
-                <Text style={styles.promptText}>{entry.prompt}</Text>
+        // Display all entries in a list
+        <ScrollView style={styles.entriesContainer}>
+          {entries.length === 0 ? (
+            <Text style={styles.emptyText}>No reflections yet. Tap + to add one.</Text>
+          ) : (
+            entries.map(entry => (
+              <View 
+                key={entry.id} 
+                style={[
+                  styles.entryCard,
+                  entry.type === 'guided' && styles.guidedEntry
+                ]}
+              >
+                {entry.type === 'guided' && entry.prompt && (
+                  <Text style={styles.promptText}>{entry.prompt}</Text>
+                )}
+                {entry.type === 'free-form' && entry.title && (
+                  <Text style={styles.entryTitle} numberOfLines={1}>{entry.title}</Text>
+                )}
                 <Text style={styles.entryContent}>{entry.content}</Text>
-                <View style={styles.entryFooter}>
-                  <Text style={styles.entryDate}>
-                    {new Date(entry.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Text>
-                  <TouchableOpacity onPress={() => removeEntry(entry.id)}>
-                    <Ionicons name="close" size={16} color={Colors.mediumGray} />
-                  </TouchableOpacity>
-                </View>
+                <Text style={styles.entryDate}>
+                  {formatDate(entry.date)}
+                </Text>
               </View>
-            ))}
-        </>
+            ))
+          )}
+        </ScrollView>
       )}
       {renderPromptPicker()}
     </JournalCard>
@@ -320,6 +333,11 @@ const styles = StyleSheet.create({
     borderLeftColor: Colors.anchorBlue,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 1,
   },
   guidedEntry: {
     borderLeftColor: Colors.alertCoral,
