@@ -4,6 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Check } from 'lucide-react-native';
 
 interface GratitudeItem {
   id: string;
@@ -98,6 +99,19 @@ export const GratitudeList: React.FC = () => {
             onSubmitEditing={addGratitudeItem}
             returnKeyType="done"
           />
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              onPress={addGratitudeItem}
+              style={[
+                styles.button,
+                styles.saveButton,
+                !newItem.trim() && styles.disabledButton,
+              ]}
+              disabled={!newItem.trim()}
+            >
+              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.hintText}>
             {gratitudeItems.length < 3
               ? `Add ${3 - gratitudeItems.length} more to complete your gratitude practice`
@@ -118,11 +132,15 @@ const styles = StyleSheet.create({
   gratitudeItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    marginBottom: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 40,
     position: 'relative',
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
   },
   itemNumber: {
     width: 24,
@@ -166,14 +184,38 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   input: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    flex: 1,
+    height: 40,
     fontFamily: Fonts.regular,
+    fontSize: 13,
     color: Colors.darkGray,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
     marginBottom: 4,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    padding: 0,
+  },
+  button: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  saveButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   hintText: {
     fontFamily: Fonts.regular,

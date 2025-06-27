@@ -109,15 +109,15 @@ const styles = StyleSheet.create({
     // Option 1: Subtle Blue (lightest)
     backgroundColor: 'rgba(26, 60, 109, 0.03)', // 3% opacity of anchorBlue
     borderColor: 'rgba(26, 60, 109, 0.1)', // 10% opacity of anchorBlue
-    
+
     // Option 2: Medium Blue (balanced)
     // backgroundColor: 'rgba(26, 60, 109, 0.05)', // 5% opacity of anchorBlue
     // borderColor: 'rgba(26, 60, 109, 0.15)', // 15% opacity of anchorBlue
-    
+
     // Option 3: Rich Blue (most visible)
     // backgroundColor: 'rgba(26, 60, 109, 0.08)', // 8% opacity of anchorBlue
     // borderColor: 'rgba(26, 60, 109, 0.2)', // 20% opacity of anchorBlue
-    
+
     borderRadius: 8,
     borderWidth: 1,
     padding: 16,

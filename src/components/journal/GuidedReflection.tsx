@@ -4,6 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Check } from 'lucide-react-native';
 
 const REFLECTION_PROMPTS = [
   'What challenged me today and how did I respond?',
@@ -147,17 +148,11 @@ export const GuidedReflection: React.FC = () => {
           />
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={cancelAdding}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
               style={[styles.button, styles.saveButton, !response.trim() && styles.disabledButton]}
               onPress={addReflection}
               disabled={!response.trim()}
             >
-              <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
             </TouchableOpacity>
           </View>
         </View>
@@ -169,31 +164,19 @@ export const GuidedReflection: React.FC = () => {
 const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     marginTop: 12,
-    gap: 8,
+    padding: 0,
   },
   button: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    alignItems: 'center',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
-  },
-  buttonText: {
-    fontFamily: Fonts.medium,
-    fontSize: 14,
-  },
-  cancelButton: {
-    backgroundColor: Colors.hopeWhite,
-    borderWidth: 1,
-    borderColor: Colors.trustGrey,
+    alignItems: 'center',
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
-  },
-  saveButtonText: {
-    color: Colors.hopeWhite,
   },
   disabledButton: {
     opacity: 0.5,

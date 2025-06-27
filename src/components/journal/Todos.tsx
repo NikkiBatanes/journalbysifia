@@ -79,10 +79,10 @@ export const Todos: React.FC = () => {
     >
       <View style={styles.todosContainer}>
         {visibleTodos.map((item) => (
-          <SwipeableTodoItem 
+          <SwipeableTodoItem
             key={item.id}
-            item={item} 
-            onToggle={toggleTodo} 
+            item={item}
+            onToggle={toggleTodo}
             onDelete={removeTodo}
           >
             <Text
@@ -99,7 +99,7 @@ export const Todos: React.FC = () => {
           <View style={styles.paginationContainer}>
             <View style={styles.paginationButtonGroup}>
               {hasMore && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.paginationButton, styles.showMoreButton]}
                   onPress={loadMore}
                   activeOpacity={0.7}
@@ -111,7 +111,7 @@ export const Todos: React.FC = () => {
                 </TouchableOpacity>
               )}
               {showLessOption && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.paginationButton, styles.showLessButton]}
                   onPress={showLess}
                   activeOpacity={0.7}
@@ -141,7 +141,7 @@ export const Todos: React.FC = () => {
           </View>
           <View style={styles.buttonsRow}>
             <View style={styles.buttonGroup}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={handleAddInput}
                 style={[styles.button, styles.addAnotherButton]}
               >
@@ -149,18 +149,18 @@ export const Todos: React.FC = () => {
                   <Ionicons name="close" size={16} color={Colors.alertCoral} />
                 </View>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   if (newTodo.trim()) {
                     addTodo(newTodo);
                     setNewTodo('');
                     setIsAdding(false);
                   }
-                }} 
+                }}
                 style={[
-                  styles.button, 
-                  styles.saveButton, 
-                  !newTodo.trim() && styles.disabledButton
+                  styles.button,
+                  styles.saveButton,
+                  !newTodo.trim() && styles.disabledButton,
                 ]}
                 disabled={!newTodo.trim()}
               >
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   todosContainer: {
     width: '100%',
   },
-  
+
   // Pagination styles
   paginationContainer: {
     width: '100%',

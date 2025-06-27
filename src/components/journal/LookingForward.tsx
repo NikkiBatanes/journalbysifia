@@ -4,6 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Check } from 'lucide-react-native';
 
 interface LookingForwardEntry {
   id: string;
@@ -108,7 +109,7 @@ export const LookingForward: React.FC = () => {
               onPress={saveEntry}
               disabled={!entryText.trim()}
             >
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
             </TouchableOpacity>
           </View>
         </View>
@@ -121,10 +122,13 @@ const styles = StyleSheet.create({
   entryContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     justifyContent: 'space-between',
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -160,20 +164,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   input: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     fontFamily: Fonts.regular,
     color: Colors.darkGray,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
     minHeight: 80,
     textAlignVertical: 'top',
     marginBottom: 12,
+    fontSize: 13,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    marginTop: 8,
   },
   button: {
     paddingVertical: 8,
@@ -184,8 +191,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cancelButton: {
-    borderWidth: 1,
-    borderColor: Colors.mediumGray,
+    backgroundColor: 'transparent',
+    marginRight: 8,
+    width: 'auto',
+    height: 'auto',
+    paddingHorizontal: 12,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,

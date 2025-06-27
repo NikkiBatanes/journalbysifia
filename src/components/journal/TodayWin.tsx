@@ -4,6 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Check } from 'lucide-react-native';
 
 interface WinEntry {
   id: string;
@@ -101,7 +102,7 @@ export const TodayWin: React.FC = () => {
               style={[styles.button, styles.saveButton]}
               disabled={!winText.trim()}
             >
-              <Text style={styles.saveButtonText}>Save</Text>
+              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
             </TouchableOpacity>
           </View>
         </View>
@@ -114,10 +115,13 @@ const styles = StyleSheet.create({
   winContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     marginBottom: 0,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
   },
   winContent: {
     flex: 1,
@@ -150,7 +154,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 12,
-    gap: 8,
+    padding: 0,
   },
   emptyText: {
     fontFamily: Fonts.regular,
@@ -163,33 +167,36 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   input: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     fontFamily: Fonts.regular,
     color: Colors.darkGray,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
     minHeight: 80,
     textAlignVertical: 'top',
     marginBottom: 12,
-    fontSize: 14,
+    fontSize: 13,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
   },
   button: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginLeft: 8,
-    alignItems: 'center',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   cancelButton: {
-    borderWidth: 1,
-    borderColor: Colors.mediumGray,
+    backgroundColor: 'transparent',
+    marginRight: 8,
+    width: 'auto',
+    height: 'auto',
+    paddingHorizontal: 12,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
