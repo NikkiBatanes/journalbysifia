@@ -5,7 +5,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Check } from 'lucide-react-native';
+import { Check, CalendarClock as LuCalendarClock } from 'lucide-react-native';
 
 interface TimeBlockItem {
   id: string;
@@ -155,7 +155,13 @@ export const TimeBlock: React.FC = () => {
 
   return (
     <JournalCard
-      icon="time-outline"
+      icon={
+        <LuCalendarClock 
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Time Blocks"
       subtitle="Schedule your day efficiently"
       showAddButton={!isAdding}

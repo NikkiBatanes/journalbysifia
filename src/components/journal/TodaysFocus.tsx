@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native'; 
+import { Swipeable } from 'react-native-gesture-handler';
+import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
-import { Check, Target } from 'lucide-react-native';
+import { Check, Goal as LuGoal } from 'lucide-react-native';
 
 interface PriorityItem {
   id: string;
@@ -26,6 +28,7 @@ export const TodaysFocus: React.FC = () => {
     ],
   });
   const [isEditing, setIsEditing] = useState(false);
+  const swipeableRefs = useRef<{[key: string]: any}>({});
 
   const toggleEditing = () => {
     setIsEditing(!isEditing);
@@ -50,10 +53,35 @@ export const TodaysFocus: React.FC = () => {
     setData(prev => ({ ...prev, priorities: newPriorities }));
   };
 
+  const removePriority = (priorityId: string) => {
+    const priorityIndex = data.priorities.findIndex(p => p.id === priorityId);
+    if (priorityIndex === -1) return;
+    
+    const newPriorities = [...data.priorities];
+    newPriorities.splice(priorityIndex, 1);
+    
+    // Always maintain exactly 3 priorities
+    while (newPriorities.length < 3) {
+      newPriorities.push({ 
+        id: Date.now() + Math.random().toString(), 
+        text: '', 
+        completed: false 
+      });
+    }
+    
+    setData(prev => ({ ...prev, priorities: newPriorities }));
+  };
+
+  const closeAllSwipeables = () => {
+    Object.values(swipeableRefs.current).forEach(ref => {
+      if (ref?.close) { ref.close(); }
+    });
+  };
+
   return (
     <JournalCard
       icon={
-        <Target
+        <LuGoal
           size={24}
           color={Colors.alertCoral}
           strokeWidth={2.5}
@@ -79,12 +107,12 @@ export const TodaysFocus: React.FC = () => {
               autoFocus
             />
             <Text style={styles.sectionHeaderWithTopMargin}>TOP PRIORITIES</Text>
-            {[0, 1, 2].map((index) => (
-              <View key={index} style={styles.priorityRow}>
+            {data.priorities.map((priority, index) => (
+              <View key={priority.id} style={styles.priorityRow}>
                 <Text style={styles.priorityNumber}>{index + 1}.</Text>
                 <TextInput
                   style={[styles.input, styles.priorityInput]}
-                  value={data.priorities[index].text}
+                  value={priority.text}
                   onChangeText={(text) => updatePriority(index, text)}
                   placeholder={`Priority ${index + 1}`}
                   placeholderTextColor={Colors.mediumGray}
@@ -116,11 +144,23 @@ export const TodaysFocus: React.FC = () => {
                   {data.priorities
                     .filter(p => p.text.trim() !== '')
                     .map((priority, index) => (
-                      <TouchableOpacity
+                      <SwipeableTodoItem
                         key={priority.id}
-                        style={styles.priorityItem}
-                        activeOpacity={1}
-                        onPress={() => togglePriority(index)}
+                        item={{
+                          id: priority.id,
+                          text: priority.text,
+                          completed: priority.completed,
+                        }}
+                        onToggle={() => togglePriority(index)}
+                        onDelete={() => removePriority(priority.id)}
+                        hideCheckbox={true}
+                        ref={ref => {
+                          if (ref) {
+                            swipeableRefs.current[priority.id] = ref;
+                          } else {
+                            delete swipeableRefs.current[priority.id];
+                          }
+                        }}
                       >
                         <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
                           {priority.completed && (
@@ -134,7 +174,7 @@ export const TodaysFocus: React.FC = () => {
                           ]}>
                           {priority.text}
                         </Text>
-                      </TouchableOpacity>
+                      </SwipeableTodoItem>
                     ))}
                 </View>
               </View>
@@ -262,10 +302,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ebeef2', // Match todo items background
     borderRadius: 6,
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    minHeight: 40,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
   },
   priorityRow: {
     flexDirection: 'row',
@@ -303,6 +339,9 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginBottom: 4,
     height: 36, // Fixed height for priority inputs
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 6,
+    paddingHorizontal: 8,
   },
 
   // Button styles

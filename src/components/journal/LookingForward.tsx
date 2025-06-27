@@ -4,7 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check } from 'lucide-react-native';
+import { Check, Sunrise as LuSunrise } from 'lucide-react-native';
 
 interface LookingForwardEntry {
   id: string;
@@ -57,7 +57,13 @@ export const LookingForward: React.FC = () => {
 
   return (
     <JournalCard
-      icon="arrow-forward-outline"
+      icon={
+        <LuSunrise 
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Looking Forward To"
       subtitle="What are you excited about tomorrow?"
       showAddButton={!entry && !isAdding}

@@ -4,7 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check } from 'lucide-react-native';
+import { Check, HandHeart as LuHandHeart } from 'lucide-react-native';
 
 interface GratitudeItem {
   id: string;
@@ -55,7 +55,13 @@ export const GratitudeList: React.FC = () => {
 
   return (
     <JournalCard
-      icon="heart-circle-outline"
+      icon={
+        <LuHandHeart 
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Gratitude List"
       subtitle="Reflect on what you're thankful for"
       showAddButton={!isAdding && gratitudeItems.length < MAX_ITEMS}

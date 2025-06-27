@@ -4,7 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check } from 'lucide-react-native';
+import { Check, Trophy as LuTrophy } from 'lucide-react-native';
 
 interface WinEntry {
   id: string;
@@ -57,7 +57,13 @@ export const TodayWin: React.FC = () => {
 
   return (
     <JournalCard
-      icon="trophy-outline"
+      icon={
+        <LuTrophy 
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Today's Win"
       subtitle="Celebrate your daily victory"
       showAddButton={!win && !isAdding}

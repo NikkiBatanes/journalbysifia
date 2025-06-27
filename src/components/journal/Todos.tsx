@@ -4,7 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check } from 'lucide-react-native';
+import { Check, ListTodo as LuListTodo } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 
 interface TodoItem {
@@ -242,7 +242,13 @@ export const Todos: React.FC = () => {
 
   return (
     <JournalCard
-      icon="list-outline"
+      icon={
+        <LuListTodo 
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Todos"
       subtitle="Track your daily tasks"
       showAddButton={!isAdding}

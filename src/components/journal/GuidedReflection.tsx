@@ -4,7 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check } from 'lucide-react-native';
+import { Check, EyeClosed as LuEyeClosed } from 'lucide-react-native';
 
 const REFLECTION_PROMPTS = [
   'What challenged me today and how did I respond?',
@@ -72,7 +72,13 @@ export const GuidedReflection: React.FC = () => {
 
   return (
     <JournalCard
-      icon="book-outline"
+      icon={
+        <LuEyeClosed 
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Guided Reflection"
       subtitle="Reflect with prompts"
       showAddButton={!isAdding}

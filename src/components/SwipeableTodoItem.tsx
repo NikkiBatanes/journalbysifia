@@ -18,6 +18,7 @@ interface SwipeableTodoItemProps {
   onDelete: (id: string) => void;
   onLongPress?: (id: string) => void;
   children: React.ReactNode;
+  hideCheckbox?: boolean;
 }
 
 interface SwipeableRef {
@@ -29,6 +30,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   onToggle,
   onDelete,
   children,
+  hideCheckbox = false,
 }, ref) => {
   const swipeableRef = useRef<Swipeable>(null);
 
@@ -108,18 +110,20 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
           }
         }}
       >
-        <View style={styles.checkboxContainer}>
-          <View
-            style={[
-              styles.checkbox,
-              item.completed && styles.checkboxCompleted,
-            ]}
-          >
-            {item.completed && (
-              <Check size={10} color={Colors.hopeWhite} strokeWidth={2.5} />
-            )}
+        {!hideCheckbox && (
+          <View style={styles.checkboxContainer}>
+            <View
+              style={[
+                styles.checkbox,
+                item.completed && styles.checkboxCompleted,
+              ]}
+            >
+              {item.completed && (
+                <Check size={10} color={Colors.hopeWhite} strokeWidth={2.5} />
+              )}
+            </View>
           </View>
-        </View>
+        )}
         <View style={styles.textContainer}>
           {children}
           {item.priority && (

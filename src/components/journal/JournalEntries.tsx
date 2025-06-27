@@ -4,7 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check } from 'lucide-react-native';
+import { Check, NotebookPen as LuNotebookPen } from 'lucide-react-native';
 
 interface JournalEntry {
   id: string;
@@ -56,7 +56,13 @@ export const JournalEntries: React.FC = () => {
 
   return (
     <JournalCard
-      icon="document-text-outline"
+      icon={
+        <LuNotebookPen 
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Journal Entries"
       subtitle="Capture your thoughts and reflections"
       showAddButton={!isAdding}
