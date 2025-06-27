@@ -8,9 +8,9 @@ import { Fonts } from '../theme/fonts';
 import { TodaysFocus } from '../components/journal/TodaysFocus';
 import { Todos } from '../components/journal/Todos';
 import { TimeBlock } from '../components/journal/TimeBlock';
-import { GuidedReflection } from '../components/journal/GuidedReflection';
+
 import { GratitudeList } from '../components/journal/GratitudeList';
-import { JournalEntries } from '../components/journal/JournalEntries';
+import { ReflectionLog } from '../components/journal/ReflectionLog';
 import { TodayWin } from '../components/journal/TodayWin';
 import { LookingForward } from '../components/journal/LookingForward';
 
@@ -269,13 +269,10 @@ const renderTabContent = () => {
             <TimeBlock />
           </View>
           <View style={styles.componentSpacing}>
-            <GuidedReflection />
-          </View>
-          <View style={styles.componentSpacing}>
             <GratitudeList />
           </View>
           <View style={styles.componentSpacing}>
-            <JournalEntries />
+            <ReflectionLog />
           </View>
           <View style={styles.componentSpacing}>
             <TodayWin />
