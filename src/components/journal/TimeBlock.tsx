@@ -7,6 +7,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Check, CalendarClock as LuCalendarClock } from 'lucide-react-native';
 
+type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
+
 interface TimeBlockItem {
   id: string;
   title: string;
@@ -14,7 +16,13 @@ interface TimeBlockItem {
   endTime: Date;
   category: string;
   notes?: string;
+  location?: string;
   isAllDay: boolean;
+  repeat: {
+    frequency: RepeatFrequency;
+    endDate?: Date;
+    customDays?: number[]; // For custom repeat
+  };
 }
 
 const CATEGORIES = [
@@ -42,25 +50,48 @@ export const TimeBlock: React.FC = () => {
   const [timeBlocks, setTimeBlocks] = useState<TimeBlockItem[]>([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
+  const [showRepeatOptions, setShowRepeatOptions] = useState(false);
+  const [showEndRepeatOptions, setShowEndRepeatOptions] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [newBlock, setNewBlock] = useState<{
     title: string;
     startTime: Date;
     endTime: Date;
     category: string;
     notes: string;
+    location: string;
     isAllDay: boolean;
+    repeat: {
+      frequency: RepeatFrequency;
+      endDate?: Date;
+      customDays?: number[];
+    };
   }>({
     title: '',
     startTime: new Date(),
     endTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour later
     category: CATEGORIES[0],
     notes: '',
+    location: '',
     isAllDay: false,
+    repeat: {
+      frequency: 'never',
+      endDate: undefined,
+      customDays: [],
+    },
   });
 
   const addTimeBlock = () => {
     if (newBlock.title.trim()) {
-      setTimeBlocks([...timeBlocks, { ...newBlock, id: Date.now().toString() }]);
+      setTimeBlocks([...timeBlocks, { 
+        ...newBlock, 
+        id: Date.now().toString(),
+        repeat: {
+          frequency: newBlock.repeat.frequency,
+          endDate: newBlock.repeat.endDate,
+          customDays: newBlock.repeat.customDays || []
+        }
+      }]);
       setIsAdding(false);
     }
   };
@@ -73,7 +104,13 @@ export const TimeBlock: React.FC = () => {
       endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
       category: CATEGORIES[0],
       notes: '',
+      location: '',
       isAllDay: false,
+      repeat: {
+        frequency: 'never',
+        endDate: undefined,
+        customDays: [],
+      },
     });
   };
 
@@ -221,6 +258,7 @@ export const TimeBlock: React.FC = () => {
           )}
           {isAdding && (
             <View style={styles.addBlockContainer}>
+              {/* 1. Time Range / All Day */}
               <View style={styles.editTimeContainer}>
                 <View style={styles.editTimeRow}>
                   {newBlock.isAllDay ? (
@@ -256,27 +294,189 @@ export const TimeBlock: React.FC = () => {
                 </View>
               </View>
 
+              {/* 2. Activity Title */}
               <View style={styles.inputContainer}>
                 <TextInput
                   style={[styles.input, styles.fullWidth]}
                   value={newBlock.title}
                   onChangeText={(text) => setNewBlock({...newBlock, title: text})}
-                  placeholder="Activity title"
+                  placeholder="Title"
                   placeholderTextColor={Colors.mediumGray}
                 />
-                <View style={styles.categorySelectorContainer}>
-                  <TouchableOpacity 
-                    style={[styles.categorySelector, { backgroundColor: getCategoryColor(newBlock.category) }]}
-                    onPress={() => setShowCategoryPicker(true)}
-                  >
-                    <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode="tail">
-                      {newBlock.category}
-                    </Text>
-                    <Ionicons name="chevron-down" size={16} color={Colors.darkGray} />
-                  </TouchableOpacity>
-                </View>
               </View>
 
+              {/* 3. Location */}
+              <View style={styles.locationContainer}>
+                <Ionicons 
+                  name="location-outline" 
+                  size={18} 
+                  color={Colors.darkGray} 
+                  style={styles.locationIcon} 
+                />
+                <TextInput
+                  style={[styles.input, styles.locationInput]}
+                  value={newBlock.location}
+                  onChangeText={(text) => setNewBlock({...newBlock, location: text})}
+                  placeholder="Add location (optional)"
+                  placeholderTextColor={Colors.mediumGray}
+                />
+              </View>
+
+              {/* 4. Category */}
+              <View style={styles.categorySelectorContainer}>
+                <TouchableOpacity 
+                  style={[styles.categorySelector, { backgroundColor: getCategoryColor(newBlock.category) }]}
+                  onPress={() => setShowCategoryPicker(true)}
+                >
+                  <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode="tail">
+                    {newBlock.category}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color={Colors.darkGray} />
+                </TouchableOpacity>
+              </View>
+
+              {/* 5. Repeat Options */}
+              <View style={styles.repeatContainer}>
+                <TouchableOpacity 
+                  style={styles.repeatButton}
+                  onPress={() => setShowRepeatOptions(!showRepeatOptions)}
+                >
+                  <Ionicons 
+                    name="repeat-outline" 
+                    size={18} 
+                    color={Colors.darkGray} 
+                    style={styles.repeatIcon} 
+                  />
+                  <Text style={styles.repeatText}>
+                    {newBlock.repeat.frequency === 'never' ? 'Does not repeat' : 
+                     `Repeats ${newBlock.repeat.frequency}${newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}`}
+                  </Text>
+                  <Ionicons 
+                    name={showRepeatOptions ? 'chevron-up' : 'chevron-down'} 
+                    size={16} 
+                    color={Colors.darkGray} 
+                  />
+                </TouchableOpacity>
+
+                {showRepeatOptions && (
+                  <View style={styles.repeatOptions}>
+                    {['never', 'daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'custom'].map((freq) => (
+                      <TouchableOpacity
+                        key={freq}
+                        style={[
+                          styles.repeatOption,
+                          newBlock.repeat.frequency === freq && styles.selectedRepeatOption
+                        ]}
+                        onPress={() => {
+                          const newFrequency = freq as RepeatFrequency;
+                          const updatedBlock = {
+                            ...newBlock,
+                            repeat: {
+                              ...newBlock.repeat,
+                              frequency: newFrequency,
+                              ...(newFrequency === 'never' && { endDate: undefined })
+                            }
+                          };
+                          setNewBlock(updatedBlock);
+                          if (newFrequency !== 'custom') {
+                            setShowRepeatOptions(false);
+                          }
+                        }}
+                      >
+                        <Text style={styles.repeatOptionText}>
+                          {freq === 'never' ? 'Never' :
+                           freq === 'daily' ? 'Every Day' :
+                           freq === 'weekly' ? 'Every Week' :
+                           freq === 'biweekly' ? 'Every 2 Weeks' :
+                           freq === 'monthly' ? 'Every Month' :
+                           freq === 'yearly' ? 'Every Year' : 'Custom...'}
+                        </Text>
+                        {newBlock.repeat.frequency === freq && (
+                          <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                {/* End Repeat Options */}
+                {newBlock.repeat.frequency !== 'never' && (
+                  <View style={styles.endRepeatContainer}>
+                    <Text style={styles.endRepeatLabel}>End Repeat:</Text>
+                    <View style={styles.endRepeatOptions}>
+                      <TouchableOpacity 
+                        style={[
+                          styles.endRepeatOption,
+                          !newBlock.repeat.endDate && styles.selectedEndRepeatOption
+                        ]}
+                        onPress={() => {
+                          setNewBlock({
+                            ...newBlock,
+                            repeat: {
+                              ...newBlock.repeat,
+                              endDate: undefined
+                            }
+                          });
+                        }}
+                      >
+                        <Text style={styles.endRepeatOptionText}>Never</Text>
+                        {!newBlock.repeat.endDate && (
+                          <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                        )}
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[
+                          styles.endRepeatOption,
+                          newBlock.repeat.endDate && styles.selectedEndRepeatOption
+                        ]}
+                        onPress={() => {
+                          setShowEndDatePicker(true);
+                          // Don't set a default date, just show the picker
+                        }}
+                      >
+                        <Text style={styles.endRepeatOptionText}>
+                          {newBlock.repeat.endDate 
+                            ? newBlock.repeat.endDate.toLocaleDateString() 
+                            : 'Select Date'}
+                        </Text>
+                        {newBlock.repeat.endDate && (
+                          <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                    {showEndDatePicker && (
+                      <View style={styles.datePickerContainer}>
+                        <DateTimePicker
+                          value={newBlock.repeat.endDate || new Date()}
+                          mode="date"
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            setShowEndDatePicker(false);
+                            if (selectedDate) {
+                              setNewBlock({
+                                ...newBlock,
+                                repeat: {
+                                  ...newBlock.repeat,
+                                  endDate: selectedDate
+                                }
+                              });
+                            }
+                          }}
+                          minimumDate={new Date()}
+                        />
+                        <TouchableOpacity 
+                          style={styles.cancelDateButton}
+                          onPress={() => setShowEndDatePicker(false)}
+                        >
+                          <Text style={styles.cancelDateButtonText}>Cancel</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              {/* 6. Notes */}
               <TextInput
                 style={[styles.input, styles.notesInput]}
                 value={newBlock.notes}
@@ -285,6 +485,7 @@ export const TimeBlock: React.FC = () => {
                 placeholderTextColor={Colors.mediumGray}
                 multiline
                 numberOfLines={2}
+                textAlignVertical="top"
               />
 
               {/* Category Picker Modal */}
@@ -359,13 +560,118 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 0,
   },
-  inputContainer: {
-    marginBottom: 10,
-    marginTop: 4,
+  repeatContainer: {
+    marginBottom: 8,
   },
-  input: {
+  repeatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+    minHeight: 40,
+  },
+  repeatIcon: {
+    marginRight: 8,
+  },
+  repeatText: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    fontSize: 14,
+  },
+  repeatOptions: {
+    marginTop: 2,
     backgroundColor: Colors.hopeWhite,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+    overflow: 'hidden',
+  },
+  repeatOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26, 60, 109, 0.1)',
+  },
+  selectedRepeatOption: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  repeatOptionText: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    fontSize: 14,
+  },
+  endRepeatContainer: {
+    marginTop: 4,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+  },
+  endRepeatLabel: {
+    fontFamily: Fonts.medium,
+    color: Colors.darkGray,
+    fontSize: 13,
+    marginBottom: 8,
+  },
+  endRepeatOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  endRepeatOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 10,
+    marginHorizontal: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  selectedEndRepeatOption: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 107, 0.3)',
+  },
+  endRepeatOptionText: {
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    fontSize: 13,
+  },
+  datePickerContainer: {
+    marginTop: 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+  },
+  cancelDateButton: {
+    marginTop: 10,
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: '#f0f0f0',
+  },
+  cancelDateButtonText: {
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+  },
+  inputContainer: {
+    marginBottom: 8,
+  },
+  editTimeContainer: {
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
     fontFamily: Fonts.regular,
@@ -373,25 +679,61 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
     minHeight: 40,
+    fontSize: 13,
+    lineHeight: 18,
   },
   notesInput: {
     minHeight: 60,
     textAlignVertical: 'top',
-    marginTop: 6,
-    marginBottom: 6,
+    marginBottom: 8,
     fontSize: 13,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 6,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
-    padding: 10,
+    padding: 8,
+    paddingTop: 8,
+    lineHeight: 18,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+    paddingLeft: 12,
+    paddingRight: 8,
+    height: 40,
+    overflow: 'hidden',
+  },
+  locationIcon: {
+    marginRight: 8,
+    width: 18,
+    height: 18,
+    textAlign: 'center',
+  },
+  locationInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    margin: 0,
+    padding: 0,
+    paddingVertical: 0,
+    height: '100%',
+    fontSize: 13,
+    lineHeight: 18,
+    paddingTop: 0,
+    paddingBottom: 0,
+    marginTop: 0,
+    marginBottom: 0,
   },
   fullWidth: {
     width: '100%',
   },
   categorySelectorContainer: {
-    marginTop: 10,
-    marginBottom: 4,
+    marginBottom: 8,
     width: '100%',
   },
   addBlockContainer: {
@@ -418,10 +760,6 @@ const styles = StyleSheet.create({
   },
   timeRangeContainer: {
     flexDirection: 'column',
-  },
-  editTimeContainer: {
-    width: '100%',
-    marginBottom: 12,
   },
   editTimeRow: {
     flexDirection: 'row',
@@ -545,7 +883,6 @@ const styles = StyleSheet.create({
     flex: 2,
   },
   categorySelector: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -554,13 +891,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     minHeight: 40,
   },
   categoriesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginTop: 0,
+    marginTop: 16,
   },
   categoryOption: {
     paddingHorizontal: 10,
@@ -573,19 +909,18 @@ const styles = StyleSheet.create({
     display: 'none',
   },
   flexTwo: {
-    flex: 2,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
+    padding: 20,
   },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
   },
   modalContent: {
     backgroundColor: 'white',
