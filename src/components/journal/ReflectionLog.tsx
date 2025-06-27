@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, Dimensions } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -53,45 +53,26 @@ export const ReflectionLog: React.FC = () => {
   const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
 
-  const addEntry = (entry: Omit<ReflectionLogEntry, 'id' | 'date'>) => {
-    const newEntry = {
-      ...entry,
+  const addEntry = (entryData: Omit<ReflectionLogEntry, 'id' | 'date'>) => {
+    const entryWithId = {
+      ...entryData,
       id: Date.now().toString(),
       date: new Date(),
-      tags: entry.tags || [],
+      tags: entryData.tags || [],
     };
-    setEntries([newEntry, ...entries]);
+    setEntries([entryWithId, ...entries]);
     setNewEntry({ title: '', content: '', tags: [] });
     setTagInput('');
     setIsAdding(false);
   };
 
-  const removeEntry = (id: string) => {
-    setEntries(entries.filter(entry => entry.id !== id));
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const startNewEntry = () => {
-    if (isAdding) {return;}
-    setNewEntry({ title: '', content: '', tags: [] });
-    setTagInput('');
-    setIsAdding(true);
-  };
+  // Removed unused functions: removeEntry, formatDate, startNewEntry
 
   const handleAddTag = () => {
     if (tagInput.trim() && !newEntry.tags.includes(tagInput.trim())) {
       setNewEntry(prev => ({
         ...prev,
-        tags: [...(prev.tags || []), tagInput.trim()]
+        tags: [...(prev.tags || []), tagInput.trim()],
       }));
       setTagInput('');
     }
@@ -100,7 +81,7 @@ export const ReflectionLog: React.FC = () => {
   const removeTag = (tagToRemove: string) => {
     setNewEntry(prev => ({
       ...prev,
-      tags: (prev.tags || []).filter(tag => tag !== tagToRemove)
+      tags: (prev.tags || []).filter(tag => tag !== tagToRemove),
     }));
   };
 
@@ -125,7 +106,7 @@ export const ReflectionLog: React.FC = () => {
                 key={index}
                 style={[
                   styles.promptOption,
-                  prompt === selectedPrompt && styles.selectedPromptOption
+                  prompt === selectedPrompt && styles.selectedPromptOption,
                 ]}
                 onPress={() => {
                   setSelectedPrompt(prompt);
@@ -177,11 +158,11 @@ export const ReflectionLog: React.FC = () => {
   };
 
   const renderEntryCard = (entry: ReflectionLogEntry) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       key={entry.id}
       style={[
         styles.entryCard,
-        entry.type === 'guided' ? styles.guidedEntry : styles.freeFormEntry
+        entry.type === 'guided' ? styles.guidedEntry : styles.freeFormEntry,
       ]}
       onPress={() => handleEntryPress(entry)}
       activeOpacity={0.8}
@@ -208,9 +189,9 @@ export const ReflectionLog: React.FC = () => {
       {entry.type === 'guided' && entry.prompt ? (
         <Text style={styles.promptText}>{entry.prompt}</Text>
       ) : entry.title ? (
-        <Text style={[styles.promptText, { fontStyle: 'normal' }]}>{entry.title}</Text>
+        <Text style={[styles.promptText, styles.normalTitleText]}>{entry.title}</Text>
       ) : null}
-      <Text 
+      <Text
         style={styles.entryContent}
         numberOfLines={3}
         ellipsizeMode="tail"
@@ -233,7 +214,7 @@ export const ReflectionLog: React.FC = () => {
     if (entries.length === 0) {
       return null; // Return nothing for empty state
     }
-    
+
     return (
       <>
         <View style={styles.entriesContainer}>
@@ -273,7 +254,7 @@ export const ReflectionLog: React.FC = () => {
             </View>
           </View>
         )}
-        
+
         {/* Entry Detail Modal */}
         <Modal
           visible={showEntryModal}
@@ -283,22 +264,22 @@ export const ReflectionLog: React.FC = () => {
           onRequestClose={() => setShowEntryModal(false)}
         >
           <View style={styles.modalOverlay}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalOverlayTouchable}
               activeOpacity={1}
               onPress={() => setShowEntryModal(false)}
             />
             <View style={styles.modalContainer}>
               <View style={styles.modalHandle} />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.closeButton}
                 onPress={() => setShowEntryModal(false)}
               >
                 <X size={24} color={Colors.mediumGray} />
               </TouchableOpacity>
-              
+
               {selectedEntry && (
-                <ScrollView 
+                <ScrollView
                   style={styles.modalContent}
                   contentContainerStyle={styles.modalContentContainer}
                   showsVerticalScrollIndicator={true}
@@ -306,7 +287,7 @@ export const ReflectionLog: React.FC = () => {
                   <View style={[
                     styles.entryCard,
                     styles.modalEntryCard,
-                    selectedEntry.type === 'guided' ? styles.guidedEntry : styles.freeFormEntry
+                    selectedEntry.type === 'guided' ? styles.guidedEntry : styles.freeFormEntry,
                   ]}>
                     {selectedEntry.type === 'guided' && selectedEntry.prompt ? (
                       <View style={styles.guidedPromptRow}>
@@ -314,10 +295,10 @@ export const ReflectionLog: React.FC = () => {
                           <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
                         </View>
                         <Text style={styles.timeText}>
-                          {new Date(selectedEntry.date).toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
-                            minute: '2-digit', 
-                            hour12: true 
+                          {new Date(selectedEntry.date).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
                           })}
                         </Text>
                       </View>
@@ -327,31 +308,31 @@ export const ReflectionLog: React.FC = () => {
                           <Text style={styles.freeFormPromptText}>FREE FORM</Text>
                         </View>
                         <Text style={styles.timeText}>
-                          {new Date(selectedEntry.date).toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
-                            minute: '2-digit', 
-                            hour12: true 
+                          {new Date(selectedEntry.date).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
                           })}
                         </Text>
                       </View>
                     )}
-                    
+
                     {selectedEntry.type === 'guided' && selectedEntry.prompt && (
                       <Text style={[styles.promptText, styles.modalPromptText]}>
                         {selectedEntry.prompt}
                       </Text>
                     )}
-                    
+
                     {selectedEntry.title && (
-                      <Text style={[styles.modalTitle, selectedEntry.type !== 'guided' && { fontStyle: 'normal' }]}>
+                      <Text style={[styles.modalTitle, selectedEntry.type !== 'guided' && styles.normalTitleText]}>
                         {selectedEntry.title}
                       </Text>
                     )}
-                    
+
                     <Text style={styles.modalContentText}>
                       {selectedEntry.content}
                     </Text>
-                    
+
                     {selectedEntry.tags && selectedEntry.tags.length > 0 && (
                       <View style={styles.tagsContainer}>
                         {selectedEntry.tags.map((tag, index) => (
@@ -361,7 +342,7 @@ export const ReflectionLog: React.FC = () => {
                         ))}
                       </View>
                     )}
-                    
+
                     {selectedEntry.location && (
                       <View style={styles.locationContainer}>
                         <Ionicons name="location-outline" size={16} color={Colors.mediumGray} />
@@ -416,7 +397,7 @@ export const ReflectionLog: React.FC = () => {
               onPress={() => setViewMode('guided')}
             >
               <Sparkles size={16} color={viewMode === 'guided' ? Colors.alertCoral : Colors.mediumGray} />
-              <Text style={[styles.toggleText, { marginLeft: 4 }]}>Guided</Text>
+              <Text style={[styles.toggleText, styles.toggleTextWithMargin]}>Guided</Text>
             </TouchableOpacity>
           </View>
 
@@ -464,14 +445,14 @@ export const ReflectionLog: React.FC = () => {
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={[
-                    styles.button, 
+                    styles.button,
                     styles.saveButton,
-                    (!newEntry.title.trim() || !newEntry.content.trim()) && styles.disabledButton
+                    (!newEntry.title.trim() || !newEntry.content.trim()) && styles.disabledButton,
                   ]}
                   onPress={() => addEntry({
                     ...newEntry,
                     type: 'free-form',
-                    title: newEntry.title.trim() || 'Untitled Reflection'
+                    title: newEntry.title.trim() || 'Untitled Reflection',
                   })}
                   disabled={!newEntry.title.trim() || !newEntry.content.trim()}
                 >
@@ -483,7 +464,7 @@ export const ReflectionLog: React.FC = () => {
             <View style={styles.addForm}>
               <View style={styles.promptSelector}>
                 <Text style={styles.promptLabel}>Reflection Prompt:</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.pickerContainer}
                   onPress={() => setShowPromptPicker(true)}
                 >
@@ -526,15 +507,15 @@ export const ReflectionLog: React.FC = () => {
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={[
-                    styles.button, 
+                    styles.button,
                     styles.saveButton,
-                    !newEntry.content.trim() && styles.disabledButton
+                    !newEntry.content.trim() && styles.disabledButton,
                   ]}
                   onPress={() => addEntry({
                     title: `Reflection: ${selectedPrompt.substring(0, 30)}...`,
                     content: newEntry.content,
                     type: 'guided',
-                    prompt: selectedPrompt
+                    prompt: selectedPrompt,
                   })}
                   disabled={!newEntry.content.trim()}
                 >
@@ -703,6 +684,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     marginBottom: 4,
     height: 20,
+  },
+  // Text styles for entry titles
+  normalTitleText: {
+    fontStyle: 'normal',
+  },
+  // Toggle text with left margin
+  toggleTextWithMargin: {
+    marginLeft: 4,
   },
   // Tag text style - defined once and used throughout the component
   tagText: {
@@ -989,7 +978,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   // Tags container for the modal view
-  tagsContainer: {
+  modalTagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginTop: 8,
