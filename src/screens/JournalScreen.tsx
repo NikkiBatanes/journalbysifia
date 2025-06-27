@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
   },
   componentSpacing: {
-    marginBottom: 16,
+    marginBottom: 10,  // Reduced from 16 to 10 for tighter spacing
   },
   tabBar: {
     flexDirection: 'row',
@@ -558,8 +558,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 30,
+    paddingTop: 20,
     paddingBottom: 80, // Add extra padding at the bottom to prevent content from being hidden behind tab bar
   },
   tabText: {
