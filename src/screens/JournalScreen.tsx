@@ -348,25 +348,28 @@ const renderTabContent = () => {
         >
           <View style={styles.componentSpacing}>
             <TodaysFocus />
-            </View>
-            <View style={styles.componentSpacing}>
-              <TimeBlock />
-            </View>
-            <View style={styles.componentSpacing}>
-              <GuidedReflection />
-            </View>
-            <View style={styles.componentSpacing}>
-              <GratitudeList />
-            </View>
-            <View style={styles.componentSpacing}>
-              <JournalEntries />
-            </View>
-            <View style={styles.componentSpacing}>
-              <TodayWin />
-            </View>
-            <View style={styles.componentSpacing}>
-              <LookingForward />
-            </View>
+          </View>
+          <View style={styles.componentSpacing}>
+            <Todos />
+          </View>
+          <View style={styles.componentSpacing}>
+            <TimeBlock />
+          </View>
+          <View style={styles.componentSpacing}>
+            <GuidedReflection />
+          </View>
+          <View style={styles.componentSpacing}>
+            <GratitudeList />
+          </View>
+          <View style={styles.componentSpacing}>
+            <JournalEntries />
+          </View>
+          <View style={styles.componentSpacing}>
+            <TodayWin />
+          </View>
+          <View style={styles.componentSpacing}>
+            <LookingForward />
+          </View>
           </ScrollView>
         );
       case 'schedule':
@@ -555,7 +558,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
     paddingBottom: 80, // Add extra padding at the bottom to prevent content from being hidden behind tab bar
   },
   tabText: {
@@ -710,7 +714,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
   },
   scrollContainer: {
     width: '100%',
