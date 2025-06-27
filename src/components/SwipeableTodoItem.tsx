@@ -68,7 +68,7 @@ export const SwipeableTodoItem: React.FC<SwipeableTodoItemProps> = ({
           }}
           style={[
             styles.checkbox,
-            item.completed && styles.checkboxCompleted
+            item.completed && styles.checkboxCompleted,
           ]}
         >
           {item.completed && (

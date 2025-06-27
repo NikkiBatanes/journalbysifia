@@ -5,6 +5,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Check } from 'lucide-react-native';
 
 interface TimeBlockItem {
   id: string;
@@ -218,17 +219,11 @@ export const TimeBlock: React.FC = () => {
 
               <View style={styles.buttonRow}>
                 <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
-                  onPress={cancelAdding}
-                >
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
                   style={[styles.button, styles.saveButton, !newBlock.title.trim() && styles.disabledButton]}
                   onPress={addTimeBlock}
                   disabled={!newBlock.title.trim()}
                 >
-                  <Text style={[styles.buttonText, styles.saveButtonText]}>Save</Text>
+                  <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -262,10 +257,14 @@ const styles = StyleSheet.create({
   timeBlockItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+    minHeight: 40,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -316,14 +315,18 @@ const styles = StyleSheet.create({
     marginTop: 0,
   },
   input: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     fontFamily: Fonts.regular,
+    fontSize: 13,
     color: Colors.darkGray,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
     marginRight: 8,
+    minHeight: 40,
+    flex: 2,
   },
   categorySelector: {
     flex: 1,
@@ -331,10 +334,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    minHeight: 40,
   },
   categoriesContainer: {
     flexDirection: 'row',
@@ -359,29 +364,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 12,
-    gap: 8,
+    padding: 0,
   },
   button: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    alignItems: 'center',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
-  },
-  buttonText: {
-    fontFamily: Fonts.medium,
-    fontSize: 14,
-  },
-  cancelButton: {
-    backgroundColor: Colors.hopeWhite,
-    borderWidth: 1,
-    borderColor: Colors.trustGrey,
+    alignItems: 'center',
+    marginLeft: 8,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
-  },
-  saveButtonText: {
-    color: Colors.hopeWhite,
   },
   disabledButton: {
     opacity: 0.5,

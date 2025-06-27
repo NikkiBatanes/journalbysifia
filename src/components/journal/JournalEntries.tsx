@@ -4,6 +4,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Check } from 'lucide-react-native';
 
 interface JournalEntry {
   id: string;
@@ -97,13 +98,7 @@ export const JournalEntries: React.FC = () => {
             multiline
             textAlignVertical="top"
           />
-          <View style={styles.formButtons}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={() => setIsAdding(false)}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
+          <View style={styles.buttonRow}>
             <TouchableOpacity
               style={[styles.button, styles.saveButton,
                 (!newEntry.title.trim() || !newEntry.content.trim()) && styles.disabledButton,
@@ -111,7 +106,7 @@ export const JournalEntries: React.FC = () => {
               onPress={addEntry}
               disabled={!newEntry.title.trim() || !newEntry.content.trim()}
             >
-              <Text style={styles.saveButtonText}>Save Entry</Text>
+              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
             </TouchableOpacity>
           </View>
         </View>
@@ -127,10 +122,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   entryCard: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
     padding: 12,
     marginBottom: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
   },
   entryHeader: {
     flexDirection: 'row',
@@ -168,47 +165,40 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   input: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
     padding: 12,
     fontFamily: Fonts.regular,
+    fontSize: 13,
     color: Colors.darkGray,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
     marginBottom: 12,
+    minHeight: 40,
   },
   contentInput: {
     minHeight: 120,
     textAlignVertical: 'top',
+    paddingTop: 12,
   },
-  formButtons: {
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+    marginTop: 12,
+    padding: 0,
   },
   button: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginLeft: 8,
-    alignItems: 'center',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
-  },
-  cancelButton: {
-    borderWidth: 1,
-    borderColor: Colors.mediumGray,
+    alignItems: 'center',
+    marginLeft: 8,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
   },
   disabledButton: {
     opacity: 0.5,
-  },
-  cancelButtonText: {
-    color: Colors.darkGray,
-    fontFamily: Fonts.medium,
-  },
-  saveButtonText: {
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
   },
 });
