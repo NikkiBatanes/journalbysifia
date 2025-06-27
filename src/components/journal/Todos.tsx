@@ -18,12 +18,23 @@ export const Todos: React.FC = () => {
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [visibleCount, setVisibleCount] = useState<number>(5);
+  const swipeableRefs = React.useRef<{[key: string]: any}>({});
+
+  const closeAllSwipeables = () => {
+    Object.values(swipeableRefs.current).forEach(ref => {
+      if (ref?.close) {ref.close();}
+    });
+  };
 
   const startAdding = () => {
+    closeAllSwipeables();
+    setVisibleCount(5);
     setIsAdding(true);
   };
 
   const cancelAdding = () => {
+    closeAllSwipeables();
+    setVisibleCount(5);
     setIsAdding(false);
     setNewTodo('');
   };
@@ -38,6 +49,7 @@ export const Todos: React.FC = () => {
 
   const handleAddInput = () => {
     if (newTodo.trim()) {
+      closeAllSwipeables();
       addTodo(newTodo);
       setNewTodo('');
       setVisibleCount(5);
@@ -48,6 +60,7 @@ export const Todos: React.FC = () => {
     setTodos(todos.map(todo =>
       todo.id === id ? { ...todo, completed: !todo.completed } : todo
     ));
+    setVisibleCount(5);
   };
 
   const removeTodo = (id: string) => {
@@ -60,10 +73,12 @@ export const Todos: React.FC = () => {
   const showLessOption = !isAdding && visibleCount > 5;
 
   const loadMore = () => {
+    closeAllSwipeables();
     setVisibleCount((prev: number) => Math.min(prev + 5, todos.length));
   };
 
   const showLess = () => {
+    closeAllSwipeables();
     setVisibleCount(5);
   };
 
@@ -82,8 +97,18 @@ export const Todos: React.FC = () => {
           <SwipeableTodoItem
             key={item.id}
             item={item}
-            onToggle={toggleTodo}
+            onToggle={(id) => {
+              closeAllSwipeables();
+              toggleTodo(id);
+            }}
             onDelete={removeTodo}
+            ref={ref => {
+              if (ref) {
+                swipeableRefs.current[item.id] = ref;
+              } else {
+                delete swipeableRefs.current[item.id];
+              }
+            }}
           >
             <Text
               style={[
@@ -152,6 +177,7 @@ export const Todos: React.FC = () => {
               <TouchableOpacity
                 onPress={() => {
                   if (newTodo.trim()) {
+                    closeAllSwipeables();
                     addTodo(newTodo);
                     setNewTodo('');
                     setIsAdding(false);

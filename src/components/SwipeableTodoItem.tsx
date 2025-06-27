@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { TouchableOpacity } from 'react-native';
@@ -18,12 +18,16 @@ interface SwipeableTodoItemProps {
   children: React.ReactNode;
 }
 
-export const SwipeableTodoItem: React.FC<SwipeableTodoItemProps> = ({
+interface SwipeableRef {
+  close: () => void;
+}
+
+export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps>(({
   item,
   onToggle,
   onDelete,
   children,
-}) => {
+}, ref) => {
   const swipeableRef = useRef<Swipeable>(null);
 
   const closeSwipeable = useCallback(() => {
@@ -31,34 +35,63 @@ export const SwipeableTodoItem: React.FC<SwipeableTodoItemProps> = ({
   }, []);
 
   const renderRightActions = (progress: any, dragX: any) => {
-    const trans = dragX.interpolate({
-      inputRange: [0, 50, 100, 101],
-      outputRange: [0, 0, 0, 1],
+    const scale = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [1, 0.8],
+      extrapolate: 'clamp',
     });
+
+    const opacity = dragX.interpolate({
+      inputRange: [-100, -20, 0],
+      outputRange: [1, 0.9, 0],
+      extrapolate: 'clamp',
+    });
+
+    const handleDelete = () => {
+      closeSwipeable();
+      // Small delay to allow the swipeable to close before deleting
+      setTimeout(() => onDelete(item.id), 200);
+    };
 
     return (
       <Animated.View
         style={[
           styles.deleteButton,
           {
-            transform: [{ translateX: trans }],
+            opacity,
+            transform: [{ scale }],
           },
         ]}
       >
-        <View style={styles.deleteButtonContent}>
-          <Ionicons name="trash-outline" size={20} color="white" />
-        </View>
+        <TouchableOpacity
+          onPress={handleDelete}
+          style={styles.deleteButtonContent}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={22} color="white" />
+        </TouchableOpacity>
       </Animated.View>
     );
   };
+
+  // Forward the ref to the Swipeable component
+  useImperativeHandle(ref, () => ({
+    close: () => swipeableRef.current?.close(),
+  }));
 
   return (
     <Swipeable
       ref={swipeableRef}
       renderRightActions={renderRightActions}
-      onSwipeableRightOpen={() => onDelete(item.id)}
-      rightThreshold={40}
+      rightThreshold={20}
       containerStyle={styles.swipeableContainer}
+      overshootRight={false}
+      friction={3}
+      enableTrackpadTwoFingerGesture
+      onSwipeableWillOpen={() => {
+        const { Vibration } = require('react-native');
+        Vibration.vibrate(10);
+      }}
     >
       <View style={styles.todoItem}>
         <TouchableOpacity
@@ -79,24 +112,27 @@ export const SwipeableTodoItem: React.FC<SwipeableTodoItemProps> = ({
       </View>
     </Swipeable>
   );
-};
+});
 
 const styles = StyleSheet.create({
   swipeableContainer: {
     marginBottom: 4,
     borderRadius: 6,
     overflow: 'hidden',
+    backgroundColor: '#f87171',
   },
   todoItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#ebeef2',
     borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
     minHeight: 40,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
+    position: 'relative',
+    zIndex: 1,
   },
   todoText: {
     flex: 1,
@@ -122,19 +158,19 @@ const styles = StyleSheet.create({
     borderColor: Colors.growthGreen,
   },
   deleteButton: {
-    backgroundColor: Colors.alertCoral,
+    width: 80, // Slightly wider for better touch target
+    backgroundColor: '#f87171',
     justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingRight: 20,
-    borderRadius: 6,
-    marginLeft: 10,
+    alignItems: 'center',
     height: '100%',
+    paddingLeft: 10, // Push content to the right to center in visible area
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
+    marginLeft: -10, // Pull the button to the left to maintain alignment
   },
   deleteButtonContent: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    width: 60, // Fixed width to center the icon
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
