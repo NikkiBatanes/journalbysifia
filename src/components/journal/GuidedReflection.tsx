@@ -73,7 +73,7 @@ export const GuidedReflection: React.FC = () => {
   return (
     <JournalCard
       icon={
-        <LuEyeClosed 
+        <LuEyeClosed
           size={24}
           color={Colors.alertCoral}
           strokeWidth={2.5}

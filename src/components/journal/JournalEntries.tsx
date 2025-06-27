@@ -57,7 +57,7 @@ export const JournalEntries: React.FC = () => {
   return (
     <JournalCard
       icon={
-        <LuNotebookPen 
+        <LuNotebookPen
           size={24}
           color={Colors.alertCoral}
           strokeWidth={2.5}

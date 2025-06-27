@@ -46,11 +46,11 @@ export const Todos: React.FC = () => {
 
   const addTodo = (value: string) => {
     if (value.trim()) {
-      setTodos([...todos, { 
-        id: Date.now().toString(), 
-        text: value, 
+      setTodos([...todos, {
+        id: Date.now().toString(),
+        text: value,
         completed: false,
-        priority: false
+        priority: false,
       }]);
       return true;
     }
@@ -80,8 +80,8 @@ export const Todos: React.FC = () => {
 
   // Automatically turn off filters when they become irrelevant
   useEffect(() => {
-    if (todos.length === 0) return;
-    
+    if (todos.length === 0) {return;}
+
     // Only handle non-priority completion cases here
     // Priority completion is now handled in toggleTodo
     if (showOnlyPriorities) {
@@ -94,12 +94,12 @@ export const Todos: React.FC = () => {
         return () => clearTimeout(timer);
       }
     }
-    
+
     // Turn off completed filter when all items are completed or no items are completed
     if (showCompletedAtBottom && (todos.every(t => t.completed) || todos.every(t => !t.completed))) {
       setShowCompletedAtBottom(false);
     }
-  }, [todos, showCompletedAtBottom]);
+  }, [todos, showCompletedAtBottom, showOnlyPriorities]);
 
   // Clear recently completed items after a delay
   useEffect(() => {
@@ -115,14 +115,14 @@ export const Todos: React.FC = () => {
     setTodos(prevTodos => {
       const todoToUpdate = prevTodos.find(t => t.id === id);
       const isCompletingPriority = !isPriorityToggle && todoToUpdate?.priority && !todoToUpdate.completed;
-      
+
       // First update the todo's completed state
       const updatedTodos = prevTodos.map(todo => {
         if (todo.id === id) {
           if (isPriorityToggle) {
             return {
               ...todo,
-              priority: !todo.priority
+              priority: !todo.priority,
             };
           } else {
             const completed = !todo.completed;
@@ -131,7 +131,7 @@ export const Todos: React.FC = () => {
               completed,
               completedAt: completed ? Date.now() : undefined,
               // Keep priority initially when marking as completed (we'll clear it after delay)
-              priority: todo.priority
+              priority: todo.priority,
             };
           }
         }
@@ -142,28 +142,28 @@ export const Todos: React.FC = () => {
       if (isCompletingPriority) {
         // Add to recentlyCompleted to keep it visible
         setRecentlyCompleted(prev => ({ ...prev, [id]: true }));
-        
+
         // After delay, remove priority and check if we should turn off the filter
         setTimeout(() => {
           setTodos(currentTodos => {
             // First remove the priority from the completed item
-            const todosWithoutPriority = currentTodos.map(t => 
+            const todosWithoutPriority = currentTodos.map(t =>
               t.id === id ? { ...t, priority: false } : t
             );
-            
+
             // Check if there are any remaining uncompleted priorities
             const hasUncompletedPriorities = todosWithoutPriority.some(
               t => t.priority && !t.completed
             );
-            
+
             // If no more uncompleted priorities, turn off the filter
             if (!hasUncompletedPriorities) {
               setShowOnlyPriorities(false);
             }
-            
+
             return todosWithoutPriority;
           });
-          
+
           // Clear from recentlyCompleted
           setRecentlyCompleted(prev => {
             const newState = {...prev};
@@ -172,7 +172,7 @@ export const Todos: React.FC = () => {
           });
         }, 300);
       }
-      
+
       return updatedTodos;
     });
   };
@@ -186,46 +186,46 @@ export const Todos: React.FC = () => {
     if (!showOnlyPriorities && !showCompletedAtBottom) {
       return [...todos];
     }
-    
+
     let filteredTodos = [...todos];
-    
+
     // Filter by priority if needed, but keep recently completed items visible
     if (showOnlyPriorities) {
-      filteredTodos = filteredTodos.filter(todo => 
+      filteredTodos = filteredTodos.filter(todo =>
         (todo.priority && !todo.completed) || recentlyCompleted[todo.id]
       );
     }
-    
+
     // If only priority filter is active, maintain the original order of priority items
-    if (!showCompletedAtBottom) return filteredTodos;
-    
+    if (!showCompletedAtBottom) {return filteredTodos;}
+
     // Only sort by completion time if showCompletedAtBottom is true
     const completed: (TodoItem & { completedAt?: number })[] = [];
     const notCompleted: TodoItem[] = [];
     const now = Date.now();
-    
+
     // First pass: separate completed and not completed
     filteredTodos.forEach(todo => {
       if (todo.completed) {
         completed.push({
           ...todo,
           // @ts-ignore - Adding completedAt property to track completion time
-          completedAt: todo.completedAt || now
+          completedAt: todo.completedAt || now,
         });
       } else {
         notCompleted.push(todo);
       }
     });
-    
+
     // Sort completed items by completion time (oldest first)
     completed.sort((a, b) => (a.completedAt || 0) - (b.completedAt || 0));
-    
+
     return [...notCompleted, ...completed];
-  }, [todos, showCompletedAtBottom, showOnlyPriorities]);
+  }, [todos, showCompletedAtBottom, showOnlyPriorities, recentlyCompleted]);
 
   const visibleTodos = isAdding ? sortedTodos : sortedTodos.slice(0, visibleCount);
   // Only show pagination if not in priority mode or there are more priority items to show
-  const showPagination = !showOnlyPriorities || 
+  const showPagination = !showOnlyPriorities ||
     (showOnlyPriorities && todos.filter(t => t.priority && !t.completed).length > 5);
   const hasMore = showPagination && !isAdding && todos.length > visibleCount;
   const showLessOption = showPagination && !isAdding && visibleCount > 5;
@@ -243,7 +243,7 @@ export const Todos: React.FC = () => {
   return (
     <JournalCard
       icon={
-        <LuListTodo 
+        <LuListTodo
           size={24}
           color={Colors.alertCoral}
           strokeWidth={2.5}
@@ -382,7 +382,7 @@ export const Todos: React.FC = () => {
                 style={[styles.button, styles.addAnotherButton]}
               >
                 <View style={[styles.plusIcon, { transform: [{ rotate: '45deg' }] }]}>
-                  <Ionicons name="close" size={13} color={Colors.alertCoral} style={{ fontWeight: 'bold' }} />
+                  <Ionicons name="close" size={13} color={Colors.alertCoral} style={styles.closeIcon} />
                 </View>
               </TouchableOpacity>
               <TouchableOpacity
@@ -490,6 +490,9 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(26, 60, 109, 0.15)',
     marginBottom: 4,
     width: '100%',
+  },
+  closeIcon: {
+    fontWeight: 'bold',
   },
   todoText: {
     flex: 1,

@@ -80,15 +80,15 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   useEffect(() => {
     const generateWeeks = () => {
       const weeksArray: Date[][] = [];
-      
+
       // Get the first day of the current month
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
       // Get the last day of the current month
       const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-      
+
       // Get the first day to show (previous Sunday from the 1st of the month)
       let currentWeekStart = startOfWeek(firstDayOfMonth);
-      
+
       // Generate 6 weeks to ensure we have enough weeks to display
       for (let i = 0; i < 6; i++) {
         const week: Date[] = [];
@@ -97,11 +97,11 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
           week.push(addDays(currentWeekStart, j));
         }
         weeksArray.push(week);
-        
+
         // Move to next week
         currentWeekStart = addWeeks(currentWeekStart, 1);
       }
-      
+
       return weeksArray;
     };
 
@@ -112,7 +112,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
 
   // Store the current week index separately to maintain position
   const currentWeekIndex = useRef<number>(0);
-  
+
   // Update the current week index when currentDate changes
   useEffect(() => {
     if (weeks.length > 0) {
@@ -129,7 +129,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   useEffect(() => {
     if (scrollViewRef.current && weeks.length > 0 && hasInitializedScroll.current) {
       const scrollTo = currentWeekIndex.current * screenWidth;
-      
+
       // Small delay to ensure the layout is updated
       setTimeout(() => {
         if (scrollViewRef.current) {
@@ -320,13 +320,13 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const handleContentScroll = useCallback((event: any) => {
     const y = event.nativeEvent.contentOffset.y;
     const newIsCollapsed = y > 40;
-    
+
     // Only update if the collapsed state actually changes
     if (newIsCollapsed !== isHeaderCollapsed) {
       // Save the current scroll position before updating
       const currentScrollX = scrollX.current;
       setIsHeaderCollapsed(newIsCollapsed);
-      
+
       // Restore the horizontal scroll position after state update
       setTimeout(() => {
         if (scrollViewRef.current) {
@@ -443,7 +443,7 @@ const renderTabContent = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={[styles.monthYearContainer, styles.headerContent, {paddingBottom: isHeaderCollapsed ? 0 : 12}]}> 
+        <View style={[styles.monthYearContainer, styles.headerContent, isHeaderCollapsed && styles.collapsedPadding]}>
           <Text style={styles.monthYearText}>
             {isHeaderCollapsed ? format(currentDate, 'MMMM d, yyyy') : format(currentDate, 'MMMM yyyy')}
           </Text>
@@ -717,6 +717,9 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     width: '100%',
+  },
+  collapsedPadding: {
+    paddingBottom: 0,
   },
   dateText: {
     fontFamily: Fonts.bold,

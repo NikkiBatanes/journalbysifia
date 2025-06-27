@@ -97,7 +97,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
         Vibration.vibrate(10);
       }}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.todoItem}
         activeOpacity={1}
         onPress={() => {

@@ -42,7 +42,7 @@ const CATEGORIES = [
   'Quiet Time',
   'Recreation',
   'Sleep & Recovery',
-  'Work Meetings'
+  'Work Meetings',
 ];
 
 export const TimeBlock: React.FC = () => {
@@ -51,7 +51,6 @@ export const TimeBlock: React.FC = () => {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
   const [showRepeatOptions, setShowRepeatOptions] = useState(false);
-  const [showEndRepeatOptions, setShowEndRepeatOptions] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [newBlock, setNewBlock] = useState<{
     title: string;
@@ -83,14 +82,14 @@ export const TimeBlock: React.FC = () => {
 
   const addTimeBlock = () => {
     if (newBlock.title.trim()) {
-      setTimeBlocks([...timeBlocks, { 
-        ...newBlock, 
+      setTimeBlocks([...timeBlocks, {
+        ...newBlock,
         id: Date.now().toString(),
         repeat: {
           frequency: newBlock.repeat.frequency,
           endDate: newBlock.repeat.endDate,
-          customDays: newBlock.repeat.customDays || []
-        }
+          customDays: newBlock.repeat.customDays || [],
+        },
       }]);
       setIsAdding(false);
     }
@@ -119,7 +118,7 @@ export const TimeBlock: React.FC = () => {
       ...prev,
       isAllDay: !prev.isAllDay,
       startTime: new Date(prev.startTime.setHours(0, 0, 0, 0)),
-      endTime: new Date(prev.startTime.setHours(23, 59, 59, 999))
+      endTime: new Date(prev.startTime.setHours(23, 59, 59, 999)),
     }));
   };
 
@@ -127,9 +126,6 @@ export const TimeBlock: React.FC = () => {
     setIsAdding(false);
   };
 
-  const removeTimeBlock = (id: string) => {
-    setTimeBlocks(timeBlocks.filter(block => block.id !== id));
-  };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -141,10 +137,10 @@ export const TimeBlock: React.FC = () => {
       if (selectedDate) {
         const type = showTimePicker.start ? 'start' : 'end';
         const id = showTimePicker.id;
-        
+
         // Create a new date object to ensure reactivity
         const newDate = new Date(selectedDate);
-        
+
         if (id) {
           // Update existing time block
           setTimeBlocks(timeBlocks.map(block =>
@@ -164,7 +160,7 @@ export const TimeBlock: React.FC = () => {
           }));
         }
       }
-      
+
       // Close the picker
       setShowTimePicker({ start: false, end: false, id: null });
     }
@@ -227,16 +223,11 @@ export const TimeBlock: React.FC = () => {
     return `hsl(${hue}, 70%, 90%)`;
   };
 
-  // Create a function to get category option styles with dynamic border color
-  const getCategoryOptionStyle = (isSelected: boolean) => ({
-    ...styles.categoryOption,
-    borderColor: isSelected ? Colors.alertCoral : 'transparent',
-  });
 
   return (
     <JournalCard
       icon={
-        <LuCalendarClock 
+        <LuCalendarClock
           size={24}
           color={Colors.alertCoral}
           strokeWidth={2.5}
@@ -282,7 +273,7 @@ export const TimeBlock: React.FC = () => {
                       </TouchableOpacity>
                     </View>
                   )}
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.allDayToggle}
                     onPress={toggleAllDay}
                   >
@@ -307,11 +298,11 @@ export const TimeBlock: React.FC = () => {
 
               {/* 3. Location */}
               <View style={styles.locationContainer}>
-                <Ionicons 
-                  name="location-outline" 
-                  size={18} 
-                  color={Colors.darkGray} 
-                  style={styles.locationIcon} 
+                <Ionicons
+                  name="location-outline"
+                  size={18}
+                  color={Colors.darkGray}
+                  style={styles.locationIcon}
                 />
                 <TextInput
                   style={[styles.input, styles.locationInput]}
@@ -324,7 +315,7 @@ export const TimeBlock: React.FC = () => {
 
               {/* 4. Category */}
               <View style={styles.categorySelectorContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.categorySelector, { backgroundColor: getCategoryColor(newBlock.category) }]}
                   onPress={() => setShowCategoryPicker(true)}
                 >
@@ -337,24 +328,24 @@ export const TimeBlock: React.FC = () => {
 
               {/* 5. Repeat Options */}
               <View style={styles.repeatContainer}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.repeatButton}
                   onPress={() => setShowRepeatOptions(!showRepeatOptions)}
                 >
-                  <Ionicons 
-                    name="repeat-outline" 
-                    size={18} 
-                    color={Colors.darkGray} 
-                    style={styles.repeatIcon} 
+                  <Ionicons
+                    name="repeat-outline"
+                    size={18}
+                    color={Colors.darkGray}
+                    style={styles.repeatIcon}
                   />
                   <Text style={styles.repeatText}>
-                    {newBlock.repeat.frequency === 'never' ? 'Does not repeat' : 
+                    {newBlock.repeat.frequency === 'never' ? 'Does not repeat' :
                      `Repeats ${newBlock.repeat.frequency}${newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}`}
                   </Text>
-                  <Ionicons 
-                    name={showRepeatOptions ? 'chevron-up' : 'chevron-down'} 
-                    size={16} 
-                    color={Colors.darkGray} 
+                  <Ionicons
+                    name={showRepeatOptions ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color={Colors.darkGray}
                   />
                 </TouchableOpacity>
 
@@ -365,7 +356,7 @@ export const TimeBlock: React.FC = () => {
                         key={freq}
                         style={[
                           styles.repeatOption,
-                          newBlock.repeat.frequency === freq && styles.selectedRepeatOption
+                          newBlock.repeat.frequency === freq && styles.selectedRepeatOption,
                         ]}
                         onPress={() => {
                           const newFrequency = freq as RepeatFrequency;
@@ -374,8 +365,8 @@ export const TimeBlock: React.FC = () => {
                             repeat: {
                               ...newBlock.repeat,
                               frequency: newFrequency,
-                              ...(newFrequency === 'never' && { endDate: undefined })
-                            }
+                              ...(newFrequency === 'never' && { endDate: undefined }),
+                            },
                           };
                           setNewBlock(updatedBlock);
                           if (newFrequency !== 'custom') {
@@ -404,18 +395,18 @@ export const TimeBlock: React.FC = () => {
                   <View style={styles.endRepeatContainer}>
                     <Text style={styles.endRepeatLabel}>End Repeat:</Text>
                     <View style={styles.endRepeatOptions}>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={[
                           styles.endRepeatOption,
-                          !newBlock.repeat.endDate && styles.selectedEndRepeatOption
+                          !newBlock.repeat.endDate && styles.selectedEndRepeatOption,
                         ]}
                         onPress={() => {
                           setNewBlock({
                             ...newBlock,
                             repeat: {
                               ...newBlock.repeat,
-                              endDate: undefined
-                            }
+                              endDate: undefined,
+                            },
                           });
                         }}
                       >
@@ -424,10 +415,10 @@ export const TimeBlock: React.FC = () => {
                           <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
                         )}
                       </TouchableOpacity>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={[
                           styles.endRepeatOption,
-                          newBlock.repeat.endDate && styles.selectedEndRepeatOption
+                          newBlock.repeat.endDate && styles.selectedEndRepeatOption,
                         ]}
                         onPress={() => {
                           setShowEndDatePicker(true);
@@ -435,8 +426,8 @@ export const TimeBlock: React.FC = () => {
                         }}
                       >
                         <Text style={styles.endRepeatOptionText}>
-                          {newBlock.repeat.endDate 
-                            ? newBlock.repeat.endDate.toLocaleDateString() 
+                          {newBlock.repeat.endDate
+                            ? newBlock.repeat.endDate.toLocaleDateString()
                             : 'Select Date'}
                         </Text>
                         {newBlock.repeat.endDate && (
@@ -457,14 +448,14 @@ export const TimeBlock: React.FC = () => {
                                 ...newBlock,
                                 repeat: {
                                   ...newBlock.repeat,
-                                  endDate: selectedDate
-                                }
+                                  endDate: selectedDate,
+                                },
                               });
                             }
                           }}
                           minimumDate={new Date()}
                         />
-                        <TouchableOpacity 
+                        <TouchableOpacity
                           style={styles.cancelDateButton}
                           onPress={() => setShowEndDatePicker(false)}
                         >
@@ -505,7 +496,7 @@ export const TimeBlock: React.FC = () => {
                             style={[
                               styles.pickerItem,
                               { backgroundColor: getCategoryColor(category) },
-                              newBlock.category === category && styles.selectedPickerItem
+                              newBlock.category === category && styles.selectedPickerItem,
                             ]}
                             onPress={() => {
                               setNewBlock({...newBlock, category});

@@ -58,7 +58,7 @@ export const TodayWin: React.FC = () => {
   return (
     <JournalCard
       icon={
-        <LuTrophy 
+        <LuTrophy
           size={24}
           color={Colors.alertCoral}
           strokeWidth={2.5}

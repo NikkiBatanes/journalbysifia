@@ -58,7 +58,7 @@ export const LookingForward: React.FC = () => {
   return (
     <JournalCard
       icon={
-        <LuSunrise 
+        <LuSunrise
           size={24}
           color={Colors.alertCoral}
           strokeWidth={2.5}

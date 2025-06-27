@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Animated } from 'react-native'; 
-import { Swipeable } from 'react-native-gesture-handler';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -55,28 +54,23 @@ export const TodaysFocus: React.FC = () => {
 
   const removePriority = (priorityId: string) => {
     const priorityIndex = data.priorities.findIndex(p => p.id === priorityId);
-    if (priorityIndex === -1) return;
-    
+    if (priorityIndex === -1) {return;}
+
     const newPriorities = [...data.priorities];
     newPriorities.splice(priorityIndex, 1);
-    
+
     // Always maintain exactly 3 priorities
     while (newPriorities.length < 3) {
-      newPriorities.push({ 
-        id: Date.now() + Math.random().toString(), 
-        text: '', 
-        completed: false 
+      newPriorities.push({
+        id: Date.now() + Math.random().toString(),
+        text: '',
+        completed: false,
       });
     }
-    
+
     setData(prev => ({ ...prev, priorities: newPriorities }));
   };
 
-  const closeAllSwipeables = () => {
-    Object.values(swipeableRefs.current).forEach(ref => {
-      if (ref?.close) { ref.close(); }
-    });
-  };
 
   return (
     <JournalCard

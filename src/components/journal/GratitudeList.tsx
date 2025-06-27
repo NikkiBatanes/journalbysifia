@@ -56,7 +56,7 @@ export const GratitudeList: React.FC = () => {
   return (
     <JournalCard
       icon={
-        <LuHandHeart 
+        <LuHandHeart
           size={24}
           color={Colors.alertCoral}
           strokeWidth={2.5}
