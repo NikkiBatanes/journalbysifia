@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, Dimensions } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check, NotebookPen as LuNotebookPen, Sparkles } from 'lucide-react-native';
+import { Check, NotebookPen as LuNotebookPen, Sparkles, X } from 'lucide-react-native';
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -44,19 +44,25 @@ export const ReflectionLog: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState(GUIDED_PROMPTS[0]);
-  const [newEntry, setNewEntry] = useState({
+  const [newEntry, setNewEntry] = useState<{ title: string; content: string; tags: string[] }>({
     title: '',
     content: '',
+    tags: [],
   });
+  const [tagInput, setTagInput] = useState('');
+  const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
+  const [showEntryModal, setShowEntryModal] = useState(false);
 
   const addEntry = (entry: Omit<ReflectionLogEntry, 'id' | 'date'>) => {
     const newEntry = {
       ...entry,
       id: Date.now().toString(),
       date: new Date(),
+      tags: entry.tags || [],
     };
     setEntries([newEntry, ...entries]);
-    setNewEntry({ title: '', content: '' });
+    setNewEntry({ title: '', content: '', tags: [] });
+    setTagInput('');
     setIsAdding(false);
   };
 
@@ -76,8 +82,26 @@ export const ReflectionLog: React.FC = () => {
 
   const startNewEntry = () => {
     if (isAdding) {return;}
-    setNewEntry({ title: '', content: '' });
+    setNewEntry({ title: '', content: '', tags: [] });
+    setTagInput('');
     setIsAdding(true);
+  };
+
+  const handleAddTag = () => {
+    if (tagInput.trim() && !newEntry.tags.includes(tagInput.trim())) {
+      setNewEntry(prev => ({
+        ...prev,
+        tags: [...(prev.tags || []), tagInput.trim()]
+      }));
+      setTagInput('');
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setNewEntry(prev => ({
+      ...prev,
+      tags: (prev.tags || []).filter(tag => tag !== tagToRemove)
+    }));
   };
 
   const renderPromptPicker = () => (
@@ -147,6 +171,64 @@ export const ReflectionLog: React.FC = () => {
   );
 
   // Render entries in a list
+  const handleEntryPress = (entry: ReflectionLogEntry) => {
+    setSelectedEntry(entry);
+    setShowEntryModal(true);
+  };
+
+  const renderEntryCard = (entry: ReflectionLogEntry) => (
+    <TouchableOpacity 
+      key={entry.id}
+      style={[
+        styles.entryCard,
+        entry.type === 'guided' ? styles.guidedEntry : styles.freeFormEntry
+      ]}
+      onPress={() => handleEntryPress(entry)}
+      activeOpacity={0.8}
+    >
+      {entry.type === 'guided' && entry.prompt ? (
+        <View style={styles.guidedPromptRow}>
+          <View style={styles.guidedPromptContainer}>
+            <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
+          </View>
+          <Text style={styles.timeText}>
+            {new Date(entry.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.freeFormPromptRow}>
+          <View style={styles.freeFormPromptContainer}>
+            <Text style={styles.freeFormPromptText}>FREE FORM</Text>
+          </View>
+          <Text style={styles.timeText}>
+            {new Date(entry.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+          </Text>
+        </View>
+      )}
+      {entry.type === 'guided' && entry.prompt ? (
+        <Text style={styles.promptText}>{entry.prompt}</Text>
+      ) : entry.title ? (
+        <Text style={[styles.promptText, { fontStyle: 'normal' }]}>{entry.title}</Text>
+      ) : null}
+      <Text 
+        style={styles.entryContent}
+        numberOfLines={3}
+        ellipsizeMode="tail"
+      >
+        {entry.content}
+      </Text>
+      {entry.tags && entry.tags.length > 0 && (
+        <View style={styles.tagsContainer}>
+          {entry.tags.map((tag, index) => (
+            <View key={index} style={styles.tag}>
+              <Text style={styles.tagText}>#{tag}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+
   const renderEntries = () => {
     if (entries.length === 0) {
       return null; // Return nothing for empty state
@@ -156,45 +238,9 @@ export const ReflectionLog: React.FC = () => {
       <>
         <View style={styles.entriesContainer}>
           {entries.slice(0, visibleCount).map((entry) => (
-            <View 
-              key={entry.id} 
-              style={[
-                styles.entryCard,
-                entry.type === 'guided' ? styles.guidedEntry : styles.freeFormEntry
-              ]}
-            >
-              {entry.type === 'guided' && entry.prompt ? (
-                <View style={styles.guidedPromptRow}>
-                  <View style={styles.guidedPromptContainer}>
-                    <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
-                  </View>
-                  <Text style={styles.timeText}>
-                    {new Date(entry.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                  </Text>
-                </View>
-              ) : (
-                <View style={styles.freeFormPromptRow}>
-                  <View style={styles.freeFormPromptContainer}>
-                    <Text style={styles.freeFormPromptText}>FREE FORM</Text>
-                  </View>
-                  <Text style={styles.timeText}>
-                    {new Date(entry.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                  </Text>
-                </View>
-              )}
-              {entry.type === 'guided' && entry.prompt ? (
-                <Text style={styles.promptText}>{entry.prompt}</Text>
-              ) : entry.title ? (
-                <Text style={[styles.promptText, { fontStyle: 'normal' }]}>{entry.title}</Text>
-              ) : null}
-              <Text 
-                style={styles.entryContent}
-                numberOfLines={3}
-                ellipsizeMode="tail"
-              >
-                {entry.content}
-              </Text>
-            </View>
+            <React.Fragment key={entry.id}>
+              {renderEntryCard(entry)}
+            </React.Fragment>
           ))}
         </View>
         {(entries.length > visibleCount || visibleCount > 3) && (
@@ -227,6 +273,107 @@ export const ReflectionLog: React.FC = () => {
             </View>
           </View>
         )}
+        
+        {/* Entry Detail Modal */}
+        <Modal
+          visible={showEntryModal}
+          transparent={true}
+          animationType="slide"
+          statusBarTranslucent={true}
+          onRequestClose={() => setShowEntryModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity 
+              style={styles.modalOverlayTouchable}
+              activeOpacity={1}
+              onPress={() => setShowEntryModal(false)}
+            />
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHandle} />
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowEntryModal(false)}
+              >
+                <X size={24} color={Colors.mediumGray} />
+              </TouchableOpacity>
+              
+              {selectedEntry && (
+                <ScrollView 
+                  style={styles.modalContent}
+                  contentContainerStyle={styles.modalContentContainer}
+                  showsVerticalScrollIndicator={true}
+                >
+                  <View style={[
+                    styles.entryCard,
+                    styles.modalEntryCard,
+                    selectedEntry.type === 'guided' ? styles.guidedEntry : styles.freeFormEntry
+                  ]}>
+                    {selectedEntry.type === 'guided' && selectedEntry.prompt ? (
+                      <View style={styles.guidedPromptRow}>
+                        <View style={styles.guidedPromptContainer}>
+                          <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
+                        </View>
+                        <Text style={styles.timeText}>
+                          {new Date(selectedEntry.date).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit', 
+                            hour12: true 
+                          })}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.freeFormPromptRow}>
+                        <View style={styles.freeFormPromptContainer}>
+                          <Text style={styles.freeFormPromptText}>FREE FORM</Text>
+                        </View>
+                        <Text style={styles.timeText}>
+                          {new Date(selectedEntry.date).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit', 
+                            hour12: true 
+                          })}
+                        </Text>
+                      </View>
+                    )}
+                    
+                    {selectedEntry.type === 'guided' && selectedEntry.prompt && (
+                      <Text style={[styles.promptText, styles.modalPromptText]}>
+                        {selectedEntry.prompt}
+                      </Text>
+                    )}
+                    
+                    {selectedEntry.title && (
+                      <Text style={[styles.modalTitle, selectedEntry.type !== 'guided' && { fontStyle: 'normal' }]}>
+                        {selectedEntry.title}
+                      </Text>
+                    )}
+                    
+                    <Text style={styles.modalContentText}>
+                      {selectedEntry.content}
+                    </Text>
+                    
+                    {selectedEntry.tags && selectedEntry.tags.length > 0 && (
+                      <View style={styles.tagsContainer}>
+                        {selectedEntry.tags.map((tag, index) => (
+                          <View key={index} style={styles.tag}>
+                            <Text style={styles.tagText}>#{tag}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                    
+                    {selectedEntry.location && (
+                      <View style={styles.locationContainer}>
+                        <Ionicons name="location-outline" size={16} color={Colors.mediumGray} />
+                        <Text style={styles.locationText}>{selectedEntry.location}</Text>
+                      </View>
+                    )}
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </Modal>
       </>
     );
   };
@@ -245,12 +392,14 @@ export const ReflectionLog: React.FC = () => {
       showAddButton={!isAdding}
       isAdding={isAdding}
       onAdd={() => {
-        setNewEntry({ title: '', content: '' });
+        setNewEntry({ title: '', content: '', tags: [] });
+        setTagInput('');
         setIsAdding(true);
       }}
       onCancelAdd={() => {
         setIsAdding(false);
-        setNewEntry({ title: '', content: '' });
+        setNewEntry({ title: '', content: '', tags: [] });
+        setTagInput('');
       }}
     >
       {isAdding ? (
@@ -288,6 +437,30 @@ export const ReflectionLog: React.FC = () => {
                 onChangeText={text => setNewEntry({...newEntry, content: text})}
                 placeholderTextColor={Colors.mediumGray}
               />
+              <View style={styles.tagsContainer}>
+                {newEntry.tags.map((tag, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>#{tag}</Text>
+                    <TouchableOpacity onPress={() => removeTag(tag)}>
+                      <Ionicons name="close" size={16} color={Colors.mediumGray} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <View style={styles.tagInputContainer}>
+                  <TextInput
+                    style={styles.tagInput}
+                    placeholder="Add a tag..."
+                    value={tagInput}
+                    onChangeText={setTagInput}
+                    onSubmitEditing={handleAddTag}
+                    returnKeyType="done"
+                    placeholderTextColor={Colors.mediumGray}
+                  />
+                  <TouchableOpacity onPress={handleAddTag} style={styles.addTagButton}>
+                    <Ionicons name="add" size={20} color={Colors.alertCoral} />
+                  </TouchableOpacity>
+                </View>
+              </View>
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={[
@@ -326,6 +499,30 @@ export const ReflectionLog: React.FC = () => {
                 onChangeText={text => setNewEntry({...newEntry, content: text})}
                 placeholderTextColor={Colors.mediumGray}
               />
+              <View style={styles.tagsContainer}>
+                {newEntry.tags.map((tag, index) => (
+                  <View key={index} style={styles.tag}>
+                    <Text style={styles.tagText}>#{tag}</Text>
+                    <TouchableOpacity onPress={() => removeTag(tag)}>
+                      <Ionicons name="close" size={16} color={Colors.mediumGray} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <View style={styles.tagInputContainer}>
+                  <TextInput
+                    style={styles.tagInput}
+                    placeholder="Add a tag..."
+                    value={tagInput}
+                    onChangeText={setTagInput}
+                    onSubmitEditing={handleAddTag}
+                    returnKeyType="done"
+                    placeholderTextColor={Colors.mediumGray}
+                  />
+                  <TouchableOpacity onPress={handleAddTag} style={styles.addTagButton}>
+                    <Ionicons name="add" size={20} color={Colors.alertCoral} />
+                  </TouchableOpacity>
+                </View>
+              </View>
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={[
@@ -357,6 +554,7 @@ export const ReflectionLog: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  // Toggle styles
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: Colors.lightGray,
@@ -385,9 +583,13 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
     fontSize: 14,
   },
+
+  // Entries container
   entriesContainer: {
     width: '100%',
   },
+
+  // Entry card styles
   entryCard: {
     backgroundColor: 'rgba(26, 60, 109, 0.05)', // Base anchor blue with very low opacity
     borderRadius: 12,
@@ -432,6 +634,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 2,
     letterSpacing: 0.1,
   },
+
   // Pagination styles
   paginationContainer: {
     width: '100%',
@@ -472,6 +675,8 @@ const styles = StyleSheet.create({
   showLessText: {
     color: Colors.mediumGray,
   },
+
+  // Meta and tags
   metaContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -479,28 +684,46 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     paddingLeft: 16,
   },
+  // Tags container for the entry card
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  // Tag style - defined once and used throughout the component
   tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(26, 60, 109, 0.05)',
     borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    marginLeft: 4,
     marginBottom: 4,
+    height: 20,
   },
+  // Tag text style - defined once and used throughout the component
   tagText: {
-    fontSize: 10,
+    fontSize: 8,
     color: Colors.anchorBlue,
     fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
+  // Location container style
   location: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+  // Location text style - defined once and used throughout the component
   locationText: {
-    fontSize: 10,
+    marginLeft: 6,
     color: Colors.mediumGray,
+    fontSize: 14,
     fontFamily: Fonts.regular,
-    marginLeft: 4,
   },
   entryDate: {
     fontFamily: Fonts.regular,
@@ -514,6 +737,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+
+  // Prompt styles
   guidedPromptRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -685,9 +910,117 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   emptyText: {
-    fontFamily: Fonts.regular,
     color: Colors.mediumGray,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: 20,
+    fontFamily: Fonts.regular,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    justifyContent: 'flex-end',
+  },
+  modalOverlayTouchable: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '90%',
+    padding: 16,
+    paddingTop: 16,
+    paddingBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 10,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.lightGray,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+  },
+  modalContentContainer: {
+    paddingBottom: 40, // Add some bottom padding to ensure content isn't cut off
+  },
+  modalEntryCard: {
+    padding: 16,
+    marginBottom: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalPromptText: {
+    fontSize: 16,
+    color: Colors.mediumGray,
+    fontStyle: 'italic',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.semiBold,
+    color: Colors.darkGray,
+    marginBottom: 12,
+  },
+  modalContentText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.darkGray,
+    marginBottom: 16,
+  },
+  // Tags container for the modal view
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+    gap: 8,
+  },
+  // Tag input container style - used for the tag input field
+  tagInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.lightGray,
+    borderRadius: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    minWidth: 100,
+  },
+  tagInput: {
+    flex: 1,
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    padding: 0,
+    minWidth: 80,
+  },
+  addTagButton: {
+    marginLeft: 4,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
   },
 });
