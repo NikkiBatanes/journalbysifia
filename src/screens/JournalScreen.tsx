@@ -77,14 +77,15 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   // Removed separate month tracking
 
   // Generate weeks based on the current month being viewed
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+
   useEffect(() => {
     const generateWeeks = () => {
       const weeksArray: Date[][] = [];
 
       // Get the first day of the current month
-      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      // Get the last day of the current month
-      const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
 
       // Get the first day to show (previous Sunday from the 1st of the month)
       let currentWeekStart = startOfWeek(firstDayOfMonth);
@@ -106,7 +107,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     };
 
     setWeeks(generateWeeks());
-  }, [currentDate.getMonth(), currentDate.getFullYear()]); // Only regenerate when month or year changes
+  }, [currentDate, currentMonth, currentYear]); // Regenerate when currentDate or its month/year changes
 
   // Remove the separate month tracking since we'll use currentDate directly
 
