@@ -1,5 +1,3 @@
-import { Platform } from 'react-native';
-
 // Define system fonts
 export const Fonts = {
   // System fonts for all platforms
@@ -7,14 +5,14 @@ export const Fonts = {
   medium: 'System',
   semiBold: 'System',
   bold: 'System',
-  
+
   // Aliases for backward compatibility
   system: {
     regular: 'System',
     medium: 'System',
     semiBold: 'System',
     bold: 'System',
-  }
+  },
 } as const;
 
 // Font weights
