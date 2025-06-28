@@ -365,7 +365,14 @@ const renderTabContent = () => {
       <View style={styles.header}>
         <View style={[styles.monthYearContainer, styles.headerContent, isHeaderCollapsed && styles.collapsedPadding]}>
           <Text style={styles.monthYearText}>
-            {isHeaderCollapsed ? format(currentDate, 'MMMM d, yyyy') : format(currentDate, 'MMMM yyyy')}
+            {isHeaderCollapsed 
+              ? currentDate.getFullYear() === new Date().getFullYear()
+                ? format(currentDate, 'EEEE, MMMM d') // Added day of week when current year
+                : format(currentDate, 'EEEE, MMMM d, yyyy') // Added day of week when different year
+              : currentDate.getFullYear() === new Date().getFullYear()
+                ? format(currentDate, 'MMMM')
+                : format(currentDate, 'MMMM yyyy')
+            }
           </Text>
           <View style={styles.viewModeContainer}>
             <TouchableOpacity
@@ -374,7 +381,7 @@ const renderTabContent = () => {
             >
               <Ionicons
                 name="calendar"
-                size={16}
+                size={20}  // Set to 20px
                 color={viewMode === 'daily' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
               />
             </TouchableOpacity>
@@ -384,7 +391,7 @@ const renderTabContent = () => {
             >
               <Ionicons
                 name="calendar-outline"
-                size={16}
+                size={20}  // Set to 20px
                 color={viewMode === 'weekly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
               />
             </TouchableOpacity>
@@ -394,7 +401,7 @@ const renderTabContent = () => {
             >
               <Ionicons
                 name="calendar-sharp"
-                size={16}
+                size={20}  // Set to 20px
                 color={viewMode === 'monthly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
               />
             </TouchableOpacity>
@@ -472,7 +479,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: Colors.anchorBlue,
-    paddingTop: 40, // Reduced from 60 to 40 for a more compact header
+    paddingTop: 60,
     paddingBottom: 12,
   },
   headerContent: {
@@ -480,18 +487,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    marginBottom: 8,
+    // Removed marginBottom to eliminate space
   },
   viewModeContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,  // Slightly smaller border radius
-    padding: 0,       // Reduced padding
+    borderRadius: 12,  // Smaller border radius
+    padding: 4,        // Reduced padding
   },
   viewModeButton: {
-    padding: 4,       // Reduced padding
-    borderRadius: 12,  // Slightly smaller border radius
-    marginHorizontal: 0.5,  // Reduced margin
+    padding: 4,        // Reduced padding
+    borderRadius: 8,   // Smaller border radius
+    marginHorizontal: 1,  // Reduced margin
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   activeViewMode: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -506,9 +515,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
   monthYearContainer: {
-    paddingVertical: 12,
+    paddingVertical: 4,  // Reduced from 12
     paddingHorizontal: 6,
     backgroundColor: Colors.anchorBlue,
+    marginBottom: 0,  // Ensure no extra margin
   },
   collapsedDateText: {
     fontFamily: Fonts.bold,
@@ -517,12 +527,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   monthYearText: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: Fonts.bold,
+    fontWeight: '700', // Explicitly set font weight
     color: Colors.hopeWhite,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0.5, height: 0.5 },
-    textShadowRadius: 1,
   },
   daysHeader: {
     flexDirection: 'row',
@@ -561,13 +569,13 @@ const styles = StyleSheet.create({
   },
   dayContainer: {
     width: 36,
-    height: 48,
+    height: 44,  // Reduced from 48
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 0,
     flexShrink: 0,
-    paddingVertical: 2,
+    paddingVertical: 1,  // Reduced from 2
   },
   dayContent: {
     alignItems: 'center',
@@ -577,7 +585,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     fontSize: 8,
     color: 'rgba(255, 255, 255, 0.7)',
-    marginBottom: 1,
+    marginBottom: 0,  // Removed margin
     letterSpacing: 0.1,
   },
   dayNameTextHighlighted: {
