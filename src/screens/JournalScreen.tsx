@@ -204,6 +204,8 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
         {week.map((date) => {
           const isCurrentDay = isToday(date);
           const isSelected = isSameDay(date, currentDate);
+          const dayName = format(date, 'EEE').toUpperCase();
+          const dayNumber = format(date, 'd');
 
           return (
             <TouchableOpacity
@@ -216,13 +218,21 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               onPress={() => handleDateSelect(date)}
               activeOpacity={0.7}
             >
-              <Text style={[
-                styles.dayText,
-                isCurrentDay && styles.currentDayText,
-                isSelected && styles.selectedDayText,
-              ]}>
-                {format(date, 'd')}
-              </Text>
+              <View style={styles.dayContent}>
+                <Text style={[
+                  styles.dayNameText,
+                  (isCurrentDay || isSelected) && styles.dayNameTextHighlighted,
+                ]}>
+                  {isCurrentDay ? 'TODAY' : dayName}
+                </Text>
+                <Text style={[
+                  styles.dayNumberText,
+                  isCurrentDay && !isSelected && styles.currentDayText,
+                  isSelected && styles.selectedDayText,
+                ]}>
+                  {dayNumber}
+                </Text>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -392,24 +402,6 @@ const renderTabContent = () => {
         </View>
         {!isHeaderCollapsed && (
           <>
-            <View style={styles.daysHeader}>
-              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
-                const firstDayOfWeek = startOfWeek(currentDate);
-                const dayDate = addDays(firstDayOfWeek, index);
-                const isCurrentDay = isToday(dayDate);
-                const displayText = isCurrentDay ? 'TODAY' : day;
-                return (
-                  <View key={index} style={styles.dayNameContainer}>
-                    <Text style={[
-                      styles.dayName,
-                      isCurrentDay && styles.todayText,
-                    ]}>
-                      {displayText}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
             <View style={styles.scrollContainer}>
               <ScrollView
                 ref={scrollViewRef}
@@ -480,7 +472,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: Colors.anchorBlue,
-    paddingTop: 60, // Add padding to account for status bar
+    paddingTop: 40, // Reduced from 60 to 40 for a more compact header
     paddingBottom: 12,
   },
   headerContent: {
@@ -493,13 +485,13 @@ const styles = StyleSheet.create({
   viewModeContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 20,
-    padding: 4,
+    borderRadius: 16,  // Slightly smaller border radius
+    padding: 0,       // Reduced padding
   },
   viewModeButton: {
-    padding: 6,
-    borderRadius: 14,
-    marginHorizontal: 1,
+    padding: 4,       // Reduced padding
+    borderRadius: 12,  // Slightly smaller border radius
+    marginHorizontal: 0.5,  // Reduced margin
   },
   activeViewMode: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -569,30 +561,47 @@ const styles = StyleSheet.create({
   },
   dayContainer: {
     width: 36,
-    height: 36,
-    borderRadius: 18,
+    height: 48,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 0,
     flexShrink: 0,
+    paddingVertical: 2,
+  },
+  dayContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayNameText: {
+    fontFamily: Fonts.medium,
+    fontSize: 8,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 1,
+    letterSpacing: 0.1,
+  },
+  dayNameTextHighlighted: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.bold,
+  },
+  dayNumberText: {
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    lineHeight: 14,
   },
   currentDayContainer: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.alertCoral,
   },
   selectedDayContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: Colors.hopeWhite,
     zIndex: 1, // Ensure selected day appears above other elements
     elevation: 1, // For Android
   },
-  dayText: {
-    fontFamily: Fonts.medium,
-    fontSize: 14,
-    color: Colors.hopeWhite,
-  },
   currentDayText: {
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.bold,
   },
   selectedDayText: {
