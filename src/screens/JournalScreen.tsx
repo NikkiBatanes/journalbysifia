@@ -365,7 +365,7 @@ const renderTabContent = () => {
       <View style={styles.header}>
         <View style={[styles.monthYearContainer, styles.headerContent, isHeaderCollapsed && styles.collapsedPadding]}>
           <Text style={styles.monthYearText}>
-            {isHeaderCollapsed 
+            {isHeaderCollapsed
               ? currentDate.getFullYear() === new Date().getFullYear()
                 ? format(currentDate, 'EEEE, MMMM d') // Added day of week when current year
                 : format(currentDate, 'EEEE, MMMM d, yyyy') // Added day of week when different year
