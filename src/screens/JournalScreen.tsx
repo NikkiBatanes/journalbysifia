@@ -72,6 +72,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
   const scrollX = useRef(6 * screenWidth);
+  const lastScrollY = useRef(0); // Track last scroll position for direction
 
   // Animation state
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -245,21 +246,40 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     );
   };
 
-  const handleContentScroll = useCallback((event: any) => {
-    const y = event.nativeEvent.contentOffset.y;
-    scrollY.setValue(y);
-    const newIsCollapsed = y > 40;
+  const handleContentScroll = useCallback(
+    (event: any) => {
+      const y = event.nativeEvent.contentOffset.y;
+      const isScrollingUp = y < lastScrollY.current;
+      lastScrollY.current = y;
 
-    if (newIsCollapsed !== isHeaderCollapsed) {
-      const currentScrollX = scrollX.current;
-      setIsHeaderCollapsed(newIsCollapsed);
-      setTimeout(() => {
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollTo({ x: currentScrollX, animated: false });
+      if (isScrollingUp && y <= 40) {
+        // Instantly expand header when scrolling up
+        scrollY.setValue(0);
+        if (isHeaderCollapsed) {
+          setIsHeaderCollapsed(false);
         }
-      }, 10);
-    }
-  }, [isHeaderCollapsed]);
+      } else {
+        // Smoothly collapse header when scrolling down
+        Animated.spring(scrollY, {
+          toValue: Math.min(y, 40),
+          stiffness: 100,
+          damping: 20,
+          useNativeDriver: false,
+        }).start();
+        const newIsCollapsed = y > 40;
+        if (newIsCollapsed !== isHeaderCollapsed) {
+          setIsHeaderCollapsed(newIsCollapsed);
+          const currentScrollX = scrollX.current;
+          setTimeout(() => {
+            if (scrollViewRef.current) {
+              scrollViewRef.current.scrollTo({ x: currentScrollX, animated: false });
+            }
+          }, 10);
+        }
+      }
+    },
+    [isHeaderCollapsed]
+  );
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -268,10 +288,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
           <ScrollView
             style={styles.tabContent}
             contentContainerStyle={styles.scrollViewContent}
-            onScroll={Animated.event(
-              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-              { useNativeDriver: false }
-            )}
+            onScroll={handleContentScroll}
             scrollEventThrottle={16}
           >
             <View style={styles.componentSpacing}>
@@ -531,6 +548,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     fontWeight: '700',
     color: Colors.hopeWhite,
+    paddingRight: 12,
   },
   daysHeader: {
     flexDirection: 'row',
@@ -644,7 +662,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     width: '100%',
-    overflow: 'hidden', // Prevent visual glitches during animation
+    overflow: 'hidden',
   },
   collapsedPadding: {
     paddingBottom: 0,
