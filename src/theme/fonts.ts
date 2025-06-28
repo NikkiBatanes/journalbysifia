@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 // Define system fonts
 export const Fonts = {
   // System fonts for all platforms

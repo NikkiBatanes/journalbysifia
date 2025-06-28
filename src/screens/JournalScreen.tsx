@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isToday, isSameDay, addWeeks } from 'date-fns';
 import { Colors } from '../theme/colors';
@@ -69,23 +69,29 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setWeekStart] = useState(startOfWeek(new Date()));
   const [weeks, setWeeks] = useState<Date[][]>([]);
-  const scrollViewRef = React.useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
-  const scrollX = React.useRef(6 * screenWidth); // Start at the middle week
-  // Day width is used for calculations but not directly in rendering
+  const scrollX = useRef(6 * screenWidth);
 
-  // Removed separate month tracking
-
-  // Generate weeks based on the current month being viewed
-  const currentMonth = currentDate.getMonth();
-  const currentYear = currentDate.getFullYear();
+  // Animation state
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const weekOpacity = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const weekHeight = scrollY.interpolate({
+    inputRange: [0, 40],
+    outputRange: [44, 0],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     const generateWeeks = () => {
       const weeksArray: Date[][] = [];
 
       // Get the first day of the current month
-      const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
 
       // Get the first day to show (previous Sunday from the 1st of the month)
       let currentWeekStart = startOfWeek(firstDayOfMonth);
@@ -107,9 +113,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     };
 
     setWeeks(generateWeeks());
-  }, [currentDate, currentMonth, currentYear]); // Regenerate when currentDate or its month/year changes
-
-  // Remove the separate month tracking since we'll use currentDate directly
+  }, [currentDate]);
 
   // Store the current week index separately to maintain position
   const currentWeekIndex = useRef<number>(0);
@@ -196,10 +200,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     return (
       <View
         key={`week-${weekIndex}`}
-        style={[
-          styles.weekContainer,
-          { width: screenWidth },
-        ]}
+        style={[styles.weekContainer, { width: screenWidth }]}
       >
         {week.map((date) => {
           const isCurrentDay = isToday(date);
@@ -219,17 +220,21 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               activeOpacity={0.7}
             >
               <View style={styles.dayContent}>
-                <Text style={[
-                  styles.dayNameText,
-                  (isCurrentDay || isSelected) && styles.dayNameTextHighlighted,
-                ]}>
+                <Text
+                  style={[
+                    styles.dayNameText,
+                    (isCurrentDay || isSelected) && styles.dayNameTextHighlighted,
+                  ]}
+                >
                   {isCurrentDay ? 'TODAY' : dayName}
                 </Text>
-                <Text style={[
-                  styles.dayNumberText,
-                  isCurrentDay && !isSelected && styles.currentDayText,
-                  isSelected && styles.selectedDayText,
-                ]}>
+                <Text
+                  style={[
+                    styles.dayNumberText,
+                    isCurrentDay && !isSelected && styles.currentDayText,
+                    isSelected && styles.selectedDayText,
+                  ]}
+                >
                   {dayNumber}
                 </Text>
               </View>
@@ -242,15 +247,12 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
 
   const handleContentScroll = useCallback((event: any) => {
     const y = event.nativeEvent.contentOffset.y;
+    scrollY.setValue(y);
     const newIsCollapsed = y > 40;
 
-    // Only update if the collapsed state actually changes
     if (newIsCollapsed !== isHeaderCollapsed) {
-      // Save the current scroll position before updating
       const currentScrollX = scrollX.current;
       setIsHeaderCollapsed(newIsCollapsed);
-
-      // Restore the horizontal scroll position after state update
       setTimeout(() => {
         if (scrollViewRef.current) {
           scrollViewRef.current.scrollTo({ x: currentScrollX, animated: false });
@@ -259,37 +261,40 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     }
   }, [isHeaderCollapsed]);
 
-const renderTabContent = () => {
-  switch (activeTab) {
-    case 'journal':
-      return (
-        <ScrollView
-          style={styles.tabContent}
-          contentContainerStyle={styles.scrollViewContent}
-          onScroll={handleContentScroll}
-          scrollEventThrottle={16}
-        >
-          <View style={styles.componentSpacing}>
-            <TodaysFocus />
-          </View>
-          <View style={styles.componentSpacing}>
-            <Todos />
-          </View>
-          <View style={styles.componentSpacing}>
-            <TimeBlock />
-          </View>
-          <View style={styles.componentSpacing}>
-            <GratitudeList />
-          </View>
-          <View style={styles.componentSpacing}>
-            <ReflectionLog />
-          </View>
-          <View style={styles.componentSpacing}>
-            <TodayWin />
-          </View>
-          <View style={styles.componentSpacing}>
-            <LookingForward />
-          </View>
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'journal':
+        return (
+          <ScrollView
+            style={styles.tabContent}
+            contentContainerStyle={styles.scrollViewContent}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: false }
+            )}
+            scrollEventThrottle={16}
+          >
+            <View style={styles.componentSpacing}>
+              <TodaysFocus />
+            </View>
+            <View style={styles.componentSpacing}>
+              <Todos />
+            </View>
+            <View style={styles.componentSpacing}>
+              <TimeBlock />
+            </View>
+            <View style={styles.componentSpacing}>
+              <GratitudeList />
+            </View>
+            <View style={styles.componentSpacing}>
+              <ReflectionLog />
+            </View>
+            <View style={styles.componentSpacing}>
+              <TodayWin />
+            </View>
+            <View style={styles.componentSpacing}>
+              <LookingForward />
+            </View>
           </ScrollView>
         );
       case 'schedule':
@@ -367,12 +372,11 @@ const renderTabContent = () => {
           <Text style={styles.monthYearText}>
             {isHeaderCollapsed
               ? currentDate.getFullYear() === new Date().getFullYear()
-                ? format(currentDate, 'EEEE, MMMM d') // Added day of week when current year
-                : format(currentDate, 'EEEE, MMMM d, yyyy') // Added day of week when different year
+                ? format(currentDate, 'EEEE, MMMM d')
+                : format(currentDate, 'EEEE, MMMM d, yyyy')
               : currentDate.getFullYear() === new Date().getFullYear()
                 ? format(currentDate, 'MMMM')
-                : format(currentDate, 'MMMM yyyy')
-            }
+                : format(currentDate, 'MMMM yyyy')}
           </Text>
           <View style={styles.viewModeContainer}>
             <TouchableOpacity
@@ -381,7 +385,7 @@ const renderTabContent = () => {
             >
               <Ionicons
                 name="calendar"
-                size={20}  // Set to 20px
+                size={20}
                 color={viewMode === 'daily' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
               />
             </TouchableOpacity>
@@ -391,7 +395,7 @@ const renderTabContent = () => {
             >
               <Ionicons
                 name="calendar-outline"
-                size={20}  // Set to 20px
+                size={20}
                 color={viewMode === 'weekly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
               />
             </TouchableOpacity>
@@ -401,33 +405,36 @@ const renderTabContent = () => {
             >
               <Ionicons
                 name="calendar-sharp"
-                size={20}  // Set to 20px
+                size={20}
                 color={viewMode === 'monthly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
               />
             </TouchableOpacity>
           </View>
         </View>
-        {!isHeaderCollapsed && (
-          <>
-            <View style={styles.scrollContainer}>
-              <ScrollView
-                ref={scrollViewRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.weeksContainer}
-                snapToInterval={screenWidth}
-                snapToAlignment="start"
-                decelerationRate="fast"
-                pagingEnabled
-                onMomentumScrollEnd={handleScroll}
-                onScrollBeginDrag={() => {}}
-                scrollEventThrottle={16}
-              >
-                {weeks.map((week, index) => renderWeek(week, index))}
-              </ScrollView>
-            </View>
-          </>
-        )}
+        <Animated.View
+          style={[
+            styles.scrollContainer,
+            {
+              opacity: weekOpacity,
+              height: weekHeight,
+            },
+          ]}
+        >
+          <ScrollView
+            ref={scrollViewRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.weeksContainer}
+            snapToInterval={screenWidth}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            pagingEnabled
+            onMomentumScrollEnd={handleScroll}
+            scrollEventThrottle={16}
+          >
+            {weeks.map((week, index) => renderWeek(week, index))}
+          </ScrollView>
+        </Animated.View>
       </View>
       {renderTabBar()}
       <View style={styles.content}>
@@ -443,7 +450,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
   },
   componentSpacing: {
-    marginBottom: 10,  // Reduced from 16 to 10 for tighter spacing
+    marginBottom: 10,
   },
   tabBar: {
     flexDirection: 'row',
@@ -461,7 +468,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   activeTab: {
-    backgroundColor: 'rgba(255, 107, 107, 0.2)', // alertCoral with 20% opacity
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
   },
   tabContent: {
     flex: 1,
@@ -469,7 +476,7 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     paddingHorizontal: 30,
     paddingTop: 20,
-    paddingBottom: 80, // Add extra padding at the bottom to prevent content from being hidden behind tab bar
+    paddingBottom: 80,
   },
   tabText: {
     fontSize: 16,
@@ -487,18 +494,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    // Removed marginBottom to eliminate space
   },
   viewModeContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,  // Smaller border radius
-    padding: 4,        // Reduced padding
+    borderRadius: 12,
+    padding: 4,
   },
   viewModeButton: {
-    padding: 4,        // Reduced padding
-    borderRadius: 8,   // Smaller border radius
-    marginHorizontal: 1,  // Reduced margin
+    padding: 4,
+    borderRadius: 8,
+    marginHorizontal: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -515,21 +521,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
   },
   monthYearContainer: {
-    paddingVertical: 4,  // Reduced from 12
+    paddingVertical: 4,
     paddingHorizontal: 6,
     backgroundColor: Colors.anchorBlue,
-    marginBottom: 0,  // Ensure no extra margin
-  },
-  collapsedDateText: {
-    fontFamily: Fonts.bold,
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    marginRight: 12,
+    marginBottom: 0,
   },
   monthYearText: {
     fontSize: 18,
     fontFamily: Fonts.bold,
-    fontWeight: '700', // Explicitly set font weight
+    fontWeight: '700',
     color: Colors.hopeWhite,
   },
   daysHeader: {
@@ -644,6 +644,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     width: '100%',
+    overflow: 'hidden', // Prevent visual glitches during animation
   },
   collapsedPadding: {
     paddingBottom: 0,
