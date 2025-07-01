@@ -1,7 +1,8 @@
 // src/navigation/BottomTabNavigator.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
+import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -36,10 +37,37 @@ const CustomTabBarComponent = ({
   descriptors: _descriptors, // Prefix with underscore to indicate intentionally unused
   navigation,
 }: CustomTabBarProps) => {
+  const { showTabBar } = useScroll();
+  const translateY = React.useRef(new Animated.Value(0)).current;
+  const opacity = React.useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(translateY, {
+        toValue: showTabBar ? 0 : 80, // Slide down by 80px
+        useNativeDriver: true,
+        bounciness: 0,
+      }),
+      Animated.timing(opacity, {
+        toValue: showTabBar ? 1 : 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [showTabBar, translateY, opacity]);
   const { onTabPress } = React.useContext(TabPressContext);
 
   return (
-    <View style={styles.tabBarContainer}>
+    <Animated.View
+      style={[
+        styles.tabBarContainer,
+        styles.animatedTabBar,
+        {
+          transform: [{ translateY }],
+          opacity,
+        },
+      ]}
+    >
       {state.routes.map((route, index) => {
         const isFocused = state.index === index;
 
@@ -79,7 +107,7 @@ const CustomTabBarComponent = ({
           </TouchableOpacity>
         );
       })}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -217,6 +245,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingBottom: Platform.OS === 'ios' ? 20 : 15,  // Increased padding at the bottom
+  },
+  animatedTabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   tab: {
     flex: 1,

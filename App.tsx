@@ -22,6 +22,7 @@ import { UserProvider } from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import { LogoutContext } from './src/context/LogoutContext';
 import { DevotionalProvider } from './src/context/DevotionalContext';
+import { ScrollProvider } from './src/context/ScrollContext';
 
 // Stack navigator removed as it's not currently used
 
@@ -113,26 +114,32 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <UserProvider>
-      <LogoutContext.Provider value={{ onLogout: handleLogout }}>
-        <DevotionalProvider>
-          <GestureHandlerRootView style={styles.gestureHandler}>
-            <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
-              <NavigationContainer>
-                <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
-                <RootStackNavigator
-                  isAuthenticated={isAuthenticated}
-                  handleLogout={handleLogout}
-                  handleLogin={handleLogin}
-                  onLogin={handleLogin}
-                  AuthStack={AuthStackNavigator}
-                />
-              </NavigationContainer>
-            </ActionStepsProviderWrapper>
-          </GestureHandlerRootView>
-        </DevotionalProvider>
-      </LogoutContext.Provider>
-    </UserProvider>
+    <GestureHandlerRootView style={styles.gestureHandler}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <ScrollProvider>
+        <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
+          <DevotionalProvider>
+            <UserProvider>
+              <LogoutContext.Provider value={{ onLogout: handleLogout }}>
+                <NavigationContainer>
+                  {isAuthenticated ? (
+                    <RootStackNavigator
+                      isAuthenticated={isAuthenticated}
+                      handleLogin={handleLogin}
+                      handleLogout={handleLogout}
+                      onLogin={handleLogin}
+                      AuthStack={AuthStackNavigator}
+                    />
+                  ) : (
+                    <AuthStackNavigator onLogin={handleLogin} />
+                  )}
+                </NavigationContainer>
+              </LogoutContext.Provider>
+            </UserProvider>
+          </DevotionalProvider>
+        </ActionStepsProviderWrapper>
+      </ScrollProvider>
+    </GestureHandlerRootView>
   );
 }
 

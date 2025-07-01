@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { useScroll } from '../context/ScrollContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isToday, isSameDay, addWeeks } from 'date-fns';
 import { Colors } from '../theme/colors';
@@ -72,10 +73,14 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const scrollViewRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
   const scrollX = useRef(6 * screenWidth);
-  const lastScrollY = useRef(0); // Track last scroll position for direction
+
+  // Scroll tracking refs
+  const lastScrollY = useRef(0);
+  const scrollDirection = useRef('');
+  const scrollTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Animation state
-  const scrollY = useRef(new Animated.Value(0)).current;
+  const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
   const weekOpacity = scrollY.interpolate({
     inputRange: [0, 40],
     outputRange: [1, 0],
@@ -86,19 +91,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     outputRange: [44, 0],
     extrapolate: 'clamp',
   });
-  
-  // Add a debounce to prevent rapid state updates
-  const debounce = (func: Function, wait: number) => {
-    let timeout: NodeJS.Timeout | null = null;
-    return function executedFunction(...args: any[]) {
-      const later = () => {
-        timeout = null;
-        func(...args);
-      };
-      if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-    };
-  };
+
 
   useEffect(() => {
     const generateWeeks = () => {
@@ -259,23 +252,40 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     );
   };
 
-  const handleContentScroll = useCallback(
-    (event: any) => {
-      const y = event.nativeEvent.contentOffset.y;
-      const isScrollingUp = y < lastScrollY.current;
-      lastScrollY.current = y;
+  const { setShowTabBar } = useScroll();
 
-      // Always update the animation value
-      scrollY.setValue(y);
-      
-      // Update collapsed state based on scroll position
-      const shouldBeCollapsed = y > 40;
-      if (shouldBeCollapsed !== isHeaderCollapsed) {
-        setIsHeaderCollapsed(shouldBeCollapsed);
+  const handleContentScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const isScrollingUp = y < (lastScrollY.current || 0);
+
+    // Update scroll direction
+    scrollDirection.current = isScrollingUp ? 'up' : 'down';
+    lastScrollY.current = y;
+
+    // Update header animation
+    scrollY.setValue(y);
+
+    // Update header collapsed state
+    const shouldBeCollapsed = y > 40;
+    if (shouldBeCollapsed !== isHeaderCollapsed) {
+      setIsHeaderCollapsed(shouldBeCollapsed);
+    }
+
+    // Show/hide tab bar based on scroll direction
+    clearTimeout(scrollTimeout.current);
+    if (scrollDirection.current === 'down' && y > 20) {
+      setShowTabBar(false);
+    } else if (scrollDirection.current === 'up') {
+      setShowTabBar(true);
+    }
+
+    // Auto-show tab bar when scrolling stops or near top
+    scrollTimeout.current = setTimeout(() => {
+      if (y < 20) {
+        setShowTabBar(true);
       }
-    },
-    [isHeaderCollapsed]
-  );
+    }, 1000);
+  }, [isHeaderCollapsed, scrollY, setShowTabBar]);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -487,9 +497,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    paddingHorizontal: 30,
-    paddingTop: 20,
-    paddingBottom: 80,
+    padding: 16,
+    paddingBottom: 100,
   },
   tabText: {
     fontSize: 16,
