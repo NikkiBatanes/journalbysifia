@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
-import { Check, Goal as LuGoal } from 'lucide-react-native';
+import { Check, Goal as LuGoal, X } from 'lucide-react-native';
 
 interface PriorityItem {
   id: string;
@@ -28,9 +28,29 @@ export const TodaysFocus: React.FC = () => {
   });
   const [isEditing, setIsEditing] = useState(false);
   const swipeableRefs = useRef<{[key: string]: any}>({});
+  
+  // Store original data for cancel functionality
+  const originalData = useRef<TodayFocusData>({ ...data });
 
   const toggleEditing = () => {
+    if (!isEditing) {
+      // When starting to edit, save current state
+      originalData.current = {
+        focus: data.focus,
+        priorities: data.priorities.map(p => ({ ...p }))
+      };
+    }
     setIsEditing(!isEditing);
+  };
+
+  const handleCancel = () => {
+    // Reset to original data when canceling
+    setData(prevData => ({
+      ...prevData,
+      focus: originalData.current.focus,
+      priorities: [...originalData.current.priorities]
+    }));
+    setIsEditing(false);
   };
 
   const updateFocus = (text: string) => {
@@ -86,7 +106,6 @@ export const TodaysFocus: React.FC = () => {
       showAddButton={!isEditing}
       onAdd={toggleEditing}
       isAdding={isEditing}
-      onCancelAdd={toggleEditing}
     >
       {isEditing
         ? (
@@ -115,6 +134,13 @@ export const TodaysFocus: React.FC = () => {
               </View>
             ))}
             <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton, styles.buttonSpacing]}
+                activeOpacity={1}
+                onPress={handleCancel}
+              >
+                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, styles.saveButton, (!data.focus.trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton]}
                 activeOpacity={1}
@@ -281,7 +307,7 @@ const styles = StyleSheet.create({
   },
   focusInput: {
     fontSize: 14, // Slightly larger than other inputs
-    fontWeight: '500',
+    fontWeight: '400',
     marginBottom: 12,
     fontFamily: Fonts.medium,
     height: 44, // Slightly taller for main focus input
@@ -344,6 +370,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     marginTop: 12,
     padding: 0,
+    gap: 8,
+  },
+  buttonSpacing: {
+    marginRight: 0,
   },
   button: {
     width: 24,
@@ -354,6 +384,9 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
+  },
+  cancelButton: {
+    backgroundColor: Colors.mediumGray,
   },
   disabledButton: {
     opacity: 0.5,
