@@ -86,6 +86,19 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     outputRange: [44, 0],
     extrapolate: 'clamp',
   });
+  
+  // Add a debounce to prevent rapid state updates
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout | null = null;
+    return function executedFunction(...args: any[]) {
+      const later = () => {
+        timeout = null;
+        func(...args);
+      };
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  };
 
   useEffect(() => {
     const generateWeeks = () => {
@@ -252,30 +265,13 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
       const isScrollingUp = y < lastScrollY.current;
       lastScrollY.current = y;
 
-      if (isScrollingUp && y <= 40) {
-        // Instantly expand header when scrolling up
-        scrollY.setValue(0);
-        if (isHeaderCollapsed) {
-          setIsHeaderCollapsed(false);
-        }
-      } else {
-        // Smoothly collapse header when scrolling down
-        Animated.spring(scrollY, {
-          toValue: Math.min(y, 40),
-          stiffness: 100,
-          damping: 20,
-          useNativeDriver: false,
-        }).start();
-        const newIsCollapsed = y > 40;
-        if (newIsCollapsed !== isHeaderCollapsed) {
-          setIsHeaderCollapsed(newIsCollapsed);
-          const currentScrollX = scrollX.current;
-          setTimeout(() => {
-            if (scrollViewRef.current) {
-              scrollViewRef.current.scrollTo({ x: currentScrollX, animated: false });
-            }
-          }, 10);
-        }
+      // Always update the animation value
+      scrollY.setValue(y);
+      
+      // Update collapsed state based on scroll position
+      const shouldBeCollapsed = y > 40;
+      if (shouldBeCollapsed !== isHeaderCollapsed) {
+        setIsHeaderCollapsed(shouldBeCollapsed);
       }
     },
     [isHeaderCollapsed]
