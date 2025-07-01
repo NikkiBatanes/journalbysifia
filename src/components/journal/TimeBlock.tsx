@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, FlatList, Modal, TouchableWithoutFeedback } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -25,29 +25,68 @@ interface TimeBlockItem {
   };
 }
 
+// Helper function to format time duration
+const formatDuration = (start: Date, end: Date): string => {
+  const diffInMs = end.getTime() - start.getTime();
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+  const diffInMinutes = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (diffInHours > 0) {
+    return `${diffInHours}h ${diffInMinutes}m`;
+  }
+  return `${diffInMinutes}m`;
+};
+
+// Helper function to format repeat text
+const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[]): string => {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  switch (frequency) {
+    case 'daily':
+      return 'Daily';
+    case 'weekly':
+      return 'Weekly';
+    case 'biweekly':
+      return 'Bi-weekly';
+    case 'monthly':
+      return 'Monthly';
+    case 'yearly':
+      return 'Yearly';
+    case 'custom':
+      if (customDays && customDays.length > 0) {
+        const days = customDays.map(day => dayNames[day]).join(', ');
+        return `Custom (${days})`;
+      }
+      return 'Custom';
+    default:
+      return '';
+  }
+};
+
 const CATEGORIES = [
-  'Appointments',
-  'Break Time',
-  'Career Growth',
-  'Church Activities',
-  'Deep Work',
-  'Events',
-  'Family Time',
-  'Life Admin',
-  'Mental Health',
-  'Ministry',
-  'Personal Growth',
-  'Physical Health',
-  'Projects',
-  'Quiet Time',
-  'Recreation',
-  'Sleep & Recovery',
-  'Work Meetings',
+  { name: 'Appointments', icon: 'calendar' },
+  { name: 'Break Time', icon: 'cafe' },
+  { name: 'Career Growth', icon: 'rocket' },
+  { name: 'Church Activities', icon: 'people' },
+  { name: 'Deep Work', icon: 'code-working' },
+  { name: 'Events', icon: 'calendar-number' },
+  { name: 'Family Time', icon: 'people-circle' },
+  { name: 'Life Admin', icon: 'document-text' },
+  { name: 'Mental Health', icon: 'heart' },
+  { name: 'Ministry', icon: 'hand-left' },
+  { name: 'Personal Growth', icon: 'person' },
+  { name: 'Physical Health', icon: 'barbell' },
+  { name: 'Projects', icon: 'folder' },
+  { name: 'Quiet Time', icon: 'book' },
+  { name: 'Recreation', icon: 'airplane' },
+  { name: 'Sleep & Recovery', icon: 'moon' },
+  { name: 'Work Meetings', icon: 'briefcase' },
 ];
 
 export const TimeBlock: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlockItem[]>([]);
+  const [visibleCount, setVisibleCount] = useState(5);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
   const [showRepeatOptions, setShowRepeatOptions] = useState(false);
@@ -69,7 +108,7 @@ export const TimeBlock: React.FC = () => {
     title: '',
     startTime: new Date(),
     endTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour later
-    category: CATEGORIES[0],
+    category: '',
     notes: '',
     location: '',
     isAllDay: false,
@@ -101,7 +140,7 @@ export const TimeBlock: React.FC = () => {
       title: '',
       startTime: new Date(),
       endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
-      category: CATEGORIES[0],
+      category: '',
       notes: '',
       location: '',
       isAllDay: false,
@@ -132,36 +171,36 @@ export const TimeBlock: React.FC = () => {
   };
 
   const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    // On iOS, the picker doesn't close automatically, so we need to close it after selection
-    if (event.type === 'set' || event.type === 'dismissed') {
-      if (selectedDate) {
-        const type = showTimePicker.start ? 'start' : 'end';
-        const id = showTimePicker.id;
+    // Only update the time if a date was selected
+    if (selectedDate) {
+      const type = showTimePicker.start ? 'start' : 'end';
+      const id = showTimePicker.id;
 
-        // Create a new date object to ensure reactivity
-        const newDate = new Date(selectedDate);
+      // Create a new date object to ensure reactivity
+      const newDate = new Date(selectedDate);
 
-        if (id) {
-          // Update existing time block
-          setTimeBlocks(timeBlocks.map(block =>
-            block.id === id
-              ? {
-                  ...block,
-                  startTime: type === 'start' ? newDate : block.startTime,
-                  endTime: type === 'end' ? newDate : block.endTime,
-                }
-              : block
-          ));
-        } else {
-          // Update new time block
-          setNewBlock(prev => ({
-            ...prev,
-            [type === 'start' ? 'startTime' : 'endTime']: newDate,
-          }));
-        }
+      if (id) {
+        // Update existing time block
+        setTimeBlocks(timeBlocks.map(block =>
+          block.id === id
+            ? {
+                ...block,
+                startTime: type === 'start' ? newDate : block.startTime,
+                endTime: type === 'end' ? newDate : block.endTime,
+              }
+            : block
+        ));
+      } else {
+        // Update new time block
+        setNewBlock(prev => ({
+          ...prev,
+          [type === 'start' ? 'startTime' : 'endTime']: newDate,
+        }));
       }
+    }
 
-      // Close the picker
+    // Only close the picker if the user explicitly dismissed it
+    if (event.type === 'dismissed') {
       setShowTimePicker({ start: false, end: false, id: null });
     }
   };
@@ -174,10 +213,15 @@ export const TimeBlock: React.FC = () => {
             <Text style={styles.allDayText}>ALL DAY</Text>
           </View>
         ) : (
-          <View style={styles.timeRangeContainer}>
-            <Text style={styles.timeText}>
-              {formatTime(block.startTime)} - {formatTime(block.endTime)}
-            </Text>
+          <View style={styles.timeRangeStacked}>
+            <Text style={styles.timeText}>{formatTime(block.startTime)}</Text>
+            <Text style={[styles.timeSeparator, {marginVertical: 2, marginHorizontal: 0, width: '100%', textAlign: 'center'}]}>TO</Text>
+            <Text style={styles.timeText}>{formatTime(block.endTime)}</Text>
+            <View style={styles.durationContainer}>
+              <Text style={styles.durationText}>
+                {formatDuration(block.startTime, block.endTime)}
+              </Text>
+            </View>
           </View>
         )}
       </View>
@@ -198,29 +242,79 @@ export const TimeBlock: React.FC = () => {
         </View>
         <View style={styles.detailsContent}>
           <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(block.category) }]}>
-            <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode="tail">
-              {block.category}
-            </Text>
+            <View style={styles.categoryContent}>
+              <Ionicons 
+                name={CATEGORIES.find(cat => cat.name === block.category)?.icon || 'square-outline'} 
+                size={12} 
+                color={Colors.anchorBlue}
+                style={styles.categoryIcon}
+              />
+              <Text style={styles.categoryLabel} numberOfLines={1} ellipsizeMode="tail">
+                {block.category}
+              </Text>
+            </View>
           </View>
-          {block.notes ? (
-            <Text style={styles.notesText} numberOfLines={2} ellipsizeMode="tail">
-              {block.notes}
-            </Text>
-          ) : null}
+          
+          {(block.location || block.repeat.frequency !== 'never') && (
+            <View style={styles.metaInfoContainer}>
+              {block.location && (
+                <View style={styles.metaInfoRow}>
+                  <Ionicons name="location-outline" size={12} color={Colors.mediumGray} style={styles.metaIcon} />
+                  <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
+                    {block.location}
+                  </Text>
+                </View>
+              )}
+              {block.repeat.frequency !== 'never' && (
+                <View style={styles.metaInfoRow}>
+                  <Ionicons name="repeat-outline" size={12} color={Colors.mediumGray} style={styles.metaIcon} />
+                  <Text style={styles.metaText}>
+                    {formatRepeatText(block.repeat.frequency, block.repeat.customDays)}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+          
+          {block.notes && (
+            <View style={styles.notesContainer}>
+              <Ionicons name="document-text-outline" size={12} color={Colors.mediumGray} style={styles.notesIcon} />
+              <Text style={styles.notesText} numberOfLines={2} ellipsizeMode="tail">
+                {block.notes}
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </View>
   );
 
-  const getCategoryColor = (category: string) => {
-    // Simple hash function to generate consistent colors for categories
-    let hash = 0;
-    for (let i = 0; i < category.length; i++) {
-      // Using Math.pow instead of bitwise operator
-      hash = category.charCodeAt(i) + ((hash * 32 - hash) + 0);
-    }
-    const hue = Math.abs(hash) % 360;
-    return `hsl(${hue}, 70%, 90%)`;
+  const getCategoryColor = (categoryName: string): string => {
+    const colorMap: {[key: string]: string} = {
+      'Appointments': '#FFEBEE', // Soft Pink
+      'Break Time': '#FFF3E0', // Light Orange
+      'Career Growth': '#E3F2FD', // Pale Blue
+      'Church Activities': '#F3E5F5', // Light Lavender
+      'Deep Work': '#E8F5E9', // Mint Green
+      'Events': '#FFEBEE', // Soft Pink
+      'Family Time': '#FFF8E1', // Light Yellow
+      'Life Admin': '#E0F7FA', // Ice Blue
+      'Mental Health': '#F3E5F5', // Pale Lilac
+      'Ministry': '#E3F2FD', // Light Blue
+      'Personal Growth': '#F1F8E9', // Pale Green
+      'Physical Health': '#E8F5E9', // Mint Green
+      'Projects': '#FFECB3', // Soft Yellow
+      'Quiet Time': '#F3E5F5', // Pale Lilac
+      'Recreation': '#FFE0B2', // Light Orange
+      'Sleep & Recovery': '#E1F5FE', // Light Blue
+      'Work Meetings': '#EDE7F6', // Light Purple
+    };
+    return colorMap[categoryName] || '#F5F5F5'; // Default very light gray if not found
+  };
+
+  const getCategoryIcon = (categoryName: string): string => {
+    const category = CATEGORIES.find(cat => cat.name === categoryName);
+    return category ? category.icon : 'help-circle';
   };
 
 
@@ -242,9 +336,38 @@ export const TimeBlock: React.FC = () => {
       {(timeBlocks.length > 0 || isAdding) ? (
         <>
           {timeBlocks.length > 0 && (
-            <ScrollView style={styles.timeBlocksContainer}>
-              {timeBlocks.map(block => renderTimeBlock(block))}
-            </ScrollView>
+            <View style={styles.timeBlocksContainer}>
+              {timeBlocks.slice(0, visibleCount).map(block => renderTimeBlock(block))}
+              {timeBlocks.length > 5 && (
+                <View style={styles.paginationContainer}>
+                  <View style={styles.paginationButtonGroup}>
+                    {timeBlocks.length > visibleCount ? (
+                      <TouchableOpacity
+                        style={[styles.paginationButton, styles.showMoreButton]}
+                        onPress={() => setVisibleCount(prev => Math.min(prev + 5, timeBlocks.length))}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                        <Text style={[styles.paginationButtonText, styles.showMoreText]}>
+                          Show more
+                        </Text>
+                      </TouchableOpacity>
+                    ) : visibleCount > 5 && (
+                      <TouchableOpacity
+                        style={[styles.paginationButton, styles.showLessButton]}
+                        onPress={() => setVisibleCount(5)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                        <Text style={[styles.paginationButtonText, styles.showLessText]}>
+                          Show less
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
+            </View>
           )}
           {isAdding && (
             <View style={styles.addBlockContainer}>
@@ -282,6 +405,24 @@ export const TimeBlock: React.FC = () => {
                     <Text style={styles.allDayLabel}>All Day</Text>
                   </TouchableOpacity>
                 </View>
+                {(showTimePicker.start || showTimePicker.end) && !showTimePicker.id && (
+                  <View style={styles.timePickerContainer}>
+                    <DateTimePicker
+                      value={showTimePicker.start ? newBlock.startTime : newBlock.endTime}
+                      mode="time"
+                      display="spinner"
+                      onChange={onTimeChange}
+                      themeVariant="light"
+                      minuteInterval={5}
+                    />
+                    <TouchableOpacity 
+                      style={styles.doneButton}
+                      onPress={() => setShowTimePicker({ start: false, end: false, id: null })}
+                    >
+                      <Text style={styles.doneButtonText}>Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
 
               {/* 2. Activity Title */}
@@ -290,7 +431,7 @@ export const TimeBlock: React.FC = () => {
                   style={[styles.input, styles.fullWidth]}
                   value={newBlock.title}
                   onChangeText={(text) => setNewBlock({...newBlock, title: text})}
-                  placeholder="Title"
+                  placeholder="Enter a title"
                   placeholderTextColor={Colors.mediumGray}
                 />
               </View>
@@ -315,11 +456,28 @@ export const TimeBlock: React.FC = () => {
               {/* 4. Category */}
               <View style={styles.categorySelectorContainer}>
                 <TouchableOpacity
-                  style={[styles.categorySelector, { backgroundColor: getCategoryColor(newBlock.category) }]}
+                  style={[styles.categorySelector, { 
+                    backgroundColor: newBlock.category ? getCategoryColor(newBlock.category) : Colors.lightGray,
+                  }]}
                   onPress={() => setShowCategoryPicker(true)}
                 >
-                  <Text style={styles.categoryText} numberOfLines={1} ellipsizeMode="tail">
-                    {newBlock.category}
+                  {newBlock.category ? (
+                    <Ionicons 
+                      name={getCategoryIcon(newBlock.category)} 
+                      size={16} 
+                      color={Colors.anchorBlue} 
+                      style={styles.categoryIcon}
+                    />
+                  ) : null}
+                  <Text 
+                    style={[
+                      styles.categorySelectorText, 
+                      !newBlock.category && styles.placeholderText
+                    ]} 
+                    numberOfLines={1} 
+                    ellipsizeMode="tail"
+                  >
+                    {newBlock.category || 'Select a category'}
                   </Text>
                   <Ionicons name="chevron-down" size={16} color={Colors.darkGray} />
                 </TouchableOpacity>
@@ -488,24 +646,40 @@ export const TimeBlock: React.FC = () => {
                 <TouchableWithoutFeedback onPress={() => setShowCategoryPicker(false)}>
                   <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                      <ScrollView style={styles.pickerScroll}>
-                        {CATEGORIES.map((category) => (
+                      <FlatList
+                        data={CATEGORIES}
+                        numColumns={2}
+                        keyExtractor={(item) => item.name}
+                        contentContainerStyle={styles.gridContainer}
+                        columnWrapperStyle={styles.columnWrapper}
+                        renderItem={({ item }) => (
                           <TouchableOpacity
-                            key={category}
                             style={[
-                              styles.pickerItem,
-                              { backgroundColor: getCategoryColor(category) },
-                              newBlock.category === category && styles.selectedPickerItem,
+                              styles.gridItem,
+                              { backgroundColor: getCategoryColor(item.name) },
+                              newBlock.category === item.name && styles.selectedPickerItem,
                             ]}
                             onPress={() => {
-                              setNewBlock({...newBlock, category});
+                              setNewBlock({...newBlock, category: item.name});
                               setShowCategoryPicker(false);
                             }}
                           >
-                            <Text style={styles.pickerItemText}>{category}</Text>
+                            <Ionicons 
+                              name={item.icon} 
+                              size={18} 
+                              color={Colors.anchorBlue} 
+                              style={styles.categoryIcon}
+                            />
+                            <Text 
+                              style={styles.gridItemText}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {item.name}
+                            </Text>
                           </TouchableOpacity>
-                        ))}
-                      </ScrollView>
+                        )}
+                      />
                     </View>
                   </View>
                 </TouchableWithoutFeedback>
@@ -530,15 +704,14 @@ export const TimeBlock: React.FC = () => {
               </View>
             </View>
           )}
-          {(showTimePicker.start || showTimePicker.end) && (
+          {/* Time picker for existing time blocks */}
+          {showTimePicker.id && (showTimePicker.start || showTimePicker.end) && (
             <DateTimePicker
-              value={showTimePicker.id
-                ? showTimePicker.start
+              value={
+                showTimePicker.start
                   ? timeBlocks.find(b => b.id === showTimePicker.id)?.startTime || new Date()
                   : timeBlocks.find(b => b.id === showTimePicker.id)?.endTime || new Date()
-                : showTimePicker.start
-                  ? newBlock.startTime
-                  : newBlock.endTime}
+              }
               mode="time"
               display="spinner"
               onChange={onTimeChange}
@@ -554,12 +727,41 @@ export const TimeBlock: React.FC = () => {
 
 const styles = StyleSheet.create({
   timeBlocksContainer: {
-    maxHeight: 300,
     marginBottom: 8,
     padding: 0,
   },
   repeatContainer: {
     marginBottom: 8,
+  },
+  timePickerContainer: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  doneButton: {
+    backgroundColor: Colors.anchorBlue,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    marginTop: 8,
+    alignSelf: 'flex-end',
+  },
+  doneButtonText: {
+    color: 'white',
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+  },
+  timeInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   repeatButton: {
     flexDirection: 'row',
@@ -645,11 +847,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   datePickerContainer: {
-    marginTop: 10,
-    backgroundColor: 'white',
+    width: '100%',
+    backgroundColor: 'transparent',
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     alignItems: 'center',
+    marginTop: 8,
   },
   cancelDateButton: {
     marginTop: 10,
@@ -670,13 +873,11 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    padding: 8,
     fontFamily: Fonts.regular,
     color: Colors.darkGray,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
-    minHeight: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
     fontSize: 13,
     lineHeight: 18,
   },
@@ -726,6 +927,8 @@ const styles = StyleSheet.create({
     paddingBottom: 0,
     marginTop: 0,
     marginBottom: 0,
+    color: Colors.darkGray,
+    fontFamily: Fonts.regular,
   },
   fullWidth: {
     width: '100%',
@@ -754,7 +957,8 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: 'rgba(26, 60, 109, 0.1)',
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    paddingLeft: 4,
   },
   timeRangeContainer: {
     flexDirection: 'column',
@@ -767,6 +971,13 @@ const styles = StyleSheet.create({
   timeRangeEdit: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  timeRangeStacked: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    width: '100%',
   },
   timeRow: {
     flexDirection: 'row',
@@ -796,6 +1007,66 @@ const styles = StyleSheet.create({
     minWidth: 40,
     lineHeight: 18,
   },
+  durationContainer: {
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+  },
+  durationText: {
+    fontSize: 10,
+    color: Colors.mediumGray,
+    fontFamily: Fonts.medium,
+    textAlign: 'center',
+  },
+  // Pagination styles
+  paginationContainer: {
+    width: '100%',
+    paddingVertical: 1,
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 0,
+    paddingTop: 10,
+  },
+  buttonDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    marginVertical: 8,
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  paginationButtonText: {
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    lineHeight: 14,
+  },
+  showMoreButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  showMoreText: {
+    color: Colors.alertCoral,
+  },
+  showLessButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  showLessText: {
+    color: Colors.mediumGray,
+  },
   allDayBadge: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
     paddingVertical: 4,
@@ -805,28 +1076,6 @@ const styles = StyleSheet.create({
   },
   allDayText: {
     color: Colors.alertCoral,
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  allDayToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: 16,
-  },
-  checkbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 3,
-    borderWidth: 1.5,
-    borderColor: Colors.trustGrey,
-    backgroundColor: 'rgba(176, 184, 193, 0.1)',
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxChecked: {
     backgroundColor: Colors.growthGreen,
     borderColor: Colors.growthGreen,
   },
@@ -859,17 +1108,53 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginTop: 4,
   },
-  categoryText: {
+  categoryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryIcon: {
+    marginRight: 4,
+  },
+  categoryLabel: {
     fontSize: 12,
     fontFamily: Fonts.medium,
     color: Colors.darkGray,
+  },
+  metaInfoContainer: {
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  metaInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 3,
+    minHeight: 16,
+  },
+  metaIcon: {
+    marginRight: 4,
+  },
+  metaText: {
+    fontSize: 11,
+    color: Colors.mediumGray,
+    fontFamily: Fonts.regular,
+    flex: 1,
+    lineHeight: 14,
+    marginVertical: 1,
+  },
+  notesContainer: {
+    flexDirection: 'row',
+    marginTop: 4,
+  },
+  notesIcon: {
+    marginTop: 1,
+    marginRight: 4,
   },
   notesText: {
     fontSize: 12,
     color: Colors.mediumGray,
     fontFamily: Fonts.regular,
     fontStyle: 'italic',
-    marginTop: 4,
+    flex: 1,
     lineHeight: 16,
   },
   removeButton: {
@@ -928,9 +1213,10 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: 'white',
     borderRadius: 12,
-    width: '100%',
-    maxHeight: '60%',
+    width: '90%',
+    maxWidth: 285,
     padding: 16,
+    margin: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -940,19 +1226,48 @@ const styles = StyleSheet.create({
   pickerScroll: {
     width: '100%',
   },
-  pickerItem: {
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 4,
+  gridContainer: {
+    padding: 4,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    gap: 4,
+  },
+  gridItem: {
+    flex: 1,
+    minWidth: 0,
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 70,
+    maxWidth: 120,
+  },
+  categoryIcon: {
+    marginRight: 8,
+  },
+  categorySelectorText: {
+    color: Colors.darkGray,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    flex: 1,
+    marginLeft: 8,
+  },
+  placeholderText: {
+    color: Colors.mediumGray,
+    fontStyle: 'italic',
   },
   selectedPickerItem: {
     borderWidth: 2,
     borderColor: Colors.alertCoral,
   },
-  pickerItemText: {
+  gridItemText: {
     color: Colors.darkGray,
-    fontFamily: Fonts.regular,
-    fontSize: 16,
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 2,
   },
   button: {
     width: 24,
@@ -960,6 +1275,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Colors.lightGray,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
