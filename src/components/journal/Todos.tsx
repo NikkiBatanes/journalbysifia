@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, ScrollView } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check, ListTodo as LuListTodo } from 'lucide-react-native';
+import { Check, ListTodo as LuListTodo, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 
 interface TodoItem {
@@ -42,6 +42,15 @@ export const Todos: React.FC = () => {
     setVisibleCount(5);
     setIsAdding(false);
     setNewTodo('');
+  };
+
+  const handleSave = () => {
+    if (newTodo.trim()) {
+      closeAllSwipeables();
+      addTodo(newTodo);
+      setNewTodo('');
+      setIsAdding(false);
+    }
   };
 
   const addTodo = (value: string) => {
@@ -254,7 +263,7 @@ export const Todos: React.FC = () => {
       showAddButton={!isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
-      onCancelAdd={cancelAdding}
+      // Removed onCancelAdd to remove the cancel button from header
       headerRight={
         <View style={styles.headerRightContainer}>
           {todos.some(t => t.priority && !t.completed) && (
@@ -375,31 +384,32 @@ export const Todos: React.FC = () => {
               blurOnSubmit={false}
             />
           </View>
-          <View style={styles.buttonsRow}>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              onPress={handleAddInput}
+              style={[styles.button, styles.addAnotherButton]}
+            >
+              <View style={[styles.plusIcon, { transform: [{ rotate: '45deg' }] }]}>
+                <Ionicons name="close" size={13} color={Colors.alertCoral} style={styles.closeIcon} />
+              </View>
+            </TouchableOpacity>
             <View style={styles.buttonGroup}>
               <TouchableOpacity
-                onPress={handleAddInput}
-                style={[styles.button, styles.addAnotherButton]}
+                style={[styles.button, styles.cancelButton]}
+                onPress={cancelAdding}
+                activeOpacity={0.8}
               >
-                <View style={[styles.plusIcon, { transform: [{ rotate: '45deg' }] }]}>
-                  <Ionicons name="close" size={13} color={Colors.alertCoral} style={styles.closeIcon} />
-                </View>
+                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => {
-                  if (newTodo.trim()) {
-                    closeAllSwipeables();
-                    addTodo(newTodo);
-                    setNewTodo('');
-                    setIsAdding(false);
-                  }
-                }}
+                onPress={handleSave}
                 style={[
                   styles.button,
                   styles.saveButton,
                   !newTodo.trim() && styles.disabledButton,
                 ]}
                 disabled={!newTodo.trim()}
+                activeOpacity={0.8}
               >
                 <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
@@ -521,44 +531,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
   },
-  buttonsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 8,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  button: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    display: 'flex',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
   addAnotherButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  saveButton: {
-    backgroundColor: Colors.alertCoral,
     width: 24,
     height: 24,
-    shadowOpacity: 0,
-    elevation: 0,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  disabledButton: {
-    opacity: 0.5,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   plusIcon: {
     width: '100%',
@@ -567,6 +546,32 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    display: 'flex',
+  },
+  saveButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  cancelButton: {
+    backgroundColor: Colors.mediumGray,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    padding: 0,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  button: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

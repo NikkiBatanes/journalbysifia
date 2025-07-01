@@ -5,7 +5,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Check, CalendarClock as LuCalendarClock } from 'lucide-react-native';
+import { Check, CalendarClock as LuCalendarClock, X } from 'lucide-react-native';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -238,7 +238,6 @@ export const TimeBlock: React.FC = () => {
       showAddButton={!isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
-      onCancelAdd={cancelAdding}
     >
       {(timeBlocks.length > 0 || isAdding) ? (
         <>
@@ -513,13 +512,21 @@ export const TimeBlock: React.FC = () => {
               </Modal>
 
               <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[styles.button, styles.saveButton, !newBlock.title.trim() && styles.disabledButton]}
-                  onPress={addTimeBlock}
-                  disabled={!newBlock.title.trim()}
-                >
-                  <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                </TouchableOpacity>
+                <View style={styles.buttonGroup}>
+                  <TouchableOpacity
+                    style={[styles.button, styles.cancelButton]}
+                    onPress={() => setIsAdding(false)}
+                  >
+                    <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.button, styles.saveButton, !newBlock.title.trim() && styles.disabledButton]}
+                    onPress={addTimeBlock}
+                    disabled={!newBlock.title.trim()}
+                  >
+                    <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -911,7 +918,12 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 10,
+    marginTop: 12,
+    padding: 0,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 8,
   },
   modalContent: {
     backgroundColor: 'white',
@@ -948,10 +960,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
+  },
+  cancelButton: {
+    backgroundColor: Colors.mediumGray,
   },
   disabledButton: {
     opacity: 0.5,
