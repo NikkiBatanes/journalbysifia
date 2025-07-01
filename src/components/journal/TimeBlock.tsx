@@ -32,7 +32,7 @@ const formatDuration = (start: Date, end: Date): string => {
   const diffInMinutes = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60));
   
   if (diffInHours > 0) {
-    return `${diffInHours}h ${diffInMinutes}m`;
+    return diffInMinutes > 0 ? `${diffInHours}h ${diffInMinutes}m` : `${diffInHours}h`;
   }
   return `${diffInMinutes}m`;
 };
@@ -88,6 +88,8 @@ export const TimeBlock: React.FC = () => {
   const [timeBlocks, setTimeBlocks] = useState<TimeBlockItem[]>([]);
   const [visibleCount, setVisibleCount] = useState(5);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showCategoryError, setShowCategoryError] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
   const [showRepeatOptions, setShowRepeatOptions] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -120,16 +122,24 @@ export const TimeBlock: React.FC = () => {
   });
 
   const addTimeBlock = () => {
+    if (!newBlock.category) {
+      setShowCategoryError(true);
+      return;
+    }
+    
     if (newBlock.title.trim()) {
       setTimeBlocks([...timeBlocks, {
         ...newBlock,
         id: Date.now().toString(),
+        category: selectedCategory || newBlock.category,
         repeat: {
           frequency: newBlock.repeat.frequency,
           endDate: newBlock.repeat.endDate,
           customDays: newBlock.repeat.customDays || [],
         },
       }]);
+      setShowCategoryError(false);
+      setSelectedCategory('');
       setIsAdding(false);
     }
   };
@@ -254,7 +264,6 @@ export const TimeBlock: React.FC = () => {
               </Text>
             </View>
           </View>
-          
           {(block.location || block.repeat.frequency !== 'never') && (
             <View style={styles.metaInfoContainer}>
               {block.location && (
@@ -456,31 +465,33 @@ export const TimeBlock: React.FC = () => {
               {/* 4. Category */}
               <View style={styles.categorySelectorContainer}>
                 <TouchableOpacity
-                  style={[styles.categorySelector, { 
-                    backgroundColor: newBlock.category ? getCategoryColor(newBlock.category) : Colors.lightGray,
-                  }]}
+                  style={[
+                    styles.categorySelector, 
+                    !newBlock.category && showCategoryError && styles.categorySelectorError
+                  ]}
                   onPress={() => setShowCategoryPicker(true)}
                 >
-                  {newBlock.category ? (
-                    <Ionicons 
-                      name={getCategoryIcon(newBlock.category)} 
-                      size={16} 
-                      color={Colors.anchorBlue} 
-                      style={styles.categoryIcon}
-                    />
-                  ) : null}
-                  <Text 
-                    style={[
-                      styles.categorySelectorText, 
-                      !newBlock.category && styles.placeholderText
-                    ]} 
-                    numberOfLines={1} 
-                    ellipsizeMode="tail"
-                  >
+                  <Ionicons 
+                    name={newBlock.category ? CATEGORIES.find(cat => cat.name === newBlock.category)?.icon || 'square-outline' : 'add-circle-outline'} 
+                    size={16} 
+                    color={newBlock.category ? Colors.anchorBlue : Colors.mediumGray}
+                  />
+                  <Text style={[
+                    styles.categorySelectorText, 
+                    !newBlock.category && styles.placeholderText,
+                    !newBlock.category && showCategoryError && { color: Colors.alertCoral }
+                  ]}>
                     {newBlock.category || 'Select a category'}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color={Colors.darkGray} />
+                  <Ionicons 
+                    name="chevron-down" 
+                    size={16} 
+                    color={(!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.mediumGray} 
+                  />
                 </TouchableOpacity>
+                {showCategoryError && !newBlock.category && (
+                  <Text style={styles.errorText}>Please select a category</Text>
+                )}
               </View>
 
               {/* 5. Repeat Options */}
@@ -753,6 +764,30 @@ const styles = StyleSheet.create({
     color: 'white',
     fontFamily: Fonts.medium,
     fontSize: 14,
+  },
+  categorySelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+  },
+  categorySelectorError: {
+    borderColor: Colors.alertCoral,
+  },
+  categorySelectorText: {
+    flex: 1,
+    marginLeft: 8,
+    color: Colors.darkGray,
+    fontSize: 14,
+  },
+  errorText: {
+    color: Colors.alertCoral,
+    fontSize: 12,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   timeInput: {
     flexDirection: 'row',
