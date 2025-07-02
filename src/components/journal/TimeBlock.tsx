@@ -81,6 +81,7 @@ const CATEGORIES = [
   { name: 'Recreation', icon: 'airplane' },
   { name: 'Sleep & Recovery', icon: 'moon' },
   { name: 'Work Meetings', icon: 'briefcase' },
+  { name: 'Others', icon: 'ellipsis-horizontal' },
 ];
 
 export const TimeBlock: React.FC = () => {
@@ -163,6 +164,11 @@ export const TimeBlock: React.FC = () => {
   };
 
   const toggleAllDay = () => {
+    // Close any open time pickers when toggling All Day
+    if (showTimePicker.start || showTimePicker.end) {
+      setShowTimePicker({ start: false, end: false, id: null });
+    }
+    
     setNewBlock(prev => ({
       ...prev,
       isAllDay: !prev.isAllDay,
@@ -313,6 +319,7 @@ export const TimeBlock: React.FC = () => {
       'Recreation': '#FFE0B2', // Light Orange
       'Sleep & Recovery': '#E1F5FE', // Light Blue
       'Work Meetings': '#EDE7F6', // Light Purple
+      'Others': '#F0F0F0', // Light Gray
     };
     return colorMap[categoryName] || '#F5F5F5'; // Default very light gray if not found
   };
