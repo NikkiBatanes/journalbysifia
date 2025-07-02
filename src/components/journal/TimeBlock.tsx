@@ -88,12 +88,15 @@ export const TimeBlock: React.FC = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [timeBlocks, setTimeBlocks] = useState<TimeBlockItem[]>([]);
   const [visibleCount, setVisibleCount] = useState(5);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showCategoryError, setShowCategoryError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [showFrequencySelector, setShowFrequencySelector] = useState(false);
+  const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
+  const [inputValue, setInputValue] = useState('1');
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
   const [showRepeatOptions, setShowRepeatOptions] = useState(false);
-  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [newBlock, setNewBlock] = useState<{
     title: string;
     startTime: Date;
@@ -147,6 +150,12 @@ export const TimeBlock: React.FC = () => {
 
   const startAdding = () => {
     setIsAdding(true);
+    setShowRepeatOptions(false);
+    setShowEndDatePicker(false);
+    setShowCategoryPicker(false);
+    setShowFrequencySelector(false);
+    setInputValue('1');
+    setCustomFrequency({ value: 1, unit: 'week' });
     setNewBlock({
       title: '',
       startTime: new Date(),
@@ -566,6 +575,132 @@ export const TimeBlock: React.FC = () => {
                   </View>
                 )}
 
+                {/* Custom Repeat Options */}
+                {newBlock.repeat.frequency === 'custom' && (
+                  <View style={styles.customRepeatContainer}>
+                    {/* Frequency Selector */}
+                    <View style={styles.frequencySelector}>
+                      <Text style={styles.frequencyLabel}>Repeat every:</Text>
+                      <View style={styles.frequencyInputs}>
+                        <TextInput
+                          style={styles.frequencyInput}
+                          value={inputValue}
+                          onChangeText={(text) => {
+                            // Update the input value
+                            setInputValue(text);
+
+                            // Only update the frequency if we have a valid number
+                            if (text === '') {
+                              setCustomFrequency(prev => ({
+                                ...prev,
+                                value: 1,
+                              }));
+                            } else if (/^\d+$/.test(text)) {
+                              const num = parseInt(text, 10);
+                              if (num >= 1) {
+                                setCustomFrequency(prev => ({
+                                  ...prev,
+                                  value: num,
+                                }));
+                              }
+                            }
+                          }}
+                          onBlur={() => {
+                            // Ensure we have a valid number when leaving the field
+                            if (!inputValue || !/^\d+$/.test(inputValue)) {
+                              setInputValue('1');
+                              setCustomFrequency(prev => ({
+                                ...prev,
+                                value: 1,
+                              }));
+                            }
+                          }}
+                          keyboardType="number-pad"
+                          maxLength={2}
+                          returnKeyType="done"
+                          selectTextOnFocus={true}
+                        />
+                        <TouchableOpacity
+                          style={styles.frequencyUnitButton}
+                          onPress={() => setShowFrequencySelector(!showFrequencySelector)}
+                        >
+                          <Text style={styles.frequencyUnitText}>
+                            {customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1)}{customFrequency.value > 1 ? 's' : ''}
+                          </Text>
+                          <Ionicons name="chevron-down" size={14} color={Colors.darkGray} />
+                        </TouchableOpacity>
+                      </View>
+
+                      {showFrequencySelector && (
+                        <View style={styles.frequencyOptions}>
+                          {['day', 'week', 'month', 'year'].map((unit) => (
+                            <TouchableOpacity
+                              key={unit}
+                              style={styles.frequencyOption}
+                              onPress={() => {
+                                setCustomFrequency(prev => ({
+                                  ...prev,
+                                  unit,
+                                }));
+                                setShowFrequencySelector(false);
+                              }}
+                            >
+                              <Text style={styles.frequencyOptionText}>
+                                {unit.charAt(0).toUpperCase() + unit.slice(1)}
+                              </Text>
+                              {customFrequency.unit === unit && (
+                                <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                              )}
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Days of Week Selector (only shown for weekly frequency) */}
+                    {customFrequency.unit === 'week' && (
+                      <View style={styles.customDaysContainer}>
+                        <Text style={styles.customDaysLabel}>On days:</Text>
+                        <View style={styles.daysOfWeekContainer}>
+                          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
+                            const isSelected = newBlock.repeat.customDays?.includes(index);
+                            return (
+                              <TouchableOpacity
+                                key={index}
+                                style={[
+                                  styles.dayButton,
+                                  isSelected && styles.dayButtonSelected,
+                                ]}
+                                onPress={() => {
+                                  const updatedDays = newBlock.repeat.customDays || [];
+                                  const newDays = updatedDays.includes(index)
+                                    ? updatedDays.filter(d => d !== index)
+                                    : [...updatedDays, index];
+
+                                  setNewBlock({
+                                    ...newBlock,
+                                    repeat: {
+                                      ...newBlock.repeat,
+                                      customDays: newDays.sort((a, b) => a - b),
+                                    },
+                                  });
+                                }}
+                              >
+                                <Text style={[
+                                  styles.dayButtonText,
+                                  isSelected && styles.dayButtonTextSelected,
+                                ]}>
+                                  {day}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+
                 {/* End Repeat Options */}
                 {newBlock.repeat.frequency !== 'never' && (
                   <View style={styles.endRepeatContainer}>
@@ -828,10 +963,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
   },
   repeatOptionText: {
-    flex: 1,
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
     fontSize: 14,
+    color: Colors.darkGray,
+    fontFamily: Fonts.regular,
+    flex: 1,
+    lineHeight: 20,
+    marginVertical: 1,
   },
   endRepeatContainer: {
     marginTop: 4,
@@ -1136,15 +1273,16 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   timeSeparator: {
-    marginHorizontal: 6,
     color: Colors.mediumGray,
     fontSize: 8,
-    fontFamily: Fonts.bold,
-    opacity: 0.8,
+    fontFamily: Fonts.medium,
+    textTransform: 'uppercase',
+    marginVertical: 2,
+    marginHorizontal: 6,
   },
   timeSeparatorCentered: {
     color: Colors.mediumGray,
-    fontSize: 10,
+    fontSize: 8,
     fontFamily: Fonts.medium,
     textTransform: 'uppercase',
     marginVertical: 2,
@@ -1199,6 +1337,122 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 14,
     marginVertical: 1,
+  },
+
+  customRepeatContainer: {
+    marginTop: 10,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    borderRadius: 8,
+    padding: 10,
+  },
+  frequencySelector: {
+    marginBottom: 12,
+  },
+  frequencyLabel: {
+    fontSize: 14,
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+    marginBottom: 8,
+  },
+  frequencyInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  frequencyInput: {
+    width: 60,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    padding: 8,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    marginRight: 8,
+    textAlign: 'center',
+  },
+  frequencyUnitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    paddingHorizontal: 12,
+    height: 40,
+    minWidth: 100,
+  },
+  frequencyUnitText: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    fontSize: 14,
+  },
+  frequencyOptions: {
+    position: 'absolute',
+    top: 70,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+    zIndex: 1000,
+    elevation: 5,
+  },
+  frequencyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  frequencyOptionText: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    fontSize: 14,
+  },
+  customDaysContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  customDaysLabel: {
+    fontSize: 14,
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+    marginBottom: 8,
+  },
+  daysOfWeekContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    backgroundColor: 'transparent',
+  },
+  dayButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    margin: 2,
+  },
+  dayButtonSelected: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  dayButtonText: {
+    fontSize: 14,
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+  },
+  dayButtonTextSelected: {
+    color: 'white',
   },
   notesContainer: {
     flexDirection: 'row',
