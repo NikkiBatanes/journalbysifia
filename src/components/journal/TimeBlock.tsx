@@ -168,7 +168,6 @@ export const TimeBlock: React.FC = () => {
     if (showTimePicker.start || showTimePicker.end) {
       setShowTimePicker({ start: false, end: false, id: null });
     }
-    
     setNewBlock(prev => ({
       ...prev,
       isAllDay: !prev.isAllDay,
@@ -342,13 +341,13 @@ export const TimeBlock: React.FC = () => {
     >
       {(timeBlocks.length > 0 || isAdding) ? (
         <>
-          {timeBlocks.length > 0 && (
+          {timeBlocks.length > 0 && !isAdding && (
             <View style={styles.timeBlocksContainer}>
               {[...timeBlocks]
                 .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
                 .slice(0, visibleCount)
                 .map(block => renderTimeBlock(block))}
-              {timeBlocks.length > 5 && (
+              {timeBlocks.length > 5 && !isAdding && (
                 <View style={styles.paginationContainer}>
                   <View style={styles.paginationButtonGroup}>
                     {timeBlocks.length > visibleCount ? (
