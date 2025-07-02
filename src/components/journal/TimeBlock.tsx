@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, FlatList, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList, Modal, TouchableWithoutFeedback } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -30,7 +30,7 @@ const formatDuration = (start: Date, end: Date): string => {
   const diffInMs = end.getTime() - start.getTime();
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInMinutes = Math.floor((diffInMs % (1000 * 60 * 60)) / (1000 * 60));
-  
+
   if (diffInHours > 0) {
     return diffInMinutes > 0 ? `${diffInHours}h ${diffInMinutes}m` : `${diffInHours}h`;
   }
@@ -40,7 +40,7 @@ const formatDuration = (start: Date, end: Date): string => {
 // Helper function to format repeat text
 const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[]): string => {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  
+
   switch (frequency) {
     case 'daily':
       return 'Daily';
@@ -126,7 +126,7 @@ export const TimeBlock: React.FC = () => {
       setShowCategoryError(true);
       return;
     }
-    
+
     if (newBlock.title.trim()) {
       setTimeBlocks([...timeBlocks, {
         ...newBlock,
@@ -169,10 +169,6 @@ export const TimeBlock: React.FC = () => {
       startTime: new Date(prev.startTime.setHours(0, 0, 0, 0)),
       endTime: new Date(prev.startTime.setHours(23, 59, 59, 999)),
     }));
-  };
-
-  const cancelAdding = () => {
-    setIsAdding(false);
   };
 
 
@@ -225,7 +221,7 @@ export const TimeBlock: React.FC = () => {
         ) : (
           <View style={styles.timeRangeStacked}>
             <Text style={styles.timeText}>{formatTime(block.startTime)}</Text>
-            <Text style={[styles.timeSeparator, {marginVertical: 2, marginHorizontal: 0, width: '100%', textAlign: 'center'}]}>TO</Text>
+            <Text style={styles.timeSeparatorCentered}>TO</Text>
             <Text style={styles.timeText}>{formatTime(block.endTime)}</Text>
             <View style={styles.durationContainer}>
               <Text style={styles.durationText}>
@@ -253,9 +249,9 @@ export const TimeBlock: React.FC = () => {
         <View style={styles.detailsContent}>
           <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(block.category) }]}>
             <View style={styles.categoryContent}>
-              <Ionicons 
-                name={CATEGORIES.find(cat => cat.name === block.category)?.icon || 'square-outline'} 
-                size={12} 
+              <Ionicons
+                name={CATEGORIES.find(cat => cat.name === block.category)?.icon || 'square-outline'}
+                size={12}
                 color={Colors.anchorBlue}
                 style={styles.categoryIcon}
               />
@@ -284,7 +280,7 @@ export const TimeBlock: React.FC = () => {
               )}
             </View>
           )}
-          
+
           {block.notes && (
             <View style={styles.notesContainer}>
               <Ionicons name="document-text-outline" size={12} color={Colors.mediumGray} style={styles.notesIcon} />
@@ -321,11 +317,6 @@ export const TimeBlock: React.FC = () => {
     return colorMap[categoryName] || '#F5F5F5'; // Default very light gray if not found
   };
 
-  const getCategoryIcon = (categoryName: string): string => {
-    const category = CATEGORIES.find(cat => cat.name === categoryName);
-    return category ? category.icon : 'help-circle';
-  };
-
 
   return (
     <JournalCard
@@ -346,7 +337,10 @@ export const TimeBlock: React.FC = () => {
         <>
           {timeBlocks.length > 0 && (
             <View style={styles.timeBlocksContainer}>
-              {timeBlocks.slice(0, visibleCount).map(block => renderTimeBlock(block))}
+              {[...timeBlocks]
+                .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+                .slice(0, visibleCount)
+                .map(block => renderTimeBlock(block))}
               {timeBlocks.length > 5 && (
                 <View style={styles.paginationContainer}>
                   <View style={styles.paginationButtonGroup}>
@@ -404,15 +398,19 @@ export const TimeBlock: React.FC = () => {
                       </TouchableOpacity>
                     </View>
                   )}
-                  <TouchableOpacity
-                    style={styles.allDayToggle}
-                    onPress={toggleAllDay}
-                  >
-                    <View style={[styles.checkbox, newBlock.isAllDay && styles.checkboxChecked]}>
-                      {newBlock.isAllDay && <Check size={10} color={Colors.hopeWhite} strokeWidth={2.5} />}
-                    </View>
-                    <Text style={styles.allDayLabel}>All Day</Text>
-                  </TouchableOpacity>
+                  <View style={styles.allDayToggle}>
+                    <TouchableOpacity
+                      style={styles.rowCenter}
+                      onPress={toggleAllDay}
+                    >
+                      <View style={styles.checkboxContainer}>
+                        <View style={[styles.checkbox, newBlock.isAllDay && styles.checkboxActive]}>
+                          {newBlock.isAllDay && <Check size={10} color={Colors.hopeWhite} strokeWidth={2.5} />}
+                        </View>
+                      </View>
+                      <Text style={styles.allDayLabel}>All Day</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 {(showTimePicker.start || showTimePicker.end) && !showTimePicker.id && (
                   <View style={styles.timePickerContainer}>
@@ -424,7 +422,7 @@ export const TimeBlock: React.FC = () => {
                       themeVariant="light"
                       minuteInterval={5}
                     />
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.doneButton}
                       onPress={() => setShowTimePicker({ start: false, end: false, id: null })}
                     >
@@ -466,27 +464,31 @@ export const TimeBlock: React.FC = () => {
               <View style={styles.categorySelectorContainer}>
                 <TouchableOpacity
                   style={[
-                    styles.categorySelector, 
-                    !newBlock.category && showCategoryError && styles.categorySelectorError
+                    styles.categorySelector,
+                    !newBlock.category && showCategoryError && styles.categorySelectorError,
+                    newBlock.category && [
+                      { backgroundColor: getCategoryColor(newBlock.category) },
+                      styles.categorySelected,
+                    ],
                   ]}
                   onPress={() => setShowCategoryPicker(true)}
                 >
-                  <Ionicons 
-                    name={newBlock.category ? CATEGORIES.find(cat => cat.name === newBlock.category)?.icon || 'square-outline' : 'add-circle-outline'} 
-                    size={16} 
+                  <Ionicons
+                    name={newBlock.category ? CATEGORIES.find(cat => cat.name === newBlock.category)?.icon || 'square-outline' : 'add-circle-outline'}
+                    size={16}
                     color={newBlock.category ? Colors.anchorBlue : Colors.mediumGray}
                   />
                   <Text style={[
-                    styles.categorySelectorText, 
+                    styles.categorySelectorText,
                     !newBlock.category && styles.placeholderText,
-                    !newBlock.category && showCategoryError && { color: Colors.alertCoral }
+                    !newBlock.category && showCategoryError && { color: Colors.alertCoral },
                   ]}>
                     {newBlock.category || 'Select a category'}
                   </Text>
-                  <Ionicons 
-                    name="chevron-down" 
-                    size={16} 
-                    color={(!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.mediumGray} 
+                  <Ionicons
+                    name="chevron-down"
+                    size={16}
+                    color={(!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.mediumGray}
                   />
                 </TouchableOpacity>
                 {showCategoryError && !newBlock.category && (
@@ -675,13 +677,13 @@ export const TimeBlock: React.FC = () => {
                               setShowCategoryPicker(false);
                             }}
                           >
-                            <Ionicons 
-                              name={item.icon} 
-                              size={18} 
-                              color={Colors.anchorBlue} 
+                            <Ionicons
+                              name={item.icon}
+                              size={18}
+                              color={Colors.anchorBlue}
                               style={styles.categoryIcon}
                             />
-                            <Text 
+                            <Text
                               style={styles.gridItemText}
                               numberOfLines={1}
                               ellipsizeMode="tail"
@@ -763,24 +765,6 @@ const styles = StyleSheet.create({
   doneButtonText: {
     color: 'white',
     fontFamily: Fonts.medium,
-    fontSize: 14,
-  },
-  categorySelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 4,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
-  },
-  categorySelectorError: {
-    borderColor: Colors.alertCoral,
-  },
-  categorySelectorText: {
-    flex: 1,
-    marginLeft: 8,
-    color: Colors.darkGray,
     fontSize: 14,
   },
   errorText: {
@@ -1018,6 +1002,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  timeButton: {
+    padding: 4,
+  },
   detailsColumn: {
     flex: 1,
     paddingLeft: 12,
@@ -1032,8 +1019,33 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-start',
   },
-  timeButton: {
-    padding: 4,
+  allDayToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 12,
+    paddingVertical: 4,
+  },
+  checkboxContainer: {
+    position: 'relative',
+    marginRight: 10,
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
+    borderWidth: 1.5,
+    borderColor: Colors.trustGrey,
+    backgroundColor: 'rgba(176, 184, 193, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  checkboxCompleted: {
+    backgroundColor: Colors.growthGreen,
+    borderColor: Colors.growthGreen,
   },
   timeText: {
     fontFamily: Fonts.medium,
@@ -1104,19 +1116,26 @@ const styles = StyleSheet.create({
   },
   allDayBadge: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 4,
     alignSelf: 'flex-start',
   },
   allDayText: {
     color: Colors.alertCoral,
-    backgroundColor: Colors.growthGreen,
-    borderColor: Colors.growthGreen,
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  rowCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   allDayLabel: {
-    fontSize: 13,
     color: Colors.darkGray,
+    fontSize: 13,
     fontFamily: Fonts.regular,
     marginLeft: 0,
     opacity: 0.9,
@@ -1127,6 +1146,16 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontFamily: Fonts.bold,
     opacity: 0.8,
+  },
+  timeSeparatorCentered: {
+    color: Colors.mediumGray,
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    textTransform: 'uppercase',
+    marginVertical: 2,
+    marginHorizontal: 0,
+    width: '100%',
+    textAlign: 'center',
   },
   blockTitle: {
     flex: 2,
@@ -1211,6 +1240,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(26, 60, 109, 0.15)',
     minHeight: 40,
   },
+  categorySelectorError: {
+    borderColor: Colors.alertCoral,
+  },
+  categorySelected: {
+    borderColor: 'rgba(26, 60, 109, 0.3)',
+  },
   categoriesContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1278,9 +1313,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 70,
     maxWidth: 120,
-  },
-  categoryIcon: {
-    marginRight: 8,
   },
   categorySelectorText: {
     color: Colors.darkGray,

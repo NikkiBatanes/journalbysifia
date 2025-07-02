@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -28,7 +28,7 @@ export const TodaysFocus: React.FC = () => {
   });
   const [isEditing, setIsEditing] = useState(false);
   const swipeableRefs = useRef<{[key: string]: any}>({});
-  
+
   // Store original data for cancel functionality
   const originalData = useRef<TodayFocusData>({ ...data });
 
@@ -37,7 +37,7 @@ export const TodaysFocus: React.FC = () => {
       // When starting to edit, save current state
       originalData.current = {
         focus: data.focus,
-        priorities: data.priorities.map(p => ({ ...p }))
+        priorities: data.priorities.map(p => ({ ...p })),
       };
     }
     setIsEditing(!isEditing);
@@ -48,7 +48,7 @@ export const TodaysFocus: React.FC = () => {
     setData(prevData => ({
       ...prevData,
       focus: originalData.current.focus,
-      priorities: [...originalData.current.priorities]
+      priorities: [...originalData.current.priorities],
     }));
     setIsEditing(false);
   };
