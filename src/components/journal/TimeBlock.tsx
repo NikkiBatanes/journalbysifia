@@ -22,6 +22,10 @@ interface TimeBlockItem {
     frequency: RepeatFrequency;
     endDate?: Date;
     customDays?: number[]; // For custom repeat
+    customFrequency?: {
+      value: number;
+      unit: string;
+    };
   };
 }
 
@@ -38,10 +42,12 @@ const formatDuration = (start: Date, end: Date): string => {
 };
 
 // Helper function to format repeat text
-const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[]): string => {
+const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[], customFrequency?: { value: number, unit: string }): string => {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   switch (frequency) {
+    case 'never':
+      return 'Does not repeat';
     case 'daily':
       return 'Daily';
     case 'weekly':
@@ -53,9 +59,13 @@ const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[]): st
     case 'yearly':
       return 'Yearly';
     case 'custom':
-      if (customDays && customDays.length > 0) {
-        const days = customDays.map(day => dayNames[day]).join(', ');
-        return `Custom (${days})`;
+      if (customFrequency) {
+        const unit = customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1) + (customFrequency.value > 1 ? 's' : '');
+        if (customDays && customDays.length > 0 && customFrequency.unit === 'week') {
+          const days = customDays.map(day => dayNames[day]).join(', ');
+          return `Every ${customFrequency.value} ${unit} on ${days}`;
+        }
+        return `Every ${customFrequency.value} ${unit}`;
       }
       return 'Custom';
     default:
@@ -132,16 +142,20 @@ export const TimeBlock: React.FC = () => {
     }
 
     if (newBlock.title.trim()) {
-      setTimeBlocks([...timeBlocks, {
+      const newTimeBlock = {
         ...newBlock,
         id: Date.now().toString(),
         category: selectedCategory || newBlock.category,
         repeat: {
-          frequency: newBlock.repeat.frequency,
-          endDate: newBlock.repeat.endDate,
+          ...newBlock.repeat,
           customDays: newBlock.repeat.customDays || [],
+          customFrequency: newBlock.repeat.frequency === 'custom'
+            ? { ...customFrequency }
+            : undefined,
         },
-      }]);
+      };
+
+      setTimeBlocks([...timeBlocks, newTimeBlock]);
       setShowCategoryError(false);
       setSelectedCategory('');
       setIsAdding(false);
@@ -288,7 +302,8 @@ export const TimeBlock: React.FC = () => {
                 <View style={styles.metaInfoRow}>
                   <Ionicons name="repeat-outline" size={12} color={Colors.mediumGray} style={styles.metaIcon} />
                   <Text style={styles.metaText}>
-                    {formatRepeatText(block.repeat.frequency, block.repeat.customDays)}
+                    {formatRepeatText(block.repeat.frequency, block.repeat.customDays, block.repeat.customFrequency)}
+                    {block.repeat.endDate ? ` until ${block.repeat.endDate.toLocaleDateString()}` : ''}
                   </Text>
                 </View>
               )}
@@ -524,8 +539,7 @@ export const TimeBlock: React.FC = () => {
                     style={styles.repeatIcon}
                   />
                   <Text style={styles.repeatText}>
-                    {newBlock.repeat.frequency === 'never' ? 'Does not repeat' :
-                     `Repeats ${newBlock.repeat.frequency}${newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}`}
+                    {formatRepeatText(newBlock.repeat.frequency, newBlock.repeat.customDays, customFrequency)}{newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}
                   </Text>
                   <Ionicons
                     name={showRepeatOptions ? 'chevron-up' : 'chevron-down'}
@@ -551,6 +565,10 @@ export const TimeBlock: React.FC = () => {
                               ...newBlock.repeat,
                               frequency: newFrequency,
                               ...(newFrequency === 'never' && { endDate: undefined }),
+                              ...(newFrequency === 'custom' && {
+                                customFrequency: { ...customFrequency },
+                                customDays: newBlock.repeat.customDays || [],
+                              }),
                             },
                           };
                           setNewBlock(updatedBlock);
@@ -591,16 +609,26 @@ export const TimeBlock: React.FC = () => {
 
                             // Only update the frequency if we have a valid number
                             if (text === '') {
-                              setCustomFrequency(prev => ({
+                              const newFreq = { ...customFrequency, value: 1 };
+                              setCustomFrequency(newFreq);
+                              setNewBlock(prev => ({
                                 ...prev,
-                                value: 1,
+                                repeat: {
+                                  ...prev.repeat,
+                                  customFrequency: newFreq,
+                                },
                               }));
                             } else if (/^\d+$/.test(text)) {
                               const num = parseInt(text, 10);
                               if (num >= 1) {
-                                setCustomFrequency(prev => ({
+                                const newFreq = { ...customFrequency, value: num };
+                                setCustomFrequency(newFreq);
+                                setNewBlock(prev => ({
                                   ...prev,
-                                  value: num,
+                                  repeat: {
+                                    ...prev.repeat,
+                                    customFrequency: newFreq,
+                                  },
                                 }));
                               }
                             }
@@ -609,9 +637,14 @@ export const TimeBlock: React.FC = () => {
                             // Ensure we have a valid number when leaving the field
                             if (!inputValue || !/^\d+$/.test(inputValue)) {
                               setInputValue('1');
-                              setCustomFrequency(prev => ({
+                              const newFreq = { ...customFrequency, value: 1 };
+                              setCustomFrequency(newFreq);
+                              setNewBlock(prev => ({
                                 ...prev,
-                                value: 1,
+                                repeat: {
+                                  ...prev.repeat,
+                                  customFrequency: newFreq,
+                                },
                               }));
                             }
                           }}
@@ -638,9 +671,14 @@ export const TimeBlock: React.FC = () => {
                               key={unit}
                               style={styles.frequencyOption}
                               onPress={() => {
-                                setCustomFrequency(prev => ({
+                                const newFreq = { ...customFrequency, unit };
+                                setCustomFrequency(newFreq);
+                                setNewBlock(prev => ({
                                   ...prev,
-                                  unit,
+                                  repeat: {
+                                    ...prev.repeat,
+                                    customFrequency: newFreq,
+                                  },
                                 }));
                                 setShowFrequencySelector(false);
                               }}
