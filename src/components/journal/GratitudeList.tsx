@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Check, HandHeart as LuHandHeart, X } from 'lucide-react-native';
+import { SwipeableTodoItem } from '../SwipeableTodoItem';
 
 interface GratitudeItem {
   id: string;
@@ -20,7 +21,7 @@ export const GratitudeList: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [visibleCount, setVisibleCount] = useState<number>(5);
-  const MAX_ITEMS = 10;
+  const swipeableRefs = React.useRef<{[key: string]: any}>({});
 
   const startAdding = () => {
     setIsAdding(true);
@@ -47,9 +48,7 @@ export const GratitudeList: React.FC = () => {
   };
 
   const addAnotherField = () => {
-    if (newItems.length < MAX_ITEMS) {
-      setNewItems([...newItems, '']);
-    }
+    setNewItems([...newItems, '']);
   };
 
   const handleNewItemChange = (index: number, value: string) => {
@@ -57,6 +56,44 @@ export const GratitudeList: React.FC = () => {
     updatedItems[index] = value;
     setNewItems(updatedItems);
   };
+
+  const closeAllSwipeables = useCallback(() => {
+    Object.values(swipeableRefs.current).forEach(ref => {
+      if (ref?.close) ref.close();
+    });
+  }, []);
+
+  const handleDeleteGratitudeItem = useCallback((id: string) => {
+    Alert.alert(
+      'Delete Gratitude Item',
+      'Are you sure you want to delete this item?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => {
+            // Close the swipeable when cancel is pressed
+            swipeableRefs.current[id]?.close();
+          },
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            setGratitudeItems(prevItems => {
+              const newItems = prevItems.filter(item => item.id !== id);
+              // Reset visible count if needed
+              if (newItems.length <= visibleCount) {
+                setVisibleCount(5);
+              }
+              return newItems;
+            });
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  }, [visibleCount]);
 
   const saveGratitudeItems = () => {
     const validItems = newItems.filter(item => item.trim());
@@ -88,15 +125,14 @@ export const GratitudeList: React.FC = () => {
           text: text.trim(),
           date: new Date(),
         }));
-
-        if ((gratitudeItems.length + itemsToAdd.length) <= MAX_ITEMS) {
-          setGratitudeItems([...gratitudeItems, ...itemsToAdd]);
-        }
+        
+        setGratitudeItems([...gratitudeItems, ...itemsToAdd]);
       }
       
       setNewItems(['', '', '']);
       setIsAdding(false);
       setIsEditing(false);
+      closeAllSwipeables();
     }
   };
 
@@ -114,43 +150,75 @@ export const GratitudeList: React.FC = () => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const loadMore = useCallback(() => {
+    closeAllSwipeables();
+    setVisibleCount(prev => Math.min(prev + 5, gratitudeItems.length));
+  }, [gratitudeItems.length]);
+
+  const showLess = useCallback(() => {
+    closeAllSwipeables();
+    setVisibleCount(5);
+  }, []);
+
   const displayGratitudeList = () => {
     if (isAdding || isEditing || gratitudeItems.length === 0) return null;
     
     const visibleItems = gratitudeItems.slice(0, visibleCount);
-    const hasMore = gratitudeItems.length > visibleCount;
-    const showingAll = visibleCount >= gratitudeItems.length;
+    const hasMore = !isAdding && gratitudeItems.length > visibleCount;
+    const showLessOption = !isAdding && visibleCount > 5;
 
     return (
       <View style={styles.itemsContainer}>
         {visibleItems.map((item, index) => (
-          <View key={item.id} style={styles.gratitudeItem}>
+          <SwipeableTodoItem
+            key={item.id}
+            ref={(ref: any) => {
+              if (ref) {
+                swipeableRefs.current[item.id] = ref;
+              } else {
+                delete swipeableRefs.current[item.id];
+              }
+            }}
+            item={{
+              id: item.id,
+              text: item.text,
+              completed: false,
+            }}
+            onToggle={() => {}}
+            onDelete={() => handleDeleteGratitudeItem(item.id)}
+            hideCheckbox={true}
+          >
             <View style={styles.itemNumber}>
               <Text style={styles.numberText}>{index + 1}</Text>
             </View>
-            <Text style={[styles.itemText, { width: '100%' }]}>{item.text}</Text>
-          </View>
+            <Text style={styles.itemText}>{item.text}</Text>
+          </SwipeableTodoItem>
         ))}
-        {gratitudeItems.length > 5 && (
+        {!isAdding && gratitudeItems.length > 0 && (
           <View style={styles.paginationContainer}>
             <View style={styles.paginationButtonGroup}>
-              {!showingAll ? (
+              {hasMore && (
                 <TouchableOpacity
-                  onPress={() => setVisibleCount(prev => Math.min(prev + 5, gratitudeItems.length))}
                   style={[styles.paginationButton, styles.showMoreButton]}
+                  onPress={loadMore}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.paginationButtonText, styles.showMoreText]}>Show more</Text>
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                  <Text style={[styles.paginationButtonText, styles.showMoreText]}>
+                    Show more
+                  </Text>
                 </TouchableOpacity>
-              ) : (
+              )}
+              {showLessOption && (
                 <TouchableOpacity
-                  onPress={() => setVisibleCount(5)}
                   style={[styles.paginationButton, styles.showLessButton]}
+                  onPress={showLess}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.paginationButtonText, styles.showLessText]}>Show less</Text>
                   <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                  <Text style={[styles.paginationButtonText, styles.showLessText]}>
+                    Show less
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -171,7 +239,7 @@ export const GratitudeList: React.FC = () => {
       }
       title="Gratitude List"
       subtitle="Reflect on what you're thankful for"
-      showAddButton={!isAdding && !isEditing && gratitudeItems.length < MAX_ITEMS}
+      showAddButton={!isAdding && !isEditing}
       onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
       isAdding={isAdding || isEditing}
     >
@@ -212,13 +280,9 @@ export const GratitudeList: React.FC = () => {
               onPress={addAnotherField}
               style={[
                 styles.button, 
-                styles.addAnotherButton,
-                (newItems.length >= MAX_ITEMS || 
-                 (isEditing && newItems.length >= gratitudeItems.length + 3)) && 
-                styles.disabledButton
+                styles.addAnotherButton
               ]}
               activeOpacity={0.8}
-              disabled={newItems.length >= MAX_ITEMS || (isEditing && newItems.length >= gratitudeItems.length + 3)}
             >
               <View style={styles.plusIcon}>
                 <Ionicons name="add" size={16} color={Colors.alertCoral} />
@@ -268,30 +332,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   itemsContainer: {
-    marginTop: 8,
+    width: '100%',
+    marginTop: 10,
   },
   paginationContainer: {
     width: '100%',
-    paddingVertical: 8,
+    paddingVertical: 1,
   },
   paginationButtonGroup: {
     flexDirection: 'row',
     justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 0,
+    paddingTop: 10,
   },
   paginationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
     borderRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   paginationButtonText: {
-    marginHorizontal: 2,
-    fontSize: 12,
+    marginLeft: 2,
+    fontSize: 11,
     fontFamily: Fonts.medium,
-    lineHeight: 16,
+    lineHeight: 14,
   },
   showMoreButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
@@ -305,17 +374,7 @@ const styles = StyleSheet.create({
   showLessText: {
     color: Colors.mediumGray,
   },
-  gratitudeItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
-    width: '100%',
-  },
+  // Item container styles are now handled by SwipeableTodoItem
   itemNumber: {
     width: 24,
     height: 24,
@@ -324,6 +383,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    marginLeft: 4, // Add some left margin to align with the swipeable content
   },
   itemText: {
     color: Colors.darkGray,
@@ -331,6 +391,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
     lineHeight: 20,
+    marginRight: 8, // Add some right margin for better spacing
   },
   numberText: {
     color: Colors.alertCoral,
