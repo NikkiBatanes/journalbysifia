@@ -396,6 +396,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginTop: 8,
+    gap: 4, // Adds consistent spacing between input fields
   },
   input: {
     flex: 1,
@@ -406,12 +407,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 6,
     padding: 10,
-    marginBottom: 8,
+    marginBottom: 0, // Remove bottom margin since gap handles spacing
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.1)',
   },
   inputWithTopMargin: {
-    marginTop: 8,
+    // No longer needed as gap handles the spacing
   },
   buttonRow: {
     flexDirection: 'row',
