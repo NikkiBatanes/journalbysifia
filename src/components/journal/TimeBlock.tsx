@@ -97,11 +97,11 @@ const CATEGORIES = [
 
 export const TimeBlock: React.FC = () => {
   const [expandedNotes, setExpandedNotes] = useState<{[key: string]: boolean}>({});
-  
+
   const toggleNotes = (id: string) => {
     setExpandedNotes(prev => ({
       ...prev,
-      [id]: !prev[id]
+      [id]: !prev[id],
     }));
   };
 // ...existing state
@@ -192,8 +192,8 @@ category: selectedCategory || newBlock.category,
 repeat: {
 ...newBlock.repeat,
 customDays: newBlock.repeat.customDays || [],
-customFrequency: newBlock.repeat.frequency === 'custom' 
-? { ...customFrequency } 
+customFrequency: newBlock.repeat.frequency === 'custom'
+? { ...customFrequency }
 : undefined,
 },
 };
@@ -310,7 +310,7 @@ const renderTimeBlock = (block: TimeBlockItem) => (
 <TextInput
 style={[
 styles.blockTitle,
-showTitleError && !block.title.trim() && styles.blockTitleError
+showTitleError && !block.title.trim() && styles.blockTitleError,
 ]}
 value={block.title}
 onChangeText={(text) => {
@@ -366,23 +366,23 @@ style={styles.categoryIcon}
 )}
 
 {block.notes && (
-<TouchableOpacity 
-  style={styles.notesContainer} 
+<TouchableOpacity
+  style={styles.notesContainer}
   onPress={() => toggleNotes(block.id)}
   activeOpacity={0.7}
 >
   <Ionicons name="document-text-outline" size={12} color={Colors.mediumGray} style={styles.notesIcon} />
-  <Text 
-    style={styles.notesText} 
-    numberOfLines={expandedNotes[block.id] ? undefined : 2} 
+  <Text
+    style={styles.notesText}
+    numberOfLines={expandedNotes[block.id] ? undefined : 2}
     ellipsizeMode="tail"
   >
     {block.notes}
   </Text>
-  <Ionicons 
-    name={expandedNotes[block.id] ? 'chevron-up' : 'chevron-down'} 
-    size={12} 
-    color={Colors.mediumGray} 
+  <Ionicons
+    name={expandedNotes[block.id] ? 'chevron-up' : 'chevron-down'}
+    size={12}
+    color={Colors.mediumGray}
     style={styles.notesChevron}
   />
 </TouchableOpacity>
