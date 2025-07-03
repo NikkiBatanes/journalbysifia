@@ -96,6 +96,14 @@ const CATEGORIES = [
 ];
 
 export const TimeBlock: React.FC = () => {
+  const [expandedNotes, setExpandedNotes] = useState<{[key: string]: boolean}>({});
+  
+  const toggleNotes = (id: string) => {
+    setExpandedNotes(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 // ...existing state
 const [editId, setEditId] = useState<string | null>(null);
 
@@ -112,7 +120,8 @@ endTime: new Date(block.endTime),
 });
 setInputValue(block.repeat.customFrequency?.value?.toString() || '1');
 setCustomFrequency(block.repeat.customFrequency || { value: 1, unit: 'week' });
-setShowRepeatOptions(block.repeat.frequency !== 'never');
+// Always start with repeat options closed when editing
+setShowRepeatOptions(false);
 };
 
 // Handler for deleting a block
@@ -126,6 +135,7 @@ const [visibleCount, setVisibleCount] = useState(5);
 const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 const [showCategoryError, setShowCategoryError] = useState(false);
+const [showTitleError, setShowTitleError] = useState(false);
 const [selectedCategory, setSelectedCategory] = useState('');
 const [showFrequencySelector, setShowFrequencySelector] = useState(false);
 const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
@@ -161,12 +171,20 @@ customDays: [],
 });
 
 const addTimeBlock = () => {
+// Reset error states
+setShowTitleError(false);
+setShowCategoryError(false);
+
+// Validate inputs
+if (!newBlock.title.trim()) {
+setShowTitleError(true);
+return;
+}
+
 if (!newBlock.category) {
 setShowCategoryError(true);
 return;
 }
-
-if (newBlock.title.trim()) {
 const updatedBlock = {
 ...newBlock,
 id: editId || Date.now().toString(),
@@ -188,7 +206,6 @@ setShowCategoryError(false);
 setSelectedCategory('');
 setIsAdding(false);
 setEditId(null);
-}
 };
 
 const startAdding = () => {
@@ -291,17 +308,26 @@ const renderTimeBlock = (block: TimeBlockItem) => (
 <View style={styles.detailsColumn}>
 <View style={styles.detailsRow}>
 <TextInput
-style={styles.blockTitle}
+style={[
+styles.blockTitle,
+showTitleError && !block.title.trim() && styles.blockTitleError
+]}
 value={block.title}
 onChangeText={(text) => {
 const updated = timeBlocks.map(b =>
 b.id === block.id ? { ...b, title: text } : b
 );
 setTimeBlocks(updated);
+if (showTitleError && text.trim()) {
+setShowTitleError(false);
+}
 }}
-placeholder="Activity"
+placeholder="Activity *"
 placeholderTextColor={Colors.mediumGray}
 />
+{showTitleError && !block.title.trim() && (
+<Text style={styles.errorText}>Title is required</Text>
+)}
 </View>
 <View style={styles.detailsContent}>
 <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(block.category) }]}>
@@ -340,12 +366,26 @@ style={styles.categoryIcon}
 )}
 
 {block.notes && (
-<View style={styles.notesContainer}>
-<Ionicons name="document-text-outline" size={12} color={Colors.mediumGray} style={styles.notesIcon} />
-<Text style={styles.notesText} numberOfLines={2} ellipsizeMode="tail">
-{block.notes}
-</Text>
-</View>
+<TouchableOpacity 
+  style={styles.notesContainer} 
+  onPress={() => toggleNotes(block.id)}
+  activeOpacity={0.7}
+>
+  <Ionicons name="document-text-outline" size={12} color={Colors.mediumGray} style={styles.notesIcon} />
+  <Text 
+    style={styles.notesText} 
+    numberOfLines={expandedNotes[block.id] ? undefined : 2} 
+    ellipsizeMode="tail"
+  >
+    {block.notes}
+  </Text>
+  <Ionicons 
+    name={expandedNotes[block.id] ? 'chevron-up' : 'chevron-down'} 
+    size={12} 
+    color={Colors.mediumGray} 
+    style={styles.notesChevron}
+  />
+</TouchableOpacity>
 )}
 </View>
 </View>
@@ -625,13 +665,16 @@ repeat: {
 frequency: newFrequency,
 ...(newFrequency === 'never' && { endDate: undefined }),
 ...(newFrequency === 'custom' && {
-customFrequency: { ...customFrequency },
+customFrequency: { value: 1, unit: 'week' },
 customDays: newBlock.repeat.customDays || [],
 }),
 },
 };
 setNewBlock(updatedBlock);
-if (newFrequency !== 'custom') {
+if (newFrequency === 'custom') {
+setCustomFrequency({ value: 1, unit: 'day' });
+setInputValue('1');
+} else {
 setShowRepeatOptions(false);
 }
 }}
@@ -1235,10 +1278,11 @@ width: 90,
 paddingRight: 12,
 borderRightWidth: 1,
 borderRightColor: 'rgba(26, 60, 109, 0.1)',
-justifyContent: 'center',
+justifyContent: 'flex-start',
 alignItems: 'center',
 paddingLeft: 4,
-// Remove any vertical margin or padding here
+paddingVertical: 8,
+minHeight: 1, // Match the minimum height of the card
 },
 timeRangeContainer: {
 flexDirection: 'column',
@@ -1255,10 +1299,8 @@ alignItems: 'center',
 timeRangeStacked: {
 flexDirection: 'column',
 alignItems: 'center',
-justifyContent: 'center',
-paddingVertical: 4,
+justifyContent: 'flex-start',
 width: '100%',
-// No extra margin/padding
 },
 timeRow: {
 flexDirection: 'row',
@@ -1270,12 +1312,14 @@ padding: 4,
 detailsColumn: {
 flex: 1,
 paddingLeft: 12,
-justifyContent: 'center',
+paddingVertical: 8,
+justifyContent: 'flex-start',
+minHeight: 60, // Match the minimum height of the card
 },
 detailsRow: {
 flexDirection: 'row',
 alignItems: 'center',
-marginBottom: 2,
+marginBottom: 4,
 },
 detailsContent: {
 flex: 1,
@@ -1403,21 +1447,24 @@ marginLeft: 0,
 opacity: 0.9,
 },
 timeSeparatorContainer: {
-justifyContent: 'center',
+justifyContent: 'flex-start',
 paddingHorizontal: 4,
+height: '100%',
 },
 timeSeparator: {
-width: 1,
+width: 2,
 backgroundColor: 'rgba(26, 60, 109, 0.1)',
 marginHorizontal: 8,
-alignSelf: 'center',
-height: '80%',
+alignSelf: 'flex-start',
+flex: 1,
+borderRadius: 2,
 },
 timeSeparatorText: {
 color: Colors.mediumGray,
-fontSize: 8,
+fontSize: 9,
 fontFamily: Fonts.medium,
 textTransform: 'uppercase',
+letterSpacing: 0.5,
 marginVertical: 2,
 marginHorizontal: 0,
 width: '100%',
@@ -1431,12 +1478,19 @@ fontSize: 14,
 marginRight: 8,
 fontWeight: '600',
 },
+blockTitleError: {
+borderBottomWidth: 1,
+borderBottomColor: Colors.alertCoral,
+},
 categoryTag: {
 alignSelf: 'flex-start',
 paddingHorizontal: 8,
 paddingVertical: 4,
 borderRadius: 12,
-marginTop: 4,
+marginTop: 0,
+marginBottom: 4,
+borderWidth: 1,
+borderColor: 'rgba(0, 0, 0, 0.1)',
 },
 categoryContent: {
 flexDirection: 'row',
@@ -1451,25 +1505,32 @@ fontFamily: Fonts.medium,
 color: Colors.darkGray,
 },
 metaInfoContainer: {
-marginTop: 6,
-marginBottom: 2,
+marginTop: 4,
+marginBottom: 4,
+width: '100%',
+paddingLeft: 0,
 },
 metaInfoRow: {
 flexDirection: 'row',
-alignItems: 'center',
-marginBottom: 3,
-minHeight: 16,
+alignItems: 'flex-start',
+marginBottom: 4,
+minHeight: 18,
+width: '100%',
+paddingLeft: 0,
 },
 metaIcon: {
-marginRight: 4,
+marginRight: 8,
+marginTop: 2,
+width: 16,
+alignItems: 'center',
 },
 metaText: {
 fontSize: 11,
 color: Colors.mediumGray,
 fontFamily: Fonts.regular,
 flex: 1,
-lineHeight: 14,
-marginVertical: 1,
+lineHeight: 16,
+marginVertical: 0,
 },
 
 customRepeatContainer: {
@@ -1589,11 +1650,20 @@ color: 'white',
 },
 notesContainer: {
 flexDirection: 'row',
-marginTop: 4,
+alignItems: 'flex-start',
+marginTop: 2,
+width: '100%',
+paddingVertical: 0,
 },
 notesIcon: {
 marginTop: 1,
-marginRight: 4,
+marginRight: 8,
+width: 14,
+height: 14,
+},
+notesChevron: {
+marginLeft: 4,
+marginTop: 2,
 },
 notesText: {
 fontSize: 12,
@@ -1602,6 +1672,7 @@ fontFamily: Fonts.regular,
 fontStyle: 'italic',
 flex: 1,
 lineHeight: 16,
+marginRight: 4,
 },
 removeButton: {
 color: Colors.darkGray,
