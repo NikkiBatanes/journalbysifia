@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -18,8 +18,7 @@ export const GratitudeList: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [gratitudeItems, setGratitudeItems] = useState<GratitudeItem[]>([]);
   const [newItems, setNewItems] = useState(['', '', '']); // Three input fields
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editText, setEditText] = useState('');
+  // Removed unused state variables
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
 
@@ -27,11 +26,11 @@ export const GratitudeList: React.FC = () => {
     setIsAdding(true);
     setIsEditing(false);
   };
-  
+
   const startEditing = () => {
     setIsEditing(true);
     setIsAdding(false);
-    
+
     // Prepare edit fields with existing items and empty fields to make at least 3
     const editFields = [...gratitudeItems.map(item => item.text)];
     while (editFields.length < 3) {
@@ -47,19 +46,19 @@ export const GratitudeList: React.FC = () => {
     setNewItems(['', '', '']);
   };
 
-  const addAnotherField = () => {
+  const addAnotherField = useCallback(() => {
     setNewItems([...newItems, '']);
-  };
+  }, [newItems]);
 
-  const handleNewItemChange = (index: number, value: string) => {
+  const handleNewItemChange = useCallback((index: number, value: string) => {
     const updatedItems = [...newItems];
     updatedItems[index] = value;
     setNewItems(updatedItems);
-  };
+  }, [newItems]);
 
   const closeAllSwipeables = useCallback(() => {
     Object.values(swipeableRefs.current).forEach(ref => {
-      if (ref?.close) ref.close();
+      if (ref?.close) {ref.close();}
     });
   }, []);
 
@@ -81,12 +80,12 @@ export const GratitudeList: React.FC = () => {
           style: 'destructive',
           onPress: () => {
             setGratitudeItems(prevItems => {
-              const newItems = prevItems.filter(item => item.id !== id);
+              const filteredItems = prevItems.filter(item => item.id !== id);
               // Reset visible count if needed
-              if (newItems.length <= visibleCount) {
+              if (filteredItems.length <= visibleCount) {
                 setVisibleCount(5);
               }
-              return newItems;
+              return filteredItems;
             });
           },
         },
@@ -97,7 +96,7 @@ export const GratitudeList: React.FC = () => {
 
   const saveGratitudeItems = () => {
     const validItems = newItems.filter(item => item.trim());
-    
+
     if (validItems.length > 0) {
       if (isEditing) {
         // When editing, replace all items with the new ones
@@ -106,14 +105,14 @@ export const GratitudeList: React.FC = () => {
           if (index < gratitudeItems.length) {
             return {
               ...gratitudeItems[index],
-              text: text.trim()
+              text: text.trim(),
             };
           } else {
             // This is a new item
             return {
               id: Date.now() + Math.random().toString() + index,
               text: text.trim(),
-              date: new Date()
+              date: new Date(),
             };
           }
         });
@@ -125,10 +124,10 @@ export const GratitudeList: React.FC = () => {
           text: text.trim(),
           date: new Date(),
         }));
-        
+
         setGratitudeItems([...gratitudeItems, ...itemsToAdd]);
       }
-      
+
       setNewItems(['', '', '']);
       setIsAdding(false);
       setIsEditing(false);
@@ -136,33 +135,21 @@ export const GratitudeList: React.FC = () => {
     }
   };
 
-  const removeGratitudeItem = (id: string) => {
-    setGratitudeItems(gratitudeItems.filter(item => item.id !== id));
-  };
-
-  const updateGratitudeItem = (id: string, text: string) => {
-    setGratitudeItems(gratitudeItems.map(item =>
-      item.id === id ? { ...item, text } : item
-    ));
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  // Removed unused functions
 
   const loadMore = useCallback(() => {
     closeAllSwipeables();
     setVisibleCount(prev => Math.min(prev + 5, gratitudeItems.length));
-  }, [gratitudeItems.length]);
+  }, [gratitudeItems.length, closeAllSwipeables]);
 
   const showLess = useCallback(() => {
     closeAllSwipeables();
     setVisibleCount(5);
-  }, []);
+  }, [closeAllSwipeables]);
 
   const displayGratitudeList = () => {
-    if (isAdding || isEditing || gratitudeItems.length === 0) return null;
-    
+    if (isAdding || isEditing || gratitudeItems.length === 0) {return null;}
+
     const visibleItems = gratitudeItems.slice(0, visibleCount);
     const hasMore = !isAdding && gratitudeItems.length > visibleCount;
     const showLessOption = !isAdding && visibleCount > 5;
@@ -250,7 +237,7 @@ export const GratitudeList: React.FC = () => {
             newItems.map((item, index) => (
               <TextInput
                 key={index}
-                style={[styles.input, index > 0 && { marginTop: 8 }]}
+                style={[styles.input, index > 0 && styles.inputWithTopMargin]}
                 value={item}
                 onChangeText={(value) => handleNewItemChange(index, value)}
                 placeholder="I'm grateful for..."
@@ -264,7 +251,7 @@ export const GratitudeList: React.FC = () => {
               {newItems.map((item, index) => (
                 <TextInput
                   key={index}
-                  style={[styles.input, index > 0 && { marginTop: 8 }]}
+                  style={[styles.input, index > 0 && styles.inputWithTopMargin]}
                   value={item}
                   onChangeText={(value) => handleNewItemChange(index, value)}
                   placeholder="I'm grateful for..."
@@ -279,8 +266,8 @@ export const GratitudeList: React.FC = () => {
             <TouchableOpacity
               onPress={addAnotherField}
               style={[
-                styles.button, 
-                styles.addAnotherButton
+                styles.button,
+                styles.addAnotherButton,
               ]}
               activeOpacity={0.8}
             >
@@ -418,11 +405,13 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
-    marginBottom: 4,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  inputWithTopMargin: {
+    marginTop: 8,
   },
   buttonRow: {
     flexDirection: 'row',
