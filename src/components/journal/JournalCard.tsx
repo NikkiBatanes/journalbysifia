@@ -96,11 +96,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             </TouchableOpacity>
           )}
         </View>
-        {isAdding && onCancelAdd && (
-          <TouchableOpacity onPress={onCancelAdd} style={styles.cancelButton}>
-            <Ionicons name="close" size={18} color={`${Colors.alertCoral}CC`} />
-          </TouchableOpacity>
-        )}
+        {/* Cancel button removed as per design */}
       </View>
       <View style={styles.content}>
         {children}

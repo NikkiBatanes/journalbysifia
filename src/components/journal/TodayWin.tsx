@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check, Trophy as LuTrophy } from 'lucide-react-native';
+import { Check, X, Trophy as LuTrophy, Pencil } from 'lucide-react-native';
 
 interface WinEntry {
   id: string;
@@ -16,6 +17,52 @@ export const TodayWin: React.FC = () => {
   const [win, setWin] = useState<WinEntry | null>(null);
   const [winText, setWinText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [previousWin, setPreviousWin] = useState<WinEntry | null>(null);
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const closeSwipeable = useCallback(() => {
+    swipeableRef.current?.close();
+  }, []);
+
+  const renderRightActions = (progress: any, dragX: any) => {
+    const scale = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [1, 0.8],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = dragX.interpolate({
+      inputRange: [-100, -20, 0],
+      outputRange: [1, 0.9, 0],
+      extrapolate: 'clamp',
+    });
+
+    const handleDelete = () => {
+      closeSwipeable();
+      // Small delay to allow the swipeable to close before deleting
+      setTimeout(() => setWin(null), 200);
+    };
+
+    return (
+      <Animated.View
+        style={[
+          styles.deleteButton,
+          {
+            opacity,
+            transform: [{ scale }],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={handleDelete}
+          style={styles.deleteButtonContent}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={22} color="white" />
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
 
   const startAdding = () => {
     setIsAdding(true);
@@ -23,8 +70,15 @@ export const TodayWin: React.FC = () => {
   };
 
   const cancelAdding = () => {
+    if (previousWin) {
+      // Restore the previous win if we were editing
+      setWin(previousWin);
+      setPreviousWin(null);
+    } else {
+      // Clear the input if we were adding a new win
+      setWinText('');
+    }
     setIsAdding(false);
-    setWinText('');
   };
 
   const saveWin = () => {
@@ -41,7 +95,9 @@ export const TodayWin: React.FC = () => {
 
   const editWin = () => {
     if (win) {
+      setPreviousWin(win);
       setWinText(win.text);
+      setWin(null); // Clear the win state to show the edit form
       setIsAdding(true);
     }
   };
@@ -54,6 +110,12 @@ export const TodayWin: React.FC = () => {
   const formatDate = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
+
+  const editButton = (
+    <TouchableOpacity onPress={editWin} style={styles.editButton}>
+      <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
+    </TouchableOpacity>
+  );
 
   return (
     <JournalCard
@@ -70,22 +132,36 @@ export const TodayWin: React.FC = () => {
       onAdd={startAdding}
       isAdding={isAdding}
       onCancelAdd={cancelAdding}
+      headerRight={
+        win && !isAdding ? (
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={editWin} style={styles.editButton}>
+              <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+        ) : null
+      }
     >
       {win ? (
-        <View style={styles.winContainer}>
-          <View style={styles.winContent}>
-            <Text style={styles.winText}>{win.text}</Text>
-            <Text style={styles.winTime}>{formatDate(win.date)}</Text>
+        <Swipeable
+          ref={swipeableRef}
+          renderRightActions={renderRightActions}
+          rightThreshold={20}
+          containerStyle={styles.swipeableContainer}
+          overshootRight={false}
+          friction={3}
+          enableTrackpadTwoFingerGesture
+          onSwipeableWillOpen={() => {
+            const { Vibration } = require('react-native');
+            Vibration.vibrate(10);
+          }}
+        >
+          <View style={styles.winContainer}>
+            <View style={styles.winContent}>
+              <Text style={styles.winText}>{win.text}</Text>
+            </View>
           </View>
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity onPress={editWin} style={styles.editButton}>
-              <Ionicons name="create-outline" size={20} color={Colors.mediumGray} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={removeWin} style={styles.deleteButton}>
-              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        </Swipeable>
       ) : isAdding ? (
         <View style={styles.formContainer}>
           <TextInput
@@ -97,19 +173,27 @@ export const TodayWin: React.FC = () => {
             multiline
           />
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={cancelAdding}
-              style={[styles.button, styles.cancelButton]}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={saveWin}
-              style={[styles.button, styles.saveButton]}
-              disabled={!winText.trim()}
-            >
-              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-            </TouchableOpacity>
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                onPress={cancelAdding}
+                style={[styles.button, styles.cancelButton]}
+                activeOpacity={0.8}
+              >
+                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={saveWin}
+                style={[
+                  styles.button,
+                  styles.saveButton,
+                  !winText.trim() && styles.disabledButton,
+                ]}
+                disabled={!winText.trim()}
+                activeOpacity={0.8}
+              >
+                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       ) : null}
@@ -118,16 +202,40 @@ export const TodayWin: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  swipeableContainer: {
+    marginBottom: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
+    backgroundColor: '#f87171',
+  },
   winContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'space-between',
+    backgroundColor: '#ebeef2',
     borderRadius: 6,
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    marginBottom: 0,
+    minHeight: 40,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
+  },
+  deleteButton: {
+    width: 80,
+    backgroundColor: '#f87171',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    paddingLeft: 10,
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
+    marginLeft: -10,
+  },
+  deleteButtonContent: {
+    width: 60,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   winContent: {
     flex: 1,
@@ -138,21 +246,13 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 4,
-  },
-  winTime: {
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
-    fontSize: 12,
+    flex: 1,
+    marginRight: 12,
   },
   editButton: {
-    padding: 8,
+    padding: 4,
   },
-  deleteButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  buttonGroup: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -186,10 +286,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 13,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
   button: {
     width: 24,
     height: 24,
@@ -197,12 +293,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  buttonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   cancelButton: {
-    backgroundColor: 'transparent',
-    marginRight: 8,
-    width: 'auto',
-    height: 'auto',
-    paddingHorizontal: 12,
+    backgroundColor: Colors.mediumGray,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
@@ -210,14 +307,5 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-  cancelButtonText: {
-    color: Colors.darkGray,
-    fontFamily: Fonts.medium,
-    fontSize: 12,
-  },
-  saveButtonText: {
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
-    fontSize: 12,
-  },
+  // Button text styles are no longer needed as we're using icons
 });

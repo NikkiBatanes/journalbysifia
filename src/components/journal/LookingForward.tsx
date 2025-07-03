@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check, Sunrise as LuSunrise } from 'lucide-react-native';
+import { Pencil, Trash2, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
 
 interface LookingForwardEntry {
   id: string;
@@ -16,6 +17,52 @@ export const LookingForward: React.FC = () => {
   const [entry, setEntry] = useState<LookingForwardEntry | null>(null);
   const [entryText, setEntryText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const closeSwipeable = useCallback(() => {
+    swipeableRef.current?.close();
+  }, []);
+
+  const renderRightActions = (progress: any, dragX: any) => {
+    const scale = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [1, 0.8],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = dragX.interpolate({
+      inputRange: [-100, -20, 0],
+      outputRange: [1, 0.9, 0],
+      extrapolate: 'clamp',
+    });
+
+    const handleDelete = () => {
+      closeSwipeable();
+      // Small delay to allow the swipeable to close before deleting
+      setTimeout(() => setEntry(null), 200);
+    };
+
+    return (
+      <Animated.View
+        style={[
+          styles.deleteButton,
+          {
+            opacity,
+            transform: [{ scale }],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={handleDelete}
+          style={styles.deleteButtonContent}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={22} color="white" />
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
 
   const startAdding = () => {
     setIsAdding(true);
@@ -24,24 +71,27 @@ export const LookingForward: React.FC = () => {
 
   const cancelAdding = () => {
     setIsAdding(false);
+    setIsEditing(false);
     setEntryText('');
   };
 
   const saveEntry = () => {
     if (entryText.trim()) {
       setEntry({
-        id: Date.now().toString(),
+        id: entry?.id || Date.now().toString(),
         text: entryText,
         date: new Date(),
       });
       setEntryText('');
       setIsAdding(false);
+      setIsEditing(false);
     }
   };
 
   const editEntry = () => {
     if (entry) {
       setEntryText(entry.text);
+      setIsEditing(true);
       setIsAdding(true);
     }
   };
@@ -49,6 +99,7 @@ export const LookingForward: React.FC = () => {
   const removeEntry = () => {
     setEntry(null);
     setEntryText('');
+    setIsEditing(false);
   };
 
   const formatDate = (date: Date) => {
@@ -70,28 +121,34 @@ export const LookingForward: React.FC = () => {
       onAdd={startAdding}
       isAdding={isAdding}
       onCancelAdd={cancelAdding}
+      headerRight={
+        entry && !isAdding ? (
+          <View style={styles.headerActions}>
+            <TouchableOpacity onPress={editEntry} style={styles.headerButton}>
+              <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+        ) : null
+      }
     >
-      {entry ? (
-        <View style={styles.entryContainer}>
-          <View style={styles.entryContent}>
+      {entry && !isAdding ? (
+        <Swipeable
+          ref={swipeableRef}
+          renderRightActions={renderRightActions}
+          rightThreshold={20}
+          containerStyle={styles.swipeableContainer}
+          overshootRight={false}
+          friction={3}
+          enableTrackpadTwoFingerGesture
+          onSwipeableWillOpen={() => {
+            const { Vibration } = require('react-native');
+            Vibration.vibrate(10);
+          }}
+        >
+          <View style={styles.entryContainer}>
             <Text style={styles.entryText}>{entry.text}</Text>
-            <Text style={styles.entryTime}>{formatDate(entry.date)}</Text>
           </View>
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              onPress={editEntry}
-              style={styles.editButton}
-            >
-              <Ionicons name="create-outline" size={20} color={Colors.mediumGray} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={removeEntry}
-              style={styles.deleteButton}
-            >
-              <Ionicons name="trash-outline" size={20} color={Colors.alertCoral} />
-            </TouchableOpacity>
-          </View>
-        </View>
+        </Swipeable>
       ) : isAdding ? (
         <View style={styles.formContainer}>
           <TextInput
@@ -103,20 +160,28 @@ export const LookingForward: React.FC = () => {
             multiline
             autoFocus
           />
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.button, styles.cancelButton]}
-              onPress={cancelAdding}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.button, styles.saveButton, !entryText.trim() && styles.disabledButton]}
-              onPress={saveEntry}
-              disabled={!entryText.trim()}
-            >
-              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-            </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                onPress={cancelAdding}
+                style={[styles.button, styles.cancelButton]}
+                activeOpacity={0.8}
+              >
+                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={saveEntry}
+                style={[
+                  styles.button,
+                  styles.saveButton,
+                  !entryText.trim() && styles.disabledButton,
+                ]}
+                disabled={!entryText.trim()}
+                activeOpacity={0.8}
+              >
+                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       ) : null}
@@ -125,42 +190,51 @@ export const LookingForward: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  entryContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  swipeableContainer: {
+    marginBottom: 4,
     borderRadius: 6,
-    paddingVertical: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f87171',
+  },
+  entryContainer: {
+    backgroundColor: '#ebeef2',
+    borderRadius: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    justifyContent: 'space-between',
+    minHeight: 40,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'center',
   },
   deleteButton: {
-    marginLeft: 8,
-    padding: 4,
+    width: 80,
+    backgroundColor: '#f87171',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    paddingLeft: 10,
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
+    marginLeft: -10,
   },
-  entryContent: {
-    flex: 1,
-    marginRight: 12,
+  deleteButtonContent: {
+    width: 60,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   entryText: {
     fontFamily: Fonts.regular,
     color: Colors.darkGray,
     fontSize: 14,
     lineHeight: 20,
-    marginBottom: 4,
   },
-  entryTime: {
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
-    fontSize: 12,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  editButton: {
+  headerButton: {
     padding: 4,
   },
   emptyText: {
@@ -183,40 +257,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 13,
   },
-  buttonContainer: {
+  buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 8,
+    marginTop: 12,
+    padding: 0,
   },
   button: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginLeft: 8,
-    alignItems: 'center',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   cancelButton: {
-    backgroundColor: 'transparent',
-    marginRight: 8,
-    width: 'auto',
-    height: 'auto',
-    paddingHorizontal: 12,
+    backgroundColor: Colors.mediumGray,
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,
   },
   disabledButton: {
     opacity: 0.5,
-  },
-  cancelButtonText: {
-    color: Colors.darkGray,
-    fontFamily: Fonts.medium,
-    fontSize: 12,
-  },
-  saveButtonText: {
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
-    fontSize: 12,
   },
 });

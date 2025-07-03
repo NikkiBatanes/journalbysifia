@@ -26,6 +26,7 @@
     "date-fns": "^4.1.0",
     "expo-calendar": "~14.1.4",
     "expo-font": "~13.3.1",
+    "expo-linear-gradient": "^14.1.5",
     "expo-notifications": "~0.31.3",
     "lucide-react-native": "^0.523.0",
     "prop-types": "^15.8.1",
