@@ -102,20 +102,7 @@ export const TodayWin: React.FC = () => {
     }
   };
 
-  const removeWin = () => {
-    setWin(null);
-    setWinText('');
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const editButton = (
-    <TouchableOpacity onPress={editWin} style={styles.editButton}>
-      <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
-    </TouchableOpacity>
-  );
+  // Removed unused editButton variable
 
   return (
     <JournalCard

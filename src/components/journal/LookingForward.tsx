@@ -5,7 +5,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Pencil, Trash2, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
+import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
 
 interface LookingForwardEntry {
   id: string;
@@ -17,7 +17,7 @@ export const LookingForward: React.FC = () => {
   const [entry, setEntry] = useState<LookingForwardEntry | null>(null);
   const [entryText, setEntryText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
+  const [_, setIsEditing] = useState(false);
   const swipeableRef = useRef<Swipeable>(null);
 
   const closeSwipeable = useCallback(() => {
@@ -96,15 +96,7 @@ export const LookingForward: React.FC = () => {
     }
   };
 
-  const removeEntry = () => {
-    setEntry(null);
-    setEntryText('');
-    setIsEditing(false);
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  // Removed unused functions to clean up the code
 
   return (
     <JournalCard

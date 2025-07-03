@@ -25,7 +25,6 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   showAddButton = false,
   onAdd,
   isAdding = false,
-  onCancelAdd,
   headerRight,
 }) => {
   const hasContent = React.Children.count(children) > 0;
