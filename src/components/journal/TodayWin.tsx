@@ -196,9 +196,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f87171',
   },
   winContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#ebeef2',
     borderRadius: 6,
     paddingVertical: 8,
@@ -206,6 +203,7 @@ const styles = StyleSheet.create({
     minHeight: 40,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
+    justifyContent: 'center',
   },
   deleteButton: {
     width: 80,
@@ -226,15 +224,12 @@ const styles = StyleSheet.create({
   },
   winContent: {
     flex: 1,
-    marginRight: 12,
   },
   winText: {
     fontFamily: Fonts.regular,
     color: Colors.darkGray,
     fontSize: 14,
     lineHeight: 20,
-    flex: 1,
-    marginRight: 12,
   },
   editButton: {
     padding: 4,
