@@ -349,8 +349,10 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
   }, [isAdding]);
 
   const handleSaveEntry = () => {
-    if (!newEntry.content.trim()) return;
-    
+    if (!newEntry.content.trim()) {
+      return;
+    }
+
     const newReflection: ReflectionLogEntry = {
       id: Date.now().toString(),
       title: newEntry.title,
@@ -397,13 +399,13 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
         </View>
       </View>
 
-      <KeyboardAvoidingView 
-        style={{flex: 1}}
+<KeyboardAvoidingView
+        style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-      >
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+
         <View style={styles.contentCard}>
-          <ScrollView 
+          <ScrollView
             style={styles.content}
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="handled"
@@ -469,17 +471,17 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
         <View style={styles.bottomButtonsContainer}>
           <View style={styles.buttonRow}>
             <View style={styles.buttonGroup}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
                 onPress={() => setIsAdding(false)}
               >
                 <Ionicons name="close" size={16} color={Colors.darkGray} />
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.button, 
+                  styles.button,
                   styles.saveButton,
-                  !newEntry.content.trim() && styles.disabledButton
+                  !newEntry.content.trim() && styles.disabledButton,
                 ]}
                 disabled={!newEntry.content.trim()}
                 onPress={handleSaveEntry}
@@ -544,6 +546,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
   },
 
+  keyboardAvoidingView: {
+    flex: 1,
+  },
   // Content container styles moved below to avoid duplication
   scrollContent: {
     flexGrow: 1,
