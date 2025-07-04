@@ -310,7 +310,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               <GratitudeList />
             </View>
             <View style={styles.componentSpacing}>
-              <ReflectionLog />
+              <ReflectionLog currentDate={currentDate} />
             </View>
             <View style={styles.componentSpacing}>
               <TodayWin />

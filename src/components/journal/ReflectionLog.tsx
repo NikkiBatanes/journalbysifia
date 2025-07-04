@@ -37,7 +37,11 @@ const GUIDED_PROMPTS = [
   "What's one way I can grow in a practical skill to reflect God's excellence?",
 ];
 
-export const ReflectionLog: React.FC = () => {
+interface ReflectionLogProps {
+  currentDate: Date;
+}
+
+export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('free-form');
   const [visibleCount, setVisibleCount] = useState<number>(3);
   const [entries, _setEntries] = useState<ReflectionLogEntry[]>([]);
@@ -328,7 +332,7 @@ export const ReflectionLog: React.FC = () => {
     );
   };
 
-  const formatDate = (date = new Date()) => {
+  const formatDate = (date: Date = currentDate) => {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
@@ -357,7 +361,7 @@ export const ReflectionLog: React.FC = () => {
               <Pencil
                 size={22}
                 color={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
-                fill={viewMode === 'free-form' ? Colors.alertCoral : 'transparent'}
+                fill={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
                 strokeWidth={viewMode === 'free-form' ? 0 : 1.5}
               />
             </TouchableOpacity>
