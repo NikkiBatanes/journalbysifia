@@ -7,6 +7,7 @@ export const Colors = {
   trustGrey: '#6B7280',
   growthGreen: '#2F855A',
   alertCoral: '#F87171',
+  inactiveIcon: '#b6c2d1',
   darkBackground: '#1C2526',
   // Text colors
   textDark: '#333333',
