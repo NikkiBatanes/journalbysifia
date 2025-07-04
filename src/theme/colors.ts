@@ -15,6 +15,7 @@ export const Colors = {
   darkGray: '#424242',
   darkerGray: '#1A1A1A', // For better text contrast
   trustGrey: '#B0B8C1',
+  inactiveIcon: '#B0B8C1',
 
   // UI Colors
   inputBackground: '#264777', // Dark blue background for input fields

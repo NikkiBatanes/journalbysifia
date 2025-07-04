@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, StatusBar } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { Check, NotebookPen as LuNotebookPen, Sparkles, X } from 'lucide-react-native';
+import { NotebookPen as LuNotebookPen, Pencil, X } from 'lucide-react-native';
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -40,7 +40,7 @@ const GUIDED_PROMPTS = [
 export const ReflectionLog: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('free-form');
   const [visibleCount, setVisibleCount] = useState<number>(3);
-  const [entries, setEntries] = useState<ReflectionLogEntry[]>([]);
+  const [entries, _setEntries] = useState<ReflectionLogEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState(GUIDED_PROMPTS[0]);
@@ -49,41 +49,10 @@ export const ReflectionLog: React.FC = () => {
     content: '',
     tags: [],
   });
-  const [tagInput, setTagInput] = useState('');
   const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
 
-  const addEntry = (entryData: Omit<ReflectionLogEntry, 'id' | 'date'>) => {
-    const entryWithId = {
-      ...entryData,
-      id: Date.now().toString(),
-      date: new Date(),
-      tags: entryData.tags || [],
-    };
-    setEntries([entryWithId, ...entries]);
-    setNewEntry({ title: '', content: '', tags: [] });
-    setTagInput('');
-    setIsAdding(false);
-  };
-
-  // Removed unused functions: removeEntry, formatDate, startNewEntry
-
-  const handleAddTag = () => {
-    if (tagInput.trim() && !newEntry.tags.includes(tagInput.trim())) {
-      setNewEntry(prev => ({
-        ...prev,
-        tags: [...(prev.tags || []), tagInput.trim()],
-      }));
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setNewEntry(prev => ({
-      ...prev,
-      tags: (prev.tags || []).filter(tag => tag !== tagToRemove),
-    }));
-  };
+  // Removed unused functions: removeEntry, formatDate, startNewEntry, handleAddTag, handleSaveEntry, removeTag
 
   const renderPromptPicker = () => (
     <Modal
@@ -187,9 +156,9 @@ export const ReflectionLog: React.FC = () => {
         </View>
       )}
       {entry.type === 'guided' && entry.prompt ? (
-        <Text style={styles.promptText}>{entry.prompt}</Text>
+        <Text style={styles.promptCardText}>{entry.prompt}</Text>
       ) : entry.title ? (
-        <Text style={[styles.promptText, styles.normalTitleText]}>{entry.title}</Text>
+        <Text style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</Text>
       ) : null}
       <Text
         style={styles.entryContent}
@@ -318,7 +287,7 @@ export const ReflectionLog: React.FC = () => {
                     )}
 
                     {selectedEntry.type === 'guided' && selectedEntry.prompt && (
-                      <Text style={[styles.promptText, styles.modalPromptText]}>
+                      <Text style={[styles.promptCardText, styles.modalPromptText]}>
                         {selectedEntry.prompt}
                       </Text>
                     )}
@@ -359,6 +328,115 @@ export const ReflectionLog: React.FC = () => {
     );
   };
 
+  const formatDate = (date = new Date()) => {
+    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  };
+
+  const titleInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    // Focus the title input when the form is shown
+    if (isAdding) {
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isAdding]);
+
+  const renderEntryForm = () => (
+    <View style={styles.container}>
+      <StatusBar hidden />
+      <View style={styles.header}>
+        <Text style={styles.title}>{formatDate()}</Text>
+        <View style={styles.modeToggle}>
+            <TouchableOpacity
+              style={styles.modeButton}
+              onPress={() => setViewMode('free-form')}
+            >
+              <Pencil
+                size={22}
+                color={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
+                fill={viewMode === 'free-form' ? Colors.alertCoral : 'transparent'}
+                strokeWidth={viewMode === 'free-form' ? 0 : 1.5}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modeButton}
+              onPress={() => setViewMode('guided')}
+            >
+            <Ionicons
+              name="heart"
+              size={24}
+              color={viewMode === 'guided' ? Colors.alertCoral : Colors.inactiveIcon}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.contentContainer}>
+        <View style={styles.contentCard}>
+          <ScrollView style={styles.content}>
+            {viewMode === 'free-form' ? (
+              <>
+                <TextInput
+                  ref={titleInputRef}
+                  style={[styles.entryInput, styles.titleInput, styles.transparentInput]}
+                  placeholder="Name Your Reflection..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={newEntry.title}
+                  onChangeText={(text: string) => setNewEntry({ ...newEntry, title: text })}
+                  underlineColorAndroid="transparent"
+                  selectionColor={Colors.hopeWhite}
+                  multiline={true}
+                  autoFocus
+                />
+                <TextInput
+                  style={[styles.entryInput, styles.entryContentInput, styles.transparentInput]}
+                  placeholder="Pour out your thoughts..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  multiline
+                  value={newEntry.content}
+                  onChangeText={(text: string) => setNewEntry({ ...newEntry, content: text })}
+                  underlineColorAndroid="transparent"
+                  selectionColor={Colors.hopeWhite}
+                />
+              </>
+        ) : (
+          <View style={styles.guidedContainer}>
+            <Text style={styles.guidedTitle}>Reflection Prompts</Text>
+            <View style={styles.promptGrid}>
+              {GUIDED_PROMPTS.map((prompt, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.promptCard,
+                    selectedPrompt === prompt && styles.selectedPromptCard,
+                  ]}
+                  onPress={() => setSelectedPrompt(prompt)}
+                >
+                  <Text style={styles.promptCardText}>{prompt}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={[styles.entryInput, styles.entryContentInput, styles.entryGuidedInput, styles.transparentInput]}
+              placeholder="Pour out your thoughts..."
+              placeholderTextColor={Colors.hopeWhite}
+              multiline
+              value={newEntry.content}
+              onChangeText={(text) => setNewEntry({ ...newEntry, content: text })}
+              underlineColorAndroid="transparent"
+              selectionColor={Colors.hopeWhite}
+            />
+          </View>
+        )}
+          </ScrollView>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <JournalCard
       icon={
@@ -369,172 +447,308 @@ export const ReflectionLog: React.FC = () => {
         />
       }
       title="Reflection Log"
-      subtitle={isAdding ? (viewMode === 'free-form' ? 'Record your thoughts' : 'Reflect with guidance') : 'Your reflections'}
-      showAddButton={!isAdding}
-      isAdding={isAdding}
+      subtitle={entries.length > 0 ? `${entries.length} reflections` : 'No reflections yet'}
+      showAddButton={true}
       onAdd={() => {
         setNewEntry({ title: '', content: '', tags: [] });
-        setTagInput('');
+        setViewMode('free-form');
         setIsAdding(true);
       }}
-      onCancelAdd={() => {
-        setIsAdding(false);
-        setNewEntry({ title: '', content: '', tags: [] });
-        setTagInput('');
-      }}
     >
-      {isAdding ? (
-        <>
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity
-              style={[styles.toggleButton, viewMode === 'free-form' && styles.activeToggle]}
-              onPress={() => setViewMode('free-form')}
-            >
-              <Text style={styles.toggleText}>Free Form</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleButton, viewMode === 'guided' && styles.activeToggle]}
-              onPress={() => setViewMode('guided')}
-            >
-              <Sparkles size={16} color={viewMode === 'guided' ? Colors.alertCoral : Colors.mediumGray} />
-              <Text style={[styles.toggleText, styles.toggleTextWithMargin]}>Guided</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Entries List */}
+      {renderEntries()}
 
-          {viewMode === 'free-form' ? (
-            <View style={styles.addForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="Title"
-                value={newEntry.title}
-                onChangeText={text => setNewEntry({...newEntry, title: text})}
-                placeholderTextColor={Colors.mediumGray}
-              />
-              <TextInput
-                style={[styles.input, styles.contentInput]}
-                placeholder="Write your thoughts..."
-                multiline
-                value={newEntry.content}
-                onChangeText={text => setNewEntry({...newEntry, content: text})}
-                placeholderTextColor={Colors.mediumGray}
-              />
-              <View style={styles.tagsContainer}>
-                {newEntry.tags.map((tag, index) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>#{tag}</Text>
-                    <TouchableOpacity onPress={() => removeTag(tag)}>
-                      <Ionicons name="close" size={16} color={Colors.mediumGray} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <View style={styles.tagInputContainer}>
-                  <TextInput
-                    style={styles.tagInput}
-                    placeholder="Add a tag..."
-                    value={tagInput}
-                    onChangeText={setTagInput}
-                    onSubmitEditing={handleAddTag}
-                    returnKeyType="done"
-                    placeholderTextColor={Colors.mediumGray}
-                  />
-                  <TouchableOpacity onPress={handleAddTag} style={styles.addTagButton}>
-                    <Ionicons name="add" size={20} color={Colors.alertCoral} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    styles.saveButton,
-                    (!newEntry.title.trim() || !newEntry.content.trim()) && styles.disabledButton,
-                  ]}
-                  onPress={() => addEntry({
-                    ...newEntry,
-                    type: 'free-form',
-                    title: newEntry.title.trim() || 'Untitled Reflection',
-                  })}
-                  disabled={!newEntry.title.trim() || !newEntry.content.trim()}
-                >
-                  <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.addForm}>
-              <View style={styles.promptSelector}>
-                <Text style={styles.promptLabel}>Reflection Prompt:</Text>
-                <TouchableOpacity
-                  style={styles.pickerContainer}
-                  onPress={() => setShowPromptPicker(true)}
-                >
-                  <Text style={styles.selectedPrompt} numberOfLines={1}>{selectedPrompt}</Text>
-                  <Ionicons name="chevron-down" size={16} color={Colors.mediumGray} />
-                </TouchableOpacity>
-              </View>
-              <TextInput
-                style={[styles.input, styles.guidedInput]}
-                placeholder="Write your reflection..."
-                multiline
-                value={newEntry.content}
-                onChangeText={text => setNewEntry({...newEntry, content: text})}
-                placeholderTextColor={Colors.mediumGray}
-              />
-              <View style={styles.tagsContainer}>
-                {newEntry.tags.map((tag, index) => (
-                  <View key={index} style={styles.tag}>
-                    <Text style={styles.tagText}>#{tag}</Text>
-                    <TouchableOpacity onPress={() => removeTag(tag)}>
-                      <Ionicons name="close" size={16} color={Colors.mediumGray} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <View style={styles.tagInputContainer}>
-                  <TextInput
-                    style={styles.tagInput}
-                    placeholder="Add a tag..."
-                    value={tagInput}
-                    onChangeText={setTagInput}
-                    onSubmitEditing={handleAddTag}
-                    returnKeyType="done"
-                    placeholderTextColor={Colors.mediumGray}
-                  />
-                  <TouchableOpacity onPress={handleAddTag} style={styles.addTagButton}>
-                    <Ionicons name="add" size={20} color={Colors.alertCoral} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.button,
-                    styles.saveButton,
-                    !newEntry.content.trim() && styles.disabledButton,
-                  ]}
-                  onPress={() => addEntry({
-                    title: `Reflection: ${selectedPrompt.substring(0, 30)}...`,
-                    content: newEntry.content,
-                    type: 'guided',
-                    prompt: selectedPrompt,
-                  })}
-                  disabled={!newEntry.content.trim()}
-                >
-                  <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </>
-      ) : (
-        // Display all entries in a list
-        renderEntries()
-      )}
+      {/* Add/Edit Entry Modal */}
+      <Modal
+        visible={isAdding}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsAdding(false)}
+      >
+        {renderEntryForm()}
+      </Modal>
+
+      {/* Prompt Picker Modal */}
       {renderPromptPicker()}
     </JournalCard>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+    paddingTop: 40, // Reduced padding to move content up
+  },
+
+  title: {
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    color: Colors.anchorBlue,
+    fontWeight: '700',
+  },
+  addButton: {
+    backgroundColor: Colors.anchorBlue,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Full screen styles
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 0,
+    zIndex: 10, // Ensure header stays above background
+    backgroundColor: Colors.hopeWhite,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerButton: {
+    padding: 8,
+  },
+  modeToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    padding: 4,
+    alignItems: 'center',
+  },
+  modeButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginHorizontal: 0,
+  },
+  headerSaveButton: {
+    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  headerSaveButtonText: {
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: Colors.hopeWhite,
+    paddingTop: 0, // Remove top padding to reduce gap
+  },
+  contentCard: {
+    flex: 1,
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
+  },
+  content: {
+    flex: 1,
+    padding: 24,
+  },
+  freeFormContainer: {
+    flex: 1,
+  },
+  guidedContainer: {
+    flex: 1,
+  },
+  guidedTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.darkGray,
+    marginBottom: 16,
+  },
+  promptGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  promptCard: {
+    width: '48%',
+    backgroundColor: Colors.lightGray,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    minHeight: 120,
+    justifyContent: 'center',
+  },
+  selectedPromptCard: {
+    backgroundColor: Colors.anchorBlueLight,
+    borderWidth: 2,
+    borderColor: Colors.anchorBlue,
+  },
+  promptCardText: {
+    color: Colors.darkGray,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  entryInput: {
+    backgroundColor: 'transparent',
+    padding: 0,
+    color: Colors.hopeWhite,
+    borderWidth: 0,
+    borderBottomWidth: 0,
+    includeFontPadding: false,
+    textAlignVertical: 'top',
+  } as const,
+  entryGuidedInput: {
+    marginTop: 8,
+    minHeight: 200,
+    backgroundColor: 'transparent',
+    padding: 0,
+    color: Colors.hopeWhite,
+    borderWidth: 0,
+    borderBottomWidth: 0,
+    includeFontPadding: false,
+    textAlignVertical: 'top',
+  } as const,
+  titleInput: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 16,
+    color: Colors.hopeWhite,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderBottomWidth: 0,
+    padding: 0,
+  },
+  entryContentInput: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderBottomWidth: 0,
+    padding: 0,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontFamily: Fonts.semiBold,
+    color: Colors.darkGray,
+    marginBottom: 12,
+  },
+  modalContent: {
+    flex: 1,
+    width: '100%',
+  },
+  modalContentContainer: {
+    paddingBottom: 40, // Add some bottom padding to ensure content isn't cut off
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 16,
+    gap: 12,
+  },
+  modalButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContainer: {
+    backgroundColor: Colors.hopeWhite,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: '90%',
+    padding: 16,
+    paddingTop: 16,
+    paddingBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 10,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: Colors.lightGray,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  modalEntryCard: {
+    padding: 16,
+    marginBottom: 20,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  modalPromptText: {
+    fontSize: 16,
+    color: Colors.mediumGray,
+    fontStyle: 'italic',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  modalContentText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.darkGray,
+    marginBottom: 16,
+  },
+
+  // Button styles
+  // These styles are now defined as headerSaveButton and headerSaveButtonText
+  // to avoid duplicate style keys
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.mediumGray,
+  },
+  cancelButtonText: {
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  button: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+
   // Toggle styles
   toggleContainer: {
     flexDirection: 'row',
@@ -564,15 +778,16 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
     fontSize: 14,
   },
+  toggleTextWithMargin: {
+    marginLeft: 4,
+  },
 
-  // Entries container
+  // Entry list styles
   entriesContainer: {
     width: '100%',
   },
-
-  // Entry card styles
   entryCard: {
-    backgroundColor: 'rgba(26, 60, 109, 0.05)', // Base anchor blue with very low opacity
+    backgroundColor: 'rgba(26, 60, 109, 0.05)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -580,11 +795,11 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(26, 60, 109, 0.1)',
   },
   guidedEntry: {
-    backgroundColor: 'rgba(255, 107, 107, 0.05)', // Coral with very low opacity
+    backgroundColor: 'rgba(255, 107, 107, 0.05)',
     borderColor: 'rgba(255, 107, 107, 0.15)',
   },
   freeFormEntry: {
-    backgroundColor: 'rgba(76, 184, 144, 0.05)', // Growth green with very low opacity
+    backgroundColor: 'rgba(76, 184, 144, 0.05)',
     borderColor: 'rgba(76, 184, 144, 0.15)',
   },
   entryHeader: {
@@ -612,8 +827,57 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(26, 60, 109, 0.1)',
     borderTopLeftRadius: 2,
-    borderBottomLeftRadius: 2,
-    letterSpacing: 0.1,
+  },
+
+  // Prompt styles
+  guidedPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  guidedPromptContainer: {
+    backgroundColor: 'rgba(255, 81, 90, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  guidedPromptText: {
+    fontSize: 8,
+    color: Colors.alertCoral,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  freeFormPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  freeFormPromptContainer: {
+    backgroundColor: 'rgba(76, 184, 144, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  freeFormPromptText: {
+    fontSize: 8,
+    color: Colors.growthGreen,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  timeText: {
+    fontSize: 10,
+    color: Colors.mediumGray,
+    fontFamily: Fonts.regular,
+  },
+  // This style is now defined as promptCardText to avoid duplicate style keys
+  normalTitleText: {
+    fontStyle: 'normal',
   },
 
   // Pagination styles
@@ -685,14 +949,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     height: 20,
   },
-  // Text styles for entry titles
-  normalTitleText: {
-    fontStyle: 'normal',
-  },
-  // Toggle text with left margin
-  toggleTextWithMargin: {
-    marginLeft: 4,
-  },
   // Tag text style - defined once and used throughout the component
   tagText: {
     fontSize: 8,
@@ -714,126 +970,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: Fonts.regular,
   },
-  entryDate: {
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
-    fontSize: 12,
-    textAlign: 'right',
-  },
-  entryFooter: {
+  locationContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: 4,
   },
 
-  // Prompt styles
-  guidedPromptRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  guidedPromptContainer: {
-    backgroundColor: 'rgba(255, 81, 90, 0.1)',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  freeFormPromptContainer: {
-    backgroundColor: 'rgba(76, 184, 144, 0.1)',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  freeFormPromptText: {
-    fontSize: 8,
-    color: Colors.growthGreen,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  freeFormPromptRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  timeText: {
-    fontSize: 10,
-    color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
-  },
-  guidedPromptText: {
-    fontSize: 8,
-    color: Colors.alertCoral,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  promptText: {
-    fontFamily: Fonts.semiBold,
-    color: Colors.anchorBlue,
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
-    marginBottom: 12,
-    fontStyle: 'italic',
-    letterSpacing: 0.1,
-  },
+  // Form styles
   addForm: {
     marginTop: 8,
   },
-  input: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
-    marginBottom: 8,
+  // This style is now defined as entryInput to avoid duplicate style keys
+  transparentInput: {
+    backgroundColor: 'transparent',
+    color: Colors.hopeWhite,
+    borderWidth: 0,
+    borderBottomWidth: 0,
+    outlineWidth: 0,
   },
-  contentInput: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  guidedInput: {
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  button: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  saveButton: {
-    backgroundColor: Colors.alertCoral,
-  },
-  cancelButton: {
-    // Removed as we're using JournalCard's built-in cancel button
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
+  // These styles are now defined as entryContentInput and entryGuidedInput
+  // to avoid duplicate style keys
+  // Prompt selector styles
   promptSelector: {
-    marginBottom: 12,
+    marginBottom: 16,
+    width: '100%',
   },
   promptLabel: {
     fontFamily: Fonts.medium,
     color: Colors.darkGray,
-    marginBottom: 4,
+    marginBottom: 8,
     fontSize: 14,
   },
   pickerContainer: {
@@ -844,6 +1009,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: Colors.lightGray,
+    minHeight: 44, // Enhanced touch area
   },
   selectedPrompt: {
     flex: 1,
@@ -869,9 +1035,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    paddingHorizontal: 16,
   },
   promptModalTitle: {
     fontFamily: Fonts.semiBold,
@@ -913,70 +1077,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    height: '90%',
-    padding: 16,
-    paddingTop: 16,
-    paddingBottom: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    zIndex: 10,
-  },
-  modalHandle: {
-    width: 40,
-    height: 4,
-    backgroundColor: Colors.lightGray,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  modalContent: {
-    flex: 1,
-    width: '100%',
-  },
-  modalContentContainer: {
-    paddingBottom: 40, // Add some bottom padding to ensure content isn't cut off
-  },
-  modalEntryCard: {
-    padding: 16,
-    marginBottom: 20,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  modalPromptText: {
-    fontSize: 16,
-    color: Colors.mediumGray,
-    fontStyle: 'italic',
-    marginTop: 8,
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.semiBold,
-    color: Colors.darkGray,
-    marginBottom: 12,
-  },
-  modalContentText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.darkGray,
-    marginBottom: 16,
-  },
   // Tags container for the modal view
   modalTagsContainer: {
     flexDirection: 'row',
@@ -1007,9 +1107,5 @@ const styles = StyleSheet.create({
   addTagButton: {
     marginLeft: 4,
   },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
+  // locationContainer style is defined above with more specific properties
 });
