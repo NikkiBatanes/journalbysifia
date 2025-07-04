@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, StatusBar } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -348,27 +348,46 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
     }
   }, [isAdding]);
 
+  const handleSaveEntry = () => {
+    if (!newEntry.content.trim()) return;
+    
+    const newReflection: ReflectionLogEntry = {
+      id: Date.now().toString(),
+      title: newEntry.title,
+      content: newEntry.content,
+      date: currentDate,
+      type: viewMode,
+      ...(viewMode === 'guided' && { prompt: selectedPrompt }),
+      tags: newEntry.tags,
+    };
+
+    _setEntries(prevEntries => [...prevEntries, newReflection]);
+    setNewEntry({ title: '', content: '', tags: [] });
+    setIsAdding(false);
+  };
+
   const renderEntryForm = () => (
     <View style={styles.container}>
       <StatusBar hidden />
+      <View style={styles.backgroundContainer} />
       <View style={styles.header}>
         <Text style={styles.title}>{formatDate()}</Text>
         <View style={styles.modeToggle}>
-            <TouchableOpacity
-              style={styles.modeButton}
-              onPress={() => setViewMode('free-form')}
-            >
-              <Pencil
-                size={22}
-                color={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
-                fill={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
-                strokeWidth={viewMode === 'free-form' ? 0 : 1.5}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modeButton}
-              onPress={() => setViewMode('guided')}
-            >
+          <TouchableOpacity
+            style={styles.modeButton}
+            onPress={() => setViewMode('free-form')}
+          >
+            <Pencil
+              size={22}
+              color={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
+              fill={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
+              strokeWidth={viewMode === 'free-form' ? 0 : 1.5}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.modeButton}
+            onPress={() => setViewMode('guided')}
+          >
             <Ionicons
               name="heart"
               size={24}
@@ -378,9 +397,17 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
         </View>
       </View>
 
-      <View style={styles.contentContainer}>
+      <KeyboardAvoidingView 
+        style={{flex: 1}}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <View style={styles.contentCard}>
-          <ScrollView style={styles.content}>
+          <ScrollView 
+            style={styles.content}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
             {viewMode === 'free-form' ? (
               <>
                 <TextInput
@@ -406,38 +433,63 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
                   selectionColor={Colors.hopeWhite}
                 />
               </>
-        ) : (
-          <View style={styles.guidedContainer}>
-            <Text style={styles.guidedTitle}>Reflection Prompts</Text>
-            <View style={styles.promptGrid}>
-              {GUIDED_PROMPTS.map((prompt, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.promptCard,
-                    selectedPrompt === prompt && styles.selectedPromptCard,
-                  ]}
-                  onPress={() => setSelectedPrompt(prompt)}
-                >
-                  <Text style={styles.promptCardText}>{prompt}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <TextInput
-              style={[styles.entryInput, styles.entryContentInput, styles.entryGuidedInput, styles.transparentInput]}
-              placeholder="Pour out your thoughts..."
-              placeholderTextColor={Colors.hopeWhite}
-              multiline
-              value={newEntry.content}
-              onChangeText={(text) => setNewEntry({ ...newEntry, content: text })}
-              underlineColorAndroid="transparent"
-              selectionColor={Colors.hopeWhite}
-            />
-          </View>
-        )}
+            ) : (
+              <View style={styles.guidedContainer}>
+                <Text style={styles.guidedTitle}>Reflection Prompts</Text>
+                <View style={styles.promptGrid}>
+                  {GUIDED_PROMPTS.map((prompt, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[
+                        styles.promptCard,
+                        selectedPrompt === prompt && styles.selectedPromptCard,
+                      ]}
+                      onPress={() => setSelectedPrompt(prompt)}
+                    >
+                      <Text style={styles.promptCardText}>{prompt}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={[styles.entryInput, styles.entryContentInput, styles.entryGuidedInput, styles.transparentInput]}
+                  placeholder="Pour out your thoughts..."
+                  placeholderTextColor={Colors.hopeWhite}
+                  multiline
+                  value={newEntry.content}
+                  onChangeText={(text) => setNewEntry({ ...newEntry, content: text })}
+                  underlineColorAndroid="transparent"
+                  selectionColor={Colors.hopeWhite}
+                />
+              </View>
+            )}
           </ScrollView>
         </View>
-      </View>
+
+        {/* Bottom Buttons Container */}
+        <View style={styles.bottomButtonsContainer}>
+          <View style={styles.buttonRow}>
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity 
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setIsAdding(false)}
+              >
+                <Ionicons name="close" size={16} color={Colors.darkGray} />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.button, 
+                  styles.saveButton,
+                  !newEntry.content.trim() && styles.disabledButton
+                ]}
+                disabled={!newEntry.content.trim()}
+                onPress={handleSaveEntry}
+              >
+                <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </View>
   );
 
@@ -482,9 +534,68 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
-    paddingTop: 40, // Reduced padding to move content up
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.anchorBlue,
   },
 
+  // Content container styles moved below to avoid duplication
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 16,
+  },
+  bottomButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: Colors.anchorBlue,
+    position: 'relative',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    // Shadow removed as per request
+  },
+
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    width: '100%',
+  },
+  button: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: Colors.mediumGray,
+  },
+  saveButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  cancelButtonText: {
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+  },
+  saveButtonText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+  },
   title: {
     fontSize: 18,
     fontFamily: Fonts.bold,
@@ -508,7 +619,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
+    paddingTop: 50, // Increased top padding
     paddingHorizontal: 16,
     paddingBottom: 0,
     zIndex: 10, // Ensure header stays above background
@@ -548,7 +659,6 @@ const styles = StyleSheet.create({
   contentContainer: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
-    paddingTop: 0, // Remove top padding to reduce gap
   },
   contentCard: {
     flex: 1,
@@ -724,33 +834,14 @@ const styles = StyleSheet.create({
   },
 
   // Button styles
-  // These styles are now defined as headerSaveButton and headerSaveButtonText
-  // to avoid duplicate style keys
-  cancelButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.mediumGray,
-  },
-  cancelButtonText: {
-    color: Colors.darkGray,
-    fontFamily: Fonts.medium,
-  },
+  // These styles are now consolidated at the top of the styles object
   buttonRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 8,
-  },
-  button: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  disabledButton: {
-    opacity: 0.5,
+    marginTop: 12,
+    padding: 0,
+    width: '100%',
   },
 
   // Toggle styles
