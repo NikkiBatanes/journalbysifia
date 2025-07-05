@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Modal, StatusBar, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -43,6 +44,8 @@ interface ReflectionLogProps {
 
 export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('free-form');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [showAddMenu, setShowAddMenu] = useState(false);
   const [visibleCount, setVisibleCount] = useState<number>(3);
   const [entries, _setEntries] = useState<ReflectionLogEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -344,9 +347,51 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
       const timer = setTimeout(() => {
         titleInputRef.current?.focus();
       }, 100);
-      return () => clearTimeout(timer);
+
+      let keyboardDidShowListener: any;
+      let keyboardDidHideListener: any;
+
+      if (Platform.OS === 'android') {
+        // On Android, we'll use the keyboard height to position FABs
+        keyboardDidShowListener = Keyboard.addListener(
+          'keyboardDidShow',
+          (e) => {
+            // Only update if the keyboard height actually changed
+            setKeyboardHeight(prev => e.endCoordinates.height === prev ? prev : e.endCoordinates.height);
+          }
+        );
+
+        keyboardDidHideListener = Keyboard.addListener(
+          'keyboardDidHide',
+          () => {
+            setKeyboardHeight(0);
+          }
+        );
+      }
+
+      return () => {
+        clearTimeout(timer);
+        keyboardDidShowListener?.remove();
+        keyboardDidHideListener?.remove();
+      };
     }
   }, [isAdding]);
+
+  // Load entries on mount
+  useEffect(() => {
+    const loadEntries = async () => {
+      try {
+        const savedEntries = await AsyncStorage.getItem('reflectionEntries');
+        if (savedEntries) {
+          _setEntries(JSON.parse(savedEntries));
+        }
+      } catch (error) {
+        console.error('Failed to load entries', error);
+      }
+    };
+
+    loadEntries();
+  }, []);
 
   const handleSaveEntry = () => {
     if (!newEntry.content.trim()) {
@@ -402,7 +447,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
 <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        enabled={Platform.OS === 'ios'}>
 
         <View style={styles.contentCard}>
           <ScrollView
@@ -467,30 +513,77 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
           </ScrollView>
         </View>
 
-        {/* Bottom Buttons Container */}
-        <View style={styles.bottomButtonsContainer}>
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonGroup}>
+        {/* Floating Action Buttons - Only show in free-form mode */}
+      {viewMode === 'free-form' && (
+        <View style={styles.fabWrapper}>
+          {/* Left Add FAB with Menu */}
+          <View style={[
+            styles.fabContainer,
+            styles.leftFabContainer,
+            Platform.OS === 'android' && keyboardHeight > 0
+              ? [styles.androidFabWithKeyboard, { bottom: keyboardHeight + 4 }]
+              : styles.fabDefaultPosition,
+          ]}>
+            {showAddMenu && (
+              <View style={styles.addMenu}>
+                <TouchableOpacity style={styles.addMenuItem}>
+                  <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
+                  <Text style={styles.addMenuText}>Tags</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.addMenuItem}>
+                  <Ionicons name="image" size={20} color={Colors.hopeWhite} />
+                  <Text style={styles.addMenuText}>Photos</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.addMenuItem}>
+                  <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
+                  <Text style={styles.addMenuText}>Camera</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <TouchableOpacity
+              style={[styles.fab, styles.addFab]}
+              onPress={() => setShowAddMenu(!showAddMenu)}
+            >
+              <Ionicons
+                name={showAddMenu ? 'close' : 'add'}
+                size={24}
+                color="rgba(255, 255, 255, 0.6)"
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Right Action Buttons */}
+          <View style={[
+            styles.fabContainer,
+            Platform.OS === 'android' && keyboardHeight > 0
+              ? [styles.androidFabWithKeyboard, { bottom: keyboardHeight + 4 }]
+              : styles.fabDefaultPosition,
+          ]}>
+            <View style={styles.fabRow}>
+              {/* Cancel FAB */}
               <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
+                style={[styles.fab, styles.cancelFab]}
                 onPress={() => setIsAdding(false)}
               >
-                <Ionicons name="close" size={16} color={Colors.darkGray} />
+                <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
               </TouchableOpacity>
+
+              {/* Save FAB */}
               <TouchableOpacity
                 style={[
-                  styles.button,
-                  styles.saveButton,
-                  !newEntry.content.trim() && styles.disabledButton,
+                  styles.fab,
+                  styles.saveFab,
+                  (!newEntry.title.trim() || !newEntry.content.trim()) && styles.fabDisabled,
                 ]}
-                disabled={!newEntry.content.trim()}
+                disabled={!newEntry.title.trim() || !newEntry.content.trim()}
                 onPress={handleSaveEntry}
               >
-                <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
               </TouchableOpacity>
             </View>
           </View>
         </View>
+      )}
       </KeyboardAvoidingView>
     </View>
   );
@@ -552,12 +645,36 @@ const styles = StyleSheet.create({
   // Content container styles moved below to avoid duplication
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 16,
+    paddingBottom: 80, // Reduced padding since we're handling keyboard differently
+  },
+  addMenu: {
+    position: 'absolute',
+    bottom: 52,
+    left: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    borderRadius: 12,
+    padding: 8,
+    minWidth: 120,
+    zIndex: 20,
+  },
+  addMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  addMenuText: {
+    color: Colors.hopeWhite,
+    marginLeft: 12,
+    fontSize: 14,
+    fontFamily: Fonts.regular,
   },
   bottomButtonsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingTop: 0,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
     backgroundColor: Colors.anchorBlue,
     position: 'relative',
     bottom: 0,
@@ -566,6 +683,60 @@ const styles = StyleSheet.create({
     // Shadow removed as per request
   },
 
+  // FAB styles
+  fabWrapper: {
+    position: 'relative',
+    width: '100%',
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  leftFabContainer: {
+    left: 16,
+    right: 'auto',
+    alignItems: 'flex-start',
+  },
+  fabRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fab: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  fabDefaultPosition: {
+    bottom: 16,
+  },
+  androidFabWithKeyboard: {
+    bottom: 4, // This will be overridden by the dynamic style
+  },
+  cancelFab: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  addFab: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  saveFab: {
+    backgroundColor: Colors.alertCoral,
+  },
+  fabDisabled: {
+    opacity: 0.5,
+  },
   buttonGroup: {
     flexDirection: 'row',
     gap: 8,
