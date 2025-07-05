@@ -483,31 +483,22 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
               </>
             ) : (
               <View style={styles.guidedContainer}>
-                <Text style={styles.guidedTitle}>Reflection Prompts</Text>
                 <View style={styles.promptGrid}>
                   {GUIDED_PROMPTS.map((prompt, index) => (
-                    <TouchableOpacity
+                    <View
                       key={index}
-                      style={[
-                        styles.promptCard,
-                        selectedPrompt === prompt && styles.selectedPromptCard,
-                      ]}
-                      onPress={() => setSelectedPrompt(prompt)}
+                      style={styles.promptCard}
                     >
                       <Text style={styles.promptCardText}>{prompt}</Text>
-                    </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.reflectLabel}
+                        onPress={() => setSelectedPrompt(prompt)}
+                      >
+                        <Text style={styles.reflectLabelText}>REFLECT ON IT</Text>
+                      </TouchableOpacity>
+                    </View>
                   ))}
                 </View>
-                <TextInput
-                  style={[styles.entryInput, styles.entryContentInput, styles.entryGuidedInput, styles.transparentInput]}
-                  placeholder="Pour out your thoughts..."
-                  placeholderTextColor={Colors.hopeWhite}
-                  multiline
-                  value={newEntry.content}
-                  onChangeText={(text) => setNewEntry({ ...newEntry, content: text })}
-                  underlineColorAndroid="transparent"
-                  selectionColor={Colors.hopeWhite}
-                />
               </View>
             )}
           </ScrollView>
@@ -864,25 +855,52 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 20,
+    paddingHorizontal: 8,
   },
   promptCard: {
     width: '48%',
-    backgroundColor: Colors.lightGray,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    minHeight: 120,
-    justifyContent: 'center',
-  },
-  selectedPromptCard: {
-    backgroundColor: Colors.anchorBlueLight,
-    borderWidth: 2,
-    borderColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 16,
+    minHeight: 160,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    position: 'relative',
   },
   promptCardText: {
-    color: Colors.darkGray,
-    fontSize: 14,
-    lineHeight: 20,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'left',
+    marginBottom: 16,
+    fontWeight: '500',
+    letterSpacing: 0.15,
+    width: '100%',
+  },
+  reflectLabel: {
+    backgroundColor: 'transparent',
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    alignSelf: 'flex-start',
+    marginTop: 'auto',
+    minWidth: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reflectLabelText: {
+    color: Colors.hopeWhite,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    opacity: 0.9,
   },
   entryInput: {
     backgroundColor: 'transparent',
