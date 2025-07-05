@@ -187,24 +187,39 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
     </TouchableOpacity>
   );
 
+  // Helper function to check if two dates are the same day
+  const isSameDay = (date1: Date, date2: Date) => {
+    return (
+      date1.getFullYear() === date2.getFullYear() &&
+      date1.getMonth() === date2.getMonth() &&
+      date1.getDate() === date2.getDate()
+    );
+  };
+
   const renderEntries = () => {
-    if (entries.length === 0) {
-      return null; // Return nothing for empty state
+    // Filter entries to only show those from the current date
+    const filteredEntries = entries.filter(entry => {
+      const entryDate = new Date(entry.date);
+      return isSameDay(entryDate, currentDate);
+    });
+
+    if (filteredEntries.length === 0) {
+      return null; // Return nothing if no entries for the current date
     }
 
     return (
       <>
         <View style={styles.entriesContainer}>
-          {entries.slice(0, visibleCount).map((entry) => (
+          {filteredEntries.slice(0, visibleCount).map((entry) => (
             <React.Fragment key={entry.id}>
               {renderEntryCard(entry)}
             </React.Fragment>
           ))}
         </View>
-        {(entries.length > visibleCount || visibleCount > 3) && (
+        {(filteredEntries.length > visibleCount || visibleCount > 3) && (
           <View style={styles.paginationContainer}>
             <View style={styles.paginationButtonGroup}>
-              {entries.length > visibleCount && (
+              {filteredEntries.length > visibleCount && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showMoreButton]}
                   onPress={() => setVisibleCount(prev => Math.min(prev + 3, entries.length))}
@@ -399,13 +414,19 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
       return;
     }
 
+    // Determine the entry type based on whether we have a selected prompt
+    const entryType = selectedPrompt ? 'guided' : viewMode;
+    
+    // Use current date/time when creating the entry
+    const entryDate = new Date();
+
     const newReflection: ReflectionLogEntry = {
       id: Date.now().toString(),
       title: newEntry.title,
       content: newEntry.content,
-      date: currentDate,
-      type: viewMode,
-      ...(viewMode === 'guided' && { prompt: selectedPrompt }),
+      date: entryDate,  // Use the current date/time instead of currentDate prop
+      type: entryType,
+      ...(selectedPrompt && { prompt: selectedPrompt }),
       tags: newEntry.tags,
     };
 
@@ -430,6 +451,9 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
       styles={styles}
       titleInputRef={titleInputRef}
       dateString={formatDate()}
+      source={selectedPrompt ? 'guided' : 'freeform'}
+      initialTitle={selectedPrompt || newEntry.title}
+      lockTitle={!!selectedPrompt} // Lock title if there's a selected prompt
     />
   );
 
@@ -447,6 +471,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
       showAddButton={true}
       onAdd={() => {
         setNewEntry({ title: '', content: '', tags: [] });
+        setSelectedPrompt('');  // Clear any selected prompt
         setViewMode('free-form');
         setIsAdding(true);
       }}

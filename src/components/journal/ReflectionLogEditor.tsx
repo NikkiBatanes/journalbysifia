@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
@@ -20,6 +20,9 @@ interface ReflectionLogEditorProps {
   styles: any;
   titleInputRef: React.RefObject<TextInput | null>;
   dateString: string;
+  initialTitle?: string; // Prefilled title for the entry
+  lockTitle?: boolean;   // If true, title is read-only or hidden
+  source: 'freeform' | 'guided' | 'devotional' | 'playbook' | string; // Entry source
 }
 
 const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
@@ -37,8 +40,31 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   styles,
   titleInputRef,
   dateString,
-}) => (
-  <View style={styles.container}>
+  initialTitle = '',
+  lockTitle = false,
+  source,
+}) => {
+  const contentInputRef = useRef<TextInput>(null);
+
+  // Set initial title on mount if provided and focus content if title is locked
+  React.useEffect(() => {
+    if (initialTitle && newEntry.title !== initialTitle) {
+      setNewEntry({ ...newEntry, title: initialTitle });
+    }
+    
+    // If title is locked (meaning we came from a prompt), focus the content input
+    if (lockTitle && contentInputRef.current) {
+      // Small delay to ensure the input is rendered
+      const timer = setTimeout(() => {
+        contentInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialTitle, lockTitle]);
+
+  return (
+    <View style={styles.container}>
     <StatusBar hidden />
     <View style={styles.backgroundContainer} />
     <View style={styles.header}>
@@ -52,7 +78,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
             size={22}
             color={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
             fill={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
-            strokeWidth={viewMode === 'free-form' ? 0 : 1.5}
+            strokeWidth={1.5}
           />
         </TouchableOpacity>
         <TouchableOpacity
@@ -82,19 +108,24 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
         >
           {viewMode === 'free-form' ? (
             <>
+              {lockTitle ? (
+                <Text style={[styles.entryInput, styles.titleInput, styles.transparentInput, { color: Colors.hopeWhite, opacity: 0.9 }]}>{newEntry.title}</Text>
+              ) : (
+                <TextInput
+                  ref={titleInputRef}
+                  style={[styles.entryInput, styles.titleInput, styles.transparentInput]}
+                  placeholder="Name Your Reflection..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  value={newEntry.title}
+                  onChangeText={(text: string) => setNewEntry({ ...newEntry, title: text })}
+                  underlineColorAndroid="transparent"
+                  selectionColor={Colors.hopeWhite}
+                  multiline={true}
+                  autoFocus
+                />
+              )}
               <TextInput
-                ref={titleInputRef}
-                style={[styles.entryInput, styles.titleInput, styles.transparentInput]}
-                placeholder="Name Your Reflection..."
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                value={newEntry.title}
-                onChangeText={(text: string) => setNewEntry({ ...newEntry, title: text })}
-                underlineColorAndroid="transparent"
-                selectionColor={Colors.hopeWhite}
-                multiline={true}
-                autoFocus
-              />
-              <TextInput
+                ref={contentInputRef}
                 style={[styles.entryInput, styles.entryContentInput, styles.transparentInput]}
                 placeholder="Pour out your thoughts..."
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
@@ -116,7 +147,15 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                     <Text style={styles.promptCardText}>{prompt}</Text>
                     <TouchableOpacity
                       style={styles.reflectLabel}
-                      onPress={() => setSelectedPrompt(prompt)}
+                      onPress={() => {
+                        setSelectedPrompt(prompt);
+                        setNewEntry({ 
+                          title: prompt, 
+                          content: '',  // Reset content
+                          tags: []      // Reset tags
+                        });
+                        setViewMode('free-form');
+                      }}
                     >
                       <Text style={styles.reflectLabelText}>REFLECT ON IT</Text>
                     </TouchableOpacity>
@@ -201,6 +240,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       )}
     </KeyboardAvoidingView>
   </View>
-);
+  );
+};
 
 export default ReflectionLogEditor;
