@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Text } from 'react-native';
+import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';

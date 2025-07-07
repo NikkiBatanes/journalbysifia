@@ -27,6 +27,42 @@ interface ReflectionLogEditorProps {
 const fallbackStyles = {
   container: { flex: 1, backgroundColor: Colors.anchorBlue },
   backgroundContainer: {},
+  metadataContainer: {
+    marginTop: 32,
+    marginBottom: 24,
+    flexDirection: 'row',
+  },
+  verticalLine: {
+    width: 1,
+    backgroundColor: Colors.hopeWhite,
+    opacity: 0.3,
+    marginRight: 12,
+    borderRadius: 2,
+  },
+  fromText: {
+    fontSize: 8,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+    letterSpacing: 2,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    lineHeight: 12,
+  },
+  metadataText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+    lineHeight: 12,
+  },
+  lastMetadataText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+    lineHeight: 12,
+  },
   header: { padding: 16 },
   title: { fontSize: 18, fontWeight: 'bold', color: Colors.hopeWhite, marginBottom: 8 },
   modeToggle: { flexDirection: 'row', marginBottom: 16 },
@@ -100,8 +136,8 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   source = 'freeform',
   styles,
 }) => {
-  // Use fallbackStyles if styles is not provided
-  const s = styles || fallbackStyles;
+  // Merge styles prop with fallbackStyles
+  const s = { ...fallbackStyles, ...styles };
   // Internal state
   const [viewMode, setViewMode] = React.useState<'free-form' | 'guided'>(initialMode);
   const [newEntry, setNewEntry] = React.useState<{ title: string; content: string; tags: string[] }>(
@@ -195,7 +231,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
             setNewEntry({
               title: '',
               content: '',
-              tags: []
+              tags: [],
             });
             // Then update the mode and clear the prompt
             setViewMode('free-form');
@@ -280,68 +316,29 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 selectionColor={Colors.hopeWhite}
               />
               {(source === 'devotional') && (
-                <View style={{ marginTop: 32, marginBottom: 24, flexDirection: 'row' }}>
-                  <View style={{
-                    width: 1,
-                    backgroundColor: Colors.hopeWhite,
-                    opacity: 0.3,
-                    marginRight: 12,
-                    borderRadius: 2,
-                  }} />
+                <View style={s.metadataContainer}>
+                  <View style={s.verticalLine} />
                   <View>
-                  <Text style={{ 
-                    fontSize: 8, 
-                    color: Colors.hopeWhite, 
-                    opacity: 0.6, 
-                    marginBottom: 4, 
-                    letterSpacing: 2,
-                    fontWeight: '500',
-                    textTransform: 'uppercase',
-                    lineHeight: 12
-                  }}>
+                  <Text style={s.fromText}>
                     FROM
                   </Text>
                   {totalDays && (
-                    <Text style={{ 
-                      fontSize: 12, 
-                      color: Colors.hopeWhite, 
-                      opacity: 0.6,
-                      marginBottom: 4,
-                      lineHeight: 12
-                    }}>
+                    <Text style={s.metadataText}>
                       {totalDays}-day {totalDays > 1 ? 'Devotional Series' : 'Devotional'}
                     </Text>
                   )}
                   {devotionalTitle && (
-                    <Text style={{ 
-                      fontSize: 12, 
-                      color: Colors.hopeWhite, 
-                      opacity: 0.6,
-                      marginBottom: 4,
-                      lineHeight: 12
-                    }}>
+                    <Text style={s.metadataText}>
                       {devotionalTitle}
                     </Text>
                   )}
                   {dayNumber && dayTitle && totalDays !== 1 && (
-                    <Text style={{ 
-                      fontSize: 12, 
-                      color: Colors.hopeWhite, 
-                      opacity: 0.6,
-                      marginBottom: 4,
-                      lineHeight: 12
-                    }}>
+                    <Text style={s.metadataText}>
                       Day {dayNumber}: {dayTitle}
                     </Text>
                   )}
                   {questionNumber && (
-                    <Text style={{ 
-                      fontSize: 12, 
-                      color: Colors.hopeWhite, 
-                      opacity: 0.6,
-                      marginBottom: 4,
-                      lineHeight: 12
-                    }}>
+                    <Text style={s.metadataText}>
                       Question to Ponder #{questionNumber}
                     </Text>
                   )}
