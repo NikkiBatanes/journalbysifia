@@ -30,6 +30,8 @@ type DevotionalDetailScreenProps = {
   route: RouteProp<RootStackParamList, 'DevotionalDetail'>;
 };
 
+import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
+
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
   const { devotionalId } = route.params;
   const { devotionals, markDayComplete, submitDevotionalRating } = useDevotional();
@@ -39,6 +41,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   // Store the index of the completed day for modal display
   const [completedDayIndex, setCompletedDayIndex] = useState<number | null>(null);
+  // Reflection modal state
+  const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
+  const [selectedReflectionQuestion, setSelectedReflectionQuestion] = useState<string | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showFAB, setShowFAB] = useState(false);
@@ -496,14 +501,22 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             >
               {day?.reflectionQuestions?.length ? (
                 day.reflectionQuestions.map((question: any, idx: number) => (
-                  <View key={question.id || idx} style={styles.questionCardWrapper}>
+                  <TouchableOpacity
+                    key={question.id || idx}
+                    style={styles.questionCardWrapper}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setSelectedReflectionQuestion(question.text);
+                      setReflectionModalVisible(true);
+                    }}
+                  >
                     <View style={styles.questionCardContainer}>
                       <Text style={styles.questionCardNumber}>{idx + 1}</Text>
                       <Text style={styles.questionCardText}>
                         {question.text || 'Reflection question'}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))
               ) : (
                 <Text style={styles.questionCardText}>No questions for today.</Text>
@@ -531,6 +544,21 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         <View style={styles.swipeIndicatorContainer}>
           <View style={styles.swipeIndicator} />
         </View>
+
+        {/* Reflection Modal for Questions to Ponder */}
+        <DevotionalDetailReflectionModal
+          visible={reflectionModalVisible}
+          question={selectedReflectionQuestion || ''}
+          onSave={(entry) => {
+            // The modal will be closed by the success UI's Done button
+            // or when the user manually dismisses it
+            console.log('Reflection saved:', entry);
+          }}
+          onCancel={() => {
+            setReflectionModalVisible(false);
+            setSelectedReflectionQuestion(null);
+          }}
+        />
       </View>
       </SafeAreaView>
     </GestureHandlerRootView>

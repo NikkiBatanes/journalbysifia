@@ -16,6 +16,7 @@ interface ReflectionLogEntry {
   content: string;
   date: Date;
   type: ViewMode;
+  source?: 'devotional';
   prompt?: string;
   tags?: string[];
   location?: string;
@@ -139,12 +140,29 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
       key={entry.id}
       style={[
         styles.entryCard,
-        entry.type === 'guided' ? styles.guidedEntry : styles.freeFormEntry,
+        entry.source === 'devotional' 
+          ? styles.devotionalEntry 
+          : entry.type === 'guided' 
+            ? styles.guidedEntry 
+            : styles.freeFormEntry,
       ]}
       onPress={() => handleEntryPress(entry)}
       activeOpacity={0.8}
     >
-      {entry.type === 'guided' && entry.prompt ? (
+      {entry.source === 'devotional' ? (
+        <View style={styles.guidedPromptRow}>
+          <View style={styles.devotionalPromptContainer}>
+            <Text style={styles.devotionalPromptText}>DEVOTIONAL</Text>
+          </View>
+          <Text style={styles.timeText}>
+            {new Date(entry.date).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })}
+          </Text>
+        </View>
+      ) : entry.type === 'guided' && entry.prompt ? (
         <View style={styles.guidedPromptRow}>
           <View style={styles.guidedPromptContainer}>
             <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
@@ -437,23 +455,25 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
 
   const renderEntryForm = () => (
     <ReflectionLogEditor
-      viewMode={viewMode}
-      setViewMode={setViewMode}
-      newEntry={newEntry}
-      setNewEntry={setNewEntry}
-      _selectedPrompt={selectedPrompt}
-      setSelectedPrompt={setSelectedPrompt}
-      handleSaveEntry={handleSaveEntry}
-      setIsAdding={setIsAdding}
-      showAddMenu={showAddMenu}
-      setShowAddMenu={setShowAddMenu}
-      keyboardHeight={keyboardHeight}
-      styles={styles}
-      titleInputRef={titleInputRef}
+      onSave={entry => {
+        // Ensure type is 'free-form' or 'guided' only
+        const allowedTypes: ViewMode[] = ['free-form', 'guided'];
+        const safeType: ViewMode = allowedTypes.includes(entry.type as ViewMode)
+          ? (entry.type as ViewMode)
+          : 'free-form';
+        const entryWithId: ReflectionLogEntry = { ...entry, id: Date.now().toString(), type: safeType };
+        _setEntries(prevEntries => [...prevEntries, entryWithId]);
+        setIsAdding(false);
+      }}
+      onCancel={() => setIsAdding(false)}
+      initialEntry={newEntry}
+      initialMode={selectedPrompt ? 'guided' : 'free-form'}
+      initialPrompt={selectedPrompt || ''}
       dateString={formatDate()}
-      source={selectedPrompt ? 'guided' : 'freeform'}
       initialTitle={selectedPrompt || newEntry.title}
-      lockTitle={!!selectedPrompt} // Lock title if there's a selected prompt
+      lockTitle={!!selectedPrompt}
+      source={selectedPrompt ? 'guided' : 'freeform'}
+      styles={styles}
     />
   );
 
@@ -495,7 +515,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
   );
 };
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
@@ -881,6 +901,27 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     alignSelf: 'center',
     marginBottom: 16,
+  },
+
+  devotionalEntry: {
+    backgroundColor: 'rgba(245, 166, 35, 0.05)',
+    borderColor: 'rgba(245, 166, 35, 0.15)',
+    borderWidth: 0.5,
+  },
+  devotionalPromptContainer: {
+    backgroundColor: 'rgba(245, 166, 35, 0.1)', // 10% opacity faithGold
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  devotionalPromptText: {
+    fontSize: 8,
+    color: Colors.faithGold,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
   modalEntryCard: {
     padding: 16,
