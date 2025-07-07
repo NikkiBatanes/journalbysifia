@@ -33,7 +33,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   onSave,
   onCancel,
 }) => {
-  const [isSaving, setIsSaving] = useState(false);
+  const [_isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [existingEntries, setExistingEntries] = useState<ReflectionLogEntry[]>([]);
 
@@ -70,7 +70,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
       // Create updated entries array with new entry at the beginning
       const updatedEntries = [newEntry, ...existingEntries];
-      
+
       // Save to AsyncStorage
       await AsyncStorage.setItem(
         REFLECTION_LOG_KEY,
@@ -79,7 +79,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
       // Update local state
       setExistingEntries(updatedEntries);
-      
+
       setShowSuccessModal(true);
       return newEntry;
     } catch (error) {
@@ -98,7 +98,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         prompt: question,
         tags: entry.tags || [],
       });
-      
+
       // Call the original onSave if provided
       if (onSave) {
         onSave(entry);
@@ -153,7 +153,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
               return year === new Date().getFullYear() ? todayString : todayStringWithYear;
             })()}
           />
-          
+
           <SuccessModal
             visible={showSuccessModal}
             title="Ponder Saved"

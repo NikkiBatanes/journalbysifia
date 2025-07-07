@@ -33,7 +33,7 @@ export const Colors = {
   warning: '#FFC107',
   error: '#F44336',
   info: '#2196F3',
-  
+
   // Devotional
   devotionalPurple: '#6A0DAD',
 } as const;

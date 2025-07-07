@@ -40,6 +40,13 @@ const fallbackStyles = {
   promptCardText: { color: Colors.hopeWhite, fontSize: 16 },
   reflectLabel: { marginTop: 8, backgroundColor: Colors.growthGreen, borderRadius: 8, padding: 6, alignItems: 'center' },
   reflectLabelText: { color: Colors.hopeWhite, fontWeight: 'bold' },
+  lockedTitleText: {
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+    paddingVertical: 8,
+    fontWeight: '600',
+    fontSize: 20,
+  },
   fabWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   fabContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   leftFabContainer: {},
@@ -93,6 +100,9 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       tags: initialEntry.tags || [],
     }
   );
+
+  // Check if we're editing an existing entry (has content)
+  const isEditing = !!initialEntry.content;
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>(initialPrompt || initialEntry.prompt || '');
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [keyboardHeight, setKeyboardHeight] = React.useState(0);
@@ -101,19 +111,27 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
 
-  // Set initial title on mount if provided and focus content if title is locked
+  // Debug log for lockTitle and initialTitle
+  console.log('lockTitle:', lockTitle, 'initialTitle:', initialTitle, 'currentTitle:', newEntry.title);
+
+  // Update title when initialTitle changes and focus content if title is locked
   React.useEffect(() => {
-    if (initialTitle && newEntry.title !== initialTitle) {
-      setNewEntry({ ...newEntry, title: initialTitle });
+    console.log('initialTitle changed:', initialTitle);
+    if (initialTitle && (newEntry.title !== initialTitle || !newEntry.title)) {
+      console.log('Updating title to:', initialTitle);
+      setNewEntry(prev => ({ ...prev, title: initialTitle }));
     }
+  }, [initialTitle, newEntry.title]);
+
+  // Focus content field when in locked title mode
+  React.useEffect(() => {
     if (lockTitle && contentInputRef.current) {
       const timer = setTimeout(() => {
         contentInputRef.current?.focus();
       }, 100);
       return () => clearTimeout(timer);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialTitle, lockTitle]);
+  }, [lockTitle]);
 
   // Keyboard listeners for FAB
   React.useEffect(() => {
@@ -131,7 +149,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 
   // Save handler
   const handleSaveEntry = () => {
-    if (!newEntry.title.trim() || !newEntry.content.trim()) return;
+    if (!newEntry.title.trim() || !newEntry.content.trim()) {return;}
     const entryType = selectedPrompt ? 'guided' : source || 'freeform';
     const entry = {
       ...newEntry,
@@ -169,16 +187,18 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
             strokeWidth={1.5}
           />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={s.modeButton}
-          onPress={() => setViewMode('guided')}
-        >
-          <Ionicons
-            name="heart"
-            size={24}
-            color={viewMode === 'guided' ? Colors.alertCoral : Colors.inactiveIcon}
-          />
-        </TouchableOpacity>
+        {!isEditing && (
+          <TouchableOpacity
+            style={s.modeButton}
+            onPress={() => setViewMode('guided')}
+          >
+            <Ionicons
+              name="heart"
+              size={24}
+              color={viewMode === 'guided' ? Colors.alertCoral : Colors.inactiveIcon}
+            />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
 
@@ -196,8 +216,17 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
         >
           {viewMode === 'free-form' ? (
             <>
-              {lockTitle ? (
-                <Text style={[s.entryInput, s.titleInput, s.transparentInput, { color: Colors.hopeWhite, opacity: 0.9 }]}>{newEntry.title}</Text>
+              {lockTitle || (source && source !== 'freeform') ? (
+                <Text
+                  style={[
+                    s.entryInput,
+                    s.titleInput,
+                    s.transparentInput,
+                    s.lockedTitleText,
+                  ]}
+                >
+                  {initialTitle || newEntry.title}
+                </Text>
               ) : (
                 <TextInput
                   ref={titleInputRef}
@@ -237,10 +266,10 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                       style={s.reflectLabel}
                       onPress={() => {
                         setSelectedPrompt(prompt);
-                        setNewEntry({ 
-                          title: prompt, 
+                        setNewEntry({
+                          title: prompt,
                           content: '',  // Reset content
-                          tags: []      // Reset tags
+                          tags: [],      // Reset tags
                         });
                         setViewMode('free-form');
                       }}

@@ -29,7 +29,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
       // Reset animations
       fadeAnim.setValue(0);
       scaleAnim.setValue(0.8);
-      
+
       // Start animations
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -46,7 +46,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
     }
   }, [visible, fadeAnim, scaleAnim, animationDuration]);
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <Modal
@@ -56,7 +56,7 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
       onRequestClose={onDismiss}
     >
       <View style={styles.overlay}>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.modalContainer,
             {
@@ -68,19 +68,19 @@ const SuccessModal: React.FC<SuccessModalProps> = ({
           <View style={styles.checkmarkCircle}>
             <Text style={styles.checkmark}>✓</Text>
           </View>
-          
+
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
-          
+
           <View style={styles.buttonContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.button, styles.editButton]}
               onPress={onEdit}
               activeOpacity={0.8}
             >
               <Text style={[styles.buttonText, styles.editButtonText]}>Edit</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.button, styles.doneButton]}
               onPress={onDismiss}
               activeOpacity={0.8}

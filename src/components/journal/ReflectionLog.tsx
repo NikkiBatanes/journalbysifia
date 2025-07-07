@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, Platform, Keyboard, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
@@ -45,14 +45,12 @@ interface ReflectionLogProps {
 }
 
 export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => {
-  const [viewMode, setViewMode] = useState<ViewMode>('free-form');
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [_viewMode, setViewMode] = useState<ViewMode>('free-form');
   const [visibleCount, setVisibleCount] = useState<number>(3);
   const [entries, _setEntries] = useState<ReflectionLogEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
-  const [selectedPrompt, setSelectedPrompt] = useState(GUIDED_PROMPTS[0]);
+  const [selectedPrompt, setSelectedPrompt] = useState('');
   const [newEntry, setNewEntry] = useState<{ title: string; content: string; tags: string[] }>({
     title: '',
     content: '',
@@ -61,7 +59,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
   const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
 
-  // Removed unused functions: removeEntry, formatDate, startNewEntry, handleAddTag, handleSaveEntry, removeTag
+  // Removed unused functions: removeEntry, formatDate, startNewEntry, handleAddTag, removeTag, handleSaveEntry
 
   const renderPromptPicker = () => (
     <Modal
@@ -88,6 +86,11 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
                 ]}
                 onPress={() => {
                   setSelectedPrompt(prompt);
+                  setNewEntry(prev => ({
+                    ...prev,
+                    title: prompt,
+                    type: 'guided',
+                  }));
                   setShowPromptPicker(false);
                 }}
               >
@@ -131,8 +134,16 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
 
   // Render entries in a list
   const handleEntryPress = (entry: ReflectionLogEntry) => {
+    // Set the selected entry for viewing/editing
     setSelectedEntry(entry);
-    setShowEntryModal(true);
+    // Open the edit view with the selected entry's data in free-form mode
+    setIsAdding(true);
+    setViewMode('free-form'); // Always open in free-form mode
+    setNewEntry({
+      title: entry.title || '',
+      content: entry.content,
+      tags: entry.tags || [],
+    });
   };
 
   const renderEntryCard = (entry: ReflectionLogEntry) => (
@@ -140,10 +151,10 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
       key={entry.id}
       style={[
         styles.entryCard,
-        entry.source === 'devotional' 
-          ? styles.devotionalEntry 
-          : entry.type === 'guided' 
-            ? styles.guidedEntry 
+        entry.source === 'devotional'
+          ? styles.devotionalEntry
+          : entry.type === 'guided'
+            ? styles.guidedEntry
             : styles.freeFormEntry,
       ]}
       onPress={() => handleEntryPress(entry)}
@@ -382,31 +393,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
         titleInputRef.current?.focus();
       }, 100);
 
-      let keyboardDidShowListener: any;
-      let keyboardDidHideListener: any;
-
-      if (Platform.OS === 'android') {
-        // On Android, we'll use the keyboard height to position FABs
-        keyboardDidShowListener = Keyboard.addListener(
-          'keyboardDidShow',
-          (e) => {
-            // Only update if the keyboard height actually changed
-            setKeyboardHeight(prev => e.endCoordinates.height === prev ? prev : e.endCoordinates.height);
-          }
-        );
-
-        keyboardDidHideListener = Keyboard.addListener(
-          'keyboardDidHide',
-          () => {
-            setKeyboardHeight(0);
-          }
-        );
-      }
-
       return () => {
         clearTimeout(timer);
-        keyboardDidShowListener?.remove();
-        keyboardDidHideListener?.remove();
       };
     }
   }, [isAdding]);
@@ -427,55 +415,66 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
     loadEntries();
   }, []);
 
-  const handleSaveEntry = () => {
-    if (!newEntry.content.trim()) {
-      return;
-    }
+  const renderEntryForm = () => {
+    const isGuided = !!selectedPrompt;
+    const entryTitle = selectedPrompt || newEntry.title;
+    const editorKey = selectedPrompt || 'free';
 
-    // Determine the entry type based on whether we have a selected prompt
-    const entryType = selectedPrompt ? 'guided' : viewMode;
-    
-    // Use current date/time when creating the entry
-    const entryDate = new Date();
+    return (
+      <ReflectionLogEditor
+        key={editorKey}
+        onSave={entry => {
+          if (newEntry.content) {
+            // Update existing entry
+            _setEntries(prevEntries =>
+              prevEntries.map(e =>
+                e.content === newEntry.content
+                  ? {
+                      ...entry,
+                      id: e.id,
+                      date: e.date,
+                      type: e.type,
+                      source: e.source,  // Preserve original source
+                      prompt: e.prompt,   // Preserve original prompt
+                    }
+                  : e
+              )
+            );
+          } else {
+            // Create new entry
+            const allowedTypes: ViewMode[] = ['free-form', 'guided'];
+            const safeType: ViewMode = allowedTypes.includes(entry.type as ViewMode)
+              ? (entry.type as ViewMode)
+              : 'free-form';
 
-    const newReflection: ReflectionLogEntry = {
-      id: Date.now().toString(),
-      title: newEntry.title,
-      content: newEntry.content,
-      date: entryDate,  // Use the current date/time instead of currentDate prop
-      type: entryType,
-      ...(selectedPrompt && { prompt: selectedPrompt }),
-      tags: newEntry.tags,
-    };
-
-    _setEntries(prevEntries => [...prevEntries, newReflection]);
-    setNewEntry({ title: '', content: '', tags: [] });
-    setIsAdding(false);
+            const entryWithId: ReflectionLogEntry = {
+              ...entry,
+              id: Date.now().toString(),
+              type: safeType,
+              // Only set source if it's a devotional, otherwise leave undefined
+              source: undefined,
+              ...(selectedPrompt && { prompt: selectedPrompt }),
+            };
+            _setEntries(prevEntries => [entryWithId, ...prevEntries]);
+          }
+          setSelectedPrompt('');
+          setIsAdding(false);
+        }}
+        onCancel={() => {
+          setSelectedPrompt('');
+          setIsAdding(false);
+        }}
+        initialEntry={newEntry}
+        initialMode={isGuided ? 'guided' : 'free-form'}
+        initialPrompt={selectedPrompt || ''}
+        dateString={formatDate()}
+        initialTitle={entryTitle}
+        lockTitle={!!selectedPrompt}
+        source={selectedPrompt ? 'guided' : 'freeform'}
+        styles={styles}
+      />
+    );
   };
-
-  const renderEntryForm = () => (
-    <ReflectionLogEditor
-      onSave={entry => {
-        // Ensure type is 'free-form' or 'guided' only
-        const allowedTypes: ViewMode[] = ['free-form', 'guided'];
-        const safeType: ViewMode = allowedTypes.includes(entry.type as ViewMode)
-          ? (entry.type as ViewMode)
-          : 'free-form';
-        const entryWithId: ReflectionLogEntry = { ...entry, id: Date.now().toString(), type: safeType };
-        _setEntries(prevEntries => [...prevEntries, entryWithId]);
-        setIsAdding(false);
-      }}
-      onCancel={() => setIsAdding(false)}
-      initialEntry={newEntry}
-      initialMode={selectedPrompt ? 'guided' : 'free-form'}
-      initialPrompt={selectedPrompt || ''}
-      dateString={formatDate()}
-      initialTitle={selectedPrompt || newEntry.title}
-      lockTitle={!!selectedPrompt}
-      source={selectedPrompt ? 'guided' : 'freeform'}
-      styles={styles}
-    />
-  );
 
   return (
     <JournalCard
