@@ -176,18 +176,34 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     <View style={s.header}>
       <Text style={s.title}>{dateString}</Text>
       <View style={s.modeToggle}>
+        {/* Always show pencil icon for free-form mode */}
         <TouchableOpacity
           style={s.modeButton}
-          onPress={() => setViewMode('free-form')}
+          onPress={() => {
+            // First reset the entry to a clean state
+            setNewEntry({
+              title: '',
+              content: '',
+              tags: []
+            });
+            // Then update the mode and clear the prompt
+            setViewMode('free-form');
+            setSelectedPrompt('');
+            // Force focus to the title input
+            setTimeout(() => {
+              titleInputRef.current?.focus();
+            }, 100);
+          }}
         >
           <Pencil
             size={22}
-            color={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
-            fill={viewMode === 'free-form' ? Colors.alertCoral : Colors.inactiveIcon}
+            color={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.inactiveIcon}
+            fill={viewMode === 'free-form' && !selectedPrompt ? Colors.alertCoral : Colors.inactiveIcon}
             strokeWidth={1.5}
           />
         </TouchableOpacity>
-        {!isEditing && (
+        {/* Hide guided prompt icon for devotional source */}
+        {!isEditing && source !== 'devotional' && (
           <TouchableOpacity
             style={s.modeButton}
             onPress={() => setViewMode('guided')}
@@ -195,7 +211,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
             <Ionicons
               name="heart"
               size={24}
-              color={viewMode === 'guided' ? Colors.alertCoral : Colors.inactiveIcon}
+              color={selectedPrompt || viewMode === 'guided' ? Colors.alertCoral : Colors.inactiveIcon}
             />
           </TouchableOpacity>
         )}
@@ -265,13 +281,19 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                     <TouchableOpacity
                       style={s.reflectLabel}
                       onPress={() => {
-                        setSelectedPrompt(prompt);
+                        // First clear any existing content
                         setNewEntry({
                           title: prompt,
-                          content: '',  // Reset content
-                          tags: [],      // Reset tags
+                          content: '',
+                          tags: [],
                         });
+                        // Then update the prompt and view mode
+                        setSelectedPrompt(prompt);
                         setViewMode('free-form');
+                        // Focus the content input
+                        setTimeout(() => {
+                          contentInputRef.current?.focus();
+                        }, 100);
                       }}
                     >
                       <Text style={s.reflectLabelText}>REFLECT ON IT</Text>
