@@ -8,6 +8,11 @@ import { GUIDED_PROMPTS } from './ReflectionLog';
 interface ReflectionLogEditorProps {
   onSave: (entry: { title: string; content: string; tags: string[]; date: Date; type: string; prompt?: string }) => void;
   onCancel: () => void;
+  devotionalTitle?: string;
+  totalDays?: number;
+  dayNumber?: number;
+  dayTitle?: string;
+  questionNumber?: number;
   initialEntry?: { title?: string; content?: string; tags?: string[]; type?: string; prompt?: string };
   initialMode?: 'free-form' | 'guided';
   initialPrompt?: string;
@@ -75,11 +80,17 @@ const fallbackStyles = {
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
+  // Metadata styles moved to inline styles to prevent override
 };
 
 const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   onSave,
   onCancel,
+  devotionalTitle,
+  totalDays,
+  dayNumber,
+  dayTitle,
+  questionNumber,
   initialEntry = {},
   initialMode = 'free-form',
   initialPrompt = '',
@@ -268,6 +279,75 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 underlineColorAndroid="transparent"
                 selectionColor={Colors.hopeWhite}
               />
+              {(source === 'devotional') && (
+                <View style={{ marginTop: 32, marginBottom: 24, flexDirection: 'row' }}>
+                  <View style={{
+                    width: 1,
+                    backgroundColor: Colors.hopeWhite,
+                    opacity: 0.3,
+                    marginRight: 12,
+                    borderRadius: 2,
+                  }} />
+                  <View>
+                  <Text style={{ 
+                    fontSize: 8, 
+                    color: Colors.hopeWhite, 
+                    opacity: 0.6, 
+                    marginBottom: 4, 
+                    letterSpacing: 2,
+                    fontWeight: '500',
+                    textTransform: 'uppercase',
+                    lineHeight: 12
+                  }}>
+                    FROM
+                  </Text>
+                  {totalDays && (
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: Colors.hopeWhite, 
+                      opacity: 0.6,
+                      marginBottom: 4,
+                      lineHeight: 12
+                    }}>
+                      {totalDays}-day {totalDays > 1 ? 'Devotional Series' : 'Devotional'}
+                    </Text>
+                  )}
+                  {devotionalTitle && (
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: Colors.hopeWhite, 
+                      opacity: 0.6,
+                      marginBottom: 4,
+                      lineHeight: 12
+                    }}>
+                      {devotionalTitle}
+                    </Text>
+                  )}
+                  {dayNumber && dayTitle && totalDays !== 1 && (
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: Colors.hopeWhite, 
+                      opacity: 0.6,
+                      marginBottom: 4,
+                      lineHeight: 12
+                    }}>
+                      Day {dayNumber}: {dayTitle}
+                    </Text>
+                  )}
+                  {questionNumber && (
+                    <Text style={{ 
+                      fontSize: 12, 
+                      color: Colors.hopeWhite, 
+                      opacity: 0.6,
+                      marginBottom: 4,
+                      lineHeight: 12
+                    }}>
+                      Question to Ponder #{questionNumber}
+                    </Text>
+                  )}
+                  </View>
+                </View>
+              )}
             </>
           ) : (
             <View style={s.guidedContainer}>

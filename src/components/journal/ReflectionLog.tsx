@@ -38,6 +38,7 @@ export const GUIDED_PROMPTS = [
   'How can I pursue excellence in my work to honor God?',
   "Am I encouraging others' faith or well-being this week?",
   "What's one way I can grow in a practical skill to reflect God's excellence?",
+  "Am I allowing comparison to steal my joy and gratitude for what God has given me?",
 ];
 
 interface ReflectionLogProps {
@@ -469,8 +470,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
         initialPrompt={selectedPrompt || ''}
         dateString={formatDate()}
         initialTitle={entryTitle}
-        lockTitle={!!selectedPrompt}
-        source={selectedPrompt ? 'guided' : 'freeform'}
+        lockTitle={isGuided}
+        source={isGuided ? 'guided' : 'freeform'}
         styles={styles}
       />
     );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Text } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
@@ -23,6 +23,11 @@ const REFLECTION_LOG_KEY = 'reflectionEntries';
 interface DevotionalDetailReflectionModalProps {
   visible: boolean;
   question: string;
+  dayNumber?: number;
+  dayTitle?: string;
+  devotionalTitle?: string;
+  totalDays?: number;
+  questionNumber?: number;
   onSave: (entry: any) => void;
   onCancel: () => void;
 }
@@ -30,6 +35,11 @@ interface DevotionalDetailReflectionModalProps {
 const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalProps> = ({
   visible,
   question,
+  dayNumber,
+  dayTitle,
+  devotionalTitle,
+  totalDays,
+  questionNumber,
   onSave,
   onCancel,
 }) => {
@@ -152,6 +162,11 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
               const todayStringWithYear = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
               return year === new Date().getFullYear() ? todayString : todayStringWithYear;
             })()}
+            devotionalTitle={devotionalTitle}
+            totalDays={totalDays}
+            dayNumber={dayNumber}
+            dayTitle={dayTitle}
+            questionNumber={questionNumber}
           />
 
           <SuccessModal
@@ -168,6 +183,37 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 };
 
 const styles = StyleSheet.create({
+  devotionalFooter: {
+    padding: 16,
+    backgroundColor: Colors.anchorBlue,
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+  },
+  devotionalMetaContainer: {
+    marginTop: 8,
+  },
+  devotionalMeta: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
+    marginBottom: 4,
+  },
+  devotionalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+  },
+  dayInfo: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  questionMeta: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    fontWeight: '600',
+  },
   centeredView: {
     flex: 1,
     justifyContent: 'center',

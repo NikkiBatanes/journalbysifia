@@ -549,6 +549,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         <DevotionalDetailReflectionModal
           visible={reflectionModalVisible}
           question={selectedReflectionQuestion || ''}
+          devotionalTitle={devotional?.title}
+          totalDays={devotional?.totalDays}
+          dayNumber={devotional?.currentDay}
+          dayTitle={devotional?.days[devotional.currentDay - 1]?.title}
+          questionNumber={selectedReflectionQuestion ? 
+            (devotional?.days[devotional.currentDay - 1]?.reflectionQuestions?.findIndex(q => q.text === selectedReflectionQuestion) || 0) + 1 
+            : undefined}
           onSave={(entry) => {
             // The modal will be closed by the success UI's Done button
             // or when the user manually dismisses it
