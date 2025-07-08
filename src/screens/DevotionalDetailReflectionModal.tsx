@@ -75,6 +75,12 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         type: 'guided',  // Always set to 'guided' for devotional reflections
         displayType: 'Guided Prompt',
         source: 'devotional',
+        // Include devotional metadata
+        ...(devotionalTitle && { devotionalTitle }),
+        ...(dayNumber !== undefined && { dayNumber }),
+        ...(dayTitle && { dayTitle }),
+        ...(totalDays !== undefined && { totalDays }),
+        ...(questionNumber !== undefined && { questionNumber }),
       };
 
       // Create updated entries array with new entry at the beginning
@@ -159,6 +165,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
             onSave={handleSave}
             onCancel={onCancel}
             source="devotional"
+            initialMode="free-form"
             styles={reflectionLogStyles}
             dateString={(function() {
               const now = new Date();

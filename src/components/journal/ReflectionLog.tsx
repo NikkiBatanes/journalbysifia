@@ -19,8 +19,16 @@ interface ReflectionLogEntry {
   type: ViewMode;
   source?: 'devotional';
   prompt?: string;
-  tags?: string[];
+  tags: string[];
   location?: string;
+  // Devotional metadata
+  devotionalTitle?: string;
+  dayNumber?: number;
+  dayTitle?: string;
+  totalDays?: number;
+  questionNumber?: number;
+  // Add index signature to allow dynamic property access
+  [key: string]: any;
 }
 
 export const GUIDED_PROMPTS = [
@@ -55,10 +63,19 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
   const [isAdding, setIsAdding] = useState(false);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState('');
-  const [newEntry, setNewEntry] = useState<{ title: string; content: string; tags: string[] }>({
+  const [newEntry, setNewEntry] = useState<ReflectionLogEntry & {
+    devotionalTitle?: string;
+    dayNumber?: number;
+    dayTitle?: string;
+    totalDays?: number;
+    questionNumber?: number;
+  }>({
+    id: '',
     title: '',
     content: '',
     tags: [],
+    date: new Date(),
+    type: 'free-form',
   });
   const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
@@ -173,9 +190,19 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
     setIsAdding(true);
     setViewMode('free-form'); // Always open in free-form mode
     setNewEntry({
+      id: entry.id,
       title: entry.title || '',
       content: entry.content,
+      date: entry.date,
+      type: entry.type,
+      source: entry.source,
+      prompt: entry.prompt,
       tags: entry.tags || [],
+      devotionalTitle: (entry as any).devotionalTitle,
+      dayNumber: (entry as any).dayNumber,
+      dayTitle: (entry as any).dayTitle,
+      totalDays: (entry as any).totalDays,
+      questionNumber: (entry as any).questionNumber,
     });
   };
 
@@ -431,6 +458,11 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
     type?: ViewMode;
     prompt?: string;
     source?: 'devotional' | string;
+    devotionalTitle?: string;
+    dayNumber?: number;
+    dayTitle?: string;
+    totalDays?: number;
+    questionNumber?: number;
   }) => {
     try {
       const newEntryData: ReflectionLogEntry = {
@@ -439,15 +471,35 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
         content: entryData.content,
         date: new Date(),
         type: entryData.type || (selectedPrompt ? 'guided' : 'free-form') as ViewMode,
-        source: (entryData.source === 'devotional' || selectedPrompt) ? 'devotional' as const : undefined,
+        source: entryData.source === 'devotional' ? 'devotional' as const : undefined,
         prompt: entryData.prompt || selectedPrompt || undefined,
         tags: entryData.tags || [],
+        // Include devotional metadata if available
+        ...(entryData.devotionalTitle && { devotionalTitle: entryData.devotionalTitle }),
+        ...(entryData.dayNumber !== undefined && { dayNumber: entryData.dayNumber }),
+        ...(entryData.dayTitle && { dayTitle: entryData.dayTitle }),
+        ...(entryData.totalDays !== undefined && { totalDays: entryData.totalDays }),
+        ...(entryData.questionNumber !== undefined && { questionNumber: entryData.questionNumber }),
       };
 
       const updatedEntries = [newEntryData, ...entries];
       await AsyncStorage.setItem('reflectionEntries', JSON.stringify(updatedEntries));
       _setEntries(updatedEntries);
-      setNewEntry({ title: '', content: '', tags: [] });
+      setNewEntry({
+        id: '',
+        title: '',
+        content: '',
+        date: new Date(),
+        type: 'free-form',
+        tags: [],
+        source: undefined,
+        prompt: undefined,
+        devotionalTitle: undefined,
+        dayNumber: undefined,
+        dayTitle: undefined,
+        totalDays: undefined,
+        questionNumber: undefined
+      });
       setSelectedPrompt('');
       setIsAdding(false);
 
@@ -479,23 +531,40 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
     const entryTitle = selectedPrompt || newEntry.title;
     const editorKey = selectedPrompt || 'free';
 
+    // Check if this is a devotional entry being edited
+    const isDevotionalEntry = newEntry.source === 'devotional';
+    
+    // Create a clean entry object for the editor
+    const cleanEntry = {
+      id: newEntry.id,
+      title: newEntry.title,
+      content: newEntry.content,
+      tags: newEntry.tags || [],
+      date: newEntry.date,
+      type: newEntry.type,
+      source: newEntry.source,
+      prompt: newEntry.prompt,
+    };
+    
+    // Extract devotional metadata if it exists
+    const devotionalMetadata = isDevotionalEntry ? {
+      devotionalTitle: newEntry.devotionalTitle,
+      dayNumber: newEntry.dayNumber,
+      dayTitle: newEntry.dayTitle,
+      totalDays: newEntry.totalDays,
+      questionNumber: newEntry.questionNumber
+    } : {};
+
     return (
       <ReflectionLogEditor
         key={editorKey}
-        onSave={async (entryData: {
-          title: string;
-          content: string;
-          tags: string[];
-          type?: ViewMode;
-          prompt?: string;
-          source?: 'devotional' | string;
-        }) => {
-          if (newEntry.content) {
+        onSave={async (entryData: any) => {
+          if (newEntry.id) {
             // Update existing entry
             try {
               const updatedEntries = entries.map(e => {
-                if (e.content === newEntry.content) {
-                  const updatedEntry = {
+                if (e.id === newEntry.id) {
+                  const updatedEntry: ReflectionLogEntry = {
                     ...e,
                     title: entryData.title,
                     content: entryData.content,
@@ -503,6 +572,14 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
                     type: (entryData.type || e.type) as ViewMode,
                     source: entryData.source === 'devotional' ? 'devotional' as const : e.source,
                     prompt: entryData.prompt || e.prompt,
+                    // Preserve devotional metadata
+                    ...(isDevotionalEntry && {
+                      devotionalTitle: entryData.devotionalTitle || newEntry.devotionalTitle,
+                      dayNumber: entryData.dayNumber ?? newEntry.dayNumber,
+                      dayTitle: entryData.dayTitle || newEntry.dayTitle,
+                      totalDays: entryData.totalDays ?? newEntry.totalDays,
+                      questionNumber: entryData.questionNumber ?? newEntry.questionNumber,
+                    })
                   };
                   return updatedEntry;
                 }
@@ -510,6 +587,11 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
               });
               await AsyncStorage.setItem('reflectionEntries', JSON.stringify(updatedEntries));
               _setEntries(updatedEntries);
+              
+              // Notify parent that an entry was updated
+              if (onEntryAdded) {
+                onEntryAdded();
+              }
             } catch (error) {
               console.error('Failed to update entry:', error);
             }
@@ -519,6 +601,14 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
               ...entryData,
               type: (entryData.type || (selectedPrompt ? 'guided' : 'free-form')) as ViewMode,
               source: entryData.source || (selectedPrompt ? 'devotional' as const : undefined),
+              // Include devotional metadata if available
+              ...(isDevotionalEntry && {
+                devotionalTitle: entryData.devotionalTitle,
+                dayNumber: entryData.dayNumber,
+                dayTitle: entryData.dayTitle,
+                totalDays: entryData.totalDays,
+                questionNumber: entryData.questionNumber
+              })
             });
           }
           setSelectedPrompt('');
@@ -528,14 +618,22 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
           setSelectedPrompt('');
           setIsAdding(false);
         }}
-        initialEntry={newEntry}
-        initialMode={isGuided ? 'guided' : 'free-form'}
-        initialPrompt={selectedPrompt || ''}
+        initialEntry={cleanEntry}
+        initialMode={isGuided ? 'guided' : newEntry.type || 'free-form'}
+        initialPrompt={selectedPrompt || newEntry.prompt || ''}
         dateString={formatDate()}
         initialTitle={entryTitle}
         lockTitle={isGuided}
-        source={isGuided ? 'guided' : 'freeform'}
+        source={isGuided ? 'guided' : isDevotionalEntry ? 'devotional' : 'freeform'}
         styles={styles}
+        // Pass devotional metadata to the editor if available
+        {...(isDevotionalEntry ? {
+          devotionalTitle: newEntry.devotionalTitle,
+          dayNumber: newEntry.dayNumber,
+          dayTitle: newEntry.dayTitle,
+          totalDays: newEntry.totalDays,
+          questionNumber: newEntry.questionNumber
+        } : {})}
       />
     );
   };
@@ -553,7 +651,21 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
       subtitle={entries.length > 0 ? `${entries.length} reflections` : 'No reflections yet'}
       showAddButton={true}
       onAdd={() => {
-        setNewEntry({ title: '', content: '', tags: [] });
+        setNewEntry({
+        id: '',
+        title: '',
+        content: '',
+        date: new Date(),
+        type: 'free-form',
+        tags: [],
+        source: undefined,
+        prompt: undefined,
+        devotionalTitle: undefined,
+        dayNumber: undefined,
+        dayTitle: undefined,
+        totalDays: undefined,
+        questionNumber: undefined
+      });
         setSelectedPrompt('');  // Clear any selected prompt
         setViewMode('free-form');
         setIsAdding(true);

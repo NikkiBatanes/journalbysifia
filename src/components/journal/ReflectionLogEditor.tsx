@@ -15,7 +15,7 @@ interface ReflectionLogEditorProps {
     date: Date;
     type: ViewMode;
     prompt?: string;
-    source?: 'devotional' | string;
+    source?: 'freeform' | 'guided' | 'devotional' | 'playbook' | string;
   }) => void;
   onCancel: () => void;
   devotionalTitle?: string;
@@ -29,7 +29,7 @@ interface ReflectionLogEditorProps {
     tags?: string[];
     type?: ViewMode;
     prompt?: string;
-    source?: 'devotional' | string;
+    source?: string;
   };
   initialMode?: ViewMode;
   initialPrompt?: string;
@@ -89,7 +89,13 @@ const fallbackStyles = {
   content: { flex: 1 },
   scrollContent: { flexGrow: 1 },
   entryInput: { color: Colors.hopeWhite, fontSize: 18, marginBottom: 8 },
-  titleInput: { fontWeight: 'bold', fontSize: 22 },
+  titleInput: {
+    fontWeight: 'bold',
+    fontSize: 22,
+    paddingVertical: 8, // Moved from lockedTitleText to apply to both
+    includeFontPadding: false, // Prevents platform-specific padding
+    textAlignVertical: 'center', // Ensures consistent vertical alignment
+  },
   transparentInput: {},
   entryContentInput: { minHeight: 100, fontSize: 16 },
   guidedContainer: {},
@@ -101,9 +107,11 @@ const fallbackStyles = {
   lockedTitleText: {
     color: Colors.hopeWhite,
     opacity: 0.9,
-    paddingVertical: 8,
-    fontWeight: '600',
-    fontSize: 20,
+    includeFontPadding: false, // Match TextInput behavior
+    textAlignVertical: 'center', // Ensure consistent alignment
+  },
+  editableTitle: {
+    opacity: 0.9, // Moved from inline style to fix lint warning
   },
   fabWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   fabContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
@@ -155,8 +163,19 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 }) => {
   // Merge styles prop with fallbackStyles
   const s = { ...fallbackStyles, ...styles };
-  // Internal state
-  const [viewMode, setViewMode] = React.useState<'free-form' | 'guided'>(initialMode);
+  // Internal state - manage view mode
+  const [viewMode, setViewMode] = React.useState<'free-form' | 'guided'>(
+    (source === 'devotional' || initialPrompt) ? 'free-form' : (initialMode || 'free-form')
+  );
+
+  // Update view mode when initialMode or source changes
+  React.useEffect(() => {
+    if (source === 'devotional' || initialPrompt) {
+      setViewMode('free-form');
+    } else {
+      setViewMode(initialMode || 'free-form');
+    }
+  }, [initialMode, source, initialPrompt]);
   const [newEntry, setNewEntry] = React.useState<{ title: string; content: string; tags: string[] }>(
     {
       title: initialEntry.title || initialTitle || '',
@@ -167,7 +186,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 
   // Check if we're editing an existing entry (has content)
   const isEditing = !!initialEntry.content;
-  const [selectedPrompt, setSelectedPrompt] = React.useState<string>(initialPrompt || initialEntry.prompt || '');
+  const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [keyboardHeight, setKeyboardHeight] = React.useState(0);
 
@@ -175,8 +194,12 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
 
-  // Debug log for lockTitle and initialTitle
-  console.log('lockTitle:', lockTitle, 'initialTitle:', initialTitle, 'currentTitle:', newEntry.title);
+  // Debug logs for debugging
+  React.useEffect(() => {
+    console.log('Current viewMode:', viewMode);
+    console.log('Selected prompt:', selectedPrompt);
+    console.log('Source:', source);
+  }, [viewMode, selectedPrompt, source]);
 
   // Update title when initialTitle changes and focus content if title is locked
   React.useEffect(() => {
@@ -213,17 +236,29 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 
   // Save handler
   const handleSave = () => {
-    // For devotional reflections, always use 'guided' type
-    const entryType: ViewMode = (source === 'devotional' || selectedPrompt) ? 'guided' : 'free-form';
+    // Determine the entry type - if there's a selected prompt, it's a guided entry
+    const entryType = selectedPrompt ? 'guided' : viewMode;
+
     const entry = {
-      ...newEntry,
+      title: newEntry.title.trim(),
+      content: newEntry.content.trim(),
+      tags: newEntry.tags,
       date: new Date(),
-      type: entryType,
+      type: entryType,  // Use the determined type
       ...(selectedPrompt && { prompt: selectedPrompt }),
-      ...(source === 'devotional' && { source: 'devotional' as const }), // Ensure source is set for devotional entries
+      ...(source && { source }),
+      // Include devotional metadata if available
+      ...(devotionalTitle && { devotionalTitle }),
+      ...(dayNumber !== undefined && { dayNumber }),
+      ...(dayTitle && { dayTitle }),
+      ...(totalDays !== undefined && { totalDays }),
+      ...(questionNumber !== undefined && { questionNumber }),
     };
     onSave(entry);
   };
+
+  // Always show free-form editor if we have a prompt or source is devotional
+  const effectiveViewMode = (source === 'devotional' || selectedPrompt) ? 'free-form' : viewMode;
 
   // Cancel handler
   const handleCancel = () => {
@@ -245,18 +280,16 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
         <TouchableOpacity
           style={s.modeButton}
           onPress={() => {
-            // First reset the entry to a clean state
-            setNewEntry({
-              title: '',
-              content: '',
-              tags: [],
-            });
-            // Then update the mode and clear the prompt
+            // Only update the mode and clear the prompt, keep existing content
             setViewMode('free-form');
             setSelectedPrompt('');
-            // Force focus to the title input
+            // Focus the content input if there's content, otherwise focus title
             setTimeout(() => {
-              titleInputRef.current?.focus();
+              if (newEntry.content) {
+                contentInputRef.current?.focus();
+              } else {
+                titleInputRef.current?.focus();
+              }
             }, 100);
           }}
         >
@@ -295,7 +328,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
           contentContainerStyle={s.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {viewMode === 'free-form' ? (
+          {effectiveViewMode === 'free-form' ? (
             <>
               {lockTitle || (source && source !== 'freeform') ? (
                 <Text
@@ -311,7 +344,12 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
               ) : (
                 <TextInput
                   ref={titleInputRef}
-                  style={[s.entryInput, s.titleInput, s.transparentInput]}
+                  style={[
+                    s.entryInput,
+                    s.titleInput,
+                    s.transparentInput,
+                    s.editableTitle, // Match locked title opacity
+                  ]}
                   placeholder="Name Your Reflection..."
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={newEntry.title}
@@ -375,20 +413,27 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                     <Text style={s.promptCardText}>{prompt}</Text>
                     <TouchableOpacity
                       style={s.reflectLabel}
-                      onPress={() => {
-                        // First clear any existing content
-                        setNewEntry({
-                          title: prompt,
-                          content: '',
-                          tags: [],
+                      onPress={async () => {
+                        // First update the view mode
+                        await setViewMode('free-form');
+
+                        // Then update the prompt and entry
+                        await setSelectedPrompt(prompt);
+
+                        // Force a state update to ensure the view mode is applied
+                        requestAnimationFrame(() => {
+                          setNewEntry(prev => ({
+                            ...prev,
+                            title: prompt,
+                            content: prev.content || '',
+                            tags: prev.tags || [],
+                          }));
+
+                          // Focus the content input
+                          setTimeout(() => {
+                            contentInputRef.current?.focus();
+                          }, 50);
                         });
-                        // Then update the prompt and view mode
-                        setSelectedPrompt(prompt);
-                        setViewMode('free-form');
-                        // Focus the content input
-                        setTimeout(() => {
-                          contentInputRef.current?.focus();
-                        }, 100);
                       }}
                     >
                       <Text style={s.reflectLabelText}>REFLECT ON IT</Text>
@@ -402,7 +447,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       </View>
 
       {/* Floating Action Buttons - Only show in free-form mode */}
-      {viewMode === 'free-form' && (
+      {effectiveViewMode === 'free-form' && (
         <View style={s.fabWrapper}>
           {/* Left Add FAB with Menu */}
           <View style={[
