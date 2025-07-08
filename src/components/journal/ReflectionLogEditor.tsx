@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
@@ -119,6 +120,35 @@ const fallbackStyles = {
   androidFabWithKeyboard: {},
   fabDefaultPosition: {},
   addMenu: { backgroundColor: Colors.anchorBlue, borderRadius: 8, padding: 8, marginBottom: 8 },
+  // Draft notification styles
+  draftNotification: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -100 }, { translateY: -25 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    width: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  draftIcon: {
+    marginRight: 8,
+  },
+  draftText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '500',
+  },
   addMenuItem: { flexDirection: 'row', alignItems: 'center', padding: 8 },
   addMenuText: { color: Colors.hopeWhite, marginLeft: 8 },
   fab: { backgroundColor: Colors.alertCoral, borderRadius: 24, padding: 12, margin: 8 },
@@ -194,12 +224,65 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
 
-  // Debug logs for debugging
-  React.useEffect(() => {
-    console.log('Current viewMode:', viewMode);
-    console.log('Selected prompt:', selectedPrompt);
-    console.log('Source:', source);
-  }, [viewMode, selectedPrompt, source]);
+  // State for showing draft notification
+  const [showDraftNotification, setShowDraftNotification] = React.useState(false);
+
+  // Load draft when component mounts
+  useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        const draft = await AsyncStorage.getItem('@reflection_editor_draft');
+        if (draft) {
+          const { content, title } = JSON.parse(draft);
+
+          // Only load draft if there's actual content
+          if (content || title) {
+            setNewEntry(prev => ({
+              ...prev,
+              content: content || prev.content,
+              title: title || prev.title,
+            }));
+
+            // Show notification
+            setShowDraftNotification(true);
+
+            // Hide notification after 4 seconds
+            const timer = setTimeout(() => {
+              setShowDraftNotification(false);
+            }, 4000);
+
+            // Clear the draft after loading it
+            await AsyncStorage.removeItem('@reflection_editor_draft');
+
+            return () => clearTimeout(timer);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading draft:', error);
+      }
+    };
+
+    loadDraft();
+  }, []);
+
+  // Save draft when there are changes
+  useEffect(() => {
+    const saveDraft = async () => {
+      try {
+        await AsyncStorage.setItem(
+          '@reflection_editor_draft',
+          JSON.stringify({
+            content: newEntry.content,
+            title: newEntry.title,
+          })
+        );
+      } catch (error) {
+        console.error('Error saving draft:', error);
+      }
+    };
+
+    saveDraft();
+  }, [newEntry.content, newEntry.title]);
 
   // Update title when initialTitle changes and focus content if title is locked
   React.useEffect(() => {
@@ -261,16 +344,37 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   const effectiveViewMode = (source === 'devotional' || selectedPrompt) ? 'free-form' : viewMode;
 
   // Cancel handler
-  const handleCancel = () => {
-    Keyboard.dismiss();
-    // Small delay to ensure keyboard is fully dismissed before closing
-    setTimeout(() => {
+  const handleCancel = async () => {
+    try {
+      // Save draft before canceling
+      await AsyncStorage.setItem(
+        '@reflection_editor_draft',
+        JSON.stringify({
+          content: newEntry.content,
+          title: newEntry.title,
+        })
+      );
+
+      Keyboard.dismiss();
+      // Small delay to ensure keyboard is fully dismissed before closing
+      setTimeout(() => {
+        onCancel();
+      }, 10);
+    } catch (error) {
+      console.error('Error saving draft before cancel:', error);
+      Keyboard.dismiss();
       onCancel();
-    }, 10);
+    }
   };
 
   return (
     <View style={s.container}>
+      {showDraftNotification && (
+        <View style={s.draftNotification}>
+          <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
+          <Text style={s.draftText}>Draft Restored</Text>
+        </View>
+      )}
     <StatusBar hidden />
     <View style={s.backgroundContainer} />
     <View style={s.header}>
@@ -279,17 +383,68 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
         {/* Always show pencil icon for free-form mode */}
         <TouchableOpacity
           style={s.modeButton}
-          onPress={() => {
-            // Only update the mode and clear the prompt, keep existing content
+          onPress={async () => {
+            // If coming from guided mode
+            if (selectedPrompt) {
+              // If there's content, show confirmation
+              if (newEntry.content.trim()) {
+                const shouldProceed = await new Promise<boolean>((resolve) => {
+                  Alert.alert(
+                    'Switch to Free-Form Mode',
+                    'Switching to free-form mode will clear your current reflection. Your work will be saved as a draft.',
+                    [
+                      {
+                        text: 'Cancel',
+                        style: 'cancel',
+                        onPress: () => resolve(false),
+                      },
+                      {
+                        text: 'Save Draft',
+                        style: 'default',
+                        onPress: async () => {
+                          try {
+                            await AsyncStorage.setItem(
+                              '@reflection_editor_draft',
+                              JSON.stringify({
+                                content: newEntry.content,
+                                title: newEntry.title,
+                              })
+                            );
+                            resolve(true);
+                          } catch (error) {
+                            console.error('Error saving draft:', error);
+                            resolve(false);
+                          }
+                        },
+                      },
+                      {
+                        text: 'Discard',
+                        style: 'destructive',
+                        onPress: () => resolve(true),
+                      },
+                    ]
+                  );
+                });
+
+                if (!shouldProceed) {
+                  return; // User cancelled or saved draft
+                }
+              }
+
+              // Always reset title and clear content when switching from guided mode
+              setNewEntry(prev => ({
+                ...prev,
+                content: '',
+                title: initialTitle || '',
+              }));
+            }
+
             setViewMode('free-form');
             setSelectedPrompt('');
-            // Focus the content input if there's content, otherwise focus title
+
+            // Focus the title input after a short delay
             setTimeout(() => {
-              if (newEntry.content) {
-                contentInputRef.current?.focus();
-              } else {
-                titleInputRef.current?.focus();
-              }
+              titleInputRef.current?.focus();
             }, 100);
           }}
         >
@@ -303,8 +458,22 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
         {/* Hide guided prompt icon for devotional source */}
         {!isEditing && source !== 'devotional' && (
           <TouchableOpacity
-            style={s.modeButton}
-            onPress={() => setViewMode('guided')}
+            style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
+            onPress={() => {
+              // Always reset to show the prompt selection
+              setViewMode('guided');
+              setSelectedPrompt('');
+
+              // Reset the entry content but keep any existing title
+              setNewEntry(prev => ({
+                ...prev,
+                content: '',
+                title: prev.title || '',
+              }));
+
+              // Hide keyboard when switching to guided mode
+              Keyboard.dismiss();
+            }}
           >
             <Ionicons
               name="heart"

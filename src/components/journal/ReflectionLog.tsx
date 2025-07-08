@@ -498,7 +498,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
         dayNumber: undefined,
         dayTitle: undefined,
         totalDays: undefined,
-        questionNumber: undefined
+        questionNumber: undefined,
       });
       setSelectedPrompt('');
       setIsAdding(false);
@@ -533,7 +533,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
 
     // Check if this is a devotional entry being edited
     const isDevotionalEntry = newEntry.source === 'devotional';
-    
+
     // Create a clean entry object for the editor
     const cleanEntry = {
       id: newEntry.id,
@@ -545,15 +545,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
       source: newEntry.source,
       prompt: newEntry.prompt,
     };
-    
-    // Extract devotional metadata if it exists
-    const devotionalMetadata = isDevotionalEntry ? {
-      devotionalTitle: newEntry.devotionalTitle,
-      dayNumber: newEntry.dayNumber,
-      dayTitle: newEntry.dayTitle,
-      totalDays: newEntry.totalDays,
-      questionNumber: newEntry.questionNumber
-    } : {};
+
+    // Devotional metadata is passed directly to the component props below
 
     return (
       <ReflectionLogEditor
@@ -579,7 +572,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
                       dayTitle: entryData.dayTitle || newEntry.dayTitle,
                       totalDays: entryData.totalDays ?? newEntry.totalDays,
                       questionNumber: entryData.questionNumber ?? newEntry.questionNumber,
-                    })
+                    }),
                   };
                   return updatedEntry;
                 }
@@ -587,7 +580,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
               });
               await AsyncStorage.setItem('reflectionEntries', JSON.stringify(updatedEntries));
               _setEntries(updatedEntries);
-              
+
               // Notify parent that an entry was updated
               if (onEntryAdded) {
                 onEntryAdded();
@@ -607,8 +600,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
                 dayNumber: entryData.dayNumber,
                 dayTitle: entryData.dayTitle,
                 totalDays: entryData.totalDays,
-                questionNumber: entryData.questionNumber
-              })
+                questionNumber: entryData.questionNumber,
+              }),
             });
           }
           setSelectedPrompt('');
@@ -632,7 +625,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
           dayNumber: newEntry.dayNumber,
           dayTitle: newEntry.dayTitle,
           totalDays: newEntry.totalDays,
-          questionNumber: newEntry.questionNumber
+          questionNumber: newEntry.questionNumber,
         } : {})}
       />
     );
@@ -664,7 +657,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
         dayNumber: undefined,
         dayTitle: undefined,
         totalDays: undefined,
-        questionNumber: undefined
+        questionNumber: undefined,
       });
         setSelectedPrompt('');  // Clear any selected prompt
         setViewMode('free-form');
