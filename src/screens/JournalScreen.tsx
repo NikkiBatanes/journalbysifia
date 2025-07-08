@@ -14,6 +14,7 @@ import { GratitudeList } from '../components/journal/GratitudeList';
 import { ReflectionLog } from '../components/journal/ReflectionLog';
 import { TodayWin } from '../components/journal/TodayWin';
 import { LookingForward } from '../components/journal/LookingForward';
+import { ScheduleContent } from '../components/journal/ScheduleContent';
 
 type TabType = 'journal' | 'schedule' | 'prayer' | 'finance';
 
@@ -327,8 +328,8 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
         );
       case 'schedule':
         return (
-          <View style={styles.tabContent}>
-            <Text style={styles.tabText}>Schedule Content</Text>
+          <View style={styles.scheduleTabContent}>
+            <ScheduleContent />
           </View>
         );
       case 'prayer':
@@ -500,6 +501,10 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
+  },
+  scheduleTabContent: {
+    flex: 1,
+    paddingHorizontal: 0,
   },
   scrollViewContent: {
     padding: 16,

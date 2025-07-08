@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Swipeable } from 'react-native-gesture-handler';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList, Modal, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, FlatList, Modal, TouchableWithoutFeedback, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -131,6 +132,60 @@ setTimeBlocks(prev => prev.filter(block => block.id !== id));
 
 const [isAdding, setIsAdding] = useState(false);
 const [timeBlocks, setTimeBlocks] = useState<TimeBlockItem[]>([]);
+
+// Load time blocks from AsyncStorage on component mount
+useEffect(() => {
+  const loadTimeBlocks = async () => {
+    try {
+      const storedBlocks = await AsyncStorage.getItem('@timeBlocks');
+      if (storedBlocks) {
+        const parsedBlocks = JSON.parse(storedBlocks);
+        // Convert string dates back to Date objects
+        const blocksWithDates = parsedBlocks.map((block: any) => ({
+          ...block,
+          startTime: new Date(block.startTime),
+          endTime: new Date(block.endTime),
+          repeat: {
+            ...block.repeat,
+            endDate: block.repeat.endDate ? new Date(block.repeat.endDate) : undefined,
+          },
+        }));
+        setTimeBlocks(blocksWithDates);
+      }
+    } catch (error) {
+      console.error('Error loading time blocks:', error);
+      Alert.alert('Error', 'Failed to load time blocks');
+    }
+  };
+
+  loadTimeBlocks();
+}, []);
+
+// Save time blocks to AsyncStorage whenever they change
+useEffect(() => {
+  const saveTimeBlocks = async () => {
+    try {
+      console.log('[TimeBlock] Saving time blocks to AsyncStorage...');
+      const serialized = JSON.stringify(timeBlocks, (key, value) => {
+        // Handle Date objects for proper serialization
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+        return value;
+      });
+
+      console.log('[TimeBlock] Serialized data:', serialized);
+      await AsyncStorage.setItem('@timeBlocks', serialized);
+      console.log('[TimeBlock] Successfully saved time blocks');
+    } catch (error) {
+      console.error('[TimeBlock] Error saving time blocks:', error);
+      Alert.alert('Error', 'Failed to save time blocks. Please try again.');
+    }
+  };
+
+  // Always save, even if empty, to ensure consistency
+  saveTimeBlocks();
+}, [timeBlocks]);
 const [visibleCount, setVisibleCount] = useState(5);
 const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -170,66 +225,90 @@ customDays: [],
 },
 });
 
-const addTimeBlock = () => {
-// Reset error states
-setShowTitleError(false);
-setShowCategoryError(false);
+const addTimeBlock = async () => {
+  try {
+    // Reset error states
+    setShowTitleError(false);
+    setShowCategoryError(false);
 
-// Validate inputs
-if (!newBlock.title.trim()) {
-setShowTitleError(true);
-return;
-}
+    // Validate inputs
+    if (!newBlock.title.trim()) {
+      setShowTitleError(true);
+      return;
+    }
 
-if (!newBlock.category) {
-setShowCategoryError(true);
-return;
-}
-const updatedBlock = {
-...newBlock,
-id: editId || Date.now().toString(),
-category: selectedCategory || newBlock.category,
-repeat: {
-...newBlock.repeat,
-customDays: newBlock.repeat.customDays || [],
-customFrequency: newBlock.repeat.frequency === 'custom'
-? { ...customFrequency }
-: undefined,
-},
-};
-if (editId) {
-setTimeBlocks(timeBlocks.map(block => block.id === editId ? updatedBlock : block));
-} else {
-setTimeBlocks([...timeBlocks, updatedBlock]);
-}
-setShowCategoryError(false);
-setSelectedCategory('');
-setIsAdding(false);
-setEditId(null);
+    if (!newBlock.category) {
+      setShowCategoryError(true);
+      return;
+    }
+
+    // Create a new block with proper date objects
+    const updatedBlock: TimeBlockItem = {
+      ...newBlock,
+      id: editId || Date.now().toString(),
+      category: selectedCategory || newBlock.category,
+      startTime: new Date(newBlock.startTime),
+      endTime: new Date(newBlock.endTime),
+      repeat: {
+        ...newBlock.repeat,
+        customDays: newBlock.repeat.customDays || [],
+        endDate: newBlock.repeat.endDate ? new Date(newBlock.repeat.endDate) : undefined,
+        customFrequency: newBlock.repeat.frequency === 'custom'
+          ? { ...customFrequency }
+          : undefined,
+      },
+    };
+
+    // Update state with the new block
+    if (editId) {
+      setTimeBlocks(prevBlocks =>
+        prevBlocks.map(block => block.id === editId ? updatedBlock : block)
+      );
+    } else {
+      setTimeBlocks(prevBlocks => [...prevBlocks, updatedBlock]);
+    }
+
+    // Reset form
+    setShowCategoryError(false);
+    setSelectedCategory('');
+    setIsAdding(false);
+    setEditId(null);
+
+  } catch (error) {
+    console.error('Error saving time block:', error);
+    Alert.alert('Error', 'Failed to save time block');
+  }
 };
 
 const startAdding = () => {
-setIsAdding(true);
-setShowRepeatOptions(false);
-setShowEndDatePicker(false);
-setShowCategoryPicker(false);
-setShowFrequencySelector(false);
-setInputValue('1');
-setCustomFrequency({ value: 1, unit: 'week' });
-setNewBlock({
-title: '',
-startTime: new Date(),
-endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
-category: '',
-notes: '',
-location: '',
-isAllDay: false,
-repeat: {
-frequency: 'never',
-endDate: undefined,
-customDays: [],
-},
-});
+  const now = new Date();
+  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
+  // Round to nearest 15 minutes
+  now.setMinutes(Math.floor(now.getMinutes() / 15) * 15, 0, 0);
+  oneHourLater.setMinutes(Math.floor(oneHourLater.getMinutes() / 15) * 15, 0, 0);
+
+  setIsAdding(true);
+  setShowRepeatOptions(false);
+  setShowEndDatePicker(false);
+  setShowCategoryPicker(false);
+  setShowFrequencySelector(false);
+  setInputValue('1');
+  setCustomFrequency({ value: 1, unit: 'week' });
+  setNewBlock({
+    title: '',
+    startTime: now,
+    endTime: oneHourLater,
+    category: '',
+    notes: '',
+    location: '',
+    isAllDay: false,
+    repeat: {
+      frequency: 'never',
+      endDate: undefined,
+      customDays: [],
+    },
+  });
 };
 
 const toggleAllDay = () => {
