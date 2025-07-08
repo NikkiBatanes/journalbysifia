@@ -67,14 +67,13 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     try {
       setIsSaving(true);
       const now = new Date();
-      // Determine if this is a guided or freeform reflection
-      const isGuided = !!entry.prompt;
+      // Since this is a devotional reflection, it's always guided
       const newEntry = {
         ...entry,
         id: Date.now().toString(),
         date: now,
-        type: isGuided ? 'guided' : 'free-form',
-        displayType: isGuided ? 'Guided Prompt' : 'Free Form',
+        type: 'guided',  // Always set to 'guided' for devotional reflections
+        displayType: 'Guided Prompt',
         source: 'devotional',
       };
 
@@ -102,17 +101,20 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
   const handleSave = async (entry: { title: string; content: string; tags?: string[] }) => {
     try {
-      await saveReflection({
+      const savedEntry = await saveReflection({
         title: entry.title,
         content: entry.content,
         prompt: question,
         tags: entry.tags || [],
       });
 
-      // Call the original onSave if provided
+      // Call the original onSave with the saved entry data
       if (onSave) {
-        onSave(entry);
+        onSave(savedEntry);
       }
+
+      // Show success modal after successful save
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Failed to save reflection:', error);
       // You might want to show an error message to the user here

@@ -556,10 +556,20 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           questionNumber={selectedReflectionQuestion ?
             (devotional?.days[devotional.currentDay - 1]?.reflectionQuestions?.findIndex(q => q.text === selectedReflectionQuestion) || 0) + 1
             : undefined}
-          onSave={(entry) => {
-            // The modal will be closed by the success UI's Done button
-            // or when the user manually dismisses it
-            console.log('Reflection saved:', entry);
+          onSave={async (entry) => {
+            try {
+              // The entry is already saved by the modal, we just need to notify the parent
+              console.log('Reflection saved:', entry);
+
+              // Close the modal
+              setReflectionModalVisible(false);
+              setSelectedReflectionQuestion(null);
+
+              // Show success message or any other UI feedback
+              // The actual entry is already saved by the modal
+            } catch (error) {
+              console.error('Error handling saved reflection:', error);
+            }
           }}
           onCancel={() => {
             setReflectionModalVisible(false);

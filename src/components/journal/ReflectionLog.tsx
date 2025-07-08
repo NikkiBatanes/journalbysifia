@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -43,9 +44,11 @@ export const GUIDED_PROMPTS = [
 
 interface ReflectionLogProps {
   currentDate: Date;
+  refreshKey?: number; // Add refreshKey to trigger reload
+  onEntryAdded?: () => void; // Callback when a new entry is added
 }
 
-export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => {
+export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refreshKey = 0, onEntryAdded }) => {
   const [_viewMode, setViewMode] = useState<ViewMode>('free-form');
   const [visibleCount, setVisibleCount] = useState<number>(3);
   const [entries, _setEntries] = useState<ReflectionLogEntry[]>([]);
@@ -60,7 +63,36 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
   const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
 
-  // Removed unused functions: removeEntry, formatDate, startNewEntry, handleAddTag, removeTag, handleSaveEntry
+  // Load entries from AsyncStorage
+  const loadEntries = useCallback(async () => {
+    try {
+      const savedEntries = await AsyncStorage.getItem('reflectionEntries');
+      if (savedEntries) {
+        // Parse and sort entries by date (newest first)
+        const parsedEntries = JSON.parse(savedEntries).map((entry: any) => ({
+          ...entry,
+          date: new Date(entry.date),
+        })).sort((a: ReflectionLogEntry, b: ReflectionLogEntry) =>
+          b.date.getTime() - a.date.getTime()
+        );
+        _setEntries(parsedEntries);
+      }
+    } catch (error) {
+      console.error('Error loading entries:', error);
+    }
+  }, []);
+
+  // Load entries on initial render and when refreshKey changes
+  useEffect(() => {
+    loadEntries();
+  }, [loadEntries, refreshKey]);
+
+  // Also reload entries when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadEntries();
+    }, [loadEntries])
+  );
 
   const renderPromptPicker = () => (
     <Modal
@@ -387,20 +419,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
 
   const titleInputRef = useRef<TextInput>(null);
 
-  useEffect(() => {
-    // Focus the title input when the form is shown
-    if (isAdding) {
-      const timer = setTimeout(() => {
-        titleInputRef.current?.focus();
-      }, 100);
-
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-  }, [isAdding]);
-
-  // Load entries on mount
+  // Load entries on mount and when refreshKey changes
   useEffect(() => {
     const loadEntries = async () => {
       try {
@@ -414,8 +433,58 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
     };
 
     loadEntries();
-  }, []);
+  }, [refreshKey]);
 
+  const handleSaveEntry = async (entryData: {
+    title: string;
+    content: string;
+    tags: string[];
+    type?: ViewMode;
+    prompt?: string;
+    source?: 'devotional' | string;
+  }) => {
+    try {
+      const newEntryData: ReflectionLogEntry = {
+        id: Date.now().toString(),
+        title: entryData.title,
+        content: entryData.content,
+        date: new Date(),
+        type: entryData.type || (selectedPrompt ? 'guided' : 'free-form') as ViewMode,
+        source: (entryData.source === 'devotional' || selectedPrompt) ? 'devotional' as const : undefined,
+        prompt: entryData.prompt || selectedPrompt || undefined,
+        tags: entryData.tags || [],
+      };
+
+      const updatedEntries = [newEntryData, ...entries];
+      await AsyncStorage.setItem('reflectionEntries', JSON.stringify(updatedEntries));
+      _setEntries(updatedEntries);
+      setNewEntry({ title: '', content: '', tags: [] });
+      setSelectedPrompt('');
+      setIsAdding(false);
+
+      // Notify parent that a new entry was added
+      if (onEntryAdded) {
+        onEntryAdded();
+      }
+    } catch (error) {
+      console.error('Failed to save entry:', error);
+    }
+  };
+
+  // Focus the title input when the form is shown
+  useEffect(() => {
+    if (isAdding) {
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 100);
+
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [isAdding]);
+
+  // ... (rest of the code remains the same)
   const renderEntryForm = () => {
     const isGuided = !!selectedPrompt;
     const entryTitle = selectedPrompt || newEntry.title;
@@ -424,39 +493,44 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate }) => 
     return (
       <ReflectionLogEditor
         key={editorKey}
-        onSave={entry => {
+        onSave={async (entryData: {
+          title: string;
+          content: string;
+          tags: string[];
+          type?: ViewMode;
+          prompt?: string;
+          source?: 'devotional' | string;
+        }) => {
           if (newEntry.content) {
             // Update existing entry
-            _setEntries(prevEntries =>
-              prevEntries.map(e =>
-                e.content === newEntry.content
-                  ? {
-                      ...entry,
-                      id: e.id,
-                      date: e.date,
-                      type: e.type,
-                      source: e.source,  // Preserve original source
-                      prompt: e.prompt,   // Preserve original prompt
-                    }
-                  : e
-              )
-            );
+            try {
+              const updatedEntries = entries.map(e => {
+                if (e.content === newEntry.content) {
+                  const updatedEntry = {
+                    ...e,
+                    title: entryData.title,
+                    content: entryData.content,
+                    tags: entryData.tags || [],
+                    type: (entryData.type || e.type) as ViewMode,
+                    source: entryData.source === 'devotional' ? 'devotional' as const : e.source,
+                    prompt: entryData.prompt || e.prompt,
+                  };
+                  return updatedEntry;
+                }
+                return e;
+              });
+              await AsyncStorage.setItem('reflectionEntries', JSON.stringify(updatedEntries));
+              _setEntries(updatedEntries);
+            } catch (error) {
+              console.error('Failed to update entry:', error);
+            }
           } else {
             // Create new entry
-            const allowedTypes: ViewMode[] = ['free-form', 'guided'];
-            const safeType: ViewMode = allowedTypes.includes(entry.type as ViewMode)
-              ? (entry.type as ViewMode)
-              : 'free-form';
-
-            const entryWithId: ReflectionLogEntry = {
-              ...entry,
-              id: Date.now().toString(),
-              type: safeType,
-              // Only set source if it's a devotional, otherwise leave undefined
-              source: undefined,
-              ...(selectedPrompt && { prompt: selectedPrompt }),
-            };
-            _setEntries(prevEntries => [entryWithId, ...prevEntries]);
+            await handleSaveEntry({
+              ...entryData,
+              type: (entryData.type || (selectedPrompt ? 'guided' : 'free-form')) as ViewMode,
+              source: entryData.source || (selectedPrompt ? 'devotional' as const : undefined),
+            });
           }
           setSelectedPrompt('');
           setIsAdding(false);

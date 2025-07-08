@@ -26,6 +26,7 @@ export type JournalScreenRef = {
 const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [refreshKey, setRefreshKey] = useState(0);
   const lastSelectedDate = useRef<Date | null>(null);
 
   // Expose methods to parent component
@@ -310,7 +311,11 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               <GratitudeList />
             </View>
             <View style={styles.componentSpacing}>
-              <ReflectionLog currentDate={currentDate} />
+              <ReflectionLog
+                currentDate={currentDate}
+                refreshKey={refreshKey}
+                onEntryAdded={() => setRefreshKey(prev => prev + 1)}
+              />
             </View>
             <View style={styles.componentSpacing}>
               <TodayWin />

@@ -5,16 +5,33 @@ import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { GUIDED_PROMPTS } from './ReflectionLog';
 
+type ViewMode = 'free-form' | 'guided';
+
 interface ReflectionLogEditorProps {
-  onSave: (entry: { title: string; content: string; tags: string[]; date: Date; type: string; prompt?: string }) => void;
+  onSave: (entry: {
+    title: string;
+    content: string;
+    tags: string[];
+    date: Date;
+    type: ViewMode;
+    prompt?: string;
+    source?: 'devotional' | string;
+  }) => void;
   onCancel: () => void;
   devotionalTitle?: string;
   totalDays?: number;
   dayNumber?: number;
   dayTitle?: string;
   questionNumber?: number;
-  initialEntry?: { title?: string; content?: string; tags?: string[]; type?: string; prompt?: string };
-  initialMode?: 'free-form' | 'guided';
+  initialEntry?: {
+    title?: string;
+    content?: string;
+    tags?: string[];
+    type?: ViewMode;
+    prompt?: string;
+    source?: 'devotional' | string;
+  };
+  initialMode?: ViewMode;
   initialPrompt?: string;
   dateString?: string;
   initialTitle?: string;
@@ -195,14 +212,15 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   }, []);
 
   // Save handler
-  const handleSaveEntry = () => {
-    if (!newEntry.title.trim() || !newEntry.content.trim()) {return;}
-    const entryType = selectedPrompt ? 'guided' : source || 'freeform';
+  const handleSave = () => {
+    // For devotional reflections, always use 'guided' type
+    const entryType: ViewMode = (source === 'devotional' || selectedPrompt) ? 'guided' : 'free-form';
     const entry = {
       ...newEntry,
       date: new Date(),
       type: entryType,
       ...(selectedPrompt && { prompt: selectedPrompt }),
+      ...(source === 'devotional' && { source: 'devotional' as const }), // Ensure source is set for devotional entries
     };
     onSave(entry);
   };
@@ -446,7 +464,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   (!newEntry.title.trim() || !newEntry.content.trim()) && s.fabDisabled,
                 ]}
                 disabled={!newEntry.title.trim() || !newEntry.content.trim()}
-                onPress={handleSaveEntry}
+                onPress={handleSave}
               >
                 <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
               </TouchableOpacity>
