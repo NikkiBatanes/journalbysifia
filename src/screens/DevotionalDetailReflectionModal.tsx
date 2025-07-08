@@ -101,6 +101,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
   const handleSave = async (entry: { title: string; content: string; tags?: string[] }) => {
     try {
+      console.log('Saving reflection...');
       const savedEntry = await saveReflection({
         title: entry.title,
         content: entry.content,
@@ -108,13 +109,13 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         tags: entry.tags || [],
       });
 
+      console.log('Reflection saved, calling onSave callback');
       // Call the original onSave with the saved entry data
       if (onSave) {
         onSave(savedEntry);
       }
 
-      // Show success modal after successful save
-      setShowSuccessModal(true);
+      console.log('Success modal should be visible now');
     } catch (error) {
       console.error('Failed to save reflection:', error);
       // You might want to show an error message to the user here
@@ -122,11 +123,13 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   };
 
   const handleSuccessClose = () => {
+    console.log('Closing success modal and reflection editor');
     setShowSuccessModal(false);
     onCancel();
   };
 
   const handleEdit = () => {
+    console.log('Edit button pressed, closing success modal');
     setShowSuccessModal(false);
     // The editor will remain open since we're not calling onCancel
   };

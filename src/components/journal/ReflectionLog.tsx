@@ -421,19 +421,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
 
   // Load entries on mount and when refreshKey changes
   useEffect(() => {
-    const loadEntries = async () => {
-      try {
-        const savedEntries = await AsyncStorage.getItem('reflectionEntries');
-        if (savedEntries) {
-          _setEntries(JSON.parse(savedEntries));
-        }
-      } catch (error) {
-        console.error('Failed to load entries', error);
-      }
-    };
-
     loadEntries();
-  }, [refreshKey]);
+  }, [loadEntries, refreshKey]);
 
   const handleSaveEntry = async (entryData: {
     title: string;

@@ -558,15 +558,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             : undefined}
           onSave={async (entry) => {
             try {
-              // The entry is already saved by the modal, we just need to notify the parent
+              // The entry is already saved by the modal
               console.log('Reflection saved:', entry);
-
-              // Close the modal
-              setReflectionModalVisible(false);
-              setSelectedReflectionQuestion(null);
-
-              // Show success message or any other UI feedback
-              // The actual entry is already saved by the modal
+              // Note: We don't close the modal here to allow the success modal to show
+              // The modal will be closed when the user clicks Done in the success modal
             } catch (error) {
               console.error('Error handling saved reflection:', error);
             }
