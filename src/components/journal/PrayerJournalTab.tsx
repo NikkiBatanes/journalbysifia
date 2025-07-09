@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Colors } from '../../theme/colors';
 import EnhancedPrayerList from './EnhancedPrayerList';

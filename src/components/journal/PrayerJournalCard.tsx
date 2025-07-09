@@ -202,10 +202,7 @@ const PrayerJournalCard: React.FC = () => {
         return (
           <View key={prayerType.key} style={styles.prayerGroupCard}>
             <View style={styles.prayerGroupHeader}>
-              <View style={[styles.prayerTypeBadge, {
-                backgroundColor: 'transparent',
-                borderColor: Colors.hopeWhite,
-              }]}>
+              <View style={styles.prayerTypeBadge}>
                 <Text style={styles.prayerGroupTitle}>
                   {prayerType.label}
                 </Text>
@@ -424,11 +421,15 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   prayerTypeBadge: {
-    marginTop: 8,
-    borderRadius: 8,
-    padding: 6,
-    alignItems: 'center',
+    backgroundColor: 'transparent',
     borderWidth: 1,
+    borderRadius: 12,
+    padding: 6,
+    marginRight: 8,
+    marginTop: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderColor: Colors.hopeWhite,
   },
   prayerGroupTitle: {
     fontFamily: Fonts.bold,

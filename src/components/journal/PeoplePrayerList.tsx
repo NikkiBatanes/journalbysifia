@@ -22,7 +22,7 @@ const PeoplePrayerList: React.FC = () => {
       const newPrayer: PersonPrayer = {
         id: Date.now().toString(),
         name: name.trim(),
-        prayer: prayer.trim()
+        prayer: prayer.trim(),
       };
       setPeoplePrayers(prev => [newPrayer, ...prev]);
       setName('');
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',  
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'transparent',

@@ -1,14 +1,13 @@
 import React, { useState, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
-  ScrollView, 
-  Modal, 
-  TouchableWithoutFeedback, 
-  Keyboard 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -28,22 +27,22 @@ interface PrayerItem {
 
 const EnhancedPrayerList: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mine' | 'requests'>('mine');
-  
+
   const handleTabChange = (tab: 'mine' | 'requests') => {
     // Dismiss keyboard first
     Keyboard.dismiss();
-    
+
     // Clear all input fields
     setName('');
     setPrayer('');
     setNotes('');
     setCurrentRequestedBy(undefined);
-    
+
     // Force blur any focused input
     if (prayerInputRef.current) {
       prayerInputRef.current.blur();
     }
-    
+
     // Change the active tab after a small delay
     setTimeout(() => {
       setActiveTab(tab);
@@ -54,9 +53,8 @@ const EnhancedPrayerList: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isPrayerFocused, setIsPrayerFocused] = useState(false);
-  const [isNotesFocused, setIsNotesFocused] = useState(false);
   const [inputKey, setInputKey] = useState(0); // Add key to force re-render inputs
-  
+
   // Sample data - in a real app, this would come from a database
   const [prayerItems, setPrayerItems] = useState<PrayerItem[]>([
     {
@@ -64,15 +62,15 @@ const EnhancedPrayerList: React.FC = () => {
       name: 'John Doe',
       prayer: 'Healing from illness',
       type: 'personal',
-      notes: 'Needs healing for back pain'
+      notes: 'Needs healing for back pain',
     },
     {
       id: '2',
       name: 'Sarah Smith',
       prayer: 'Job interview on Friday',
       type: 'request',
-      requestedBy: 'Sarah'
-    }
+      requestedBy: 'Sarah',
+    },
   ]);
 
   const [currentRequestedBy, setCurrentRequestedBy] = useState<string | undefined>(undefined);
@@ -80,7 +78,7 @@ const EnhancedPrayerList: React.FC = () => {
   const handleAddPrayer = () => {
     // Dismiss keyboard first
     Keyboard.dismiss();
-    
+
     // Create a function to clear all input fields
     const clearInputs = () => {
       // Reset all state values
@@ -88,25 +86,24 @@ const EnhancedPrayerList: React.FC = () => {
       setPrayer('');
       setNotes('');
       setCurrentRequestedBy(undefined);
-      
+
       // Reset focus states
       setIsNameFocused(false);
       setIsPrayerFocused(false);
-      setIsNotesFocused(false);
-      
+
       // Force blur any focused inputs
       if (prayerInputRef.current) {
         prayerInputRef.current.blur();
       }
-      
+
       // Force a re-render of the inputs by updating the key
       setInputKey(prev => prev + 1);
     };
 
     // If we're adding a prayer that came from a request, mark the original request as prayed
     if (currentRequestedBy) {
-      setPrayerItems(prevItems => 
-        prevItems.map(item => 
+      setPrayerItems(prevItems =>
+        prevItems.map(item =>
           item.name === name && item.type === 'request' && !item.prayed
             ? { ...item, prayed: true }
             : item
@@ -123,15 +120,15 @@ const EnhancedPrayerList: React.FC = () => {
           prayer: prayer.trim(),
           type: 'request',
           notes: notes.trim(),
-          requestedBy: 'Me'
+          requestedBy: 'Me',
         };
-        
+
         setPrayerItems(prev => [newPrayer, ...prev]);
         clearInputs();
         return;
       }
-    } 
-    
+    }
+
     // Adding a personal prayer (for both tabs)
     if (name.trim() && (prayer.trim() || notes.trim())) {
       const newPrayer: PrayerItem = {
@@ -140,9 +137,9 @@ const EnhancedPrayerList: React.FC = () => {
         prayer: prayer.trim(),
         type: 'personal',
         notes: notes.trim(),
-        requestedBy: currentRequestedBy
+        requestedBy: currentRequestedBy,
       };
-      
+
       setPrayerItems(prev => [newPrayer, ...prev]);
       clearInputs();
     }
@@ -150,19 +147,19 @@ const EnhancedPrayerList: React.FC = () => {
 
   const prayerInputRef = useRef<TextInput>(null);
 
-  const handleAddToMyList = (prayer: PrayerItem) => {
+  const handleAddToMyList = (prayerItem: PrayerItem) => {
     // Set the requestedBy first
-    setCurrentRequestedBy(prayer.requestedBy || 'Someone');
-    
+    setCurrentRequestedBy(prayerItem.requestedBy || 'Someone');
+
     // Switch to 'People to Pray For' tab without clearing fields
     setActiveTab('mine');
-    
+
     // Pre-fill the form fields after a small delay to ensure tab switch
     setTimeout(() => {
-      setName(prayer.name);
+      setName(prayerItem.name);
       setPrayer(''); // Keep prayer text empty for user to fill
-      setNotes(prayer.prayer); // Move the prayer request to notes
-      
+      setNotes(prayerItem.prayer); // Move the prayer request to notes
+
       // Focus the prayer input field
       if (prayerInputRef.current) {
         prayerInputRef.current.focus();
@@ -170,12 +167,12 @@ const EnhancedPrayerList: React.FC = () => {
     }, 100);
   };
 
-  const filteredPrayers = prayerItems.filter(item => 
+  const filteredPrayers = prayerItems.filter(item =>
     activeTab === 'mine' ? item.type === 'personal' : item.type === 'request'
   );
-  
+
   // Get count of unprayed requests for the badge
-  const unprayedRequestsCount = prayerItems.filter(item => 
+  const unprayedRequestsCount = prayerItems.filter(item =>
     item.type === 'request' && !item.prayed
   ).length;
 
@@ -199,11 +196,11 @@ const EnhancedPrayerList: React.FC = () => {
 
         {/* Tabs */}
         <View style={styles.tabContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'mine' && styles.activeTab]}
             onPress={() => handleTabChange('mine')}
           >
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <View style={styles.tabContent}>
               <Text style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]}>
                 Prayers for People
               </Text>
@@ -216,11 +213,11 @@ const EnhancedPrayerList: React.FC = () => {
               )}
             </View>
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.tab, activeTab === 'requests' && styles.activeTab]}
             onPress={() => handleTabChange('requests')}
           >
-            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+            <View style={styles.tabContent}>
               <Text style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
                 Prayer Requests
               </Text>
@@ -240,7 +237,7 @@ const EnhancedPrayerList: React.FC = () => {
           <TextInput
             key={`name-${inputKey}`}
             style={styles.input}
-            placeholder={activeTab === 'mine' ? "Who are you praying for?" : "Who is requesting prayer?"}
+            placeholder={activeTab === 'mine' ? 'Who are you praying for?' : 'Who is requesting prayer?'}
             placeholderTextColor={Colors.trustGrey}
             value={name}
             onChangeText={setName}
@@ -256,9 +253,9 @@ const EnhancedPrayerList: React.FC = () => {
             key={`prayer-${inputKey}`}
             ref={prayerInputRef}
             style={[styles.input, styles.prayerInput]}
-            placeholder={activeTab === 'mine' 
-              ? "What would you like to pray for this person?" 
-              : "What is their prayer request?"}
+            placeholder={activeTab === 'mine'
+              ? 'What would you like to pray for this person?'
+              : 'What is their prayer request?'}
             placeholderTextColor={Colors.trustGrey}
             value={prayer}
             onChangeText={setPrayer}
@@ -273,15 +270,13 @@ const EnhancedPrayerList: React.FC = () => {
             <TextInput
               key={`notes-${inputKey}`}
               style={[styles.input, styles.notesInput]}
-              placeholder="Notes (Optional)"
-              placeholderTextColor={Colors.trustGrey}
+              placeholder="Add notes (optional)"
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
               value={notes}
               onChangeText={setNotes}
-              onFocus={() => setIsNotesFocused(true)}
-              onBlur={() => setIsNotesFocused(false)}
               multiline
               textAlignVertical="top"
-              keyboardAppearance="dark"
+              returnKeyType="done"
             />
           )}
           <TouchableOpacity
@@ -300,8 +295,8 @@ const EnhancedPrayerList: React.FC = () => {
         {/* Prayer List */}
         <ScrollView style={styles.prayerList}>
           {filteredPrayers.map((item) => (
-            <TouchableOpacity 
-              key={item.id} 
+            <TouchableOpacity
+              key={item.id}
               style={styles.prayerItem}
               onPress={() => {}}
             >
@@ -342,16 +337,16 @@ const EnhancedPrayerList: React.FC = () => {
                 </>
               )}
               {item.type === 'request' && activeTab === 'requests' && (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.addButton, item.prayed && styles.prayedButton]}
                   onPress={() => handleAddToMyList(item)}
                   disabled={item.prayed}
                 >
-                  <Ionicons 
-                    name={item.prayed ? "checkmark-circle" : "add-circle"} 
-                    size={20} 
+                  <Ionicons
+                    name={item.prayed ? 'checkmark-circle' : 'add-circle'}
+                    size={20}
                     color={Colors.hopeWhite}
-                    style={{ marginRight: 6 }}
+                    style={styles.iconMargin}
                   />
                   <Text style={styles.addButtonText}>
                     {item.prayed ? 'Prayed' : `Pray for ${item.name} now`}
@@ -457,7 +452,7 @@ const styles = StyleSheet.create({
   // Inputs
   inputContainer: {
     marginBottom: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',  
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'transparent',
@@ -486,7 +481,7 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     minHeight: 80,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',  
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     padding: 10,
     margin: 8,
@@ -511,13 +506,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.07)',
     borderRadius: 12,
     padding: 14,
-    marginBottom: 10,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   prayerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
+  },
+  tabRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconMargin: {
+    marginRight: 6,
   },
   personName: {
     color: Colors.hopeWhite,
@@ -561,7 +573,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     fontSize: 12,
     marginLeft: 4,
-  }
+  },
 });
 
 export default EnhancedPrayerList;

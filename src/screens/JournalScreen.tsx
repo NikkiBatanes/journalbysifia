@@ -334,7 +334,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
         );
       case 'prayer':
         return (
-          <View style={[styles.tabContent, { padding: 0 }]}>
+          <View style={styles.tabContentNoPadding}>
             <PrayerJournalTab />
           </View>
         );
@@ -501,6 +501,10 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
+  },
+  tabContentNoPadding: {
+    flex: 1,
+    padding: 0,
   },
   scheduleTabContent: {
     flex: 1,
