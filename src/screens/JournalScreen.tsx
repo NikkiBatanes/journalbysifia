@@ -9,12 +9,12 @@ import { Fonts } from '../theme/fonts';
 import { TodaysFocus } from '../components/journal/TodaysFocus';
 import { Todos } from '../components/journal/Todos';
 import { TimeBlock } from '../components/journal/TimeBlock';
-
 import { GratitudeList } from '../components/journal/GratitudeList';
 import { ReflectionLog } from '../components/journal/ReflectionLog';
 import { TodayWin } from '../components/journal/TodayWin';
 import { LookingForward } from '../components/journal/LookingForward';
 import { ScheduleContent } from '../components/journal/ScheduleContent';
+import PrayerJournalTab from '../components/journal/PrayerJournalTab';
 
 type TabType = 'journal' | 'schedule' | 'prayer' | 'finance';
 
@@ -334,8 +334,8 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
         );
       case 'prayer':
         return (
-          <View style={styles.tabContent}>
-            <Text style={styles.tabText}>Prayer Content</Text>
+          <View style={[styles.tabContent, { padding: 0 }]}>
+            <PrayerJournalTab />
           </View>
         );
       case 'finance':
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
   },
   componentSpacing: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   tabBar: {
     flexDirection: 'row',
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   scrollViewContent: {
-    padding: 16,
+    padding: 8,
     paddingBottom: 100,
   },
   tabText: {
