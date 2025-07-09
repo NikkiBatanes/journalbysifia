@@ -41,6 +41,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   // Store the index of the completed day for modal display
   const [completedDayIndex, setCompletedDayIndex] = useState<number | null>(null);
+  const [prayedDays, setPrayedDays] = useState<Record<string, boolean>>({});
   // Reflection modal state
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
   const [selectedReflectionQuestion, setSelectedReflectionQuestion] = useState<string | null>(null);
@@ -215,6 +216,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       console.error('Error marking day as complete:', error);
     }
   };
+
+  // Toggle prayer status for the current day
+  const togglePrayed = useCallback(() => {
+    if (!devotional) return;
+    
+    const dayId = `${devotional.id}-${currentDayIndex}`;
+    setPrayedDays(prev => ({
+      ...prev,
+      [dayId]: !prev[dayId]
+    }));
+  }, [devotional, currentDayIndex]);
 
   // Handle continuing after completion modal
   const handleCompletionContinue = () => {
@@ -535,6 +547,26 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
                     : 'No prayer for today.'}
                 </Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.prayerButton,
+                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive
+                  ]}
+                  onPress={togglePrayed}
+                >
+                  <Ionicons 
+                    name="heart"
+                    size={20}
+                    color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.inactiveIcon}
+                    style={styles.prayerIcon}
+                  />
+                  <Text style={[
+                    styles.prayerButtonText,
+                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive
+                  ]}>
+                    {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? ' Prayed' : ' Pray'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </DevotionalSectionCard>
             </ScrollView>
@@ -824,10 +856,48 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   prayerContainer: {
-    marginBottom: 24,
+    marginTop: 8,
+    position: 'relative',
+    paddingBottom: 64, // Increased space for the prayer button
     padding: CARD_CONTENT_PADDING,
     backgroundColor: 'rgba(26,60,109,0.08)',
     borderRadius: 12,
+  },
+  prayerButton: {
+    position: 'absolute',
+    right: 0,
+    bottom: -16, // Raised button up from card edge
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingLeft: 10,
+    paddingRight: 14,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  prayerButtonActive: {
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderColor: 'rgba(255, 59, 48, 0.2)',
+  },
+  prayerButtonText: {
+    marginLeft: 2,
+    color: Colors.textDark,
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    fontWeight: '600',
+  },
+  prayerButtonTextActive: {
+    color: Colors.alertCoral,
+  },
+  prayerIcon: {
+    marginRight: 0,
   },
   prayerText: {
     fontSize: 16,
