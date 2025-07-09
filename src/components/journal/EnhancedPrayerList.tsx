@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -28,20 +28,32 @@ interface PrayerItem {
 const EnhancedPrayerList: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mine' | 'requests'>('mine');
 
-  const handleTabChange = (tab: 'mine' | 'requests') => {
-    // Dismiss keyboard first
-    Keyboard.dismiss();
-
-    // Clear all input fields
+  const clearInputs = useCallback(() => {
+    // Reset all input fields
     setName('');
     setPrayer('');
     setNotes('');
     setCurrentRequestedBy(undefined);
 
-    // Force blur any focused input
+    // Reset focus states
+    setIsNameFocused(false);
+    setIsPrayerFocused(false);
+
+    // Force blur any focused inputs
     if (prayerInputRef.current) {
       prayerInputRef.current.blur();
     }
+
+    // Force a re-render of the inputs by updating the key
+    setInputKey(prev => prev + 1);
+  }, []);
+
+  const handleTabChange = (tab: 'mine' | 'requests') => {
+    // Dismiss keyboard first
+    Keyboard.dismiss();
+
+    // Clear all input fields
+    clearInputs();
 
     // Change the active tab after a small delay
     setTimeout(() => {
@@ -55,23 +67,8 @@ const EnhancedPrayerList: React.FC = () => {
   const [isPrayerFocused, setIsPrayerFocused] = useState(false);
   const [inputKey, setInputKey] = useState(0); // Add key to force re-render inputs
 
-  // Sample data - in a real app, this would come from a database
-  const [prayerItems, setPrayerItems] = useState<PrayerItem[]>([
-    {
-      id: '1',
-      name: 'John Doe',
-      prayer: 'Healing from illness',
-      type: 'personal',
-      notes: 'Needs healing for back pain',
-    },
-    {
-      id: '2',
-      name: 'Sarah Smith',
-      prayer: 'Job interview on Friday',
-      type: 'request',
-      requestedBy: 'Sarah',
-    },
-  ]);
+  // Initialize with empty array - items will be added by the user
+  const [prayerItems, setPrayerItems] = useState<PrayerItem[]>([]);
 
   const [currentRequestedBy, setCurrentRequestedBy] = useState<string | undefined>(undefined);
 
@@ -79,26 +76,7 @@ const EnhancedPrayerList: React.FC = () => {
     // Dismiss keyboard first
     Keyboard.dismiss();
 
-    // Create a function to clear all input fields
-    const clearInputs = () => {
-      // Reset all state values
-      setName('');
-      setPrayer('');
-      setNotes('');
-      setCurrentRequestedBy(undefined);
-
-      // Reset focus states
-      setIsNameFocused(false);
-      setIsPrayerFocused(false);
-
-      // Force blur any focused inputs
-      if (prayerInputRef.current) {
-        prayerInputRef.current.blur();
-      }
-
-      // Force a re-render of the inputs by updating the key
-      setInputKey(prev => prev + 1);
-    };
+    let shouldClearInputs = false;
 
     // If we're adding a prayer that came from a request, mark the original request as prayed
     if (currentRequestedBy) {
@@ -109,6 +87,7 @@ const EnhancedPrayerList: React.FC = () => {
             : item
         )
       );
+      shouldClearInputs = true;
     }
 
     if (activeTab === 'requests') {
@@ -122,25 +101,27 @@ const EnhancedPrayerList: React.FC = () => {
           notes: notes.trim(),
           requestedBy: 'Me',
         };
-
         setPrayerItems(prev => [newPrayer, ...prev]);
-        clearInputs();
-        return;
+        shouldClearInputs = true;
+      }
+    } else {
+      // Adding a personal prayer
+      if (name.trim() && (prayer.trim() || notes.trim())) {
+        const newPrayer: PrayerItem = {
+          id: Date.now().toString(),
+          name: name.trim(),
+          prayer: prayer.trim(),
+          type: 'personal',
+          notes: notes.trim(),
+          requestedBy: currentRequestedBy,
+        };
+        setPrayerItems(prev => [newPrayer, ...prev]);
+        shouldClearInputs = true;
       }
     }
 
-    // Adding a personal prayer (for both tabs)
-    if (name.trim() && (prayer.trim() || notes.trim())) {
-      const newPrayer: PrayerItem = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        prayer: prayer.trim(),
-        type: 'personal',
-        notes: notes.trim(),
-        requestedBy: currentRequestedBy,
-      };
-
-      setPrayerItems(prev => [newPrayer, ...prev]);
+    // Always clear inputs after processing
+    if (shouldClearInputs) {
       clearInputs();
     }
   };
@@ -204,7 +185,7 @@ const EnhancedPrayerList: React.FC = () => {
               <Text style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]}>
                 Prayers for People
               </Text>
-              {activeTab !== 'mine' && (
+              {activeTab !== 'mine' && prayerItems.filter(item => item.type === 'personal').length > 0 && (
                 <View style={[styles.badge, {backgroundColor: Colors.anchorBlue}]}>
                   <Text style={styles.badgeText}>
                     {prayerItems.filter(item => item.type === 'personal').length}

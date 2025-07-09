@@ -40,11 +40,13 @@ const PeoplePrayerList: React.FC = () => {
           <Ionicons name="people" size={20} color={Colors.hopeWhite} style={styles.headerIcon} />
           <Text style={styles.headerTitle}>Prayer List for People</Text>
         </View>
-        <View style={styles.headerPill}>
-          <Text style={styles.headerPillText}>
-            {peoplePrayers.length} {peoplePrayers.length === 1 ? 'PERSON' : 'PEOPLE'}
-          </Text>
-        </View>
+        {peoplePrayers.length > 0 && (
+          <View style={styles.headerPill}>
+            <Text style={styles.headerPillText}>
+              {peoplePrayers.length} {peoplePrayers.length === 1 ? 'PERSON' : 'PEOPLE'}
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Name Input */}
