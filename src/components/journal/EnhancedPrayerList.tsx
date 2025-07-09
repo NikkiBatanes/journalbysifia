@@ -14,14 +14,12 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-type PrayerStatus = 'praying' | 'answered';
 type PrayerType = 'personal' | 'request';
 
 interface PrayerItem {
   id: string;
   name: string;
   prayer: string;
-  status: PrayerStatus;
   type: PrayerType;
   requestedBy?: string;
   notes?: string;
@@ -31,15 +29,24 @@ const EnhancedPrayerList: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'mine' | 'requests'>('mine');
   
   const handleTabChange = (tab: 'mine' | 'requests') => {
+    // Dismiss keyboard first
+    Keyboard.dismiss();
+    
     // Clear all input fields
     setName('');
     setPrayer('');
     setNotes('');
     setCurrentRequestedBy(undefined);
-    Keyboard.dismiss();
     
-    // Change the active tab
-    setActiveTab(tab);
+    // Force blur any focused input
+    if (prayerInputRef.current) {
+      prayerInputRef.current.blur();
+    }
+    
+    // Change the active tab after a small delay
+    setTimeout(() => {
+      setActiveTab(tab);
+    }, 50);
   };
   const [name, setName] = useState('');
   const [prayer, setPrayer] = useState('');
@@ -47,8 +54,7 @@ const EnhancedPrayerList: React.FC = () => {
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isPrayerFocused, setIsPrayerFocused] = useState(false);
   const [isNotesFocused, setIsNotesFocused] = useState(false);
-  const [selectedPrayer, setSelectedPrayer] = useState<PrayerItem | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [inputKey, setInputKey] = useState(0); // Add key to force re-render inputs
   
   // Sample data - in a real app, this would come from a database
   const [prayerItems, setPrayerItems] = useState<PrayerItem[]>([
@@ -56,7 +62,6 @@ const EnhancedPrayerList: React.FC = () => {
       id: '1',
       name: 'John Doe',
       prayer: 'Healing from illness',
-      status: 'praying',
       type: 'personal',
       notes: 'Needs healing for back pain'
     },
@@ -64,7 +69,6 @@ const EnhancedPrayerList: React.FC = () => {
       id: '2',
       name: 'Sarah Smith',
       prayer: 'Job interview on Friday',
-      status: 'praying',
       type: 'request',
       requestedBy: 'Sarah'
     }
@@ -73,61 +77,63 @@ const EnhancedPrayerList: React.FC = () => {
   const [currentRequestedBy, setCurrentRequestedBy] = useState<string | undefined>(undefined);
 
   const handleAddPrayer = () => {
+    // Dismiss keyboard first
+    Keyboard.dismiss();
+    
+    // Create a function to clear all input fields
+    const clearInputs = () => {
+      // Reset all state values
+      setName('');
+      setPrayer('');
+      setNotes('');
+      setCurrentRequestedBy(undefined);
+      
+      // Reset focus states
+      setIsNameFocused(false);
+      setIsPrayerFocused(false);
+      setIsNotesFocused(false);
+      
+      // Force blur any focused inputs
+      if (prayerInputRef.current) {
+        prayerInputRef.current.blur();
+      }
+      
+      // Force a re-render of the inputs by updating the key
+      setInputKey(prev => prev + 1);
+    };
+
     if (activeTab === 'requests') {
       // Adding a new prayer request
       if (name.trim() && prayer.trim()) {
         const newPrayer: PrayerItem = {
           id: Date.now().toString(),
           name: name.trim(),
-          prayer: prayer.trim(), // Main prayer request text
-          status: 'praying',
+          prayer: prayer.trim(),
           type: 'request',
-          notes: notes.trim(), // Additional notes
+          notes: notes.trim(),
           requestedBy: 'Me'
         };
         
         setPrayerItems(prev => [newPrayer, ...prev]);
-        setName('');
-        setPrayer('');
-        setNotes('');
-        Keyboard.dismiss();
+        clearInputs();
+        return;
       }
-    } else {
-      // Adding a personal prayer
-      if (name.trim() && (prayer.trim() || notes.trim())) {
-        const newPrayer: PrayerItem = {
-          id: Date.now().toString(),
-          name: name.trim(),
-          prayer: prayer.trim(), // Personal prayer text
-          status: 'praying',
-          type: 'personal',
-          notes: notes.trim(), // Notes (could be the original prayer request)
-          requestedBy: currentRequestedBy
-        };
-        
-        setPrayerItems(prev => [newPrayer, ...prev]);
-        setName('');
-        setPrayer('');
-        setNotes('');
-        setCurrentRequestedBy(undefined);
-        Keyboard.dismiss();
-      }
+    } 
+    
+    // Adding a personal prayer (for both tabs)
+    if (name.trim() && (prayer.trim() || notes.trim())) {
+      const newPrayer: PrayerItem = {
+        id: Date.now().toString(),
+        name: name.trim(),
+        prayer: prayer.trim(),
+        type: 'personal',
+        notes: notes.trim(),
+        requestedBy: currentRequestedBy
+      };
+      
+      setPrayerItems(prev => [newPrayer, ...prev]);
+      clearInputs();
     }
-  };
-
-  const togglePrayerStatus = (id: string) => {
-    setPrayerItems(prev => 
-      prev.map(item => 
-        item.id === id 
-          ? { ...item, status: item.status === 'praying' ? 'answered' : 'praying' } 
-          : item
-      )
-    );
-  };
-
-  const handlePrayerPress = (prayer: PrayerItem) => {
-    setSelectedPrayer(prayer);
-    setIsModalVisible(true);
   };
 
   const prayerInputRef = useRef<TextInput>(null);
@@ -150,9 +156,6 @@ const EnhancedPrayerList: React.FC = () => {
         prayerInputRef.current.focus();
       }
     }, 100);
-    
-    // Close the modal if open
-    setIsModalVisible(false);
   };
 
   const filteredPrayers = prayerItems.filter(item => 
@@ -218,6 +221,7 @@ const EnhancedPrayerList: React.FC = () => {
         {/* Input Form */}
         <View style={[styles.inputContainer, isNameFocused && styles.inputFocused]}>
           <TextInput
+            key={`name-${inputKey}`}
             style={styles.input}
             placeholder={activeTab === 'mine' ? "Who are you praying for?" : "Who is requesting prayer?"}
             placeholderTextColor={Colors.trustGrey}
@@ -232,6 +236,7 @@ const EnhancedPrayerList: React.FC = () => {
 
         <View style={[styles.prayerInputContainer, isPrayerFocused && styles.inputFocused]}>
           <TextInput
+            key={`prayer-${inputKey}`}
             ref={prayerInputRef}
             style={[styles.input, styles.prayerInput]}
             placeholder={activeTab === 'mine' 
@@ -249,6 +254,7 @@ const EnhancedPrayerList: React.FC = () => {
           />
           {activeTab === 'mine' && (
             <TextInput
+              key={`notes-${inputKey}`}
               style={[styles.input, styles.notesInput]}
               placeholder="Notes (Optional)"
               placeholderTextColor={Colors.trustGrey}
@@ -279,23 +285,13 @@ const EnhancedPrayerList: React.FC = () => {
           {filteredPrayers.map((item) => (
             <TouchableOpacity 
               key={item.id} 
-              style={[
-                styles.prayerItem,
-                item.status === 'answered' && styles.answeredPrayer
-              ]}
-              onPress={() => handlePrayerPress(item)}
-              onLongPress={() => togglePrayerStatus(item.id)}
+              style={styles.prayerItem}
+              onPress={() => {}}
             >
               <View style={styles.prayerHeader}>
                 <Text style={styles.personName}>
                   {item.name}
                 </Text>
-                <Ionicons 
-                  name={item.status === 'answered' ? 'checkmark-circle' : 'ellipse-outline'}
-                  size={20}
-                  color={item.status === 'answered' ? Colors.growthGreen : Colors.hopeWhite}
-                  style={styles.statusIcon}
-                />
               </View>
               {item.type === 'request' ? (
                 // For prayer requests
@@ -340,70 +336,6 @@ const EnhancedPrayerList: React.FC = () => {
             </TouchableOpacity>
           ))}
         </ScrollView>
-
-        {/* Prayer Detail Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={isModalVisible}
-          onRequestClose={() => setIsModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              {selectedPrayer && (
-                <>
-                  <View style={styles.modalHeader}>
-                    <Text style={styles.modalTitle}>{selectedPrayer.name}</Text>
-                    <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                      <Ionicons name="close" size={24} color={Colors.anchorBlue} />
-                    </TouchableOpacity>
-                  </View>
-                  <Text style={styles.modalPrayer}>{selectedPrayer.prayer}</Text>
-                  {selectedPrayer.notes && (
-                    <View style={styles.notesContainer}>
-                      <Text style={styles.notesTitle}>
-                        {selectedPrayer.type === 'request' ? 'Prayer Request' : 'My Notes'}
-                      </Text>
-                      <Text style={styles.notesContent}>{selectedPrayer.notes}</Text>
-                    </View>
-                  )}
-                  <View style={styles.modalActions}>
-                    <TouchableOpacity 
-                      style={styles.statusButton}
-                      onPress={() => {
-                        togglePrayerStatus(selectedPrayer.id);
-                        setIsModalVisible(false);
-                      }}
-                    >
-                      <Ionicons 
-                        name={selectedPrayer.status === 'answered' ? 'ellipse-outline' : 'checkmark-circle'} 
-                        size={20} 
-                        color={selectedPrayer.status === 'answered' ? Colors.anchorBlue : Colors.growthGreen} 
-                      />
-                      <Text style={styles.statusButtonText}>
-                        {selectedPrayer.status === 'answered' ? 'Mark as Praying' : 'Mark as Answered'}
-                      </Text>
-                    </TouchableOpacity>
-                    {selectedPrayer.type === 'request' && (
-                      <TouchableOpacity 
-                        style={[styles.statusButton, styles.addToMyListButton]}
-                        onPress={() => {
-                          handleAddToMyList(selectedPrayer);
-                          setIsModalVisible(false);
-                        }}
-                      >
-                        <Ionicons name="add-circle" size={20} color={Colors.anchorBlue} />
-                        <Text style={[styles.statusButtonText, { color: Colors.anchorBlue }]}>
-Pray for {selectedPrayer.name} now
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </>
-              )}
-            </View>
-          </View>
-        </Modal>
       </View>
     </TouchableWithoutFeedback>
   );
@@ -556,9 +488,6 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
-  answeredPrayer: {
-    opacity: 0.7,
-  },
   prayerHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -603,83 +532,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     fontSize: 12,
     marginLeft: 4,
-  },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 16,
-    padding: 20,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
-    flex: 1,
-  },
-  modalPrayer: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: Colors.anchorBlue,
-    marginBottom: 16,
-  },
-  notesContainer: {
-    backgroundColor: 'rgba(26, 60, 109, 0.1)',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
-  },
-  notesTitle: {
-    fontSize: 14,
-    fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
-    marginBottom: 4,
-  },
-  notesContent: {
-    fontSize: 14,
-    color: Colors.anchorBlue,
-    lineHeight: 20,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statusButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(26, 60, 109, 0.1)',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    flex: 1,
-    marginRight: 8,
-    justifyContent: 'center',
-  },
-  addToMyListButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.anchorBlue,
-    marginRight: 0,
-    marginLeft: 8,
-  },
-  statusButtonText: {
-    marginLeft: 6,
-    fontFamily: Fonts.medium,
-    color: Colors.anchorBlue,
-    fontSize: 14,
-  },
+  }
 });
 
 export default EnhancedPrayerList;
