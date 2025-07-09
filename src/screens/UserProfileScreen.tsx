@@ -2,10 +2,12 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function UserProfileScreen() {
   const { name, setName } = useUser();
   const [input, setInput] = useState(name);
+  const { logout } = useAuth();
 
   // Sync input with context when the screen mounts or name changes
   useEffect(() => {
@@ -30,6 +32,7 @@ export default function UserProfileScreen() {
         autoCapitalize="words"
       />
       <Button title="Save" onPress={handleSave} disabled={!input.trim()} />
+      <Button title="Log Out" onPress={logout} color="#d9534f" />
       {name ? <Text style={styles.greeting}>Hello, {name}!</Text> : null}
     </View>
   );

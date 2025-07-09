@@ -65,7 +65,7 @@ const PrayedItemsList: React.FC<PrayedItemsListProps> = ({ items }) => {
               <Text style={styles.header}>Prayed Devotionals {formatPrayerDate(new Date(date))}</Text>
             </View>
             {groupedItems[date].map((item) => (
-              <View style={styles.prayerItem}>
+              <View style={styles.prayerItem} key={item.id}>
                 <Text style={styles.prayerText}>{
                   item.text
                     .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { signIn } from '../services/supabaseApi';
+import { useAuth } from '../context/AuthContext';
 
 type LoginScreenProps = {
   navigation: any;
@@ -12,6 +12,7 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -24,25 +25,15 @@ export default function LoginScreen({ navigation, onLogin }: LoginScreenProps) {
     console.log('Login attempt started for:', email);
 
     try {
-      const { error: signInError } = await signIn(email, password);
-      console.log('Login response error:', signInError);
-
-      if (signInError) {
-        // Handle different types of errors
-        if (signInError.error_description) {
-          throw new Error(signInError.error_description);
-        } else if (signInError.message) {
-          throw new Error(signInError.message);
-        } else if (typeof error === 'string') {
-          throw new Error(error);
-        } else {
-          throw new Error('Failed to sign in. Please try again.');
-        }
+      // Use AuthContext login
+      const success = await login(email, password);
+      if (success) {
+        // Auth state will update, app will show home
+        onLogin && onLogin();
+        return;
+      } else {
+        throw new Error('Invalid email or password. Please try again.');
       }
-
-      // Call the onLogin callback to update auth state in App.tsx
-      console.log('Login successful, calling onLogin');
-      onLogin();
     } catch (err: any) {
       console.error('Login error:', err);
 

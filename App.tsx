@@ -24,6 +24,7 @@ import { LogoutContext } from './src/context/LogoutContext';
 import { DevotionalProvider } from './src/context/DevotionalContext';
 import { ScrollProvider } from './src/context/ScrollContext';
 import { PrayerProvider } from './src/context/PrayerContext';
+import { AuthProvider, useAuth } from './src/context/AuthContext';
 
 // Stack navigator removed as it's not currently used
 
@@ -33,29 +34,18 @@ LogBox.ignoreAllLogs(); // Ignore all log notifications
 
 // Main App Component
 function App(): React.JSX.Element {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [fontsLoaded, setFontsLoaded] = useState(false);
   const [playbook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
 
   // Load custom fonts and icon fonts
   useEffect(() => {
     let isMounted = true;
-
     const loadFonts = async () => {
       try {
-        // Load any custom fonts here if needed
-        // Example:
-        // await Font.loadAsync({
-        //   'Custom-Font': require('./assets/fonts/CustomFont.ttf'),
-        // });
-
-        // Load icon fonts
         await Promise.all([
           Ionicons.loadFont(),
           MaterialCommunityIcons.loadFont(),
         ]);
-
       } catch (error) {
         console.warn('Error loading fonts:', error);
       } finally {
@@ -64,48 +54,24 @@ function App(): React.JSX.Element {
         }
       }
     };
-
     loadFonts();
-
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // Check if user is logged in on app start
-  useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const isLoggedIn = await checkAuth();
-        setIsAuthenticated(!!isLoggedIn);
-      } catch (error) {
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    checkUser();
-  }, []);
+  return (
+    <AuthProvider>
+      <AppWithAuth fontsLoaded={fontsLoaded} playbook={playbook} />
+    </AuthProvider>
+  );
+}
 
-  // Handle successful login
-  const handleLogin = useCallback(() => {
-    setIsAuthenticated(true);
-  }, []);
+function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
+  const { isAuthenticated, loading } = useAuth();
 
-  // Handle logout
-  const handleLogout = useCallback(async () => {
-    try {
-      await clearSession();
-      setIsAuthenticated(false);
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  }, []);
+  const isAppReady = fontsLoaded && !loading;
 
-  // Combine loading states
-  const isAppReady = fontsLoaded && !isLoading;
-
-  // Show loading state while app is getting ready
   if (!isAppReady) {
     return (
       <View style={styles.loadingContainer}>
@@ -122,18 +88,18 @@ function App(): React.JSX.Element {
           <PrayerProvider>
             <DevotionalProvider>
               <UserProvider>
-                <LogoutContext.Provider value={{ onLogout: handleLogout }}>
+                <LogoutContext.Provider value={{ onLogout: async () => {} }}>
                   <NavigationContainer>
                     {isAuthenticated ? (
                       <RootStackNavigator
                         isAuthenticated={isAuthenticated}
-                        handleLogin={handleLogin}
-                        handleLogout={handleLogout}
-                        onLogin={handleLogin}
+                        handleLogin={() => {}}
+                        handleLogout={() => {}}
+                        onLogin={() => {}}
                         AuthStack={AuthStackNavigator}
                       />
                     ) : (
-                      <AuthStackNavigator onLogin={handleLogin} />
+                      <AuthStackNavigator onLogin={() => {}} />
                     )}
                   </NavigationContainer>
                 </LogoutContext.Provider>

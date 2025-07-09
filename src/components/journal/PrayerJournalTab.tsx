@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
 import { Colors } from '../../theme/colors';
 import EnhancedPrayerList from './EnhancedPrayerList';
 import PrayerJournalCard from './PrayerJournalCard';
@@ -10,19 +10,27 @@ const PrayerJournalTab: React.FC = () => {
   const { prayedItems } = usePrayer();
 
   return (
-    <ScrollView style={styles.container}>
-      {prayedItems.length > 0 && (
-        <View style={styles.section}>
-          <PrayedItemsList items={prayedItems} />
-        </View>
-      )}
-      <View style={styles.section}>
-        <PrayerJournalCard />
-      </View>
-      <View style={styles.section}>
-        <EnhancedPrayerList />
-      </View>
-    </ScrollView>
+    <FlatList
+      style={styles.container}
+      data={[]}
+      keyExtractor={() => ''}
+      renderItem={null}
+      ListHeaderComponent={
+        <>
+          {prayedItems.length > 0 && (
+            <View style={styles.section}>
+              <PrayedItemsList items={prayedItems} />
+            </View>
+          )}
+          <View style={styles.section}>
+            <PrayerJournalCard />
+          </View>
+          <View style={styles.section}>
+            <EnhancedPrayerList />
+          </View>
+        </>
+      }
+    />
   );
 };
 

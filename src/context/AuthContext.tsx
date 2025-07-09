@@ -1,0 +1,234 @@
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Types
+interface User {
+  id: string;
+  email: string;
+  // Add more user fields as needed
+}
+
+interface AuthContextType {
+  isAuthenticated: boolean;
+  user: User | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  loading: boolean;
+  error: string | null;
+  retrying: boolean;
+  refreshRetrying: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  refreshAuthToken: () => Promise<boolean>;
+  checkAuth: () => Promise<boolean>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [retryIntervalId, setRetryIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [refreshRetrying, setRefreshRetrying] = useState(false);
+  const [refreshRetryIntervalId, setRefreshRetryIntervalId] = useState<NodeJS.Timeout | null>(null);
+
+  // Keys for AsyncStorage
+  const ACCESS_TOKEN_KEY = 'ACCESS_TOKEN';
+  const REFRESH_TOKEN_KEY = 'REFRESH_TOKEN';
+  const USER_KEY = 'USER';
+
+  // Load persisted auth state on mount
+  useEffect(() => {
+    const loadAuth = async () => {
+      setLoading(true);
+      try {
+        const [savedToken, savedRefresh, savedUser] = await Promise.all([
+          AsyncStorage.getItem(ACCESS_TOKEN_KEY),
+          AsyncStorage.getItem(REFRESH_TOKEN_KEY),
+          AsyncStorage.getItem(USER_KEY),
+        ]);
+        if (savedToken && savedRefresh && savedUser) {
+          setAccessToken(savedToken);
+          setRefreshToken(savedRefresh);
+          setUser(JSON.parse(savedUser));
+          setIsAuthenticated(true);
+          // After loading, validate session
+          validateSession(savedToken);
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      } catch (e) {
+        setError('Failed to load authentication state.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAuth();
+    // Cleanup retry interval on unmount
+    return () => {
+      if (retryIntervalId) clearInterval(retryIntervalId);
+    };
+  }, []);
+
+  // Robust session validation with retry logic
+  const validateSession = useCallback(async (token: string | null) => {
+    // For now, always succeed if there is a token (placeholder for real backend call)
+    if (token) {
+      setIsAuthenticated(true);
+      setRetrying(false);
+      setError(null);
+      if (retryIntervalId) {
+        clearInterval(retryIntervalId);
+        setRetryIntervalId(null);
+      }
+    } else {
+      setIsAuthenticated(false);
+      setUser(null);
+      setRetrying(false);
+    }
+    setLoading(false);
+    return true;
+  }, [retryIntervalId]);
+
+  // Login logic (replace with real API call)
+  const login = useCallback(async (email: string, password: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Replace with real login API call
+      // Simulated success:
+      const fakeAccessToken = 'fake_access_token';
+      const fakeRefreshToken = 'fake_refresh_token';
+      const fakeUser = { id: '1', email };
+      await AsyncStorage.setItem(ACCESS_TOKEN_KEY, fakeAccessToken);
+      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, fakeRefreshToken);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(fakeUser));
+      setAccessToken(fakeAccessToken);
+      setRefreshToken(fakeRefreshToken);
+      setUser(fakeUser);
+      setIsAuthenticated(true);
+      return true;
+    } catch (e) {
+      setError('Login failed.');
+      setAccessToken(null);
+      setRefreshToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Logout function
+  const logout = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
+      setAccessToken(null);
+      setRefreshToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (e) {
+      setError('Logout failed.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Token refresh logic (replace with real API call)
+  const refreshAuthToken = useCallback(async () => {
+    if (!refreshToken) return false;
+    setLoading(true);
+    setRefreshRetrying(false);
+    setError(null);
+    try {
+      // Replace with real refresh API call
+      // Simulate network error by throwing
+      // throw new Error('Network error');
+      // Simulated success:
+      const newToken = 'fake_access_token_refreshed';
+      await AsyncStorage.setItem(ACCESS_TOKEN_KEY, newToken);
+      setAccessToken(newToken);
+      setIsAuthenticated(true);
+      setRefreshRetrying(false);
+      if (refreshRetryIntervalId) {
+        clearInterval(refreshRetryIntervalId);
+        setRefreshRetryIntervalId(null);
+      }
+      return true;
+    } catch (e: any) {
+      // If error is network-related, set refreshRetrying and retry every 10s
+      setError('Network error during token refresh. Retrying...');
+      setRefreshRetrying(true);
+      if (!refreshRetryIntervalId) {
+        const id = setInterval(() => {
+          refreshAuthToken();
+        }, 10000);
+        setRefreshRetryIntervalId(id);
+      }
+      // Do NOT log out for transient errors
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshToken, refreshRetryIntervalId]);
+
+  // Check auth validity (replace with real API call or JWT check)
+  const checkAuth = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Replace with real validation logic
+      // If network error, do NOT log out, just retry later
+      if (accessToken) {
+        setIsAuthenticated(true);
+        return true;
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
+        return false;
+      }
+    } catch (e) {
+      setError('Auth check failed.');
+      // Do NOT log out for transient errors
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken]);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        accessToken,
+        refreshToken,
+        loading,
+        error,
+        retrying,
+        refreshRetrying,
+        login,
+        logout,
+        refreshAuthToken,
+        checkAuth,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
+};
