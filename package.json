@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
-    "@react-native-async-storage/async-storage": "^2.1.2",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/blur": "^4.4.1",
     "@react-native-community/datetimepicker": "^8.4.2",
     "@react-native-seoul/masonry-list": "^1.4.2",
@@ -32,6 +32,7 @@
     "lucide-react-native": "^0.523.0",
     "prop-types": "^15.8.1",
     "react": "19.0.0",
+    "react-icons": "^5.5.0",
     "react-is": "^19.1.0",
     "react-native": "0.79.2",
     "react-native-calendar-events": "^2.2.0",

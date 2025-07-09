@@ -49,8 +49,9 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+    alignItems: 'flex-start',
+    marginBottom: 0,
+    paddingBottom: 4,
   },
   iconContainer: {
     width: 32,
@@ -76,10 +77,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 2,
+    marginTop: 0,
+    marginBottom: 2,
   },
   content: {
-    marginTop: 4,
+    marginTop: 0,
   },
   defaultText: {
     color: Colors.hopeWhite,

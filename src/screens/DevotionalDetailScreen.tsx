@@ -15,6 +15,7 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
+import { usePrayer } from '../context/PrayerContext';
 import { runOnJS } from 'react-native-reanimated';
 import { Devotional } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
@@ -217,16 +218,34 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
   };
 
-  // Toggle prayer status for the current day
+  const { addPrayedItem } = usePrayer(); // Get addPrayedItem from PrayerContext
+
+  // Toggle prayer status for the current day and add to prayed items
   const togglePrayed = useCallback(() => {
-    if (!devotional) return;
-    
-    const dayId = `${devotional.id}-${currentDayIndex}`;
+    if (!devotional || !currentDay) {return;}
+
+    const prayerKey = `${devotional.id}-${currentDayIndex}`;
+    const isPrayed = !prayedDays[prayerKey];
+
+    // Update local prayed state
     setPrayedDays(prev => ({
       ...prev,
-      [dayId]: !prev[dayId]
+      [prayerKey]: isPrayed,
     }));
-  }, [devotional, currentDayIndex]);
+
+    // If marking as prayed, add to prayed items
+    if (isPrayed && currentDay.prayer?.trim()) {
+      addPrayedItem(
+        currentDay.prayer.replace(/\*\*/g, '').trim(),
+        {
+          devotionalTitle: extractCleanTitle(devotional.title) || 'Devotional',
+          totalDays: devotional.totalDays,
+          dayNumber: currentDay.dayNumber,
+          dayTitle: currentDay.title,
+        }
+      );
+    }
+  }, [devotional, currentDayIndex, currentDay, prayedDays, addPrayedItem]);
 
   // Handle continuing after completion modal
   const handleCompletionContinue = () => {
@@ -547,14 +566,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
                     : 'No prayer for today.'}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[
                     styles.prayerButton,
-                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive
+                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
                   ]}
                   onPress={togglePrayed}
                 >
-                  <Ionicons 
+                  <Ionicons
                     name="heart"
                     size={20}
                     color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.inactiveIcon}
@@ -562,7 +581,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                   />
                   <Text style={[
                     styles.prayerButtonText,
-                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive
+                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
                   ]}>
                     {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? ' Prayed' : ' Pray'}
                   </Text>
