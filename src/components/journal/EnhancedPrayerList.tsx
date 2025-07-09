@@ -23,6 +23,7 @@ interface PrayerItem {
   type: PrayerType;
   requestedBy?: string;
   notes?: string;
+  prayed?: boolean;
 }
 
 const EnhancedPrayerList: React.FC = () => {
@@ -102,6 +103,17 @@ const EnhancedPrayerList: React.FC = () => {
       setInputKey(prev => prev + 1);
     };
 
+    // If we're adding a prayer that came from a request, mark the original request as prayed
+    if (currentRequestedBy) {
+      setPrayerItems(prevItems => 
+        prevItems.map(item => 
+          item.name === name && item.type === 'request' && !item.prayed
+            ? { ...item, prayed: true }
+            : item
+        )
+      );
+    }
+
     if (activeTab === 'requests') {
       // Adding a new prayer request
       if (name.trim() && prayer.trim()) {
@@ -161,6 +173,11 @@ const EnhancedPrayerList: React.FC = () => {
   const filteredPrayers = prayerItems.filter(item => 
     activeTab === 'mine' ? item.type === 'personal' : item.type === 'request'
   );
+  
+  // Get count of unprayed requests for the badge
+  const unprayedRequestsCount = prayerItems.filter(item => 
+    item.type === 'request' && !item.prayed
+  ).length;
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -207,10 +224,10 @@ const EnhancedPrayerList: React.FC = () => {
               <Text style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
                 Prayer Requests
               </Text>
-              {activeTab !== 'requests' && (
+              {activeTab !== 'requests' && unprayedRequestsCount > 0 && (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
-                    {prayerItems.filter(item => item.type === 'request').length}
+                    {unprayedRequestsCount}
                   </Text>
                 </View>
               )}
@@ -326,11 +343,19 @@ const EnhancedPrayerList: React.FC = () => {
               )}
               {item.type === 'request' && activeTab === 'requests' && (
                 <TouchableOpacity 
-                  style={styles.addButton}
+                  style={[styles.addButton, item.prayed && styles.prayedButton]}
                   onPress={() => handleAddToMyList(item)}
+                  disabled={item.prayed}
                 >
-                  <Ionicons name="add-circle" size={20} color={Colors.hopeWhite} />
-                  <Text style={styles.addButtonText}>Pray for {item.name} now</Text>
+                  <Ionicons 
+                    name={item.prayed ? "checkmark-circle" : "add-circle"} 
+                    size={20} 
+                    color={Colors.hopeWhite}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={styles.addButtonText}>
+                    {item.prayed ? 'Prayed' : `Pray for ${item.name} now`}
+                  </Text>
                 </TouchableOpacity>
               )}
             </TouchableOpacity>
@@ -526,6 +551,10 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    width: '100%',
+  },
+  prayedButton: {
+    opacity: 0.7,
   },
   addButtonText: {
     color: Colors.hopeWhite,
