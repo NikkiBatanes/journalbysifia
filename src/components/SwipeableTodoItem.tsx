@@ -101,12 +101,12 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
         style={styles.todoItem}
         activeOpacity={1}
         onPress={() => {
-          onToggle(item.id);
+          onToggle(item.id, false); // Explicitly pass false for regular toggle
           closeSwipeable();
         }}
         onLongPress={() => {
           if (!item.completed) {
-            onToggle(item.id, true);
+            onToggle(item.id, true); // Pass true for priority toggle
           }
         }}
       >

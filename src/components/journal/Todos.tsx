@@ -80,101 +80,134 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
   };
 
   // Save todos to local storage and sync to cloud
-  const saveTodos = async (items: TodoItem[]) => {
+  const saveTodos = async (items: TodoItem[]): Promise<void> => {
     console.log('!!! saveTodos CALLED !!!', { user, items });
     if (!user) {
       console.error('No user found when trying to save todos');
       Alert.alert('Error', 'You must be logged in to save todos.');
-      return;
+      return Promise.reject('No user found');
     }
-    
-    console.log('Current user ID:', user.id);
-    console.log('Saving todos for date:', dateStr);
-    
+
+    // Update UI immediately
     setTodos(items);
+    
+    // Start sync indicator
     setSyncing(true);
-    try {
-      const localEntry = await getLocalEntry(key);
-      
-      if (items.length === 0) {
-        // If there are no items, delete the entry
-        if (localEntry) {
-          await deleteLocalEntry(key);
-          if (localEntry.id) {
-            // If we have an ID, delete from cloud
-            await deleteCloudEntry(user.id, localEntry.id);
+    
+    // Return a promise that resolves when all operations are complete
+    return new Promise(async (resolve, reject) => {
+      try {
+        const localEntry = await getLocalEntry(key);
+        
+        if (items.length === 0) {
+          // If there are no items, delete the entry
+          if (localEntry) {
+            await deleteLocalEntry(key);
+            if (localEntry.id) {
+              // If we have an ID, delete from cloud
+              await deleteCloudEntry(user.id, localEntry.id);
+            } else {
+              // Try to find a cloud entry for this date/user and delete it
+              const maybeCloudEntry = await getCloudEntry(user.id, key.split('_').pop() || '', dateStr);
+              if (maybeCloudEntry?.id) {
+                await deleteCloudEntry(user.id, maybeCloudEntry.id);
+              }
+            }
           } else {
             // Try to find a cloud entry for this date/user and delete it
             const maybeCloudEntry = await getCloudEntry(user.id, key.split('_').pop() || '', dateStr);
-            if (maybeCloudEntry && maybeCloudEntry.id) {
+            if (maybeCloudEntry?.id) {
               await deleteCloudEntry(user.id, maybeCloudEntry.id);
             }
           }
-        } else {
-          // Try to find a cloud entry for this date/user and delete it
-          const maybeCloudEntry = await getCloudEntry(user.id, key.split('_').pop() || '', dateStr);
-          if (maybeCloudEntry && maybeCloudEntry.id) {
-            await deleteCloudEntry(user.id, maybeCloudEntry.id);
-          }
+          resolve();
+          return;
         }
-        setTodos([]);
-        return;
+        
+        // Save/update local entry
+        const entryData = {
+          content_type: contentType,
+          content: { items },
+          selected_date: dateStr,
+          user_id: user.id,
+        };
+        
+        if (localEntry) {
+          await updateLocalEntry(key, { ...localEntry, content: { items } });
+        } else {
+          await saveLocalEntry(key, entryData, user.id);
+        }
+        
+        // Sync to cloud in the background (don't await)
+        syncToCloud(user.id, dateStr, contentType)
+          .then(() => {
+            console.log('Background sync completed successfully');
+          })
+          .catch(err => {
+            console.error('Background sync failed:', err);
+            // Could add retry logic here if needed
+          });
+        
+        resolve();
+      } catch (err) {
+        console.error('Background save/sync error:', err);
+        reject(err);
+      } finally {
+        setSyncing(false);
       }
-      
-      // Save/update local entry
-      const entryData = {
-        content_type: contentType,
-        content: { items },
-        selected_date: dateStr,
-        user_id: user.id,
-      };
-      
-      console.log('Saving entry data:', JSON.stringify(entryData, null, 2));
-      
-      if (localEntry) {
-        console.log('Updating existing local entry');
-        await updateLocalEntry(key, { ...localEntry, content: { items } });
-      } else {
-        console.log('Creating new local entry');
-        await saveLocalEntry(key, entryData, user.id);
-      }
-      
-      // Sync to cloud
-      console.log('Syncing to cloud...');
-      await syncToCloud(user.id, dateStr, contentType);
-      console.log('Sync completed successfully');
-    } catch (err) {
-      console.error('Failed to save/sync todos:', err);
-      Alert.alert('Error', 'Failed to save or sync todos.');
-    } finally {
-      setSyncing(false);
-    }
+    });
   };
 
   // Add a todo
-  const addTodo = (value: string) => {
-    if (value.trim()) {
-      const newItems = [...todos, {
-        id: Date.now().toString(),
-        text: value,
-        completed: false,
-        priority: false,
-      }];
-      setTodos(newItems);
-      saveTodos(newItems);
+  const addTodo = async (value: string): Promise<boolean> => {
+    if (!value.trim()) return false;
+    
+    const newTodo = {
+      id: Date.now().toString(),
+      text: value.trim(),
+      completed: false,
+      priority: false,
+    };
+    
+    // Optimistically update the UI
+    setTodos(prevTodos => [...prevTodos, newTodo]);
+    
+    try {
+      // Save to storage
+      await saveTodos([...todos, newTodo]);
       return true;
+    } catch (error) {
+      console.error('Failed to save new todo:', error);
+      // Revert UI on error
+      setTodos(prevTodos => prevTodos.filter(t => t.id !== newTodo.id));
+      Alert.alert('Error', 'Failed to save todo. Please try again.');
+      return false;
     }
-    return false;
   };
 
-  const handleAddInput = () => {
-    if (newTodo.trim()) {
-      closeAllSwipeables();
-      addTodo(newTodo);
-      setNewTodo('');
-      setVisibleCount(5);
-      // Focus the input after adding a task
-      setTimeout(() => inputRef.current?.focus(), 100);
+  const handleAddInput = async () => {
+    const todoText = newTodo.trim();
+    if (!todoText) return;
+    
+    closeAllSwipeables();
+    
+    // Clear input immediately for better UX
+    const currentInput = todoText;
+    setNewTodo('');
+    setVisibleCount(5);
+    
+    try {
+      const wasAdded = await addTodo(currentInput);
+      if (wasAdded) {
+        // Focus the input after adding a task
+        setTimeout(() => inputRef.current?.focus(), 100);
+      } else {
+        // If add failed, restore the input text
+        setNewTodo(currentInput);
+      }
+    } catch (error) {
+      // Restore input if there was an error
+      setNewTodo(currentInput);
     }
   };
 
@@ -312,27 +345,37 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
     }
   }, [recentlyCompleted]);
 
-  const toggleTodo = (id: string, isPriorityToggle = false) => {
-    const updatedTodos = todos.map(todo => {
-      if (todo.id === id) {
-        if (isPriorityToggle) {
-          return {
-            ...todo,
-            priority: !todo.priority,
-          };
-        } else {
-          const completed = !todo.completed;
-          return {
-            ...todo,
-            completed,
-            completedAt: completed ? Date.now() : undefined,
-          };
+  const toggleTodo = async (id: string, isPriorityToggle = false) => {
+    // Optimistically update the UI
+    setTodos(currentTodos => {
+      const updatedTodos = currentTodos.map(todo => {
+        if (todo.id === id) {
+          if (isPriorityToggle) {
+            return {
+              ...todo,
+              priority: !todo.priority,
+            };
+          } else {
+            const completed = !todo.completed;
+            return {
+              ...todo,
+              completed,
+              completedAt: completed ? Date.now() : undefined,
+            };
+          }
         }
-      }
-      return todo;
+        return todo;
+      });
+      
+      // Save to storage in the background
+      saveTodos(updatedTodos).catch(err => {
+        console.error('Failed to save todo update:', err);
+        // Revert UI on error
+        setTodos(currentTodos);
+      });
+      
+      return updatedTodos;
     });
-    setTodos(updatedTodos);
-    saveTodos(updatedTodos);
   };
 
   const sortedTodos = React.useMemo(() => {
