@@ -95,8 +95,26 @@ export interface JournalEntryBase {
 }
 
 // --- AsyncStorage Key Helper ---
-export const getJournalKey = (contentType: string, date: string, userId: string) =>
-  `journal_${contentType}_${date}_${userId}`;
+export const getJournalKey = (contentType: string, date: string, userId: string) => {
+  // Ensure date is in YYYY-MM-DD format
+  let formattedDate = date;
+  try {
+    // If date is a full ISO string, extract just the date part
+    if (date.includes('T')) {
+      formattedDate = date.split('T')[0];
+    }
+    // If it's a date object, format it
+    else if (date.match(/^\d{4}-\d{2}-\d{2}$/) === null) {
+      formattedDate = new Date(date).toISOString().split('T')[0];
+    }
+  } catch (e) {
+    console.error('Error formatting date:', e);
+  }
+  
+  const key = `journal_${contentType}_${formattedDate}_${userId}`;
+  console.log('Generated key:', { contentType, date, formattedDate, userId, key });
+  return key;
+};
 
 // --- AsyncStorage Operations ---
 export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, 'id'|'created_at'|'updated_at'>, userId: string): Promise<JournalEntryBase> => {
@@ -108,27 +126,35 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
   }
 
   const now = new Date().toISOString();
+  // Extract date from key if not provided in data
+  const keyParts = key.split('_');
+  const dateFromKey = keyParts.length >= 3 ? keyParts[keyParts.length - 2] : null;
+  
   const newEntry: JournalEntryBase = {
     ...data,
     id: generateUUID(), // Always generate a new ID for new entries
     user_id: userId,
     created_at: now,
     updated_at: now,
-    selected_date: data.selected_date || new Date().toISOString().split('T')[0],
+    selected_date: data.selected_date || dateFromKey || new Date().toISOString().split('T')[0],
     content_type: data.content_type || 'unknown',
     content: data.content || {},
   };
 
-  console.log('Saving local entry:', {
+  console.log('[JOURNAL STORAGE] Saving local entry:', {
+    key,
     id: newEntry.id,
     type: newEntry.content_type,
     date: newEntry.selected_date,
     userId: newEntry.user_id,
     hasContent: !!newEntry.content,
+    newEntry
   });
 
   try {
     await AsyncStorage.setItem(key, JSON.stringify(newEntry));
+    const verify = await AsyncStorage.getItem(key);
+    console.log('[JOURNAL STORAGE] After save, value in storage:', verify);
     console.log('Successfully saved local entry');
     return newEntry;
   } catch (error) {
@@ -180,17 +206,41 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
 };
 
 export const getLocalEntry = async (key: string): Promise<JournalEntryBase | null> => {
-  console.log('!!! getLocalEntry called !!!', { key });
+  console.log('[JOURNAL STORAGE] getLocalEntry called', { key });
   const value = await AsyncStorage.getItem(key);
+  console.log('[JOURNAL STORAGE] getLocalEntry result', { key, value });
   return value ? JSON.parse(value) : null;
 };
 
 export const getLocalEntriesForDate = async (date: string, contentType: string, userId: string) => {
   console.log('!!! getLocalEntriesForDate called !!!', { date, contentType, userId });
-  const key = getJournalKey(contentType, date, userId);
+  
+  // Generate the key using the same format as getJournalKey
+  const formatDateForKey = (dateStr: string) => {
+    try {
+      if (dateStr.includes('T')) {
+        return dateStr.split('T')[0];
+      }
+      if (!dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return new Date(dateStr).toISOString().split('T')[0];
+      }
+      return dateStr;
+    } catch (e) {
+      console.error('Error formatting date for key:', e);
+      return dateStr;
+    }
+  };
+  
+  const formattedDate = formatDateForKey(date);
+  const key = getJournalKey(contentType, formattedDate, userId);
+  
+  console.log('Looking up entry with key:', key);
   const entry = await getLocalEntry(key);
 
-  if (!entry) {return null;}
+  if (!entry) {
+    console.log('No entry found for key:', key);
+    return null;
+  }
 
   // Ensure the entry has all required fields and matches the requested date
   const completeEntry: JournalEntryBase = {
@@ -199,14 +249,27 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
     content: entry.content || {},
     created_at: entry.created_at || new Date().toISOString(),
     updated_at: entry.updated_at || new Date().toISOString(),
-    selected_date: entry.selected_date || date,
+    selected_date: entry.selected_date || formattedDate,
     user_id: entry.user_id || userId,
     ...(entry.related_date && { related_date: entry.related_date }),
   };
 
+  // Format both dates consistently for comparison (YYYY-MM-DD)
+  const formatDateForComparison = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toISOString().split('T')[0];
+    } catch (e) {
+      console.error('Error formatting date for comparison:', e);
+      return dateStr; // Fallback to original if parsing fails
+    }
+  };
+
+  const formattedEntryDate = formatDateForComparison(completeEntry.selected_date || '');
+  const formattedRequestDate = formatDateForComparison(formattedDate);
+
   // Verify the entry's selected_date matches the requested date
-  if (completeEntry.selected_date !== date) {
-    console.log('Entry date does not match requested date, returning null');
+  if (formattedEntryDate !== formattedRequestDate) {
+    console.log(`Entry date (${formattedEntryDate}) does not match requested date (${formattedRequestDate}), returning null`);
     return null;
   }
 
@@ -216,6 +279,7 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
     hasUserId: !!completeEntry.user_id,
     updatedAt: completeEntry.updated_at,
     selectedDate: completeEntry.selected_date,
+    content: completeEntry.content ? 'has content' : 'no content'
   });
 
   return completeEntry;

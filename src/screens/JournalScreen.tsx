@@ -300,7 +300,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             scrollEventThrottle={16}
           >
             <View style={styles.componentSpacing}>
-              <TodaysFocus />
+              <TodaysFocus selectedDate={currentDate} />
             </View>
             <View style={styles.componentSpacing}>
               <Todos selectedDate={currentDate} />

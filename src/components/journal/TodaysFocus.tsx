@@ -1,10 +1,13 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
 import { Check, Goal as LuGoal, X } from 'lucide-react-native';
+import { getJournalKey, getLocalEntry, saveLocalEntry, syncToCloud, syncFromCloud, checkSession } from '../../storage/journalStorage';
+import { useAuth } from '../../context/AuthContext';
+import { toLocalDateString } from '../../utils/date';
 
 interface PriorityItem {
   id: string;
@@ -17,7 +20,19 @@ interface TodayFocusData {
   priorities: PriorityItem[];
 }
 
-export const TodaysFocus: React.FC = () => {
+interface TodaysFocusProps {
+  selectedDate?: Date;
+}
+
+export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Date() }) => {
+  // Log for robust debugging
+  const debugDate = selectedDate instanceof Date ? selectedDate.toISOString() : String(selectedDate);
+  const dateStr = toLocalDateString(selectedDate);
+  const contentType = 'todays_focus';
+  const { user, loading: authLoading } = useAuth();
+  const key = React.useMemo(() => user ? getJournalKey(contentType, dateStr, user.id) : '', [user, dateStr]);
+  console.log('[TODAYS FOCUS] Render: user:', user, 'authLoading:', authLoading, 'dateStr:', dateStr, 'key:', key);
+
   const [data, setData] = useState<TodayFocusData>({
     focus: '',
     priorities: [
@@ -27,10 +42,190 @@ export const TodaysFocus: React.FC = () => {
     ],
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const swipeableRefs = useRef<{[key: string]: any}>({});
 
   // Store original data for cancel functionality
   const originalData = useRef<TodayFocusData>({ ...data });
+
+  // Prevent save on first hydration after date change
+  const hydratedRef = useRef(false);
+
+  // Immediately reset state to default when date changes (prevents stale data)
+  useEffect(() => {
+    setData({
+      focus: '',
+      priorities: [
+        { id: '1', text: '', completed: false },
+        { id: '2', text: '', completed: false },
+        { id: '3', text: '', completed: false },
+      ],
+    });
+    hydratedRef.current = false;
+    console.log('Resetting Today\'s Focus state to default for date:', dateStr);
+  }, [dateStr]);
+
+  // Hydrate Today's Focus from storage and cloud
+  useEffect(() => {
+    let isMounted = true;
+    console.log('[TODAYS FOCUS] Hydration effect: user:', user, 'authLoading:', authLoading, 'dateStr:', dateStr, 'key:', key);
+    
+    const hydrateFocus = async () => {
+      console.log('[TODAYS FOCUS] hydrateFocus running for date:', dateStr, 'key:', key);
+      if (!user) {
+        console.log('No user, skipping focus hydration');
+        return;
+      }
+      
+      console.log('Hydrating focus for date:', dateStr, 'with key:', key);
+      
+      // Immediately reset to default state when date changes
+      const defaultData = {
+        focus: '',
+        priorities: [
+          { id: '1', text: '', completed: false },
+          { id: '2', text: '', completed: false },
+          { id: '3', text: '', completed: false },
+        ],
+      };
+      
+      if (isMounted) {
+        setData(defaultData);
+        setLoading(true);
+      }
+      
+      try {
+        const { session: currentSession } = await checkSession();
+        
+        // Try to load local data
+        console.log('Loading local focus...');
+        const localEntry = await getLocalEntry(key);
+        console.log('[TODAYS FOCUS] hydrateFocus: Local entry loaded:', localEntry);
+        
+        if (!isMounted) return;
+        
+        if (localEntry?.content) {
+          console.log('Setting local data:', localEntry.content);
+          setData(localEntry.content);
+        } else {
+          console.log('No local data found, using default');
+          setData(defaultData);
+        }
+        
+        // Sync from cloud (if newer, will update local)
+        console.log('Syncing from cloud...');
+        await syncFromCloud(user.id, dateStr, contentType);
+        
+        if (!isMounted) return;
+        
+        // Reload local after sync
+        console.log('Reloading local data after sync...');
+        const syncedEntry = await getLocalEntry(key);
+        console.log('[TODAYS FOCUS] hydrateFocus: Synced entry loaded:', syncedEntry);
+        
+        if (!isMounted) return;
+        
+        if (syncedEntry?.content) {
+          console.log('Setting synced data:', syncedEntry.content);
+          setData(syncedEntry.content);
+        } else {
+          console.log('No synced data found, using default');
+          setData(defaultData);
+        }
+        // Hydration complete, allow save effect to run
+        hydratedRef.current = true;
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to hydrate today\'s focus:', err);
+        Alert.alert('Error', 'Failed to load today\'s focus.');
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    if (!authLoading) {
+      console.log('Auth loaded, starting hydration for date:', dateStr);
+      hydrateFocus();
+    }
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user, authLoading, dateStr, key]); // Matches Todos pattern: always hydrate on date change to storage and cloud
+
+  // Save Today's Focus to storage and cloud
+  const saveFocus = async (focusData: TodayFocusData) => {
+    if (!user) {
+      console.error('No user found when trying to save today\'s focus');
+      Alert.alert('Error', 'You must be logged in to save today\'s focus.');
+      return Promise.reject('No user found');
+    }
+    setData(focusData);
+    setSyncing(true);
+    try {
+      // Ensure the date is in the correct format (YYYY-MM-DD) and always local
+      const formattedDate = toLocalDateString(selectedDate);
+      
+      const entryData = {
+        content_type: contentType,
+        content: focusData,
+        selected_date: formattedDate,
+        user_id: user.id,
+      };
+      
+      console.log('Saving entry with data:', {
+        key,
+        dateStr,
+        formattedDate,
+        entryData
+      });
+      
+      await saveLocalEntry(key, entryData, user.id)
+      .then(() => {
+        console.log('[TODAYS FOCUS] Successfully saved to local storage.');
+      })
+      .catch((err) => {
+        console.error('[TODAYS FOCUS] Error saving to local storage:', err);
+        Alert.alert('Error', 'Failed to save Today\'s Focus to local storage.');
+        throw err;
+      });
+    
+    // Use the formatted date for cloud sync as well (local date string)
+    await syncToCloud(user.id, formattedDate, contentType)
+      .then(() => {
+        console.log('[TODAYS FOCUS] Background sync to cloud completed successfully');
+      })
+      .catch(err => {
+        console.error('[TODAYS FOCUS] Background sync to cloud failed:', err);
+        Alert.alert('Error', 'Failed to sync Today\'s Focus to the cloud.');
+      });
+    } catch (err) {
+      console.error('Background save/sync error:', err);
+      throw err;
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Save on data change (except during initial hydration)
+  useEffect(() => {
+    console.log('[TODAYS FOCUS] Save effect: hydratedRef:', hydratedRef.current, 'loading:', loading, 'user:', user);
+    if (!hydratedRef.current) {
+      // Block save if hydration is not complete
+      return;
+    }
+    if (!loading && user) {
+      console.log('[TODAYS FOCUS] Save effect running for date:', dateStr, 'with data:', data);
+      saveFocus(data).catch((err) => {
+        console.error('[TODAYS FOCUS] Save effect error:', err);
+        Alert.alert('Error', 'Failed to save Today\'s Focus.');
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
   const toggleEditing = () => {
     if (!isEditing) {

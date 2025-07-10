@@ -135,7 +135,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
         if (localEntry) {
           await updateLocalEntry(key, { ...localEntry, content: { items } });
         } else {
-          await saveLocalEntry(key, entryData, user.id);
+          await saveLocalEntry(key, { ...entryData, user_id: user.id }, user.id);
         }
 
         // Sync to cloud in the background (don't await)
@@ -276,12 +276,10 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
 
   // Reset adding state when date changes or when switching tabs
   useEffect(() => {
-    if (isAdding) {
-      setIsAdding(false);
-      setNewTodo('');
-      closeAllSwipeables();
-    }
-  }, [dateStr, isAdding]);
+    setIsAdding(false);
+    setNewTodo('');
+    closeAllSwipeables();
+  }, [dateStr]);
 
   // Track recently completed items to keep them visible briefly
   const [recentlyCompleted, setRecentlyCompleted] = useState<{[key: string]: boolean}>({});
