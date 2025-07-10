@@ -303,7 +303,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               <TodaysFocus />
             </View>
             <View style={styles.componentSpacing}>
-              <Todos />
+              <Todos selectedDate={currentDate} />
             </View>
             <View style={styles.componentSpacing}>
               <TimeBlock />

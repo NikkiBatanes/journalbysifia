@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Check, ListTodo as LuListTodo, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
+// Storage and auth imports
+import { getJournalKey, getLocalEntry, saveLocalEntry, updateLocalEntry, deleteLocalEntry, deleteCloudEntry, getCloudEntry, syncToCloud, syncFromCloud, checkSession } from '../../storage/journalStorage';
+import { useAuth } from '../../context/AuthContext';
 
 interface TodoItem {
   id: string;
@@ -15,7 +18,13 @@ interface TodoItem {
   completedAt?: number;
 }
 
-export const Todos: React.FC = () => {
+interface TodosProps {
+  selectedDate?: Date;
+}
+
+import { toLocalDateString } from '../../utils/date';
+
+export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -24,6 +33,17 @@ export const Todos: React.FC = () => {
   const [showOnlyPriorities, setShowOnlyPriorities] = useState(false);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
   const inputRef = useRef<TextInput>(null);
+
+  // Auth and date context
+  const { user, loading: authLoading } = useAuth();
+  // Use the selectedDate prop, defaulting to today if not provided
+  const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
+  const contentType = 'todos';
+  const key = user ? getJournalKey(contentType, dateStr, user.id) : '';
+
+  // Syncing/loading state
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   const closeAllSwipeables = () => {
     Object.values(swipeableRefs.current).forEach(ref => {
@@ -53,14 +73,95 @@ export const Todos: React.FC = () => {
     }
   };
 
+  // Remove a todo
+  const removeTodo = (id: string) => {
+    const newItems = todos.filter(todo => todo.id !== id);
+    saveTodos(newItems);
+  };
+
+  // Save todos to local storage and sync to cloud
+  const saveTodos = async (items: TodoItem[]) => {
+    console.log('!!! saveTodos CALLED !!!', { user, items });
+    if (!user) {
+      console.error('No user found when trying to save todos');
+      Alert.alert('Error', 'You must be logged in to save todos.');
+      return;
+    }
+    
+    console.log('Current user ID:', user.id);
+    console.log('Saving todos for date:', dateStr);
+    
+    setTodos(items);
+    setSyncing(true);
+    try {
+      const localEntry = await getLocalEntry(key);
+      
+      if (items.length === 0) {
+        // If there are no items, delete the entry
+        if (localEntry) {
+          await deleteLocalEntry(key);
+          if (localEntry.id) {
+            // If we have an ID, delete from cloud
+            await deleteCloudEntry(user.id, localEntry.id);
+          } else {
+            // Try to find a cloud entry for this date/user and delete it
+            const maybeCloudEntry = await getCloudEntry(user.id, key.split('_').pop() || '', dateStr);
+            if (maybeCloudEntry && maybeCloudEntry.id) {
+              await deleteCloudEntry(user.id, maybeCloudEntry.id);
+            }
+          }
+        } else {
+          // Try to find a cloud entry for this date/user and delete it
+          const maybeCloudEntry = await getCloudEntry(user.id, key.split('_').pop() || '', dateStr);
+          if (maybeCloudEntry && maybeCloudEntry.id) {
+            await deleteCloudEntry(user.id, maybeCloudEntry.id);
+          }
+        }
+        setTodos([]);
+        return;
+      }
+      
+      // Save/update local entry
+      const entryData = {
+        content_type: contentType,
+        content: { items },
+        selected_date: dateStr,
+        user_id: user.id,
+      };
+      
+      console.log('Saving entry data:', JSON.stringify(entryData, null, 2));
+      
+      if (localEntry) {
+        console.log('Updating existing local entry');
+        await updateLocalEntry(key, { ...localEntry, content: { items } });
+      } else {
+        console.log('Creating new local entry');
+        await saveLocalEntry(key, entryData, user.id);
+      }
+      
+      // Sync to cloud
+      console.log('Syncing to cloud...');
+      await syncToCloud(user.id, dateStr, contentType);
+      console.log('Sync completed successfully');
+    } catch (err) {
+      console.error('Failed to save/sync todos:', err);
+      Alert.alert('Error', 'Failed to save or sync todos.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  // Add a todo
   const addTodo = (value: string) => {
     if (value.trim()) {
-      setTodos([...todos, {
+      const newItems = [...todos, {
         id: Date.now().toString(),
         text: value,
         completed: false,
         priority: false,
-      }]);
+      }];
+      setTodos(newItems);
+      saveTodos(newItems);
       return true;
     }
     return false;
@@ -77,6 +178,62 @@ export const Todos: React.FC = () => {
     }
   };
 
+  // Hydrate todos from local storage and sync from cloud
+  useEffect(() => {
+    const hydrateTodos = async () => {
+      if (!user) {
+        console.log('No user, skipping todo hydration');
+        return;
+      }
+      
+      console.log('Hydrating todos for date:', dateStr);
+      setLoading(true);
+      
+      try {
+        // Check session first
+        const { session: currentSession } = await checkSession();
+        console.log('Current session during hydration:', currentSession?.user?.id);
+        
+        // 1. Load local
+        console.log('Loading local todos...');
+        const localEntry = await getLocalEntry(key);
+        console.log('Local entry loaded:', localEntry ? 'exists' : 'not found');
+        
+        if (localEntry?.content?.items) {
+          setTodos(localEntry.content.items);
+        } else {
+          setTodos([]);
+        }
+        
+        // 2. Sync from cloud (if newer, will update local)
+        console.log('Syncing from cloud...');
+        await syncFromCloud(user.id, dateStr, contentType);
+        
+        // 3. Reload local after sync
+        console.log('Reloading local data after sync...');
+        const syncedEntry = await getLocalEntry(key);
+        if (syncedEntry?.content?.items) {
+          setTodos(syncedEntry.content.items);
+        } else {
+          setTodos([]);
+        }
+      } catch (err) {
+        console.error('Failed to hydrate todos:', err);
+        Alert.alert('Error', 'Failed to load todos.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (!authLoading) {
+      console.log('Auth loaded, starting hydration');
+      hydrateTodos();
+    } else {
+      console.log('Waiting for auth to load...');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading, dateStr]);
+
   // Auto-focus when starting to add a new task
   useEffect(() => {
     if (isAdding) {
@@ -86,6 +243,41 @@ export const Todos: React.FC = () => {
 
   // Track recently completed items to keep them visible briefly
   const [recentlyCompleted, setRecentlyCompleted] = useState<{[key: string]: boolean}>({});
+
+  // Sync from cloud on app start or when online
+  useEffect(() => {
+    const syncOnStart = async () => {
+      if (!user) {
+        console.log('No user, skipping initial sync');
+        return;
+      }
+      
+      console.log('Starting initial cloud sync...');
+      setSyncing(true);
+      
+      try {
+        await syncFromCloud(user.id, dateStr, contentType);
+        console.log('Initial cloud sync completed');
+        
+        // Reload local after sync
+        const syncedEntry = await getLocalEntry(key);
+        if (syncedEntry?.content?.items) {
+          console.log('Updating todos after initial sync:', syncedEntry.content.items.length, 'items');
+          setTodos(syncedEntry.content.items);
+        }
+      } catch (err) {
+        console.error('Initial sync from cloud failed:', err);
+      } finally {
+        setSyncing(false);
+      }
+    };
+    
+    if (!authLoading) {
+      console.log('Auth loaded, starting initial sync');
+      syncOnStart();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading, dateStr]);
 
   // Automatically turn off filters when they become irrelevant
   useEffect(() => {
@@ -121,73 +313,26 @@ export const Todos: React.FC = () => {
   }, [recentlyCompleted]);
 
   const toggleTodo = (id: string, isPriorityToggle = false) => {
-    setTodos(prevTodos => {
-      const todoToUpdate = prevTodos.find(t => t.id === id);
-      const isCompletingPriority = !isPriorityToggle && todoToUpdate?.priority && !todoToUpdate.completed;
-
-      // First update the todo's completed state
-      const updatedTodos = prevTodos.map(todo => {
-        if (todo.id === id) {
-          if (isPriorityToggle) {
-            return {
-              ...todo,
-              priority: !todo.priority,
-            };
-          } else {
-            const completed = !todo.completed;
-            return {
-              ...todo,
-              completed,
-              completedAt: completed ? Date.now() : undefined,
-              // Keep priority initially when marking as completed (we'll clear it after delay)
-              priority: todo.priority,
-            };
-          }
+    const updatedTodos = todos.map(todo => {
+      if (todo.id === id) {
+        if (isPriorityToggle) {
+          return {
+            ...todo,
+            priority: !todo.priority,
+          };
+        } else {
+          const completed = !todo.completed;
+          return {
+            ...todo,
+            completed,
+            completedAt: completed ? Date.now() : undefined,
+          };
         }
-        return todo;
-      });
-
-      // If we're completing a priority item, handle the delay
-      if (isCompletingPriority) {
-        // Add to recentlyCompleted to keep it visible
-        setRecentlyCompleted(prev => ({ ...prev, [id]: true }));
-
-        // After delay, remove priority and check if we should turn off the filter
-        setTimeout(() => {
-          setTodos(currentTodos => {
-            // First remove the priority from the completed item
-            const todosWithoutPriority = currentTodos.map(t =>
-              t.id === id ? { ...t, priority: false } : t
-            );
-
-            // Check if there are any remaining uncompleted priorities
-            const hasUncompletedPriorities = todosWithoutPriority.some(
-              t => t.priority && !t.completed
-            );
-
-            // If no more uncompleted priorities, turn off the filter
-            if (!hasUncompletedPriorities) {
-              setShowOnlyPriorities(false);
-            }
-
-            return todosWithoutPriority;
-          });
-
-          // Clear from recentlyCompleted
-          setRecentlyCompleted(prev => {
-            const newState = {...prev};
-            delete newState[id];
-            return newState;
-          });
-        }, 300);
       }
-
-      return updatedTodos;
+      return todo;
     });
-  };
-
-  const removeTodo = (id: string) => {
-    setTodos(todos.filter(todo => todo.id !== id));
+    setTodos(updatedTodos);
+    saveTodos(updatedTodos);
   };
 
   const sortedTodos = React.useMemo(() => {

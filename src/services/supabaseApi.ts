@@ -16,7 +16,56 @@ const DEFAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 const supabaseUrl = SUPABASE_URL || DEFAULT_SUPABASE_URL;
 const supabaseAnonKey = SUPABASE_ANON_KEY || DEFAULT_ANON_KEY;
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create Supabase client with proper session persistence
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: {
+      getItem: async (key: string) => {
+        // Map Supabase's internal keys to our storage keys
+        let storageKey = key;
+        if (key.includes('access-token')) storageKey = 'ACCESS_TOKEN';
+        if (key.includes('refresh-token')) storageKey = 'REFRESH_TOKEN';
+        if (key.includes('user')) storageKey = 'USER';
+        
+        console.log('Storage getItem:', { originalKey: key, mappedKey: storageKey });
+        const value = await AsyncStorage.getItem(storageKey);
+        console.log('Retrieved from storage:', { key: storageKey, hasValue: !!value });
+        return value;
+      },
+      setItem: async (key: string, value: string) => {
+        // Map Supabase's internal keys to our storage keys
+        let storageKey = key;
+        if (key.includes('access-token')) storageKey = 'ACCESS_TOKEN';
+        if (key.includes('refresh-token')) storageKey = 'REFRESH_TOKEN';
+        if (key.includes('user')) storageKey = 'USER';
+        
+        console.log('Storage setItem:', { originalKey: key, mappedKey: storageKey });
+        await AsyncStorage.setItem(storageKey, value);
+      },
+      removeItem: async (key: string) => {
+        // Map Supabase's internal keys to our storage keys
+        let storageKey = key;
+        if (key.includes('access-token')) storageKey = 'ACCESS_TOKEN';
+        if (key.includes('refresh-token')) storageKey = 'REFRESH_TOKEN';
+        if (key.includes('user')) storageKey = 'USER';
+        
+        console.log('Storage removeItem:', { originalKey: key, mappedKey: storageKey });
+        await AsyncStorage.removeItem(storageKey);
+      },
+    },
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false, // Important for React Native
+    storageKey: 'sb-auth-token',
+    debug: true // Enable auth debug logging in development
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'siFia/1.0.0',
+    },
+  },
+});
+
 export { supabase };
 
 // Use environment variables with fallbacks
@@ -58,6 +107,8 @@ export const storeSession = async (session: any) => {
     return false;
   }
 };
+
+
 
 export const getSession = async () => {
   try {
@@ -105,6 +156,8 @@ export const checkAuth = async () => {
 };
 
 // Sign in with email and password
+
+
 export async function signIn(email: string, password: string) {
   try {
     console.log('Attempting to sign in with:', { email });

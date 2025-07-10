@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signIn } from '../services/supabaseApi';
 
 // Types
 interface User {
@@ -96,30 +97,73 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return true;
   }, [retryIntervalId]);
 
-  // Login logic (replace with real API call)
+  // Login with Supabase authentication
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
+    
     try {
-      // Replace with real login API call
-      // Simulated success:
-      const fakeAccessToken = 'fake_access_token';
-      const fakeRefreshToken = 'fake_refresh_token';
-      const fakeUser = { id: '1', email };
-      await AsyncStorage.setItem(ACCESS_TOKEN_KEY, fakeAccessToken);
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, fakeRefreshToken);
-      await AsyncStorage.setItem(USER_KEY, JSON.stringify(fakeUser));
-      setAccessToken(fakeAccessToken);
-      setRefreshToken(fakeRefreshToken);
-      setUser(fakeUser);
+      console.log('Starting login for:', email);
+      const result = await signIn(email, password);
+      console.log('Sign in result:', JSON.stringify(result, null, 2));
+      
+      // Check for error in the response
+      if (result.error) {
+        console.error('Login error from Supabase:', result.error);
+        throw new Error(result.error.message || 'Login failed. Please check your credentials.');
+      }
+
+      // Check if we have valid data
+      if (!result.data) {
+        console.error('No data in sign in response');
+        throw new Error('No response data received from server');
+      }
+
+      const { access_token, refresh_token, user } = result.data;
+      
+      // Validate the response data
+      if (!access_token) {
+        console.error('No access token in response');
+        throw new Error('Authentication failed: No access token received');
+      }
+      
+      if (!user?.id) {
+        console.error('No user ID in response');
+        throw new Error('Authentication failed: No user information received');
+      }
+      
+      console.log('Storing session data for user:', user.id);
+      
+      // Store all session data atomically
+      await Promise.all([
+        AsyncStorage.setItem(ACCESS_TOKEN_KEY, access_token),
+        AsyncStorage.setItem(REFRESH_TOKEN_KEY, refresh_token || ''),
+        AsyncStorage.setItem(USER_KEY, JSON.stringify(user))
+      ]);
+      
+      // Update the auth state
+      setAccessToken(access_token);
+      setRefreshToken(refresh_token || '');
+      setUser({
+        id: user.id,
+        email: user.email || email
+      });
       setIsAuthenticated(true);
+      
+      console.log('Login successful for user:', user.id);
       return true;
-    } catch (e) {
-      setError('Login failed.');
+    } catch (e: any) {
+      console.error('Login error:', e);
+      const errorMessage = e.message || 'Login failed. Please check your credentials and try again.';
+      setError(errorMessage);
+      
+      // Clear any partial auth state on failure
+      await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
       setAccessToken(null);
       setRefreshToken(null);
       setUser(null);
       setIsAuthenticated(false);
+      
       return false;
     } finally {
       setLoading(false);
@@ -131,12 +175,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
-      await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
+      // Get all keys and filter for todo-related ones
+      const allKeys = await AsyncStorage.getAllKeys();
+      const todoKeys = allKeys.filter(key => 
+        key.includes('todos') || 
+        key.includes('journal_entries')
+      );
+      
+      // Remove auth data and todo data in parallel
+      await Promise.all([
+        AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]),
+        ...(todoKeys.length > 0 ? [AsyncStorage.multiRemove(todoKeys)] : [])
+      ]);
+      
       setAccessToken(null);
       setRefreshToken(null);
       setUser(null);
       setIsAuthenticated(false);
     } catch (e) {
+      console.error('Logout error:', e);
       setError('Logout failed.');
     } finally {
       setLoading(false);
