@@ -508,17 +508,48 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       selected_date: entryToSave.selected_date,
     });
 
-    // 5. Use the database function to handle the upsert
-    const { data, error } = await supabase.rpc('upsert_journal_entry', {
-      p_id: entryToSave.id,
-      p_user_id: entryToSave.user_id,
-      p_content_type: entryToSave.content_type,
-      p_content: entryToSave.content,
-      p_selected_date: entryToSave.selected_date,
-    });
+    try {
+      // 5. First try to update if an entry exists for this user, content type and date
+      const { data: existingEntries, error: fetchError } = await supabase
+        .from('journal_entries')
+        .select('*')
+        .eq('user_id', entryToSave.user_id)
+        .eq('content_type', entryToSave.content_type)
+        .eq('selected_date', entryToSave.selected_date)
+        .maybeSingle();
 
-    if (error) {
-      console.error('Error in upsert_journal_entry RPC call:', {
+      if (fetchError) throw fetchError;
+
+      if (existingEntries) {
+        console.log('Found existing entry, updating instead of creating new one');
+        const { data: updatedEntry, error: updateError } = await supabase
+          .from('journal_entries')
+          .update({
+            content: entryToSave.content,
+            updated_at: entryToSave.updated_at
+          })
+          .eq('id', existingEntries.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        console.log('✅ Existing entry updated successfully');
+        return updatedEntry;
+      }
+
+      // 6. If no existing entry, create a new one
+      const { data: newEntry, error: insertError } = await supabase
+        .from('journal_entries')
+        .insert(entryToSave)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+      console.log('✅ New entry created successfully');
+      return newEntry;
+
+    } catch (error: any) {
+      console.error('Error in saveCloudEntry:', {
         code: error.code,
         message: error.message,
         details: error.details,
@@ -527,8 +558,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       throw error;
     }
 
-    console.log('✅ Entry saved successfully');
-    return data;
+    // Entry is now handled in the try-catch block above
 
   } catch (error: any) {
     console.error('\n!!! ERROR in saveCloudEntry !!!');
@@ -883,26 +913,41 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
   });
 
   try {
-    // If the local entry has an ID, check if it exists in the cloud
-    if (localEntry.id) {
-      console.log('Checking for existing cloud entry with ID:', localEntry.id);
-      const cloudEntry = await getCloudEntry(userId, localEntry.id, date);
+    // First, check if an entry exists for this user, content type, and date
+    console.log('Checking for existing cloud entry with same user, type and date...');
+    const { data: existingEntries, error: fetchError } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('content_type', contentType)
+      .eq('selected_date', date)
+      .maybeSingle();
 
-      if (cloudEntry) {
-        console.log('Found existing cloud entry, comparing timestamps...');
-        if (new Date(cloudEntry.updated_at) < new Date(localEntry.updated_at)) {
-          console.log('Local entry is newer, updating cloud...');
-          await updateCloudEntry(userId, localEntry.id, localEntry);
-        } else {
-          console.log('Cloud entry is up to date');
-        }
-      } else {
-        console.log('No existing cloud entry found, saving as new...');
-        await saveCloudEntry(userId, localEntry);
-      }
+    if (fetchError) {
+      console.error('Error checking for existing entries:', fetchError);
+      throw fetchError;
+    }
+
+    if (existingEntries) {
+      console.log('Found existing entry for this date and type, updating...', {
+        existingId: existingEntries.id,
+        localId: localEntry.id,
+        updatedAt: existingEntries.updated_at,
+        localUpdatedAt: localEntry.updated_at
+      });
+      
+      // Always use the existing ID to update, even if local has a different ID
+      // This handles the case where we might have duplicate entries with different IDs
+      await updateCloudEntry(userId, existingEntries.id, {
+        ...localEntry,
+        id: existingEntries.id, // Ensure we use the existing ID
+        updated_at: new Date().toISOString()
+      });
+      
+      console.log('Successfully updated existing entry');
     } else {
-      // If no ID, this is a new entry that needs to be created in the cloud
-      console.log('Local entry has no ID, saving as new cloud entry...');
+      // No existing entry found, create a new one
+      console.log('No existing entry found, creating new...');
       await saveCloudEntry(userId, localEntry);
     }
 
