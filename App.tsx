@@ -6,7 +6,7 @@
 // Polyfill for URL API in React Native
 import 'react-native-url-polyfill/auto';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, StatusBar, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -16,7 +16,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import { Colors } from './src/theme/colors';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
-import { checkAuth, clearSession } from './src/services/supabaseApi';
+
 import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
 import { UserProvider } from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';

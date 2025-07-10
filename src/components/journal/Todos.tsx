@@ -41,9 +41,9 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
   const contentType = 'todos';
   const key = user ? getJournalKey(contentType, dateStr, user.id) : '';
 
-  // Syncing/loading state
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+  // Removed unused state variables to fix linting issues
+  const [, setLoading] = useState(true);
+  const [, setSyncing] = useState(false);
 
   const closeAllSwipeables = () => {
     Object.values(swipeableRefs.current).forEach(ref => {
@@ -90,15 +90,15 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
 
     // Update UI immediately
     setTodos(items);
-    
+
     // Start sync indicator
     setSyncing(true);
-    
+
     // Return a promise that resolves when all operations are complete
     return new Promise(async (resolve, reject) => {
       try {
         const localEntry = await getLocalEntry(key);
-        
+
         if (items.length === 0) {
           // If there are no items, delete the entry
           if (localEntry) {
@@ -123,7 +123,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
           resolve();
           return;
         }
-        
+
         // Save/update local entry
         const entryData = {
           content_type: contentType,
@@ -131,13 +131,13 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
           selected_date: dateStr,
           user_id: user.id,
         };
-        
+
         if (localEntry) {
           await updateLocalEntry(key, { ...localEntry, content: { items } });
         } else {
           await saveLocalEntry(key, entryData, user.id);
         }
-        
+
         // Sync to cloud in the background (don't await)
         syncToCloud(user.id, dateStr, contentType)
           .then(() => {
@@ -147,7 +147,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
             console.error('Background sync failed:', err);
             // Could add retry logic here if needed
           });
-        
+
         resolve();
       } catch (err) {
         console.error('Background save/sync error:', err);
@@ -160,26 +160,26 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
 
   // Add a todo
   const addTodo = async (value: string): Promise<boolean> => {
-    if (!value.trim()) return false;
-    
-    const newTodo = {
+    if (!value.trim()) {return false;}
+
+    const todoToAdd = {
       id: Date.now().toString(),
       text: value.trim(),
       completed: false,
       priority: false,
     };
-    
+
     // Optimistically update the UI
-    setTodos(prevTodos => [...prevTodos, newTodo]);
-    
+    setTodos(prevTodos => [...prevTodos, todoToAdd]);
+
     try {
       // Save to storage
-      await saveTodos([...todos, newTodo]);
+      await saveTodos([...todos, todoToAdd]);
       return true;
     } catch (error) {
       console.error('Failed to save new todo:', error);
       // Revert UI on error
-      setTodos(prevTodos => prevTodos.filter(t => t.id !== newTodo.id));
+      setTodos(prevTodos => prevTodos.filter(t => t.id !== todoToAdd.id));
       Alert.alert('Error', 'Failed to save todo. Please try again.');
       return false;
     }
@@ -187,15 +187,15 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
 
   const handleAddInput = async () => {
     const todoText = newTodo.trim();
-    if (!todoText) return;
-    
+    if (!todoText) {return;}
+
     closeAllSwipeables();
-    
+
     // Clear input immediately for better UX
     const currentInput = todoText;
     setNewTodo('');
     setVisibleCount(5);
-    
+
     try {
       const wasAdded = await addTodo(currentInput);
       if (wasAdded) {
@@ -218,30 +218,30 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
         console.log('No user, skipping todo hydration');
         return;
       }
-      
+
       console.log('Hydrating todos for date:', dateStr);
       setLoading(true);
-      
+
       try {
         // Check session first
         const { session: currentSession } = await checkSession();
         console.log('Current session during hydration:', currentSession?.user?.id);
-        
+
         // 1. Load local
         console.log('Loading local todos...');
         const localEntry = await getLocalEntry(key);
         console.log('Local entry loaded:', localEntry ? 'exists' : 'not found');
-        
+
         if (localEntry?.content?.items) {
           setTodos(localEntry.content.items);
         } else {
           setTodos([]);
         }
-        
+
         // 2. Sync from cloud (if newer, will update local)
         console.log('Syncing from cloud...');
         await syncFromCloud(user.id, dateStr, contentType);
-        
+
         // 3. Reload local after sync
         console.log('Reloading local data after sync...');
         const syncedEntry = await getLocalEntry(key);
@@ -257,7 +257,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
         setLoading(false);
       }
     };
-    
+
     if (!authLoading) {
       console.log('Auth loaded, starting hydration');
       hydrateTodos();
@@ -274,6 +274,15 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
     }
   }, [isAdding]);
 
+  // Reset adding state when date changes or when switching tabs
+  useEffect(() => {
+    if (isAdding) {
+      setIsAdding(false);
+      setNewTodo('');
+      closeAllSwipeables();
+    }
+  }, [dateStr, isAdding]);
+
   // Track recently completed items to keep them visible briefly
   const [recentlyCompleted, setRecentlyCompleted] = useState<{[key: string]: boolean}>({});
 
@@ -284,14 +293,14 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
         console.log('No user, skipping initial sync');
         return;
       }
-      
+
       console.log('Starting initial cloud sync...');
       setSyncing(true);
-      
+
       try {
         await syncFromCloud(user.id, dateStr, contentType);
         console.log('Initial cloud sync completed');
-        
+
         // Reload local after sync
         const syncedEntry = await getLocalEntry(key);
         if (syncedEntry?.content?.items) {
@@ -304,7 +313,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
         setSyncing(false);
       }
     };
-    
+
     if (!authLoading) {
       console.log('Auth loaded, starting initial sync');
       syncOnStart();
@@ -366,14 +375,14 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
         }
         return todo;
       });
-      
+
       // Save to storage in the background
       saveTodos(updatedTodos).catch(err => {
         console.error('Failed to save todo update:', err);
         // Revert UI on error
         setTodos(currentTodos);
       });
-      
+
       return updatedTodos;
     });
   };

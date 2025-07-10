@@ -43,6 +43,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const REFRESH_TOKEN_KEY = 'REFRESH_TOKEN';
   const USER_KEY = 'USER';
 
+  // Robust session validation with retry logic
+  const validateSession = useCallback(async (token: string | null) => {
+    // For now, always succeed if there is a token (placeholder for real backend call)
+    if (token) {
+      setIsAuthenticated(true);
+      setRetrying(false);
+      setError(null);
+      if (retryIntervalId) {
+        clearInterval(retryIntervalId);
+        setRetryIntervalId(null);
+      }
+    } else {
+      setIsAuthenticated(false);
+      setUser(null);
+      setRetrying(false);
+    }
+    setLoading(false);
+    return true;
+  }, [retryIntervalId]);
+
   // Load persisted auth state on mount
   useEffect(() => {
     const loadAuth = async () => {
@@ -73,40 +93,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loadAuth();
     // Cleanup retry interval on unmount
     return () => {
-      if (retryIntervalId) clearInterval(retryIntervalId);
+      if (retryIntervalId) {clearInterval(retryIntervalId);}
     };
-  }, []);
-
-  // Robust session validation with retry logic
-  const validateSession = useCallback(async (token: string | null) => {
-    // For now, always succeed if there is a token (placeholder for real backend call)
-    if (token) {
-      setIsAuthenticated(true);
-      setRetrying(false);
-      setError(null);
-      if (retryIntervalId) {
-        clearInterval(retryIntervalId);
-        setRetryIntervalId(null);
-      }
-    } else {
-      setIsAuthenticated(false);
-      setUser(null);
-      setRetrying(false);
-    }
-    setLoading(false);
-    return true;
-  }, [retryIntervalId]);
+  }, [retryIntervalId, validateSession]);
 
   // Login with Supabase authentication
   const login = useCallback(async (email: string, password: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log('Starting login for:', email);
       const result = await signIn(email, password);
       console.log('Sign in result:', JSON.stringify(result, null, 2));
-      
+
       // Check for error in the response
       if (result.error) {
         console.error('Login error from Supabase:', result.error);
@@ -119,51 +119,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('No response data received from server');
       }
 
-      const { access_token, refresh_token, user } = result.data;
-      
+      const { access_token, refresh_token, user: authUser } = result.data;
+
       // Validate the response data
       if (!access_token) {
         console.error('No access token in response');
         throw new Error('Authentication failed: No access token received');
       }
-      
-      if (!user?.id) {
+
+      if (!authUser?.id) {
         console.error('No user ID in response');
         throw new Error('Authentication failed: No user information received');
       }
-      
-      console.log('Storing session data for user:', user.id);
-      
+
+      console.log('Storing session data for user:', authUser.id);
+
       // Store all session data atomically
       await Promise.all([
         AsyncStorage.setItem(ACCESS_TOKEN_KEY, access_token),
         AsyncStorage.setItem(REFRESH_TOKEN_KEY, refresh_token || ''),
-        AsyncStorage.setItem(USER_KEY, JSON.stringify(user))
+        AsyncStorage.setItem(USER_KEY, JSON.stringify(authUser)),
       ]);
-      
+
       // Update the auth state
       setAccessToken(access_token);
       setRefreshToken(refresh_token || '');
       setUser({
-        id: user.id,
-        email: user.email || email
+        id: authUser.id,
+        email: authUser.email || email,
       });
       setIsAuthenticated(true);
-      
-      console.log('Login successful for user:', user.id);
+
+      console.log('Login successful for user:', authUser.id);
       return true;
     } catch (e: any) {
       console.error('Login error:', e);
       const errorMessage = e.message || 'Login failed. Please check your credentials and try again.';
       setError(errorMessage);
-      
+
       // Clear any partial auth state on failure
       await AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]);
       setAccessToken(null);
       setRefreshToken(null);
       setUser(null);
       setIsAuthenticated(false);
-      
+
       return false;
     } finally {
       setLoading(false);
@@ -177,17 +177,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       // Get all keys and filter for todo-related ones
       const allKeys = await AsyncStorage.getAllKeys();
-      const todoKeys = allKeys.filter(key => 
-        key.includes('todos') || 
+      const todoKeys = allKeys.filter(key =>
+        key.includes('todos') ||
         key.includes('journal_entries')
       );
-      
+
       // Remove auth data and todo data in parallel
       await Promise.all([
         AsyncStorage.multiRemove([ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY]),
-        ...(todoKeys.length > 0 ? [AsyncStorage.multiRemove(todoKeys)] : [])
+        ...(todoKeys.length > 0 ? [AsyncStorage.multiRemove(todoKeys)] : []),
       ]);
-      
+
       setAccessToken(null);
       setRefreshToken(null);
       setUser(null);
@@ -202,7 +202,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Token refresh logic (replace with real API call)
   const refreshAuthToken = useCallback(async () => {
-    if (!refreshToken) return false;
+    if (!refreshToken) {return false;}
     setLoading(true);
     setRefreshRetrying(false);
     setError(null);
@@ -286,6 +286,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  if (!ctx) {throw new Error('useAuth must be used within an AuthProvider');}
   return ctx;
 };

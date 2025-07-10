@@ -1,8 +1,8 @@
 
 const generateUUID = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    const r = Math.floor(Math.random() * 16);
+    const v = c === 'x' ? r : (r % 4) + 8; // (r & 0x3) | 0x8 equivalent
     return v.toString(16);
   });
 };
@@ -34,8 +34,7 @@ export async function debugPrintSession(label: string) {
 // Debug: Log when storage module loads
 console.log('=== journalStorage.ts LOADED ===');
 
-// Simple in-memory cache for debugging
-const debugCache = new Map<string, any>();
+// Removed unused debug cache
 
 // Debug: Log all AsyncStorage operations
 const debugStorage = {
@@ -51,7 +50,7 @@ const debugStorage = {
   removeItem: async (key: string): Promise<void> => {
     console.log(`[AsyncStorage] REMOVE ${key}`);
     return AsyncStorage.removeItem(key);
-  }
+  },
 };
 
 // Use debug storage in development
@@ -103,11 +102,11 @@ export const getJournalKey = (contentType: string, date: string, userId: string)
 export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, 'id'|'created_at'|'updated_at'>, userId: string): Promise<JournalEntryBase> => {
   console.log('!!! saveLocalEntry called !!!', { key, userId, data });
   console.log(`saveLocalEntry - key: ${key}`);
-  
+
   if (!userId) {
     throw new Error('User ID is required to save entry');
   }
-  
+
   const now = new Date().toISOString();
   const newEntry: JournalEntryBase = {
     ...data,
@@ -117,17 +116,17 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
     updated_at: now,
     selected_date: data.selected_date || new Date().toISOString().split('T')[0],
     content_type: data.content_type || 'unknown',
-    content: data.content || {}
+    content: data.content || {},
   };
-  
+
   console.log('Saving local entry:', {
     id: newEntry.id,
     type: newEntry.content_type,
     date: newEntry.selected_date,
     userId: newEntry.user_id,
-    hasContent: !!newEntry.content
+    hasContent: !!newEntry.content,
   });
-  
+
   try {
     await AsyncStorage.setItem(key, JSON.stringify(newEntry));
     console.log('Successfully saved local entry');
@@ -141,13 +140,13 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
 export const updateLocalEntry = async (key: string, updatedData: Partial<JournalEntryBase>): Promise<JournalEntryBase> => {
   console.log('!!! updateLocalEntry called !!!', { key, updatedData });
   console.log(`updateLocalEntry - key: ${key}`);
-  
+
   const existingEntry = await getLocalEntry(key);
   if (!existingEntry) {
     console.error('Cannot update: Entry not found for key:', key);
     throw new Error('Entry not found');
   }
-  
+
   const now = new Date().toISOString();
   const updatedEntry: JournalEntryBase = {
     ...existingEntry,
@@ -159,17 +158,17 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
     created_at: existingEntry.created_at || now,
     content_type: updatedData.content_type || existingEntry.content_type || 'unknown',
     selected_date: updatedData.selected_date || existingEntry.selected_date || new Date().toISOString().split('T')[0],
-    content: updatedData.content !== undefined ? updatedData.content : existingEntry.content || {}
+    content: updatedData.content !== undefined ? updatedData.content : existingEntry.content || {},
   };
-  
+
   console.log('Updating local entry:', {
     id: updatedEntry.id,
     type: updatedEntry.content_type,
     date: updatedEntry.selected_date,
     userId: updatedEntry.user_id,
-    updatedAt: updatedEntry.updated_at
+    updatedAt: updatedEntry.updated_at,
   });
-  
+
   try {
     await AsyncStorage.setItem(key, JSON.stringify(updatedEntry));
     console.log('Successfully updated local entry');
@@ -190,9 +189,9 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
   console.log('!!! getLocalEntriesForDate called !!!', { date, contentType, userId });
   const key = getJournalKey(contentType, date, userId);
   const entry = await getLocalEntry(key);
-  
-  if (!entry) return null;
-  
+
+  if (!entry) {return null;}
+
   // Ensure the entry has all required fields and matches the requested date
   const completeEntry: JournalEntryBase = {
     id: entry.id || generateUUID(),
@@ -202,7 +201,7 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
     updated_at: entry.updated_at || new Date().toISOString(),
     selected_date: entry.selected_date || date,
     user_id: entry.user_id || userId,
-    ...(entry.related_date && { related_date: entry.related_date })
+    ...(entry.related_date && { related_date: entry.related_date }),
   };
 
   // Verify the entry's selected_date matches the requested date
@@ -210,15 +209,15 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
     console.log('Entry date does not match requested date, returning null');
     return null;
   }
-  
+
   console.log('getLocalEntriesForDate - returning entry:', {
     id: completeEntry.id,
     type: completeEntry.content_type,
     hasUserId: !!completeEntry.user_id,
     updatedAt: completeEntry.updated_at,
-    selectedDate: completeEntry.selected_date
+    selectedDate: completeEntry.selected_date,
   });
-  
+
   return completeEntry;
 };
 
@@ -228,8 +227,10 @@ export const deleteLocalEntry = async (key: string) => {
 };
 
 // --- Supabase Operations ---
+// Supabase session handling
+
 interface SupabaseSession {
-  user?: {
+  user: {
     id: string;
     email?: string;
   };
@@ -239,82 +240,81 @@ interface SupabaseSession {
 }
 
 // Helper function to get and validate session
-export const getValidSession = async (): Promise<any> => {
+export const getValidSession = async (): Promise<SupabaseSession | null> => {
   console.log('\n=== Checking for valid session ===');
-  
   try {
     // 1. First check if we have tokens in AsyncStorage
     const [accessToken, refreshToken, userStr] = await Promise.all([
       AsyncStorage.getItem('ACCESS_TOKEN'),
       AsyncStorage.getItem('REFRESH_TOKEN'),
-      AsyncStorage.getItem('USER')
+      AsyncStorage.getItem('USER'),
     ]);
-    
+
     console.log('Auth state from storage:', {
       hasAccessToken: !!accessToken,
       hasRefreshToken: !!refreshToken,
-      hasUser: !!userStr
+      hasUser: !!userStr,
     });
-    
+
     if (!accessToken || !refreshToken) {
       console.log('No auth tokens found in storage');
       return null;
     }
-    
+
     // 2. Set the session using the tokens we have
-    const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+    const { error: sessionError } = await supabase.auth.setSession({
       access_token: accessToken,
-      refresh_token: refreshToken
+      refresh_token: refreshToken,
     });
-    
+
     if (sessionError) {
       console.error('Error setting session:', sessionError);
       return null;
     }
-    
+
     // 3. Now get the current session
     const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-    
+
     if (error) {
       console.error('Error getting session:', error);
       return null;
     }
-    
+
     if (!currentSession?.user?.id) {
       console.log('No valid session found after setting tokens');
       return null;
     }
-    
+
     console.log('✅ Valid session found');
     console.log('User ID:', currentSession.user.id);
-    if (currentSession.user.email) console.log('Email:', currentSession.user.email);
-    
+    if (currentSession.user.email) {console.log('Email:', currentSession.user.email);}
+
     // 4. Check if session needs refresh
     const expiresAt = currentSession.expires_at || 0;
     const expiresIn = expiresAt - Math.floor(Date.now() / 1000);
     console.log('Session expires in:', expiresIn, 'seconds');
-    
+
     if (expiresIn > 300) { // More than 5 minutes left
       return currentSession;
     }
-    
+
     // 5. Try to refresh the session if it's about to expire
     console.log('⚠️ Session expiring soon, refreshing...');
     try {
-      const { data: { session: refreshedSession }, error: refreshError } = 
+      const { data: { session: refreshedSession }, error: refreshError } =
         await supabase.auth.refreshSession();
-        
+
       if (refreshError) {
         console.error('Refresh error:', refreshError);
         throw refreshError;
       }
-      
+
       if (refreshedSession) {
         console.log('✅ Session refreshed successfully');
         // Update storage with new tokens
         await Promise.all([
           AsyncStorage.setItem('ACCESS_TOKEN', refreshedSession.access_token),
-          AsyncStorage.setItem('REFRESH_TOKEN', refreshedSession.refresh_token || '')
+          AsyncStorage.setItem('REFRESH_TOKEN', refreshedSession.refresh_token || ''),
         ]);
         return refreshedSession;
       }
@@ -324,45 +324,45 @@ export const getValidSession = async (): Promise<any> => {
       await Promise.all([
         AsyncStorage.removeItem('ACCESS_TOKEN'),
         AsyncStorage.removeItem('REFRESH_TOKEN'),
-        AsyncStorage.removeItem('USER')
+        AsyncStorage.removeItem('USER'),
       ]);
       return null;
     }
-    
+
     // 2. No valid session, try to restore from storage
     console.log('No active session, attempting to restore from storage...');
-    
+
     // List all storage keys for debugging
     const allKeys = await AsyncStorage.getAllKeys();
     console.log('All storage keys:', allKeys);
-    
+
     // Look for the Supabase auth token in storage
     const storageKey = allKeys.find(key => key.includes('sb-') && key.includes('auth-token'));
-    
+
     if (storageKey) {
       console.log('Found auth storage key:', storageKey);
       const storedSession = await AsyncStorage.getItem(storageKey);
-      
+
       if (storedSession) {
         try {
           console.log('Attempting to restore session from storage...');
           const parsedSession = JSON.parse(storedSession);
-          
+
           if (!parsedSession.access_token) {
             throw new Error('No access token in stored session');
           }
-          
-          const { data: { session: restoredSession }, error: restoreError } = 
+
+          const { data: { session: restoredSession }, error: restoreError } =
             await supabase.auth.setSession({
               access_token: parsedSession.access_token,
-              refresh_token: parsedSession.refresh_token || ''
+              refresh_token: parsedSession.refresh_token || '',
             });
-            
+
           if (restoreError) {
             console.error('Error setting session:', restoreError);
             throw restoreError;
           }
-          
+
           if (restoredSession?.user?.id) {
             console.log('✅ Session restored successfully');
             return restoredSession;
@@ -378,10 +378,10 @@ export const getValidSession = async (): Promise<any> => {
     } else {
       console.log('No auth storage key found');
     }
-    
+
     console.log('No valid session found');
     return null;
-    
+
   } catch (error) {
     console.error('Error in getValidSession:', error);
     return null;
@@ -391,14 +391,14 @@ export const getValidSession = async (): Promise<any> => {
 // Helper function to validate UUID format
 // This accepts any valid UUID format (v1-v5)
 const isValidUUID = (uuid: string): boolean => {
-  if (typeof uuid !== 'string') return false;
+  if (typeof uuid !== 'string') {return false;}
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 };
 
 export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): Promise<any> => {
   console.log('\n=== saveCloudEntry START ===');
-  
+
   try {
     // 1. Get and validate session
     const session = await getValidSession();
@@ -406,19 +406,19 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       console.error('No valid session available. User must be logged in.');
       throw new Error('You must be logged in to save entries');
     }
-    
+
     // 2. Use the session user ID
     if (session.user.id !== userId) {
       console.warn('User ID mismatch, using session user ID');
       userId = session.user.id;
     }
-    
+
     // 3. Validate entry ID if present
     if (entry.id && !isValidUUID(entry.id)) {
       console.warn('Invalid entry ID format, generating new UUID');
       entry.id = generateUUID();
     }
-    
+
     // 4. Prepare the entry with proper types and timestamps
     const now = new Date().toISOString();
     if (!entry.selected_date || typeof entry.selected_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(entry.selected_date)) {
@@ -434,88 +434,88 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       content: entry.content || {},
       selected_date: selectedDate,
       created_at: entry.created_at || now,
-      updated_at: now
+      updated_at: now,
     };
-    
+
     console.log('Saving entry:', {
       id: entryToSave.id,
       user_id: entryToSave.user_id,
       content_type: entryToSave.content_type,
-      selected_date: entryToSave.selected_date
+      selected_date: entryToSave.selected_date,
     });
-    
+
     // 5. Use the database function to handle the upsert
     const { data, error } = await supabase.rpc('upsert_journal_entry', {
       p_id: entryToSave.id,
       p_user_id: entryToSave.user_id,
       p_content_type: entryToSave.content_type,
       p_content: entryToSave.content,
-      p_selected_date: entryToSave.selected_date
+      p_selected_date: entryToSave.selected_date,
     });
-    
+
     if (error) {
       console.error('Error in upsert_journal_entry RPC call:', {
         code: error.code,
         message: error.message,
         details: error.details,
-        hint: error.hint
+        hint: error.hint,
       });
       throw error;
     }
-    
+
     console.log('✅ Entry saved successfully');
     return data;
-    
+
   } catch (error: any) {
     console.error('\n!!! ERROR in saveCloudEntry !!!');
-    
+
     // Format error message for logging
-    const errorMessage = error instanceof Error 
+    const errorMessage = error instanceof Error
       ? {
           name: error.name,
           message: error.message,
           ...(error as any).code && { code: (error as any).code },
           ...(error as any).details && { details: (error as any).details },
-          stack: error.stack?.split('\n').slice(0, 3).join('\n')
+          stack: error.stack?.split('\n').slice(0, 3).join('\n'),
         }
       : { message: String(error) };
-      
+
     console.error('Error details:', errorMessage);
-    
+
     // Handle specific error cases
-    if (error.message?.toLowerCase().includes('function upsert_journal_entry') || 
+    if (error.message?.toLowerCase().includes('function upsert_journal_entry') ||
         error.message?.toLowerCase().includes('does not exist')) {
       const errorMsg = 'Database function not found. Please run the SQL migration to create the required function.';
       console.error('\n⚠️ ' + errorMsg);
       throw new Error(errorMsg);
     }
-    
+
     // If it's an auth error, suggest logging in again
-    if (error.message?.toLowerCase().includes('session') || 
+    if (error.message?.toLowerCase().includes('session') ||
         error.message?.toLowerCase().includes('auth') ||
         error.message?.toLowerCase().includes('jwt') ||
         error.message?.toLowerCase().includes('unauthorized')) {
       console.error('\n⚠️ Authentication issue detected. Please ensure you are logged in.');
       throw new Error('Your session has expired. Please log in again.');
     }
-    
+
     throw error;
   } finally {
     console.log('=== saveCloudEntry COMPLETE ===\n');
   }
-}
+};
 
 // ... (rest of the code remains the same)
 export const updateCloudEntry = async (userId: string, entryId: string, updatedData: Partial<JournalEntryBase>): Promise<JournalEntryBase> => {
   console.log('\n=== updateCloudEntry START ===');
   console.log('Current time:', new Date().toISOString());
-  
+
   try {
     // 1. Validate input parameters
     if (!userId || !entryId) {
       throw new Error('User ID and Entry ID are required');
     }
-    
+
     // 2. Clean and validate entryId
     const cleanEntryId = entryId.trim();
     if (!cleanEntryId) {
@@ -526,7 +526,7 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
     if (!cleanUserId) {
       throw new Error('User ID cannot be empty');
     }
-    
+
     // 4. Get and validate session
     const session = await getValidSession();
     if (!session?.user?.id) {
@@ -540,7 +540,7 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
     } else {
       userId = cleanUserId;
     }
-    
+
     // 6. Prepare the update data
     const now = new Date().toISOString();
     if (!updatedData.selected_date || typeof updatedData.selected_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(updatedData.selected_date)) {
@@ -551,31 +551,31 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
       ...updatedData,
       updated_at: now,
     };
-    
+
     console.log('Updating entry:', {
       entryId: cleanEntryId,
       userId,
-      updateFields: Object.keys(updateData)
+      updateFields: Object.keys(updateData),
     });
-    
+
     // 6. Make the API call with retry logic
     const maxRetries = 2;
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         console.log(`\n--- Attempt ${attempt} of ${maxRetries} ---`);
-        
+
         // Get fresh session for each attempt
-        const { data: { session: currentSession }, error: sessionError } = 
+        const { data: { session: currentSession }, error: sessionError } =
           await supabase.auth.getSession();
-          
+
         if (sessionError || !currentSession) {
           throw new Error('Failed to validate session: ' + (sessionError?.message || 'No session'));
         }
-        
+
         console.log('Current session user ID:', currentSession.user?.id);
-        
+
         // First, fetch the existing entry for version check
         const { data: existing, error: fetchError } = await supabase
           .from('journal_entries')
@@ -583,21 +583,21 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
           .eq('id', cleanEntryId)
           .eq('user_id', userId)
           .single();
-          
+
         if (fetchError) {
           if (fetchError.code === 'PGRST116') { // Not found
             throw new Error('Entry not found or access denied');
           }
           throw fetchError;
         }
-        
+
         // Check if the existing data is newer than our update
         const incomingUpdatedAt = updateData.updated_at || now;
         if (existing.updated_at > incomingUpdatedAt) {
           console.warn('Existing data is newer than the update');
           return existing;
         }
-        
+
         // Perform the update
         const { data, error } = await supabase
           .from('journal_entries')
@@ -607,24 +607,24 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
           .eq('selected_date', updateData.selected_date)
           .select()
           .single();
-          
-        if (error) throw error;
-        
+
+        if (error) {throw error;}
+
         console.log('\n✅ Entry updated successfully ===');
         return data;
-        
+
       } catch (error: any) {
         lastError = error;
         console.error(`Attempt ${attempt} failed:`, error.message);
-        
+
         // If this is an auth error, try to refresh the session
-        if (error.message?.toLowerCase().includes('jwt') || 
+        if (error.message?.toLowerCase().includes('jwt') ||
             error.message?.toLowerCase().includes('auth') ||
             error.code === 'PGRST301') {
           console.log('Auth error detected, attempting to refresh session...');
           try {
             const { error: refreshError } = await supabase.auth.refreshSession();
-            if (refreshError) throw refreshError;
+            if (refreshError) {throw refreshError;}
             console.log('Session refreshed, retrying...');
             continue;
           } catch (refreshError) {
@@ -633,7 +633,7 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
             throw new Error('Session expired. Please log in again.');
           }
         }
-        
+
         // Add a small delay before retry
         if (attempt < maxRetries) {
           const delayMs = 1000 * attempt;
@@ -642,28 +642,28 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
         }
       }
     }
-    
+
     // If we get here, all retries failed
     throw lastError || new Error('Failed to update entry after multiple attempts');
-    
+
   } catch (error: any) {
     console.error('\n!!! ERROR in updateCloudEntry !!!');
     console.error('Error details:', {
       message: error.message,
       code: error.code,
       details: error.details,
-      hint: error.hint
+      hint: error.hint,
     });
-    
+
     // If it's an auth error, suggest logging in again
-    if (error.message?.toLowerCase().includes('session') || 
+    if (error.message?.toLowerCase().includes('session') ||
         error.message?.toLowerCase().includes('auth') ||
         error.message?.toLowerCase().includes('jwt') ||
         error.message?.toLowerCase().includes('unauthorized')) {
       console.error('\n⚠️ Authentication issue detected. Please ensure you are logged in.');
       throw new Error('Your session has expired. Please log in again.');
     }
-    
+
     throw error;
   } finally {
     console.log('=== updateCloudEntry End ===');
@@ -674,32 +674,32 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
   console.log('\n=== getCloudEntry START ===');
   console.log('User ID:', userId);
   console.log('Entry ID:', entryId);
-  
+
   try {
     // 1. Validate input parameters
     if (!entryId || !userId) {
       throw new Error('Both entryId and userId are required');
     }
-    
+
     // 2. Clean and validate entryId
     const cleanEntryId = entryId.trim();
     if (!cleanEntryId) {
       throw new Error('Entry ID cannot be empty');
     }
-    
+
     // 3. Clean and validate userId
     const cleanUserId = userId.trim();
     if (!cleanUserId) {
       throw new Error('User ID cannot be empty');
     }
-    
+
     // 4. Get and validate session
     const session = await getValidSession();
     if (!session?.user?.id) {
       console.error('No valid session available. User must be logged in.');
       throw new Error('You must be logged in to access cloud entries');
     }
-    
+
     // 5. Ensure we're using the session user ID
     if (session.user.id !== cleanUserId) {
       console.warn('User ID mismatch, using session user ID');
@@ -707,14 +707,14 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
     } else {
       userId = cleanUserId;
     }
-    
+
     console.log('Fetching cloud entry...');
     console.log('Fetching entry with:', { cleanEntryId, userId, date });
-    
+
     if (!date || typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       throw new Error('A valid date in YYYY-MM-DD format is required');
     }
-    
+
     const { data, error } = await supabase
       .from('journal_entries')
       .select('*')
@@ -722,31 +722,31 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
       .eq('user_id', userId)
       .eq('selected_date', date)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') {
         // No rows returned - entry doesn't exist
         console.log(`No cloud entry found for id: ${entryId}`);
         return null;
       }
-      
+
       // Log detailed error info
       console.error('Error fetching cloud entry:', {
         code: error.code,
         message: error.message,
         details: error.details,
-        hint: error.hint
+        hint: error.hint,
       });
-      
+
       // If it's an auth error, try to refresh the session
-      if (error.message?.toLowerCase().includes('jwt') || 
+      if (error.message?.toLowerCase().includes('jwt') ||
           error.message?.toLowerCase().includes('auth') ||
           error.code === 'PGRST301') {
         console.log('Auth error detected, attempting to refresh session...');
         try {
           const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) throw refreshError;
-          
+          if (refreshError) {throw refreshError;}
+
           // Retry the operation with the new session
           console.log('Session refreshed, retrying...');
           return getCloudEntry(userId, entryId, date);
@@ -756,32 +756,32 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
           throw new Error('Session expired. Please log in again.');
         }
       }
-      
+
       throw error;
     }
-    
+
     console.log('Successfully retrieved cloud entry:', {
       id: data.id,
       userId: data.user_id,
       updatedAt: data.updated_at,
-      type: data.content_type
+      type: data.content_type,
     });
-    
+
     return data as JournalEntryBase;
   } catch (error: any) {
     console.error('!!! ERROR in getCloudEntry !!!');
-    
+
     // Format error message for logging
-    const errorMessage = error instanceof Error 
+    const errorMessage = error instanceof Error
       ? {
           name: error.name,
           message: error.message,
-          stack: error.stack?.split('\n').slice(0, 3).join('\n')
+          stack: error.stack?.split('\n').slice(0, 3).join('\n'),
         }
       : { message: String(error) };
-      
+
     console.error('Error details:', errorMessage);
-    
+
     // Re-throw the error to be handled by the caller
     throw error;
   } finally {
@@ -795,35 +795,35 @@ export const deleteCloudEntry = async (userId: string, entryId: string) => {
     .delete()
     .eq('id', entryId)
     .eq('user_id', userId);
-  if (error) throw error;
+  if (error) {throw error;}
 };
 
 // --- Sync Logic ---
 export const syncToCloud = async (userId: string, date: string, contentType: string) => {
   console.log('!!! syncToCloud called !!!', { userId, date, contentType });
   console.log(`=== syncToCloud: ${contentType} for ${date} ===`);
-  
+
   // Get the local entry
   const localEntry = await getLocalEntriesForDate(date, contentType, userId);
   if (!localEntry) {
     console.log('No local entry found, nothing to sync');
     return;
   }
-  
+
   console.log('Local entry found:', {
     id: localEntry.id,
     updatedAt: localEntry.updated_at,
     hasUserId: !!localEntry.user_id,
     userId: localEntry.user_id,
-    currentUserId: userId
+    currentUserId: userId,
   });
-  
+
   try {
     // If the local entry has an ID, check if it exists in the cloud
     if (localEntry.id) {
       console.log('Checking for existing cloud entry with ID:', localEntry.id);
       const cloudEntry = await getCloudEntry(userId, localEntry.id, date);
-      
+
       if (cloudEntry) {
         console.log('Found existing cloud entry, comparing timestamps...');
         if (new Date(cloudEntry.updated_at) < new Date(localEntry.updated_at)) {
@@ -841,7 +841,7 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
       console.log('Local entry has no ID, saving as new cloud entry...');
       await saveCloudEntry(userId, localEntry);
     }
-    
+
     console.log('Sync completed successfully');
   } catch (error) {
     console.error('Error during syncToCloud:', error);
@@ -853,68 +853,68 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
   console.log(`\n=== syncFromCloud START (${contentType}) ===`);
   console.log('User ID:', userId);
   console.log('Date:', date);
-  
+
   try {
     // 1. Validate input parameters
     if (!userId) {
       throw new Error('User ID is required');
     }
-    
+
     // 2. Get and validate session first
     console.log('Validating session...');
     const session = await getValidSession();
-    
+
     if (!session?.user?.id) {
       console.error('❌ No valid session available. User must be logged in.');
-      
+
       // Check if we have any auth data in storage
       const [accessToken, refreshToken, user] = await Promise.all([
         AsyncStorage.getItem('ACCESS_TOKEN'),
         AsyncStorage.getItem('REFRESH_TOKEN'),
-        AsyncStorage.getItem('USER')
+        AsyncStorage.getItem('USER'),
       ]);
-      
+
       console.log('Auth state in storage:', {
         hasAccessToken: !!accessToken,
         hasRefreshToken: !!refreshToken,
-        hasUser: !!user
+        hasUser: !!user,
       });
-      
+
       throw new Error('You must be logged in to sync from cloud');
     }
-    
+
     console.log('✅ Valid session found for user:', session.user.id);
-    
+
     // 3. Use the session's user ID to ensure consistency
     const sessionUserId = session.user.id;
     if (sessionUserId !== userId) {
       console.warn(`User ID mismatch: ${userId} (provided) vs ${sessionUserId} (session). Using session user ID.`);
       userId = sessionUserId;
     }
-    
+
     // 4. Verify the user ID is a valid UUID
     if (!isValidUUID(userId)) {
       throw new Error(`Invalid user ID format: ${userId}. Must be a valid UUID.`);
     }
-    
+
     // 4. Ensure we're using the session user ID
     if (session.user.id !== userId) {
       console.warn('User ID mismatch, using session user ID');
       userId = session.user.id;
     }
-    
+
     const key = getJournalKey(contentType, date, userId);
     console.log('Storage key:', key);
-    
+
     // Get the local entry first
     const localEntry = await getLocalEntry(key);
     console.log('Local entry:', localEntry ? 'exists' : 'not found');
-    
+
     try {
       // If we have a local entry, try to get the specific cloud entry
       // Otherwise, try to find any cloud entry for this date and content type
       let cloudEntry;
-      
+
       if (localEntry?.id) {
         console.log('Fetching specific cloud entry by ID:', localEntry.id);
         try {
@@ -923,7 +923,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
           console.warn('Error fetching cloud entry by ID, will try by date/type:', error);
         }
       }
-      
+
       // If we don't have a cloud entry by ID, try to find one by date and content type
       if (!cloudEntry) {
         console.log('No cloud entry found by ID, searching by date and content type...');
@@ -935,17 +935,17 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
           .eq('selected_date', date) // Ensure we only get entries for the exact date
           .order('updated_at', { ascending: false })
           .limit(1);
-        
+
         if (error) {
           console.error('Error querying cloud entries:', error);
           throw error;
         }
-        
+
         // Only use the cloud entry if it matches the exact date
         cloudEntry = entries?.find(entry => entry.selected_date === date);
         console.log('Found cloud entries by date/type:', cloudEntry ? 1 : 0);
       }
-      
+
       // If we have a local entry but no cloud entry, delete the local entry
       if (localEntry && !cloudEntry) {
         console.log('Local entry exists but no matching cloud entry, deleting local entry');
@@ -959,7 +959,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
         if (cloudEntry.selected_date !== date) {
           console.log('Cloud entry date does not match requested date, deleting local entry:', {
             entryDate: cloudEntry.selected_date,
-            requestedDate: date
+            requestedDate: date,
           });
           await AsyncStorage.removeItem(key);
           return null;
@@ -968,9 +968,9 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
         console.log('Cloud entry found, comparing with local...', {
           cloudUpdated: cloudEntry.updated_at,
           localUpdated: localEntry?.updated_at,
-          isNewer: !localEntry || new Date(cloudEntry.updated_at) > new Date(localEntry.updated_at || 0)
+          isNewer: !localEntry || new Date(cloudEntry.updated_at) > new Date(localEntry.updated_at || 0),
         });
-        
+
         if (!localEntry || new Date(cloudEntry.updated_at) > new Date(localEntry.updated_at || 0)) {
           console.log('Cloud entry is newer or no local entry, saving to local storage...');
           // Ensure the entry has all required fields and the correct date
@@ -981,9 +981,9 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
             created_at: cloudEntry.created_at || new Date().toISOString(),
             updated_at: cloudEntry.updated_at || new Date().toISOString(),
             selected_date: date, // Always use the explicitly requested date
-            user_id: cloudEntry.user_id || userId
+            user_id: cloudEntry.user_id || userId,
           };
-          
+
           await AsyncStorage.setItem(key, JSON.stringify(completeEntry));
           console.log('Successfully synced cloud entry to local storage');
           return completeEntry;
@@ -993,7 +993,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
       } else {
         console.log('No cloud entry found to sync');
       }
-      
+
       return localEntry;
     } catch (error) {
       console.error('Error in syncFromCloud:', error);

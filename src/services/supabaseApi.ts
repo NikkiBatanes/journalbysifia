@@ -23,10 +23,10 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       getItem: async (key: string) => {
         // Map Supabase's internal keys to our storage keys
         let storageKey = key;
-        if (key.includes('access-token')) storageKey = 'ACCESS_TOKEN';
-        if (key.includes('refresh-token')) storageKey = 'REFRESH_TOKEN';
-        if (key.includes('user')) storageKey = 'USER';
-        
+        if (key.includes('access-token')) {storageKey = 'ACCESS_TOKEN';}
+        if (key.includes('refresh-token')) {storageKey = 'REFRESH_TOKEN';}
+        if (key.includes('user')) {storageKey = 'USER';}
+
         console.log('Storage getItem:', { originalKey: key, mappedKey: storageKey });
         const value = await AsyncStorage.getItem(storageKey);
         console.log('Retrieved from storage:', { key: storageKey, hasValue: !!value });
@@ -35,20 +35,20 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       setItem: async (key: string, value: string) => {
         // Map Supabase's internal keys to our storage keys
         let storageKey = key;
-        if (key.includes('access-token')) storageKey = 'ACCESS_TOKEN';
-        if (key.includes('refresh-token')) storageKey = 'REFRESH_TOKEN';
-        if (key.includes('user')) storageKey = 'USER';
-        
+        if (key.includes('access-token')) {storageKey = 'ACCESS_TOKEN';}
+        if (key.includes('refresh-token')) {storageKey = 'REFRESH_TOKEN';}
+        if (key.includes('user')) {storageKey = 'USER';}
+
         console.log('Storage setItem:', { originalKey: key, mappedKey: storageKey });
         await AsyncStorage.setItem(storageKey, value);
       },
       removeItem: async (key: string) => {
         // Map Supabase's internal keys to our storage keys
         let storageKey = key;
-        if (key.includes('access-token')) storageKey = 'ACCESS_TOKEN';
-        if (key.includes('refresh-token')) storageKey = 'REFRESH_TOKEN';
-        if (key.includes('user')) storageKey = 'USER';
-        
+        if (key.includes('access-token')) {storageKey = 'ACCESS_TOKEN';}
+        if (key.includes('refresh-token')) {storageKey = 'REFRESH_TOKEN';}
+        if (key.includes('user')) {storageKey = 'USER';}
+
         console.log('Storage removeItem:', { originalKey: key, mappedKey: storageKey });
         await AsyncStorage.removeItem(storageKey);
       },
@@ -57,7 +57,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     detectSessionInUrl: false, // Important for React Native
     storageKey: 'sb-auth-token',
-    debug: true // Enable auth debug logging in development
+    debug: true, // Enable auth debug logging in development
   },
   global: {
     headers: {
