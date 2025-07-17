@@ -83,6 +83,24 @@ export const checkSession = async (): Promise<{ session: any; error: any }> => {
 };
 
 // --- Types ---
+
+export interface TimeBlockEntry {
+  id: string;
+  user_id: string;
+  selected_date: string; // e.g. '2025-07-10'
+  start_time: string;    // e.g. '09:00'
+  end_time: string;      // e.g. '10:00'
+  all_day: boolean;
+  title: string;
+  location: string;
+  category: string;
+  repeat_status: string;
+  notes: string;
+  version: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface JournalEntryBase {
   id: string;
   content_type: string;
@@ -117,6 +135,67 @@ export const getJournalKey = (contentType: string, date: string, userId: string)
 };
 
 // --- AsyncStorage Operations ---
+
+// Save all time blocks for a date to AsyncStorage (as a list)
+export const saveLocalTimeBlocksForDate = async (
+  userId: string,
+  date: string,
+  blocks: TimeBlockEntry[]
+): Promise<TimeBlockEntry[]> => {
+  const key = `time_blocks_${userId}_${date}`;
+  // Optionally do version checking here per block (can be enhanced)
+  await storage.setItem(key, JSON.stringify(blocks));
+  return blocks;
+};
+
+// Retrieve all time blocks for a date from AsyncStorage
+export const getLocalTimeBlocksForDate = async (
+  userId: string,
+  date: string
+): Promise<TimeBlockEntry[]> => {
+  const key = `time_blocks_${userId}_${date}`;
+  const raw = await storage.getItem(key);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw) as TimeBlockEntry[];
+  } catch {
+    return [];
+  }
+};
+
+// Save a time block entry to AsyncStorage with version checking
+export const saveLocalTimeBlock = async (
+  key: string,
+  entry: TimeBlockEntry,
+  userId: string
+): Promise<TimeBlockEntry> => {
+  const existing = await getLocalTimeBlock(key);
+  if (existing && existing.version >= entry.version) {
+    // Do not overwrite with older or same version
+    return existing;
+  }
+  const now = new Date().toISOString();
+  const entryToSave = {
+    ...entry,
+    user_id: userId,
+    created_at: existing?.created_at || now,
+    updated_at: now,
+  };
+  await storage.setItem(key, JSON.stringify(entryToSave));
+  return entryToSave;
+};
+
+// Retrieve a time block entry from AsyncStorage
+export const getLocalTimeBlock = async (key: string): Promise<TimeBlockEntry | null> => {
+  const raw = await storage.getItem(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as TimeBlockEntry;
+  } catch {
+    return null;
+  }
+};
+
 export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, 'id'|'created_at'|'updated_at'>, userId: string): Promise<JournalEntryBase> => {
   console.log('!!! saveLocalEntry called !!!', { key, userId, data });
   console.log(`saveLocalEntry - key: ${key}`);
@@ -292,6 +371,135 @@ export const deleteLocalEntry = async (key: string) => {
 
 // --- Supabase Operations ---
 // Supabase session handling
+
+// Save all time blocks for a date to Supabase (as a list, with version checking)
+export const saveCloudTimeBlocksForDate = async (
+  userId: string,
+  date: string,
+  blocks: TimeBlockEntry[]
+): Promise<TimeBlockEntry[]> => {
+  // Fetch existing blocks for that date
+  const { data: existingBlocks, error: fetchError } = await supabase
+    .from('time_blocks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('selected_date', date);
+  if (fetchError) throw fetchError;
+  // Upsert each block (respect version)
+  const results: TimeBlockEntry[] = [];
+  for (const block of blocks) {
+    const existing = existingBlocks?.find((b: TimeBlockEntry) => b.start_time === block.start_time);
+    if (existing && existing.version >= block.version) {
+      results.push(existing);
+      continue;
+    }
+    const now = new Date().toISOString();
+    const entryToSave = {
+      ...block,
+      user_id: userId,
+      created_at: existing?.created_at || now,
+      updated_at: now,
+    };
+    if (existing) {
+      const { data: updated, error: updateError } = await supabase
+        .from('time_blocks')
+        .update(entryToSave)
+        .eq('id', existing.id)
+        .select()
+        .single();
+      if (updateError) throw updateError;
+      results.push(updated);
+    } else {
+      const { data: inserted, error: insertError } = await supabase
+        .from('time_blocks')
+        .insert(entryToSave)
+        .select()
+        .single();
+      if (insertError) throw insertError;
+      results.push(inserted);
+    }
+  }
+  return results;
+};
+
+// Retrieve all time blocks for a date from Supabase
+export const getCloudTimeBlocksForDate = async (
+  userId: string,
+  date: string
+): Promise<TimeBlockEntry[]> => {
+  const { data, error } = await supabase
+    .from('time_blocks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('selected_date', date);
+  if (error) throw error;
+  return data || [];
+};
+
+// Save a time block entry to Supabase with version checking
+export const saveCloudTimeBlock = async (
+  userId: string,
+  entry: TimeBlockEntry
+): Promise<TimeBlockEntry> => {
+  // Check for existing entry for this user/date/start_time
+  const { data: existing, error: fetchError } = await supabase
+    .from('time_blocks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('selected_date', entry.selected_date)
+    .eq('start_time', entry.start_time)
+    .maybeSingle();
+  if (fetchError) throw fetchError;
+  if (existing && existing.version >= entry.version) {
+    // Do not overwrite with older or same version
+    return existing;
+  }
+  const now = new Date().toISOString();
+  const entryToSave = {
+    ...entry,
+    user_id: userId,
+    created_at: existing?.created_at || now,
+    updated_at: now,
+  };
+  if (existing) {
+    // Update existing
+    const { data: updated, error: updateError } = await supabase
+      .from('time_blocks')
+      .update(entryToSave)
+      .eq('id', existing.id)
+      .select()
+      .single();
+    if (updateError) throw updateError;
+    return updated;
+  } else {
+    // Insert new
+    const { data: inserted, error: insertError } = await supabase
+      .from('time_blocks')
+      .insert(entryToSave)
+      .select()
+      .single();
+    if (insertError) throw insertError;
+    return inserted;
+  }
+};
+
+// Retrieve a time block entry from Supabase
+export const getCloudTimeBlock = async (
+  userId: string,
+  selected_date: string,
+  start_time: string
+): Promise<TimeBlockEntry | null> => {
+  const { data, error } = await supabase
+    .from('time_blocks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('selected_date', selected_date)
+    .eq('start_time', start_time)
+    .maybeSingle();
+  if (error) throw error;
+  return data || null;
+};
+
 
 interface SupabaseSession {
   user: {

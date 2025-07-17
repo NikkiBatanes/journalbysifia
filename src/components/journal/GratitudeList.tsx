@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -6,6 +6,20 @@ import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Check, HandHeart as LuHandHeart, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
+import { useAuth } from '../../context/AuthContext';
+import { 
+  getJournalKey, 
+  getLocalEntry, 
+  saveLocalEntry, 
+  updateLocalEntry, 
+  deleteLocalEntry,
+  syncToCloud, 
+  syncFromCloud,
+  deleteCloudEntry,
+  getCloudEntry,
+  checkSession
+} from '../../storage/journalStorage';
+import { toLocalDateString } from '../../utils/date';
 
 interface GratitudeItem {
   id: string;
@@ -13,14 +27,82 @@ interface GratitudeItem {
   date: Date;
 }
 
-export const GratitudeList: React.FC = () => {
+interface GratitudeListProps {
+  selectedDate?: Date;
+}
+
+export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new Date() }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [gratitudeItems, setGratitudeItems] = useState<GratitudeItem[]>([]);
   const [newItems, setNewItems] = useState(['', '', '']); // Three input fields
-  // Removed unused state variables
   const [visibleCount, setVisibleCount] = useState<number>(5);
+  const [, setLoading] = useState(true);
+  const [, setSyncing] = useState(false);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
+  const hydratedRef = useRef(false);
+
+  // Auth and date context
+  const { user, loading: authLoading } = useAuth();
+  const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
+  const contentType = 'gratitude';
+  const key = user ? getJournalKey(contentType, dateStr, user.id) : '';
+
+  // Hydrate gratitude items from storage
+  const hydrateGratitude = async () => {
+    if (!user) {
+      console.log('No user, skipping gratitude hydration');
+      return;
+    }
+
+    console.log('Hydrating gratitude for date:', dateStr);
+    setLoading(true);
+
+    try {
+      // Check session first
+      const { session: currentSession } = await checkSession();
+      console.log('Current session during hydration:', currentSession?.user?.id);
+
+      // 1. Load local
+      console.log('Loading local gratitude...');
+      const localEntry = await getLocalEntry(key);
+      console.log('Local entry loaded:', localEntry ? 'exists' : 'not found');
+
+      if (localEntry?.content?.items) {
+        setGratitudeItems(localEntry.content.items);
+      } else {
+        setGratitudeItems([]);
+      }
+
+      // 2. Sync from cloud (if newer, will update local)
+      console.log('Syncing from cloud...');
+      await syncFromCloud(user.id, dateStr, contentType);
+
+      // 3. Reload local after sync
+      console.log('Reloading local data after sync...');
+      const syncedEntry = await getLocalEntry(key);
+      if (syncedEntry?.content?.items) {
+        setGratitudeItems(syncedEntry.content.items);
+      } else {
+        setGratitudeItems([]);
+      }
+
+      hydratedRef.current = true;
+    } catch (err) {
+      console.error('Failed to hydrate gratitude:', err);
+      Alert.alert('Error', 'Failed to load gratitude items.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Hydrate on mount and when user/date changes
+  useEffect(() => {
+    if (!authLoading && user) {
+      hydratedRef.current = false;
+      hydrateGratitude();
+    }
+  }, [user, dateStr, authLoading]);
 
   const startAdding = () => {
     setIsAdding(true);
@@ -62,6 +144,90 @@ export const GratitudeList: React.FC = () => {
     });
   }, []);
 
+  // Save gratitude items to local storage and sync to cloud
+  const saveGratitudeToStorage = async (items: GratitudeItem[]): Promise<void> => {
+    console.log('!!! saveGratitudeToStorage CALLED !!!', { user, items });
+    if (!user) {
+      console.error('No user found when trying to save gratitude');
+      Alert.alert('Error', 'You must be logged in to save gratitude items.');
+      return Promise.reject('No user found');
+    }
+
+    if (!hydratedRef.current) {
+      console.log('Skipping save during hydration');
+      return Promise.resolve();
+    }
+
+    // Update UI immediately
+    setGratitudeItems(items);
+
+    // Start sync indicator
+    setSyncing(true);
+
+    // Return a promise that resolves when all operations are complete
+    return new Promise(async (resolve, reject) => {
+      try {
+        const localEntry = await getLocalEntry(key);
+
+        if (items.length === 0) {
+          // If there are no items, delete the entry
+          if (localEntry) {
+            await deleteLocalEntry(key);
+            if (localEntry.id) {
+              // If we have an ID, delete from cloud
+              await deleteCloudEntry(user.id, localEntry.id);
+            } else {
+              // Try to find a cloud entry for this date/user and delete it
+              const maybeCloudEntry = await getCloudEntry(user.id, key.split('_').pop() || '', dateStr);
+              if (maybeCloudEntry?.id) {
+                await deleteCloudEntry(user.id, maybeCloudEntry.id);
+              }
+            }
+          } else {
+            // Try to find a cloud entry for this date/user and delete it
+            const maybeCloudEntry = await getCloudEntry(user.id, key.split('_').pop() || '', dateStr);
+            if (maybeCloudEntry?.id) {
+              await deleteCloudEntry(user.id, maybeCloudEntry.id);
+            }
+          }
+          resolve();
+          return;
+        }
+
+        // Save/update local entry
+        const entryData = {
+          content_type: contentType,
+          content: { items },
+          selected_date: dateStr,
+          user_id: user.id,
+        };
+
+        if (localEntry) {
+          await updateLocalEntry(key, { ...localEntry, content: { items } });
+        } else {
+          await saveLocalEntry(key, { ...entryData, user_id: user.id }, user.id);
+        }
+
+        // Sync to cloud in the background (don't await)
+        syncToCloud(user.id, dateStr, contentType)
+          .then(() => {
+            console.log('Background sync completed successfully');
+          })
+          .catch(err => {
+            console.error('Background sync failed:', err);
+            // Could add retry logic here if needed
+          });
+
+        resolve();
+      } catch (err) {
+        console.error('Background save/sync error:', err);
+        reject(err);
+      } finally {
+        setSyncing(false);
+      }
+    });
+  };
+
   const handleDeleteGratitudeItem = useCallback((id: string) => {
     Alert.alert(
       'Delete Gratitude Item',
@@ -78,15 +244,13 @@ export const GratitudeList: React.FC = () => {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            setGratitudeItems(prevItems => {
-              const filteredItems = prevItems.filter(item => item.id !== id);
-              // Reset visible count if needed
-              if (filteredItems.length <= visibleCount) {
-                setVisibleCount(5);
-              }
-              return filteredItems;
-            });
+          onPress: async () => {
+            const filteredItems = gratitudeItems.filter(item => item.id !== id);
+            // Reset visible count if needed
+            if (filteredItems.length <= visibleCount) {
+              setVisibleCount(5);
+            }
+            await saveGratitudeToStorage(filteredItems);
           },
         },
       ],
@@ -94,10 +258,12 @@ export const GratitudeList: React.FC = () => {
     );
   }, [visibleCount]);
 
-  const saveGratitudeItems = () => {
+  const saveGratitudeItems = async () => {
     const validItems = newItems.filter(item => item.trim());
 
     if (validItems.length > 0) {
+      let itemsToSave: GratitudeItem[];
+      
       if (isEditing) {
         // When editing, replace all items with the new ones
         const updatedItems = validItems.map((text, index) => {
@@ -116,7 +282,7 @@ export const GratitudeList: React.FC = () => {
             };
           }
         });
-        setGratitudeItems(updatedItems);
+        itemsToSave = updatedItems;
       } else {
         // When adding, append new items
         const itemsToAdd = validItems.map(text => ({
@@ -124,9 +290,11 @@ export const GratitudeList: React.FC = () => {
           text: text.trim(),
           date: new Date(),
         }));
-
-        setGratitudeItems([...gratitudeItems, ...itemsToAdd]);
+        itemsToSave = [...gratitudeItems, ...itemsToAdd];
       }
+
+      // Save to storage
+      await saveGratitudeToStorage(itemsToSave);
 
       setNewItems(['', '', '']);
       setIsAdding(false);
