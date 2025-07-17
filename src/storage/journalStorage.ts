@@ -9,6 +9,7 @@ const generateUUID = (): string => {
 
 import { supabase } from '../services/supabaseApi';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { toLocalDateString } from '../utils/date';
 
 // --- Debug Utilities ---
 export async function debugPrintSupabaseStorage() {
@@ -22,6 +23,34 @@ export async function debugPrintSupabaseStorage() {
     console.log('Supabase-related AsyncStorage:', keyValues);
   } catch (e) {
     console.error('Error printing Supabase AsyncStorage:', e);
+  }
+}
+
+export async function debugPrintJournalEntries() {
+  try {
+    console.log('\n=== DEBUG: Checking journal_entries table ===');
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error('Error fetching journal entries:', error);
+      return;
+    }
+
+    console.log('Recent journal entries:', data);
+
+    // Check specifically for today_win and looking_forward entries
+    const todayWinEntries = data?.filter(entry => entry.content_type === 'today_win');
+    const lookingForwardEntries = data?.filter(entry => entry.content_type === 'looking_forward');
+
+    console.log('Today Win entries:', todayWinEntries);
+    console.log('Looking Forward entries:', lookingForwardEntries);
+
+  } catch (error) {
+    console.error('Error in debugPrintJournalEntries:', error);
   }
 }
 
@@ -113,24 +142,53 @@ export interface JournalEntryBase {
 }
 
 // --- AsyncStorage Key Helper ---
-export const getJournalKey = (contentType: string, date: string, userId: string) => {
+export const getJournalKey = (userId: string, contentType: string, date: string | Date) => {
   // Ensure date is in YYYY-MM-DD format
-  let formattedDate = date;
+  let formattedDate: string;
+
   try {
-    // If date is a full ISO string, extract just the date part
-    if (date.includes('T')) {
-      formattedDate = date.split('T')[0];
-    }
-    // If it's a date object, format it
-    else if (date.match(/^\d{4}-\d{2}-\d{2}$/) === null) {
-      formattedDate = new Date(date).toISOString().split('T')[0];
+    // Handle different date input types
+    if (!date) {
+      // If no date provided, use current date
+      formattedDate = new Date().toISOString().split('T')[0];
+    } else if (typeof date === 'string') {
+      // If date is a full ISO string, extract just the date part
+      if (date.includes('T')) {
+        formattedDate = date.split('T')[0];
+      }
+      // If it's already in YYYY-MM-DD format, use as is
+      else if (date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        formattedDate = date;
+      }
+      // Otherwise try to parse and format
+      else {
+        const parsedDate = new Date(date);
+        if (isNaN(parsedDate.getTime())) {
+          console.error('Invalid date provided:', date);
+          formattedDate = new Date().toISOString().split('T')[0];
+        } else {
+          formattedDate = parsedDate.toISOString().split('T')[0];
+        }
+      }
+    } else if (date instanceof Date) {
+      // If it's a Date object
+      if (isNaN(date.getTime())) {
+        console.error('Invalid Date object provided:', date);
+        formattedDate = new Date().toISOString().split('T')[0];
+      } else {
+        formattedDate = date.toISOString().split('T')[0];
+      }
+    } else {
+      console.error('Unsupported date type:', typeof date, date);
+      formattedDate = new Date().toISOString().split('T')[0];
     }
   } catch (e) {
-    console.error('Error formatting date:', e);
+    console.error('Error formatting date:', e, 'Input:', date);
+    formattedDate = new Date().toISOString().split('T')[0];
   }
-  
+
   const key = `journal_${contentType}_${formattedDate}_${userId}`;
-  console.log('Generated key:', { contentType, date, formattedDate, userId, key });
+  console.log('Generated key:', { userId, contentType, date, formattedDate, key });
   return key;
 };
 
@@ -155,7 +213,7 @@ export const getLocalTimeBlocksForDate = async (
 ): Promise<TimeBlockEntry[]> => {
   const key = `time_blocks_${userId}_${date}`;
   const raw = await storage.getItem(key);
-  if (!raw) return [];
+  if (!raw) {return [];}
   try {
     return JSON.parse(raw) as TimeBlockEntry[];
   } catch {
@@ -188,7 +246,7 @@ export const saveLocalTimeBlock = async (
 // Retrieve a time block entry from AsyncStorage
 export const getLocalTimeBlock = async (key: string): Promise<TimeBlockEntry | null> => {
   const raw = await storage.getItem(key);
-  if (!raw) return null;
+  if (!raw) {return null;}
   try {
     return JSON.parse(raw) as TimeBlockEntry;
   } catch {
@@ -208,7 +266,7 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
   // Extract date from key if not provided in data
   const keyParts = key.split('_');
   const dateFromKey = keyParts.length >= 3 ? keyParts[keyParts.length - 2] : null;
-  
+
   const newEntry: JournalEntryBase = {
     ...data,
     id: generateUUID(), // Always generate a new ID for new entries
@@ -227,7 +285,7 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
     date: newEntry.selected_date,
     userId: newEntry.user_id,
     hasContent: !!newEntry.content,
-    newEntry
+    newEntry,
   });
 
   try {
@@ -293,7 +351,7 @@ export const getLocalEntry = async (key: string): Promise<JournalEntryBase | nul
 
 export const getLocalEntriesForDate = async (date: string, contentType: string, userId: string) => {
   console.log('!!! getLocalEntriesForDate called !!!', { date, contentType, userId });
-  
+
   // Generate the key using the same format as getJournalKey
   const formatDateForKey = (dateStr: string) => {
     try {
@@ -309,10 +367,10 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
       return dateStr;
     }
   };
-  
+
   const formattedDate = formatDateForKey(date);
-  const key = getJournalKey(contentType, formattedDate, userId);
-  
+  const key = getJournalKey(userId, contentType, formattedDate);
+
   console.log('Looking up entry with key:', key);
   const entry = await getLocalEntry(key);
 
@@ -358,7 +416,7 @@ export const getLocalEntriesForDate = async (date: string, contentType: string, 
     hasUserId: !!completeEntry.user_id,
     updatedAt: completeEntry.updated_at,
     selectedDate: completeEntry.selected_date,
-    content: completeEntry.content ? 'has content' : 'no content'
+    content: completeEntry.content ? 'has content' : 'no content',
   });
 
   return completeEntry;
@@ -384,7 +442,7 @@ export const saveCloudTimeBlocksForDate = async (
     .select('*')
     .eq('user_id', userId)
     .eq('selected_date', date);
-  if (fetchError) throw fetchError;
+  if (fetchError) {throw fetchError;}
   // Upsert each block (respect version)
   const results: TimeBlockEntry[] = [];
   for (const block of blocks) {
@@ -407,7 +465,7 @@ export const saveCloudTimeBlocksForDate = async (
         .eq('id', existing.id)
         .select()
         .single();
-      if (updateError) throw updateError;
+      if (updateError) {throw updateError;}
       results.push(updated);
     } else {
       const { data: inserted, error: insertError } = await supabase
@@ -415,7 +473,7 @@ export const saveCloudTimeBlocksForDate = async (
         .insert(entryToSave)
         .select()
         .single();
-      if (insertError) throw insertError;
+      if (insertError) {throw insertError;}
       results.push(inserted);
     }
   }
@@ -432,7 +490,7 @@ export const getCloudTimeBlocksForDate = async (
     .select('*')
     .eq('user_id', userId)
     .eq('selected_date', date);
-  if (error) throw error;
+  if (error) {throw error;}
   return data || [];
 };
 
@@ -449,7 +507,7 @@ export const saveCloudTimeBlock = async (
     .eq('selected_date', entry.selected_date)
     .eq('start_time', entry.start_time)
     .maybeSingle();
-  if (fetchError) throw fetchError;
+  if (fetchError) {throw fetchError;}
   if (existing && existing.version >= entry.version) {
     // Do not overwrite with older or same version
     return existing;
@@ -469,7 +527,7 @@ export const saveCloudTimeBlock = async (
       .eq('id', existing.id)
       .select()
       .single();
-    if (updateError) throw updateError;
+    if (updateError) {throw updateError;}
     return updated;
   } else {
     // Insert new
@@ -478,7 +536,7 @@ export const saveCloudTimeBlock = async (
       .insert(entryToSave)
       .select()
       .single();
-    if (insertError) throw insertError;
+    if (insertError) {throw insertError;}
     return inserted;
   }
 };
@@ -496,7 +554,7 @@ export const getCloudTimeBlock = async (
     .eq('selected_date', selected_date)
     .eq('start_time', start_time)
     .maybeSingle();
-  if (error) throw error;
+  if (error) {throw error;}
   return data || null;
 };
 
@@ -726,7 +784,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
         .eq('selected_date', entryToSave.selected_date)
         .maybeSingle();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {throw fetchError;}
 
       if (existingEntries) {
         console.log('Found existing entry, updating instead of creating new one');
@@ -734,13 +792,13 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
           .from('journal_entries')
           .update({
             content: entryToSave.content,
-            updated_at: entryToSave.updated_at
+            updated_at: entryToSave.updated_at,
           })
           .eq('id', existingEntries.id)
           .select()
           .single();
 
-        if (updateError) throw updateError;
+        if (updateError) {throw updateError;}
         console.log('✅ Existing entry updated successfully');
         return updatedEntry;
       }
@@ -752,7 +810,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {throw insertError;}
       console.log('✅ New entry created successfully');
       return newEntry;
 
@@ -1141,17 +1199,17 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
         existingId: existingEntries.id,
         localId: localEntry.id,
         updatedAt: existingEntries.updated_at,
-        localUpdatedAt: localEntry.updated_at
+        localUpdatedAt: localEntry.updated_at,
       });
-      
+
       // Always use the existing ID to update, even if local has a different ID
       // This handles the case where we might have duplicate entries with different IDs
       await updateCloudEntry(userId, existingEntries.id, {
         ...localEntry,
         id: existingEntries.id, // Ensure we use the existing ID
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       });
-      
+
       console.log('Successfully updated existing entry');
     } else {
       // No existing entry found, create a new one
@@ -1220,7 +1278,7 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
       userId = session.user.id;
     }
 
-    const key = getJournalKey(contentType, date, userId);
+    const key = getJournalKey(userId, contentType, date);
     console.log('Storage key:', key);
 
     // Get the local entry first
@@ -1352,3 +1410,127 @@ export const syncFromCloud = async (userId: string, date: string, contentType: s
 // if (result.updated_at === updatedTodo.updated_at) {
 //   await updateCloudEntry(userId, newEntry.id, result);
 // }
+
+// ===== TODAY'S WIN STORAGE FUNCTIONS =====
+
+export interface TodayWinEntry {
+  id: string;
+  text: string;
+  date: Date;
+}
+
+// Save today's win to local storage
+export const saveLocalTodayWin = async (
+  key: string,
+  win: TodayWinEntry,
+  userId: string
+): Promise<void> => {
+  const entryData = {
+    content_type: 'today_win',
+    content: { win },
+    selected_date: toLocalDateString(win.date),
+    user_id: userId,
+  };
+  await saveLocalEntry(key, entryData, userId);
+};
+
+// Get today's win from local storage
+export const getLocalTodayWin = async (key: string): Promise<TodayWinEntry | null> => {
+  const entry = await getLocalEntry(key);
+  return entry?.content?.win || null;
+};
+
+// Save today's win to cloud storage
+export const saveCloudTodayWin = async (
+  userId: string,
+  win: TodayWinEntry
+): Promise<void> => {
+  const entryData: Omit<JournalEntryBase, 'id' | 'created_at' | 'updated_at'> = {
+    content_type: 'today_win',
+    content: { win },
+    selected_date: toLocalDateString(win.date),
+    user_id: userId,
+  };
+  await saveCloudEntry(userId, entryData as JournalEntryBase);
+};
+
+// Get today's win from cloud storage
+export const getCloudTodayWin = async (
+  userId: string,
+  date: string
+): Promise<TodayWinEntry | null> => {
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('content_type', 'today_win')
+    .eq('selected_date', date)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {throw error;}
+  return data?.content?.win || null;
+};
+
+// ===== LOOKING FORWARD STORAGE FUNCTIONS =====
+
+export interface LookingForwardEntry {
+  id: string;
+  text: string;
+  date: Date;
+}
+
+// Save looking forward entry to local storage
+export const saveLocalLookingForward = async (
+  key: string,
+  entry: LookingForwardEntry,
+  userId: string
+): Promise<void> => {
+  const entryData = {
+    content_type: 'looking_forward',
+    content: { entry },
+    selected_date: toLocalDateString(entry.date),
+    user_id: userId,
+  };
+  await saveLocalEntry(key, entryData, userId);
+};
+
+// Get looking forward entry from local storage
+export const getLocalLookingForward = async (key: string): Promise<LookingForwardEntry | null> => {
+  const entry = await getLocalEntry(key);
+  return entry?.content?.entry || null;
+};
+
+// Save looking forward entry to cloud storage
+export const saveCloudLookingForward = async (
+  userId: string,
+  entry: LookingForwardEntry
+): Promise<void> => {
+  const entryData: Omit<JournalEntryBase, 'id' | 'created_at' | 'updated_at'> = {
+    content_type: 'looking_forward',
+    content: { entry },
+    selected_date: toLocalDateString(entry.date),
+    user_id: userId,
+  };
+  await saveCloudEntry(userId, entryData as JournalEntryBase);
+};
+
+// Get looking forward entry from cloud storage
+export const getCloudLookingForward = async (
+  userId: string,
+  date: string
+): Promise<LookingForwardEntry | null> => {
+  const { data, error } = await supabase
+    .from('journal_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('content_type', 'looking_forward')
+    .eq('selected_date', date)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {throw error;}
+  return data?.content?.entry || null;
+};

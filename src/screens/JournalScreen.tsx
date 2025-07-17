@@ -319,10 +319,10 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               />
             </View>
             <View style={styles.componentSpacing}>
-              <TodayWin />
+              <TodayWin selectedDate={currentDate} />
             </View>
             <View style={styles.componentSpacing}>
-              <LookingForward />
+              <LookingForward selectedDate={currentDate} />
             </View>
           </ScrollView>
         );

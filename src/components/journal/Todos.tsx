@@ -39,7 +39,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
   // Use the selectedDate prop, defaulting to today if not provided
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
   const contentType = 'todos';
-  const key = user ? getJournalKey(contentType, dateStr, user.id) : '';
+  const key = user ? getJournalKey(user.id, contentType, dateStr) : '';
 
   // Removed unused state variables to fix linting issues
   const [, setLoading] = useState(true);

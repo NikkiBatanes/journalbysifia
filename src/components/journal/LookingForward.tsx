@@ -1,24 +1,119 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
+import {
+  getJournalKey,
+  saveLocalLookingForward,
+  getLocalLookingForward,
+  syncToCloud,
+  syncFromCloud,
+  getLocalEntry,
+  deleteLocalEntry,
+  deleteCloudEntry,
+  LookingForwardEntry,
+} from '../../storage/journalStorage';
+import { toLocalDateString } from '../../utils/date';
 
-interface LookingForwardEntry {
+interface LookingForwardLocalEntry {
   id: string;
   text: string;
   date: Date;
 }
 
-export const LookingForward: React.FC = () => {
-  const [entry, setEntry] = useState<LookingForwardEntry | null>(null);
+interface LookingForwardProps {
+  selectedDate: Date;
+}
+
+export const LookingForward: React.FC<LookingForwardProps> = ({ selectedDate }) => {
+  const { user } = useAuth();
+  const [entry, setEntry] = useState<LookingForwardLocalEntry | null>(null);
   const [entryText, setEntryText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [_, setIsEditing] = useState(false);
+  const [_loading, setLoading] = useState(false);
+  const [_syncing, setSyncing] = useState(false);
+  const hydratedRef = useRef(false);
   const swipeableRef = useRef<Swipeable>(null);
+
+  const dateStr = toLocalDateString(selectedDate);
+  const contentType = 'looking_forward';
+  const key = getJournalKey(user?.id || '', contentType, dateStr);
+
+  // Hydrate looking forward entry from storage
+  const hydrateLookingForward = useCallback(async () => {
+    if (!user || hydratedRef.current) {return;}
+
+    setLoading(true);
+    try {
+      // Load from local storage first
+      const localEntry = await getLocalLookingForward(key);
+      if (localEntry) {
+        setEntry(localEntry);
+      }
+
+      // Sync from cloud in background
+      const cloudEntry = await syncFromCloud(user.id, dateStr, contentType);
+      if (cloudEntry?.content?.entry) {
+        setEntry(cloudEntry.content.entry);
+      }
+
+      hydratedRef.current = true;
+    } catch (error) {
+      console.error('Error hydrating looking forward entry:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, key, dateStr, contentType]);
+
+  // Save looking forward entry to storage
+  const saveLookingForwardToStorage = useCallback(async (entryData: LookingForwardLocalEntry | null) => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to save looking forward entry.');
+      return;
+    }
+
+    console.log('🌅 LookingForward: Saving to storage...', { entryData, user: user.id, dateStr, key });
+    setSyncing(true);
+    try {
+      if (!entryData) {
+        // Handle deletion
+        console.log('🌅 LookingForward: Deleting entry');
+        const localEntry = await getLocalEntry(key);
+        if (localEntry) {
+          await deleteLocalEntry(key);
+          if (localEntry.id) {
+            await deleteCloudEntry(user.id, localEntry.id);
+          }
+        }
+      } else {
+        // Save the entry
+        const lookingForwardEntry: LookingForwardEntry = {
+          ...entryData,
+          date: selectedDate,
+        };
+
+        console.log('🌅 LookingForward: Saving local entry:', lookingForwardEntry);
+        await saveLocalLookingForward(key, lookingForwardEntry, user.id);
+
+        console.log('🌅 LookingForward: Starting cloud sync...');
+        // Sync to cloud in background
+        syncToCloud(user.id, dateStr, contentType).catch(error => {
+          console.error('🌅 LookingForward: Background sync failed:', error);
+        });
+      }
+    } catch (error) {
+      console.error('🌅 LookingForward: Error saving:', error);
+      Alert.alert('Error', 'Failed to save looking forward entry. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  }, [user, key, dateStr, contentType, selectedDate]);
 
   const closeSwipeable = useCallback(() => {
     swipeableRef.current?.close();
@@ -40,7 +135,10 @@ export const LookingForward: React.FC = () => {
     const handleDelete = () => {
       closeSwipeable();
       // Small delay to allow the swipeable to close before deleting
-      setTimeout(() => setEntry(null), 200);
+      setTimeout(() => {
+        setEntry(null);
+        saveLookingForwardToStorage(null);
+      }, 200);
     };
 
     return (
@@ -77,11 +175,13 @@ export const LookingForward: React.FC = () => {
 
   const saveEntry = () => {
     if (entryText.trim()) {
-      setEntry({
+      const newEntry = {
         id: entry?.id || Date.now().toString(),
         text: entryText,
         date: new Date(),
-      });
+      };
+      setEntry(newEntry);
+      saveLookingForwardToStorage(newEntry);
       setEntryText('');
       setIsAdding(false);
       setIsEditing(false);
@@ -96,7 +196,17 @@ export const LookingForward: React.FC = () => {
     }
   };
 
-  // Removed unused functions to clean up the code
+  // Hydrate data on mount
+  useEffect(() => {
+    hydrateLookingForward();
+  }, [hydrateLookingForward]);
+
+  // Reset hydration when user or date changes
+  useEffect(() => {
+    hydratedRef.current = false;
+    setEntry(null);
+    hydrateLookingForward();
+  }, [user?.id, dateStr, hydrateLookingForward]);
 
   return (
     <JournalCard

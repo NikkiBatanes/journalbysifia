@@ -7,17 +7,17 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Check, HandHeart as LuHandHeart, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  getJournalKey, 
-  getLocalEntry, 
-  saveLocalEntry, 
-  updateLocalEntry, 
+import {
+  getJournalKey,
+  getLocalEntry,
+  saveLocalEntry,
+  updateLocalEntry,
   deleteLocalEntry,
-  syncToCloud, 
+  syncToCloud,
   syncFromCloud,
   deleteCloudEntry,
   getCloudEntry,
-  checkSession
+  checkSession,
 } from '../../storage/journalStorage';
 import { toLocalDateString } from '../../utils/date';
 
@@ -46,17 +46,14 @@ export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new
   const { user, loading: authLoading } = useAuth();
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
   const contentType = 'gratitude';
-  const key = user ? getJournalKey(contentType, dateStr, user.id) : '';
+  const key = user ? getJournalKey(user.id, contentType, dateStr) : '';
 
   // Hydrate gratitude items from storage
-  const hydrateGratitude = async () => {
-    if (!user) {
-      console.log('No user, skipping gratitude hydration');
-      return;
-    }
-
-    console.log('Hydrating gratitude for date:', dateStr);
+  const hydrateGratitude = useCallback(async () => {
+    if (!user || hydratedRef.current) {return;}
     setLoading(true);
+
+    const storageKey = getJournalKey(user.id, contentType, dateStr);
 
     try {
       // Check session first
@@ -65,7 +62,7 @@ export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new
 
       // 1. Load local
       console.log('Loading local gratitude...');
-      const localEntry = await getLocalEntry(key);
+      const localEntry = await getLocalEntry(storageKey);
       console.log('Local entry loaded:', localEntry ? 'exists' : 'not found');
 
       if (localEntry?.content?.items) {
@@ -80,7 +77,7 @@ export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new
 
       // 3. Reload local after sync
       console.log('Reloading local data after sync...');
-      const syncedEntry = await getLocalEntry(key);
+      const syncedEntry = await getLocalEntry(storageKey);
       if (syncedEntry?.content?.items) {
         setGratitudeItems(syncedEntry.content.items);
       } else {
@@ -94,7 +91,7 @@ export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, dateStr, contentType, setLoading, setGratitudeItems]);
 
   // Hydrate on mount and when user/date changes
   useEffect(() => {
@@ -102,7 +99,7 @@ export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new
       hydratedRef.current = false;
       hydrateGratitude();
     }
-  }, [user, dateStr, authLoading]);
+  }, [user, dateStr, authLoading, hydrateGratitude]);
 
   const startAdding = () => {
     setIsAdding(true);
@@ -145,7 +142,7 @@ export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new
   }, []);
 
   // Save gratitude items to local storage and sync to cloud
-  const saveGratitudeToStorage = async (items: GratitudeItem[]): Promise<void> => {
+  const saveGratitudeToStorage = useCallback(async (items: GratitudeItem[]): Promise<void> => {
     console.log('!!! saveGratitudeToStorage CALLED !!!', { user, items });
     if (!user) {
       console.error('No user found when trying to save gratitude');
@@ -226,7 +223,7 @@ export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new
         setSyncing(false);
       }
     });
-  };
+  }, [user, key, dateStr, contentType, setGratitudeItems, setSyncing]);
 
   const handleDeleteGratitudeItem = useCallback((id: string) => {
     Alert.alert(
@@ -256,14 +253,14 @@ export const GratitudeList: React.FC<GratitudeListProps> = ({ selectedDate = new
       ],
       { cancelable: true }
     );
-  }, [visibleCount]);
+  }, [visibleCount, gratitudeItems, saveGratitudeToStorage]);
 
   const saveGratitudeItems = async () => {
     const validItems = newItems.filter(item => item.trim());
 
     if (validItems.length > 0) {
       let itemsToSave: GratitudeItem[];
-      
+
       if (isEditing) {
         // When editing, replace all items with the new ones
         const updatedItems = validItems.map((text, index) => {

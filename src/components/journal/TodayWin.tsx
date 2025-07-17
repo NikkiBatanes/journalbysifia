@@ -1,11 +1,24 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Check, X, Trophy as LuTrophy, Pencil } from 'lucide-react-native';
+import { useAuth } from '../../context/AuthContext';
+import {
+  getJournalKey,
+  saveLocalTodayWin,
+  getLocalTodayWin,
+  syncToCloud,
+  syncFromCloud,
+  getLocalEntry,
+  deleteLocalEntry,
+  deleteCloudEntry,
+  TodayWinEntry,
+} from '../../storage/journalStorage';
+import { toLocalDateString } from '../../utils/date';
 
 interface WinEntry {
   id: string;
@@ -13,12 +26,94 @@ interface WinEntry {
   date: Date;
 }
 
-export const TodayWin: React.FC = () => {
+interface TodayWinProps {
+  selectedDate: Date;
+}
+
+export const TodayWin: React.FC<TodayWinProps> = ({ selectedDate }) => {
+  const { user } = useAuth();
   const [win, setWin] = useState<WinEntry | null>(null);
   const [winText, setWinText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [previousWin, setPreviousWin] = useState<WinEntry | null>(null);
+  const [_loading, setLoading] = useState(false);
+  const [_syncing, setSyncing] = useState(false);
+  const hydratedRef = useRef(false);
   const swipeableRef = useRef<Swipeable>(null);
+
+  const dateStr = toLocalDateString(selectedDate);
+  const contentType = 'today_win';
+  const key = getJournalKey(user?.id || '', contentType, dateStr);
+
+  // Hydrate today's win from storage
+  const hydrateTodayWin = useCallback(async () => {
+    if (!user || hydratedRef.current) {return;}
+
+    setLoading(true);
+    try {
+      // Load from local storage first
+      const localWin = await getLocalTodayWin(key);
+      if (localWin) {
+        setWin(localWin);
+      }
+
+      // Sync from cloud in background
+      const cloudWin = await syncFromCloud(user.id, dateStr, contentType);
+      if (cloudWin?.content?.win) {
+        setWin(cloudWin.content.win);
+      }
+
+      hydratedRef.current = true;
+    } catch (error) {
+      console.error('Error hydrating today\'s win:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user, key, dateStr, contentType]);
+
+  // Save today's win to storage
+  const saveTodayWinToStorage = useCallback(async (winEntry: WinEntry | null) => {
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to save today\'s win.');
+      return;
+    }
+
+    console.log('🏆 TodayWin: Saving to storage...', { winEntry, user: user.id, dateStr, key });
+    setSyncing(true);
+    try {
+      if (!winEntry) {
+        // Handle deletion
+        console.log('🏆 TodayWin: Deleting entry');
+        const localEntry = await getLocalEntry(key);
+        if (localEntry) {
+          await deleteLocalEntry(key);
+          if (localEntry.id) {
+            await deleteCloudEntry(user.id, localEntry.id);
+          }
+        }
+      } else {
+        // Save the win
+        const todayWinEntry: TodayWinEntry = {
+          ...winEntry,
+          date: selectedDate,
+        };
+
+        console.log('🏆 TodayWin: Saving local entry:', todayWinEntry);
+        await saveLocalTodayWin(key, todayWinEntry, user.id);
+
+        console.log('🏆 TodayWin: Starting cloud sync...');
+        // Sync to cloud in background
+        syncToCloud(user.id, dateStr, contentType).catch(error => {
+          console.error('🏆 TodayWin: Background sync failed:', error);
+        });
+      }
+    } catch (error) {
+      console.error('🏆 TodayWin: Error saving:', error);
+      Alert.alert('Error', 'Failed to save today\'s win. Please try again.');
+    } finally {
+      setSyncing(false);
+    }
+  }, [user, key, dateStr, contentType, selectedDate]);
 
   const closeSwipeable = useCallback(() => {
     swipeableRef.current?.close();
@@ -40,7 +135,10 @@ export const TodayWin: React.FC = () => {
     const handleDelete = () => {
       closeSwipeable();
       // Small delay to allow the swipeable to close before deleting
-      setTimeout(() => setWin(null), 200);
+      setTimeout(() => {
+        setWin(null);
+        saveTodayWinToStorage(null);
+      }, 200);
     };
 
     return (
@@ -83,13 +181,16 @@ export const TodayWin: React.FC = () => {
 
   const saveWin = () => {
     if (winText.trim()) {
-      setWin({
+      const newWin = {
         id: Date.now().toString(),
         text: winText,
         date: new Date(),
-      });
+      };
+      setWin(newWin);
+      saveTodayWinToStorage(newWin);
       setWinText('');
       setIsAdding(false);
+      setPreviousWin(null); // Clear previous win after successful save
     }
   };
 
@@ -102,7 +203,17 @@ export const TodayWin: React.FC = () => {
     }
   };
 
-  // Removed unused editButton variable
+  // Hydrate data on mount
+  useEffect(() => {
+    hydrateTodayWin();
+  }, [hydrateTodayWin]);
+
+  // Reset hydration when user or date changes
+  useEffect(() => {
+    hydratedRef.current = false;
+    setWin(null);
+    hydrateTodayWin();
+  }, [user?.id, dateStr, hydrateTodayWin]);
 
   return (
     <JournalCard
