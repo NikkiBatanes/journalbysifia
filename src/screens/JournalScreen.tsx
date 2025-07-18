@@ -164,6 +164,14 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     setSelectedDayOfWeek(currentDate.getDay());
   }, [currentDate]);
 
+  // Switch away from prayer tab when future date is selected
+  useEffect(() => {
+    const isFutureDate = currentDate > new Date();
+    if (isFutureDate && activeTab === 'prayer') {
+      setActiveTab('journal');
+    }
+  }, [currentDate, activeTab]);
+
   // Track scroll position and update current date based on visible week
   const handleScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
@@ -356,8 +364,8 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                   <GratitudeList selectedDate={currentDate} />
                 </View>
                 <View style={styles.componentSpacing}>
-                  <ReflectionLog 
-                    selectedDate={currentDate} 
+                  <ReflectionLog
+                    selectedDate={currentDate}
                     refreshKey={refreshKey}
                   />
                 </View>
@@ -380,7 +388,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
       case 'prayer':
         return (
           <View style={styles.tabContentNoPadding}>
-            <PrayerJournalTab />
+            <PrayerJournalTab selectedDate={currentDate} />
           </View>
         );
       case 'finance':
@@ -394,50 +402,57 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     }
   };
 
-  const renderTabBar = () => (
-    <View style={styles.tabBar}>
-      <TouchableOpacity
-        style={[styles.tabItem, activeTab === 'journal' && styles.activeTab]}
-        onPress={() => setActiveTab('journal')}
-      >
-        <Ionicons
-          name="journal-outline"
-          size={20}
-          color={activeTab === 'journal' ? Colors.alertCoral : Colors.mediumGray}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tabItem, activeTab === 'schedule' && styles.activeTab]}
-        onPress={() => setActiveTab('schedule')}
-      >
-        <Ionicons
-          name="calendar-outline"
-          size={20}
-          color={activeTab === 'schedule' ? Colors.alertCoral : Colors.mediumGray}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tabItem, activeTab === 'prayer' && styles.activeTab]}
-        onPress={() => setActiveTab('prayer')}
-      >
-        <Ionicons
-          name="heart-outline"
-          size={20}
-          color={activeTab === 'prayer' ? Colors.alertCoral : Colors.mediumGray}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.tabItem, activeTab === 'finance' && styles.activeTab]}
-        onPress={() => setActiveTab('finance')}
-      >
-        <Ionicons
-          name="wallet-outline"
-          size={20}
-          color={activeTab === 'finance' ? Colors.alertCoral : Colors.mediumGray}
-        />
-      </TouchableOpacity>
-    </View>
-  );
+  const renderTabBar = () => {
+    const isFutureDate = currentDate > new Date();
+
+    return (
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'journal' && styles.activeTab]}
+          onPress={() => setActiveTab('journal')}
+        >
+          <Ionicons
+            name="journal-outline"
+            size={20}
+            color={activeTab === 'journal' ? Colors.alertCoral : Colors.mediumGray}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'schedule' && styles.activeTab]}
+          onPress={() => setActiveTab('schedule')}
+        >
+          <Ionicons
+            name="calendar-outline"
+            size={20}
+            color={activeTab === 'schedule' ? Colors.alertCoral : Colors.mediumGray}
+          />
+        </TouchableOpacity>
+        {/* Hide prayer tab for future dates */}
+        {!isFutureDate && (
+          <TouchableOpacity
+            style={[styles.tabItem, activeTab === 'prayer' && styles.activeTab]}
+            onPress={() => setActiveTab('prayer')}
+          >
+            <Ionicons
+              name="heart-outline"
+              size={20}
+              color={activeTab === 'prayer' ? Colors.alertCoral : Colors.mediumGray}
+            />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[styles.tabItem, activeTab === 'finance' && styles.activeTab]}
+          onPress={() => setActiveTab('finance')}
+        >
+          <Ionicons
+            name="wallet-outline"
+            size={20}
+            color={activeTab === 'finance' ? Colors.alertCoral : Colors.mediumGray}
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>

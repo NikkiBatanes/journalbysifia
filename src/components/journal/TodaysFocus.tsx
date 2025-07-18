@@ -8,6 +8,7 @@ import { Check, Goal as LuGoal, X } from 'lucide-react-native';
 import { getJournalKey, getLocalEntry, saveLocalEntry, syncToCloud, syncFromCloud, checkSession } from '../../storage/journalStorage';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
+import { useOptimizedDataLoading } from '../../hooks/useOptimizedDataLoading';
 
 interface PriorityItem {
   id: string;
@@ -41,9 +42,13 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
     ],
   });
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [_syncing, setSyncing] = useState(false);
   const swipeableRefs = useRef<{[key: string]: any}>({});
+
+  // Use optimized data loading
+  const { loadingState, hydrateWithOptimization } = useOptimizedDataLoading(
+    selectedDate,
+    'TodaysFocus'
+  );
 
   // Store original data for cancel functionality
   const originalData = useRef<TodayFocusData>({ ...data });
@@ -65,21 +70,9 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
     console.log('Resetting Today\'s Focus state to default for date:', dateStr);
   }, [dateStr]);
 
-  // Hydrate Today's Focus from storage and cloud
+  // Optimized hydration using preloaded data
   useEffect(() => {
-    let isMounted = true;
-    console.log('[TODAYS FOCUS] Hydration effect: user:', user, 'authLoading:', authLoading, 'dateStr:', dateStr, 'key:', key);
-
-    const hydrateFocus = async () => {
-      console.log('[TODAYS FOCUS] hydrateFocus running for date:', dateStr, 'key:', key);
-      if (!user) {
-        console.log('No user, skipping focus hydration');
-        return;
-      }
-
-      console.log('Hydrating focus for date:', dateStr, 'with key:', key);
-
-      // Immediately reset to default state when date changes
+    if (!authLoading && user && !hydratedRef.current) {
       const defaultData = {
         focus: '',
         priorities: [
@@ -89,71 +82,27 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
         ],
       };
 
-      if (isMounted) {
-        setData(defaultData);
-        setLoading(true);
-      }
+      setData(defaultData);
 
-      try {
+      const loadLocalData = async () => {
         await checkSession();
-
-        // Try to load local data
-        console.log('Loading local focus...');
         const localEntry = await getLocalEntry(key);
-        console.log('[TODAYS FOCUS] hydrateFocus: Local entry loaded:', localEntry);
-
-        if (!isMounted) {return;}
-
         if (localEntry?.content) {
-          console.log('Setting local data:', localEntry.content);
           setData(localEntry.content);
-        } else {
-          console.log('No local data found, using default');
-          setData(defaultData);
         }
+      };
 
-        // Sync from cloud (if newer, will update local)
-        console.log('Syncing from cloud...');
+      const syncCloudData = async () => {
         await syncFromCloud(user.id, dateStr, contentType);
-
-        if (!isMounted) {return;}
-
-        // Reload local after sync
-        console.log('Reloading local data after sync...');
         const syncedEntry = await getLocalEntry(key);
-        console.log('[TODAYS FOCUS] hydrateFocus: Synced entry loaded:', syncedEntry);
-
-        if (!isMounted) {return;}
-
         if (syncedEntry?.content) {
-          console.log('Setting synced data:', syncedEntry.content);
           setData(syncedEntry.content);
-        } else {
-          console.log('No synced data found, using default');
-          setData(defaultData);
         }
-        // Hydration complete, allow save effect to run
-        hydratedRef.current = true;
-      } catch (err) {
-        if (!isMounted) {return;}
-        console.error('Failed to hydrate today\'s focus:', err);
-        Alert.alert('Error', 'Failed to load today\'s focus.');
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
+      };
 
-    if (!authLoading) {
-      console.log('Auth loaded, starting hydration for date:', dateStr);
-      hydrateFocus();
+      hydrateWithOptimization(loadLocalData, syncCloudData);
     }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user, authLoading, dateStr, key]); // Matches Todos pattern: always hydrate on date change to storage and cloud
+  }, [user, authLoading, dateStr, key, hydrateWithOptimization]);
 
   // Save Today's Focus to storage and cloud
   const saveFocus = async (focusData: TodayFocusData) => {
@@ -163,7 +112,7 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
       return Promise.reject('No user found');
     }
     setData(focusData);
-    setSyncing(true);
+    // Syncing state is now handled by loadingState.syncing
     try {
       // Ensure the date is in the correct format (YYYY-MM-DD) and always local
       const formattedDate = toLocalDateString(selectedDate);
@@ -205,18 +154,18 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
       console.error('Background save/sync error:', err);
       throw err;
     } finally {
-      setSyncing(false);
+      // Syncing state is now handled by loadingState.syncing
     }
   };
 
   // Save on data change (except during initial hydration)
   useEffect(() => {
-    console.log('[TODAYS FOCUS] Save effect: hydratedRef:', hydratedRef.current, 'loading:', loading, 'user:', user);
+    console.log('[TODAYS FOCUS] Save effect: hydratedRef:', hydratedRef.current, 'loadingState:', loadingState, 'user:', user);
     if (!hydratedRef.current) {
       // Block save if hydration is not complete
       return;
     }
-    if (!loading && user) {
+    if (!loadingState.loading && user) {
       console.log('[TODAYS FOCUS] Save effect running for date:', dateStr, 'with data:', data);
       saveFocus(data).catch((err) => {
         console.error('[TODAYS FOCUS] Save effect error:', err);

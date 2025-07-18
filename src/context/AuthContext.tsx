@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signIn } from '../services/supabaseApi';
+import { dataPreloadService } from '../services/dataPreloadService';
 
 // Types
 interface User {
@@ -151,6 +152,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsAuthenticated(true);
 
       console.log('Login successful for user:', authUser.id);
+
+      // Start preloading user data in background for faster UI loading
+      dataPreloadService.preloadUserData(authUser.id).catch(preloadError => {
+        console.warn('Data preload failed (non-critical):', preloadError);
+      });
+
       return true;
     } catch (e: any) {
       console.error('Login error:', e);
@@ -192,6 +199,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRefreshToken(null);
       setUser(null);
       setIsAuthenticated(false);
+
+      // Clear preload cache on logout
+      dataPreloadService.clearCache();
     } catch (e) {
       console.error('Logout error:', e);
       setError('Logout failed.');

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import type { JSX } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -42,7 +43,7 @@ interface ReflectionLogProps {
 }
 
 export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
-  const [_viewMode, setViewMode] = useState<ViewMode>('free-form');
+  const [, setViewMode] = useState<ViewMode>('free-form');
   const [visibleCount, setVisibleCount] = useState<number>(3);
   const [entries, setEntries] = useState<ReflectionLogEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -89,7 +90,9 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
 
   // Hydrate reflection entries from storage
   const hydrateReflectionEntries = useCallback(async () => {
-    if (!user || hydratedRef.current) {return;}
+    if (!user || hydratedRef.current) {
+      return;
+    }
 
     try {
       console.log('Hydrating reflection entries for date:', dateStr);
@@ -141,7 +144,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
     }, [user, authLoading, hydrateReflectionEntries])
   );
 
-  const renderPromptPicker = () => (
+  const renderPromptPicker = (): JSX.Element => (
     <Modal
       visible={showPromptPicker}
       transparent
@@ -313,7 +316,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
   );
 
 
-  const renderEntries = () => {
+  const renderEntries = (): JSX.Element | null => {
     // Filter entries to only show those from the current date
     // Use selected_date for filtering instead of entry.date timestamp
     const filteredEntries = entries.filter(entry => {
@@ -518,10 +521,10 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
       };
 
       // Save to storage using the proper storage functions
-    // Filter existing entries to only include entries from the current date
-    const currentDateEntries = entries.filter(entry => entry.selected_date === dateStr);
-    const updatedEntries = [newEntryData, ...currentDateEntries];
-    await saveReflectionEntries(user.id, dateStr, updatedEntries);
+      // Filter existing entries to only include entries from the current date
+      const currentDateEntries = entries.filter(entry => entry.selected_date === dateStr);
+      const updatedEntries = [newEntryData, ...currentDateEntries];
+      await saveReflectionEntries(user.id, dateStr, updatedEntries);
 
       // Update local state immediately
       setEntries(updatedEntries);
@@ -578,8 +581,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
     }
   }, [isAdding]);
 
-  // ... (rest of the code remains the same)
-  const renderEntryForm = () => {
+  const renderEntryForm = (): JSX.Element => {
     const isGuided = !!selectedPrompt;
     const entryTitle = selectedPrompt || newEntry.title;
     const editorKey = selectedPrompt || 'free';

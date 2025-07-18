@@ -23,6 +23,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 import { extractCleanTitle } from '../utils/titleUtils';
+import { PrayerEntry } from '../storage/prayerStorage';
 
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 
@@ -36,6 +37,7 @@ import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
   const { devotionalId } = route.params;
   const { devotionals, markDayComplete, submitDevotionalRating } = useDevotional();
+  const { addPrayedItem, getAllDevotionalPrayers } = usePrayer(); // Get prayer functions from PrayerContext
   const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -94,6 +96,65 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
     setLoading(false);
   }, [devotionalId, devotionals]);
+
+  // Sync prayed status with database devotional prayers
+  useEffect(() => {
+    if (!devotional) {return;}
+
+    const syncPrayedStatus = async () => {
+      const devotionalTitle = extractCleanTitle(devotional.title) || 'Devotional';
+      console.log('🔍 Syncing prayed status for:', devotionalTitle);
+
+      try {
+        // Get all devotional prayers from database
+        const allDevotionalPrayers = await getAllDevotionalPrayers();
+        console.log('📊 Available devotional prayers:', allDevotionalPrayers.length);
+
+        const newPrayedDays: Record<string, boolean> = {};
+
+        // Check each day of the devotional against the database
+        devotional.days.forEach((day, index) => {
+          const prayerKey = `${devotional.id}-${index}`;
+
+          // Look for this specific day's prayer in the database
+          const existingPrayer = allDevotionalPrayers.find((prayer: PrayerEntry) => {
+            const matches = prayer.devotional_title === devotionalTitle &&
+                           prayer.day_number === day.dayNumber &&
+                           prayer.day_title === day.title;
+
+            if (matches) {
+              console.log(`✅ Found match for Day ${day.dayNumber}:`, {
+                dbTitle: prayer.devotional_title,
+                expectedTitle: devotionalTitle,
+                dbDayNumber: prayer.day_number,
+                expectedDayNumber: day.dayNumber,
+                dbDayTitle: prayer.day_title,
+                expectedDayTitle: day.title,
+              });
+            }
+
+            return matches;
+          });
+
+          if (existingPrayer) {
+            newPrayedDays[prayerKey] = true;
+          }
+        });
+
+        // Only update if we found any prayed days, preserve existing state otherwise
+        if (Object.keys(newPrayedDays).length > 0) {
+          console.log('📝 Updating prayed status:', newPrayedDays);
+          setPrayedDays(prev => ({ ...prev, ...newPrayedDays }));
+        } else {
+          console.log('ℹ️ No devotional prayers found in database, preserving current state');
+        }
+      } catch (error) {
+        console.error('❌ Error syncing prayed status:', error);
+      }
+    };
+
+    syncPrayedStatus();
+  }, [devotional, getAllDevotionalPrayers]);
 
   // Set initial day index from route params or devotional context
   useEffect(() => {
@@ -218,32 +279,55 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
   };
 
-  const { addPrayedItem } = usePrayer(); // Get addPrayedItem from PrayerContext
-
   // Toggle prayer status for the current day and add to prayed items
-  const togglePrayed = useCallback(() => {
+  const togglePrayed = useCallback(async () => {
     if (!devotional || !currentDay) {return;}
 
     const prayerKey = `${devotional.id}-${currentDayIndex}`;
     const isPrayed = !prayedDays[prayerKey];
+    const devotionalTitle = extractCleanTitle(devotional.title) || 'Devotional';
+
+    console.log('🔄 Toggling prayer status:', {
+      prayerKey,
+      isPrayed,
+      devotionalTitle,
+      dayNumber: currentDay.dayNumber,
+      dayTitle: currentDay.title,
+    });
 
     // Update local prayed state
-    setPrayedDays(prev => ({
-      ...prev,
-      [prayerKey]: isPrayed,
-    }));
+    setPrayedDays(prev => {
+      const newState = {
+        ...prev,
+        [prayerKey]: isPrayed,
+      };
+      console.log('📝 Updated prayedDays state:', newState);
+      return newState;
+    });
 
-    // If marking as prayed, add to prayed items
+    // If marking as prayed, add to prayed items (which automatically saves to database)
     if (isPrayed && currentDay.prayer?.trim()) {
+      const cleanPrayer = currentDay.prayer.replace(/\*\*/g, '').trim();
+
+      console.log('💾 Saving prayer to database:', {
+        devotionalTitle,
+        dayNumber: currentDay.dayNumber,
+        dayTitle: currentDay.title,
+        contentLength: cleanPrayer.length,
+      });
+
+      // Add to prayed items - this automatically saves to the database via addPrayedItem
       addPrayedItem(
-        currentDay.prayer.replace(/\*\*/g, '').trim(),
+        cleanPrayer,
         {
-          devotionalTitle: extractCleanTitle(devotional.title) || 'Devotional',
+          devotionalTitle,
           totalDays: devotional.totalDays,
           dayNumber: currentDay.dayNumber,
           dayTitle: currentDay.title,
         }
       );
+
+      console.log('✅ Devotional prayer saved via addPrayedItem');
     }
   }, [devotional, currentDayIndex, currentDay, prayedDays, addPrayedItem]);
 

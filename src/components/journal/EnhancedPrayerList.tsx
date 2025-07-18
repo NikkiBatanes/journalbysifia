@@ -8,25 +8,18 @@ import {
   ScrollView,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { usePrayer } from '../../context/PrayerContext';
 
-type PrayerType = 'personal' | 'request';
-
-interface PrayerItem {
-  id: string;
-  name: string;
-  prayer: string;
-  type: PrayerType;
-  requestedBy?: string;
-  notes?: string;
-  prayed?: boolean;
-}
 
 const EnhancedPrayerList: React.FC = () => {
+  const { addPrayer, updatePrayer, getPrayerRequests, getPersonalPrayers } = usePrayer();
   const [activeTab, setActiveTab] = useState<'mine' | 'requests'>('mine');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const clearInputs = useCallback(() => {
     // Reset all input fields
@@ -67,79 +60,94 @@ const EnhancedPrayerList: React.FC = () => {
   const [isPrayerFocused, setIsPrayerFocused] = useState(false);
   const [inputKey, setInputKey] = useState(0); // Add key to force re-render inputs
 
-  // Initialize with empty array - items will be added by the user
-  const [prayerItems, setPrayerItems] = useState<PrayerItem[]>([]);
-
   const [currentRequestedBy, setCurrentRequestedBy] = useState<string | undefined>(undefined);
 
-  const handleAddPrayer = () => {
+  // Get filtered prayers using new storage system
+  const prayerRequests = getPrayerRequests();
+  const personalPrayers = getPersonalPrayers();
+  const currentPrayers = activeTab === 'requests' ? prayerRequests : personalPrayers;
+
+  const handleAddPrayer = async () => {
     // Dismiss keyboard first
     Keyboard.dismiss();
 
+    if (isSubmitting) {return;}
+
     let shouldClearInputs = false;
+    setIsSubmitting(true);
 
-    // If we're adding a prayer that came from a request, mark the original request as prayed
-    if (currentRequestedBy) {
-      setPrayerItems(prevItems =>
-        prevItems.map(item =>
-          item.name === name && item.type === 'request' && !item.prayed
-            ? { ...item, prayed: true }
-            : item
-        )
-      );
-      shouldClearInputs = true;
-    }
-
-    if (activeTab === 'requests') {
-      // Adding a new prayer request
-      if (name.trim() && prayer.trim()) {
-        const newPrayer: PrayerItem = {
-          id: Date.now().toString(),
-          name: name.trim(),
-          prayer: prayer.trim(),
-          type: 'request',
-          notes: notes.trim(),
-          requestedBy: 'Me',
-        };
-        setPrayerItems(prev => [newPrayer, ...prev]);
+    try {
+      // If we're adding a prayer that came from a request, mark the original request as prayed
+      if (currentRequestedBy) {
+        const originalRequest = prayerRequests.find(
+          item => item.person_name === name && item.is_prayer_request === true && !item.prayed
+        );
+        if (originalRequest) {
+          await updatePrayer(originalRequest.id, { prayed: true });
+        }
         shouldClearInputs = true;
       }
-    } else {
-      // Adding a personal prayer
-      if (name.trim() && (prayer.trim() || notes.trim())) {
-        const newPrayer: PrayerItem = {
-          id: Date.now().toString(),
-          name: name.trim(),
-          prayer: prayer.trim(),
-          type: 'personal',
-          notes: notes.trim(),
-          requestedBy: currentRequestedBy,
-        };
-        setPrayerItems(prev => [newPrayer, ...prev]);
-        shouldClearInputs = true;
-      }
-    }
 
-    // Always clear inputs after processing
-    if (shouldClearInputs) {
-      clearInputs();
+      if (activeTab === 'requests') {
+        // Adding a new prayer request
+        if (name.trim() && prayer.trim()) {
+          await addPrayer({
+            content: prayer.trim(),
+            prayer_type: 'people',
+            person_name: name.trim(),
+            is_prayer_request: true,
+            requested_by: 'Me',
+            notes: notes.trim(),
+            selected_date: new Date().toISOString().split('T')[0],
+          });
+          shouldClearInputs = true;
+        }
+      } else {
+        // Adding a personal prayer
+        if (name.trim() && (prayer.trim() || notes.trim())) {
+          await addPrayer({
+            content: prayer.trim(),
+            prayer_type: 'people',
+            person_name: name.trim(),
+            is_prayer_request: false,
+            requested_by: currentRequestedBy,
+            notes: notes.trim(),
+            selected_date: new Date().toISOString().split('T')[0],
+          });
+          shouldClearInputs = true;
+        }
+      }
+
+      // Always clear inputs after processing
+      if (shouldClearInputs) {
+        clearInputs();
+      }
+    } catch (error) {
+      console.error('Error adding prayer:', error);
+      // TODO: Show error message to user
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const prayerInputRef = useRef<TextInput>(null);
 
-  const handleAddToMyList = (prayerItem: PrayerItem) => {
+  const handleAddToMyList = (prayerEntry: {
+    requested_by?: string;
+    person_name?: string;
+    content: string;
+  }) => {
     // Set the requestedBy first
-    setCurrentRequestedBy(prayerItem.requestedBy || 'Someone');
+    setCurrentRequestedBy(prayerEntry.requested_by || 'Someone');
 
     // Switch to 'People to Pray For' tab without clearing fields
     setActiveTab('mine');
 
     // Pre-fill the form fields after a small delay to ensure tab switch
     setTimeout(() => {
-      setName(prayerItem.name);
+      setName(prayerEntry.person_name || '');
       setPrayer(''); // Keep prayer text empty for user to fill
-      setNotes(prayerItem.prayer); // Move the prayer request to notes
+      setNotes(prayerEntry.content); // Move the prayer request to notes
 
       // Focus the prayer input field
       if (prayerInputRef.current) {
@@ -148,14 +156,8 @@ const EnhancedPrayerList: React.FC = () => {
     }, 100);
   };
 
-  const filteredPrayers = prayerItems.filter(item =>
-    activeTab === 'mine' ? item.type === 'personal' : item.type === 'request'
-  );
-
   // Get count of unprayed requests for the badge
-  const unprayedRequestsCount = prayerItems.filter(item =>
-    item.type === 'request' && !item.prayed
-  ).length;
+  const unprayedRequestsCount = prayerRequests.filter(item => !item.prayed).length;
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -170,7 +172,7 @@ const EnhancedPrayerList: React.FC = () => {
           </View>
           <View style={styles.headerPill}>
             <Text style={styles.headerPillText}>
-              {filteredPrayers.length} {filteredPrayers.length === 1 ? 'ITEM' : 'ITEMS'}
+              {currentPrayers.length} {currentPrayers.length === 1 ? 'ITEM' : 'ITEMS'}
             </Text>
           </View>
         </View>
@@ -185,10 +187,10 @@ const EnhancedPrayerList: React.FC = () => {
               <Text style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]}>
                 Prayers for People
               </Text>
-              {activeTab !== 'mine' && prayerItems.filter(item => item.type === 'personal').length > 0 && (
+              {activeTab !== 'mine' && personalPrayers.length > 0 && (
                 <View style={[styles.badge, {backgroundColor: Colors.anchorBlue}]}>
                   <Text style={styles.badgeText}>
-                    {prayerItems.filter(item => item.type === 'personal').length}
+                    {personalPrayers.length}
                   </Text>
                 </View>
               )}
@@ -261,21 +263,33 @@ const EnhancedPrayerList: React.FC = () => {
             />
           )}
           <TouchableOpacity
-            style={[styles.checkButton, (!name.trim() || !prayer.trim()) && styles.disabledButton]}
+            style={[styles.checkButton, (!name.trim() || !prayer.trim() || isSubmitting) && styles.disabledButton]}
             onPress={handleAddPrayer}
-            disabled={!name.trim() || !prayer.trim()}
+            disabled={!name.trim() || !prayer.trim() || isSubmitting}
           >
-            <Ionicons
-              name="checkmark-circle"
-              size={34}
-              color={!name.trim() || !prayer.trim() ? 'rgba(255, 255, 255, 0.5)' : Colors.hopeWhite}
-            />
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color={Colors.hopeWhite} />
+            ) : (
+              <Ionicons
+                name="checkmark-circle"
+                size={34}
+                color={(!name.trim() || !prayer.trim() || isSubmitting) ? 'rgba(255, 255, 255, 0.5)' : Colors.hopeWhite}
+              />
+            )}
           </TouchableOpacity>
         </View>
 
         {/* Prayer List */}
         <ScrollView style={styles.prayerList}>
-          {filteredPrayers.map((item) => (
+          {currentPrayers.map((item: {
+            id: string;
+            person_name?: string;
+            content: string;
+            notes?: string;
+            is_prayer_request?: boolean;
+            prayed?: boolean;
+            requested_by?: string;
+          }) => (
             <TouchableOpacity
               key={item.id}
               style={styles.prayerItem}
@@ -283,13 +297,13 @@ const EnhancedPrayerList: React.FC = () => {
             >
               <View style={styles.prayerHeader}>
                 <Text style={styles.personName}>
-                  {item.name}
+                  {item.person_name}
                 </Text>
               </View>
-              {item.type === 'request' ? (
+              {item.is_prayer_request ? (
                 // For prayer requests
                 <>
-                  <Text style={styles.prayerText}>{item.prayer}</Text>
+                  <Text style={styles.prayerText}>{item.content}</Text>
                   {item.notes && (
                     <Text style={styles.notesText} numberOfLines={1}>
                       <Text style={styles.notesLabel}>Notes: </Text>
@@ -301,15 +315,15 @@ const EnhancedPrayerList: React.FC = () => {
                 // For personal prayers
                 <>
                   <Text style={styles.prayerText}>
-                    {item.prayer || item.notes}
+                    {item.content || item.notes}
                   </Text>
-                  {item.requestedBy && item.notes && (
+                  {item.requested_by && item.notes && (
                     <Text style={styles.notesText} numberOfLines={1}>
                       <Text style={styles.notesLabel}>Prayer Request: </Text>
                       {item.notes}
                     </Text>
                   )}
-                  {!item.requestedBy && item.notes && item.prayer && (
+                  {!item.requested_by && item.notes && item.content && (
                     <Text style={styles.notesText} numberOfLines={1}>
                       <Text style={styles.notesLabel}>Notes: </Text>
                       {item.notes}
@@ -317,7 +331,7 @@ const EnhancedPrayerList: React.FC = () => {
                   )}
                 </>
               )}
-              {item.type === 'request' && activeTab === 'requests' && (
+              {item.is_prayer_request && activeTab === 'requests' && (
                 <TouchableOpacity
                   style={[styles.addButton, item.prayed && styles.prayedButton]}
                   onPress={() => handleAddToMyList(item)}
@@ -330,7 +344,7 @@ const EnhancedPrayerList: React.FC = () => {
                     style={styles.iconMargin}
                   />
                   <Text style={styles.addButtonText}>
-                    {item.prayed ? 'Prayed' : `Pray for ${item.name} now`}
+                    {item.prayed ? 'Prayed' : `Pray for ${item.person_name} now`}
                   </Text>
                 </TouchableOpacity>
               )}

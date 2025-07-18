@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, ActivityIndicator } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { usePrayer } from '../../context/PrayerContext';
+import { JournalCategory } from '../../storage/prayerStorage';
 
 // Prayer types and descriptions
 const PRAYER_TYPES = [
@@ -42,15 +44,6 @@ const PRAYER_TYPES = [
 
 type PrayerStatus = 'pending' | 'answered';
 
-interface Prayer {
-  id: string;
-  text: string;
-  type: string;
-  status?: PrayerStatus;
-  date: string;
-  answered?: string;
-}
-
 // Format date as MM/DD/YYYY
 const formatDate = (dateString: string): string => {
   if (!dateString) {return 'No date';}
@@ -62,52 +55,61 @@ const formatDate = (dateString: string): string => {
 };
 
 const PrayerJournalCard: React.FC = () => {
+  const { journalPrayers, addPrayer, updatePrayer } = usePrayer();
   const [selectedType, setSelectedType] = useState(PRAYER_TYPES[0]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [prayerText, setPrayerText] = useState('');
-  const [prayers, setPrayers] = useState<Prayer[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Group prayers by type
-  const prayersByType = prayers.reduce<Record<string, Prayer[]>>((acc, prayer) => {
-    if (!acc[prayer.type]) {
-      acc[prayer.type] = [];
+  // Group prayers by type using the new storage system
+  const prayersByType = journalPrayers.reduce<Record<string, typeof journalPrayers>>((acc, prayer) => {
+    const category = prayer.journal_category || 'adoration';
+    if (!acc[category]) {
+      acc[category] = [];
     }
-    acc[prayer.type].push(prayer);
+    acc[category].push(prayer);
     return acc;
   }, {});
 
-  const totalPrayers = prayers.length;
+  const totalPrayers = journalPrayers.length;
 
-  // Add prayer logic
-  const handleAddPrayer = () => {
-    if (prayerText.trim()) {
-      const newPrayer: Prayer = {
-        id: Date.now().toString(),
-        text: prayerText,
-        type: selectedType.key,
-        status: selectedType.key === 'supplication' ? 'pending' as PrayerStatus : undefined,
-        date: new Date().toISOString(),
-      };
-      setPrayers(prev => [...prev, newPrayer]);
-      setPrayerText('');
+  // Add prayer logic using new storage system
+  const handleAddPrayer = async () => {
+    if (prayerText.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+      try {
+        await addPrayer({
+          content: prayerText.trim(),
+          prayer_type: 'journal',
+          journal_category: selectedType.key as JournalCategory,
+          status: selectedType.key === 'supplication' ? 'pending' as PrayerStatus : undefined,
+          selected_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+        });
+        setPrayerText('');
+      } catch (error) {
+        console.error('Error adding prayer:', error);
+        // TODO: Show error message to user
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  // Toggle supplication answered status
-  const handleToggleAnswered = (id: string) => {
-    setPrayers((prev: Prayer[]) =>
-      prev.map((prayer: Prayer) => {
-        if (prayer.id === id) {
-          const newStatus: PrayerStatus = prayer.status === 'pending' ? 'answered' : 'pending';
-          return {
-            ...prayer,
-            status: newStatus,
-            answered: newStatus === 'answered' ? new Date().toISOString() : undefined,
-          };
-        }
-        return prayer;
-      })
-    );
+  // Toggle supplication answered status using new storage system
+  const handleToggleAnswered = async (id: string) => {
+    try {
+      const prayer = journalPrayers.find(p => p.id === id);
+      if (!prayer) {return;}
+
+      const newStatus: PrayerStatus = prayer.status === 'pending' ? 'answered' : 'pending';
+      await updatePrayer(id, {
+        status: newStatus,
+        answered_date: newStatus === 'answered' ? new Date().toISOString() : undefined,
+      });
+    } catch (error) {
+      console.error('Error updating prayer status:', error);
+      // TODO: Show error message to user
+    }
   };
 
 
@@ -183,15 +185,19 @@ const PrayerJournalCard: React.FC = () => {
           autoCorrect={true}
         />
         <TouchableOpacity
-          style={[styles.checkButton, !prayerText.trim() && styles.disabledButton]}
+          style={[styles.checkButton, (!prayerText.trim() || isSubmitting) && styles.disabledButton]}
           onPress={handleAddPrayer}
-          disabled={!prayerText.trim()}
+          disabled={!prayerText.trim() || isSubmitting}
         >
-          <Ionicons
-            name="checkmark-circle"
-            size={34}
-            color={!prayerText.trim() ? 'rgba(255, 255, 255, 0.5)' : Colors.hopeWhite}
-          />
+          {isSubmitting ? (
+            <ActivityIndicator size="small" color={Colors.hopeWhite} />
+          ) : (
+            <Ionicons
+              name="checkmark-circle"
+              size={34}
+              color={(!prayerText.trim() || isSubmitting) ? 'rgba(255, 255, 255, 0.5)' : Colors.hopeWhite}
+            />
+          )}
         </TouchableOpacity>
       </View>
       {/* Render Prayer Cards in specific order */}
@@ -218,8 +224,8 @@ const PrayerJournalCard: React.FC = () => {
             )}
             {prayerList.map((prayer) => (
               <View key={prayer.id} style={styles.prayerItem}>
-                <Text style={styles.prayerText}>{prayer.text}</Text>
-                {prayer.type === 'supplication' && (
+                <Text style={styles.prayerText}>{prayer.content}</Text>
+                {prayer.journal_category === 'supplication' && (
                   <TouchableOpacity
                     style={[styles.pendingPill, prayer.status === 'answered' && styles.answeredPill]}
                     onPress={() => handleToggleAnswered(prayer.id)}
@@ -228,7 +234,7 @@ const PrayerJournalCard: React.FC = () => {
                       <View style={styles.answeredContainer}>
                         <Ionicons name="checkmark-circle" size={14} color="#065F46" style={styles.pillIcon} />
                         <Text style={styles.answeredText}>
-                          Answered: {formatDate(prayer.answered || '')}
+                          Answered: {formatDate(prayer.answered_date || '')}
                         </Text>
                       </View>
                     ) : (
