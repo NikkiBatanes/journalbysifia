@@ -347,7 +347,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               <Todos selectedDate={currentDate} />
             </View>
             <View style={styles.componentSpacing}>
-              <TimeBlock />
+              <TimeBlock selectedDate={currentDate} refreshKey={refreshKey} />
             </View>
             {/* Only show these components for today or past dates */}
             {!isFutureDate && (
@@ -356,10 +356,9 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                   <GratitudeList selectedDate={currentDate} />
                 </View>
                 <View style={styles.componentSpacing}>
-                  <ReflectionLog
-                    selectedDate={currentDate}
+                  <ReflectionLog 
+                    selectedDate={currentDate} 
                     refreshKey={refreshKey}
-                    onEntryAdded={() => setRefreshKey(prev => prev + 1)}
                   />
                 </View>
                 <View style={styles.componentSpacing}>

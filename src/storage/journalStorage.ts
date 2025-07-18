@@ -1626,6 +1626,14 @@ export const forceRefreshAllJournalData = async (
       }
     }
 
+    // Also refresh time blocks
+    try {
+      const { forceRefreshTimeBlocks } = await import('./timeBlockStorage');
+      await forceRefreshTimeBlocks(userId, dateStr);
+    } catch (error) {
+      console.error('Error syncing time blocks:', error);
+    }
+
     console.log('=== forceRefreshAllJournalData COMPLETE ===');
   } catch (error) {
     console.error('Error in forceRefreshAllJournalData:', error);
