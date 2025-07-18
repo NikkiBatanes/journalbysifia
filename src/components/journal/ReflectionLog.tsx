@@ -39,10 +39,9 @@ export const GUIDED_PROMPTS = [
 interface ReflectionLogProps {
   selectedDate?: Date;
   refreshKey?: number; // Add refreshKey to trigger reload
-  onEntryAdded?: () => void; // Callback when a new entry is added
 }
 
-export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), refreshKey = 0, onEntryAdded }) => {
+export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
   const [_viewMode, setViewMode] = useState<ViewMode>('free-form');
   const [visibleCount, setVisibleCount] = useState<number>(3);
   const [entries, setEntries] = useState<ReflectionLogEntry[]>([]);
@@ -113,7 +112,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
   // Hydrate when user, date changes
   useEffect(() => {
     if (!authLoading && user) {
-      // Reset hydration state when date changes to force reload
+      // Clear entries state and reset hydration when date changes
+      setEntries([]);
       hydratedRef.current = false;
       hydrateReflectionEntries();
     }
@@ -518,13 +518,17 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
       };
 
       // Save to storage using the proper storage functions
-      const updatedEntries = [newEntryData, ...entries];
-      await saveReflectionEntries(user.id, dateStr, updatedEntries);
+    // Filter existing entries to only include entries from the current date
+    const currentDateEntries = entries.filter(entry => entry.selected_date === dateStr);
+    const updatedEntries = [newEntryData, ...currentDateEntries];
+    await saveReflectionEntries(user.id, dateStr, updatedEntries);
 
       // Update local state immediately
       setEntries(updatedEntries);
-
       console.log('Entry saved and local state updated:', newEntryData.title);
+      console.log('Updated entries count:', updatedEntries.length);
+      console.log('Current entries state will be:', updatedEntries.map(e => ({ id: e.id, title: e.title })));
+
       setNewEntry({
         id: '',
         title: '',
@@ -549,10 +553,13 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
       setSelectedPrompt('');
       setIsAdding(false);
 
-      // Notify parent that a new entry was added
-      if (onEntryAdded) {
-        onEntryAdded();
-      }
+      // Don't trigger refresh immediately after saving to prevent overriding local state
+      // The local state update should be sufficient for immediate UI feedback
+      // if (onEntryAdded) {
+      //   setTimeout(() => {
+      //     onEntryAdded();
+      //   }, 50);
+      // }
     } catch (error) {
       console.error('Failed to save entry:', error);
     }
@@ -606,7 +613,9 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
           if (newEntry.id) {
             // Update existing entry
             try {
-              const updatedEntries = entries.map(e => {
+              // Filter entries to only include current date entries before updating
+              const currentDateEntries = entries.filter(entry => entry.selected_date === dateStr);
+              const updatedEntries = currentDateEntries.map(e => {
                 if (e.id === newEntry.id) {
                   const updatedEntry: ReflectionLogEntry = {
                     ...e,
@@ -632,10 +641,13 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
               await saveReflectionEntries(user.id, dateStr, updatedEntries);
               setEntries(updatedEntries);
 
-              // Notify parent that an entry was updated
-              if (onEntryAdded) {
-                onEntryAdded();
-              }
+              // Don't trigger refresh immediately after updating to prevent overriding local state
+              // The local state update should be sufficient for immediate UI feedback
+              // if (onEntryAdded) {
+              //   setTimeout(() => {
+              //     onEntryAdded();
+              //   }, 50);
+              // }
             } catch (error) {
               console.error('Failed to update entry:', error);
             }
