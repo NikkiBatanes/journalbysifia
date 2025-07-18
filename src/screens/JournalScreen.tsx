@@ -321,6 +321,9 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   }, [user, currentDate, isRefreshing]);
 
   const renderTabContent = () => {
+    const isFutureDate = currentDate > new Date();
+    const isToday = isSameDay(currentDate, new Date());
+    
     switch (activeTab) {
       case 'journal':
         return (
@@ -347,22 +350,27 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             <View style={styles.componentSpacing}>
               <TimeBlock />
             </View>
-            <View style={styles.componentSpacing}>
-              <GratitudeList selectedDate={currentDate} />
-            </View>
-            <View style={styles.componentSpacing}>
-              <ReflectionLog
-                selectedDate={currentDate}
-                refreshKey={refreshKey}
-                onEntryAdded={() => setRefreshKey(prev => prev + 1)}
-              />
-            </View>
-            <View style={styles.componentSpacing}>
-              <TodayWin selectedDate={currentDate} />
-            </View>
-            <View style={styles.componentSpacing}>
-              <LookingForward selectedDate={currentDate} />
-            </View>
+            {/* Only show these components for today or past dates */}
+            {!isFutureDate && (
+              <>
+                <View style={styles.componentSpacing}>
+                  <GratitudeList selectedDate={currentDate} />
+                </View>
+                <View style={styles.componentSpacing}>
+                  <ReflectionLog
+                    selectedDate={currentDate}
+                    refreshKey={refreshKey}
+                    onEntryAdded={() => setRefreshKey(prev => prev + 1)}
+                  />
+                </View>
+                <View style={styles.componentSpacing}>
+                  <TodayWin selectedDate={currentDate} />
+                </View>
+                <View style={styles.componentSpacing}>
+                  <LookingForward selectedDate={currentDate} />
+                </View>
+              </>
+            )}
           </ScrollView>
         );
       case 'schedule':
@@ -675,14 +683,13 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   currentDayContainer: {
-    backgroundColor: Colors.alertCoral,
-  },
-  selectedDayContainer: {
-    backgroundColor: Colors.anchorBlue,
     borderWidth: 1,
     borderColor: Colors.hopeWhite,
-    zIndex: 1, // Ensure selected day appears above other elements
+    zIndex: 1, // Ensure current day appears above other elements
     elevation: 1, // For Android
+  },
+  selectedDayContainer: {
+    backgroundColor: Colors.alertCoral,
   },
   currentDayText: {
     color: Colors.hopeWhite,
