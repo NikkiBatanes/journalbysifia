@@ -1,24 +1,15 @@
 import React, { useState } from 'react';
 import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/ReflectionLog';
 import { Colors } from '../theme';
+import { useAuth } from '../context/AuthContext';
+import { saveReflectionEntries, loadReflectionEntries, ReflectionLogEntry } from '../storage/reflectionStorage';
+import { toLocalDateString } from '../utils/date';
 
-interface ReflectionLogEntry {
-  id: string;
-  title: string;
-  content: string;
-  date: Date;
-  type: string;
-  displayType?: string;
-  prompt?: string;
-  tags?: string[];
-  source?: string;
-}
-
-const REFLECTION_LOG_KEY = 'reflectionEntries';
+// ReflectionLogEntry is now imported from reflectionStorage.ts
+// Removed duplicate interface definition
 
 interface DevotionalDetailReflectionModalProps {
   visible: boolean;
@@ -43,6 +34,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   onSave,
   onCancel,
 }) => {
+  const { user } = useAuth();
   const [_isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [existingEntries, setExistingEntries] = useState<ReflectionLogEntry[]>([]);
@@ -50,31 +42,43 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   // Load existing entries on mount
   React.useEffect(() => {
     const loadEntries = async () => {
+      if (!user) {return;}
+
       try {
-        const savedEntries = await AsyncStorage.getItem(REFLECTION_LOG_KEY);
-        if (savedEntries) {
-          setExistingEntries(JSON.parse(savedEntries));
-        }
+        const today = new Date();
+        const dateStr = toLocalDateString(today);
+        const savedEntries = await loadReflectionEntries(user.id, dateStr);
+        setExistingEntries(savedEntries);
       } catch (error) {
         console.error('Failed to load entries', error);
       }
     };
     loadEntries();
-  }, []);
+  }, [user]);
 
-  // Save reflection to AsyncStorage
-  const saveReflection = async (entry: Omit<ReflectionLogEntry, 'id' | 'date' | 'type' | 'displayType'>) => {
+  // Save reflection using new storage system
+  const saveReflection = async (entry: { title: string; content: string; tags?: string[] }) => {
     try {
+      if (!user) {throw new Error('User not authenticated');}
+
       setIsSaving(true);
       const now = new Date();
-      // Since this is a devotional reflection, it's always guided
-      const newEntry = {
-        ...entry,
+      const dateStr = toLocalDateString(now);
+
+      // Create new entry with proper structure for new storage system
+      const newEntry: ReflectionLogEntry = {
         id: Date.now().toString(),
-        date: now,
-        type: 'guided',  // Always set to 'guided' for devotional reflections
-        displayType: 'Guided Prompt',
+        user_id: user.id,
+        title: entry.title,
+        content: entry.content,
+        prompt: question,
+        tags: entry.tags || [],
+        type: 'guided' as const,  // Always guided for devotional reflections
         source: 'devotional',
+        date: now,
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+        selected_date: dateStr,
         // Include devotional metadata
         ...(devotionalTitle && { devotionalTitle }),
         ...(dayNumber !== undefined && { dayNumber }),
@@ -86,11 +90,8 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       // Create updated entries array with new entry at the beginning
       const updatedEntries = [newEntry, ...existingEntries];
 
-      // Save to AsyncStorage
-      await AsyncStorage.setItem(
-        REFLECTION_LOG_KEY,
-        JSON.stringify(updatedEntries)
-      );
+      // Save using new storage system
+      await saveReflectionEntries(user.id, dateStr, updatedEntries);
 
       // Update local state
       setExistingEntries(updatedEntries);
@@ -111,7 +112,6 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       const savedEntry = await saveReflection({
         title: entry.title,
         content: entry.content,
-        prompt: question,
         tags: entry.tags || [],
       });
 

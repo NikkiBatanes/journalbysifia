@@ -1534,3 +1534,101 @@ export const getCloudLookingForward = async (
   if (error) {throw error;}
   return data?.content?.entry || null;
 };
+
+// --- Cache Management Functions ---
+export const clearJournalCache = async (userId: string, contentType?: string, date?: string): Promise<void> => {
+  console.log('=== clearJournalCache START ===', { userId, contentType, date });
+
+  try {
+    const allKeys = await AsyncStorage.getAllKeys();
+    let keysToDelete: string[] = [];
+
+    if (contentType && date) {
+      // Clear specific content type for specific date
+      const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
+      const key = getJournalKey(userId, contentType, dateStr);
+      keysToDelete = [key];
+    } else if (contentType) {
+      // Clear all entries for specific content type
+      keysToDelete = allKeys.filter(key =>
+        key.startsWith(`journal_${contentType}_${userId}_`)
+      );
+    } else {
+      // Clear all journal entries for user
+      keysToDelete = allKeys.filter(key =>
+        key.includes(`_${userId}_`) && (
+          key.startsWith('journal_') ||
+          key.startsWith('timeblock_') ||
+          key.startsWith('gratitude_') ||
+          key.startsWith('todos_') ||
+          key.startsWith('today_win_') ||
+          key.startsWith('looking_forward_')
+        )
+      );
+    }
+
+    for (const key of keysToDelete) {
+      await AsyncStorage.removeItem(key);
+    }
+
+    console.log('Cleared journal cache keys:', keysToDelete);
+    console.log('=== clearJournalCache COMPLETE ===');
+  } catch (error) {
+    console.error('Error in clearJournalCache:', error);
+    throw error;
+  }
+};
+
+export const forceRefreshJournalData = async (
+  userId: string,
+  date: string | Date,
+  contentType: string
+): Promise<void> => {
+  console.log('=== forceRefreshJournalData START ===', { userId, date, contentType });
+
+  try {
+    const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
+
+    // Clear local cache first
+    await clearJournalCache(userId, contentType, dateStr);
+
+    // Force sync from cloud
+    await syncFromCloud(userId, dateStr, contentType);
+
+    console.log('=== forceRefreshJournalData COMPLETE ===');
+  } catch (error) {
+    console.error('Error in forceRefreshJournalData:', error);
+    throw error;
+  }
+};
+
+export const forceRefreshAllJournalData = async (
+  userId: string,
+  date: string | Date
+): Promise<void> => {
+  console.log('=== forceRefreshAllJournalData START ===', { userId, date });
+
+  try {
+    const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
+
+    // Clear all local cache first
+    await clearJournalCache(userId);
+
+    // Force sync all content types from cloud
+    const contentTypes = ['gratitude', 'todos', 'today_win', 'looking_forward'];
+
+    for (const contentType of contentTypes) {
+      try {
+        await syncFromCloud(userId, dateStr, contentType);
+      } catch (error) {
+        console.error(`Error syncing ${contentType}:`, error);
+        // Continue with other content types even if one fails
+      }
+    }
+
+    console.log('=== forceRefreshAllJournalData COMPLETE ===');
+  } catch (error) {
+    console.error('Error in forceRefreshAllJournalData:', error);
+    throw error;
+  }
+};

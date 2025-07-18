@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isToday, isSameDay, addWeeks } from 'date-fns';
@@ -15,6 +15,9 @@ import { TodayWin } from '../components/journal/TodayWin';
 import { LookingForward } from '../components/journal/LookingForward';
 import { ScheduleContent } from '../components/journal/ScheduleContent';
 import PrayerJournalTab from '../components/journal/PrayerJournalTab';
+import { useAuth } from '../context/AuthContext';
+import { forceRefreshAllJournalData } from '../storage/journalStorage';
+import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
 
 type TabType = 'journal' | 'schedule' | 'prayer' | 'finance';
 
@@ -25,9 +28,11 @@ export type JournalScreenRef = {
 };
 
 const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
+  const { user } = useAuth();
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const lastSelectedDate = useRef<Date | null>(null);
 
   // Expose methods to parent component
@@ -289,6 +294,32 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     }, 1000);
   }, [isHeaderCollapsed, scrollY, setShowTabBar]);
 
+  // Pull-to-refresh function
+  const handleRefresh = useCallback(async () => {
+    if (!user || isRefreshing) {return;}
+
+    setIsRefreshing(true);
+
+    try {
+      console.log('Starting pull-to-refresh for all journal data...');
+
+      // Force refresh all journal data (gratitude, todos, today_win, looking_forward)
+      await forceRefreshAllJournalData(user.id, currentDate);
+
+      // Force refresh reflection entries
+      await forceRefreshReflectionEntries(user.id, currentDate);
+
+      // Increment refresh key to trigger re-render of all components
+      setRefreshKey(prev => prev + 1);
+
+      console.log('Pull-to-refresh completed successfully');
+    } catch (error) {
+      console.error('Error during pull-to-refresh:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [user, currentDate, isRefreshing]);
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'journal':
@@ -298,6 +329,14 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             contentContainerStyle={styles.scrollViewContent}
             onScroll={handleContentScroll}
             scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={Colors.alertCoral}
+                colors={[Colors.alertCoral]}
+              />
+            }
           >
             <View style={styles.componentSpacing}>
               <TodaysFocus selectedDate={currentDate} />
@@ -313,7 +352,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             </View>
             <View style={styles.componentSpacing}>
               <ReflectionLog
-                currentDate={currentDate}
+                selectedDate={currentDate}
                 refreshKey={refreshKey}
                 onEntryAdded={() => setRefreshKey(prev => prev + 1)}
               />

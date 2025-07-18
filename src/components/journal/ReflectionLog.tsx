@@ -1,35 +1,23 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { NotebookPen as LuNotebookPen, X } from 'lucide-react-native';
 import ReflectionLogEditor from './ReflectionLogEditor';
+import { useAuth } from '../../context/AuthContext';
+import {
+  ReflectionLogEntry,
+  saveReflectionEntries,
+  loadReflectionEntries,
+  debugReflectionEntries,
+  forceRefreshReflectionEntries,
+} from '../../storage/reflectionStorage';
+import { toLocalDateString } from '../../utils/date';
 
 type ViewMode = 'free-form' | 'guided';
-
-interface ReflectionLogEntry {
-  id: string;
-  title: string;
-  content: string;
-  date: Date;
-  type: ViewMode;
-  source?: 'devotional';
-  prompt?: string;
-  tags: string[];
-  location?: string;
-  // Devotional metadata
-  devotionalTitle?: string;
-  dayNumber?: number;
-  dayTitle?: string;
-  totalDays?: number;
-  questionNumber?: number;
-  // Add index signature to allow dynamic property access
-  [key: string]: any;
-}
 
 export const GUIDED_PROMPTS = [
   "How did I seek God's guidance in my decisions today?",
@@ -51,64 +39,139 @@ export const GUIDED_PROMPTS = [
 ];
 
 interface ReflectionLogProps {
-  currentDate: Date;
+  selectedDate?: Date;
   refreshKey?: number; // Add refreshKey to trigger reload
   onEntryAdded?: () => void; // Callback when a new entry is added
 }
 
-export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refreshKey = 0, onEntryAdded }) => {
+export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), refreshKey = 0, onEntryAdded }) => {
   const [_viewMode, setViewMode] = useState<ViewMode>('free-form');
   const [visibleCount, setVisibleCount] = useState<number>(3);
-  const [entries, _setEntries] = useState<ReflectionLogEntry[]>([]);
+  const [entries, setEntries] = useState<ReflectionLogEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState('');
-  const [newEntry, setNewEntry] = useState<ReflectionLogEntry & {
-    devotionalTitle?: string;
-    dayNumber?: number;
-    dayTitle?: string;
-    totalDays?: number;
-    questionNumber?: number;
-  }>({
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const hydratedRef = useRef(false);
+  const [newEntry, setNewEntry] = useState({
     id: '',
     title: '',
     content: '',
-    tags: [],
+    tags: [] as string[],
     date: new Date(),
-    type: 'free-form',
+    type: 'free-form' as ViewMode,
+    source: undefined as 'devotional' | undefined,
+    prompt: undefined as string | undefined,
+    location: undefined as string | undefined,
+    devotionalTitle: undefined as string | undefined,
+    dayNumber: undefined as number | undefined,
+    dayTitle: undefined as string | undefined,
+    totalDays: undefined as number | undefined,
+    questionNumber: undefined as number | undefined,
+    // Required database fields
+    user_id: '',
+    created_at: '',
+    updated_at: '',
+    selected_date: '',
   });
   const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
   const [showEntryModal, setShowEntryModal] = useState(false);
 
-  // Load entries from AsyncStorage
-  const loadEntries = useCallback(async () => {
-    try {
-      const savedEntries = await AsyncStorage.getItem('reflectionEntries');
-      if (savedEntries) {
-        // Parse and sort entries by date (newest first)
-        const parsedEntries = JSON.parse(savedEntries).map((entry: any) => ({
-          ...entry,
-          date: new Date(entry.date),
-        })).sort((a: ReflectionLogEntry, b: ReflectionLogEntry) =>
-          b.date.getTime() - a.date.getTime()
-        );
-        _setEntries(parsedEntries);
-      }
-    } catch (error) {
-      console.error('Error loading entries:', error);
-    }
-  }, []);
+  // Auth and date context
+  const { user, loading: authLoading } = useAuth();
+  const dateStr = toLocalDateString(selectedDate);
+  const currentDate = selectedDate; // Keep for backward compatibility
 
-  // Load entries on initial render and when refreshKey changes
+  // Debug: Log when entries state changes
   useEffect(() => {
-    loadEntries();
-  }, [loadEntries, refreshKey]);
+    console.log('ReflectionLog entries state changed:', entries.length, 'entries for date:', dateStr);
+    entries.forEach((entry, index) => {
+      console.log(`Entry ${index}:`, entry.title, entry.selected_date);
+    });
+  }, [entries, dateStr]);
+
+  // Force refresh reflection entries (clears cache first)
+  const forceRefreshEntries = useCallback(async () => {
+    if (!user) {return;}
+    setLoading(true);
+    setSyncing(true);
+
+    try {
+      console.log('Force refreshing reflection entries for date:', dateStr);
+      const loadedEntries = await forceRefreshReflectionEntries(user.id, dateStr);
+
+      // forceRefreshReflectionEntries already filters by selected_date, so no need for additional filtering
+      // Just sort by date (newest first)
+      const sortedEntries = loadedEntries.sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      setEntries(sortedEntries);
+      hydratedRef.current = true;
+    } catch (error) {
+      console.error('Error force refreshing reflection entries:', error);
+      Alert.alert('Error', 'Failed to refresh reflection entries.');
+    } finally {
+      setLoading(false);
+      setSyncing(false);
+    }
+  }, [user, dateStr, selectedDate]);
+
+  // Hydrate reflection entries from storage
+  const hydrateReflectionEntries = useCallback(async () => {
+    if (!user || hydratedRef.current) {return;}
+    setLoading(true);
+
+    try {
+      console.log('Hydrating reflection entries for date:', dateStr);
+      const loadedEntries = await loadReflectionEntries(user.id, dateStr);
+
+      // loadReflectionEntries already filters by selected_date, so no need for additional filtering
+      // Just sort by date (newest first)
+      const sortedEntries = loadedEntries.sort((a, b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      setEntries(sortedEntries);
+      hydratedRef.current = true;
+    } catch (error) {
+      console.error('Error hydrating reflection entries:', error);
+      Alert.alert('Error', 'Failed to load reflection entries.');
+    } finally {
+      setLoading(false);
+    }
+  }, [user, dateStr, selectedDate]);
+
+  // Hydrate when user, date changes
+  useEffect(() => {
+    if (!authLoading && user) {
+      // Reset hydration state when date changes to force reload
+      hydratedRef.current = false;
+      hydrateReflectionEntries();
+    }
+  }, [user, dateStr, authLoading, hydrateReflectionEntries]);
+
+  // Handle refresh key changes (force refresh)
+  useEffect(() => {
+    if (!authLoading && user && refreshKey > 0) {
+      console.log('RefreshKey changed, force refreshing reflection entries...');
+      hydratedRef.current = false;
+      forceRefreshEntries();
+    }
+  }, [refreshKey, user, authLoading, forceRefreshEntries]);
 
   // Also reload entries when the screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      loadEntries();
-    }, [loadEntries])
+      if (!authLoading && user) {
+        // Only reload if we haven't hydrated yet or if the date has changed
+        // This prevents overriding local state updates after saving
+        if (!hydratedRef.current) {
+          hydrateReflectionEntries();
+        }
+      }
+    }, [user, dateStr, authLoading, hydrateReflectionEntries])
   );
 
   const renderPromptPicker = () => (
@@ -198,11 +261,17 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
       source: entry.source,
       prompt: entry.prompt,
       tags: entry.tags || [],
+      location: entry.location,
       devotionalTitle: (entry as any).devotionalTitle,
       dayNumber: (entry as any).dayNumber,
       dayTitle: (entry as any).dayTitle,
       totalDays: (entry as any).totalDays,
       questionNumber: (entry as any).questionNumber,
+      // Required database fields
+      user_id: entry.user_id,
+      created_at: entry.created_at,
+      updated_at: entry.updated_at,
+      selected_date: entry.selected_date,
     });
   };
 
@@ -287,9 +356,10 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
 
   const renderEntries = () => {
     // Filter entries to only show those from the current date
+    // Use selected_date for filtering instead of entry.date timestamp
     const filteredEntries = entries.filter(entry => {
-      const entryDate = new Date(entry.date);
-      return isSameDay(entryDate, currentDate);
+      // If entry has selected_date, use that for filtering
+      return entry.selected_date === dateStr;
     });
 
     if (filteredEntries.length === 0) {
@@ -446,11 +516,6 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
 
   const titleInputRef = useRef<TextInput>(null);
 
-  // Load entries on mount and when refreshKey changes
-  useEffect(() => {
-    loadEntries();
-  }, [loadEntries, refreshKey]);
-
   const handleSaveEntry = async (entryData: {
     title: string;
     content: string;
@@ -464,6 +529,11 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
     totalDays?: number;
     questionNumber?: number;
   }) => {
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
+
     try {
       const newEntryData: ReflectionLogEntry = {
         id: Date.now().toString(),
@@ -474,17 +544,28 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
         source: entryData.source === 'devotional' ? 'devotional' as const : undefined,
         prompt: entryData.prompt || selectedPrompt || undefined,
         tags: entryData.tags || [],
+        location: undefined,
         // Include devotional metadata if available
         ...(entryData.devotionalTitle && { devotionalTitle: entryData.devotionalTitle }),
         ...(entryData.dayNumber !== undefined && { dayNumber: entryData.dayNumber }),
         ...(entryData.dayTitle && { dayTitle: entryData.dayTitle }),
         ...(entryData.totalDays !== undefined && { totalDays: entryData.totalDays }),
         ...(entryData.questionNumber !== undefined && { questionNumber: entryData.questionNumber }),
+        // Required database fields
+        user_id: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        selected_date: dateStr,
       };
 
+      // Save to storage using the proper storage functions
       const updatedEntries = [newEntryData, ...entries];
-      await AsyncStorage.setItem('reflectionEntries', JSON.stringify(updatedEntries));
-      _setEntries(updatedEntries);
+      await saveReflectionEntries(user.id, dateStr, updatedEntries);
+      
+      // Update local state immediately
+      setEntries(updatedEntries);
+      
+      console.log('Entry saved and local state updated:', newEntryData.title);
       setNewEntry({
         id: '',
         title: '',
@@ -499,6 +580,12 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
         dayTitle: undefined,
         totalDays: undefined,
         questionNumber: undefined,
+        location: undefined,
+        // Required database fields
+        user_id: '',
+        created_at: '',
+        updated_at: '',
+        selected_date: '',
       });
       setSelectedPrompt('');
       setIsAdding(false);
@@ -552,6 +639,11 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
       <ReflectionLogEditor
         key={editorKey}
         onSave={async (entryData: any) => {
+          if (!user) {
+            console.error('User not authenticated');
+            return;
+          }
+
           if (newEntry.id) {
             // Update existing entry
             try {
@@ -578,8 +670,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
                 }
                 return e;
               });
-              await AsyncStorage.setItem('reflectionEntries', JSON.stringify(updatedEntries));
-              _setEntries(updatedEntries);
+              await saveReflectionEntries(user.id, dateStr, updatedEntries);
+              setEntries(updatedEntries);
 
               // Notify parent that an entry was updated
               if (onEntryAdded) {
@@ -593,7 +685,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
             await handleSaveEntry({
               ...entryData,
               type: (entryData.type || (selectedPrompt ? 'guided' : 'free-form')) as ViewMode,
-              source: entryData.source || (selectedPrompt ? 'devotional' as const : undefined),
+              source: entryData.source || (isDevotionalEntry ? 'devotional' as const : undefined),
               // Include devotional metadata if available
               ...(isDevotionalEntry && {
                 devotionalTitle: entryData.devotionalTitle,
@@ -653,11 +745,17 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ currentDate, refre
         tags: [],
         source: undefined,
         prompt: undefined,
+        location: undefined,
         devotionalTitle: undefined,
         dayNumber: undefined,
         dayTitle: undefined,
         totalDays: undefined,
         questionNumber: undefined,
+        // Required database fields
+        user_id: '',
+        created_at: '',
+        updated_at: '',
+        selected_date: '',
       });
         setSelectedPrompt('');  // Clear any selected prompt
         setViewMode('free-form');

@@ -227,11 +227,22 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   // State for showing draft notification
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
 
+  // Helper function to get draft key (unique for each devotional question)
+  const getDraftKey = () => {
+    if (source === 'devotional' && devotionalTitle && dayNumber !== undefined && questionNumber !== undefined) {
+      // Create unique key for each devotional question
+      return `@reflection_editor_draft_${devotionalTitle}_day${dayNumber}_q${questionNumber}`;
+    }
+    // Default key for non-devotional reflections
+    return '@reflection_editor_draft';
+  };
+
   // Load draft when component mounts
   useEffect(() => {
     const loadDraft = async () => {
       try {
-        const draft = await AsyncStorage.getItem('@reflection_editor_draft');
+        const draftKey = getDraftKey();
+        const draft = await AsyncStorage.getItem(draftKey);
         if (draft) {
           const { content, title } = JSON.parse(draft);
 
@@ -252,7 +263,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
             }, 4000);
 
             // Clear the draft after loading it
-            await AsyncStorage.removeItem('@reflection_editor_draft');
+            await AsyncStorage.removeItem(draftKey);
 
             return () => clearTimeout(timer);
           }
@@ -265,24 +276,41 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     loadDraft();
   }, []);
 
-  // Save draft when there are changes
-  useEffect(() => {
-    const saveDraft = async () => {
-      try {
-        await AsyncStorage.setItem(
-          '@reflection_editor_draft',
-          JSON.stringify({
-            content: newEntry.content,
-            title: newEntry.title,
-          })
-        );
-      } catch (error) {
-        console.error('Error saving draft:', error);
-      }
-    };
+  // Helper function to save draft
+  const saveDraftHelper = async () => {
+    try {
+      // Only save draft if there's actual content
+      if (newEntry.content.trim() || newEntry.title.trim()) {
+        const draftData = {
+          content: newEntry.content,
+          title: newEntry.title,
+          // Include devotional metadata if available
+          ...(devotionalTitle && { devotionalTitle }),
+          ...(dayNumber !== undefined && { dayNumber }),
+          ...(dayTitle && { dayTitle }),
+          ...(totalDays !== undefined && { totalDays }),
+          ...(questionNumber !== undefined && { questionNumber }),
+          // Include other metadata
+          ...(source && { source }),
+        };
 
-    saveDraft();
-  }, [newEntry.content, newEntry.title]);
+        await AsyncStorage.setItem(
+          getDraftKey(),
+          JSON.stringify(draftData)
+        );
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    }
+  };
+
+  // Clear draft when component unmounts (cleanup)
+  useEffect(() => {
+    return () => {
+      // Only clear draft if the entry was saved (not cancelled)
+      // This cleanup runs when component unmounts
+    };
+  }, []);
 
   // Update title when initialTitle changes and focus content if title is locked
   React.useEffect(() => {
@@ -318,7 +346,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   }, []);
 
   // Save handler
-  const handleSave = () => {
+  const handleSave = async () => {
     // Determine the entry type - if there's a selected prompt, it's a guided entry
     const entryType = selectedPrompt ? 'guided' : viewMode;
 
@@ -337,6 +365,14 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       ...(totalDays !== undefined && { totalDays }),
       ...(questionNumber !== undefined && { questionNumber }),
     };
+
+    // Clear any existing draft since we're saving the entry
+    try {
+      await AsyncStorage.removeItem(getDraftKey());
+    } catch (error) {
+      console.error('Error clearing draft:', error);
+    }
+
     onSave(entry);
   };
 
@@ -346,14 +382,8 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   // Cancel handler
   const handleCancel = async () => {
     try {
-      // Save draft before canceling
-      await AsyncStorage.setItem(
-        '@reflection_editor_draft',
-        JSON.stringify({
-          content: newEntry.content,
-          title: newEntry.title,
-        })
-      );
+      // Save draft before canceling (only if there's content)
+      await saveDraftHelper();
 
       Keyboard.dismiss();
       // Small delay to ensure keyboard is fully dismissed before closing
@@ -403,13 +433,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                         style: 'default',
                         onPress: async () => {
                           try {
-                            await AsyncStorage.setItem(
-                              '@reflection_editor_draft',
-                              JSON.stringify({
-                                content: newEntry.content,
-                                title: newEntry.title,
-                              })
-                            );
+                            await saveDraftHelper();
                             resolve(true);
                           } catch (error) {
                             console.error('Error saving draft:', error);
