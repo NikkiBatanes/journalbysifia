@@ -228,14 +228,14 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
 
   // Helper function to get draft key (unique for each devotional question)
-  const getDraftKey = () => {
+  const getDraftKey = React.useCallback(() => {
     if (source === 'devotional' && devotionalTitle && dayNumber !== undefined && questionNumber !== undefined) {
       // Create unique key for each devotional question
       return `@reflection_editor_draft_${devotionalTitle}_day${dayNumber}_q${questionNumber}`;
     }
     // Default key for non-devotional reflections
     return '@reflection_editor_draft';
-  };
+  }, [source, devotionalTitle, dayNumber, questionNumber]);
 
   // Load draft when component mounts
   useEffect(() => {
@@ -274,7 +274,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     };
 
     loadDraft();
-  }, []);
+  }, [getDraftKey]);
 
   // Helper function to save draft
   const saveDraftHelper = async () => {

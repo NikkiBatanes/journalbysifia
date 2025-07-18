@@ -43,8 +43,8 @@ export interface ReflectionStorageEntry {
 // --- Utility Functions ---
 const generateUUID = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    const r = Math.floor(Math.random() * 16);
+    const v = c === 'x' ? r : (r % 4) + 8;
     return v.toString(16);
   });
 };
@@ -385,7 +385,7 @@ export const saveReflectionEntries = async (
     const key = getReflectionKey(userId, dateStr);
 
     // Save to local storage
-    const localEntry = await saveLocalReflectionEntry(key, entries, userId);
+    await saveLocalReflectionEntry(key, entries, userId);
 
     // Sync to cloud in background
     syncReflectionToCloud(userId, dateStr)
@@ -412,9 +412,6 @@ export const loadReflectionEntries = async (
   try {
     const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
     const key = getReflectionKey(userId, dateStr);
-
-    // Load from local storage first
-    const localEntry = await getLocalReflectionEntry(key);
 
     // Sync from cloud (this will update local if cloud is newer)
     await syncReflectionFromCloud(userId, dateStr);

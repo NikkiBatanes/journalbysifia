@@ -3,7 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { format, addDays, startOfWeek, isToday, isSameDay, addWeeks } from 'date-fns';
+import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { TodaysFocus } from '../components/journal/TodaysFocus';
@@ -322,8 +322,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
 
   const renderTabContent = () => {
     const isFutureDate = currentDate > new Date();
-    const isToday = isSameDay(currentDate, new Date());
-    
+
     switch (activeTab) {
       case 'journal':
         return (

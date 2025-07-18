@@ -12,8 +12,6 @@ import {
   ReflectionLogEntry,
   saveReflectionEntries,
   loadReflectionEntries,
-  debugReflectionEntries,
-  forceRefreshReflectionEntries,
 } from '../../storage/reflectionStorage';
 import { toLocalDateString } from '../../utils/date';
 
@@ -51,8 +49,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
   const [isAdding, setIsAdding] = useState(false);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+
   const hydratedRef = useRef(false);
   const [newEntry, setNewEntry] = useState({
     id: '',
@@ -91,37 +88,9 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
     });
   }, [entries, dateStr]);
 
-  // Force refresh reflection entries (clears cache first)
-  const forceRefreshEntries = useCallback(async () => {
-    if (!user) {return;}
-    setLoading(true);
-    setSyncing(true);
-
-    try {
-      console.log('Force refreshing reflection entries for date:', dateStr);
-      const loadedEntries = await forceRefreshReflectionEntries(user.id, dateStr);
-
-      // forceRefreshReflectionEntries already filters by selected_date, so no need for additional filtering
-      // Just sort by date (newest first)
-      const sortedEntries = loadedEntries.sort((a, b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-
-      setEntries(sortedEntries);
-      hydratedRef.current = true;
-    } catch (error) {
-      console.error('Error force refreshing reflection entries:', error);
-      Alert.alert('Error', 'Failed to refresh reflection entries.');
-    } finally {
-      setLoading(false);
-      setSyncing(false);
-    }
-  }, [user, dateStr, selectedDate]);
-
   // Hydrate reflection entries from storage
   const hydrateReflectionEntries = useCallback(async () => {
     if (!user || hydratedRef.current) {return;}
-    setLoading(true);
 
     try {
       console.log('Hydrating reflection entries for date:', dateStr);
@@ -138,10 +107,8 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
     } catch (error) {
       console.error('Error hydrating reflection entries:', error);
       Alert.alert('Error', 'Failed to load reflection entries.');
-    } finally {
-      setLoading(false);
     }
-  }, [user, dateStr, selectedDate]);
+  }, [user, dateStr]);
 
   // Hydrate when user, date changes
   useEffect(() => {
@@ -152,14 +119,14 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
     }
   }, [user, dateStr, authLoading, hydrateReflectionEntries]);
 
-  // Handle refresh key changes (force refresh)
+  // Handle refresh key changes
   useEffect(() => {
     if (!authLoading && user && refreshKey > 0) {
-      console.log('RefreshKey changed, force refreshing reflection entries...');
+      console.log('RefreshKey changed, refreshing reflection entries...');
       hydratedRef.current = false;
-      forceRefreshEntries();
+      hydrateReflectionEntries();
     }
-  }, [refreshKey, user, authLoading, forceRefreshEntries]);
+  }, [refreshKey, user, authLoading, hydrateReflectionEntries]);
 
   // Also reload entries when the screen comes into focus
   useFocusEffect(
@@ -171,7 +138,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
           hydrateReflectionEntries();
         }
       }
-    }, [user, dateStr, authLoading, hydrateReflectionEntries])
+    }, [user, authLoading, hydrateReflectionEntries])
   );
 
   const renderPromptPicker = () => (
@@ -345,14 +312,6 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
     </TouchableOpacity>
   );
 
-  // Helper function to check if two dates are the same day
-  const isSameDay = (date1: Date, date2: Date) => {
-    return (
-      date1.getFullYear() === date2.getFullYear() &&
-      date1.getMonth() === date2.getMonth() &&
-      date1.getDate() === date2.getDate()
-    );
-  };
 
   const renderEntries = () => {
     // Filter entries to only show those from the current date
@@ -561,10 +520,10 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
       // Save to storage using the proper storage functions
       const updatedEntries = [newEntryData, ...entries];
       await saveReflectionEntries(user.id, dateStr, updatedEntries);
-      
+
       // Update local state immediately
       setEntries(updatedEntries);
-      
+
       console.log('Entry saved and local state updated:', newEntryData.title);
       setNewEntry({
         id: '',
