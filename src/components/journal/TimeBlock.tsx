@@ -312,7 +312,12 @@ customDays: [],
 });
 
 const addTimeBlock = async () => {
-  if (!user) {return;}
+  if (!user) {
+    console.log('❌ TimeBlock: No user found');
+    return;
+  }
+
+  console.log('🔄 TimeBlock: Starting save process...');
 
   try {
     // Reset error states
@@ -325,7 +330,7 @@ const addTimeBlock = async () => {
       return;
     }
 
-    if (!newBlock.category) {
+    if (!selectedCategory && !newBlock.category) {
       setShowCategoryError(true);
       return;
     }
@@ -333,6 +338,15 @@ const addTimeBlock = async () => {
     const dateStr = toLocalDateString(selectedDate);
     const startTime = newBlock.startTime.toTimeString().slice(0, 5); // HH:MM format
     const endTime = newBlock.endTime.toTimeString().slice(0, 5); // HH:MM format
+
+    console.log('📝 TimeBlock: Saving with data:', {
+      title: newBlock.title,
+      category: selectedCategory || newBlock.category,
+      dateStr,
+      startTime,
+      endTime,
+      userId: user.id
+    });
 
     if (editId) {
       // Update existing time block
@@ -422,11 +436,27 @@ const addTimeBlock = async () => {
       };
 
       setTimeBlocks(prevBlocks => [...prevBlocks, newTimeBlockItem]);
+      console.log('✅ TimeBlock: Successfully saved and added to local state');
     }
 
     // Reset form
     setShowCategoryError(false);
+    setShowTitleError(false);
     setSelectedCategory('');
+    setNewBlock({
+      title: '',
+      startTime: new Date(),
+      endTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour later
+      category: '',
+      notes: '',
+      location: '',
+      isAllDay: false,
+      repeat: {
+        frequency: 'never',
+        endDate: undefined,
+        customDays: [],
+      },
+    });
     setIsAdding(false);
     setEditId(null);
 

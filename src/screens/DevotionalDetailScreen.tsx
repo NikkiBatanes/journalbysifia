@@ -37,7 +37,7 @@ import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
   const { devotionalId } = route.params;
   const { devotionals, markDayComplete, submitDevotionalRating } = useDevotional();
-  const { addPrayedItem, getAllDevotionalPrayers } = usePrayer(); // Get prayer functions from PrayerContext
+  const { addPrayedItem, addPrayer, getAllDevotionalPrayers } = usePrayer(); // Get prayer functions from PrayerContext
   const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);

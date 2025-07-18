@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -20,11 +20,12 @@ interface TodoItem {
 
 interface TodosProps {
   selectedDate?: Date;
+  refreshKey?: number;
 }
 
 import { toLocalDateString } from '../../utils/date';
 
-export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
+export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -41,9 +42,12 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
   const contentType = 'todos';
   const key = user ? getJournalKey(user.id, contentType, dateStr) : '';
 
-  // Removed unused state variables to fix linting issues
-  const [, setLoading] = useState(true);
-  const [, setSyncing] = useState(false);
+  // Caching and sync state
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const hydratedRef = useRef(false);
+  const isSyncingRef = useRef(false);
+  const refreshKeyRef = useRef(refreshKey);
 
   const closeAllSwipeables = () => {
     Object.values(swipeableRefs.current).forEach(ref => {
@@ -211,61 +215,78 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
     }
   };
 
-  // Hydrate todos from local storage and sync from cloud
-  useEffect(() => {
-    const hydrateTodos = async () => {
-      if (!user) {
-        console.log('No user, skipping todo hydration');
-        return;
-      }
-
-      console.log('Hydrating todos for date:', dateStr);
-      setLoading(true);
-
-      try {
-        // Check session first
-        const { session: currentSession } = await checkSession();
-        console.log('Current session during hydration:', currentSession?.user?.id);
-
-        // 1. Load local
-        console.log('Loading local todos...');
-        const localEntry = await getLocalEntry(key);
-        console.log('Local entry loaded:', localEntry ? 'exists' : 'not found');
-
-        if (localEntry?.content?.items) {
-          setTodos(localEntry.content.items);
-        } else {
-          setTodos([]);
-        }
-
-        // 2. Sync from cloud (if newer, will update local)
-        console.log('Syncing from cloud...');
-        await syncFromCloud(user.id, dateStr, contentType);
-
-        // 3. Reload local after sync
-        console.log('Reloading local data after sync...');
-        const syncedEntry = await getLocalEntry(key);
-        if (syncedEntry?.content?.items) {
-          setTodos(syncedEntry.content.items);
-        } else {
-          setTodos([]);
-        }
-      } catch (err) {
-        console.error('Failed to hydrate todos:', err);
-        Alert.alert('Error', 'Failed to load todos.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (!authLoading) {
-      console.log('Auth loaded, starting hydration');
-      hydrateTodos();
-    } else {
-      console.log('Waiting for auth to load...');
+  // Hydrate todos from local storage  // TimeBlock-style hydration with caching
+  const hydrateTodos = useCallback(async () => {
+    if (!user) {
+      console.log('No user, skipping todo hydration');
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, dateStr]);
+
+    if (isSyncingRef.current) {
+      console.log('Already syncing, skipping hydration');
+      return;
+    }
+
+    console.log(' Hydrating todos for date:', dateStr);
+    setLoading(true);
+    isSyncingRef.current = true;
+
+    try {
+      // 1. Load local data immediately (cache-first)
+      console.log(' Loading local todos...');
+      const localEntry = await getLocalEntry(key);
+      
+      if (localEntry?.content?.items) {
+        console.log(' Found local todos, setting immediately:', localEntry.content.items.length);
+        setTodos(localEntry.content.items);
+      } else {
+        console.log(' No local todos found');
+        setTodos([]);
+      }
+
+      // 2. Only sync from cloud on first hydration or force refresh
+      if (!hydratedRef.current || refreshKeyRef.current !== refreshKey) {
+        console.log(' First hydration - syncing from cloud...');
+        setSyncing(true);
+        
+        try {
+          await syncFromCloud(user.id, dateStr, contentType);
+          
+          // Reload local after sync
+          const syncedEntry = await getLocalEntry(key);
+          if (syncedEntry?.content?.items) {
+            console.log(' Updated todos after cloud sync:', syncedEntry.content.items.length);
+            setTodos(syncedEntry.content.items);
+          }
+        } catch (syncError) {
+          console.error('Cloud sync failed:', syncError);
+          // Continue with local data
+        } finally {
+          setSyncing(false);
+        }
+        
+        hydratedRef.current = true;
+        refreshKeyRef.current = refreshKey;
+      } else {
+        console.log(' Using cached todos (no cloud sync needed)');
+      }
+    } catch (err) {
+      console.error('Failed to hydrate todos:', err);
+      Alert.alert('Error', 'Failed to load todos.');
+    } finally {
+      setLoading(false);
+      isSyncingRef.current = false;
+    }
+  }, [user, dateStr, key, contentType, refreshKey]);
+
+  // Main hydration effect
+  useEffect(() => {
+    if (!authLoading && user) {
+      // Reset hydration when date changes
+      hydratedRef.current = false;
+      hydrateTodos();
+    }
+  }, [user, authLoading, dateStr, hydrateTodos]);
 
   // Auto-focus when starting to add a new task
   useEffect(() => {
@@ -274,50 +295,30 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date() }) => {
     }
   }, [isAdding]);
 
+  // Handle refresh key changes (pull-to-refresh)
+  useEffect(() => {
+    if (user && refreshKey > 0 && refreshKey !== refreshKeyRef.current) {
+      console.log('🔄 Refresh key changed, forcing refresh:', refreshKey);
+      refreshKeyRef.current = refreshKey;
+      // Force refresh by resetting hydration and reloading
+      hydratedRef.current = false;
+      hydrateTodos();
+    }
+  }, [refreshKey, user, hydrateTodos]);
+
   // Reset adding state when date changes or when switching tabs
   useEffect(() => {
     setIsAdding(false);
     setNewTodo('');
     closeAllSwipeables();
+    // Clear todos state when date changes for clean slate
+    setTodos([]);
   }, [dateStr]);
 
   // Track recently completed items to keep them visible briefly
   const [recentlyCompleted, setRecentlyCompleted] = useState<{[key: string]: boolean}>({});
 
-  // Sync from cloud on app start or when online
-  useEffect(() => {
-    const syncOnStart = async () => {
-      if (!user) {
-        console.log('No user, skipping initial sync');
-        return;
-      }
 
-      console.log('Starting initial cloud sync...');
-      setSyncing(true);
-
-      try {
-        await syncFromCloud(user.id, dateStr, contentType);
-        console.log('Initial cloud sync completed');
-
-        // Reload local after sync
-        const syncedEntry = await getLocalEntry(key);
-        if (syncedEntry?.content?.items) {
-          console.log('Updating todos after initial sync:', syncedEntry.content.items.length, 'items');
-          setTodos(syncedEntry.content.items);
-        }
-      } catch (err) {
-        console.error('Initial sync from cloud failed:', err);
-      } finally {
-        setSyncing(false);
-      }
-    };
-
-    if (!authLoading) {
-      console.log('Auth loaded, starting initial sync');
-      syncOnStart();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, dateStr]);
 
   // Automatically turn off filters when they become irrelevant
   useEffect(() => {

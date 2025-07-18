@@ -4,7 +4,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { usePrayer } from '../../context/PrayerContext';
-import { JournalCategory } from '../../storage/prayerStorage';
+import { JournalCategory, PrayerStatus } from '../../storage/prayerStorage';
 
 // Prayer types and descriptions
 const PRAYER_TYPES = [

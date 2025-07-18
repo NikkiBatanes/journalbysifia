@@ -25,6 +25,7 @@ import { DevotionalProvider } from './src/context/DevotionalContext';
 import { ScrollProvider } from './src/context/ScrollContext';
 import { PrayerProvider } from './src/context/PrayerContext';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { QueryProvider } from './src/providers/QueryProvider';
 
 // Stack navigator removed as it's not currently used
 
@@ -61,9 +62,11 @@ function App(): React.JSX.Element {
   }, []);
 
   return (
-    <AuthProvider>
-      <AppWithAuth fontsLoaded={fontsLoaded} playbook={playbook} />
-    </AuthProvider>
+    <QueryProvider>
+      <AuthProvider>
+        <AppWithAuth fontsLoaded={fontsLoaded} playbook={playbook} />
+      </AuthProvider>
+    </QueryProvider>
   );
 }
 

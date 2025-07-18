@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { JSX } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
