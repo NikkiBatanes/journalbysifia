@@ -14,8 +14,7 @@ import {
   deleteTimeBlockEntry,
   getLocalTimeBlocks,
   syncTimeBlocksFromCloud,
-  forceRefreshTimeBlocks,
-  TimeBlockEntry
+  TimeBlockEntry,
 } from '../../storage/timeBlockStorage';
 import { toLocalDateString } from '../../utils/date';
 
@@ -114,8 +113,9 @@ interface TimeBlockProps {
 export const TimeBlock: React.FC<TimeBlockProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
   const { user } = useAuth();
   const [_loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const hydratedRef = useRef(false);
+  const refreshKeyRef = useRef(0);
+  const isSyncingRef = useRef(false);
   const [expandedNotes, setExpandedNotes] = useState<{[key: string]: boolean}>({});
 
   const toggleNotes = (id: string) => {
@@ -146,12 +146,12 @@ setShowRepeatOptions(false);
 
 // Handler for deleting a block
 const handleDeleteBlock = async (id: string) => {
-  if (!user) return;
-  
+  if (!user) {return;}
+
   try {
     const dateStr = toLocalDateString(selectedDate);
     await deleteTimeBlockEntry(user.id, dateStr, id);
-    
+
     // Update local state
     setTimeBlocks(prev => prev.filter(block => block.id !== id));
   } catch (error) {
@@ -165,15 +165,20 @@ const [timeBlocks, setTimeBlocks] = useState<TimeBlockItem[]>([]);
 
 // Hydrate time blocks from storage
 const hydrateTimeBlocks = useCallback(async () => {
-  if (!user) return;
-  
+  if (!user) {return;}
+
+  // Prevent concurrent sync operations
+  if (isSyncingRef.current) {return;}
+
   try {
+    isSyncingRef.current = true;
     setLoading(true);
+
     const dateStr = toLocalDateString(selectedDate);
-    
+
     // Load from local storage first
     const localTimeBlocks = await getLocalTimeBlocks(user.id, dateStr);
-    
+
     // Convert TimeBlockEntry to TimeBlockItem format
     const timeBlockItems = localTimeBlocks.map((block: TimeBlockEntry) => ({
       id: block.id,
@@ -184,19 +189,24 @@ const hydrateTimeBlocks = useCallback(async () => {
       notes: block.notes,
       location: block.location,
       isAllDay: block.all_day,
-      repeat: {
+      repeat: block.repeat ? {
+        frequency: (block.repeat.frequency || 'never') as RepeatFrequency,
+        endDate: block.repeat.endDate ? new Date(block.repeat.endDate) : undefined,
+        customDays: block.repeat.customDays,
+        customFrequency: block.repeat.customFrequency,
+      } : {
         frequency: 'never' as RepeatFrequency,
         endDate: undefined,
         customDays: undefined,
         customFrequency: undefined,
-      }
+      },
     }));
-    
+
     setTimeBlocks(timeBlockItems);
-    
-    // Sync from cloud in background
-    if (!syncing) {
-      setSyncing(true);
+
+    // Only sync if we haven't hydrated yet
+    if (!hydratedRef.current) {
+      isSyncingRef.current = true;
       try {
         await syncTimeBlocksFromCloud(user.id, dateStr);
         // Reload after sync
@@ -210,28 +220,34 @@ const hydrateTimeBlocks = useCallback(async () => {
           notes: block.notes,
           location: block.location,
           isAllDay: block.all_day,
-          repeat: {
+          repeat: block.repeat ? {
+            frequency: (block.repeat.frequency || 'never') as RepeatFrequency,
+            endDate: block.repeat.endDate ? new Date(block.repeat.endDate) : undefined,
+            customDays: block.repeat.customDays,
+            customFrequency: block.repeat.customFrequency,
+          } : {
             frequency: 'never' as RepeatFrequency,
             endDate: undefined,
             customDays: undefined,
             customFrequency: undefined,
-          }
+          },
         }));
         setTimeBlocks(syncedTimeBlockItems);
       } catch (error) {
         console.error('Error syncing time blocks:', error);
       } finally {
-        setSyncing(false);
+        isSyncingRef.current = false;
       }
     }
-    
+
     hydratedRef.current = true;
   } catch (error) {
     console.error('Error hydrating time blocks:', error);
   } finally {
     setLoading(false);
+    isSyncingRef.current = false;
   }
-}, [user, selectedDate, syncing]);
+}, [user, selectedDate]);
 
 // Load time blocks on mount and when user/date changes
 useEffect(() => {
@@ -250,35 +266,12 @@ useEffect(() => {
 
 // Handle refresh key changes
 useEffect(() => {
-  if (user && refreshKey > 0) {
-    const forceRefresh = async () => {
-      try {
-        const dateStr = toLocalDateString(selectedDate);
-        const refreshedTimeBlocks = await forceRefreshTimeBlocks(user.id, dateStr);
-        const timeBlockItems = refreshedTimeBlocks.map((block: TimeBlockEntry) => ({
-          id: block.id,
-          title: block.title,
-          startTime: new Date(`${block.selected_date}T${block.start_time}`),
-          endTime: new Date(`${block.selected_date}T${block.end_time}`),
-          category: block.category,
-          notes: block.notes,
-          location: block.location,
-          isAllDay: block.all_day,
-          repeat: {
-            frequency: 'never' as RepeatFrequency,
-            endDate: undefined,
-            customDays: undefined,
-            customFrequency: undefined,
-          }
-        }));
-        setTimeBlocks(timeBlockItems);
-      } catch (error) {
-        console.error('Error force refreshing time blocks:', error);
-      }
-    };
-    forceRefresh();
+  if (user && refreshKey > 0 && refreshKey !== refreshKeyRef.current) {
+    refreshKeyRef.current = refreshKey;
+    // Use hydrateTimeBlocks instead of forceRefreshTimeBlocks to preserve local data
+    hydrateTimeBlocks();
   }
-}, [refreshKey, user, selectedDate]);
+}, [refreshKey, user, selectedDate, hydrateTimeBlocks]);
 const [visibleCount, setVisibleCount] = useState(5);
 const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 const [showCategoryPicker, setShowCategoryPicker] = useState(false);
@@ -319,8 +312,8 @@ customDays: [],
 });
 
 const addTimeBlock = async () => {
-  if (!user) return;
-  
+  if (!user) {return;}
+
   try {
     // Reset error states
     setShowTitleError(false);
@@ -361,8 +354,8 @@ const addTimeBlock = async () => {
 
       // Update local state
       setTimeBlocks(prevBlocks =>
-        prevBlocks.map(block => 
-          block.id === editId 
+        prevBlocks.map(block =>
+          block.id === editId
             ? {
                 id: updatedTimeBlock.id,
                 title: updatedTimeBlock.title,
@@ -372,12 +365,17 @@ const addTimeBlock = async () => {
                 notes: updatedTimeBlock.notes,
                 location: updatedTimeBlock.location,
                 isAllDay: updatedTimeBlock.all_day,
-                repeat: {
+                repeat: updatedTimeBlock.repeat ? {
+                  frequency: (updatedTimeBlock.repeat.frequency || 'never') as RepeatFrequency,
+                  endDate: updatedTimeBlock.repeat.endDate ? new Date(updatedTimeBlock.repeat.endDate) : undefined,
+                  customDays: updatedTimeBlock.repeat.customDays,
+                  customFrequency: updatedTimeBlock.repeat.customFrequency,
+                } : {
                   frequency: 'never' as RepeatFrequency,
                   endDate: undefined,
                   customDays: undefined,
                   customFrequency: undefined,
-                }
+                },
               }
             : block
         )
@@ -410,14 +408,19 @@ const addTimeBlock = async () => {
         notes: newTimeBlock.notes,
         location: newTimeBlock.location,
         isAllDay: newTimeBlock.all_day,
-        repeat: {
+        repeat: newTimeBlock.repeat ? {
+          frequency: (newTimeBlock.repeat.frequency || 'never') as RepeatFrequency,
+          endDate: newTimeBlock.repeat.endDate ? new Date(newTimeBlock.repeat.endDate) : undefined,
+          customDays: newTimeBlock.repeat.customDays,
+          customFrequency: newTimeBlock.repeat.customFrequency,
+        } : {
           frequency: 'never' as RepeatFrequency,
           endDate: undefined,
           customDays: undefined,
           customFrequency: undefined,
-        }
+        },
       };
-      
+
       setTimeBlocks(prevBlocks => [...prevBlocks, newTimeBlockItem]);
     }
 
@@ -482,14 +485,14 @@ const formatTime = (date: Date) => {
 return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const onTimeChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
 // Only update the time if a date was selected
-if (selectedDate) {
+if (selectedTime) {
 const type = showTimePicker.start ? 'start' : 'end';
 const id = showTimePicker.id;
 
 // Create a new date object to ensure reactivity
-const newDate = new Date(selectedDate);
+const newDate = new Date(selectedTime);
 
 if (id) {
 // Update existing time block
@@ -1124,14 +1127,14 @@ setShowEndDatePicker(true);
 value={newBlock.repeat.endDate || new Date()}
 mode="date"
 display="default"
-onChange={(event, selectedDate) => {
+onChange={(event, pickedDate) => {
 setShowEndDatePicker(false);
-if (selectedDate) {
+if (pickedDate) {
 setNewBlock({
 ...newBlock,
 repeat: {
 ...newBlock.repeat,
-endDate: selectedDate,
+endDate: pickedDate,
 },
 });
 }

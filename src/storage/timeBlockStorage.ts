@@ -92,7 +92,7 @@ export const saveCloudTimeBlocks = async (
 ): Promise<void> => {
   try {
     const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
-    
+
     // First, delete existing time blocks for this date
     await supabase
       .from('time_blocks')
@@ -108,7 +108,7 @@ export const saveCloudTimeBlocks = async (
           ...block,
           user_id: userId,
           selected_date: dateStr,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })));
 
       if (error) {
@@ -128,7 +128,7 @@ export const getCloudTimeBlocks = async (
 ): Promise<TimeBlockEntry[]> => {
   try {
     const dateStr = typeof date === 'string' ? date : toLocalDateString(date);
-    
+
     const { data, error } = await supabase
       .from('time_blocks')
       .select('*')
@@ -170,7 +170,7 @@ export const forceRefreshTimeBlocks = async (
   try {
     // Clear local cache first
     await clearTimeBlockCache(userId, date);
-    
+
     // Sync fresh data from cloud
     return await syncTimeBlocksFromCloud(userId, date);
   } catch (error) {
@@ -187,26 +187,60 @@ export const saveTimeBlockEntry = async (
   timeBlock: Omit<TimeBlockEntry, 'id' | 'user_id' | 'version' | 'created_at' | 'updated_at'>
 ): Promise<TimeBlockEntry> => {
   try {
+    // Get existing time blocks to check for conflicts
+    const existingTimeBlocks = await getLocalTimeBlocks(userId, date);
+
+    // Check for time conflicts and adjust if necessary
+    let adjustedStartTime = timeBlock.start_time;
+    let adjustedEndTime = timeBlock.end_time;
+
+    // Calculate original duration
+    const [startHours, startMinutes] = timeBlock.start_time.split(':').map(Number);
+    const [endHours, endMinutes] = timeBlock.end_time.split(':').map(Number);
+    const originalDuration = (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
+
+    // Adjust time if there's a conflict
+    while (existingTimeBlocks.some(block => block.start_time === adjustedStartTime)) {
+      const [hours, minutes] = adjustedStartTime.split(':').map(Number);
+      const totalMinutes = hours * 60 + minutes + 1;
+      const newHours = Math.floor(totalMinutes / 60) % 24;
+      const newMinutes = totalMinutes % 60;
+      adjustedStartTime = `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+
+      // Adjust end time to maintain duration
+      const newEndTotalMinutes = totalMinutes + originalDuration;
+      const newEndHours = Math.floor(newEndTotalMinutes / 60) % 24;
+      const newEndMinutesOnly = newEndTotalMinutes % 60;
+      adjustedEndTime = `${newEndHours.toString().padStart(2, '0')}:${newEndMinutesOnly.toString().padStart(2, '0')}`;
+    }
+
+    // Extract repeat_until from repeat object if it exists
+    const repeatUntil = timeBlock.repeat?.endDate ?
+      (typeof timeBlock.repeat.endDate === 'string' ?
+        timeBlock.repeat.endDate :
+        timeBlock.repeat.endDate.toISOString().split('T')[0]) :
+      undefined;
+
     const newTimeBlock: TimeBlockEntry = {
       ...timeBlock,
+      start_time: adjustedStartTime,
+      end_time: adjustedEndTime,
+      repeat_until: repeatUntil,
       id: generateUUID(),
       user_id: userId,
       selected_date: typeof date === 'string' ? date : toLocalDateString(date),
       version: 1,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
-    // Get existing time blocks
-    const existingTimeBlocks = await getLocalTimeBlocks(userId, date);
-    
-    // Add new time block
+    // Add to existing time blocks
     const updatedTimeBlocks = [...existingTimeBlocks, newTimeBlock];
-    
+
     // Save to local storage
     await saveLocalTimeBlocks(userId, date, updatedTimeBlocks);
-    
-    // Insert directly to cloud storage
+
+    // Insert to cloud storage (not upsert, since we want to create new entries)
     try {
       const { error } = await supabase
         .from('time_blocks')
@@ -225,14 +259,16 @@ export const saveTimeBlockEntry = async (
           notes: newTimeBlock.notes,
           version: newTimeBlock.version,
           created_at: newTimeBlock.created_at,
-          updated_at: newTimeBlock.updated_at
+          updated_at: newTimeBlock.updated_at,
         });
 
       if (error) {
         console.error('Error inserting time block to cloud:', error);
+        // If there's still a conflict, the time adjustment didn't work properly
+        // This shouldn't happen with proper local conflict detection
         throw error;
       }
-      
+
       console.log('Successfully inserted time block to cloud:', newTimeBlock.id);
     } catch (cloudError) {
       console.error('Failed to save to cloud, but local save succeeded:', cloudError);
@@ -255,28 +291,36 @@ export const updateTimeBlockEntry = async (
   try {
     // Get existing time blocks
     const existingTimeBlocks = await getLocalTimeBlocks(userId, date);
-    
+
     // Find the time block to update
     const existingBlock = existingTimeBlocks.find(block => block.id === timeBlockId);
-    
+
     if (!existingBlock) {
       throw new Error('Time block not found');
     }
+
+    // Extract repeat_until from repeat object if it exists in updates
+    const repeatUntil = updates.repeat?.endDate ?
+      (typeof updates.repeat.endDate === 'string' ?
+        updates.repeat.endDate :
+        updates.repeat.endDate.toISOString().split('T')[0]) :
+      existingBlock.repeat_until;
 
     // Create updated time block
     const updatedTimeBlock = {
       ...existingBlock,
       ...updates,
+      repeat_until: repeatUntil,
       version: existingBlock.version + 1,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
 
     // Update in local storage
-    const updatedTimeBlocks = existingTimeBlocks.map(block => 
+    const updatedTimeBlocks = existingTimeBlocks.map(block =>
       block.id === timeBlockId ? updatedTimeBlock : block
     );
     await saveLocalTimeBlocks(userId, date, updatedTimeBlocks);
-    
+
     // Update directly in cloud storage
     try {
       const { error } = await supabase
@@ -292,7 +336,7 @@ export const updateTimeBlockEntry = async (
           repeat: updatedTimeBlock.repeat,
           repeat_until: updatedTimeBlock.repeat_until,
           version: updatedTimeBlock.version,
-          updated_at: updatedTimeBlock.updated_at
+          updated_at: updatedTimeBlock.updated_at,
         })
         .eq('id', timeBlockId)
         .eq('user_id', userId);
@@ -301,7 +345,7 @@ export const updateTimeBlockEntry = async (
         console.error('Error updating time block in cloud:', error);
         throw error;
       }
-      
+
       console.log('Successfully updated time block in cloud:', timeBlockId);
     } catch (cloudError) {
       console.error('Failed to update in cloud, but local save succeeded:', cloudError);
@@ -323,13 +367,13 @@ export const deleteTimeBlockEntry = async (
   try {
     // Get existing time blocks
     const existingTimeBlocks = await getLocalTimeBlocks(userId, date);
-    
+
     // Remove the time block
     const updatedTimeBlocks = existingTimeBlocks.filter(block => block.id !== timeBlockId);
 
     // Save to local storage
     await saveLocalTimeBlocks(userId, date, updatedTimeBlocks);
-    
+
     // Delete directly from cloud storage
     try {
       const { error } = await supabase
@@ -342,7 +386,7 @@ export const deleteTimeBlockEntry = async (
         console.error('Error deleting time block from cloud:', error);
         throw error;
       }
-      
+
       console.log('Successfully deleted time block from cloud:', timeBlockId);
     } catch (cloudError) {
       console.error('Failed to delete from cloud, but local delete succeeded:', cloudError);
