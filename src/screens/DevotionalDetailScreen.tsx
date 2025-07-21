@@ -12,7 +12,9 @@ import {
 import { FlatList, Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import ReactQueryTest from '../components/test/ReactQueryTest';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
 import { usePrayer } from '../context/PrayerContext';
@@ -35,6 +37,7 @@ type DevotionalDetailScreenProps = {
 import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
+
   const { devotionalId } = route.params;
   const { devotionals, markDayComplete, submitDevotionalRating } = useDevotional();
   const { addPrayedItem, addPrayer, getAllDevotionalPrayers } = usePrayer(); // Get prayer functions from PrayerContext

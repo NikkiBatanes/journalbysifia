@@ -6,13 +6,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
-import { TodaysFocus } from '../components/journal/TodaysFocus';
+import { TodaysFocusReactQuery } from '../components/journal/TodaysFocusReactQuery';
 import { Todos } from '../components/journal/Todos';
 import { TimeBlock } from '../components/journal/TimeBlock';
 import { GratitudeList } from '../components/journal/GratitudeList';
 import { ReflectionLog } from '../components/journal/ReflectionLog';
-import { TodayWin } from '../components/journal/TodayWin';
-import { LookingForward } from '../components/journal/LookingForward';
+import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
+import { LookingForwardReactQuery } from '../components/journal/LookingForwardReactQuery';
 import { ScheduleContent } from '../components/journal/ScheduleContent';
 import PrayerJournalTab from '../components/journal/PrayerJournalTab';
 import { useAuth } from '../context/AuthContext';
@@ -79,7 +79,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const [weeks, setWeeks] = useState<Date[][]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
-  const scrollX = useRef(6 * screenWidth);
+  const scrollX = useRef(0);
 
   // Scroll tracking refs
   const lastScrollY = useRef(0);
@@ -144,6 +144,22 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     }
   }, [currentDate, weeks]);
 
+  // Initialize scroll position when weeks are first generated
+  useEffect(() => {
+    if (scrollViewRef.current && weeks.length > 0 && currentWeekIndex.current >= 0) {
+      const scrollTo = currentWeekIndex.current * screenWidth;
+      
+      // Small delay to ensure the layout is updated
+      setTimeout(() => {
+        if (scrollViewRef.current) {
+          console.log('📅 Initializing scroll position to week', currentWeekIndex.current, 'at position', scrollTo);
+          scrollViewRef.current.scrollTo({ x: scrollTo, animated: false });
+          scrollX.current = scrollTo;
+        }
+      }, 50);
+    }
+  }, [weeks, screenWidth]);
+
   // Handle scroll position when header expands/collapses
   useEffect(() => {
     if (scrollViewRef.current && weeks.length > 0 && hasInitializedScroll.current) {
@@ -181,13 +197,19 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     // Calculate the current week index based on scroll position
     const weekIndex = Math.round(offsetX / screenWidth);
 
-    // Only update if we have valid week data
-    if (weeks[weekIndex] && weeks[weekIndex][selectedDayOfWeek]) {
-      const targetDay = weeks[weekIndex][selectedDayOfWeek];
-      // Only update if the day is different to prevent unnecessary re-renders
-      if (!isSameDay(targetDay, currentDate)) {
-        // Update the date immediately for better UX
-        setCurrentDate(new Date(targetDay.getTime()));
+    // Add bounds checking and ensure we have valid data
+    if (weeks.length > 0 && weekIndex >= 0 && weekIndex < weeks.length) {
+      const currentWeek = weeks[weekIndex];
+      if (currentWeek && currentWeek.length > selectedDayOfWeek && selectedDayOfWeek >= 0) {
+        const targetDay = currentWeek[selectedDayOfWeek];
+        if (targetDay) {
+          // Only update if the day is different to prevent unnecessary re-renders
+          if (!isSameDay(targetDay, currentDate)) {
+            console.log('📅 Date swipe: updating to', format(targetDay, 'yyyy-MM-dd'));
+            // Update the date immediately for better UX
+            setCurrentDate(new Date(targetDay.getTime()));
+          }
+        }
       }
     }
   };
@@ -349,7 +371,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             }
           >
             <View style={styles.componentSpacing}>
-              <TodaysFocus selectedDate={currentDate} refreshKey={refreshKey} />
+              <TodaysFocusReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
             </View>
             <View style={styles.componentSpacing}>
               <Todos selectedDate={currentDate} refreshKey={refreshKey} />
@@ -370,10 +392,10 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                   />
                 </View>
                 <View style={styles.componentSpacing}>
-                  <TodayWin selectedDate={currentDate} />
+                  <TodayWinReactQuery selectedDate={currentDate} />
                 </View>
                 <View style={styles.componentSpacing}>
-                  <LookingForward selectedDate={currentDate} />
+                  <LookingForwardReactQuery selectedDate={currentDate} />
                 </View>
               </>
             )}

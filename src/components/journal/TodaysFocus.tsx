@@ -102,7 +102,15 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
       
       if (localEntry?.content) {
         console.log(' Found local data, setting immediately');
-        setData(localEntry.content);
+        const validatedData = {
+          focus: localEntry.content.focus || '',
+          priorities: localEntry.content.priorities || [
+            { id: '1', text: '', completed: false },
+            { id: '2', text: '', completed: false },
+            { id: '3', text: '', completed: false },
+          ],
+        };
+        setData(validatedData);
       } else {
         console.log(' No local data found, using default');
         setData(defaultData);
@@ -118,7 +126,15 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
           const syncedEntry = await getLocalEntry(key);
           if (syncedEntry?.content) {
             console.log(' Cloud sync complete, updating with synced data');
-            setData(syncedEntry.content);
+            const validatedData = {
+              focus: syncedEntry.content.focus || '',
+              priorities: syncedEntry.content.priorities || [
+                { id: '1', text: '', completed: false },
+                { id: '2', text: '', completed: false },
+                { id: '3', text: '', completed: false },
+              ],
+            };
+            setData(validatedData);
           }
         } catch (error) {
           console.error(' Cloud sync failed, using local data:', error);
@@ -341,10 +357,10 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
                 <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.button, styles.saveButton, (!data.focus.trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton]}
+                style={[styles.button, styles.saveButton, (!(data.focus || '').trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton]}
                 activeOpacity={1}
                 onPress={toggleEditing}
-                disabled={!data.focus.trim() && data.priorities.every(p => !p.text.trim())}
+                disabled={!(data.focus || '').trim() && data.priorities.every(p => !p.text.trim())}
               >
                 <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
@@ -352,7 +368,7 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
           </View>
         )
         : (
-          (data.focus.trim() || data.priorities.some(p => p.text.trim() !== ''))
+          ((data.focus || '').trim() || data.priorities.some(p => p.text.trim() !== ''))
             ? (
               <View style={styles.viewContainer}>
                 {data.focus && <Text style={styles.focusText}>{data.focus}</Text>}

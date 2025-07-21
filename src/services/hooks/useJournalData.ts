@@ -1,0 +1,544 @@
+// src/services/hooks/useJournalData.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { JournalApi, JournalApiEntry } from '../api/journalApi';
+import { JournalCache } from '../cache/journalCache';
+import { queryKeys } from '../queryKeys';
+
+// Hook for getting gratitude entries
+export const useGratitudeData = (userId: string, date: string) => {
+  return useQuery({
+    queryKey: queryKeys.journal.gratitude(userId, date),
+    queryFn: async () => {
+      // Try cache first
+      const cached = await JournalCache.getCache(userId, date, 'gratitude');
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch from API
+      const entries = await JournalApi.getGratitudeEntries(userId, date);
+      
+      // Cache the results
+      await JournalCache.setCache(userId, date, entries, 'gratitude');
+      
+      return entries;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
+    enabled: !!userId && !!date,
+  });
+};
+
+// Hook for getting todo entries
+export const useTodosData = (userId: string, date: string) => {
+  return useQuery({
+    queryKey: queryKeys.journal.todos(userId, date),
+    queryFn: async () => {
+      // Try cache first
+      const cached = await JournalCache.getCache(userId, date, 'todo');
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch from API
+      const entries = await JournalApi.getTodoEntries(userId, date);
+      
+      // Cache the results
+      await JournalCache.setCache(userId, date, entries, 'todo');
+      
+      return entries;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+  });
+};
+
+// Hook for getting today's focus entries
+export const useTodaysFocusData = (userId: string, date: string) => {
+  return useQuery({
+    queryKey: queryKeys.journal.todaysFocus(userId, date),
+    queryFn: async () => {
+      // Try cache first
+      const cached = await JournalCache.getCache(userId, date, 'todays_focus');
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch from API
+      const entries = await JournalApi.getTodaysFocusEntries(userId, date);
+      
+      // Cache the results
+      await JournalCache.setCache(userId, date, entries, 'todays_focus');
+      
+      return entries;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+  });
+};
+
+// Hook for getting today's win entries
+export const useTodayWinData = (userId: string, date: string) => {
+  return useQuery({
+    queryKey: queryKeys.journal.todayWin(userId, date),
+    queryFn: async () => {
+      // Try cache first
+      const cached = await JournalCache.getCache(userId, date, 'today_win');
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch from API
+      const entries = await JournalApi.getTodayWinEntries(userId, date);
+      
+      // Cache the results
+      await JournalCache.setCache(userId, date, entries, 'today_win');
+      
+      return entries;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+  });
+};
+
+// Hook for getting looking forward entries
+export const useLookingForwardData = (userId: string, date: string) => {
+  return useQuery({
+    queryKey: queryKeys.journal.lookingForward(userId, date),
+    queryFn: async () => {
+      // Try cache first
+      const cached = await JournalCache.getCache(userId, date, 'looking_forward');
+      if (cached) {
+        return cached;
+      }
+
+      // Fetch from API
+      const entries = await JournalApi.getLookingForwardEntries(userId, date);
+      
+      // Cache the results
+      await JournalCache.setCache(userId, date, entries, 'looking_forward');
+      
+      return entries;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+  });
+};
+
+// Mutation hook for creating journal entries
+export const useCreateJournalEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: JournalApi.createJournalEntry,
+    onMutate: async (newEntry) => {
+      // Cancel any outgoing refetches
+      const queryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueryData(queryKey);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
+        ...old,
+        { ...newEntry, id: 'temp-' + Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+      ]);
+
+      // Return a context object with the snapshotted value
+      return { previousEntries };
+    },
+    onError: (err, newEntry, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousEntries) {
+        const queryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+        queryClient.setQueryData(queryKey, context.previousEntries);
+      }
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch related queries
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.journal.entries(variables.user_id, variables.selected_date) 
+      });
+      
+      // Clear cache to force fresh data
+      JournalCache.clearCache(variables.user_id, variables.selected_date, variables.content_type);
+    },
+  });
+};
+
+// Mutation hook for updating journal entries
+export const useUpdateJournalEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
+      JournalApi.updateJournalEntry(id, updates),
+    onSuccess: (data) => {
+      // Update the specific entry in all relevant queries
+      queryClient.setQueryData(
+        queryKeys.journal.entries(data.user_id, data.selected_date),
+        (old: JournalApiEntry[] = []) =>
+          old.map(entry => entry.id === data.id ? data : entry)
+      );
+
+      // Clear cache to ensure consistency
+      JournalCache.clearCache(data.user_id, data.selected_date, data.content_type);
+    },
+  });
+};
+
+// Mutation hook for deleting journal entries
+export const useDeleteJournalEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: JournalApi.deleteJournalEntry,
+    onSuccess: (_, deletedId, context: any) => {
+      // Remove the entry from all relevant queries
+      if (context?.entry) {
+        const entry = context.entry as JournalApiEntry;
+        queryClient.setQueryData(
+          queryKeys.journal.entries(entry.user_id, entry.selected_date),
+          (old: JournalApiEntry[] = []) =>
+            old.filter(e => e.id !== deletedId)
+        );
+
+        // Clear cache
+        JournalCache.clearCache(entry.user_id, entry.selected_date, entry.content_type);
+      }
+    },
+  });
+};
+
+// Hook for prefetching journal data
+export const usePrefetchJournalData = () => {
+  const queryClient = useQueryClient();
+
+  const prefetchJournalData = async (userId: string, dates: string[]) => {
+    const prefetchPromises = dates.flatMap(date => [
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.journal.gratitude(userId, date),
+        queryFn: () => JournalApi.getGratitudeEntries(userId, date),
+        staleTime: 5 * 60 * 1000,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.journal.todos(userId, date),
+        queryFn: () => JournalApi.getTodoEntries(userId, date),
+        staleTime: 5 * 60 * 1000,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.journal.todaysFocus(userId, date),
+        queryFn: () => JournalApi.getTodaysFocusEntries(userId, date),
+        staleTime: 5 * 60 * 1000,
+      }),
+    ]);
+
+    await Promise.all(prefetchPromises);
+  };
+
+  return { prefetchJournalData };
+};
+
+// Specific mutation hooks for LookingForward
+export const useCreateLookingForwardEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (entry: { user_id: string; selected_date: string; content: any }) =>
+      JournalApi.createJournalEntry({
+        ...entry,
+        content_type: 'looking_forward',
+      }),
+    onMutate: async (newEntry) => {
+      // Cancel any outgoing refetches
+      const queryKey = queryKeys.journal.lookingForward(newEntry.user_id, newEntry.selected_date);
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueryData(queryKey);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
+        ...old,
+        { 
+          ...newEntry, 
+          id: 'temp-' + Date.now(), 
+          content_type: 'looking_forward',
+          created_at: new Date().toISOString(), 
+          updated_at: new Date().toISOString() 
+        }
+      ]);
+
+      return { previousEntries };
+    },
+    onError: (err, newEntry, context) => {
+      if (context?.previousEntries) {
+        const queryKey = queryKeys.journal.lookingForward(newEntry.user_id, newEntry.selected_date);
+        queryClient.setQueryData(queryKey, context.previousEntries);
+      }
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch related queries
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.journal.lookingForward(variables.user_id, variables.selected_date) 
+      });
+      
+      // Clear cache to force fresh data
+      JournalCache.clearCache(variables.user_id, variables.selected_date, 'looking_forward');
+    },
+  });
+};
+
+export const useUpdateLookingForwardEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
+      JournalApi.updateJournalEntry(id, updates),
+    onSuccess: (data) => {
+      // Update the specific entry in the looking forward query
+      queryClient.setQueryData(
+        queryKeys.journal.lookingForward(data.user_id, data.selected_date),
+        (old: JournalApiEntry[] = []) =>
+          old.map(entry => entry.id === data.id ? data : entry)
+      );
+
+      // Clear cache to ensure consistency
+      JournalCache.clearCache(data.user_id, data.selected_date, 'looking_forward');
+    },
+  });
+};
+
+export const useDeleteLookingForwardEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: JournalApi.deleteJournalEntry,
+    onMutate: async (entryId: string) => {
+      // We need to find the entry first to get user_id and selected_date
+      // This is a limitation of the current API design
+      return { entryId };
+    },
+    onSuccess: (_, deletedId, context: any) => {
+      // Remove the entry from looking forward queries
+      // Since we don't have user_id and selected_date, we invalidate all looking forward queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['journal', 'lookingForward'] 
+      });
+    },
+  });
+};
+
+// Specific mutation hooks for TodayWin
+export const useCreateTodayWinEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (entry: { user_id: string; selected_date: string; content: any }) =>
+      JournalApi.createJournalEntry({
+        ...entry,
+        content_type: 'today_win',
+      }),
+    onMutate: async (newEntry) => {
+      // Cancel any outgoing refetches
+      const queryKey = queryKeys.journal.todayWin(newEntry.user_id, newEntry.selected_date);
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueryData(queryKey);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
+        ...old,
+        { 
+          ...newEntry, 
+          id: 'temp-' + Date.now(), 
+          content_type: 'today_win',
+          created_at: new Date().toISOString(), 
+          updated_at: new Date().toISOString() 
+        }
+      ]);
+
+      return { previousEntries };
+    },
+    onError: (err, newEntry, context) => {
+      if (context?.previousEntries) {
+        const queryKey = queryKeys.journal.todayWin(newEntry.user_id, newEntry.selected_date);
+        queryClient.setQueryData(queryKey, context.previousEntries);
+      }
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch related queries
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.journal.todayWin(variables.user_id, variables.selected_date) 
+      });
+      
+      // Clear cache to force fresh data
+      JournalCache.clearCache(variables.user_id, variables.selected_date, 'today_win');
+    },
+  });
+};
+
+export const useUpdateTodayWinEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
+      JournalApi.updateJournalEntry(id, updates),
+    onSuccess: (data) => {
+      // Update the specific entry in the today win query
+      queryClient.setQueryData(
+        queryKeys.journal.todayWin(data.user_id, data.selected_date),
+        (old: JournalApiEntry[] = []) =>
+          old.map(entry => entry.id === data.id ? data : entry)
+      );
+
+      // Clear cache to ensure consistency
+      JournalCache.clearCache(data.user_id, data.selected_date, 'today_win');
+    },
+  });
+};
+
+export const useDeleteTodayWinEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: JournalApi.deleteJournalEntry,
+    onMutate: async (entryId: string) => {
+      // We need to find the entry first to get user_id and selected_date
+      // This is a limitation of the current API design
+      return { entryId };
+    },
+    onSuccess: (_, deletedId, context: any) => {
+      // Remove the entry from today win queries
+      // Since we don't have user_id and selected_date, we invalidate all today win queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['journal', 'todayWin'] 
+      });
+    },
+  });
+};
+
+// Specific mutation hooks for TodaysFocus
+export const useCreateTodaysFocusEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (entry: { user_id: string; selected_date: string; content: any }) =>
+      JournalApi.createJournalEntry({
+        ...entry,
+        content_type: 'todays_focus',
+      }),
+    onMutate: async (newEntry) => {
+      // Cancel any outgoing refetches
+      const queryKey = queryKeys.journal.todaysFocus(newEntry.user_id, newEntry.selected_date);
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueryData(queryKey);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
+        ...old,
+        { 
+          ...newEntry, 
+          id: 'temp-' + Date.now(), 
+          content_type: 'todays_focus',
+          created_at: new Date().toISOString(), 
+          updated_at: new Date().toISOString() 
+        }
+      ]);
+
+      return { previousEntries };
+    },
+    onError: (err, newEntry, context) => {
+      if (context?.previousEntries) {
+        const queryKey = queryKeys.journal.todaysFocus(newEntry.user_id, newEntry.selected_date);
+        queryClient.setQueryData(queryKey, context.previousEntries);
+      }
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch related queries
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.journal.todaysFocus(variables.user_id, variables.selected_date) 
+      });
+      
+      // Clear cache to force fresh data
+      JournalCache.clearCache(variables.user_id, variables.selected_date, 'todays_focus');
+    },
+  });
+};
+
+export const useUpdateTodaysFocusEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
+      JournalApi.updateJournalEntry(id, updates),
+    onSuccess: (data) => {
+      // Update the specific entry in the today's focus query
+      queryClient.setQueryData(
+        queryKeys.journal.todaysFocus(data.user_id, data.selected_date),
+        (old: JournalApiEntry[] = []) =>
+          old.map(entry => entry.id === data.id ? data : entry)
+      );
+
+      // Clear cache to ensure consistency
+      JournalCache.clearCache(data.user_id, data.selected_date, 'todays_focus');
+    },
+  });
+};
+
+export const useDeleteTodaysFocusEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: JournalApi.deleteJournalEntry,
+    onMutate: async (entryId: string) => {
+      // We need to find the entry first to get user_id and selected_date
+      // This is a limitation of the current API design
+      return { entryId };
+    },
+    onSuccess: (_, deletedId, context: any) => {
+      // Remove the entry from today's focus queries
+      // Since we don't have user_id and selected_date, we invalidate all today's focus queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['journal', 'todaysFocus'] 
+      });
+    },
+  });
+};
+
+// Hook for invalidating all journal data
+export const useInvalidateJournalData = () => {
+  const queryClient = useQueryClient();
+
+  const invalidateAllJournalData = (userId: string, date?: string) => {
+    if (date) {
+      // Invalidate specific date
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.journal.entries(userId, date) 
+      });
+    } else {
+      // Invalidate all journal data for user
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.journal.all 
+      });
+    }
+  };
+
+  const clearJournalCache = async (userId: string, date?: string) => {
+    if (date) {
+      await JournalCache.clearCache(userId, date);
+    } else {
+      await JournalCache.clearAllUserCache(userId);
+    }
+  };
+
+  return { invalidateAllJournalData, clearJournalCache };
+};

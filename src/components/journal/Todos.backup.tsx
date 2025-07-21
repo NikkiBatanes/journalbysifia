@@ -1,14 +1,15 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, ActivityIndicator } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Check, ListTodo as LuListTodo, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
-// Storage and auth imports
-import { getJournalKey, getLocalEntry, saveLocalEntry, updateLocalEntry, deleteLocalEntry, deleteCloudEntry, getCloudEntry, syncToCloud, syncFromCloud, checkSession } from '../../storage/journalStorage';
+// React Query imports
 import { useAuth } from '../../context/AuthContext';
+import { useTodosData, useCreateJournalEntry, useUpdateJournalEntry, useDeleteJournalEntry } from '../../services/hooks/useJournalData';
+import { toLocalDateString } from '../../utils/date';
 
 interface TodoItem {
   id: string;
@@ -23,10 +24,7 @@ interface TodosProps {
   refreshKey?: number;
 }
 
-import { toLocalDateString } from '../../utils/date';
-
 export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
-  const [todos, setTodos] = useState<TodoItem[]>([]);
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [visibleCount, setVisibleCount] = useState<number>(5);
@@ -36,18 +34,30 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
   const inputRef = useRef<TextInput>(null);
 
   // Auth and date context
-  const { user, loading: authLoading } = useAuth();
-  // Use the selectedDate prop, defaulting to today if not provided
+  const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
-  const contentType = 'todos';
-  const key = user ? getJournalKey(user.id, contentType, dateStr) : '';
 
-  // Caching and sync state
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const hydratedRef = useRef(false);
-  const isSyncingRef = useRef(false);
-  const refreshKeyRef = useRef(refreshKey);
+  // React Query hooks
+  const {
+    data: todoEntries = [],
+    isLoading,
+    error,
+    refetch,
+    isFetching
+  } = useTodosData(user?.id || '', dateStr);
+
+  const createTodoMutation = useCreateJournalEntry();
+  const updateTodoMutation = useUpdateJournalEntry();
+  const deleteTodoMutation = useDeleteJournalEntry();
+
+  // Convert API entries to TodoItem format
+  const todos: TodoItem[] = todoEntries.map(entry => ({
+    id: entry.id,
+    text: entry.content,
+    completed: entry.metadata?.completed || false,
+    priority: entry.metadata?.priority || false,
+    completedAt: entry.metadata?.completedAt,
+  }));
 
   const closeAllSwipeables = () => {
     Object.values(swipeableRefs.current).forEach(ref => {
@@ -68,33 +78,12 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
     setNewTodo('');
   };
 
-  const handleSave = async () => {
-    console.log('💾 handleSave called with:', newTodo);
-    
-    // Use the same logic as handleAddInput but close adding mode
-    const todoText = newTodo.trim();
-    if (!todoText) {return;}
-
-    closeAllSwipeables();
-
-    // Clear input immediately for better UX
-    setNewTodo('');
-    setIsAdding(false); // Close adding mode
-    setVisibleCount(5);
-
-    try {
-      const wasAdded = await addTodo(todoText);
-      if (!wasAdded) {
-        // If add failed, restore the input text and reopen adding mode
-        setNewTodo(todoText);
-        setIsAdding(true);
-      }
-      console.log('✅ handleSave completed, input should be clear');
-    } catch (error) {
-      // Restore input if there was an error and reopen adding mode
-      setNewTodo(todoText);
-      setIsAdding(true);
-      console.error('❌ handleSave error:', error);
+  const handleSave = () => {
+    if (newTodo.trim()) {
+      closeAllSwipeables();
+      addTodo(newTodo);
+      setNewTodo('');
+      setIsAdding(false);
     }
   };
 
@@ -194,24 +183,20 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
       priority: false,
     };
 
-    console.log('➕ Adding new todo:', todoToAdd.text);
+    // Optimistically update the UI
+    setTodos(prevTodos => [...prevTodos, todoToAdd]);
 
-    // Optimistically update the UI and save to storage
-    setTodos(prevTodos => {
-      const newTodos = [...prevTodos, todoToAdd];
-      
-      // Save to storage using the updated todos array
-      saveTodos(newTodos).catch(error => {
-        console.error('❌ Failed to save new todo:', error);
-        // Revert UI on error
-        setTodos(prevTodos => prevTodos.filter(t => t.id !== todoToAdd.id));
-        Alert.alert('Error', 'Failed to save todo. Please try again.');
-      });
-      
-      return newTodos;
-    });
-
-    return true;
+    try {
+      // Save to storage
+      await saveTodos([...todos, todoToAdd]);
+      return true;
+    } catch (error) {
+      console.error('Failed to save new todo:', error);
+      // Revert UI on error
+      setTodos(prevTodos => prevTodos.filter(t => t.id !== todoToAdd.id));
+      Alert.alert('Error', 'Failed to save todo. Please try again.');
+      return false;
+    }
   };
 
   const handleAddInput = async () => {
@@ -379,21 +364,17 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
   }, [recentlyCompleted]);
 
   const toggleTodo = async (id: string, isPriorityToggle = false) => {
-    console.log(`🔄 Toggle todo ${isPriorityToggle ? 'priority' : 'completion'} for id:`, id);
-  
     // Optimistically update the UI
     setTodos(currentTodos => {
       const updatedTodos = currentTodos.map(todo => {
         if (todo.id === id) {
           if (isPriorityToggle) {
-            console.log('⭐ Toggling priority:', !todo.priority);
             return {
               ...todo,
               priority: !todo.priority,
             };
           } else {
             const completed = !todo.completed;
-            console.log('✅ Toggling completion:', completed);
             return {
               ...todo,
               completed,
@@ -404,10 +385,9 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
         return todo;
       });
 
-      console.log('💾 Saving updated todos to storage');
       // Save to storage in the background
       saveTodos(updatedTodos).catch(err => {
-        console.error('❌ Failed to save todo update:', err);
+        console.error('Failed to save todo update:', err);
         // Revert UI on error
         setTodos(currentTodos);
       });

@@ -4,7 +4,7 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
-import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
@@ -12,7 +12,7 @@ import PlaybookDetailScreen from '../screens/PlaybookDetailScreen';
 import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
-import { useNavigation } from '@react-navigation/native';
+
 
 // Header Components
 interface BackButtonProps {
@@ -41,22 +41,23 @@ const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle }) => (
 ));
 
 // Memoized header components
-const HeaderLeft = React.memo(({ color = Colors.anchorBlue }: { color?: string }) => {
-  const navigation = useNavigation();
-  const handlePress = useCallback(() => {
-    navigation.goBack();
-  }, [navigation]);
-
-  return <BackButton onPress={handlePress} color={color} />;
+const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?: string, onPress: () => void }) => {
+  return <BackButton onPress={onPress} color={color} />;
 });
 
 // Header left components as functions
-const renderAnchorBlueHeaderLeft = () => (
-  <HeaderLeft color={Colors.anchorBlue} />
+const renderAnchorBlueHeaderLeft = ({ navigation }: any) => (
+  <HeaderLeft 
+    color={Colors.anchorBlue} 
+    onPress={() => navigation.goBack()}
+  />
 );
 
-const renderHopeWhiteHeaderLeft = () => (
-  <HeaderLeft color={Colors.hopeWhite} />
+const renderHopeWhiteHeaderLeft = ({ navigation }: any) => (
+  <HeaderLeft 
+    color={Colors.hopeWhite} 
+    onPress={() => navigation.goBack()}
+  />
 );
 
 // Header right components as functions
@@ -121,17 +122,7 @@ export default function RootStackNavigator({
     []
   );
 
-  const devotionalDetailOptions = useMemo<NativeStackNavigationOptions>(
-    () => ({
-      headerShown: false, // We're handling the header in the component
-      headerBackVisible: false, // Hide the back button
-      animation: 'slide_from_bottom', // Slide from bottom animation
-      animationDuration: 300, // Duration of the animation in milliseconds
-      presentation: 'modal', // This gives it a card-like appearance when sliding up
-      gestureEnabled: true, // Enable swipe down to dismiss
-    }),
-    []
-  );
+
 
   // Removed unused devotionalListOptions
 
@@ -161,8 +152,16 @@ export default function RootStackNavigator({
           />
           <Stack.Screen
             name="DevotionalDetail"
-            component={DevotionalDetailScreen as React.ComponentType}
-            options={devotionalDetailOptions}
+            component={DevotionalDetailScreen as unknown as React.ComponentType}
+            options={{
+              title: '',
+              headerBackVisible: true,
+              headerLeft: renderAnchorBlueHeaderLeft,
+              animation: 'slide_from_bottom',
+              animationDuration: 300,
+              presentation: 'modal',
+              gestureEnabled: true,
+            }}
           />
         </>
       ) : (
