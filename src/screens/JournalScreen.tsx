@@ -403,21 +403,60 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
         );
       case 'schedule':
         return (
-          <View style={styles.scheduleTabContent}>
-            <ScheduleContent />
-          </View>
+          <ScrollView
+            style={styles.tabContent}
+            contentContainerStyle={styles.scrollViewContent}
+            onScroll={handleContentScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={Colors.alertCoral}
+                colors={[Colors.alertCoral]}
+              />
+            }
+          >
+            <ScheduleContent selectedDate={currentDate} />
+          </ScrollView>
         );
       case 'prayer':
         return (
-          <View style={styles.tabContentNoPadding}>
+          <ScrollView
+            style={styles.tabContent}
+            contentContainerStyle={styles.scrollViewContent}
+            onScroll={handleContentScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={Colors.alertCoral}
+                colors={[Colors.alertCoral]}
+              />
+            }
+          >
             <PrayerJournalTab selectedDate={currentDate} />
-          </View>
+          </ScrollView>
         );
       case 'finance':
         return (
-          <View style={styles.tabContent}>
+          <ScrollView
+            style={styles.tabContent}
+            contentContainerStyle={styles.scrollViewContent}
+            onScroll={handleContentScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={Colors.alertCoral}
+                colors={[Colors.alertCoral]}
+              />
+            }
+          >
             <Text style={styles.tabText}>Finance Content</Text>
-          </View>
+          </ScrollView>
         );
       default:
         return null;

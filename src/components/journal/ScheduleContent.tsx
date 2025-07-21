@@ -160,34 +160,23 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({ selectedDate =
     console.log('No time blocks found for the selected date');
     return (
       <View style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
-          showsVerticalScrollIndicator={true}
-        >
-          <View style={[styles.timelineContainer, styles.timelineBlocksContainer]}>
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                No time blocks scheduled for {format(selectedDate, 'MMMM d, yyyy')}
-              </Text>
-              <Text style={[styles.emptyText, styles.emptyTextSmall]}>
-                Add time blocks in the Journal tab to see them here
-              </Text>
-            </View>
+        <View style={[styles.timelineContainer, styles.timelineBlocksContainer]}>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>
+              No time blocks scheduled for {format(selectedDate, 'MMMM d, yyyy')}
+            </Text>
+            <Text style={[styles.emptyText, styles.emptyTextSmall]}>
+              Add time blocks in the Journal tab to see them here
+            </Text>
           </View>
-        </ScrollView>
+        </View>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={true}
-      >
-        <View style={[styles.timelineContainer, styles.timelineBlocksContainer]}>
+      <View style={[styles.timelineContainer, styles.timelineBlocksContainer]}>
           <View style={styles.timelineHours}>
             {Array.from({ length: 24 }).map((_, idx) => {
               const hour = idx;
@@ -273,9 +262,8 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({ selectedDate =
             <Text style={styles.fabText}>＋</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </View>
-  );
+      </View>
+    );
 };
 
 const processTimeBlocks = (blocks: TimeBlockItem[]): TimeBlockItem[] => {
