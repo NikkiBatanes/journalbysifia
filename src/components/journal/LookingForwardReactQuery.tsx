@@ -158,24 +158,7 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
     setIsAdding(false);
   };
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <JournalCard
-        title="Looking Forward To"
-        subtitle="What are you excited about tomorrow?"
-        icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        showAddButton={!entry && !isAdding}
-        onAdd={startAdding}
-        isAdding={isAdding}
-        onCancelAdd={cancelAdding}
-      >
-        <View style={styles.entryContainer}>
-          <Text style={[styles.entryText, { opacity: 0.5 }]}>Loading...</Text>
-        </View>
-      </JournalCard>
-    );
-  }
+
 
   // Show error state
   if (error) {

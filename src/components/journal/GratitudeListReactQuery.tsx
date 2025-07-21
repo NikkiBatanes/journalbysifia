@@ -84,20 +84,7 @@ export default function GratitudeListReactQuery({ selectedDate }: GratitudeListR
     </View>
   );
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Gratitude</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.anchorBlue} />
-          <Text style={styles.loadingText}>Loading gratitude entries...</Text>
-        </View>
-      </View>
-    );
-  }
+
 
   // Error state
   if (error) {

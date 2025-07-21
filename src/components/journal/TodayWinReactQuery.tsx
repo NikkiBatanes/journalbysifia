@@ -170,24 +170,7 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
     setIsAdding(true);
   };
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <JournalCard
-        title="Today's Win"
-        subtitle="What's your biggest win today?"
-        icon={<LuTrophy size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        showAddButton={false}
-        onAdd={startAdding}
-        isAdding={isAdding}
-        onCancelAdd={cancelAdding}
-      >
-        <View style={styles.winContainer}>
-          <Text style={[styles.winText, { opacity: 0.5 }]}>Loading...</Text>
-        </View>
-      </JournalCard>
-    );
-  }
+
 
   // Error state
   if (error) {

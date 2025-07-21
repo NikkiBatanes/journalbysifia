@@ -279,24 +279,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
   const hasContent = (data.focus || '').trim() || 
     data.priorities.some(p => (p.text || '').trim());
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <JournalCard
-        title="Today's Focus"
-        subtitle="What's your main focus and top 3 priorities?"
-        icon={<LuGoal size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        showAddButton={false}
-        onAdd={() => {}}
-        isAdding={false}
-        onCancelAdd={() => {}}
-      >
-        <View style={styles.container}>
-          <Text style={[styles.focusText, { opacity: 0.5 }]}>Loading...</Text>
-        </View>
-      </JournalCard>
-    );
-  }
+
 
   // Error state
   if (error) {
