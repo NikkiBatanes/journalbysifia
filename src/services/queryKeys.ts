@@ -1,7 +1,7 @@
 /**
  * Centralized query keys for React Query
  * Following industry best practices for query key management
- * 
+ *
  * Structure: [domain, entity, ...identifiers]
  * Example: ['journal', 'gratitude', userId, date]
  */
@@ -70,22 +70,22 @@ export const queryKeys = {
  */
 export const queryKeyHelpers = {
   // Invalidate all journal queries for a user
-  invalidateJournalQueries: (userId: string) => queryKeys.journal.all,
-  
+  invalidateJournalQueries: (_userId: string) => queryKeys.journal.all,
+
   // Invalidate all queries for a specific date
   invalidateJournalDate: (userId: string, date: string) => ['journal', userId, date],
-  
+
   // Invalidate all prayer queries for a user
-  invalidatePrayerQueries: (userId: string) => queryKeys.prayers.all,
-  
+  invalidatePrayerQueries: (_userId: string) => queryKeys.prayers.all,
+
   // Invalidate all devotional queries for a user
-  invalidateDevotionalQueries: (userId: string) => queryKeys.devotionals.all,
-  
+  invalidateDevotionalQueries: (_userId: string) => queryKeys.devotionals.all,
+
   // Invalidate all playbook queries for a user
-  invalidatePlaybookQueries: (userId: string) => queryKeys.playbooks.all,
-  
+  invalidatePlaybookQueries: (_userId: string) => queryKeys.playbooks.all,
+
   // Invalidate all user-related queries
-  invalidateUserQueries: (userId: string) => queryKeys.user.all,
+  invalidateUserQueries: (_userId: string) => queryKeys.user.all,
 };
 
 /**

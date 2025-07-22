@@ -1,10 +1,10 @@
 // src/navigation/RootStackNavigator.tsx
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
-import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
+import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
@@ -47,15 +47,15 @@ const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?:
 
 // Header left components as functions
 const renderAnchorBlueHeaderLeft = ({ navigation }: any) => (
-  <HeaderLeft 
-    color={Colors.anchorBlue} 
+  <HeaderLeft
+    color={Colors.anchorBlue}
     onPress={() => navigation.goBack()}
   />
 );
 
 const renderHopeWhiteHeaderLeft = ({ navigation }: any) => (
-  <HeaderLeft 
-    color={Colors.hopeWhite} 
+  <HeaderLeft
+    color={Colors.hopeWhite}
     onPress={() => navigation.goBack()}
   />
 );

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { JournalCard } from './JournalCard';
@@ -7,11 +7,11 @@ import { Fonts } from '../../theme/fonts';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
-import { 
-  useLookingForwardData, 
-  useCreateLookingForwardEntry, 
-  useUpdateLookingForwardEntry, 
-  useDeleteLookingForwardEntry 
+import {
+  useLookingForwardData,
+  useCreateLookingForwardEntry,
+  useUpdateLookingForwardEntry,
+  useDeleteLookingForwardEntry,
 } from '../../services/hooks/useJournalData';
 
 interface LookingForwardProps {
@@ -23,28 +23,21 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
   const [entryText, setEntryText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingText, setEditingText] = useState('');
   const swipeableRef = useRef<Swipeable>(null);
 
   const dateStr = toLocalDateString(selectedDate);
-  
+
   // Reset state when date changes (prevents stale data)
   React.useEffect(() => {
     setEntryText('');
     setIsAdding(false);
     setEditingId(null);
-    setEditingText('');
     console.log('🌅 LookingForward: Resetting state for date:', dateStr);
   }, [dateStr]);
-  
-  // React Query hooks
-  const { 
-    data: entries = [], 
-    isLoading, 
-    error, 
-    refetch 
-  } = useLookingForwardData(user?.id || '', dateStr);
-  
+
+  // Get looking forward entries
+  const { data: entries = [] } = useLookingForwardData(user?.id || '', dateStr);
+
   const createEntryMutation = useCreateLookingForwardEntry();
   const updateEntryMutation = useUpdateLookingForwardEntry();
   const deleteEntryMutation = useDeleteLookingForwardEntry();
@@ -52,7 +45,7 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
   // Get the first entry (LookingForward typically has only one entry)
   const entry = entries.length > 0 ? entries[0] : null;
 
-  const renderRightActions = useCallback((progress: any, dragX: any) => {
+  const renderRightActions = (progress: any, dragX: any) => {
     const trans = dragX.interpolate({
       inputRange: [-100, -50, 0],
       outputRange: [0, 50, 100],
@@ -60,19 +53,19 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
     });
 
     const handleDelete = () => {
-      if (!entry) return;
-      
+      if (!entry) {return;}
+
       Alert.alert(
         'Delete Entry',
         'Are you sure you want to delete this entry?',
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Delete', 
+          {
+            text: 'Delete',
             style: 'destructive',
             onPress: () => {
               deleteEntryMutation.mutate(entry.id);
-            }
+            },
           },
         ]
       );
@@ -86,14 +79,14 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
             style={styles.deleteButtonContent}
             activeOpacity={0.8}
           >
-            <Text style={{ color: Colors.hopeWhite, fontFamily: Fonts.medium, fontSize: 12 }}>
+            <Text style={styles.deleteButtonText}>
               Delete
             </Text>
           </TouchableOpacity>
         </Animated.View>
       </View>
     );
-  }, [entry, deleteEntryMutation]);
+  };
 
   const startAdding = () => {
     setIsAdding(true);
@@ -106,7 +99,7 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
   };
 
   const saveEntry = async () => {
-    if (!entryText.trim() || !user) return;
+    if (!entryText.trim() || !user) {return;}
 
     try {
       if (editingId) {
@@ -114,26 +107,25 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
         await updateEntryMutation.mutateAsync({
           id: editingId,
           updates: {
-            content: JSON.stringify({ entry: { id: editingId, text: entryText.trim(), date: selectedDate } })
-          }
+            content: JSON.stringify({ entry: { id: editingId, text: entryText.trim(), date: selectedDate } }),
+          },
         });
         setEditingId(null);
-        setEditingText('');
       } else {
         // Create new entry
         await createEntryMutation.mutateAsync({
           user_id: user.id,
           selected_date: dateStr,
-          content: JSON.stringify({ 
-            entry: { 
-              id: `looking_forward_${Date.now()}`, 
-              text: entryText.trim(), 
-              date: selectedDate 
-            } 
-          })
+          content: JSON.stringify({
+            entry: {
+              id: `looking_forward_${Date.now()}`,
+              text: entryText.trim(),
+              date: selectedDate,
+            },
+          }),
         });
       }
-      
+
       setIsAdding(false);
       setEntryText('');
     } catch (error) {
@@ -143,46 +135,22 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
   };
 
   const editEntry = () => {
-    if (!entry) return;
+    if (!entry) {return;}
     setEditingId(entry.id);
     const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-    setEditingText(parsedContent?.entry?.text || '');
     setEntryText(parsedContent?.entry?.text || '');
     setIsAdding(true);
   };
 
   const cancelEditing = () => {
     setEditingId(null);
-    setEditingText('');
     setEntryText('');
     setIsAdding(false);
   };
 
 
 
-  // Show error state
-  if (error) {
-    return (
-      <JournalCard
-        title="Looking Forward To"
-        subtitle="What are you excited about tomorrow?"
-        icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        showAddButton={!entry && !isAdding}
-        onAdd={startAdding}
-        isAdding={isAdding}
-        onCancelAdd={cancelAdding}
-      >
-        <View style={styles.entryContainer}>
-          <Text style={[styles.entryText, { color: Colors.alertCoral }]}>
-            Error loading entry. Tap to retry.
-          </Text>
-          <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </JournalCard>
-    );
-  }
+
 
   return (
     <JournalCard
@@ -285,7 +253,7 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     width: 80,
-    backgroundColor: '#f87171',
+    backgroundColor: Colors.error,
     justifyContent: 'center',
     alignItems: 'center',
     height: '100%',
@@ -295,10 +263,15 @@ const styles = StyleSheet.create({
     marginLeft: -10,
   },
   deleteButtonContent: {
-    width: 60,
+    width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  deleteButtonText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.medium,
+    fontSize: 12,
   },
   entryText: {
     fontFamily: Fonts.regular,

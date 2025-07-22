@@ -67,7 +67,7 @@ export class PrayerApi {
     supplication: PrayerApiEntry[];
   }> {
     const prayers = await this.getPrayers(userId, date);
-    
+
     return {
       adoration: prayers.filter(p => p.type === 'adoration'),
       confession: prayers.filter(p => p.type === 'confession'),

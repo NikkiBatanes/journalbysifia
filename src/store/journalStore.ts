@@ -12,25 +12,25 @@ interface JournalState {
   // Current date and navigation
   selectedDate: string; // YYYY-MM-DD format
   currentWeek: Date;
-  
+
   // UI state
   activeJournalTab: 'journal' | 'schedule' | 'prayer' | 'finance';
   isDatePickerVisible: boolean;
-  
+
   // Filters and view options
   gratitudeFilter: 'all' | 'recent' | 'favorites';
   todoFilter: 'all' | 'pending' | 'completed' | 'priority';
   reflectionFilter: 'all' | 'recent' | 'devotional' | 'personal';
-  
+
   // Pagination and limits
   gratitudeLimit: number;
   todoLimit: number;
   reflectionLimit: number;
-  
+
   // Temporary data (not persisted)
   refreshKey: number;
   lastRefreshTime: string | null;
-  
+
   // Draft states
   drafts: {
     gratitude: string[];
@@ -51,25 +51,25 @@ interface JournalActions {
   goToToday: () => void;
   goToPreviousDay: () => void;
   goToNextDay: () => void;
-  
+
   // UI state
   setActiveJournalTab: (tab: JournalState['activeJournalTab']) => void;
   setDatePickerVisible: (visible: boolean) => void;
-  
+
   // Filters
   setGratitudeFilter: (filter: JournalState['gratitudeFilter']) => void;
   setTodoFilter: (filter: JournalState['todoFilter']) => void;
   setReflectionFilter: (filter: JournalState['reflectionFilter']) => void;
-  
+
   // Pagination
   setGratitudeLimit: (limit: number) => void;
   setTodoLimit: (limit: number) => void;
   setReflectionLimit: (limit: number) => void;
-  
+
   // Refresh
   triggerRefresh: () => void;
   setLastRefreshTime: (time: string) => void;
-  
+
   // Drafts
   setGratitudeDraft: (gratitude: string[]) => void;
   setTodoDraft: (todo: string) => void;
@@ -77,7 +77,7 @@ interface JournalActions {
   setTodaysFocusDraft: (focus: string) => void;
   clearDrafts: () => void;
   clearDraft: (type: keyof JournalState['drafts']) => void;
-  
+
   // Reset
   resetJournalState: () => void;
 }
@@ -93,25 +93,25 @@ const initialState: JournalState = {
   // Current date and navigation
   selectedDate: getTodayString(),
   currentWeek: new Date(),
-  
+
   // UI state
   activeJournalTab: 'journal',
   isDatePickerVisible: false,
-  
+
   // Filters and view options
   gratitudeFilter: 'all',
   todoFilter: 'all',
   reflectionFilter: 'all',
-  
+
   // Pagination and limits
   gratitudeLimit: 5,
   todoLimit: 5,
   reflectionLimit: 5,
-  
+
   // Temporary data
   refreshKey: 0,
   lastRefreshTime: null,
-  
+
   // Draft states
   drafts: {
     gratitude: [],
@@ -123,96 +123,96 @@ const initialState: JournalState = {
 
 export const useJournalStore = create<JournalStore>()(
   persist(
-    immer((set, get) => ({
+    immer((set, _get) => ({
       ...initialState,
-      
+
       // Date navigation
       setSelectedDate: (date) => set((state) => {
         state.selectedDate = date;
       }),
-      
+
       setCurrentWeek: (week) => set((state) => {
         state.currentWeek = week;
       }),
-      
+
       goToToday: () => set((state) => {
         state.selectedDate = getTodayString();
       }),
-      
+
       goToPreviousDay: () => set((state) => {
         const currentDate = new Date(state.selectedDate);
         currentDate.setDate(currentDate.getDate() - 1);
         state.selectedDate = currentDate.toISOString().split('T')[0];
       }),
-      
+
       goToNextDay: () => set((state) => {
         const currentDate = new Date(state.selectedDate);
         currentDate.setDate(currentDate.getDate() + 1);
         state.selectedDate = currentDate.toISOString().split('T')[0];
       }),
-      
+
       // UI state
       setActiveJournalTab: (tab) => set((state) => {
         state.activeJournalTab = tab;
       }),
-      
+
       setDatePickerVisible: (visible) => set((state) => {
         state.isDatePickerVisible = visible;
       }),
-      
+
       // Filters
       setGratitudeFilter: (filter) => set((state) => {
         state.gratitudeFilter = filter;
       }),
-      
+
       setTodoFilter: (filter) => set((state) => {
         state.todoFilter = filter;
       }),
-      
+
       setReflectionFilter: (filter) => set((state) => {
         state.reflectionFilter = filter;
       }),
-      
+
       // Pagination
       setGratitudeLimit: (limit) => set((state) => {
         state.gratitudeLimit = limit;
       }),
-      
+
       setTodoLimit: (limit) => set((state) => {
         state.todoLimit = limit;
       }),
-      
+
       setReflectionLimit: (limit) => set((state) => {
         state.reflectionLimit = limit;
       }),
-      
+
       // Refresh
       triggerRefresh: () => set((state) => {
         state.refreshKey += 1;
         state.lastRefreshTime = new Date().toISOString();
       }),
-      
+
       setLastRefreshTime: (time) => set((state) => {
         state.lastRefreshTime = time;
       }),
-      
+
       // Drafts
       setGratitudeDraft: (gratitude) => set((state) => {
         state.drafts.gratitude = gratitude;
       }),
-      
+
       setTodoDraft: (todo) => set((state) => {
         state.drafts.todo = todo;
       }),
-      
+
       setReflectionDraft: (reflection) => set((state) => {
         state.drafts.reflection = reflection;
       }),
-      
+
       setTodaysFocusDraft: (focus) => set((state) => {
         state.drafts.todaysFocus = focus;
       }),
-      
+
       clearDrafts: () => set((state) => {
         state.drafts = {
           gratitude: [],
@@ -221,7 +221,7 @@ export const useJournalStore = create<JournalStore>()(
           todaysFocus: '',
         };
       }),
-      
+
       clearDraft: (type) => set((state) => {
         switch (type) {
           case 'gratitude':
@@ -238,7 +238,7 @@ export const useJournalStore = create<JournalStore>()(
             break;
         }
       }),
-      
+
       // Reset
       resetJournalState: () => set(() => ({
         ...initialState,

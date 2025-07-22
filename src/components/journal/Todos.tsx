@@ -7,7 +7,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Check, ListTodo as LuListTodo, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 // Storage and auth imports
-import { getJournalKey, getLocalEntry, saveLocalEntry, updateLocalEntry, deleteLocalEntry, deleteCloudEntry, getCloudEntry, syncToCloud, syncFromCloud, checkSession } from '../../storage/journalStorage';
+import { getJournalKey, getLocalEntry, saveLocalEntry, updateLocalEntry, deleteLocalEntry, deleteCloudEntry, getCloudEntry, syncToCloud, syncFromCloud } from '../../storage/journalStorage';
 import { useAuth } from '../../context/AuthContext';
 
 interface TodoItem {
@@ -36,15 +36,15 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
   const inputRef = useRef<TextInput>(null);
 
   // Auth and date context
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   // Use the selectedDate prop, defaulting to today if not provided
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
   const contentType = 'todos';
   const key = user ? getJournalKey(user.id, contentType, dateStr) : '';
 
   // Caching and sync state
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+  const [_loading, setLoading] = useState(true);
+  const [_syncing, setSyncing] = useState(false);
   const hydratedRef = useRef(false);
   const isSyncingRef = useRef(false);
   const refreshKeyRef = useRef(refreshKey);
@@ -70,7 +70,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
 
   const handleSave = async () => {
     console.log('💾 handleSave called with:', newTodo);
-    
+
     // Use the same logic as handleAddInput but close adding mode
     const todoText = newTodo.trim();
     if (!todoText) {return;}
@@ -199,15 +199,15 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
     // Optimistically update the UI and save to storage
     setTodos(prevTodos => {
       const newTodos = [...prevTodos, todoToAdd];
-      
+
       // Save to storage using the updated todos array
       saveTodos(newTodos).catch(error => {
         console.error('❌ Failed to save new todo:', error);
-        // Revert UI on error
-        setTodos(prevTodos => prevTodos.filter(t => t.id !== todoToAdd.id));
+        // Revert UI on error - using a different parameter name to avoid shadowing
+        setTodos(previousTodos => previousTodos.filter(t => t.id !== todoToAdd.id));
         Alert.alert('Error', 'Failed to save todo. Please try again.');
       });
-      
+
       return newTodos;
     });
 
@@ -260,7 +260,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
       // 1. Load local data immediately (cache-first)
       console.log(' Loading local todos...');
       const localEntry = await getLocalEntry(key);
-      
+
       if (localEntry?.content?.items) {
         console.log(' Found local todos, setting immediately:', localEntry.content.items.length);
         setTodos(localEntry.content.items);
@@ -273,10 +273,10 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
       if (!hydratedRef.current || refreshKeyRef.current !== refreshKey) {
         console.log(' First hydration - syncing from cloud...');
         setSyncing(true);
-        
+
         try {
           await syncFromCloud(user.id, dateStr, contentType);
-          
+
           // Reload local after sync
           const syncedEntry = await getLocalEntry(key);
           if (syncedEntry?.content?.items) {
@@ -289,7 +289,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
         } finally {
           setSyncing(false);
         }
-        
+
         hydratedRef.current = true;
         refreshKeyRef.current = refreshKey;
       } else {
@@ -306,12 +306,12 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
 
   // Main hydration effect
   useEffect(() => {
-    if (!authLoading && user) {
+    if (user) {
       // Reset hydration when date changes
       hydratedRef.current = false;
       hydrateTodos();
     }
-  }, [user, authLoading, dateStr, hydrateTodos]);
+  }, [user, dateStr, hydrateTodos]);
 
   // Auto-focus when starting to add a new task
   useEffect(() => {
@@ -380,7 +380,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
 
   const toggleTodo = async (id: string, isPriorityToggle = false) => {
     console.log(`🔄 Toggle todo ${isPriorityToggle ? 'priority' : 'completion'} for id:`, id);
-  
+
     // Optimistically update the UI
     setTodos(currentTodos => {
       const updatedTodos = currentTodos.map(todo => {

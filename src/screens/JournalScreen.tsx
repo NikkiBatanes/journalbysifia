@@ -148,7 +148,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   useEffect(() => {
     if (scrollViewRef.current && weeks.length > 0 && currentWeekIndex.current >= 0) {
       const scrollTo = currentWeekIndex.current * screenWidth;
-      
+
       // Small delay to ensure the layout is updated
       setTimeout(() => {
         if (scrollViewRef.current) {

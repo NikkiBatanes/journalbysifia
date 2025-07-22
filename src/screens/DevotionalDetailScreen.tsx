@@ -8,17 +8,16 @@ import {
   View,
   ActivityIndicator,
   Dimensions,
+  ScrollView,
 } from 'react-native';
-import { FlatList, Gesture, GestureDetector, GestureHandlerRootView, ScrollView } from 'react-native-gesture-handler';
+import { FlatList, Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import ReactQueryTest from '../components/test/ReactQueryTest';
+import { runOnJS } from 'react-native-reanimated';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotional } from '../context/DevotionalContext';
 import { usePrayer } from '../context/PrayerContext';
-import { runOnJS } from 'react-native-reanimated';
 import { Devotional } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -26,7 +25,6 @@ import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 import { extractCleanTitle } from '../utils/titleUtils';
 import { PrayerEntry } from '../storage/prayerStorage';
-
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 
 type DevotionalDetailScreenProps = {
@@ -40,7 +38,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
   const { devotionalId } = route.params;
   const { devotionals, markDayComplete, submitDevotionalRating } = useDevotional();
-  const { addPrayedItem, addPrayer, getAllDevotionalPrayers } = usePrayer(); // Get prayer functions from PrayerContext
+  const { addPrayedItem, getAllDevotionalPrayers } = usePrayer(); // Get prayer functions from PrayerContext
   const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -224,7 +222,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         }
       }, 100);
     }
-  }, [devotional]);
+  }, [devotional, flatListRef]);
 
   // Use the callback in the effect, but only when currentDayIndex changes after initial load
   useEffect(() => {

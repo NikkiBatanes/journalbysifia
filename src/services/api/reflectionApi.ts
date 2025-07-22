@@ -39,8 +39,8 @@ export class ReflectionApi {
 
   // Get reflection entries by type
   static async getReflectionsByType(
-    userId: string, 
-    date: string, 
+    userId: string,
+    date: string,
     type: 'free' | 'guided'
   ): Promise<ReflectionApiEntry[]> {
     const { data, error } = await supabase

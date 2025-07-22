@@ -21,7 +21,7 @@ export class JournalCache {
   private static async isCacheValid(cacheKey: string): Promise<boolean> {
     try {
       const metadataJson = await AsyncStorage.getItem(this.getMetadataKey(cacheKey));
-      if (!metadataJson) return false;
+      if (!metadataJson) {return false;}
 
       const metadata = JSON.parse(metadataJson);
       const now = Date.now();
@@ -80,11 +80,11 @@ export class JournalCache {
 
       // Get cached data
       const cachedData = await AsyncStorage.getItem(cacheKey);
-      if (!cachedData) return null;
+      if (!cachedData) {return null;}
 
       const entries = JSON.parse(cachedData) as JournalApiEntry[];
       console.log(`✅ Cache hit: ${entries.length} journal entries for ${userId} on ${date}${contentType ? ` (${contentType})` : ''}`);
-      
+
       return entries;
     } catch (error) {
       console.error('Error getting journal cache:', error);
@@ -109,7 +109,7 @@ export class JournalCache {
   static async clearAllUserCache(userId: string): Promise<void> {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
-      const userCacheKeys = allKeys.filter(key => 
+      const userCacheKeys = allKeys.filter(key =>
         key.startsWith(`${this.CACHE_PREFIX}${userId}_`)
       );
 
@@ -130,7 +130,7 @@ export class JournalCache {
       const expiredKeys: string[] = [];
 
       for (const key of cacheKeys) {
-        if (key.endsWith('_metadata')) continue; // Skip metadata keys, check main keys
+        if (key.endsWith('_metadata')) {continue;} // Skip metadata keys, check main keys
 
         const isValid = await this.isCacheValid(key);
         if (!isValid) {
@@ -157,7 +157,7 @@ export class JournalCache {
   }> {
     try {
       const allKeys = await AsyncStorage.getAllKeys();
-      const cacheKeys = allKeys.filter(key => 
+      const cacheKeys = allKeys.filter(key =>
         key.startsWith(this.CACHE_PREFIX) && !key.endsWith('_metadata')
       );
 
@@ -169,12 +169,12 @@ export class JournalCache {
       for (const key of cacheKeys) {
         const isValid = await this.isCacheValid(key);
         const data = await AsyncStorage.getItem(key);
-        
+
         if (data) {
           totalSize += data.length;
           const entries = JSON.parse(data) as JournalApiEntry[];
           totalEntries += entries.length;
-          
+
           if (isValid) {
             validEntries += entries.length;
           } else {

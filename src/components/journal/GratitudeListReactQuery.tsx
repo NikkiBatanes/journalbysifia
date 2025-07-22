@@ -1,5 +1,3 @@
-// src/components/journal/GratitudeListReactQuery.tsx
-// Example migration of GratitudeList to React Query
 import React from 'react';
 import {
   View,
@@ -8,13 +6,12 @@ import {
   TextInput,
   FlatList,
   StyleSheet,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useGratitudeData, useCreateJournalEntry, useDeleteJournalEntry } from '../../services/hooks/useJournalData';
 import { Colors } from '../../theme/colors';
-import { FontSizes, Spacing } from '../../theme/styles';
+
 
 interface GratitudeListReactQueryProps {
   selectedDate: Date;
@@ -28,21 +25,15 @@ export default function GratitudeListReactQuery({ selectedDate }: GratitudeListR
   // Format date for API
   const dateStr = selectedDate.toISOString().split('T')[0];
 
-  // React Query hooks
-  const {
-    data: gratitudeEntries = [],
-    isLoading,
-    error,
-    refetch,
-    isFetching
-  } = useGratitudeData(user?.id || '', dateStr);
+  // Get gratitude entries
+  const { data: gratitudeEntries = [] } = useGratitudeData(user?.id || '', dateStr);
 
   const createGratitudeMutation = useCreateJournalEntry();
   const deleteGratitudeMutation = useDeleteJournalEntry();
 
   // Add new gratitude entry
   const handleAddGratitude = async () => {
-    if (!newGratitude.trim() || !user) return;
+    if (!newGratitude.trim() || !user) {return;}
 
     try {
       await createGratitudeMutation.mutateAsync({
@@ -86,30 +77,13 @@ export default function GratitudeListReactQuery({ selectedDate }: GratitudeListR
 
 
 
-  // Error state
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Gratitude</Text>
-        </View>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Failed to load gratitude entries</Text>
-          <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Gratitude</Text>
-        {isFetching && (
-          <ActivityIndicator size="small" color={Colors.anchorBlue} />
-        )}
+
         <TouchableOpacity
           onPress={() => setIsAddingGratitude(true)}
           style={styles.addButton}
@@ -143,15 +117,13 @@ export default function GratitudeListReactQuery({ selectedDate }: GratitudeListR
               onPress={handleAddGratitude}
               style={[
                 styles.saveButton,
-                (!newGratitude.trim() || createGratitudeMutation.isPending) && styles.saveButtonDisabled
+                (!newGratitude.trim() || createGratitudeMutation.isPending) && styles.saveButtonDisabled,
               ]}
               disabled={!newGratitude.trim() || createGratitudeMutation.isPending}
             >
-              {createGratitudeMutation.isPending ? (
-                <ActivityIndicator size="small" color={Colors.hopeWhite} />
-              ) : (
-                <Text style={styles.saveButtonText}>Save</Text>
-              )}
+              <Text style={styles.saveButtonText}>
+                {createGratitudeMutation.isPending ? 'Saving...' : 'Save'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -180,22 +152,26 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: Colors.hopeWhite,
     borderRadius: 12,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
+    padding: 16,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
+  list: {
+    maxHeight: 300,
+    marginTop: 16,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: 16,
   },
   title: {
-    fontSize: FontSizes.lg,
+    fontSize: 16,
     fontWeight: 'bold',
     color: Colors.anchorBlue,
   },
@@ -209,120 +185,87 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: Colors.hopeWhite,
-    fontSize: FontSizes.lg,
+    fontSize: 16,
     fontWeight: 'bold',
   },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  loadingText: {
-    marginLeft: Spacing.sm,
-    color: Colors.anchorBlue,
-    fontSize: FontSizes.sm,
-  },
-  errorContainer: {
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  errorText: {
-    color: Colors.red,
-    fontSize: FontSizes.sm,
-    marginBottom: Spacing.sm,
-  },
-  retryButton: {
-    backgroundColor: Colors.anchorBlue,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: Colors.hopeWhite,
-    fontSize: FontSizes.sm,
-    fontWeight: 'bold',
-  },
+
   inputContainer: {
-    marginBottom: Spacing.md,
-    padding: Spacing.md,
+    marginBottom: 16,
+    padding: 16,
     backgroundColor: Colors.lightGray,
     borderRadius: 8,
   },
   textInput: {
     borderWidth: 1,
-    borderColor: Colors.gray,
+    borderColor: Colors.mediumGray,
     borderRadius: 8,
-    padding: Spacing.md,
+    padding: 16,
     backgroundColor: Colors.hopeWhite,
-    fontSize: FontSizes.md,
+    fontSize: 14,
     minHeight: 80,
     textAlignVertical: 'top',
   },
   inputActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: Spacing.sm,
+    padding: 8,
   },
   cancelButton: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginRight: Spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 8,
   },
   cancelButtonText: {
-    color: Colors.gray,
-    fontSize: FontSizes.sm,
+    color: Colors.mediumGray,
+    fontSize: 14,
   },
   saveButton: {
     backgroundColor: Colors.anchorBlue,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 8,
     minWidth: 60,
     alignItems: 'center',
   },
   saveButtonDisabled: {
-    backgroundColor: Colors.gray,
+    backgroundColor: '#CCCCCC',
   },
   saveButtonText: {
-    color: Colors.hopeWhite,
-    fontSize: FontSizes.sm,
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: 'bold',
-  },
-  list: {
-    maxHeight: 300,
   },
   gratitudeItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: Spacing.md,
-    backgroundColor: Colors.lightGray,
+    padding: 16,
+    backgroundColor: '#F7F7F7',
     borderRadius: 8,
-    marginBottom: Spacing.sm,
+    marginBottom: 8,
   },
   gratitudeText: {
     flex: 1,
-    fontSize: FontSizes.md,
-    color: Colors.darkGray,
+    fontSize: 14,
+    color: '#333333',
     lineHeight: 20,
   },
   deleteButton: {
-    marginLeft: Spacing.sm,
-    padding: Spacing.xs,
+    marginLeft: 8,
+    padding: 4,
   },
   deleteButtonText: {
-    color: Colors.red,
-    fontSize: FontSizes.lg,
+    color: Colors.alertCoral,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   emptyContainer: {
     alignItems: 'center',
-    padding: Spacing.lg,
+    padding: 24,
   },
   emptyText: {
-    color: Colors.gray,
-    fontSize: FontSizes.sm,
+    color: Colors.mediumGray,
+    fontSize: 14,
     textAlign: 'center',
   },
 });

@@ -7,18 +7,12 @@ import { Fonts } from '../../theme/fonts';
 import { Check, X, Trophy as LuTrophy, Pencil } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
-import { 
-  useTodayWinData, 
-  useCreateTodayWinEntry, 
-  useUpdateTodayWinEntry, 
-  useDeleteTodayWinEntry 
+import {
+  useTodayWinData,
+  useCreateTodayWinEntry,
+  useUpdateTodayWinEntry,
+  useDeleteTodayWinEntry,
 } from '../../services/hooks/useJournalData';
-
-interface WinEntry {
-  id: string;
-  text: string;
-  date: Date;
-}
 
 interface TodayWinProps {
   selectedDate: Date;
@@ -32,7 +26,7 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
   const swipeableRef = useRef<Swipeable>(null);
 
   const dateStr = toLocalDateString(selectedDate);
-  
+
   // Reset state when date changes (prevents stale data)
   React.useEffect(() => {
     setWinText('');
@@ -42,8 +36,8 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
   }, [dateStr]);
   const userId = user?.id || '';
 
-  // React Query hooks
-  const { data: entries = [], isLoading, error } = useTodayWinData(userId, dateStr);
+  // Get today's win entry
+  const { data: entries = [] } = useTodayWinData(userId, dateStr);
   const createMutation = useCreateTodayWinEntry();
   const updateMutation = useUpdateTodayWinEntry();
   const deleteMutation = useDeleteTodayWinEntry();
@@ -60,7 +54,7 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
         return '';
       }
     })(),
-    date: selectedDate
+    date: selectedDate,
   } : null;
 
   const closeSwipeable = useCallback(() => {
@@ -81,20 +75,20 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
     });
 
     const handleDelete = () => {
-      if (!entry) return;
-      
+      if (!entry) {return;}
+
       Alert.alert(
         'Delete Win',
         'Are you sure you want to delete this win?',
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Delete', 
+          {
+            text: 'Delete',
             style: 'destructive',
             onPress: () => {
               deleteMutation.mutate(entry.id);
               closeSwipeable();
-            }
+            },
           },
         ]
       );
@@ -127,33 +121,33 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
   };
 
   const saveWin = () => {
-    if (!winText.trim()) return;
+    if (!winText.trim()) {return;}
 
     if (isEditing && entry) {
       // Update existing entry
       let updatedContent: any;
       try {
-        updatedContent = typeof entry.content === 'string' 
-          ? JSON.parse(entry.content) 
+        updatedContent = typeof entry.content === 'string'
+          ? JSON.parse(entry.content)
           : entry.content;
       } catch {
         updatedContent = {};
       }
-      
+
       updatedContent.win = winText.trim();
-      
+
       updateMutation.mutate({
         id: entry.id,
         updates: {
-          content: JSON.stringify(updatedContent)
-        }
+          content: JSON.stringify(updatedContent),
+        },
       });
     } else {
       // Create new entry
       createMutation.mutate({
         user_id: userId,
         selected_date: dateStr,
-        content: JSON.stringify({ win: winText.trim() })
+        content: JSON.stringify({ win: winText.trim() }),
       });
     }
 
@@ -163,8 +157,8 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
   };
 
   const editWin = () => {
-    if (!win) return;
-    
+    if (!win) {return;}
+
     setWinText(win.text);
     setIsEditing(true);
     setIsAdding(true);
@@ -172,26 +166,7 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
 
 
 
-  // Error state
-  if (error) {
-    return (
-      <JournalCard
-        title="Today's Win"
-        subtitle="What's your biggest win today?"
-        icon={<LuTrophy size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        showAddButton={false}
-        onAdd={startAdding}
-        isAdding={isAdding}
-        onCancelAdd={cancelAdding}
-      >
-        <View style={styles.winContainer}>
-          <Text style={[styles.winText, { color: Colors.alertCoral }]}>
-            Error loading win. Tap to retry.
-          </Text>
-        </View>
-      </JournalCard>
-    );
-  }
+
 
   return (
     <JournalCard

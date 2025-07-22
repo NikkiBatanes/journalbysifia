@@ -17,8 +17,8 @@ export interface JournalApiEntry {
 export class JournalApi {
   // Get all journal entries for a user and date
   static async getJournalEntries(
-    userId: string, 
-    date: string, 
+    userId: string,
+    date: string,
     contentType?: string
   ): Promise<JournalApiEntry[]> {
     let query = supabase
@@ -89,7 +89,7 @@ export class JournalApi {
 
   // Update a journal entry
   static async updateJournalEntry(
-    id: string, 
+    id: string,
     updates: Partial<Omit<JournalApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<JournalApiEntry> {
     const { data, error } = await supabase

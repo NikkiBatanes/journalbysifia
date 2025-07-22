@@ -44,7 +44,7 @@ export class TimeBlockApi {
       .from('time_blocks')
       .upsert(timeBlockWithTimestamps, {
         onConflict: 'user_id,selected_date,start_time',
-        ignoreDuplicates: false
+        ignoreDuplicates: false,
       })
       .select()
       .single();
@@ -129,7 +129,7 @@ export class TimeBlockApi {
       .from('time_blocks')
       .upsert(timeBlocksWithTimestamps, {
         onConflict: 'user_id,selected_date,start_time',
-        ignoreDuplicates: false
+        ignoreDuplicates: false,
       })
       .select();
 

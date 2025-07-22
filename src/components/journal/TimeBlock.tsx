@@ -345,7 +345,7 @@ const addTimeBlock = async () => {
       dateStr,
       startTime,
       endTime,
-      userId: user.id
+      userId: user.id,
     });
 
     if (editId) {

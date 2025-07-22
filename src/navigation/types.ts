@@ -29,7 +29,7 @@ export type RootStackParamList = {
 
   // Journal screen
   Journal: undefined;
-  
+
   // Test screens
   QueryTest: undefined;
 };

@@ -7,11 +7,10 @@ import { JournalCard } from './JournalCard';
 import { Check, Goal as LuGoal, X } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
-import { 
-  useTodaysFocusData, 
-  useCreateTodaysFocusEntry, 
-  useUpdateTodaysFocusEntry, 
-  useDeleteTodaysFocusEntry 
+import {
+  useTodaysFocusData,
+  useCreateTodaysFocusEntry,
+  useUpdateTodaysFocusEntry,
 } from '../../services/hooks/useJournalData';
 
 interface PriorityItem {
@@ -27,30 +26,27 @@ interface TodayFocusData {
 
 interface TodaysFocusProps {
   selectedDate?: Date;
-  refreshKey?: number;
 }
 
-export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ 
-  selectedDate = new Date(), 
-  refreshKey = 0 
+export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
+  selectedDate = new Date(),
 }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
   const userId = user?.id || '';
 
-  // React Query hooks
-  const { data: entries = [], isLoading, error } = useTodaysFocusData(userId, dateStr);
+  // Get today's focus data
+  const { data: entries = [] } = useTodaysFocusData(userId, dateStr);
   const createMutation = useCreateTodaysFocusEntry();
   const updateMutation = useUpdateTodaysFocusEntry();
-  const deleteMutation = useDeleteTodaysFocusEntry();
 
   // Get the first entry (TodaysFocus typically has one entry)
   const entry = entries.length > 0 ? entries[0] : null;
-  
+
   // Memoize focusData to prevent infinite loops
   const focusData = useMemo(() => {
-    if (!entry) return null;
-    
+    if (!entry) {return null;}
+
     try {
       const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
       return {
@@ -59,7 +55,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
           { id: '1', text: '', completed: false },
           { id: '2', text: '', completed: false },
           { id: '3', text: '', completed: false },
-        ]
+        ],
       };
     } catch {
       return {
@@ -68,7 +64,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
           { id: '1', text: '', completed: false },
           { id: '2', text: '', completed: false },
           { id: '3', text: '', completed: false },
-        ]
+        ],
       };
     }
   }, [entry]);
@@ -101,41 +97,46 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
   }, [dateStr]);
 
   // Initialize data when focusData changes (only when not editing)
+  // Use a ref to track previous focusData to prevent unnecessary updates
+  const prevFocusDataRef = React.useRef(focusData);
+
   React.useEffect(() => {
     if (focusData && !isEditing) {
       // Only update if the data is actually different to prevent unnecessary re-renders
-      const isDifferent = 
+      const isDifferent =
         focusData.focus !== data.focus ||
         JSON.stringify(focusData.priorities) !== JSON.stringify(data.priorities);
-      
-      if (isDifferent) {
+
+      // Only update if data is different and not equal to the previous focusData
+      if (isDifferent && JSON.stringify(prevFocusDataRef.current) !== JSON.stringify(focusData)) {
         console.log('📝 TodaysFocus: Updating data from server for date:', dateStr);
         setData(focusData);
+        prevFocusDataRef.current = focusData;
       }
     }
-  }, [focusData, isEditing, dateStr]); // Removed data.focus and data.priorities to prevent loops
+  }, [focusData, isEditing, dateStr, data.focus, data.priorities]);
 
   // Save focus data
-  const saveFocus = useCallback(async (focusData: TodayFocusData) => {
-    if (!user) return;
+  const saveFocus = useCallback(async (_newFocusData: TodayFocusData) => {
+    if (!user) {return;}
 
     if (entry) {
       // Update existing entry
       updateMutation.mutate({
         id: entry.id,
         updates: {
-          content: JSON.stringify(focusData)
-        }
+          content: JSON.stringify(focusData),
+        },
       });
     } else {
       // Create new entry
       createMutation.mutate({
         user_id: userId,
         selected_date: dateStr,
-        content: JSON.stringify(focusData)
+        content: JSON.stringify(focusData),
       });
     }
-  }, [user, entry, updateMutation, createMutation, userId, dateStr]);
+  }, [user, entry, updateMutation, createMutation, userId, dateStr, focusData]);
 
   const toggleEditing = () => {
     if (isEditing) {
@@ -155,36 +156,35 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
   };
 
   const updateFocus = (text: string) => {
-    setData(prev => ({ ...prev, focus: text }));
+    setData(currentData => ({ ...currentData, focus: text }));
   };
 
   const updatePriority = (index: number, text: string) => {
-    setData(prev => ({
-      ...prev,
-      priorities: prev.priorities.map((priority, i) => 
+    setData(currentData => ({
+      ...currentData,
+      priorities: currentData.priorities.map((priority, i) =>
         i === index ? { ...priority, text } : priority
-      )
+      ),
     }));
   };
 
   const togglePriority = useCallback((index: number) => {
     console.log('🔄 Toggle priority clicked for index:', index);
-    
+
     // Optimistically update the UI immediately
-    setData(prev => {
-      const newPriorities = prev.priorities.map((priority, i) => 
+    setData(currentData => {
+      const newPriorities = currentData.priorities.map((priority, i) =>
         i === index ? { ...priority, completed: !priority.completed } : priority
       );
-      
-      const newData = { ...prev, priorities: newPriorities };
+      const newData = { ...currentData, priorities: newPriorities };
       console.log('✅ Local state updated optimistically:', newData.priorities[index]);
-      
+
       // Save to database
       if (entry) {
         console.log('💾 Saving to database via update mutation');
         updateMutation.mutate({
           id: entry.id,
-          updates: { content: JSON.stringify(newData) }
+          updates: { content: JSON.stringify(newData) },
         }, {
           onSuccess: () => {
             console.log('✅ Database update successful');
@@ -192,23 +192,23 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
           onError: (error) => {
             // Revert on error
             console.error('❌ Failed to update priority:', error);
-            setData(prev => ({
-              ...prev,
-              priorities: prev.priorities.map((p, i) => 
+            setData(prevState => ({
+              ...prevState,
+              priorities: prevState.priorities.map((p, i) =>
                 i === index ? { ...p, completed: !p.completed } : p
-              )
+              ),
             }));
-          }
+          },
         });
       } else if (user) {
         console.log('💾 Creating new entry via create mutation');
         createMutation.mutate({
           user_id: user.id,
           selected_date: dateStr,
-          content: JSON.stringify(newData)
+          content: JSON.stringify(newData),
         });
       }
-      
+
       return newData;
     });
   }, [entry, user, dateStr, updateMutation, createMutation]);
@@ -218,89 +218,64 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
     if (swipeableRefs.current[priorityId]) {
       swipeableRefs.current[priorityId].close();
     }
-    
+
     // Store the current state for potential rollback
-    const previousState = { ...data };
-    
+    const savedState = { ...data };
+
     // Optimistically update the UI
-    setData(prev => {
+    setData(currentData => {
       // Create new priorities array without the removed item
-      const newPriorities = prev.priorities.filter(priority => priority.id !== priorityId);
-      
+      const newPriorities = currentData.priorities.filter(priority => priority.id !== priorityId);
+
       // Ensure we always have at least 3 priorities
       while (newPriorities.length < 3) {
         newPriorities.push({
           id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           text: '',
-          completed: false
+          completed: false,
         });
       }
-      
-      return { ...prev, priorities: newPriorities };
+
+      return { ...currentData, priorities: newPriorities };
     });
-    
+
     // Update database in the background
     const updateDatabase = async () => {
       try {
-        const newData = { ...data, 
+        const newData = { ...data,
           priorities: data.priorities
             .filter(p => p.id !== priorityId)
             .concat(Array(3 - (data.priorities.length - 1) > 0 ? 3 - (data.priorities.length - 1) : 0).fill(0).map(() => ({
               id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
               text: '',
-              completed: false
-            })))
+              completed: false,
+            }))),
         };
-        
+
         if (entry) {
           await updateMutation.mutateAsync({
             id: entry.id,
-            updates: { content: JSON.stringify(newData) }
+            updates: { content: JSON.stringify(newData) },
           });
         } else if (user) {
           await createMutation.mutateAsync({
             user_id: user.id,
             selected_date: dateStr,
-            content: JSON.stringify(newData)
+            content: JSON.stringify(newData),
           });
         }
       } catch (error) {
         console.error('Failed to update priority:', error);
         // Revert on error
-        setData(previousState);
+setData(savedState);
       }
     };
-    
+
     // Don't wait for the database update to complete
     updateDatabase();
   }, [data, entry, user, dateStr, updateMutation, createMutation]);
 
-  // Check if data has meaningful content
-  const hasContent = (data.focus || '').trim() || 
-    data.priorities.some(p => (p.text || '').trim());
-
-
-
-  // Error state
-  if (error) {
-    return (
-      <JournalCard
-        title="Today's Focus"
-        subtitle="What's your main focus and top 3 priorities?"
-        icon={<LuGoal size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        showAddButton={false}
-        onAdd={() => {}}
-        isAdding={false}
-        onCancelAdd={() => {}}
-      >
-        <View style={styles.container}>
-          <Text style={[styles.focusText, { color: Colors.alertCoral }]}>
-            Error loading focus. Tap to retry.
-          </Text>
-        </View>
-      </JournalCard>
-    );
-  }
+  // Removed unused hasContent variable
 
   return (
     <JournalCard
@@ -348,9 +323,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
-                  styles.button, 
-                  styles.saveButton, 
-                  (!(data.focus || '').trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton
+                  styles.button,
+                  styles.saveButton,
+                  (!(data.focus || '').trim() && data.priorities.every(p => !p.text.trim())) && styles.disabledButton,
                 ]}
                 activeOpacity={1}
                 onPress={toggleEditing}
@@ -372,7 +347,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({
                   )}
                   {data.priorities
                     .filter(p => p.text.trim() !== '')
-                    .map((priority, index) => (
+                    .map((priority, _index) => (
                       <SwipeableTodoItem
                         key={priority.id}
                         item={{

@@ -5,7 +5,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
 import { Check, Goal as LuGoal, X } from 'lucide-react-native';
-import { getJournalKey, getLocalEntry, saveLocalEntry, syncToCloud, syncFromCloud, checkSession } from '../../storage/journalStorage';
+import { getJournalKey, getLocalEntry, saveLocalEntry, syncToCloud, syncFromCloud } from '../../storage/journalStorage';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
 
@@ -99,7 +99,7 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
       // Load from local storage first (immediate response)
       console.log(' Loading local focus data...');
       const localEntry = await getLocalEntry(key);
-      
+
       if (localEntry?.content) {
         console.log(' Found local data, setting immediately');
         const validatedData = {
@@ -121,7 +121,7 @@ export const TodaysFocus: React.FC<TodaysFocusProps> = ({ selectedDate = new Dat
         console.log(' First hydration - syncing from cloud...');
         try {
           await syncFromCloud(user.id, dateStr, contentType);
-          
+
           // Re-load after sync
           const syncedEntry = await getLocalEntry(key);
           if (syncedEntry?.content) {

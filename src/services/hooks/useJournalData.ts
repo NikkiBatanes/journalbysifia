@@ -17,10 +17,10 @@ export const useGratitudeData = (userId: string, date: string) => {
 
       // Fetch from API
       const entries = await JournalApi.getGratitudeEntries(userId, date);
-      
+
       // Cache the results
       await JournalCache.setCache(userId, date, entries, 'gratitude');
-      
+
       return entries;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -42,10 +42,10 @@ export const useTodosData = (userId: string, date: string) => {
 
       // Fetch from API
       const entries = await JournalApi.getTodoEntries(userId, date);
-      
+
       // Cache the results
       await JournalCache.setCache(userId, date, entries, 'todo');
-      
+
       return entries;
     },
     staleTime: 5 * 60 * 1000,
@@ -67,10 +67,10 @@ export const useTodaysFocusData = (userId: string, date: string) => {
 
       // Fetch from API
       const entries = await JournalApi.getTodaysFocusEntries(userId, date);
-      
+
       // Cache the results
       await JournalCache.setCache(userId, date, entries, 'todays_focus');
-      
+
       return entries;
     },
     staleTime: 5 * 60 * 1000,
@@ -92,10 +92,10 @@ export const useTodayWinData = (userId: string, date: string) => {
 
       // Fetch from API
       const entries = await JournalApi.getTodayWinEntries(userId, date);
-      
+
       // Cache the results
       await JournalCache.setCache(userId, date, entries, 'today_win');
-      
+
       return entries;
     },
     staleTime: 5 * 60 * 1000,
@@ -117,10 +117,10 @@ export const useLookingForwardData = (userId: string, date: string) => {
 
       // Fetch from API
       const entries = await JournalApi.getLookingForwardEntries(userId, date);
-      
+
       // Cache the results
       await JournalCache.setCache(userId, date, entries, 'looking_forward');
-      
+
       return entries;
     },
     staleTime: 5 * 60 * 1000,
@@ -146,25 +146,30 @@ export const useCreateJournalEntry = () => {
       // Optimistically update to the new value
       queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
         ...old,
-        { ...newEntry, id: 'temp-' + Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+        { ...newEntry, id: 'temp-' + Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
       ]);
 
       // Return a context object with the snapshotted value
       return { previousEntries };
     },
-    onError: (err, newEntry, context) => {
+    onError: (err: Error, newEntry, context) => {
+      console.error('Error creating journal entry:', err);
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousEntries) {
-        const queryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
-        queryClient.setQueryData(queryKey, context.previousEntries);
+        try {
+          const queryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+          queryClient.setQueryData(queryKey, context.previousEntries);
+        } catch (rollbackError) {
+          console.error('Error rolling back journal entry creation:', rollbackError);
+        }
       }
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch related queries
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.journal.entries(variables.user_id, variables.selected_date) 
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.entries(variables.user_id, variables.selected_date),
       });
-      
+
       // Clear cache to force fresh data
       JournalCache.clearCache(variables.user_id, variables.selected_date, variables.content_type);
     },
@@ -198,18 +203,54 @@ export const useDeleteJournalEntry = () => {
 
   return useMutation({
     mutationFn: JournalApi.deleteJournalEntry,
-    onSuccess: (_, deletedId, context: any) => {
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches
+      // (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['journalEntries'] });
+
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueryData<JournalApiEntry[]>(['journalEntries']) || [];
+
+      // Find the entry being deleted for rollback purposes
+      const entryToDelete = previousEntries.find(entry => entry.id === id);
+
+      // Optimistically remove the entry
+      queryClient.setQueryData<JournalApiEntry[]>(
+        ['journalEntries'],
+        (old = []) => old.filter(entry => entry.id !== id)
+      );
+
+      // Return the context for rollback
+      return { previousEntries, entry: entryToDelete };
+    },
+    onError: (err: Error, id, context) => {
+      console.error('Error deleting journal entry:', err);
+
+      // Rollback on error
+      if (context?.previousEntries) {
+        try {
+          queryClient.setQueryData(['journalEntries'], context.previousEntries);
+        } catch (rollbackError) {
+          console.error('Error rolling back journal entry deletion:', rollbackError);
+        }
+      }
+    },
+    onSuccess: (_, id, context) => {
       // Remove the entry from all relevant queries
       if (context?.entry) {
-        const entry = context.entry as JournalApiEntry;
-        queryClient.setQueryData(
-          queryKeys.journal.entries(entry.user_id, entry.selected_date),
-          (old: JournalApiEntry[] = []) =>
-            old.filter(e => e.id !== deletedId)
-        );
+        const entry = context.entry;
+        try {
+          queryClient.setQueryData(
+            queryKeys.journal.entries(entry.user_id, entry.selected_date),
+            (old: JournalApiEntry[] = []) =>
+              old.filter(e => e.id !== id)
+          );
 
-        // Clear cache
-        JournalCache.clearCache(entry.user_id, entry.selected_date, entry.content_type);
+          // Clear cache
+          JournalCache.clearCache(entry.user_id, entry.selected_date, entry.content_type);
+        } catch (error) {
+          console.error('Error updating cache after successful deletion:', error);
+        }
       }
     },
   });
@@ -265,29 +306,34 @@ export const useCreateLookingForwardEntry = () => {
       // Optimistically update to the new value
       queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
         ...old,
-        { 
-          ...newEntry, 
-          id: 'temp-' + Date.now(), 
+        {
+          ...newEntry,
+          id: 'temp-' + Date.now(),
           content_type: 'looking_forward',
-          created_at: new Date().toISOString(), 
-          updated_at: new Date().toISOString() 
-        }
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
       ]);
 
       return { previousEntries };
     },
     onError: (err, newEntry, context) => {
+      console.error('Error creating looking forward entry:', err);
       if (context?.previousEntries) {
-        const queryKey = queryKeys.journal.lookingForward(newEntry.user_id, newEntry.selected_date);
-        queryClient.setQueryData(queryKey, context.previousEntries);
+        try {
+          const queryKey = queryKeys.journal.lookingForward(newEntry.user_id, newEntry.selected_date);
+          queryClient.setQueryData(queryKey, context.previousEntries);
+        } catch (rollbackError) {
+          console.error('Error rolling back looking forward entry creation:', rollbackError);
+        }
       }
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch related queries
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.journal.lookingForward(variables.user_id, variables.selected_date) 
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.lookingForward(variables.user_id, variables.selected_date),
       });
-      
+
       // Clear cache to force fresh data
       JournalCache.clearCache(variables.user_id, variables.selected_date, 'looking_forward');
     },
@@ -324,11 +370,11 @@ export const useDeleteLookingForwardEntry = () => {
       // This is a limitation of the current API design
       return { entryId };
     },
-    onSuccess: (_, deletedId, context: any) => {
+    onSuccess: (_, _deletedId, _context: any) => {
       // Remove the entry from looking forward queries
       // Since we don't have user_id and selected_date, we invalidate all looking forward queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['journal', 'lookingForward'] 
+      queryClient.invalidateQueries({
+        queryKey: ['journal', 'lookingForward'],
       });
     },
   });
@@ -355,29 +401,34 @@ export const useCreateTodayWinEntry = () => {
       // Optimistically update to the new value
       queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
         ...old,
-        { 
-          ...newEntry, 
-          id: 'temp-' + Date.now(), 
+        {
+          ...newEntry,
+          id: 'temp-' + Date.now(),
           content_type: 'today_win',
-          created_at: new Date().toISOString(), 
-          updated_at: new Date().toISOString() 
-        }
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
       ]);
 
       return { previousEntries };
     },
     onError: (err, newEntry, context) => {
+      console.error('Error creating today\'s win entry:', err);
       if (context?.previousEntries) {
-        const queryKey = queryKeys.journal.todayWin(newEntry.user_id, newEntry.selected_date);
-        queryClient.setQueryData(queryKey, context.previousEntries);
+        try {
+          const queryKey = queryKeys.journal.todayWin(newEntry.user_id, newEntry.selected_date);
+          queryClient.setQueryData(queryKey, context.previousEntries);
+        } catch (rollbackError) {
+          console.error('Error rolling back today\'s win entry creation:', rollbackError);
+        }
       }
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch related queries
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.journal.todayWin(variables.user_id, variables.selected_date) 
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.todayWin(variables.user_id, variables.selected_date),
       });
-      
+
       // Clear cache to force fresh data
       JournalCache.clearCache(variables.user_id, variables.selected_date, 'today_win');
     },
@@ -414,11 +465,11 @@ export const useDeleteTodayWinEntry = () => {
       // This is a limitation of the current API design
       return { entryId };
     },
-    onSuccess: (_, deletedId, context: any) => {
+    onSuccess: (_, _deletedId, _context: any) => {
       // Remove the entry from today win queries
       // Since we don't have user_id and selected_date, we invalidate all today win queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['journal', 'todayWin'] 
+      queryClient.invalidateQueries({
+        queryKey: ['journal', 'todayWin'],
       });
     },
   });
@@ -445,29 +496,34 @@ export const useCreateTodaysFocusEntry = () => {
       // Optimistically update to the new value
       queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
         ...old,
-        { 
-          ...newEntry, 
-          id: 'temp-' + Date.now(), 
+        {
+          ...newEntry,
+          id: 'temp-' + Date.now(),
           content_type: 'todays_focus',
-          created_at: new Date().toISOString(), 
-          updated_at: new Date().toISOString() 
-        }
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
       ]);
 
       return { previousEntries };
     },
     onError: (err, newEntry, context) => {
+      console.error('Error creating today\'s focus entry:', err);
       if (context?.previousEntries) {
-        const queryKey = queryKeys.journal.todaysFocus(newEntry.user_id, newEntry.selected_date);
-        queryClient.setQueryData(queryKey, context.previousEntries);
+        try {
+          const queryKey = queryKeys.journal.todaysFocus(newEntry.user_id, newEntry.selected_date);
+          queryClient.setQueryData(queryKey, context.previousEntries);
+        } catch (rollbackError) {
+          console.error('Error rolling back today\'s focus entry creation:', rollbackError);
+        }
       }
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch related queries
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.journal.todaysFocus(variables.user_id, variables.selected_date) 
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.todaysFocus(variables.user_id, variables.selected_date),
       });
-      
+
       // Clear cache to force fresh data
       JournalCache.clearCache(variables.user_id, variables.selected_date, 'todays_focus');
     },
@@ -504,11 +560,11 @@ export const useDeleteTodaysFocusEntry = () => {
       // This is a limitation of the current API design
       return { entryId };
     },
-    onSuccess: (_, deletedId, context: any) => {
+    onSuccess: (_, _deletedId, _context: any) => {
       // Remove the entry from today's focus queries
       // Since we don't have user_id and selected_date, we invalidate all today's focus queries
-      queryClient.invalidateQueries({ 
-        queryKey: ['journal', 'todaysFocus'] 
+      queryClient.invalidateQueries({
+        queryKey: ['journal', 'todaysFocus'],
       });
     },
   });
@@ -521,13 +577,13 @@ export const useInvalidateJournalData = () => {
   const invalidateAllJournalData = (userId: string, date?: string) => {
     if (date) {
       // Invalidate specific date
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.journal.entries(userId, date) 
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.entries(userId, date),
       });
     } else {
       // Invalidate all journal data for user
-      queryClient.invalidateQueries({ 
-        queryKey: queryKeys.journal.all 
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.all,
       });
     }
   };
