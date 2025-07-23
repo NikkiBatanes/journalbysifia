@@ -12,6 +12,7 @@ import {
   useCreateJournalEntry,
   useUpdateJournalEntry,
 } from '../../services/hooks/useJournalData';
+import { ComponentErrorBoundary } from '../ErrorBoundary';
 
 interface PriorityItem {
   id: string;
@@ -201,7 +202,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   // Remove loading state to prevent flash - let component render immediately with empty data
 
   return (
-    <JournalCard
+    <ComponentErrorBoundary name="TodaysFocusReactQuery">
+      <JournalCard
       icon={
         <LuGoal
           size={24}
@@ -316,6 +318,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         )
       }
     </JournalCard>
+    </ComponentErrorBoundary>
   );
 };
 

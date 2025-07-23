@@ -1,18 +1,11 @@
 // src/services/api/journalApi.ts
 import { supabase } from '../supabaseApi';
+import {
+  JournalEntry,
+} from '../../types/api';
 
-export interface JournalApiEntry {
-  id: string;
-  user_id: string;
-  content_type: 'gratitude' | 'todo' | 'today_win' | 'looking_forward' | 'todays_focus';
-  content: string;
-  selected_date: string;
-  created_at: string;
-  updated_at: string;
-  completed?: boolean;
-  priority?: 'high' | 'medium' | 'low';
-  metadata?: Record<string, any>;
-}
+// Legacy export for backward compatibility
+export interface JournalApiEntry extends JournalEntry {}
 
 export class JournalApi {
   // Get all journal entries for a user and date

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JournalApi, JournalApiEntry } from '../api/journalApi';
 import { JournalCache } from '../cache/journalCache';
 import { queryKeys } from '../queryKeys';
+import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '../../utils/retry';
+import { QueryConfig } from '../../types/api';
 
 // Hook for getting gratitude entries
 export const useGratitudeData = (userId: string, date: string) => {
@@ -56,31 +58,44 @@ export const useTodosData = (userId: string, date: string) => {
   });
 };
 
-// Hook for getting today's focus entries
-export const useTodaysFocusData = (userId: string, date: string) => {
-  return useQuery({
-    queryKey: queryKeys.journal.todaysFocus(userId, date),
-    queryFn: async () => {
-      // Try cache first
-      const cached = await JournalCache.getCache(userId, date, 'todays_focus');
-      if (cached) {
-        return cached;
-      }
-
-      // Fetch from API
-      const entries = await JournalApi.getTodaysFocusEntries(userId, date);
-
-      // Cache the results
-      await JournalCache.setCache(userId, date, entries, 'todays_focus');
-
-      return entries;
-    },
+// Hook for getting today's focus entries with enhanced retry logic
+export const useTodaysFocusData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
+  const defaultConfig: QueryConfig = {
     staleTime: 1000, // 1 second stale time to prevent excessive refetching
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
     refetchOnMount: false, // Don't refetch on mount to prevent loading flash
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    retry: createRetryFunction(RETRY_CONFIGS.STANDARD),
+    retryDelay: createRetryDelayFunction(RETRY_CONFIGS.STANDARD),
+  };
+
+  const finalConfig = { ...defaultConfig, ...config };
+
+  return useQuery({
+    queryKey: queryKeys.journal.todaysFocus(userId, date),
+    queryFn: async () => {
+      try {
+        // Try cache first
+        const cached = await JournalCache.getCache(userId, date, 'todays_focus');
+        if (cached) {
+          return cached;
+        }
+
+        // Fetch from API
+        const entries = await JournalApi.getTodaysFocusEntries(userId, date);
+
+        // Cache the results
+        await JournalCache.setCache(userId, date, entries, 'todays_focus');
+
+        return entries;
+      } catch (error) {
+        console.error('Error fetching today\'s focus data:', error);
+        throw error;
+      }
+    },
     initialData: [], // Provide empty array as initial data to prevent loading state
+    ...finalConfig,
   });
 };
 
