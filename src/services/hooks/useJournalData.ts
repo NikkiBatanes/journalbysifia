@@ -3,79 +3,126 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { JournalApi, JournalApiEntry } from '../api/journalApi';
 import { JournalCache } from '../cache/journalCache';
 import { queryKeys } from '../queryKeys';
+import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '../../utils/retry';
+import { QueryConfig } from '../../types/api';
 
-// Hook for getting gratitude entries
-export const useGratitudeData = (userId: string, date: string) => {
+// Hook for getting gratitude entries with enhanced retry logic
+export const useGratitudeData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
+  const defaultConfig: QueryConfig = {
+    staleTime: 1 * 60 * 1000, // Reduced to 1 minute to ensure fresher data
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+    refetchOnMount: true, // Refetch on mount to ensure data is loaded
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    retry: createRetryFunction(RETRY_CONFIGS.GRATITUDE_ENHANCED),
+    retryDelay: createRetryDelayFunction(RETRY_CONFIGS.GRATITUDE_ENHANCED),
+  };
+
+  const finalConfig = { ...defaultConfig, ...config };
+
   return useQuery({
     queryKey: queryKeys.journal.gratitude(userId, date),
     queryFn: async () => {
-      // Try cache first
-      const cached = await JournalCache.getCache(userId, date, 'gratitude');
-      if (cached) {
-        return cached;
+      try {
+        // Always fetch from API first to ensure fresh data
+        const entries = await JournalApi.getGratitudeEntries(userId, date);
+
+        // Cache the results for future use
+        await JournalCache.setCache(userId, date, entries, 'gratitude');
+
+        return entries;
+      } catch (error) {
+        console.error('Error fetching gratitude data:', error);
+        // Only fall back to cache on error
+        const cached = await JournalCache.getCache(userId, date, 'gratitude');
+        if (cached) {
+          return cached;
+        }
+        throw error;
       }
-
-      // Fetch from API
-      const entries = await JournalApi.getGratitudeEntries(userId, date);
-
-      // Cache the results
-      await JournalCache.setCache(userId, date, entries, 'gratitude');
-
-      return entries;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
-    enabled: !!userId && !!date,
+    // Remove initialData to allow proper loading states
+    ...finalConfig,
   });
 };
 
-// Hook for getting todo entries
-export const useTodosData = (userId: string, date: string) => {
+// Hook for getting todo entries with enhanced retry logic
+export const useTodosData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
+  const defaultConfig: QueryConfig = {
+    staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+    refetchOnMount: true, // Refetch on mount to ensure data is loaded
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    retry: createRetryFunction(RETRY_CONFIGS.TODOS_ENHANCED),
+    retryDelay: createRetryDelayFunction(RETRY_CONFIGS.TODOS_ENHANCED),
+  };
+
+  const finalConfig = { ...defaultConfig, ...config };
+
   return useQuery({
     queryKey: queryKeys.journal.todos(userId, date),
     queryFn: async () => {
-      // Try cache first
-      const cached = await JournalCache.getCache(userId, date, 'todo');
-      if (cached) {
-        return cached;
+      try {
+        // Try cache first
+        const cached = await JournalCache.getCache(userId, date, 'todo');
+        if (cached) {
+          return cached;
+        }
+
+        // Fetch from API
+        const entries = await JournalApi.getTodoEntries(userId, date);
+
+        // Cache the results
+        await JournalCache.setCache(userId, date, entries, 'todo');
+
+        return entries;
+      } catch (error) {
+        console.error('Error fetching todos data:', error);
+        throw error;
       }
-
-      // Fetch from API
-      const entries = await JournalApi.getTodoEntries(userId, date);
-
-      // Cache the results
-      await JournalCache.setCache(userId, date, entries, 'todo');
-
-      return entries;
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    enabled: !!userId && !!date,
+    ...finalConfig,
   });
 };
 
-// Hook for getting today's focus entries
-export const useTodaysFocusData = (userId: string, date: string) => {
+// Hook for getting today's focus entries with enhanced retry logic
+export const useTodaysFocusData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
+  const defaultConfig: QueryConfig = {
+    staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+    refetchOnMount: true, // Refetch on mount to ensure data is loaded
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    retry: createRetryFunction(RETRY_CONFIGS.FOCUS_ENHANCED),
+    retryDelay: createRetryDelayFunction(RETRY_CONFIGS.FOCUS_ENHANCED),
+  };
+
+  const finalConfig = { ...defaultConfig, ...config };
+
   return useQuery({
     queryKey: queryKeys.journal.todaysFocus(userId, date),
     queryFn: async () => {
-      // Try cache first
-      const cached = await JournalCache.getCache(userId, date, 'todays_focus');
-      if (cached) {
-        return cached;
+      try {
+        // Try cache first
+        const cached = await JournalCache.getCache(userId, date, 'todays_focus');
+        if (cached) {
+          return cached;
+        }
+
+        // Fetch from API
+        const entries = await JournalApi.getTodaysFocusEntries(userId, date);
+
+        // Cache the results
+        await JournalCache.setCache(userId, date, entries, 'todays_focus');
+
+        return entries;
+      } catch (error) {
+        console.error('Error fetching today\'s focus data:', error);
+        throw error;
       }
-
-      // Fetch from API
-      const entries = await JournalApi.getTodaysFocusEntries(userId, date);
-
-      // Cache the results
-      await JournalCache.setCache(userId, date, entries, 'todays_focus');
-
-      return entries;
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    enabled: !!userId && !!date,
+    ...finalConfig,
   });
 };
 
@@ -98,7 +145,7 @@ export const useTodayWinData = (userId: string, date: string) => {
 
       return entries;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
   });
@@ -123,7 +170,7 @@ export const useLookingForwardData = (userId: string, date: string) => {
 
       return entries;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
   });
@@ -136,31 +183,87 @@ export const useCreateJournalEntry = () => {
   return useMutation({
     mutationFn: JournalApi.createJournalEntry,
     onMutate: async (newEntry) => {
-      // Cancel any outgoing refetches
-      const queryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
-      await queryClient.cancelQueries({ queryKey });
+      // Skip optimistic updates for gratitude entries to prevent duplicates with API-first strategy
+      if (newEntry.content_type === 'gratitude') {
+        // Just cancel queries to prevent race conditions
+        const entriesQueryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+        const gratitudeQueryKey = queryKeys.journal.gratitude(newEntry.user_id, newEntry.selected_date);
 
-      // Snapshot the previous value
-      const previousEntries = queryClient.getQueryData(queryKey);
+        await queryClient.cancelQueries({ queryKey: entriesQueryKey });
+        await queryClient.cancelQueries({ queryKey: gratitudeQueryKey });
 
-      // Optimistically update to the new value
-      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
+        return { skipOptimistic: true };
+      }
+
+      // Continue with optimistic updates for other content types
+      const entriesQueryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+      await queryClient.cancelQueries({ queryKey: entriesQueryKey });
+
+      // Also cancel content-type specific queries
+      let contentTypeQueryKey;
+      if (newEntry.content_type === 'todo') {
+        contentTypeQueryKey = queryKeys.journal.todos(newEntry.user_id, newEntry.selected_date);
+      } else if (newEntry.content_type === 'todays_focus') {
+        contentTypeQueryKey = queryKeys.journal.todaysFocus(newEntry.user_id, newEntry.selected_date);
+      }
+
+      if (contentTypeQueryKey) {
+        await queryClient.cancelQueries({ queryKey: contentTypeQueryKey });
+      }
+
+      // Snapshot the previous values
+      const previousEntries = queryClient.getQueryData(entriesQueryKey);
+      const previousContentTypeEntries = contentTypeQueryKey ? queryClient.getQueryData(contentTypeQueryKey) : null;
+
+      // Create the optimistic entry
+      const optimisticEntry = {
+        ...newEntry,
+        id: 'temp-' + Date.now(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Optimistically update general entries
+      queryClient.setQueryData(entriesQueryKey, (old: JournalApiEntry[] = []) => [
         ...old,
-        { ...newEntry, id: 'temp-' + Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        optimisticEntry,
       ]);
 
-      // Return a context object with the snapshotted value
-      return { previousEntries };
+      // Optimistically update content-type specific entries
+      if (contentTypeQueryKey) {
+        queryClient.setQueryData(contentTypeQueryKey, (old: JournalApiEntry[] = []) => [
+          ...old,
+          optimisticEntry,
+        ]);
+      }
+
+      // Return a context object with the snapshotted values
+      return { previousEntries, previousContentTypeEntries, contentTypeQueryKey };
     },
     onError: (err: Error, newEntry, context) => {
       console.error('Error creating journal entry:', err);
+
+      // Skip rollback for gratitude entries (no optimistic updates to rollback)
+      if (context?.skipOptimistic) {
+        return;
+      }
+
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousEntries) {
         try {
-          const queryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
-          queryClient.setQueryData(queryKey, context.previousEntries);
+          const entriesQueryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+          queryClient.setQueryData(entriesQueryKey, context.previousEntries);
         } catch (rollbackError) {
           console.error('Error rolling back journal entry creation:', rollbackError);
+        }
+      }
+
+      // Also rollback content-type specific queries
+      if (context?.previousContentTypeEntries && context?.contentTypeQueryKey) {
+        try {
+          queryClient.setQueryData(context.contentTypeQueryKey, context.previousContentTypeEntries);
+        } catch (rollbackError) {
+          console.error('Error rolling back content-type specific query:', rollbackError);
         }
       }
     },
@@ -169,6 +272,21 @@ export const useCreateJournalEntry = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.journal.entries(variables.user_id, variables.selected_date),
       });
+
+      // Also invalidate content-type specific queries
+      if (variables.content_type === 'gratitude') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.gratitude(variables.user_id, variables.selected_date),
+        });
+      } else if (variables.content_type === 'todo') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todos(variables.user_id, variables.selected_date),
+        });
+      } else if (variables.content_type === 'todays_focus') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todaysFocus(variables.user_id, variables.selected_date),
+        });
+      }
 
       // Clear cache to force fresh data
       JournalCache.clearCache(variables.user_id, variables.selected_date, variables.content_type);
@@ -184,14 +302,27 @@ export const useUpdateJournalEntry = () => {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
       JournalApi.updateJournalEntry(id, updates),
     onSuccess: (data) => {
-      // Update the specific entry in all relevant queries
-      queryClient.setQueryData(
-        queryKeys.journal.entries(data.user_id, data.selected_date),
-        (old: JournalApiEntry[] = []) =>
-          old.map(entry => entry.id === data.id ? data : entry)
-      );
+      // Invalidate and refetch related queries (like create mutation)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.entries(data.user_id, data.selected_date),
+      });
 
-      // Clear cache to ensure consistency
+      // Also invalidate content-type specific queries (CRITICAL FIX)
+      if (data.content_type === 'gratitude') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.gratitude(data.user_id, data.selected_date),
+        });
+      } else if (data.content_type === 'todo') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todos(data.user_id, data.selected_date),
+        });
+      } else if (data.content_type === 'todays_focus') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todaysFocus(data.user_id, data.selected_date),
+        });
+      }
+
+      // Clear cache to force fresh data
       JournalCache.clearCache(data.user_id, data.selected_date, data.content_type);
     },
   });
@@ -265,17 +396,17 @@ export const usePrefetchJournalData = () => {
       queryClient.prefetchQuery({
         queryKey: queryKeys.journal.gratitude(userId, date),
         queryFn: () => JournalApi.getGratitudeEntries(userId, date),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
       }),
       queryClient.prefetchQuery({
         queryKey: queryKeys.journal.todos(userId, date),
         queryFn: () => JournalApi.getTodoEntries(userId, date),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
       }),
       queryClient.prefetchQuery({
         queryKey: queryKeys.journal.todaysFocus(userId, date),
         queryFn: () => JournalApi.getTodaysFocusEntries(userId, date),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
       }),
     ]);
 

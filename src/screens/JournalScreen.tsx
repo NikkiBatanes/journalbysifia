@@ -6,11 +6,11 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
-import { TodaysFocus } from '../components/journal/TodaysFocus';
-import { TodosReactQuery as Todos } from '../components/journal/TodosReactQuery';
-import { TimeBlock } from '../components/journal/TimeBlock';
-import { GratitudeList } from '../components/journal/GratitudeList';
-import { ReflectionLog } from '../components/journal/ReflectionLog';
+import { TodaysFocusReactQuery } from '../components/journal/TodaysFocusReactQuery';
+import { TodosReactQuery } from '../components/journal/TodosReactQuery';
+import { TimeBlockReactQuery } from '../components/journal/TimeBlockReactQuery';
+import { GratitudeListReactQuery } from '../components/journal/GratitudeListReactQuery';
+import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReactQuery';
 import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
 import { LookingForwardReactQuery } from '../components/journal/LookingForwardReactQuery';
 import { ScheduleContent } from '../components/journal/ScheduleContent';
@@ -18,7 +18,6 @@ import PrayerJournalTab from '../components/journal/PrayerJournalTab';
 import { useAuth } from '../context/AuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
-import { AuthDebugger } from '../components/debug/AuthDebugger';
 
 type TabType = 'journal' | 'schedule' | 'prayer' | 'finance';
 
@@ -371,28 +370,24 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               />
             }
           >
-            {/* Debug component - remove after fixing auth issues */}
-            <AuthDebugger />
-            
             <View style={styles.componentSpacing}>
-              <TodaysFocus selectedDate={currentDate} refreshKey={refreshKey} />
+              <TodaysFocusReactQuery selectedDate={currentDate} />
             </View>
             <View style={styles.componentSpacing}>
-              <Todos selectedDate={currentDate} refreshKey={refreshKey} />
+              <TodosReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
             </View>
             <View style={styles.componentSpacing}>
-              <TimeBlock selectedDate={currentDate} refreshKey={refreshKey} />
+              <TimeBlockReactQuery selectedDate={currentDate} />
             </View>
             <View style={styles.componentSpacing}>
-              <GratitudeList selectedDate={currentDate} />
+              <GratitudeListReactQuery selectedDate={currentDate} />
             </View>
             {/* Only show these components for today or past dates */}
             {!isFutureDate && (
               <>
                 <View style={styles.componentSpacing}>
-                  <ReflectionLog
+                  <ReflectionLogReactQuery
                     selectedDate={currentDate}
-                    refreshKey={refreshKey}
                   />
                 </View>
                 <View style={styles.componentSpacing}>

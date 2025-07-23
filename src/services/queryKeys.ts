@@ -20,6 +20,25 @@ export const queryKeys = {
     lookingForward: (userId: string, date: string) => ['journal', 'lookingForward', userId, date] as const,
   },
 
+  // TimeBlock-related queries (separate database)
+  timeBlocks: {
+    all: ['timeBlocks'] as const,
+    byDate: (userId: string, date: string) => ['timeBlocks', 'byDate', userId, date] as const,
+    dateRange: (userId: string, startDate: string, endDate: string) => ['timeBlocks', 'dateRange', userId, startDate, endDate] as const,
+    conflicts: (userId: string, date: string, startTime: string, endTime: string) => ['timeBlocks', 'conflicts', userId, date, startTime, endTime] as const,
+  },
+
+  // Reflection-related queries (separate database)
+  reflections: {
+    all: ['reflections'] as const,
+    byDate: (userId: string, date: string) => ['reflections', 'byDate', userId, date] as const,
+    byType: (userId: string, date: string, type: string) => ['reflections', 'byType', userId, date, type] as const,
+    devotional: (userId: string, devotionalId: string) => ['reflections', 'devotional', userId, devotionalId] as const,
+    dateRange: (userId: string, startDate: string, endDate: string) => ['reflections', 'dateRange', userId, startDate, endDate] as const,
+    search: (userId: string, searchTerm: string) => ['reflections', 'search', userId, searchTerm] as const,
+    stats: (userId: string, startDate: string, endDate: string) => ['reflections', 'stats', userId, startDate, endDate] as const,
+  },
+
   // Prayer-related queries
   prayers: {
     all: (userId: string) => ['prayers', userId] as const,

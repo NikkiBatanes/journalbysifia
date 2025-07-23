@@ -1,5 +1,5 @@
 // src/navigation/RootStackNavigator.tsx
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
@@ -55,6 +55,28 @@ const renderWhiteProfileImage = () => (
   <ProfileImage containerStyle={styles.whiteProfileImageContainer} />
 );
 
+// Header left components for different screens
+const PlaybookHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
+  <HeaderLeft
+    color={Colors.anchorBlue}
+    onPress={() => navigation.goBack()}
+  />
+));
+
+const CardHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
+  <HeaderLeft
+    color={Colors.hopeWhite}
+    onPress={() => navigation.goBack()}
+  />
+));
+
+const DevotionalHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
+  <HeaderLeft
+    color={Colors.anchorBlue}
+    onPress={() => navigation.goBack()}
+  />
+));
+
 import { useLogout } from '../context/LogoutContext';
 const MainTabsScreen: React.FC = React.memo(() => {
   const onLogout = useLogout();
@@ -62,6 +84,40 @@ const MainTabsScreen: React.FC = React.memo(() => {
 });
 
 const Stack = createNativeStackNavigator();
+
+// Screen options functions
+const getPlaybookDetailOptions = (): NativeStackNavigationOptions => ({
+  headerShown: true,
+  title: '',
+  headerBackVisible: false,
+  headerLeft: ({ navigation }: any) => <PlaybookHeaderLeft navigation={navigation} />,
+  headerRight: renderDefaultProfileImage,
+  headerStyle: styles.headerStyle,
+  headerTitleAlign: 'center' as const,
+  headerTitleStyle: styles.headerTitle,
+  headerShadowVisible: false,
+});
+
+const getCardDetailOptions = (): NativeStackNavigationOptions => ({
+  headerShown: true,
+  title: '',
+  headerBackVisible: false,
+  headerLeft: ({ navigation }: any) => <CardHeaderLeft navigation={navigation} />,
+  headerRight: renderWhiteProfileImage,
+  headerStyle: styles.darkHeaderStyle,
+  headerTintColor: Colors.hopeWhite,
+  headerShadowVisible: false,
+});
+
+const getDevotionalDetailOptions = ({ navigation }: any): NativeStackNavigationOptions => ({
+  title: '',
+  headerBackVisible: true,
+  headerLeft: () => <DevotionalHeaderLeft navigation={navigation} />,
+  animation: 'slide_from_bottom',
+  animationDuration: 300,
+  presentation: 'modal',
+  gestureEnabled: true,
+});
 
 interface RootStackNavigatorProps {
   isAuthenticated: boolean;
@@ -78,46 +134,9 @@ export default function RootStackNavigator({
   AuthStack,
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
-  // Memoize screen options
-  const playbookDetailOptions = useMemo<NativeStackNavigationOptions>(
-    () => ({
-      headerShown: true,
-      title: '',
-      headerBackVisible: false,
-      headerLeft: ({ navigation }: any) => (
-        <HeaderLeft
-          color={Colors.anchorBlue}
-          onPress={() => navigation.goBack()}
-        />
-      ),
-      headerRight: renderDefaultProfileImage,
-      headerStyle: styles.headerStyle,
-      headerTitleAlign: 'center' as const,
-      headerTitleStyle: styles.headerTitle,
-      headerTitleContainerStyle: styles.headerTitleContainer,
-      headerShadowVisible: false,
-    }),
-    []
-  );
-
-  const cardDetailOptions = useMemo<NativeStackNavigationOptions>(
-    () => ({
-      headerShown: true,
-      title: '',
-      headerBackVisible: false,
-      headerLeft: ({ navigation }: any) => (
-        <HeaderLeft
-          color={Colors.hopeWhite}
-          onPress={() => navigation.goBack()}
-        />
-      ),
-      headerRight: renderWhiteProfileImage,
-      headerStyle: styles.darkHeaderStyle,
-      headerTintColor: Colors.hopeWhite,
-      headerShadowVisible: false,
-    }),
-    []
-  );
+  // Get screen options
+  const playbookDetailOptions = getPlaybookDetailOptions();
+  const cardDetailOptions = getCardDetailOptions();
 
 
 
@@ -150,20 +169,7 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="DevotionalDetail"
             component={DevotionalDetailScreen as unknown as React.ComponentType}
-            options={({ navigation }) => ({
-              title: '',
-              headerBackVisible: true,
-              headerLeft: () => (
-                <HeaderLeft
-                  color={Colors.anchorBlue}
-                  onPress={() => navigation.goBack()}
-                />
-              ),
-              animation: 'slide_from_bottom',
-              animationDuration: 300,
-              presentation: 'modal',
-              gestureEnabled: true,
-            })}
+            options={({ navigation }) => getDevotionalDetailOptions({ navigation })}
           />
         </>
       ) : (
