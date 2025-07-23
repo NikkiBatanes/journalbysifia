@@ -9,6 +9,8 @@ import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
 import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { TodoSkeleton } from '../SkeletonLoader/TodoSkeleton';
+import { analytics } from '../../utils/analytics';
 
 // React Query hooks
 import {
@@ -46,10 +48,34 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
 
   // React Query hooks with enhanced retry logic
+  const loadStartTime = useRef<number>(Date.now());
   const { data: todosData = [], isLoading, error, refetch } = useTodosData(
     user?.id || '',
     dateStr
   );
+
+  // Track loading performance
+  useEffect(() => {
+    if (!isLoading && todosData.length >= 0) {
+      const loadTime = Date.now() - loadStartTime.current;
+      analytics.trackTodoEvent('todos_loaded', {
+        count: todosData.length,
+        load_time_ms: loadTime,
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [isLoading, todosData.length, dateStr, user?.id]);
+
+  // Track errors
+  useEffect(() => {
+    if (error) {
+      analytics.trackTodoEvent('todo_error', {
+        error_type: error.message || 'unknown',
+        operation: 'load',
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [error, dateStr, user?.id]);
   
 
   const createTodoMutation = useCreateTodoEntry();
@@ -136,6 +162,13 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         }),
         completed: false,
       });
+
+      // Track successful todo creation
+      analytics.trackTodoEvent('todo_created', {
+        text_length: todoText.length,
+        has_priority: false,
+        date: dateStr,
+      }, user.id);
     } catch (saveError) {
       // Restore input if there was an error and reopen adding mode
       setNewTodo(todoText);
@@ -147,8 +180,19 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   // Remove a todo
   const removeTodo = async (id: string) => {
+    const todo = todos.find(t => t.id === id);
+    
     try {
       await deleteTodoMutation.mutateAsync(id);
+      
+      // Track successful todo deletion
+      if (todo) {
+        analytics.trackTodoEvent('todo_deleted', {
+          todo_id: id,
+          was_completed: todo.completed,
+          date: dateStr,
+        }, user?.id);
+      }
     } catch (deleteError) {
       console.error('Failed to delete todo:', deleteError);
       Alert.alert('Error', 'Failed to delete todo. Please try again.');
@@ -234,6 +278,21 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           completed: updatedContent.completed,
         },
       });
+
+      // Track analytics based on operation type
+      if (isPriorityToggle) {
+        analytics.trackTodoEvent('todo_priority_toggled', {
+          todo_id: id,
+          new_priority: updatedContent.priority || false,
+          date: dateStr,
+        }, user?.id);
+      } else if (updatedContent.completed && !todo.completed) {
+        analytics.trackTodoEvent('todo_completed', {
+          todo_id: id,
+          completion_time_ms: Date.now() - (todo.completedAt || Date.now()),
+          date: dateStr,
+        }, user?.id);
+      }
     } catch (toggleError) {
       console.error('Failed to toggle todo:', toggleError);
       Alert.alert('Error', 'Failed to update todo. Please try again.');
@@ -292,7 +351,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         onAdd={() => {}} // Disabled during loading
       >
         <View style={styles.todosContainer}>
-          {/* Loading state - show empty container */}
+          <TodoSkeleton count={3} />
         </View>
       </JournalCard>
     );
@@ -453,6 +512,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               returnKeyType="next"
               blurOnSubmit={false}
               autoFocus
+              accessibilityLabel="Add new todo"
+              accessibilityHint="Enter text for a new todo item and press next to add it"
             />
           </View>
           <View style={styles.buttonRow}>

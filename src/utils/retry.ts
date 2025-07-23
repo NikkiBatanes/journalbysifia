@@ -102,6 +102,15 @@ export const RETRY_CONFIGS = {
     backoff: 'exponential' as const,
   },
 
+  // Enhanced configuration for todos with better error recovery
+  TODOS_ENHANCED: {
+    attempts: 4,
+    delay: 800,
+    backoff: 'exponential' as const,
+    maxDelay: 8000, // Cap at 8 seconds
+    jitter: true, // Add randomness to prevent thundering herd
+  },
+
   // For non-critical operations like analytics
   LIGHT: {
     attempts: 2,
