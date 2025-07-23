@@ -184,31 +184,71 @@ export const useCreateJournalEntry = () => {
   return useMutation({
     mutationFn: JournalApi.createJournalEntry,
     onMutate: async (newEntry) => {
-      // Cancel any outgoing refetches
-      const queryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
-      await queryClient.cancelQueries({ queryKey });
+      // Cancel any outgoing refetches for general entries
+      const entriesQueryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+      await queryClient.cancelQueries({ queryKey: entriesQueryKey });
 
-      // Snapshot the previous value
-      const previousEntries = queryClient.getQueryData(queryKey);
+      // Also cancel content-type specific queries
+      let contentTypeQueryKey;
+      if (newEntry.content_type === 'gratitude') {
+        contentTypeQueryKey = queryKeys.journal.gratitude(newEntry.user_id, newEntry.selected_date);
+      } else if (newEntry.content_type === 'todo') {
+        contentTypeQueryKey = queryKeys.journal.todos(newEntry.user_id, newEntry.selected_date);
+      } else if (newEntry.content_type === 'todays_focus') {
+        contentTypeQueryKey = queryKeys.journal.todaysFocus(newEntry.user_id, newEntry.selected_date);
+      }
+      
+      if (contentTypeQueryKey) {
+        await queryClient.cancelQueries({ queryKey: contentTypeQueryKey });
+      }
 
-      // Optimistically update to the new value
-      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
+      // Snapshot the previous values
+      const previousEntries = queryClient.getQueryData(entriesQueryKey);
+      const previousContentTypeEntries = contentTypeQueryKey ? queryClient.getQueryData(contentTypeQueryKey) : null;
+
+      // Create the optimistic entry
+      const optimisticEntry = { 
+        ...newEntry, 
+        id: 'temp-' + Date.now(), 
+        created_at: new Date().toISOString(), 
+        updated_at: new Date().toISOString() 
+      };
+
+      // Optimistically update general entries
+      queryClient.setQueryData(entriesQueryKey, (old: JournalApiEntry[] = []) => [
         ...old,
-        { ...newEntry, id: 'temp-' + Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+        optimisticEntry,
       ]);
 
-      // Return a context object with the snapshotted value
-      return { previousEntries };
+      // Optimistically update content-type specific entries
+      if (contentTypeQueryKey) {
+        queryClient.setQueryData(contentTypeQueryKey, (old: JournalApiEntry[] = []) => [
+          ...old,
+          optimisticEntry,
+        ]);
+      }
+
+      // Return a context object with the snapshotted values
+      return { previousEntries, previousContentTypeEntries, contentTypeQueryKey };
     },
     onError: (err: Error, newEntry, context) => {
       console.error('Error creating journal entry:', err);
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousEntries) {
         try {
-          const queryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
-          queryClient.setQueryData(queryKey, context.previousEntries);
+          const entriesQueryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+          queryClient.setQueryData(entriesQueryKey, context.previousEntries);
         } catch (rollbackError) {
           console.error('Error rolling back journal entry creation:', rollbackError);
+        }
+      }
+      
+      // Also rollback content-type specific queries
+      if (context?.previousContentTypeEntries && context?.contentTypeQueryKey) {
+        try {
+          queryClient.setQueryData(context.contentTypeQueryKey, context.previousContentTypeEntries);
+        } catch (rollbackError) {
+          console.error('Error rolling back content-type specific query:', rollbackError);
         }
       }
     },
@@ -217,6 +257,21 @@ export const useCreateJournalEntry = () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.journal.entries(variables.user_id, variables.selected_date),
       });
+
+      // Also invalidate content-type specific queries
+      if (variables.content_type === 'gratitude') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.gratitude(variables.user_id, variables.selected_date),
+        });
+      } else if (variables.content_type === 'todo') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todos(variables.user_id, variables.selected_date),
+        });
+      } else if (variables.content_type === 'todays_focus') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todaysFocus(variables.user_id, variables.selected_date),
+        });
+      }
 
       // Clear cache to force fresh data
       JournalCache.clearCache(variables.user_id, variables.selected_date, variables.content_type);
