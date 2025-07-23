@@ -209,17 +209,17 @@ export const useUpdatePrayer = () => {
     onMutate: async ({ id, updates, _userId, _dateStr }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: queryKeys.prayers.entries(userId, dateStr),
+        queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
 
       // Snapshot the previous value
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(userId, dateStr)
+        queryKeys.prayers.entries(_userId, _dateStr)
       );
 
       // Optimistically update to the new value
       queryClient.setQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(userId, dateStr),
+        queryKeys.prayers.entries(_userId, _dateStr),
         (old = []) => old.map(prayer =>
           prayer.id === id
             ? { ...prayer, ...updates, updated_at: new Date().toISOString() }
@@ -229,19 +229,20 @@ export const useUpdatePrayer = () => {
 
       return { previousPrayers };
     },
-    onError: (err: Error, { userId, dateStr }, context) => {
-      console.error('Error updating prayer:', err);      // If the mutation fails, use the context to roll back
+    onError: (err: Error, { _userId, _dateStr }, context) => {
+      console.error('Error updating prayer:', err);
+      // If the mutation fails, use the context to roll back
       if (context?.previousPrayers) {
         queryClient.setQueryData(
-          queryKeys.prayers.entries(userId, dateStr),
+          queryKeys.prayers.entries(_userId, _dateStr),
           context.previousPrayers
         );
       }
     },
-    onSettled: (data, error, { userId, dateStr }) => {
+    onSettled: (data, error, { _userId, _dateStr }) => {
       // Always refetch after error or success
       queryClient.invalidateQueries({
-        queryKey: queryKeys.prayers.entries(userId, dateStr),
+        queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
     },
   });
@@ -263,38 +264,39 @@ export const useDeletePrayer = () => {
       _userId: string;
       _dateStr: string;
     }) => PrayerApi.deletePrayer(id),
-    onMutate: async ({ id, userId, dateStr }) => {
+    onMutate: async ({ id, _userId, _dateStr }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({
-        queryKey: queryKeys.prayers.entries(userId, dateStr),
+        queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
 
       // Snapshot the previous value
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(userId, dateStr)
+        queryKeys.prayers.entries(_userId, _dateStr)
       );
 
       // Optimistically update to the new value
       queryClient.setQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(userId, dateStr),
+        queryKeys.prayers.entries(_userId, _dateStr),
         (old = []) => old.filter(prayer => prayer.id !== id)
       );
 
       return { previousPrayers };
     },
-    onError: (err: Error, { userId, dateStr }, context) => {
-      console.error('Error deleting prayer:', err);      // If the mutation fails, use the context to roll back
+    onError: (err: Error, { _userId, _dateStr }, context) => {
+      console.error('Error deleting prayer:', err);
+      // If the mutation fails, use the context to roll back
       if (context?.previousPrayers) {
         queryClient.setQueryData(
-          queryKeys.prayers.entries(userId, dateStr),
+          queryKeys.prayers.entries(_userId, _dateStr),
           context.previousPrayers
         );
       }
     },
-    onSettled: (data, error, { userId, dateStr }) => {
+    onSettled: (data, error, { _userId, _dateStr }) => {
       // Always refetch after error or success
       queryClient.invalidateQueries({
-        queryKey: queryKeys.prayers.entries(userId, dateStr),
+        queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
     },
   });
@@ -318,18 +320,18 @@ export const useMarkSupplicationAnswered = () => {
       _userId: string;
       _dateStr: string;
     }) => PrayerApi.markSupplicationAnswered(id, isAnswered),
-    onMutate: async ({ id, isAnswered, userId, dateStr }) => {
+    onMutate: async ({ id, isAnswered, _userId, _dateStr }) => {
       // Optimistically update
       await queryClient.cancelQueries({
-        queryKey: queryKeys.prayers.entries(userId, dateStr),
+        queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
 
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(userId, dateStr)
+        queryKeys.prayers.entries(_userId, _dateStr)
       );
 
       queryClient.setQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(userId, dateStr),
+        queryKeys.prayers.entries(_userId, _dateStr),
         (old = []) => old.map(prayer =>
           prayer.id === id
             ? { ...prayer, is_answered: isAnswered, updated_at: new Date().toISOString() }
@@ -339,17 +341,18 @@ export const useMarkSupplicationAnswered = () => {
 
       return { previousPrayers };
     },
-    onError: (err: Error, { userId, dateStr }, context) => {
-      console.error('Error marking supplication as answered:', err);      if (context?.previousPrayers) {
+    onError: (err: Error, { _userId, _dateStr }, context) => {
+      console.error('Error marking supplication as answered:', err);
+      if (context?.previousPrayers) {
         queryClient.setQueryData(
-          queryKeys.prayers.entries(userId, dateStr),
+          queryKeys.prayers.entries(_userId, _dateStr),
           context.previousPrayers
         );
       }
     },
-    onSettled: (data, error, { userId, dateStr }) => {
+    onSettled: (data, error, { _userId, _dateStr }) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.prayers.entries(userId, dateStr),
+        queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
     },
   });
@@ -373,18 +376,18 @@ export const useMarkPrayerRequestPrayed = () => {
       _userId: string;
       _dateStr: string;
     }) => PrayerApi.markPrayerRequestPrayed(id, isPrayed),
-    onMutate: async ({ id, isPrayed, userId, dateStr }) => {
+    onMutate: async ({ id, isPrayed, _userId, _dateStr }) => {
       // Optimistically update
       await queryClient.cancelQueries({
-        queryKey: queryKeys.prayers.entries(userId, dateStr),
+        queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
 
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(userId, dateStr)
+        queryKeys.prayers.entries(_userId, _dateStr)
       );
 
       queryClient.setQueryData<PrayerApiEntry[]>(
-        queryKeys.prayers.entries(userId, dateStr),
+        queryKeys.prayers.entries(_userId, _dateStr),
         (old = []) => old.map(prayer =>
           prayer.id === id
             ? { ...prayer, is_prayed: isPrayed, updated_at: new Date().toISOString() }
@@ -394,17 +397,18 @@ export const useMarkPrayerRequestPrayed = () => {
 
       return { previousPrayers };
     },
-    onError: (err: Error, { userId, dateStr }, context) => {
-      console.error('Error marking prayer request as prayed:', err);      if (context?.previousPrayers) {
+    onError: (err: Error, { _userId, _dateStr }, context) => {
+      console.error('Error marking prayer request as prayed:', err);
+      if (context?.previousPrayers) {
         queryClient.setQueryData(
-          queryKeys.prayers.entries(userId, dateStr),
+          queryKeys.prayers.entries(_userId, _dateStr),
           context.previousPrayers
         );
       }
     },
-    onSettled: (data, error, { userId, dateStr }) => {
+    onSettled: (data, error, { _userId, _dateStr }) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.prayers.entries(userId, dateStr),
+        queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
     },
   });

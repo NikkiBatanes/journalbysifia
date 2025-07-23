@@ -211,6 +211,6 @@ export class DevotionalApi {
   static async generateDevotional(params: DevotionalCreationParams): Promise<Devotional> {
     // This would call the existing generateDevotional function
     const { generateDevotional } = await import('../supabaseApi');
-    return generateDevotional(params);
+    return generateDevotional(params.duration, params.playbookId, params.userInput);
   }
 }

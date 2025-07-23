@@ -4,7 +4,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { usePrayer } from '../../context/PrayerContext';
-import { JournalCategory, PrayerStatus } from '../../storage/prayerStorage';
+import { JournalCategory } from '../../storage/prayerStorage';
 
 // Prayer types and descriptions
 const PRAYER_TYPES = [
@@ -42,7 +42,7 @@ const PRAYER_TYPES = [
   },
 ];
 
-type PrayerStatus = 'pending' | 'answered';
+type LocalPrayerStatus = 'pending' | 'answered';
 
 // Format date as MM/DD/YYYY
 const formatDate = (dateString: string): string => {
@@ -82,7 +82,7 @@ const PrayerJournalCard: React.FC = () => {
           content: prayerText.trim(),
           prayer_type: 'journal',
           journal_category: selectedType.key as JournalCategory,
-          status: selectedType.key === 'supplication' ? 'pending' as PrayerStatus : undefined,
+          status: selectedType.key === 'supplication' ? 'pending' as LocalPrayerStatus : undefined,
           selected_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
         });
         setPrayerText('');
@@ -101,7 +101,7 @@ const PrayerJournalCard: React.FC = () => {
       const prayer = journalPrayers.find(p => p.id === id);
       if (!prayer) {return;}
 
-      const newStatus: PrayerStatus = prayer.status === 'pending' ? 'answered' : 'pending';
+      const newStatus: LocalPrayerStatus = prayer.status === 'pending' ? 'answered' : 'pending';
       await updatePrayer(id, {
         status: newStatus,
         answered_date: newStatus === 'answered' ? new Date().toISOString() : undefined,

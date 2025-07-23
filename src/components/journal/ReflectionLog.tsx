@@ -155,7 +155,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
     }, [user, authLoading, hydrateReflectionEntries])
   );
 
-  const renderPromptPicker = (): JSX.Element => (
+  const renderPromptPicker = () => (
     <Modal
       visible={showPromptPicker}
       transparent
@@ -327,7 +327,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
   );
 
 
-  const renderEntries = (): JSX.Element | null => {
+  const renderEntries = () => {
     // Filter entries to only show those from the current date
     // Use selected_date for filtering instead of entry.date timestamp
     const filteredEntries = entries.filter(entry => {
@@ -592,7 +592,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
     }
   }, [isAdding]);
 
-  const renderEntryForm = (): JSX.Element => {
+  const renderEntryForm = () => {
     const isGuided = !!selectedPrompt;
     const entryTitle = selectedPrompt || newEntry.title;
     const editorKey = selectedPrompt || 'free';

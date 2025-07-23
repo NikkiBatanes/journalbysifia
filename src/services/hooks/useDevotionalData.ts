@@ -106,7 +106,7 @@ export const useCreateDevotional = () => {
     onSuccess: (data, { _userId }) => {
       // Update the cache with the real data
       queryClient.setQueryData<DevotionalApiEntry[]>(
-        queryKeys.devotionals.list(userId),
+        queryKeys.devotionals.list(_userId),
         (old = []) => {
           // Replace the optimistic entry with the real one
           return old.map(item =>
@@ -146,20 +146,20 @@ export const useUpdateDevotional = () => {
         queryKey: queryKeys.devotionals.list(_userId),
       });
       await queryClient.cancelQueries({
-        queryKey: queryKeys.devotionals.detail(userId, id),
+        queryKey: queryKeys.devotionals.detail(_userId, id),
       });
 
       // Snapshot previous values
       const previousDevotionals = queryClient.getQueryData<DevotionalApiEntry[]>(
-        queryKeys.devotionals.list(userId)
+        queryKeys.devotionals.list(_userId)
       );
       const previousDevotional = queryClient.getQueryData<DevotionalApiEntry>(
-        queryKeys.devotionals.detail(userId, id)
+        queryKeys.devotionals.detail(_userId, id)
       );
 
       // Optimistically update list
       queryClient.setQueryData<DevotionalApiEntry[]>(
-        queryKeys.devotionals.list(userId),
+        queryKeys.devotionals.list(_userId),
         (old = []) => old.map(devotional =>
           devotional.id === id
             ? { ...devotional, ...updates, updated_at: new Date().toISOString() }
@@ -170,14 +170,14 @@ export const useUpdateDevotional = () => {
       // Optimistically update detail
       if (previousDevotional) {
         queryClient.setQueryData(
-          queryKeys.devotionals.detail(userId, id),
+          queryKeys.devotionals.detail(_userId, id),
           { ...previousDevotional, ...updates, updated_at: new Date().toISOString() }
         );
       }
 
       return { previousDevotionals, previousDevotional };
     },
-    onError: (err: Error, { id, userId }, context) => {
+    onError: (err: Error, { id, _userId }, context) => {
       console.error(`Error updating devotional ${id}:`, err);
       // Rollback on error
       if (context?.previousDevotionals) {
@@ -188,12 +188,12 @@ export const useUpdateDevotional = () => {
       }
       if (context?.previousDevotional) {
         queryClient.setQueryData(
-          queryKeys.devotionals.detail(userId, id),
+          queryKeys.devotionals.detail(_userId, id),
           context.previousDevotional
         );
       }
     },
-    onSettled: (data, error: Error | null, { id, userId }) => {
+    onSettled: (data, error: Error | null, { id, _userId }) => {
       if (error) {
         console.error('Error in devotional operation:', error);
       }
@@ -202,7 +202,7 @@ export const useUpdateDevotional = () => {
         queryKey: queryKeys.devotionals.list(_userId),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.detail(userId, id),
+        queryKey: queryKeys.devotionals.detail(_userId, id),
       });
     },
   });
@@ -230,12 +230,12 @@ export const useMarkDayComplete = () => {
         queryKey: queryKeys.devotionals.list(_userId),
       });
       await queryClient.cancelQueries({
-        queryKey: queryKeys.devotionals.detail(userId, devotionalId),
+        queryKey: queryKeys.devotionals.detail(_userId, devotionalId),
       });
 
       // Get current devotional
       const currentDevotional = queryClient.getQueryData<DevotionalApiEntry>(
-        queryKeys.devotionals.detail(userId, devotionalId)
+        queryKeys.devotionals.detail(_userId, devotionalId)
       );
 
       if (!currentDevotional) {return;}
@@ -268,41 +268,41 @@ export const useMarkDayComplete = () => {
       const updatedDevotional = { ...currentDevotional, ...optimisticUpdates };
 
       queryClient.setQueryData(
-        queryKeys.devotionals.detail(userId, devotionalId),
+        queryKeys.devotionals.detail(_userId, devotionalId),
         updatedDevotional
       );
 
       queryClient.setQueryData<DevotionalApiEntry[]>(
-        queryKeys.devotionals.list(userId),
+        queryKeys.devotionals.list(_userId),
         (old = []) => old.map(d => d.id === devotionalId ? updatedDevotional : d)
       );
 
       return { previousDevotional: currentDevotional };
     },
-    onError: (err: Error, { devotionalId, userId }, context) => {
-      console.error(`Error marking day complete for devotional ${devotionalId}:`, err);
+    onError: (err: Error, variables: { devotionalId: string; _userId: string }, context) => {
+      console.error(`Error marking day complete for devotional ${variables.devotionalId}:`, err);
       // Rollback on error
       if (context?.previousDevotional) {
         queryClient.setQueryData(
-          queryKeys.devotionals.detail(userId, devotionalId),
+          queryKeys.devotionals.detail(variables._userId, variables.devotionalId),
           context.previousDevotional
         );
         queryClient.setQueryData<DevotionalApiEntry[]>(
-          queryKeys.devotionals.list(_userId),
-          (old = []) => old.map(d => d.id === devotionalId ? context.previousDevotional! : d)
+          queryKeys.devotionals.list(variables._userId),
+          (old = []) => old.map(d => d.id === variables.devotionalId ? context.previousDevotional! : d)
         );
       }
     },
-    onSettled: (data, error: Error | null, { devotionalId, userId }) => {
+    onSettled: (data, error: Error | null, variables: { devotionalId: string; _userId: string }) => {
       if (error) {
         console.error('Error in day completion operation:', error);
       }
       // Refetch to ensure consistency
       queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.list(_userId),
+        queryKey: queryKeys.devotionals.list(variables._userId),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.detail(userId, devotionalId),
+        queryKey: queryKeys.devotionals.detail(variables._userId, variables.devotionalId),
       });
     },
   });
@@ -334,16 +334,16 @@ export const useSubmitDevotionalRating = () => {
 
       // Update caches optimistically
       queryClient.setQueryData<DevotionalApiEntry>(
-        queryKeys.devotionals.detail(userId, devotionalId),
+        queryKeys.devotionals.detail(_userId, devotionalId),
         (old) => old ? { ...old, ...ratingUpdates } : old
       );
 
       queryClient.setQueryData<DevotionalApiEntry[]>(
-        queryKeys.devotionals.list(userId),
+        queryKeys.devotionals.list(_userId),
         (old = []) => old.map(d => d.id === devotionalId ? { ...d, ...ratingUpdates } : d)
       );
     },
-    onSettled: (data, error: Error | null, { devotionalId, userId }) => {
+    onSettled: (data, error: Error | null, { devotionalId, _userId }) => {
       if (error) {
         console.error('Error in rating submission:', error);
       }
@@ -351,7 +351,7 @@ export const useSubmitDevotionalRating = () => {
         queryKey: queryKeys.devotionals.list(_userId),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.detail(userId, devotionalId),
+        queryKey: queryKeys.devotionals.detail(_userId, devotionalId),
       });
     },
   });
@@ -379,18 +379,18 @@ export const useDeleteDevotional = () => {
 
       // Snapshot previous value
       const previousDevotionals = queryClient.getQueryData<DevotionalApiEntry[]>(
-        queryKeys.devotionals.list(userId)
+        queryKeys.devotionals.list(_userId)
       );
 
       // Optimistically remove from list
       queryClient.setQueryData<DevotionalApiEntry[]>(
-        queryKeys.devotionals.list(userId),
+        queryKeys.devotionals.list(_userId),
         (old = []) => old.filter(devotional => devotional.id !== id)
       );
 
       // Remove from detail cache
       queryClient.removeQueries({
-        queryKey: queryKeys.devotionals.detail(userId, id),
+        queryKey: queryKeys.devotionals.detail(_userId, id),
       });
 
       return { previousDevotionals };

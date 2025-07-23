@@ -102,8 +102,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           await markPrayedMutation.mutateAsync({
             id: originalRequest.id,
             isPrayed: true,
-            userId: user?.id || '',
-            dateStr,
+            _userId: user?.id || '',
+            _dateStr: dateStr,
           });
         }
         shouldClearInputs = true;

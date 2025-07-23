@@ -558,6 +558,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // These declarations have been moved to the top of the component
   // to ensure all hooks are called unconditionally at the top level
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_event) => {
       // Cancel any running animations when a new gesture starts

@@ -201,37 +201,24 @@ export const usePrayerStore = create<PrayerStore>()(
       storage: createJSONStorage(() => AsyncStorage),
       // Only persist certain parts of the state
       partialize: (state) => ({
-        prayedItems: state.prayedItems,
+        prayedItems: state.prayedItems.map(item => ({
+          ...item,
+          date: item.date.toISOString(), // Convert Date to string for persistence
+        })),
         defaultPrayerType: state.defaultPrayerType,
         autoSaveEnabled: state.autoSaveEnabled,
         notificationsEnabled: state.notificationsEnabled,
         // Don't persist UI state or selected date
       }),
-      // Custom serialization for Date objects
-      serialize: (state) => {
-        return JSON.stringify({
-          ...state,
-          state: {
-            ...state.state,
-            prayedItems: state.state.prayedItems.map(item => ({
-              ...item,
-              date: item.date.toISOString(),
-            })),
-          },
-        });
-      },
-      deserialize: (str) => {
-        const parsed = JSON.parse(str);
-        return {
-          ...parsed,
-          state: {
-            ...parsed.state,
-            prayedItems: parsed.state.prayedItems?.map((item: any) => ({
-              ...item,
-              date: new Date(item.date),
-            })) || [],
-          },
-        };
+      // Handle Date conversion on hydration
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          // Convert date strings back to Date objects
+          state.prayedItems = state.prayedItems.map((item: any) => ({
+            ...item,
+            date: new Date(item.date),
+          }));
+        }
       },
     }
   )

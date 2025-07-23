@@ -155,8 +155,8 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       await markAnsweredMutation.mutateAsync({
         id,
         isAnswered: newIsAnswered,
-        userId: user.id,
-        dateStr,
+        _userId: user.id,
+        _dateStr: dateStr,
       });
     } catch (err) {
       console.error('Error updating prayer status:', err);
