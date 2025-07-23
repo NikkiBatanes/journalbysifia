@@ -6,7 +6,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
-import { TodaysFocusReactQuery } from '../components/journal/TodaysFocusReactQuery';
+import { TodaysFocus } from '../components/journal/TodaysFocus';
 import { Todos } from '../components/journal/Todos';
 import { TimeBlock } from '../components/journal/TimeBlock';
 import { GratitudeList } from '../components/journal/GratitudeList';
@@ -371,7 +371,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             }
           >
             <View style={styles.componentSpacing}>
-              <TodaysFocusReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
+              <TodaysFocus selectedDate={currentDate} refreshKey={refreshKey} />
             </View>
             <View style={styles.componentSpacing}>
               <Todos selectedDate={currentDate} refreshKey={refreshKey} />
@@ -379,12 +379,12 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             <View style={styles.componentSpacing}>
               <TimeBlock selectedDate={currentDate} refreshKey={refreshKey} />
             </View>
+            <View style={styles.componentSpacing}>
+              <GratitudeList selectedDate={currentDate} />
+            </View>
             {/* Only show these components for today or past dates */}
             {!isFutureDate && (
               <>
-                <View style={styles.componentSpacing}>
-                  <GratitudeList selectedDate={currentDate} />
-                </View>
                 <View style={styles.componentSpacing}>
                   <ReflectionLog
                     selectedDate={currentDate}
