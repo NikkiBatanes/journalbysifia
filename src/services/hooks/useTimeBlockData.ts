@@ -8,9 +8,11 @@ export const useTimeBlockData = (userId: string, date: string) => {
   return useQuery({
     queryKey: queryKeys.timeBlocks.byDate(userId, date),
     queryFn: () => TimeBlockApi.getTimeBlocks(userId, date),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 1000, // 1 second stale time to prevent excessive refetching
+    gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
+    refetchOnMount: false, // Don't refetch on mount to prevent loading flash
+    initialData: [], // Provide empty array as initial data
   });
 };
 

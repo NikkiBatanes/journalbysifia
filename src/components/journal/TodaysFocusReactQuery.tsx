@@ -45,18 +45,18 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     focusEntriesLength: focusEntries.length,
     focusEntries,
     isLoading,
-    error: error?.message
+    error: error?.message,
   });
 
   // Transform API data to local format
   const existingEntry = focusEntries.length > 0 ? focusEntries[0] : null;
   console.log('🔄 TodaysFocus Transform:', { existingEntry });
-  
+
   const initialData: TodayFocusData = useMemo(() => {
     const result = existingEntry ? (() => {
       try {
         const parsedContent = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
-        console.log('✅ TodaysFocus Parsed Content:', parsedContent);
+        console.log(' TodaysFocus Parsed Content:', parsedContent);
         return {
           focus: parsedContent.focus || '',
           priorities: parsedContent.priorities || [
@@ -66,7 +66,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ],
         };
       } catch (parseError) {
-        console.log('⚠️ TodaysFocus Parse Error:', parseError);
+        console.log(' TodaysFocus Parse Error:', parseError);
         return {
           focus: '',
           priorities: [
@@ -84,7 +84,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         { id: '3', text: '', completed: false },
       ],
     };
-    
+
     console.log('🎯 TodaysFocus Initial Data:', result);
     return result;
   }, [existingEntry]);
@@ -120,6 +120,11 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
       if (existingEntry) {
         // Update existing entry
+        console.log('💾 TodaysFocus updating existing entry:', { 
+          existingEntry, 
+          id: existingEntry.id, 
+          contentToSave 
+        });
         await updateMutation.mutateAsync({
           id: existingEntry.id,
           updates: {
@@ -136,9 +141,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         });
       }
 
-      console.log('✅ Today\'s Focus saved successfully');
+      console.log(' TodaysFocus saved successfully');
     } catch (saveError) {
-      console.error('❌ Error saving today\'s focus:', saveError);
+      console.error(' TodaysFocus Error saving today\'s focus:', saveError);
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
       throw saveError;
     }
@@ -212,148 +217,169 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
   const canSave = hasContent && (createMutation.isPending || updateMutation.isPending) === false;
 
-  if (isLoading) {
-    return (
-      <JournalCard
-        icon={<LuGoal size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
-        title="Today's Focus"
-        subtitle="Set your main focus and priorities"
-        showAddButton={false}
-        onAdd={() => {}}
-        isAdding={false}
-      >
-        <Text style={styles.loadingText}>Loading today's focus...</Text>
-      </JournalCard>
-    );
-  }
+  // Remove loading state to prevent flash - let component render immediately with empty data
 
   return (
     <JournalCard
-      icon={<LuGoal size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
+      icon={
+        <LuGoal
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Today's Focus"
-      subtitle="Set your main focus and priorities"
+      subtitle="Your daily focus and priorities"
       showAddButton={!isEditing}
       onAdd={toggleEditing}
       isAdding={isEditing}
     >
-      {/* Main Focus Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeader}>MAIN FOCUS</Text>
-        {isEditing ? (
-          <TextInput
-            style={[styles.input, styles.focusInput]}
-            value={data.focus}
-            onChangeText={updateFocus}
-            placeholder="What's your main focus for today?"
-            placeholderTextColor={Colors.mediumGray}
-            multiline
-            autoFocus
-          />
-        ) : (
-          <View>
-            {data.focus.trim() ? (
-              <Text style={styles.focusText}>{data.focus}</Text>
-            ) : (
-              <Text style={styles.placeholderText}>No focus set for today</Text>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Priorities Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionHeaderWithTopMargin}>TOP PRIORITIES</Text>
-        {isEditing ? (
-          <View>
+      {isEditing
+        ? (
+          <View style={styles.editContainer}>
+            <Text style={styles.sectionHeaderWithBottomMargin}>Today's Focus</Text>
+            <TextInput
+              style={[styles.input, styles.focusInput]}
+              value={data.focus}
+              onChangeText={updateFocus}
+              placeholder="What's your main focus today?"
+              placeholderTextColor={Colors.mediumGray}
+              autoFocus
+            />
+            <Text style={styles.sectionHeaderWithTopMargin}>TOP PRIORITIES</Text>
             {data.priorities.map((priority, index) => (
               <View key={priority.id} style={styles.priorityRow}>
                 <Text style={styles.priorityNumber}>{index + 1}.</Text>
                 <TextInput
-                  style={styles.priorityInput}
+                  style={[styles.input, styles.priorityInput]}
                   value={priority.text}
                   onChangeText={(text) => updatePriority(index, text)}
                   placeholder={`Priority ${index + 1}`}
                   placeholderTextColor={Colors.mediumGray}
+                  onSubmitEditing={toggleEditing}
                 />
               </View>
             ))}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                onPress={handleCancel}
+                style={[styles.button, styles.cancelButton]}
+                activeOpacity={0.8}
+              >
+                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={toggleEditing}
+                style={[
+                  styles.button,
+                  styles.saveButton,
+                  !canSave && styles.disabledButton,
+                ]}
+                disabled={!canSave}
+                activeOpacity={0.8}
+              >
+                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+            </View>
           </View>
-        ) : (
-          <View>
-            {data.priorities.filter(p => p.text.trim()).length > 0 ? (
-              data.priorities
-                .filter(p => p.text.trim())
-                .map((priority) => (
-                  <SwipeableTodoItem
-                    key={priority.id}
-                    ref={(ref: any) => {
-                      if (ref) {
-                        swipeableRefs.current[priority.id] = ref;
-                      } else {
-                        delete swipeableRefs.current[priority.id];
-                      }
-                    }}
-                    item={{
-                      id: priority.id,
-                      text: priority.text,
-                      completed: priority.completed,
-                    }}
-                    onToggle={() => togglePriority(data.priorities.findIndex(p => p.id === priority.id))}
-                    onDelete={() => removePriority(priority.id)}
-                    hideCheckbox={false}
-                  >
-                    <View style={styles.priorityBullet} />
-                    <Text style={[styles.priorityText, priority.completed && styles.completedText]}>
-                      {priority.text}
-                    </Text>
-                  </SwipeableTodoItem>
-                ))
-            ) : (
-              <Text style={styles.placeholderText}>No priorities set for today</Text>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Action Buttons */}
-      {isEditing && (
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            onPress={handleCancel}
-            style={[styles.button, styles.cancelButton]}
-            activeOpacity={0.8}
-          >
-            <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={toggleEditing}
-            style={[
-              styles.button,
-              styles.saveButton,
-              !canSave && styles.disabledButton,
-            ]}
-            disabled={!canSave}
-            activeOpacity={0.8}
-          >
-            <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {!isEditing && !hasContent && (
-        <Text style={styles.hintText}>
-          Tap the + button to set your focus and priorities for today
-        </Text>
-      )}
+        )
+        : (
+          ((data.focus || '').trim() || data.priorities.some(p => p.text.trim() !== ''))
+            ? (
+              <View style={styles.viewContainer}>
+                {data.focus && <Text style={styles.focusText}>{data.focus}</Text>}
+                <View style={styles.prioritiesList}>
+                  {data.priorities.some(p => p.text.trim() !== '') && (
+                    <Text style={styles.prioritiesTitle}>TOP PRIORITIES</Text>
+                  )}
+                  {data.priorities
+                    .filter(p => p.text.trim() !== '')
+                    .map((priority, index) => (
+                      <SwipeableTodoItem
+                        key={priority.id}
+                        item={{
+                          id: priority.id,
+                          text: priority.text,
+                          completed: priority.completed,
+                        }}
+                        onToggle={() => togglePriority(index)}
+                        onDelete={() => removePriority(priority.id)}
+                        hideCheckbox={true}
+                        ref={ref => {
+                          if (ref) {
+                            swipeableRefs.current[priority.id] = ref;
+                          } else {
+                            delete swipeableRefs.current[priority.id];
+                          }
+                        }}
+                      >
+                        <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
+                          {priority.completed && (
+                            <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
+                          )}
+                        </View>
+                        <Text
+                          style={[
+                            styles.priorityText,
+                            priority.completed && styles.completedText,
+                          ]}>
+                          {priority.text}
+                        </Text>
+                      </SwipeableTodoItem>
+                    ))
+                  }
+                </View>
+              </View>
+            )
+            : null
+        )
+      }
     </JournalCard>
   );
 };
 
 const styles = StyleSheet.create({
-  section: {
-    marginBottom: 16,
+  // Container styles
+  editContainer: {
+    padding: 0,
+  },
+  viewContainer: {
+    padding: 0,
+  },
+  prioritiesList: {
+    marginTop: 4,
+  },
+  prioritiesContainer: {
+    marginBottom: 8,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 0,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: Colors.hopeWhite,
+  },
+
+  // Text styles
+  label: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+    color: Colors.darkGray,
+    marginBottom: 8,
   },
   sectionHeader: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 12,
+    color: Colors.anchorBlue,
+    marginBottom: 8,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    fontWeight: '600',
+  },
+  sectionHeaderWithBottomMargin: {
     fontFamily: Fonts.semiBold,
     fontSize: 12,
     color: Colors.anchorBlue,
@@ -492,6 +518,34 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     color: Colors.mediumGray,
     opacity: 0.7,
+  },
+  buttonSpacing: {
+    marginRight: 0,
+  },
+  tickBox: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
+    borderWidth: 1.5,
+    borderColor: Colors.trustGrey,
+    backgroundColor: 'rgba(176, 184, 193, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  tickBoxCompleted: {
+    backgroundColor: Colors.growthGreen,
+    borderColor: Colors.growthGreen,
+  },
+  prioritiesTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 11,
+    color: Colors.anchorBlue,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 2,
+    marginBottom: 4,
+    fontWeight: '600',
   },
   loadingText: {
     fontFamily: Fonts.regular,

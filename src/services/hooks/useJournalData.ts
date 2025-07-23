@@ -23,9 +23,11 @@ export const useGratitudeData = (userId: string, date: string) => {
 
       return entries;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
     gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
     enabled: !!userId && !!date,
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
   });
 };
 
@@ -48,7 +50,7 @@ export const useTodosData = (userId: string, date: string) => {
 
       return entries;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
   });
@@ -73,9 +75,12 @@ export const useTodaysFocusData = (userId: string, date: string) => {
 
       return entries;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1000, // 1 second stale time to prevent excessive refetching
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
+    refetchOnMount: false, // Don't refetch on mount to prevent loading flash
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    initialData: [], // Provide empty array as initial data to prevent loading state
   });
 };
 
@@ -98,7 +103,7 @@ export const useTodayWinData = (userId: string, date: string) => {
 
       return entries;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
   });
@@ -123,7 +128,7 @@ export const useLookingForwardData = (userId: string, date: string) => {
 
       return entries;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
   });
@@ -265,17 +270,17 @@ export const usePrefetchJournalData = () => {
       queryClient.prefetchQuery({
         queryKey: queryKeys.journal.gratitude(userId, date),
         queryFn: () => JournalApi.getGratitudeEntries(userId, date),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
       }),
       queryClient.prefetchQuery({
         queryKey: queryKeys.journal.todos(userId, date),
         queryFn: () => JournalApi.getTodoEntries(userId, date),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
       }),
       queryClient.prefetchQuery({
         queryKey: queryKeys.journal.todaysFocus(userId, date),
         queryFn: () => JournalApi.getTodaysFocusEntries(userId, date),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
       }),
     ]);
 
