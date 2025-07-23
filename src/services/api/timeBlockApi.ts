@@ -7,7 +7,18 @@ export interface TimeBlockApiEntry {
   selected_date: string;
   start_time: string;
   end_time: string;
-  activity: string;
+  all_day: boolean;
+  title: string;
+  location?: string;
+  category: string;
+  repeat_rule?: any; // jsonb
+  repeat_until?: string; // date
+  timezone?: string;
+  is_completed?: boolean;
+  completed_at?: string;
+  notes?: string; // description field in DB
+  version?: number;
+  metadata?: any; // jsonb
   created_at: string;
   updated_at: string;
 }

@@ -132,7 +132,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({ selectedDate =
     return () => {
       isMounted = false;
     };
-  }, [selectedDateStr]);
+  }, [selectedDateStr, selectedDate]);
 
   // Update current time every minute
   useEffect(() => {

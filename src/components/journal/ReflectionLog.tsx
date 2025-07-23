@@ -97,6 +97,18 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
       console.log('Hydrating reflection entries for date:', dateStr);
       const loadedEntries = await loadReflectionEntries(user.id, dateStr);
 
+      // Debug: Check what we got from loadReflectionEntries
+      console.log('loadedEntries type:', typeof loadedEntries);
+      console.log('loadedEntries isArray:', Array.isArray(loadedEntries));
+      console.log('loadedEntries:', loadedEntries);
+
+      // Ensure we have an array
+      if (!Array.isArray(loadedEntries)) {
+        console.error('loadedEntries is not an array!', loadedEntries);
+        setEntries([]);
+        return;
+      }
+
       // loadReflectionEntries already filters by selected_date, so no need for additional filtering
       // Just sort by date (newest first)
       const sortedEntries = loadedEntries.sort((a, b) =>
@@ -300,7 +312,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
         numberOfLines={3}
         ellipsizeMode="tail"
       >
-        {entry.content}
+        {typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content)}
       </Text>
       {entry.tags && entry.tags.length > 0 && (
         <View style={styles.tagsContainer}>
@@ -442,7 +454,7 @@ export const ReflectionLog: React.FC<ReflectionLogProps> = ({ selectedDate = new
                     )}
 
                     <Text style={styles.modalContentText}>
-                      {selectedEntry.content}
+                      {typeof selectedEntry.content === 'string' ? selectedEntry.content : JSON.stringify(selectedEntry.content)}
                     </Text>
 
                     {selectedEntry.tags && selectedEntry.tags.length > 0 && (

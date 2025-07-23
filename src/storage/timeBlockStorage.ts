@@ -104,12 +104,32 @@ export const saveCloudTimeBlocks = async (
     if (timeBlocks.length > 0) {
       const { error } = await supabase
         .from('time_blocks')
-        .insert(timeBlocks.map(block => ({
-          ...block,
-          user_id: userId,
-          selected_date: dateStr,
-          updated_at: new Date().toISOString(),
-        })));
+        .insert(timeBlocks.map(block => {
+          // Store times as simple time strings without any timezone conversion
+          // Create a naive timestamp that preserves the exact time the user entered
+          const startTimestamp = `${dateStr}T${block.start_time}:00`;
+          const endTimestamp = `${dateStr}T${block.end_time}:00`;
+
+          return {
+            id: block.id,
+            user_id: userId,
+            selected_date: dateStr,
+            start_time: startTimestamp,
+            end_time: endTimestamp,
+            all_day: block.all_day,
+            title: block.title,
+            description: block.notes, // Map notes to description
+            location: block.location,
+            category: block.category,
+            repeat_rule: block.repeat, // Map repeat to repeat_rule
+            repeat_until: block.repeat_until,
+            timezone: null, // Don't store timezone to avoid conversions
+            is_completed: false,
+            version: block.version,
+            created_at: block.created_at || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+        }));
 
       if (error) {
         console.error('Error saving time blocks to cloud:', error);
@@ -141,7 +161,43 @@ export const getCloudTimeBlocks = async (
       throw error;
     }
 
-    return data || [];
+    // Map database fields to component interface
+    const mappedData = (data || []).map(block => {
+      // Extract time portion from timestamp without any timezone conversion
+      const extractTime = (timestamp: string) => {
+        try {
+          // Simply extract the time part from "YYYY-MM-DDTHH:MM:SS" format
+          // This preserves the exact time the user entered without timezone conversion
+          if (timestamp.includes('T')) {
+            const timePart = timestamp.split('T')[1];
+            return timePart.substring(0, 5); // Get "HH:MM" part
+          }
+          return timestamp; // Already in correct format
+        } catch {
+          return timestamp; // Fallback if parsing fails
+        }
+      };
+
+      return {
+        id: block.id,
+        user_id: block.user_id,
+        selected_date: block.selected_date,
+        start_time: extractTime(block.start_time),
+        end_time: extractTime(block.end_time),
+        all_day: block.all_day,
+        title: block.title,
+        location: block.location,
+        category: block.category,
+        repeat: block.repeat_rule, // Map repeat_rule to repeat
+        repeat_until: block.repeat_until,
+        notes: block.description, // Map description to notes
+        version: block.version || 1,
+        created_at: block.created_at,
+        updated_at: block.updated_at,
+      };
+    });
+
+    return mappedData;
   } catch (error) {
     console.error('Error in getCloudTimeBlocks:', error);
     return [];
@@ -242,28 +298,57 @@ export const saveTimeBlockEntry = async (
 
     // Insert to cloud storage (not upsert, since we want to create new entries)
     try {
+      // Convert time strings to proper timestamps
+      const selectedDateStr = newTimeBlock.selected_date;
+      const startTimestamp = `${selectedDateStr}T${newTimeBlock.start_time}:00.000Z`;
+      const endTimestamp = `${selectedDateStr}T${newTimeBlock.end_time}:00.000Z`;
+
+      console.log('🔄 TimeBlock: Converting times for database:', {
+        start_time: newTimeBlock.start_time,
+        end_time: newTimeBlock.end_time,
+        startTimestamp,
+        endTimestamp,
+        selected_date: selectedDateStr,
+      });
+
       const { error } = await supabase
         .from('time_blocks')
         .insert({
           id: newTimeBlock.id,
           user_id: newTimeBlock.user_id,
           selected_date: newTimeBlock.selected_date,
-          start_time: newTimeBlock.start_time,
-          end_time: newTimeBlock.end_time,
+          start_time: startTimestamp,
+          end_time: endTimestamp,
           all_day: newTimeBlock.all_day,
           title: newTimeBlock.title,
+          description: newTimeBlock.notes, // Map notes to description
           location: newTimeBlock.location,
           category: newTimeBlock.category,
-          repeat: newTimeBlock.repeat,
+          repeat_rule: newTimeBlock.repeat, // Map repeat to repeat_rule
           repeat_until: newTimeBlock.repeat_until,
-          notes: newTimeBlock.notes,
+          timezone: 'UTC',
+          is_completed: false,
           version: newTimeBlock.version,
           created_at: newTimeBlock.created_at,
           updated_at: newTimeBlock.updated_at,
         });
 
       if (error) {
-        console.error('Error inserting time block to cloud:', error);
+        console.error('❌ TimeBlock: Error inserting to database:', {
+          error: error,
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+          timeBlockData: {
+            id: newTimeBlock.id,
+            title: newTimeBlock.title,
+            selected_date: newTimeBlock.selected_date,
+            start_time: startTimestamp,
+            end_time: endTimestamp,
+            category: newTimeBlock.category,
+          },
+        });
         // If there's still a conflict, the time adjustment didn't work properly
         // This shouldn't happen with proper local conflict detection
         throw error;
@@ -323,17 +408,29 @@ export const updateTimeBlockEntry = async (
 
     // Update directly in cloud storage
     try {
+      // Convert time strings to proper timestamps
+      const selectedDateStr = updatedTimeBlock.selected_date;
+      const startTimestamp = `${selectedDateStr}T${updatedTimeBlock.start_time}:00.000Z`;
+      const endTimestamp = `${selectedDateStr}T${updatedTimeBlock.end_time}:00.000Z`;
+
+      console.log('🔄 TimeBlock: Converting times for update:', {
+        start_time: updatedTimeBlock.start_time,
+        end_time: updatedTimeBlock.end_time,
+        startTimestamp,
+        endTimestamp,
+      });
+
       const { error } = await supabase
         .from('time_blocks')
         .update({
           title: updatedTimeBlock.title,
-          start_time: updatedTimeBlock.start_time,
-          end_time: updatedTimeBlock.end_time,
+          start_time: startTimestamp,
+          end_time: endTimestamp,
           all_day: updatedTimeBlock.all_day,
           category: updatedTimeBlock.category,
           location: updatedTimeBlock.location,
-          notes: updatedTimeBlock.notes,
-          repeat: updatedTimeBlock.repeat,
+          description: updatedTimeBlock.notes, // Map notes to description
+          repeat_rule: updatedTimeBlock.repeat, // Map repeat to repeat_rule
           repeat_until: updatedTimeBlock.repeat_until,
           version: updatedTimeBlock.version,
           updated_at: updatedTimeBlock.updated_at,

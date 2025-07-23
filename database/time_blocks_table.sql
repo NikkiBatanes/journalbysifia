@@ -3,16 +3,20 @@ CREATE TABLE IF NOT EXISTS public.time_blocks (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   selected_date date NOT NULL,
-  start_time time NOT NULL,
-  end_time time NOT NULL,
+  start_time timestamptz NOT NULL,
+  end_time timestamptz NOT NULL,
   all_day boolean NOT NULL DEFAULT false,
   title text NOT NULL,
+  description text,          -- For notes/description
   location text,
   category text NOT NULL,
-  repeat jsonb,              -- For storing repeat rules (frequency, endDate, customDays, etc.)
-  repeat_until date,         -- For recurring end date (optional, for SQL filtering)
-  notes text,
+  repeat_rule jsonb,         -- For storing repeat rules (frequency, endDate, customDays, etc.)
+  repeat_until timestamptz,  -- For recurring end date (optional, for SQL filtering)
+  timezone text DEFAULT 'UTC',
+  is_completed boolean NOT NULL DEFAULT false,
+  completed_at timestamptz,
   version integer NOT NULL DEFAULT 1,
+  metadata jsonb,            -- For additional metadata
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   

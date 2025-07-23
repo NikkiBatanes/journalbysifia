@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 
@@ -55,44 +55,40 @@ const PrayedItemsList: React.FC<PrayedItemsListProps> = ({ items }) => {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={sortedDates}
-        keyExtractor={(date) => date}
-        renderItem={({ item: date }) => (
-          <View key={date}>
-            <View style={styles.headerContainer}>
-              <Ionicons name="bookmark" size={20} color={Colors.hopeWhite} style={styles.icon} />
-              <Text style={styles.header}>Prayed Devotionals {formatPrayerDate(new Date(date))}</Text>
-            </View>
-            {groupedItems[date].map((item) => (
-              <View style={styles.prayerItem} key={item.id}>
-                <Text style={styles.prayerText}>{
-                  item.text
-                    .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
-                    .replace(/(\n?)(In Jesus'? Name, Amen)/i, '\n\n$2')
-                }</Text>
-                <View style={styles.metadataContainer}>
-                  <View style={styles.verticalLine} />
-                  <View style={styles.metadataContent}>
-                    <Text style={styles.fromText}>From</Text>
-                    {item.totalDays && (
-                      <Text style={styles.metadataText}>
-                        {item.totalDays === 1 ? '1-Day Devotional' : `${item.totalDays}-Day Devotional Series`}
-                      </Text>
-                    )}
-                    <Text style={styles.devotionalTitle}>{item.devotionalTitle}</Text>
-                    {item.dayNumber && item.dayTitle && item.dayNumber > 1 && (
-                      <Text style={styles.metadataText}>
-                        Day {item.dayNumber}: {item.dayTitle}
-                      </Text>
-                    )}
-                  </View>
+      {sortedDates.map((date) => (
+        <View key={date}>
+          <View style={styles.headerContainer}>
+            <Ionicons name="bookmark" size={20} color={Colors.hopeWhite} style={styles.icon} />
+            <Text style={styles.header}>Prayed Devotionals {formatPrayerDate(new Date(date))}</Text>
+          </View>
+          {groupedItems[date].map((item) => (
+            <View style={styles.prayerItem} key={item.id}>
+              <Text style={styles.prayerText}>{
+                item.text
+                  .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
+                  .replace(/(\n?)(In Jesus'? Name, Amen)/i, '\n\n$2')
+              }</Text>
+              <View style={styles.metadataContainer}>
+                <View style={styles.verticalLine} />
+                <View style={styles.metadataContent}>
+                  <Text style={styles.fromText}>From</Text>
+                  {item.totalDays && (
+                    <Text style={styles.metadataText}>
+                      {item.totalDays === 1 ? '1-Day Devotional' : `${item.totalDays}-Day Devotional Series`}
+                    </Text>
+                  )}
+                  <Text style={styles.devotionalTitle}>{item.devotionalTitle}</Text>
+                  {item.dayNumber && item.dayTitle && item.dayNumber > 1 && (
+                    <Text style={styles.metadataText}>
+                      Day {item.dayNumber}: {item.dayTitle}
+                    </Text>
+                  )}
                 </View>
               </View>
-            ))}
-          </View>
-        )}
-      />
+            </View>
+          ))}
+        </View>
+      ))}
     </View>
   );
 };

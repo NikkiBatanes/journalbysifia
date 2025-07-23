@@ -22,9 +22,15 @@ export const queryKeys = {
 
   // Prayer-related queries
   prayers: {
-    all: ['prayers'] as const,
-    entries: (userId: string) => ['prayers', 'entries', userId] as const,
-    devotional: (userId: string, devotionalId: string) => ['prayers', 'devotional', userId, devotionalId] as const,
+    all: (userId: string) => ['prayers', userId] as const,
+    entries: (userId: string, date: string) => ['prayers', 'entries', userId, date] as const,
+    acts: (userId: string, date: string) => ['prayers', 'acts', userId, date] as const,
+    people: (userId: string, date: string) => ['prayers', 'people', userId, date] as const,
+    devotional: (userId: string, date: string) => ['prayers', 'devotional', userId, date] as const,
+    allDevotional: (userId: string) => ['prayers', 'allDevotional', userId] as const,
+    byType: (userId: string, date: string, type: string) => ['prayers', 'byType', userId, date, type] as const,
+    search: (userId: string, searchTerm: string) => ['prayers', 'search', userId, searchTerm] as const,
+    stats: (userId: string, startDate: string, endDate: string) => ['prayers', 'stats', userId, startDate, endDate] as const,
     prayed: (userId: string) => ['prayers', 'prayed', userId] as const,
     prayedItems: (userId: string) => ['prayers', 'prayedItems', userId] as const,
   },
