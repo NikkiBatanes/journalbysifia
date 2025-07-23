@@ -7,7 +7,7 @@ import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { TodaysFocus } from '../components/journal/TodaysFocus';
-import { Todos } from '../components/journal/Todos';
+import { TodosReactQuery as Todos } from '../components/journal/TodosReactQuery';
 import { TimeBlock } from '../components/journal/TimeBlock';
 import { GratitudeList } from '../components/journal/GratitudeList';
 import { ReflectionLog } from '../components/journal/ReflectionLog';

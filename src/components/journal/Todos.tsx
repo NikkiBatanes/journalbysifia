@@ -39,7 +39,7 @@ export const Todos: React.FC<TodosProps> = ({ selectedDate = new Date(), refresh
   const { user } = useAuth();
   // Use the selectedDate prop, defaulting to today if not provided
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
-  const contentType = 'todos';
+  const contentType = 'todo'; // Fixed: was 'todos' (invalid), now 'todo' (valid)
   const key = user ? getJournalKey(user.id, contentType, dateStr) : '';
 
   // Caching and sync state
