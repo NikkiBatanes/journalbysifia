@@ -730,7 +730,7 @@ const isValidUUID = (uuid: string): boolean => {
 const cleanupDuplicateEntries = async (userId: string, contentType: string, selectedDate: string): Promise<void> => {
   try {
     console.log(`🧹 Checking for duplicates: ${contentType} on ${selectedDate}`);
-    
+
     const { data: duplicates, error } = await supabase
       .from('journal_entries')
       .select('id, updated_at')
@@ -746,10 +746,10 @@ const cleanupDuplicateEntries = async (userId: string, contentType: string, sele
 
     if (duplicates && duplicates.length > 1) {
       console.log(`Found ${duplicates.length} duplicate entries, keeping the most recent one`);
-      
+
       // Keep the first (most recent) and delete the rest
       const toDelete = duplicates.slice(1).map(d => d.id);
-      
+
       const { error: deleteError } = await supabase
         .from('journal_entries')
         .delete()
@@ -817,7 +817,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
     try {
       // 5. Clean up any duplicate entries first
       await cleanupDuplicateEntries(userId, entryToSave.content_type, entryToSave.selected_date);
-      
+
       // 6. First try to update if an entry exists for this user, content type and date
       // Handle potential duplicates by getting the most recent one
       const { data: existingEntries, error: fetchError } = await supabase
@@ -1228,7 +1228,7 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
     // First, clean up any duplicates and check if an entry exists
     console.log('Checking for existing cloud entry with same user, type and date...');
     await cleanupDuplicateEntries(userId, contentType, date);
-    
+
     const { data: existingEntries, error: fetchError } = await supabase
       .from('journal_entries')
       .select('*')
