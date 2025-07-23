@@ -274,7 +274,7 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
     created_at: now,
     updated_at: now,
     selected_date: data.selected_date || dateFromKey || new Date().toISOString().split('T')[0],
-    content_type: data.content_type || 'unknown',
+    content_type: data.content_type || 'gratitude', // Default to gratitude instead of invalid 'unknown'
     content: data.content || {},
   };
 
@@ -319,7 +319,7 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
     id: existingEntry.id,
     user_id: existingEntry.user_id,
     created_at: existingEntry.created_at || now,
-    content_type: updatedData.content_type || existingEntry.content_type || 'unknown',
+    content_type: updatedData.content_type || existingEntry.content_type || 'gratitude', // Default to gratitude instead of invalid 'unknown'
     selected_date: updatedData.selected_date || existingEntry.selected_date || new Date().toISOString().split('T')[0],
     content: updatedData.content !== undefined ? updatedData.content : existingEntry.content || {},
   };
@@ -760,7 +760,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       ...entry,
       id: entry.id || generateUUID(),
       user_id: userId,
-      content_type: entry.content_type || 'unknown',
+      content_type: entry.content_type || 'gratitude', // Default to gratitude instead of invalid 'unknown'
       content: entry.content || {},
       selected_date: selectedDate,
       created_at: entry.created_at || now,
@@ -1187,6 +1187,8 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
       .eq('user_id', userId)
       .eq('content_type', contentType)
       .eq('selected_date', date)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (fetchError) {

@@ -4,7 +4,7 @@ import { supabase } from '../supabaseApi';
 export interface JournalApiEntry {
   id: string;
   user_id: string;
-  content_type: 'gratitude' | 'todo' | 'today_win' | 'looking_forward' | 'todays_focus';
+  content_type: 'gratitude' | 'todo' | 'today_win' | 'looking_forward' | 'todays_focus' | 'reflection_log';
   content: string;
   selected_date: string;
   created_at: string;

@@ -1,7 +1,30 @@
 -- Fix RLS Policies for siFia App
 -- Run these commands in your Supabase SQL Editor
 
--- 1. Enable RLS on all tables (if not already enabled)
+-- 0. Clean up duplicate entries and invalid content_types first
+DO $$
+BEGIN
+  -- Remove entries with invalid content_types
+  DELETE FROM journal_entries 
+  WHERE content_type NOT IN ('gratitude', 'todo', 'today_win', 'looking_forward', 'todays_focus', 'reflection_log');
+  
+  -- Remove duplicate entries (keep the most recent one for each user/date/content_type combination)
+  DELETE FROM journal_entries a
+  USING journal_entries b
+  WHERE a.id < b.id
+    AND a.user_id = b.user_id
+    AND a.selected_date = b.selected_date
+    AND a.content_type = b.content_type;
+    
+  RAISE NOTICE 'Cleanup completed: removed invalid content_types and duplicates';
+END $$;
+
+-- 1. Update content_type constraint to include all valid types
+ALTER TABLE journal_entries DROP CONSTRAINT IF EXISTS journal_entries_content_type_check;
+ALTER TABLE journal_entries ADD CONSTRAINT journal_entries_content_type_check 
+  CHECK (content_type IN ('gratitude', 'todo', 'today_win', 'looking_forward', 'todays_focus', 'reflection_log'));
+
+-- 2. Enable RLS on all tables (if not already enabled)
 ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prayers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devotionals ENABLE ROW LEVEL SECURITY;
