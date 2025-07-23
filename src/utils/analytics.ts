@@ -119,7 +119,7 @@ class Analytics {
     properties: TodoAnalyticsEvents[T],
     userId?: string
   ): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     this.track(event, properties, userId);
   }
@@ -132,7 +132,7 @@ class Analytics {
     properties: FocusAnalyticsEvents[T],
     userId?: string
   ): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     this.track(event, properties, userId);
   }
@@ -145,7 +145,7 @@ class Analytics {
     properties: GratitudeAnalyticsEvents[T],
     userId?: string
   ): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     this.track(event, properties, userId);
   }
@@ -154,7 +154,7 @@ class Analytics {
    * Track a general event
    */
   track(event: string, properties?: Record<string, any>, userId?: string): void {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {return;}
 
     const analyticsEvent: AnalyticsEvent = {
       event,
@@ -201,7 +201,7 @@ class Analytics {
    * Batch send events (placeholder for future implementation)
    */
   async flush(): Promise<void> {
-    if (!this.isEnabled || this.events.length === 0) return;
+    if (!this.isEnabled || this.events.length === 0) {return;}
 
     // TODO: Implement actual analytics service integration
     // For now, just clear the events

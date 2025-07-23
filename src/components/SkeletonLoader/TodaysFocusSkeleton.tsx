@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Colors } from '../../theme/colors';
 
 export const TodaysFocusSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;

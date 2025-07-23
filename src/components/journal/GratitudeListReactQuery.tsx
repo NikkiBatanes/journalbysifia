@@ -43,11 +43,19 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // React Query hooks with performance tracking
   const loadStartTime = React.useRef<number>(Date.now());
   const { data: gratitudeEntries = [], isLoading, error } = useGratitudeData(user?.id || '', dateStr);
-  
+
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
   const deleteMutation = useDeleteJournalEntry();
+
+  // Debug: Check for multiple entries
+  if (gratitudeEntries.length > 1) {
+    console.log('🔍 Multiple gratitude entries detected:', {
+      count: gratitudeEntries.length,
+      entries: gratitudeEntries.map(e => ({ id: e.id, content: e.content })),
+    });
+  }
 
   // Transform API data to local GratitudeItem format
   const gratitudeItems: GratitudeItem[] = gratitudeEntries.map(entry => {
@@ -57,8 +65,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     } catch {
       parsedContent = { items: [] };
     }
-
-
 
     // Handle both single item and items array formats
     if (parsedContent.items && Array.isArray(parsedContent.items)) {
@@ -82,7 +88,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   React.useEffect(() => {
     if (!isLoading && gratitudeEntries.length >= 0) {
       const loadTime = Date.now() - loadStartTime.current;
-      
+
       analytics.trackGratitudeEvent('gratitude_loaded', {
         items_count: gratitudeItems.length,
         load_time_ms: loadTime,
@@ -99,7 +105,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         operation: 'load',
         date: dateStr,
       }, user?.id);
-      
+
       Alert.alert('Error', 'Failed to load gratitude items.');
     }
   }, [error, dateStr, user?.id]);
@@ -120,15 +126,15 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const startEditing = () => {
     setIsEditing(true);
     setIsAdding(false);
-    
+
     // Pre-fill with existing gratitude items
     const editFields = gratitudeItems.map(item => item.text);
-    
+
     // Ensure we have at least 3 fields for editing
     while (editFields.length < 3) {
       editFields.push('');
     }
-    
+
     setNewItems(editFields);
   };
 
@@ -140,7 +146,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   const addAnotherField = useCallback(() => {
     setNewItems([...newItems, '']);
-    
+
     // Track field addition
     analytics.trackGratitudeEvent('gratitude_field_added', {
       field_count: newItems.length + 1,
@@ -216,8 +222,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   });
                 }
               }
-            } catch (error) {
-              console.error('Error deleting gratitude item:', error);
+            } catch (deleteError) {
+              console.error('Error deleting gratitude item:', deleteError);
               Alert.alert('Error', 'Failed to delete gratitude item. Please try again.');
             }
 
@@ -249,24 +255,36 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           date: selectedDate,
         }));
 
-        if (isEditing && gratitudeEntries.length > 0) {
-          // For editing: delete all existing entries first
-          for (const entry of gratitudeEntries) {
-            try {
-              await deleteMutation.mutateAsync(entry.id);
-            } catch (deleteError) {
-              console.error('Error deleting gratitude entry:', deleteError);
+        const contentToSave = JSON.stringify({ items: itemsToSave });
+
+        if (gratitudeEntries.length > 0) {
+          // Update the first entry with all new content
+          await updateMutation.mutateAsync({
+            id: gratitudeEntries[0].id,
+            updates: {
+              content: contentToSave,
+            },
+          });
+
+          // Delete any extra entries to ensure only one exists
+          if (gratitudeEntries.length > 1) {
+            for (let i = 1; i < gratitudeEntries.length; i++) {
+              try {
+                await deleteMutation.mutateAsync(gratitudeEntries[i].id);
+              } catch (deleteError) {
+                console.error('Error deleting extra gratitude entry:', deleteError);
+              }
             }
           }
+        } else {
+          // Create new entry when none exists
+          await createMutation.mutateAsync({
+            user_id: user.id,
+            selected_date: dateStr,
+            content_type: 'gratitude',
+            content: contentToSave,
+          });
         }
-
-        // Create new entry with all items - React Query will handle cache updates automatically
-        await createMutation.mutateAsync({
-          user_id: user.id,
-          selected_date: dateStr,
-          content_type: 'gratitude',
-          content: JSON.stringify({ items: itemsToSave }),
-        });
 
         // Track successful gratitude save
         analytics.trackGratitudeEvent('gratitude_items_saved', {
@@ -443,7 +461,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                 onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}
                 accessibilityLabel={`Gratitude item ${index + 1} input`}
-                accessibilityHint={`Enter something you're grateful for`}
+                accessibilityHint={'Enter something you\'re grateful for'}
               />
             ))
           ) : (
@@ -459,7 +477,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                   onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}
                   accessibilityLabel={`Gratitude item ${index + 1} input`}
-                  accessibilityHint={`Enter something you're grateful for`}
+                  accessibilityHint={'Enter something you\'re grateful for'}
                 />
               ))}
             </React.Fragment>
@@ -498,12 +516,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   styles.saveButton,
                   !newItems.some(item => item.trim()) && styles.disabledButton,
                 ]}
-                disabled={!newItems.some(item => item.trim()) || createMutation.isPending}
+                disabled={!newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Save gratitude items"
                 accessibilityHint="Saves your gratitude items and closes the form"
-                accessibilityState={{ disabled: !newItems.some(item => item.trim()) || createMutation.isPending }}
+                accessibilityState={{ disabled: !newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending }}
               >
                 <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>

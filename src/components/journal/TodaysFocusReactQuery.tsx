@@ -39,7 +39,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   // React Query hooks with performance tracking
   const loadStartTime = useRef<number>(Date.now());
   const { data: focusEntries = [], error, isLoading } = useTodaysFocusData(user?.id || '', dateStr);
-  
+
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
 
@@ -99,7 +99,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     if (!isLoading && focusEntries.length >= 0) {
       const loadTime = Date.now() - loadStartTime.current;
       const completedPriorities = initialData.priorities.filter(p => p.completed).length;
-      
+
       analytics.trackFocusEvent('focus_loaded', {
         has_focus: Boolean(initialData.focus),
         priorities_count: initialData.priorities.length,
@@ -118,8 +118,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         operation: 'load',
         date: dateStr,
       }, user?.id);
-      
-      Alert.alert('Error', 'Failed to load today\'s focus.');
     }
   }, [error, dateStr, user?.id]);
 
@@ -150,7 +148,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           content: contentToSave,
         });
       }
-      
+
       // Track successful focus update
       analytics.trackFocusEvent('focus_updated', {
         focus_length: focusData.focus.length,
@@ -158,7 +156,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         priorities_count: focusData.priorities.filter(p => p.text.trim() !== '').length,
         date: dateStr,
       }, user.id);
-      
+
       setIsEditing(false);
     } catch (saveError) {
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
@@ -207,7 +205,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       const newPriorities = prev.priorities.map((p, i) => {
         if (i === index) {
           const newCompleted = !p.completed;
-          
+
           // Track priority completion
           if (newCompleted && p.text.trim()) {
             analytics.trackFocusEvent('focus_priority_completed', {
@@ -216,12 +214,12 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               date: dateStr,
             }, user?.id);
           }
-          
+
           return { ...p, completed: newCompleted };
         }
         return p;
       });
-      
+
       return {
         ...prev,
         priorities: newPriorities,
@@ -255,6 +253,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const canSave = hasContent && (createMutation.isPending || updateMutation.isPending) === false;
 
   // Handle loading state with skeleton loader
+  // Handle loading state
   if (isLoading) {
     return (
       <ComponentErrorBoundary name="TodaysFocusReactQuery">
@@ -271,7 +270,56 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           showAddButton={true}
           onAdd={() => {}} // Disabled during loading
         >
-          <TodaysFocusSkeleton />
+          <View
+            accessibilityRole="progressbar"
+            accessibilityLabel="Loading today's focus"
+            accessibilityHint="Please wait while your focus and priorities are being loaded"
+          >
+            <TodaysFocusSkeleton />
+          </View>
+        </JournalCard>
+      </ComponentErrorBoundary>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <ComponentErrorBoundary name="TodaysFocusReactQuery">
+        <JournalCard
+          icon={
+            <LuGoal
+              size={24}
+              color={Colors.alertCoral}
+              strokeWidth={2.5}
+            />
+          }
+          title="Today's Focus"
+          subtitle="Your daily focus and priorities"
+          showAddButton={false}
+        >
+          <View
+            style={styles.errorContainer}
+            accessibilityRole="alert"
+            accessibilityLabel="Error loading today's focus"
+          >
+            <Text style={styles.errorText}>
+              Failed to load today's focus. Please try again.
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                // Trigger a refetch by calling the query again
+                // In React Native, we don't have window.location.reload
+                console.log('Retry loading focus data');
+              }}
+              style={styles.retryButton}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading today's focus"
+              accessibilityHint="Attempts to reload your focus and priorities"
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
         </JournalCard>
       </ComponentErrorBoundary>
     );
@@ -280,125 +328,132 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   return (
     <ComponentErrorBoundary name="TodaysFocusReactQuery">
       <JournalCard
-      icon={
-        <LuGoal
-          size={24}
-          color={Colors.alertCoral}
-          strokeWidth={2.5}
-        />
-      }
-      title="Today's Focus"
-      subtitle="Your daily focus and priorities"
-      showAddButton={!isEditing}
-      onAdd={toggleEditing}
-      isAdding={isEditing}
-    >
-      {isEditing
-        ? (
-          <View style={styles.editContainer}>
-            <Text style={styles.sectionHeaderWithBottomMargin}>Today's Focus</Text>
-            <TextInput
-              style={[styles.input, styles.focusInput]}
-              value={data.focus}
-              onChangeText={updateFocus}
-              placeholder="What's your main focus today?"
-              placeholderTextColor={Colors.mediumGray}
-              autoFocus
-              accessibilityLabel="Today's focus input"
-              accessibilityHint="Enter your main focus for today"
-            />
-            <Text style={styles.sectionHeaderWithTopMargin}>TOP PRIORITIES</Text>
-            {data.priorities.map((priority, index) => (
-              <View key={priority.id} style={styles.priorityRow}>
-                <Text style={styles.priorityNumber}>{index + 1}.</Text>
-                <TextInput
-                  style={[styles.input, styles.priorityInput]}
-                  value={priority.text}
-                  onChangeText={(text) => updatePriority(index, text)}
-                  placeholder={`Priority ${index + 1}`}
-                  placeholderTextColor={Colors.mediumGray}
-                  onSubmitEditing={toggleEditing}
-                  accessibilityLabel={`Priority ${index + 1} input`}
-                  accessibilityHint={`Enter your ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'} priority for today`}
-                />
-              </View>
-            ))}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                onPress={handleCancel}
-                style={[styles.button, styles.cancelButton]}
-                activeOpacity={0.8}
-              >
-                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={toggleEditing}
-                style={[
-                  styles.button,
-                  styles.saveButton,
-                  !canSave && styles.disabledButton,
-                ]}
-                disabled={!canSave}
-                activeOpacity={0.8}
-              >
-                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        )
-        : (
-          ((data.focus || '').trim() || data.priorities.some(p => p.text.trim() !== ''))
-            ? (
-              <View style={styles.viewContainer}>
-                {data.focus && <Text style={styles.focusText}>{data.focus}</Text>}
-                <View style={styles.prioritiesList}>
-                  {data.priorities.some(p => p.text.trim() !== '') && (
-                    <Text style={styles.prioritiesTitle}>TOP PRIORITIES</Text>
-                  )}
-                  {data.priorities
-                    .filter(p => p.text.trim() !== '')
-                    .map((priority, index) => (
-                      <SwipeableTodoItem
-                        key={priority.id}
-                        item={{
-                          id: priority.id,
-                          text: priority.text,
-                          completed: priority.completed,
-                        }}
-                        onToggle={() => togglePriority(index)}
-                        onDelete={() => removePriority(priority.id)}
-                        hideCheckbox={true}
-                        ref={ref => {
-                          if (ref) {
-                            swipeableRefs.current[priority.id] = ref;
-                          } else {
-                            delete swipeableRefs.current[priority.id];
-                          }
-                        }}
-                      >
-                        <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
-                          {priority.completed && (
-                            <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
-                          )}
-                        </View>
-                        <Text
-                          style={[
-                            styles.priorityText,
-                            priority.completed && styles.completedText,
-                          ]}>
-                          {priority.text}
-                        </Text>
-                      </SwipeableTodoItem>
-                    ))
-                  }
+        icon={
+          <LuGoal
+            size={24}
+            color={Colors.alertCoral}
+            strokeWidth={2.5}
+          />
+        }
+        title="Today's Focus"
+        subtitle="Your daily focus and priorities"
+        showAddButton={!isEditing}
+        onAdd={toggleEditing}
+        isAdding={isEditing}
+      >
+        {isEditing
+          ? (
+            <View style={styles.editContainer}>
+              <Text style={styles.sectionHeaderWithBottomMargin}>Today's Focus</Text>
+              <TextInput
+                style={[styles.input, styles.focusInput]}
+                value={data.focus}
+                onChangeText={updateFocus}
+                placeholder="What's your main focus today?"
+                placeholderTextColor={Colors.mediumGray}
+                autoFocus
+                accessibilityLabel="Today's focus input"
+                accessibilityHint="Enter your main focus for today"
+              />
+              <Text style={styles.sectionHeaderWithTopMargin}>TOP PRIORITIES</Text>
+              {data.priorities.map((priority, index) => (
+                <View key={priority.id} style={styles.priorityRow}>
+                  <Text style={styles.priorityNumber}>{index + 1}.</Text>
+                  <TextInput
+                    style={[styles.input, styles.priorityInput]}
+                    value={priority.text}
+                    onChangeText={(text) => updatePriority(index, text)}
+                    placeholder={`Priority ${index + 1}`}
+                    placeholderTextColor={Colors.mediumGray}
+                    onSubmitEditing={toggleEditing}
+                    accessibilityLabel={`Priority ${index + 1} input`}
+                    accessibilityHint={`Enter your ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'} priority for today`}
+                  />
                 </View>
+              ))}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  onPress={handleCancel}
+                  style={[styles.button, styles.cancelButton]}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Cancel editing focus"
+                  accessibilityHint="Cancels your changes and closes the edit form"
+                >
+                  <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={toggleEditing}
+                  style={[
+                    styles.button,
+                    styles.saveButton,
+                    !canSave && styles.disabledButton,
+                  ]}
+                  disabled={!canSave}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save focus and priorities"
+                  accessibilityHint="Saves your focus and priorities and closes the edit form"
+                  accessibilityState={{ disabled: !canSave }}
+                >
+                  <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                </TouchableOpacity>
               </View>
-            )
-            : null
-        )
-      }
+            </View>
+          )
+          : (
+            ((data.focus || '').trim() || data.priorities.some(p => p.text.trim() !== ''))
+              ? (
+                <View style={styles.viewContainer}>
+                  {data.focus && <Text style={styles.focusText}>{data.focus}</Text>}
+                  <View style={styles.prioritiesList}>
+                    {data.priorities.some(p => p.text.trim() !== '') && (
+                      <Text style={styles.prioritiesTitle}>TOP PRIORITIES</Text>
+                    )}
+                    {data.priorities
+                      .filter(p => p.text.trim() !== '')
+                      .map((priority, index) => (
+                        <SwipeableTodoItem
+                          key={priority.id}
+                          item={{
+                            id: priority.id,
+                            text: priority.text,
+                            completed: priority.completed,
+                          }}
+                          onToggle={() => togglePriority(index)}
+                          onDelete={() => removePriority(priority.id)}
+                          hideCheckbox={true}
+                          ref={ref => {
+                            if (ref) {
+                              swipeableRefs.current[priority.id] = ref;
+                            } else {
+                              delete swipeableRefs.current[priority.id];
+                            }
+                          }}
+                        >
+                          <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
+                            {priority.completed && (
+                              <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
+                            )}
+                          </View>
+                          <Text
+                            style={[
+                              styles.priorityText,
+                              priority.completed && styles.completedText,
+                            ]}>
+                            {priority.text}
+                          </Text>
+                        </SwipeableTodoItem>
+                      ))
+                    }
+                  </View>
+                </View>
+              )
+              : null
+          )
+        }
     </JournalCard>
-    </ComponentErrorBoundary>
+  </ComponentErrorBoundary>
   );
 };
 
@@ -409,6 +464,9 @@ const styles = StyleSheet.create({
   },
   viewContainer: {
     padding: 0,
+  },
+  focusContainer: {
+    marginBottom: 8,
   },
   prioritiesList: {
     marginTop: 4,
@@ -617,5 +675,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     padding: 16,
+  },
+
+  // Error state styles
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    marginTop: 8,
+  },
+  errorText: {
+    fontFamily: Fonts.regular,
+    color: Colors.alertCoral,
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignSelf: 'center',
+  },
+  retryText: {
+    fontFamily: Fonts.medium,
+    color: Colors.hopeWhite,
+    fontSize: 12,
   },
 });

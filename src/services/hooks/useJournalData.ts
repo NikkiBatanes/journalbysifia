@@ -9,7 +9,7 @@ import { QueryConfig } from '../../types/api';
 // Hook for getting gratitude entries with enhanced retry logic
 export const useGratitudeData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
   const defaultConfig: QueryConfig = {
-    staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    staleTime: 1 * 60 * 1000, // Reduced to 1 minute to ensure fresher data
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
     refetchOnMount: true, // Refetch on mount to ensure data is loaded
@@ -24,25 +24,24 @@ export const useGratitudeData = (userId: string, date: string, config?: Partial<
     queryKey: queryKeys.journal.gratitude(userId, date),
     queryFn: async () => {
       try {
-        // Try cache first
-        const cached = await JournalCache.getCache(userId, date, 'gratitude');
-        if (cached) {
-          return cached;
-        }
-
-        // Fetch from API
+        // Always fetch from API first to ensure fresh data
         const entries = await JournalApi.getGratitudeEntries(userId, date);
 
-        // Cache the results
+        // Cache the results for future use
         await JournalCache.setCache(userId, date, entries, 'gratitude');
 
         return entries;
       } catch (error) {
         console.error('Error fetching gratitude data:', error);
+        // Only fall back to cache on error
+        const cached = await JournalCache.getCache(userId, date, 'gratitude');
+        if (cached) {
+          return cached;
+        }
         throw error;
       }
     },
-    initialData: [], // Prevent loading flash - show component immediately with empty data
+    // Remove initialData to allow proper loading states
     ...finalConfig,
   });
 };
@@ -184,20 +183,30 @@ export const useCreateJournalEntry = () => {
   return useMutation({
     mutationFn: JournalApi.createJournalEntry,
     onMutate: async (newEntry) => {
-      // Cancel any outgoing refetches for general entries
+      // Skip optimistic updates for gratitude entries to prevent duplicates with API-first strategy
+      if (newEntry.content_type === 'gratitude') {
+        // Just cancel queries to prevent race conditions
+        const entriesQueryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
+        const gratitudeQueryKey = queryKeys.journal.gratitude(newEntry.user_id, newEntry.selected_date);
+
+        await queryClient.cancelQueries({ queryKey: entriesQueryKey });
+        await queryClient.cancelQueries({ queryKey: gratitudeQueryKey });
+
+        return { skipOptimistic: true };
+      }
+
+      // Continue with optimistic updates for other content types
       const entriesQueryKey = queryKeys.journal.entries(newEntry.user_id, newEntry.selected_date);
       await queryClient.cancelQueries({ queryKey: entriesQueryKey });
 
       // Also cancel content-type specific queries
       let contentTypeQueryKey;
-      if (newEntry.content_type === 'gratitude') {
-        contentTypeQueryKey = queryKeys.journal.gratitude(newEntry.user_id, newEntry.selected_date);
-      } else if (newEntry.content_type === 'todo') {
+      if (newEntry.content_type === 'todo') {
         contentTypeQueryKey = queryKeys.journal.todos(newEntry.user_id, newEntry.selected_date);
       } else if (newEntry.content_type === 'todays_focus') {
         contentTypeQueryKey = queryKeys.journal.todaysFocus(newEntry.user_id, newEntry.selected_date);
       }
-      
+
       if (contentTypeQueryKey) {
         await queryClient.cancelQueries({ queryKey: contentTypeQueryKey });
       }
@@ -207,11 +216,11 @@ export const useCreateJournalEntry = () => {
       const previousContentTypeEntries = contentTypeQueryKey ? queryClient.getQueryData(contentTypeQueryKey) : null;
 
       // Create the optimistic entry
-      const optimisticEntry = { 
-        ...newEntry, 
-        id: 'temp-' + Date.now(), 
-        created_at: new Date().toISOString(), 
-        updated_at: new Date().toISOString() 
+      const optimisticEntry = {
+        ...newEntry,
+        id: 'temp-' + Date.now(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       // Optimistically update general entries
@@ -233,6 +242,12 @@ export const useCreateJournalEntry = () => {
     },
     onError: (err: Error, newEntry, context) => {
       console.error('Error creating journal entry:', err);
+
+      // Skip rollback for gratitude entries (no optimistic updates to rollback)
+      if (context?.skipOptimistic) {
+        return;
+      }
+
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousEntries) {
         try {
@@ -242,7 +257,7 @@ export const useCreateJournalEntry = () => {
           console.error('Error rolling back journal entry creation:', rollbackError);
         }
       }
-      
+
       // Also rollback content-type specific queries
       if (context?.previousContentTypeEntries && context?.contentTypeQueryKey) {
         try {
@@ -287,14 +302,27 @@ export const useUpdateJournalEntry = () => {
     mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
       JournalApi.updateJournalEntry(id, updates),
     onSuccess: (data) => {
-      // Update the specific entry in all relevant queries
-      queryClient.setQueryData(
-        queryKeys.journal.entries(data.user_id, data.selected_date),
-        (old: JournalApiEntry[] = []) =>
-          old.map(entry => entry.id === data.id ? data : entry)
-      );
+      // Invalidate and refetch related queries (like create mutation)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.entries(data.user_id, data.selected_date),
+      });
 
-      // Clear cache to ensure consistency
+      // Also invalidate content-type specific queries (CRITICAL FIX)
+      if (data.content_type === 'gratitude') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.gratitude(data.user_id, data.selected_date),
+        });
+      } else if (data.content_type === 'todo') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todos(data.user_id, data.selected_date),
+        });
+      } else if (data.content_type === 'todays_focus') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.journal.todaysFocus(data.user_id, data.selected_date),
+        });
+      }
+
+      // Clear cache to force fresh data
       JournalCache.clearCache(data.user_id, data.selected_date, data.content_type);
     },
   });

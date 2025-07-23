@@ -76,7 +76,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       }, user?.id);
     }
   }, [error, dateStr, user?.id]);
-  
+
 
   const createTodoMutation = useCreateTodoEntry();
   const updateTodoMutation = useUpdateTodoEntry();
@@ -181,10 +181,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   // Remove a todo
   const removeTodo = async (id: string) => {
     const todo = todos.find(t => t.id === id);
-    
+
     try {
       await deleteTodoMutation.mutateAsync(id);
-      
+
       // Track successful todo deletion
       if (todo) {
         analytics.trackTodoEvent('todo_deleted', {
@@ -350,7 +350,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         showAddButton={true}
         onAdd={() => {}} // Disabled during loading
       >
-        <View 
+        <View
           style={styles.todosContainer}
           accessibilityRole="progressbar"
           accessibilityLabel="Loading todos"
@@ -372,20 +372,20 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         showAddButton={true}
         onAdd={() => {}} // Disabled during error
       >
-        <View 
+        <View
           style={styles.todosContainer}
           accessibilityRole="alert"
           accessibilityLabel="Error loading todos"
         >
-          <Text 
+          <Text
             style={styles.errorText}
             accessibilityRole="text"
             accessibilityLabel="Failed to load todos"
           >
             Failed to load todos
           </Text>
-          <TouchableOpacity 
-            onPress={() => refetch()} 
+          <TouchableOpacity
+            onPress={() => refetch()}
             style={styles.retryButton}
             accessibilityRole="button"
             accessibilityLabel="Retry loading todos"
@@ -428,7 +428,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               style={[styles.sortButton, showOnlyPriorities && styles.activeFilterButton]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
-              accessibilityLabel={showOnlyPriorities ? "Show all todos" : "Show only priority todos"}
+              accessibilityLabel={showOnlyPriorities ? 'Show all todos' : 'Show only priority todos'}
               accessibilityHint="Filters the todo list to show only priority items"
               accessibilityState={{ selected: showOnlyPriorities }}
             >
@@ -452,7 +452,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               style={[styles.sortButton, showCompletedAtBottom && styles.activeFilterButton]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
-              accessibilityLabel={showCompletedAtBottom ? "Show todos in normal order" : "Move completed todos to bottom"}
+              accessibilityLabel={showCompletedAtBottom ? 'Show todos in normal order' : 'Move completed todos to bottom'}
               accessibilityHint="Changes the order of completed todos in the list"
               accessibilityState={{ selected: showCompletedAtBottom }}
             >
@@ -466,7 +466,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         </View>
       }
     >
-      <View 
+      <View
         style={styles.todosContainer}
         accessibilityRole="list"
         accessibilityLabel={`Todo list with ${visibleTodos.length} visible items out of ${todos.length} total`}
@@ -479,7 +479,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             accessibilityHint={`${item.completed ? 'Completed' : 'Not completed'}${item.priority ? ', Priority item' : ''}. Tap to toggle completion, long press to toggle priority, swipe for more options`}
             accessibilityState={{
               checked: item.completed,
-              selected: item.priority
+              selected: item.priority,
             }}
           >
             <SwipeableTodoItem
