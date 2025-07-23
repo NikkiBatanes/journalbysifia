@@ -34,29 +34,19 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const dateStr = toLocalDateString(selectedDate);
 
   // React Query hooks
-  const { data: focusEntries = [], isLoading, error } = useTodaysFocusData(user?.id || '', dateStr);
+  const { data: focusEntries = [], error } = useTodaysFocusData(user?.id || '', dateStr);
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
 
-  // Debug logging
-  console.log('🔍 TodaysFocus Debug:', {
-    userId: user?.id,
-    dateStr,
-    focusEntriesLength: focusEntries.length,
-    focusEntries,
-    isLoading,
-    error: error?.message,
-  });
+
 
   // Transform API data to local format
   const existingEntry = focusEntries.length > 0 ? focusEntries[0] : null;
-  console.log('🔄 TodaysFocus Transform:', { existingEntry });
 
   const initialData: TodayFocusData = useMemo(() => {
     const result = existingEntry ? (() => {
       try {
         const parsedContent = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
-        console.log(' TodaysFocus Parsed Content:', parsedContent);
         return {
           focus: parsedContent.focus || '',
           priorities: parsedContent.priorities || [
@@ -66,7 +56,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ],
         };
       } catch (parseError) {
-        console.log(' TodaysFocus Parse Error:', parseError);
         return {
           focus: '',
           priorities: [
@@ -85,7 +74,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       ],
     };
 
-    console.log('🎯 TodaysFocus Initial Data:', result);
     return result;
   }, [existingEntry]);
 
@@ -96,10 +84,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   // Reset state when date changes or data loads
   React.useEffect(() => {
-    setData(initialData);
+    setData({ ...initialData });
+    originalData.current = { ...initialData };
     setIsEditing(false);
-    console.log(' TodaysFocus: Resetting state for date:', dateStr);
-  }, [dateStr, existingEntry?.id, initialData]);
+  }, [dateStr, initialData]);
 
   // Handle loading and error states
   React.useEffect(() => {
@@ -120,11 +108,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
       if (existingEntry) {
         // Update existing entry
-        console.log('💾 TodaysFocus updating existing entry:', { 
-          existingEntry, 
-          id: existingEntry.id, 
-          contentToSave 
-        });
         await updateMutation.mutateAsync({
           id: existingEntry.id,
           updates: {
@@ -140,10 +123,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           content: contentToSave,
         });
       }
-
-      console.log(' TodaysFocus saved successfully');
+      setIsEditing(false);
     } catch (saveError) {
-      console.error(' TodaysFocus Error saving today\'s focus:', saveError);
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
       throw saveError;
     }

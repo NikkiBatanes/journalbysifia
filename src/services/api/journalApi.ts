@@ -92,7 +92,7 @@ export class JournalApi {
     id: string,
     updates: Partial<Omit<JournalApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<JournalApiEntry> {
-    console.log('🔄 JournalApi.updateJournalEntry:', { id, updates });
+
 
     // First check if there are duplicates and clean them up
     const { data: existingEntries } = await supabase
@@ -101,7 +101,7 @@ export class JournalApi {
       .eq('id', id)
       .order('created_at', { ascending: true });
 
-    console.log('📊 Existing entries with this ID:', { count: existingEntries?.length, entries: existingEntries });
+
 
     // Handle different scenarios
     if (!existingEntries || existingEntries.length === 0) {
@@ -110,8 +110,8 @@ export class JournalApi {
     }
 
     if (existingEntries.length > 1) {
-      console.log('⚠️ Found duplicate entries, cleaning up...');
-      const [keepEntry, ...duplicateEntries] = existingEntries;
+
+      const [_keepEntry, ...duplicateEntries] = existingEntries;
 
       // Delete duplicates (but keep the first one)
       for (const duplicate of duplicateEntries) {
@@ -123,13 +123,11 @@ export class JournalApi {
         if (deleteError) {
           console.error('❌ Error deleting duplicate:', deleteError);
         } else {
-          console.log('🗑️ Deleted duplicate entry:', duplicate.id);
+
         }
       }
 
-      console.log('✅ Cleanup complete, proceeding with update of entry:', keepEntry.id);
     } else {
-      console.log('✅ Single entry found, proceeding with update:', existingEntries[0].id);
     }
 
     // Verify the entry still exists before updating
@@ -138,7 +136,7 @@ export class JournalApi {
       .select('id')
       .eq('id', id);
 
-    console.log('🔍 Entries before update:', verifyEntries);
+
 
     if (!verifyEntries || verifyEntries.length === 0) {
       console.error('❌ No entry found to update after cleanup');
@@ -162,7 +160,7 @@ export class JournalApi {
       // Try fallback update using natural key if we have the necessary info
       if (existingEntries && existingEntries.length > 0) {
         const entry = existingEntries[0];
-        console.log('🔄 Attempting fallback update using natural key...');
+
 
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('journal_entries')
@@ -181,14 +179,14 @@ export class JournalApi {
           throw new Error(`Failed to update journal entry: ${error.message}`);
         }
 
-        console.log('✅ Fallback update successful:', fallbackData);
+
         return fallbackData;
       }
 
       throw new Error(`Failed to update journal entry: ${error.message}`);
     }
 
-    console.log('✅ Successfully updated entry:', data);
+
 
     return data;
   }
