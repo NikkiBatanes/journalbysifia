@@ -1225,14 +1225,18 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
   });
 
   try {
-    // First, check if an entry exists for this user, content type, and date
+    // First, clean up any duplicates and check if an entry exists
     console.log('Checking for existing cloud entry with same user, type and date...');
+    await cleanupDuplicateEntries(userId, contentType, date);
+    
     const { data: existingEntries, error: fetchError } = await supabase
       .from('journal_entries')
       .select('*')
       .eq('user_id', userId)
       .eq('content_type', contentType)
       .eq('selected_date', date)
+      .order('updated_at', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (fetchError) {
