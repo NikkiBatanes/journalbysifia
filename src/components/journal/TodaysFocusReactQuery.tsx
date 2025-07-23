@@ -38,12 +38,25 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
 
+  // Debug logging
+  console.log('🔍 TodaysFocus Debug:', {
+    userId: user?.id,
+    dateStr,
+    focusEntriesLength: focusEntries.length,
+    focusEntries,
+    isLoading,
+    error: error?.message
+  });
+
   // Transform API data to local format
   const existingEntry = focusEntries.length > 0 ? focusEntries[0] : null;
+  console.log('🔄 TodaysFocus Transform:', { existingEntry });
+  
   const initialData: TodayFocusData = useMemo(() => {
-    return existingEntry ? (() => {
+    const result = existingEntry ? (() => {
       try {
         const parsedContent = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
+        console.log('✅ TodaysFocus Parsed Content:', parsedContent);
         return {
           focus: parsedContent.focus || '',
           priorities: parsedContent.priorities || [
@@ -52,7 +65,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             { id: '3', text: '', completed: false },
           ],
         };
-      } catch {
+      } catch (parseError) {
+        console.log('⚠️ TodaysFocus Parse Error:', parseError);
         return {
           focus: '',
           priorities: [
@@ -70,6 +84,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         { id: '3', text: '', completed: false },
       ],
     };
+    
+    console.log('🎯 TodaysFocus Initial Data:', result);
+    return result;
   }, [existingEntry]);
 
   const [data, setData] = useState<TodayFocusData>(initialData);
