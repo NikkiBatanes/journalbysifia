@@ -18,7 +18,7 @@ import PrayerJournalTab from '../components/journal/PrayerJournalTab';
 import { useAuth } from '../context/AuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
-import { AuthDebugger } from '../components/debug/AuthDebugger';
+
 
 type TabType = 'journal' | 'schedule' | 'prayer' | 'finance';
 
@@ -371,9 +371,6 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               />
             }
           >
-            {/* Debug component - remove after fixing auth issues */}
-            <AuthDebugger />
-            
             <View style={styles.componentSpacing}>
               <TodaysFocus selectedDate={currentDate} refreshKey={refreshKey} />
             </View>
