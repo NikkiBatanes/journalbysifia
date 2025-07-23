@@ -7,7 +7,7 @@ import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { TodaysFocusReactQuery } from '../components/journal/TodaysFocusReactQuery';
-import { Todos } from '../components/journal/Todos';
+import { TodosReactQuery } from '../components/journal/TodosReactQuery';
 import { TimeBlockReactQuery } from '../components/journal/TimeBlockReactQuery';
 import { GratitudeListReactQuery } from '../components/journal/GratitudeListReactQuery';
 import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReactQuery';
@@ -374,7 +374,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               <TodaysFocusReactQuery selectedDate={currentDate} />
             </View>
             <View style={styles.componentSpacing}>
-              <Todos selectedDate={currentDate} refreshKey={refreshKey} />
+              <TodosReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
             </View>
             <View style={styles.componentSpacing}>
               <TimeBlockReactQuery selectedDate={currentDate} />

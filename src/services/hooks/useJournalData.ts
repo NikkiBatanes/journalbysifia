@@ -33,38 +33,53 @@ export const useGratitudeData = (userId: string, date: string) => {
   });
 };
 
-// Hook for getting todo entries
-export const useTodosData = (userId: string, date: string) => {
+// Hook for getting todo entries with enhanced retry logic
+export const useTodosData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
+  const defaultConfig: QueryConfig = {
+    staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+    refetchOnMount: true, // Refetch on mount to ensure data is loaded
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    retry: createRetryFunction(RETRY_CONFIGS.STANDARD),
+    retryDelay: createRetryDelayFunction(RETRY_CONFIGS.STANDARD),
+  };
+
+  const finalConfig = { ...defaultConfig, ...config };
+
   return useQuery({
     queryKey: queryKeys.journal.todos(userId, date),
     queryFn: async () => {
-      // Try cache first
-      const cached = await JournalCache.getCache(userId, date, 'todo');
-      if (cached) {
-        return cached;
+      try {
+        // Try cache first
+        const cached = await JournalCache.getCache(userId, date, 'todo');
+        if (cached) {
+          return cached;
+        }
+
+        // Fetch from API
+        const entries = await JournalApi.getTodoEntries(userId, date);
+
+        // Cache the results
+        await JournalCache.setCache(userId, date, entries, 'todo');
+
+        return entries;
+      } catch (error) {
+        console.error('Error fetching todos data:', error);
+        throw error;
       }
-
-      // Fetch from API
-      const entries = await JournalApi.getTodoEntries(userId, date);
-
-      // Cache the results
-      await JournalCache.setCache(userId, date, entries, 'todo');
-
-      return entries;
     },
-    staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
-    gcTime: 10 * 60 * 1000,
-    enabled: !!userId && !!date,
+    ...finalConfig,
   });
 };
 
 // Hook for getting today's focus entries with enhanced retry logic
 export const useTodaysFocusData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
   const defaultConfig: QueryConfig = {
-    staleTime: 1000, // 1 second stale time to prevent excessive refetching
+    staleTime: 5 * 60 * 1000, // 5 minutes stale time
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
-    refetchOnMount: false, // Don't refetch on mount to prevent loading flash
+    refetchOnMount: true, // Refetch on mount to ensure data is loaded
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
     retry: createRetryFunction(RETRY_CONFIGS.STANDARD),
     retryDelay: createRetryDelayFunction(RETRY_CONFIGS.STANDARD),
@@ -94,7 +109,6 @@ export const useTodaysFocusData = (userId: string, date: string, config?: Partia
         throw error;
       }
     },
-    initialData: [], // Provide empty array as initial data to prevent loading state
     ...finalConfig,
   });
 };

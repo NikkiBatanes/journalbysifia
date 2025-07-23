@@ -35,7 +35,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const dateStr = toLocalDateString(selectedDate);
 
   // React Query hooks
-  const { data: focusEntries = [], error } = useTodaysFocusData(user?.id || '', dateStr);
+  const { data: focusEntries = [], error, isLoading } = useTodaysFocusData(user?.id || '', dateStr);
+  
+
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
 

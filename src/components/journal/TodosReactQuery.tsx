@@ -8,6 +8,7 @@ import { Check, ListTodo as LuListTodo, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
+import { ComponentErrorBoundary } from '../ErrorBoundary';
 
 // React Query hooks
 import {
@@ -30,7 +31,7 @@ interface TodosProps {
   refreshKey?: number;
 }
 
-export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
+const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -44,11 +45,13 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
 
-  // React Query hooks
+  // React Query hooks with enhanced retry logic
   const { data: todosData = [], isLoading, error, refetch } = useTodosData(
     user?.id || '',
     dateStr
   );
+  
+
   const createTodoMutation = useCreateTodoEntry();
   const updateTodoMutation = useUpdateTodoEntry();
   const deleteTodoMutation = useDeleteTodoEntry();
@@ -80,6 +83,13 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
     setShowOnlyPriorities(false);
   }, [dateStr, refreshKey]);
 
+  // Handle loading and error states
+  useEffect(() => {
+    if (error) {
+      console.error('Failed to load todos:', error);
+    }
+  }, [error]);
+
   const closeAllSwipeables = () => {
     Object.values(swipeableRefs.current).forEach(ref => {
       if (ref?.close) {ref.close();}
@@ -90,6 +100,10 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
     closeAllSwipeables();
     setVisibleCount(5);
     setIsAdding(true);
+    // Focus input after state update
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
   };
 
   const cancelAdding = () => {
@@ -100,8 +114,6 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
   };
 
   const handleSave = async () => {
-    console.log('💾 handleSave called with:', newTodo);
-
     const todoText = newTodo.trim();
     if (!todoText || !user) {return;}
 
@@ -124,12 +136,11 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
         }),
         completed: false,
       });
-      console.log('✅ handleSave completed, input should be clear');
     } catch (saveError) {
       // Restore input if there was an error and reopen adding mode
       setNewTodo(todoText);
       setIsAdding(true);
-      console.error('❌ handleSave error:', saveError);
+      console.error('Failed to save todo:', saveError);
       Alert.alert('Error', 'Failed to save todo. Please try again.');
     }
   };
@@ -139,7 +150,7 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
     try {
       await deleteTodoMutation.mutateAsync(id);
     } catch (deleteError) {
-      console.error('❌ removeTodo error:', deleteError);
+      console.error('Failed to delete todo:', deleteError);
       Alert.alert('Error', 'Failed to delete todo. Please try again.');
     }
   };
@@ -164,7 +175,7 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
       });
       return true;
     } catch (addError) {
-      console.error('❌ addTodo error:', addError);
+      console.error('Failed to add todo:', addError);
       return false;
     }
   };
@@ -188,7 +199,7 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
     } catch (inputError) {
       // Restore input if there was an error
       setNewTodo(originalText);
-      console.error('❌ handleAddInput error:', inputError);
+      console.error('Failed to add todo input:', inputError);
     }
   };
 
@@ -224,16 +235,18 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
         },
       });
     } catch (toggleError) {
-      console.error('❌ toggleTodo error:', toggleError);
+      console.error('Failed to toggle todo:', toggleError);
       Alert.alert('Error', 'Failed to update todo. Please try again.');
     }
   };
 
   const loadMore = () => {
-    setVisibleCount(prev => prev + 10);
+    closeAllSwipeables();
+    setVisibleCount((prev: number) => Math.min(prev + 5, todos.length));
   };
 
   const showLess = () => {
+    closeAllSwipeables();
     setVisibleCount(5);
   };
 
@@ -273,23 +286,13 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
     return (
       <JournalCard
         title="Todos"
-        icon={<LuListTodo size={16} color={Colors.hopeWhite} strokeWidth={2.5} />}
-        headerRight={
-          <View style={styles.headerRightContainer}>
-            <TouchableOpacity
-              style={styles.addAnotherButton}
-              onPress={startAdding}
-              activeOpacity={0.7}
-            >
-              <View style={styles.plusIcon}>
-                <Ionicons name="add" size={14} color={Colors.hopeWhite} />
-              </View>
-            </TouchableOpacity>
-          </View>
-        }
+        subtitle="Track your daily tasks"
+        icon={<LuListTodo size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
+        showAddButton={true}
+        onAdd={() => {}} // Disabled during loading
       >
         <View style={styles.todosContainer}>
-          <Text style={styles.loadingText}>Loading todos...</Text>
+          {/* Loading state - show empty container */}
         </View>
       </JournalCard>
     );
@@ -300,20 +303,10 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
     return (
       <JournalCard
         title="Todos"
+        subtitle="Track your daily tasks"
         icon={<LuListTodo size={16} color={Colors.hopeWhite} strokeWidth={2.5} />}
-        headerRight={
-          <View style={styles.headerRightContainer}>
-            <TouchableOpacity
-              style={styles.addAnotherButton}
-              onPress={startAdding}
-              activeOpacity={0.7}
-            >
-              <View style={styles.plusIcon}>
-                <Ionicons name="add" size={14} color={Colors.hopeWhite} />
-              </View>
-            </TouchableOpacity>
-          </View>
-        }
+        showAddButton={true}
+        onAdd={() => {}} // Disabled during error
       >
         <View style={styles.todosContainer}>
           <Text style={styles.errorText}>Failed to load todos</Text>
@@ -327,82 +320,95 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
 
   return (
     <JournalCard
+      icon={
+        <LuListTodo
+          size={24}
+          color={Colors.alertCoral}
+          strokeWidth={2.5}
+        />
+      }
       title="Todos"
-      icon={<LuListTodo size={16} color={Colors.hopeWhite} strokeWidth={2.5} />}
+      subtitle="Track your daily tasks"
+      showAddButton={!isAdding}
+      onAdd={startAdding}
+      isAdding={isAdding}
       headerRight={
         <View style={styles.headerRightContainer}>
-          <TouchableOpacity
-            style={[styles.sortButton, showOnlyPriorities && styles.activeFilterButton]}
-            onPress={() => setShowOnlyPriorities(!showOnlyPriorities)}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="star"
-              size={14}
-              color={showOnlyPriorities ? Colors.alertCoral : Colors.hopeWhite}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.sortButton, showCompletedAtBottom && styles.activeFilterButton]}
-            onPress={() => setShowCompletedAtBottom(!showCompletedAtBottom)}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="checkmark-done"
-              size={14}
-              color={showCompletedAtBottom ? Colors.alertCoral : Colors.hopeWhite}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.addAnotherButton}
-            onPress={startAdding}
-            activeOpacity={0.7}
-          >
-            <View style={styles.plusIcon}>
-              <Ionicons name="add" size={14} color={Colors.hopeWhite} />
-            </View>
-          </TouchableOpacity>
+          {todos.some(t => t.priority && !t.completed) && (
+            <TouchableOpacity
+              onPress={() => {
+                if (showCompletedAtBottom) {
+                  setShowCompletedAtBottom(false);
+                  setShowOnlyPriorities(true);
+                } else {
+                  setShowOnlyPriorities(!showOnlyPriorities);
+                }
+              }}
+              style={[styles.sortButton, showOnlyPriorities && styles.activeFilterButton]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name="star"
+                size={14}
+                color={showOnlyPriorities ? Colors.alertCoral : Colors.mediumGray}
+              />
+            </TouchableOpacity>
+          )}
+          {todos.some(t => t.completed) && !todos.every(t => t.completed) && (
+            <TouchableOpacity
+              onPress={() => {
+                if (showOnlyPriorities) {
+                  setShowOnlyPriorities(false);
+                  setShowCompletedAtBottom(true);
+                } else {
+                  setShowCompletedAtBottom(!showCompletedAtBottom);
+                }
+              }}
+              style={[styles.sortButton, showCompletedAtBottom && styles.activeFilterButton]}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name="filter"
+                size={16}
+                color={showCompletedAtBottom ? Colors.alertCoral : Colors.mediumGray}
+              />
+            </TouchableOpacity>
+          )}
         </View>
       }
     >
       <View style={styles.todosContainer}>
-        {/* Todo Items */}
-        {visibleTodos.map((todo) => (
+        {visibleTodos.map((item) => (
           <SwipeableTodoItem
-            key={todo.id}
-            ref={(ref) => {
-              if (ref) {
-                swipeableRefs.current[todo.id] = ref;
-              }
+            key={item.id}
+            item={item}
+            onToggle={(id, isPriority) => {
+              toggleTodo(id, isPriority);
+              closeAllSwipeables();
             }}
-            item={{
-              id: todo.id,
-              text: todo.text,
-              completed: todo.completed,
-              priority: todo.priority || false,
-            }}
-            onToggle={(id: string, isPriority?: boolean) => {
-              if (isPriority) {
-                toggleTodo(id, true);
-              } else {
-                toggleTodo(id, false);
-              }
-            }}
+            onLongPress={(id) => toggleTodo(id, true)}
             onDelete={removeTodo}
+            ref={ref => {
+              if (ref) {
+                swipeableRefs.current[item.id] = ref;
+              } else {
+                delete swipeableRefs.current[item.id];
+              }
+            }}
           >
-            <Text style={[
-              styles.todoText,
-              todo.completed && styles.completedText,
-            ]}>
-              {todo.text}
+            <Text
+              style={[
+                styles.todoText,
+                item.completed && styles.completedText,
+              ]}
+            >
+              {item.text}
             </Text>
           </SwipeableTodoItem>
         ))}
 
-        {/* Pagination */}
-        {(hasMore || canShowLess) && (
+        {!isAdding && todos.length > 0 && (
           <View style={styles.paginationContainer}>
-            <View style={styles.buttonDivider} />
             <View style={styles.paginationButtonGroup}>
               {hasMore && (
                 <TouchableOpacity
@@ -412,7 +418,7 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
                 >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
                   <Text style={[styles.paginationButtonText, styles.showMoreText]}>
-                    Show More ({filteredTodos.length - visibleCount})
+                    Show more ({filteredTodos.length - visibleCount})
                   </Text>
                 </TouchableOpacity>
               )}
@@ -424,7 +430,7 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
                 >
                   <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
                   <Text style={[styles.paginationButtonText, styles.showLessText]}>
-                    Show Less
+                    Show less
                   </Text>
                 </TouchableOpacity>
               )}
@@ -432,61 +438,66 @@ export const TodosReactQuery: React.FC<TodosProps> = ({ selectedDate = new Date(
           </View>
         )}
 
-        {/* Add Todo Input */}
-        {isAdding && (
-          <>
-            <View style={styles.inputContainer}>
-              <TextInput
-                ref={inputRef}
-                style={styles.input}
-                value={newTodo}
-                onChangeText={setNewTodo}
-                placeholder="Add a new todo..."
-                placeholderTextColor={Colors.mediumGray}
-                multiline
-                autoFocus
-                onSubmitEditing={handleAddInput}
-                blurOnSubmit={false}
-              />
-            </View>
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={styles.addAnotherButton}
-                onPress={handleAddInput}
-                activeOpacity={0.7}
-              >
-                <View style={styles.plusIcon}>
-                  <Ionicons name="add" size={14} color={Colors.hopeWhite} />
-                </View>
-              </TouchableOpacity>
-              <View style={styles.buttonGroup}>
-                <TouchableOpacity
-                  style={[styles.button, styles.cancelButton]}
-                  onPress={cancelAdding}
-                  activeOpacity={0.8}
-                >
-                  <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleSave}
-                  style={[
-                    styles.button,
-                    styles.saveButton,
-                    !newTodo.trim() && styles.disabledButton,
-                  ]}
-                  disabled={!newTodo.trim()}
-                  activeOpacity={0.8}
-                >
-                  <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </>
-        )}
       </View>
+      {isAdding && (
+        <>
+          <View style={styles.inputContainer}>
+            <TextInput
+              ref={inputRef}
+              style={styles.input}
+              value={newTodo}
+              onChangeText={setNewTodo}
+              placeholder="Add a task..."
+              placeholderTextColor={Colors.mediumGray}
+              onSubmitEditing={handleAddInput}
+              returnKeyType="next"
+              blurOnSubmit={false}
+              autoFocus
+            />
+          </View>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              onPress={handleAddInput}
+              style={[styles.button, styles.addAnotherButton]}
+            >
+              <View style={[styles.plusIcon, { transform: [{ rotate: '45deg' }] }]}>
+                <Ionicons name="close" size={13} color={Colors.alertCoral} style={styles.closeIcon} />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={cancelAdding}
+                activeOpacity={0.8}
+              >
+                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSave}
+                style={[
+                  styles.button,
+                  styles.saveButton,
+                  !newTodo.trim() && styles.disabledButton,
+                ]}
+                disabled={!newTodo.trim()}
+                activeOpacity={0.8}
+              >
+                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </>
+      )}
     </JournalCard>
   );
 };
+
+// Export with error boundary wrapper
+export const TodosReactQuery: React.FC<TodosProps> = (props) => (
+  <ComponentErrorBoundary name="TodosReactQuery">
+    <TodosReactQueryComponent {...props} />
+  </ComponentErrorBoundary>
+);
 
 const styles = StyleSheet.create({
   // Container styles
@@ -643,13 +654,6 @@ const styles = StyleSheet.create({
   },
 
   // Loading and error states
-  loadingText: {
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
-    fontSize: 13,
-    textAlign: 'center',
-    padding: 16,
-  },
   errorText: {
     fontFamily: Fonts.regular,
     color: Colors.alertCoral,

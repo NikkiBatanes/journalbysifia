@@ -56,7 +56,7 @@ export class JournalCache {
       };
       await AsyncStorage.setItem(metadataKey, JSON.stringify(metadata));
 
-      console.log(`📦 Cached ${entries.length} journal entries for ${userId} on ${date}${contentType ? ` (${contentType})` : ''}`);
+
     } catch (error) {
       console.error('Error setting journal cache:', error);
     }
@@ -74,7 +74,7 @@ export class JournalCache {
       // Check if cache is valid
       const isValid = await this.isCacheValid(cacheKey);
       if (!isValid) {
-        console.log(`⏰ Cache expired for ${userId} on ${date}${contentType ? ` (${contentType})` : ''}`);
+
         return null;
       }
 
@@ -83,7 +83,7 @@ export class JournalCache {
       if (!cachedData) {return null;}
 
       const entries = JSON.parse(cachedData) as JournalApiEntry[];
-      console.log(`✅ Cache hit: ${entries.length} journal entries for ${userId} on ${date}${contentType ? ` (${contentType})` : ''}`);
+
 
       return entries;
     } catch (error) {
@@ -99,7 +99,7 @@ export class JournalCache {
       const metadataKey = this.getMetadataKey(cacheKey);
 
       await AsyncStorage.multiRemove([cacheKey, metadataKey]);
-      console.log(`🗑️ Cleared journal cache for ${userId} on ${date}${contentType ? ` (${contentType})` : ''}`);
+
     } catch (error) {
       console.error('Error clearing journal cache:', error);
     }
@@ -115,7 +115,7 @@ export class JournalCache {
 
       if (userCacheKeys.length > 0) {
         await AsyncStorage.multiRemove(userCacheKeys);
-        console.log(`🗑️ Cleared all journal cache for user ${userId} (${userCacheKeys.length} keys)`);
+
       }
     } catch (error) {
       console.error('Error clearing all user journal cache:', error);
@@ -141,7 +141,7 @@ export class JournalCache {
 
       if (expiredKeys.length > 0) {
         await AsyncStorage.multiRemove(expiredKeys);
-        console.log(`🗑️ Cleared ${expiredKeys.length / 2} expired journal cache entries`);
+
       }
     } catch (error) {
       console.error('Error clearing expired journal cache:', error);
@@ -213,7 +213,7 @@ export class JournalCache {
       });
 
       await Promise.all(promises);
-      console.log(`📦 Preloaded journal cache for ${dates.length} dates`);
+
     } catch (error) {
       console.error('Error preloading journal cache:', error);
     }
