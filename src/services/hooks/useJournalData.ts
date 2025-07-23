@@ -42,6 +42,7 @@ export const useGratitudeData = (userId: string, date: string, config?: Partial<
         throw error;
       }
     },
+    initialData: [], // Prevent loading flash - show component immediately with empty data
     ...finalConfig,
   });
 };

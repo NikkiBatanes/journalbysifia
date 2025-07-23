@@ -220,36 +220,20 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
     if (validItems.length > 0) {
       try {
-        if (isEditing && gratitudeEntries.length > 0) {
-          // Update existing entry
-          const existingEntry = gratitudeEntries[0];
-          const itemsToSave = validItems.map((text, index) => ({
-            id: Date.now() + Math.random().toString() + index,
-            text: text.trim(),
-            date: selectedDate,
-          }));
+        // Always create new entries for gratitude items to avoid ID conflicts
+        // This ensures we don't try to update non-existent database entries
+        const itemsToSave = validItems.map((text, index) => ({
+          id: Date.now() + Math.random().toString() + index,
+          text: text.trim(),
+          date: selectedDate,
+        }));
 
-          await updateMutation.mutateAsync({
-            id: existingEntry.id,
-            updates: {
-              content: JSON.stringify({ items: itemsToSave }),
-            },
-          });
-        } else {
-          // Create new entry
-          const itemsToSave = validItems.map((text, index) => ({
-            id: Date.now() + Math.random().toString() + index,
-            text: text.trim(),
-            date: selectedDate,
-          }));
-
-          await createMutation.mutateAsync({
-            user_id: user.id,
-            selected_date: dateStr,
-            content_type: 'gratitude',
-            content: JSON.stringify({ items: itemsToSave }),
-          });
-        }
+        await createMutation.mutateAsync({
+          user_id: user.id,
+          selected_date: dateStr,
+          content_type: 'gratitude',
+          content: JSON.stringify({ items: itemsToSave }),
+        });
 
         // Track successful gratitude save
         analytics.trackGratitudeEvent('gratitude_items_saved', {
@@ -450,7 +434,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   styles.saveButton,
                   !newItems.some(item => item.trim()) && styles.disabledButton,
                 ]}
-                disabled={!newItems.some(item => item.trim()) || createMutation.isPending || updateMutation.isPending}
+                disabled={!newItems.some(item => item.trim()) || createMutation.isPending}
                 activeOpacity={0.8}
               >
                 <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
