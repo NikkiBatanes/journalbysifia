@@ -165,38 +165,49 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            // Find the original entry that contains this item
-            const entryToDelete = gratitudeEntries.find(entry => {
-              const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-              return parsedContent.items?.some((item: any, index: number) => `${entry.id}_${index}` === id);
-            });
+            try {
+              // Find the original entry that contains this item
+              const entryToDelete = gratitudeEntries.find(entry => {
+                const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+                return parsedContent.items?.some((item: any, index: number) => `${entry.id}_${index}` === id);
+              });
 
-            if (entryToDelete) {
-              const parsedContent = typeof entryToDelete.content === 'string' ? JSON.parse(entryToDelete.content) : entryToDelete.content;
-              const itemToDelete = parsedContent.items?.find((item: any, index: number) => `${entryToDelete.id}_${index}` === id);
-              const updatedItems = parsedContent.items?.filter((item: any, index: number) => `${entryToDelete.id}_${index}` !== id) || [];
+              if (entryToDelete) {
+                const parsedContent = typeof entryToDelete.content === 'string' ? JSON.parse(entryToDelete.content) : entryToDelete.content;
+                const itemToDelete = parsedContent.items?.find((item: any, index: number) => `${entryToDelete.id}_${index}` === id);
+                const updatedItems = parsedContent.items?.filter((item: any, index: number) => `${entryToDelete.id}_${index}` !== id) || [];
 
-              // Track gratitude item deletion
-              if (itemToDelete) {
-                analytics.trackGratitudeEvent('gratitude_item_deleted', {
-                  item_id: id,
-                  item_text_length: itemToDelete.text?.length || 0,
-                  date: dateStr,
-                }, user?.id);
+                // Track gratitude item deletion
+                if (itemToDelete) {
+                  analytics.trackGratitudeEvent('gratitude_item_deleted', {
+                    item_id: id,
+                    item_text_length: itemToDelete.text?.length || 0,
+                    date: dateStr,
+                  }, user?.id);
+                }
+
+                // Always delete the old entry first
+                await deleteMutation.mutateAsync(entryToDelete.id);
+
+                // If there are remaining items, create a new entry with them
+                if (updatedItems.length > 0) {
+                  const itemsToSave = updatedItems.map((item: any, index: number) => ({
+                    id: Date.now() + Math.random().toString() + index,
+                    text: item.text || item,
+                    date: selectedDate,
+                  }));
+
+                  await createMutation.mutateAsync({
+                    user_id: user?.id || '',
+                    selected_date: dateStr,
+                    content_type: 'gratitude',
+                    content: JSON.stringify({ items: itemsToSave }),
+                  });
+                }
               }
-
-              if (updatedItems.length === 0) {
-                // Delete the entire entry if no items left
-                deleteMutation.mutate(entryToDelete.id);
-              } else {
-                // Update the entry with remaining items
-                updateMutation.mutate({
-                  id: entryToDelete.id,
-                  updates: {
-                    content: JSON.stringify({ items: updatedItems }),
-                  },
-                });
-              }
+            } catch (error) {
+              console.error('Error deleting gratitude item:', error);
+              Alert.alert('Error', 'Failed to delete gratitude item. Please try again.');
             }
 
             // Reset visible count if needed
@@ -208,7 +219,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       ],
       { cancelable: true }
     );
-  }, [gratitudeItems, gratitudeEntries, deleteMutation, updateMutation, visibleCount]);
+  }, [gratitudeItems, gratitudeEntries, deleteMutation, createMutation, visibleCount, user, selectedDate, dateStr]);
 
   const saveGratitudeItems = async () => {
     if (!user) {
@@ -332,7 +343,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     );
   };
 
-  if (isLoading) {
+  // Only show loading skeleton if we're loading initial data and have no cached data
+  if (isLoading && gratitudeEntries.length === 0) {
     return (
       <ComponentErrorBoundary name="GratitudeListReactQuery">
         <JournalCard
