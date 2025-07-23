@@ -350,7 +350,12 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         showAddButton={true}
         onAdd={() => {}} // Disabled during loading
       >
-        <View style={styles.todosContainer}>
+        <View 
+          style={styles.todosContainer}
+          accessibilityRole="progressbar"
+          accessibilityLabel="Loading todos"
+          accessibilityHint="Please wait while your todos are being loaded"
+        >
           <TodoSkeleton count={3} />
         </View>
       </JournalCard>
@@ -367,9 +372,25 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         showAddButton={true}
         onAdd={() => {}} // Disabled during error
       >
-        <View style={styles.todosContainer}>
-          <Text style={styles.errorText}>Failed to load todos</Text>
-          <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
+        <View 
+          style={styles.todosContainer}
+          accessibilityRole="alert"
+          accessibilityLabel="Error loading todos"
+        >
+          <Text 
+            style={styles.errorText}
+            accessibilityRole="text"
+            accessibilityLabel="Failed to load todos"
+          >
+            Failed to load todos
+          </Text>
+          <TouchableOpacity 
+            onPress={() => refetch()} 
+            style={styles.retryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading todos"
+            accessibilityHint="Attempts to reload the todo list"
+          >
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -391,6 +412,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       showAddButton={!isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
+
       headerRight={
         <View style={styles.headerRightContainer}>
           {todos.some(t => t.priority && !t.completed) && (
@@ -405,6 +427,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               }}
               style={[styles.sortButton, showOnlyPriorities && styles.activeFilterButton]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={showOnlyPriorities ? "Show all todos" : "Show only priority todos"}
+              accessibilityHint="Filters the todo list to show only priority items"
+              accessibilityState={{ selected: showOnlyPriorities }}
             >
               <Ionicons
                 name="star"
@@ -425,6 +451,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               }}
               style={[styles.sortButton, showCompletedAtBottom && styles.activeFilterButton]}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel={showCompletedAtBottom ? "Show todos in normal order" : "Move completed todos to bottom"}
+              accessibilityHint="Changes the order of completed todos in the list"
+              accessibilityState={{ selected: showCompletedAtBottom }}
             >
               <Ionicons
                 name="filter"
@@ -436,34 +466,49 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         </View>
       }
     >
-      <View style={styles.todosContainer}>
-        {visibleTodos.map((item) => (
-          <SwipeableTodoItem
+      <View 
+        style={styles.todosContainer}
+        accessibilityRole="list"
+        accessibilityLabel={`Todo list with ${visibleTodos.length} visible items out of ${todos.length} total`}
+      >
+        {visibleTodos.map((item, index) => (
+          <View
             key={item.id}
-            item={item}
-            onToggle={(id, isPriority) => {
-              toggleTodo(id, isPriority);
-              closeAllSwipeables();
-            }}
-            onLongPress={(id) => toggleTodo(id, true)}
-            onDelete={removeTodo}
-            ref={ref => {
-              if (ref) {
-                swipeableRefs.current[item.id] = ref;
-              } else {
-                delete swipeableRefs.current[item.id];
-              }
+            accessibilityRole="text"
+            accessibilityLabel={`Todo ${index + 1} of ${visibleTodos.length}: ${item.text}`}
+            accessibilityHint={`${item.completed ? 'Completed' : 'Not completed'}${item.priority ? ', Priority item' : ''}. Tap to toggle completion, long press to toggle priority, swipe for more options`}
+            accessibilityState={{
+              checked: item.completed,
+              selected: item.priority
             }}
           >
-            <Text
-              style={[
-                styles.todoText,
-                item.completed && styles.completedText,
-              ]}
+            <SwipeableTodoItem
+              item={item}
+              onToggle={(id, isPriority) => {
+                toggleTodo(id, isPriority);
+                closeAllSwipeables();
+              }}
+              onLongPress={(id) => toggleTodo(id, true)}
+              onDelete={removeTodo}
+              ref={ref => {
+                if (ref) {
+                  swipeableRefs.current[item.id] = ref;
+                } else {
+                  delete swipeableRefs.current[item.id];
+                }
+              }}
             >
-              {item.text}
-            </Text>
-          </SwipeableTodoItem>
+              <Text
+                style={[
+                  styles.todoText,
+                  item.completed && styles.completedText,
+                ]}
+                accessibilityElementsHidden={true}
+              >
+                {item.text}
+              </Text>
+            </SwipeableTodoItem>
+          </View>
         ))}
 
         {!isAdding && todos.length > 0 && (
@@ -474,6 +519,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   style={[styles.paginationButton, styles.showMoreButton]}
                   onPress={loadMore}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show more todos. ${filteredTodos.length - visibleCount} remaining`}
+                  accessibilityHint="Loads 5 more todo items to the list"
                 >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
                   <Text style={[styles.paginationButtonText, styles.showMoreText]}>
@@ -486,6 +534,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   style={[styles.paginationButton, styles.showLessButton]}
                   onPress={showLess}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Show less todos"
+                  accessibilityHint="Collapses the list to show only the first 5 todos"
                 >
                   <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
                   <Text style={[styles.paginationButtonText, styles.showLessText]}>
@@ -512,14 +563,19 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               returnKeyType="next"
               blurOnSubmit={false}
               autoFocus
+              accessibilityRole="none"
               accessibilityLabel="Add new todo"
               accessibilityHint="Enter text for a new todo item and press next to add it"
+              importantForAccessibility="yes"
             />
           </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity
               onPress={handleAddInput}
               style={[styles.button, styles.addAnotherButton]}
+              accessibilityRole="button"
+              accessibilityLabel="Add another todo"
+              accessibilityHint="Adds the current todo and allows you to add another one"
             >
               <View style={[styles.plusIcon, { transform: [{ rotate: '45deg' }] }]}>
                 <Ionicons name="close" size={13} color={Colors.alertCoral} style={styles.closeIcon} />
@@ -530,6 +586,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 style={[styles.button, styles.cancelButton]}
                 onPress={cancelAdding}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel adding todo"
+                accessibilityHint="Cancels the current todo input and closes the add form"
               >
                 <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
@@ -542,6 +601,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 ]}
                 disabled={!newTodo.trim()}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Save todo"
+                accessibilityHint="Saves the current todo and closes the add form"
+                accessibilityState={{ disabled: !newTodo.trim() }}
               >
                 <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>

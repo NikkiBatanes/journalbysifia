@@ -14,6 +14,7 @@ import {
   useUpdateJournalEntry,
   useDeleteJournalEntry,
 } from '../../services/hooks/useJournalData';
+
 import { ComponentErrorBoundary } from '../ErrorBoundary';
 import { GratitudeSkeleton } from '../SkeletonLoader/GratitudeSkeleton';
 import { analytics } from '../../utils/analytics';
@@ -43,17 +44,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const loadStartTime = React.useRef<number>(Date.now());
   const { data: gratitudeEntries = [], isLoading, error } = useGratitudeData(user?.id || '', dateStr);
   
-  // Debug logging
-  React.useEffect(() => {
-    console.log('🔍 GratitudeList Debug:', {
-      userId: user?.id,
-      dateStr,
-      gratitudeEntriesCount: gratitudeEntries.length,
-      gratitudeEntries,
-      isLoading,
-      error: error?.message,
-    });
-  }, [user?.id, dateStr, gratitudeEntries, isLoading, error]);
+
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
   const deleteMutation = useDeleteJournalEntry();
@@ -67,39 +58,25 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       parsedContent = { items: [] };
     }
 
-    console.log('🔄 Transforming entry:', {
-      entryId: entry.id,
-      rawContent: entry.content,
-      parsedContent,
-      contentType: entry.content_type,
-    });
+
 
     // Handle both single item and items array formats
     if (parsedContent.items && Array.isArray(parsedContent.items)) {
-      const transformedItems = parsedContent.items.map((item: any, index: number) => ({
+      return parsedContent.items.map((item: any, index: number) => ({
         id: `${entry.id}_${index}`,
         text: item.text || item,
         date: selectedDate,
       }));
-      console.log('✅ Transformed items:', transformedItems);
-      return transformedItems;
     } else if (parsedContent.text) {
-      const singleItem = [{
+      return [{
         id: entry.id,
         text: parsedContent.text,
         date: selectedDate,
       }];
-      console.log('✅ Single item:', singleItem);
-      return singleItem;
     }
-    console.log('⚠️ No items found in entry');
     return [];
   }).flat();
-  
-  console.log('🎆 Final gratitudeItems:', {
-    count: gratitudeItems.length,
-    items: gratitudeItems,
-  });
+
 
   // Track loading performance
   React.useEffect(() => {
@@ -143,10 +120,15 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const startEditing = () => {
     setIsEditing(true);
     setIsAdding(false);
+    
+    // Pre-fill with existing gratitude items
     const editFields = gratitudeItems.map(item => item.text);
+    
+    // Ensure we have at least 3 fields for editing
     while (editFields.length < 3) {
       editFields.push('');
     }
+    
     setNewItems(editFields);
   };
 
@@ -260,14 +242,25 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
     if (validItems.length > 0) {
       try {
-        // Always create new entries for gratitude items to avoid ID conflicts
-        // This ensures we don't try to update non-existent database entries
+        // Prepare the items to save
         const itemsToSave = validItems.map((text, index) => ({
-          id: Date.now() + Math.random().toString() + index,
+          id: `gratitude_${Date.now()}_${index}`,
           text: text.trim(),
           date: selectedDate,
         }));
 
+        if (isEditing && gratitudeEntries.length > 0) {
+          // For editing: delete all existing entries first
+          for (const entry of gratitudeEntries) {
+            try {
+              await deleteMutation.mutateAsync(entry.id);
+            } catch (deleteError) {
+              console.error('Error deleting gratitude entry:', deleteError);
+            }
+          }
+        }
+
+        // Create new entry with all items - React Query will handle cache updates automatically
         await createMutation.mutateAsync({
           user_id: user.id,
           selected_date: dateStr,
@@ -314,8 +307,13 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     return (
       <View style={styles.itemsContainer}>
         {visibleItems.map((item, index) => (
+        <View
+          key={item.id}
+          accessibilityRole="text"
+          accessibilityLabel={`Gratitude item ${index + 1} of ${visibleItems.length}: ${item.text}`}
+          accessibilityHint="Swipe left to delete this gratitude item"
+        >
           <SwipeableTodoItem
-            key={item.id}
             ref={(ref: any) => {
               if (ref) {
                 swipeableRefs.current[item.id] = ref;
@@ -333,20 +331,24 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             hideCheckbox={true}
           >
             <View style={styles.itemNumber}>
-              <Text style={styles.numberText}>{index + 1}</Text>
+              <Text style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</Text>
             </View>
-            <Text style={styles.itemText}>{item.text}</Text>
+            <Text style={styles.itemText} accessibilityElementsHidden={true}>{item.text}</Text>
           </SwipeableTodoItem>
-        ))}
+        </View>
+      ))}
         {!isAdding && gratitudeItems.length > 0 && (
           <View style={styles.paginationContainer}>
             <View style={styles.paginationButtonGroup}>
               {hasMore && (
                 <TouchableOpacity
-                  style={[styles.paginationButton, styles.showMoreButton]}
-                  onPress={loadMore}
-                  activeOpacity={0.7}
-                >
+                style={[styles.paginationButton, styles.showMoreButton]}
+                onPress={loadMore}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Show more gratitude items. ${gratitudeItems.length - visibleCount} remaining`}
+                accessibilityHint="Loads more gratitude items to the list"
+              >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
                   <Text style={[styles.paginationButtonText, styles.showMoreText]}>
                     Show more
@@ -355,10 +357,13 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               )}
               {showLessOption && (
                 <TouchableOpacity
-                  style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={showLess}
-                  activeOpacity={0.7}
-                >
+                style={[styles.paginationButton, styles.showLessButton]}
+                onPress={showLess}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Show less gratitude items"
+                accessibilityHint="Collapses the list to show fewer items"
+              >
                   <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
                   <Text style={[styles.paginationButtonText, styles.showLessText]}>
                     Show less
@@ -389,7 +394,13 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           showAddButton={true}
           onAdd={() => {}} // Disabled during loading
         >
-          <GratitudeSkeleton count={3} />
+          <View
+            accessibilityRole="progressbar"
+            accessibilityLabel="Loading gratitude items"
+            accessibilityHint="Please wait while your gratitude items are being loaded"
+          >
+            <GratitudeSkeleton count={3} />
+          </View>
         </JournalCard>
       </ComponentErrorBoundary>
     );
@@ -410,8 +421,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       showAddButton={!isAdding && !isEditing}
       onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
       isAdding={isAdding || isEditing}
+
     >
-      {displayGratitudeList()}
+      <View
+        accessibilityRole="list"
+        accessibilityLabel={`Gratitude list with ${gratitudeItems.length} items`}
+      >
+        {displayGratitudeList()}
+      </View>
       {(isAdding || isEditing) ? (
         <View style={styles.inputContainer}>
           {isEditing ? (
@@ -455,6 +472,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 styles.addAnotherButton,
               ]}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Add another gratitude field"
+              accessibilityHint="Adds another input field for gratitude items"
             >
               <View style={styles.plusIcon}>
                 <Ionicons name="add" size={16} color={Colors.alertCoral} />
@@ -465,6 +485,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 onPress={cancelAdding}
                 style={[styles.button, styles.cancelButton]}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel adding gratitude items"
+                accessibilityHint="Cancels the current gratitude input and closes the form"
               >
                 <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
@@ -477,6 +500,10 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 ]}
                 disabled={!newItems.some(item => item.trim()) || createMutation.isPending}
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Save gratitude items"
+                accessibilityHint="Saves your gratitude items and closes the form"
+                accessibilityState={{ disabled: !newItems.some(item => item.trim()) || createMutation.isPending }}
               >
                 <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
