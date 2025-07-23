@@ -6,30 +6,43 @@ import { queryKeys } from '../queryKeys';
 import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '../../utils/retry';
 import { QueryConfig } from '../../types/api';
 
-// Hook for getting gratitude entries
-export const useGratitudeData = (userId: string, date: string) => {
+// Hook for getting gratitude entries with enhanced retry logic
+export const useGratitudeData = (userId: string, date: string, config?: Partial<QueryConfig>) => {
+  const defaultConfig: QueryConfig = {
+    staleTime: 5 * 60 * 1000, // 5 minutes stale time
+    gcTime: 10 * 60 * 1000,
+    enabled: !!userId && !!date,
+    refetchOnMount: true, // Refetch on mount to ensure data is loaded
+    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    retry: createRetryFunction(RETRY_CONFIGS.GRATITUDE_ENHANCED),
+    retryDelay: createRetryDelayFunction(RETRY_CONFIGS.GRATITUDE_ENHANCED),
+  };
+
+  const finalConfig = { ...defaultConfig, ...config };
+
   return useQuery({
     queryKey: queryKeys.journal.gratitude(userId, date),
     queryFn: async () => {
-      // Try cache first
-      const cached = await JournalCache.getCache(userId, date, 'gratitude');
-      if (cached) {
-        return cached;
+      try {
+        // Try cache first
+        const cached = await JournalCache.getCache(userId, date, 'gratitude');
+        if (cached) {
+          return cached;
+        }
+
+        // Fetch from API
+        const entries = await JournalApi.getGratitudeEntries(userId, date);
+
+        // Cache the results
+        await JournalCache.setCache(userId, date, entries, 'gratitude');
+
+        return entries;
+      } catch (error) {
+        console.error('Error fetching gratitude data:', error);
+        throw error;
       }
-
-      // Fetch from API
-      const entries = await JournalApi.getGratitudeEntries(userId, date);
-
-      // Cache the results
-      await JournalCache.setCache(userId, date, entries, 'gratitude');
-
-      return entries;
     },
-    staleTime: 0, // Always consider data stale to prevent showing old data when switching dates
-    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
-    enabled: !!userId && !!date,
-    refetchOnMount: true, // Always refetch when component mounts
-    refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
+    ...finalConfig,
   });
 };
 

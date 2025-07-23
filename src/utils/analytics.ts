@@ -79,6 +79,34 @@ interface FocusAnalyticsEvents {
   };
 }
 
+interface GratitudeAnalyticsEvents {
+  'gratitude_items_saved': {
+    items_count: number;
+    total_text_length: number;
+    is_editing: boolean;
+    date: string;
+  };
+  'gratitude_item_deleted': {
+    item_id: string;
+    item_text_length: number;
+    date: string;
+  };
+  'gratitude_field_added': {
+    field_count: number;
+    date: string;
+  };
+  'gratitude_loaded': {
+    items_count: number;
+    load_time_ms: number;
+    date: string;
+  };
+  'gratitude_error': {
+    error_type: string;
+    operation: string;
+    date: string;
+  };
+}
+
 class Analytics {
   private events: AnalyticsEvent[] = [];
   private isEnabled: boolean = __DEV__; // Only enable in development for now
@@ -102,6 +130,19 @@ class Analytics {
   trackFocusEvent<T extends keyof FocusAnalyticsEvents>(
     event: T,
     properties: FocusAnalyticsEvents[T],
+    userId?: string
+  ): void {
+    if (!this.isEnabled) return;
+
+    this.track(event, properties, userId);
+  }
+
+  /**
+   * Track a Gratitude List-specific event
+   */
+  trackGratitudeEvent<T extends keyof GratitudeAnalyticsEvents>(
+    event: T,
+    properties: GratitudeAnalyticsEvents[T],
     userId?: string
   ): void {
     if (!this.isEnabled) return;
@@ -173,4 +214,4 @@ class Analytics {
 export const analytics = new Analytics();
 
 // Export types for use in components
-export type { TodoAnalyticsEvents, FocusAnalyticsEvents, AnalyticsEvent };
+export type { TodoAnalyticsEvents, FocusAnalyticsEvents, GratitudeAnalyticsEvents, AnalyticsEvent };

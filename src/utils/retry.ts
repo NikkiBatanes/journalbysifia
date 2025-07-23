@@ -120,6 +120,15 @@ export const RETRY_CONFIGS = {
     jitter: true, // Add randomness to prevent thundering herd
   },
 
+  // Enhanced configuration for Gratitude List with optimized retry
+  GRATITUDE_ENHANCED: {
+    attempts: 4,
+    delay: 600,
+    backoff: 'exponential' as const,
+    maxDelay: 6000, // Cap at 6 seconds
+    jitter: true, // Add randomness to prevent thundering herd
+  },
+
   // For non-critical operations like analytics
   LIGHT: {
     attempts: 2,

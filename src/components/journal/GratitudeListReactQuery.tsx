@@ -14,6 +14,9 @@ import {
   useUpdateJournalEntry,
   useDeleteJournalEntry,
 } from '../../services/hooks/useJournalData';
+import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { GratitudeSkeleton } from '../SkeletonLoader/GratitudeSkeleton';
+import { analytics } from '../../utils/analytics';
 
 interface GratitudeItem {
   id: string;
@@ -36,7 +39,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
-  // React Query hooks
+  // React Query hooks with performance tracking
+  const loadStartTime = React.useRef<number>(Date.now());
   const { data: gratitudeEntries = [], isLoading, error } = useGratitudeData(user?.id || '', dateStr);
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
@@ -68,12 +72,31 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     return [];
   }).flat();
 
+  // Track loading performance
+  React.useEffect(() => {
+    if (!isLoading && gratitudeEntries.length >= 0) {
+      const loadTime = Date.now() - loadStartTime.current;
+      
+      analytics.trackGratitudeEvent('gratitude_loaded', {
+        items_count: gratitudeItems.length,
+        load_time_ms: loadTime,
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [isLoading, gratitudeEntries.length, gratitudeItems.length, dateStr, user?.id]);
+
   // Handle loading and error states
   React.useEffect(() => {
     if (error) {
+      analytics.trackGratitudeEvent('gratitude_error', {
+        error_type: error.message || 'unknown',
+        operation: 'load',
+        date: dateStr,
+      }, user?.id);
+      
       Alert.alert('Error', 'Failed to load gratitude items.');
     }
-  }, [error]);
+  }, [error, dateStr, user?.id]);
 
   // Reset state when date changes
   React.useEffect(() => {
@@ -106,7 +129,13 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   const addAnotherField = useCallback(() => {
     setNewItems([...newItems, '']);
-  }, [newItems]);
+    
+    // Track field addition
+    analytics.trackGratitudeEvent('gratitude_field_added', {
+      field_count: newItems.length + 1,
+      date: dateStr,
+    }, user?.id);
+  }, [newItems, dateStr, user?.id]);
 
   const handleNewItemChange = useCallback((index: number, value: string) => {
     const updatedItems = [...newItems];
@@ -144,7 +173,17 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
             if (entryToDelete) {
               const parsedContent = typeof entryToDelete.content === 'string' ? JSON.parse(entryToDelete.content) : entryToDelete.content;
+              const itemToDelete = parsedContent.items?.find((item: any, index: number) => `${entryToDelete.id}_${index}` === id);
               const updatedItems = parsedContent.items?.filter((item: any, index: number) => `${entryToDelete.id}_${index}` !== id) || [];
+
+              // Track gratitude item deletion
+              if (itemToDelete) {
+                analytics.trackGratitudeEvent('gratitude_item_deleted', {
+                  item_id: id,
+                  item_text_length: itemToDelete.text?.length || 0,
+                  date: dateStr,
+                }, user?.id);
+              }
 
               if (updatedItems.length === 0) {
                 // Delete the entire entry if no items left
@@ -211,6 +250,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             content: JSON.stringify({ items: itemsToSave }),
           });
         }
+
+        // Track successful gratitude save
+        analytics.trackGratitudeEvent('gratitude_items_saved', {
+          items_count: validItems.length,
+          total_text_length: validItems.join('').length,
+          is_editing: isEditing,
+          date: dateStr,
+        }, user.id);
 
         setNewItems(['', '', '']);
         setIsAdding(false);
@@ -303,27 +350,29 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   if (isLoading) {
     return (
-      <JournalCard
-        icon={
-          <LuHandHeart
-            size={24}
-            color={Colors.alertCoral}
-            strokeWidth={2.5}
-          />
-        }
-        title="Gratitude List"
-        subtitle="Reflect on what you're thankful for"
-        showAddButton={false}
-        onAdd={() => {}}
-        isAdding={false}
-      >
-        <Text style={styles.loadingText}>Loading gratitude items...</Text>
-      </JournalCard>
+      <ComponentErrorBoundary name="GratitudeListReactQuery">
+        <JournalCard
+          icon={
+            <LuHandHeart
+              size={24}
+              color={Colors.alertCoral}
+              strokeWidth={2.5}
+            />
+          }
+          title="Gratitude List"
+          subtitle="Reflect on what you're thankful for"
+          showAddButton={true}
+          onAdd={() => {}} // Disabled during loading
+        >
+          <GratitudeSkeleton count={3} />
+        </JournalCard>
+      </ComponentErrorBoundary>
     );
   }
 
   return (
-    <JournalCard
+    <ComponentErrorBoundary name="GratitudeListReactQuery">
+      <JournalCard
       icon={
         <LuHandHeart
           size={24}
@@ -351,6 +400,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 placeholderTextColor={Colors.mediumGray}
                 returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                 onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}
+                accessibilityLabel={`Gratitude item ${index + 1} input`}
+                accessibilityHint={`Enter something you're grateful for`}
               />
             ))
           ) : (
@@ -365,6 +416,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                   placeholderTextColor={Colors.mediumGray}
                   returnKeyType={index < newItems.length - 1 ? 'next' : 'done'}
                   onSubmitEditing={index < newItems.length - 1 ? undefined : saveGratitudeItems}
+                  accessibilityLabel={`Gratitude item ${index + 1} input`}
+                  accessibilityHint={`Enter something you're grateful for`}
                 />
               ))}
             </React.Fragment>
@@ -407,6 +460,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         </View>
       ) : null}
     </JournalCard>
+    </ComponentErrorBoundary>
   );
 };
 
