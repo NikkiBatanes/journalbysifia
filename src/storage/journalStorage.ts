@@ -274,7 +274,7 @@ export const saveLocalEntry = async (key: string, data: Omit<JournalEntryBase, '
     created_at: now,
     updated_at: now,
     selected_date: data.selected_date || dateFromKey || new Date().toISOString().split('T')[0],
-    content_type: data.content_type || 'gratitude', // Default to gratitude instead of invalid 'unknown'
+    content_type: data.content_type || 'unknown',
     content: data.content || {},
   };
 
@@ -319,7 +319,7 @@ export const updateLocalEntry = async (key: string, updatedData: Partial<Journal
     id: existingEntry.id,
     user_id: existingEntry.user_id,
     created_at: existingEntry.created_at || now,
-    content_type: updatedData.content_type || existingEntry.content_type || 'gratitude', // Default to gratitude instead of invalid 'unknown'
+    content_type: updatedData.content_type || existingEntry.content_type || 'unknown',
     selected_date: updatedData.selected_date || existingEntry.selected_date || new Date().toISOString().split('T')[0],
     content: updatedData.content !== undefined ? updatedData.content : existingEntry.content || {},
   };
@@ -726,6 +726,46 @@ const isValidUUID = (uuid: string): boolean => {
   return uuidRegex.test(uuid);
 };
 
+// Helper function to clean up duplicate entries
+const cleanupDuplicateEntries = async (userId: string, contentType: string, selectedDate: string): Promise<void> => {
+  try {
+    console.log(`🧹 Checking for duplicates: ${contentType} on ${selectedDate}`);
+    
+    const { data: duplicates, error } = await supabase
+      .from('journal_entries')
+      .select('id, updated_at')
+      .eq('user_id', userId)
+      .eq('content_type', contentType)
+      .eq('selected_date', selectedDate)
+      .order('updated_at', { ascending: false });
+
+    if (error) {
+      console.warn('Error checking for duplicates:', error);
+      return;
+    }
+
+    if (duplicates && duplicates.length > 1) {
+      console.log(`Found ${duplicates.length} duplicate entries, keeping the most recent one`);
+      
+      // Keep the first (most recent) and delete the rest
+      const toDelete = duplicates.slice(1).map(d => d.id);
+      
+      const { error: deleteError } = await supabase
+        .from('journal_entries')
+        .delete()
+        .in('id', toDelete);
+
+      if (deleteError) {
+        console.warn('Error deleting duplicates:', deleteError);
+      } else {
+        console.log(`✅ Cleaned up ${toDelete.length} duplicate entries`);
+      }
+    }
+  } catch (error) {
+    console.warn('Error during duplicate cleanup:', error);
+  }
+};
+
 export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): Promise<any> => {
   console.log('\n=== saveCloudEntry START ===');
 
@@ -760,7 +800,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
       ...entry,
       id: entry.id || generateUUID(),
       user_id: userId,
-      content_type: entry.content_type || 'gratitude', // Default to gratitude instead of invalid 'unknown'
+      content_type: entry.content_type || 'unknown',
       content: entry.content || {},
       selected_date: selectedDate,
       created_at: entry.created_at || now,
@@ -775,13 +815,19 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
     });
 
     try {
-      // 5. First try to update if an entry exists for this user, content type and date
+      // 5. Clean up any duplicate entries first
+      await cleanupDuplicateEntries(userId, entryToSave.content_type, entryToSave.selected_date);
+      
+      // 6. First try to update if an entry exists for this user, content type and date
+      // Handle potential duplicates by getting the most recent one
       const { data: existingEntries, error: fetchError } = await supabase
         .from('journal_entries')
         .select('*')
         .eq('user_id', entryToSave.user_id)
         .eq('content_type', entryToSave.content_type)
         .eq('selected_date', entryToSave.selected_date)
+        .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (fetchError) {throw fetchError;}
@@ -803,7 +849,7 @@ export const saveCloudEntry = async (userId: string, entry: JournalEntryBase): P
         return updatedEntry;
       }
 
-      // 6. If no existing entry, create a new one
+      // 7. If no existing entry, create a new one
       const { data: newEntry, error: insertError } = await supabase
         .from('journal_entries')
         .insert(entryToSave)
@@ -1187,8 +1233,6 @@ export const syncToCloud = async (userId: string, date: string, contentType: str
       .eq('user_id', userId)
       .eq('content_type', contentType)
       .eq('selected_date', date)
-      .order('created_at', { ascending: false })
-      .limit(1)
       .maybeSingle();
 
     if (fetchError) {
