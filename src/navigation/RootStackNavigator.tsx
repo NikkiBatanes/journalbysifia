@@ -45,20 +45,7 @@ const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?:
   return <BackButton onPress={onPress} color={color} />;
 });
 
-// Header left components as functions
-const renderAnchorBlueHeaderLeft = ({ navigation }: any) => (
-  <HeaderLeft
-    color={Colors.anchorBlue}
-    onPress={() => navigation.goBack()}
-  />
-);
 
-const renderHopeWhiteHeaderLeft = ({ navigation }: any) => (
-  <HeaderLeft
-    color={Colors.hopeWhite}
-    onPress={() => navigation.goBack()}
-  />
-);
 
 // Header right components as functions
 // These are used in navigation options below
@@ -97,10 +84,15 @@ export default function RootStackNavigator({
       headerShown: true,
       title: '',
       headerBackVisible: false,
-      headerLeft: renderAnchorBlueHeaderLeft,
+      headerLeft: ({ navigation }: any) => (
+        <HeaderLeft
+          color={Colors.anchorBlue}
+          onPress={() => navigation.goBack()}
+        />
+      ),
       headerRight: renderDefaultProfileImage,
       headerStyle: styles.headerStyle,
-      headerTitleAlign: 'center',
+      headerTitleAlign: 'center' as const,
       headerTitleStyle: styles.headerTitle,
       headerTitleContainerStyle: styles.headerTitleContainer,
       headerShadowVisible: false,
@@ -113,7 +105,12 @@ export default function RootStackNavigator({
       headerShown: true,
       title: '',
       headerBackVisible: false,
-      headerLeft: renderHopeWhiteHeaderLeft,
+      headerLeft: ({ navigation }: any) => (
+        <HeaderLeft
+          color={Colors.hopeWhite}
+          onPress={() => navigation.goBack()}
+        />
+      ),
       headerRight: renderWhiteProfileImage,
       headerStyle: styles.darkHeaderStyle,
       headerTintColor: Colors.hopeWhite,
@@ -153,15 +150,20 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="DevotionalDetail"
             component={DevotionalDetailScreen as unknown as React.ComponentType}
-            options={{
+            options={({ navigation }) => ({
               title: '',
               headerBackVisible: true,
-              headerLeft: renderAnchorBlueHeaderLeft,
+              headerLeft: () => (
+                <HeaderLeft
+                  color={Colors.anchorBlue}
+                  onPress={() => navigation.goBack()}
+                />
+              ),
               animation: 'slide_from_bottom',
               animationDuration: 300,
               presentation: 'modal',
               gestureEnabled: true,
-            }}
+            })}
           />
         </>
       ) : (
