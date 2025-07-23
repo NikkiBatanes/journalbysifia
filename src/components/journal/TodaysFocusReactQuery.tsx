@@ -13,6 +13,8 @@ import {
   useUpdateJournalEntry,
 } from '../../services/hooks/useJournalData';
 import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
+import { analytics } from '../../utils/analytics';
 
 interface PriorityItem {
   id: string;
@@ -34,10 +36,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
-  // React Query hooks
+  // React Query hooks with performance tracking
+  const loadStartTime = useRef<number>(Date.now());
   const { data: focusEntries = [], error, isLoading } = useTodaysFocusData(user?.id || '', dateStr);
   
-
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
 
@@ -92,12 +94,34 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     setIsEditing(false);
   }, [dateStr, initialData]);
 
+  // Track loading performance
+  React.useEffect(() => {
+    if (!isLoading && focusEntries.length >= 0) {
+      const loadTime = Date.now() - loadStartTime.current;
+      const completedPriorities = initialData.priorities.filter(p => p.completed).length;
+      
+      analytics.trackFocusEvent('focus_loaded', {
+        has_focus: Boolean(initialData.focus),
+        priorities_count: initialData.priorities.length,
+        completed_priorities: completedPriorities,
+        load_time_ms: loadTime,
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [isLoading, focusEntries.length, initialData, dateStr, user?.id]);
+
   // Handle loading and error states
   React.useEffect(() => {
     if (error) {
+      analytics.trackFocusEvent('focus_error', {
+        error_type: error.message || 'unknown',
+        operation: 'load',
+        date: dateStr,
+      }, user?.id);
+      
       Alert.alert('Error', 'Failed to load today\'s focus.');
     }
-  }, [error]);
+  }, [error, dateStr, user?.id]);
 
   // Save Today's Focus to storage and cloud
   const saveFocus = useCallback(async (focusData: TodayFocusData) => {
@@ -126,6 +150,15 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           content: contentToSave,
         });
       }
+      
+      // Track successful focus update
+      analytics.trackFocusEvent('focus_updated', {
+        focus_length: focusData.focus.length,
+        has_priorities: focusData.priorities.some(p => p.text.trim() !== ''),
+        priorities_count: focusData.priorities.filter(p => p.text.trim() !== '').length,
+        date: dateStr,
+      }, user.id);
+      
       setIsEditing(false);
     } catch (saveError) {
       Alert.alert('Error', 'Failed to save today\'s focus. Please try again.');
@@ -170,10 +203,30 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   };
 
   const togglePriority = (index: number) => {
-    setData(prev => ({
-      ...prev,
-      priorities: prev.priorities.map((p, i) => i === index ? { ...p, completed: !p.completed } : p),
-    }));
+    setData(prev => {
+      const newPriorities = prev.priorities.map((p, i) => {
+        if (i === index) {
+          const newCompleted = !p.completed;
+          
+          // Track priority completion
+          if (newCompleted && p.text.trim()) {
+            analytics.trackFocusEvent('focus_priority_completed', {
+              priority_index: index,
+              priority_text_length: p.text.length,
+              date: dateStr,
+            }, user?.id);
+          }
+          
+          return { ...p, completed: newCompleted };
+        }
+        return p;
+      });
+      
+      return {
+        ...prev,
+        priorities: newPriorities,
+      };
+    });
   };
 
   const removePriority = (priorityId: string) => {
@@ -201,7 +254,28 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
   const canSave = hasContent && (createMutation.isPending || updateMutation.isPending) === false;
 
-  // Remove loading state to prevent flash - let component render immediately with empty data
+  // Handle loading state with skeleton loader
+  if (isLoading) {
+    return (
+      <ComponentErrorBoundary name="TodaysFocusReactQuery">
+        <JournalCard
+          icon={
+            <LuGoal
+              size={24}
+              color={Colors.alertCoral}
+              strokeWidth={2.5}
+            />
+          }
+          title="Today's Focus"
+          subtitle="Your daily focus and priorities"
+          showAddButton={true}
+          onAdd={() => {}} // Disabled during loading
+        >
+          <TodaysFocusSkeleton />
+        </JournalCard>
+      </ComponentErrorBoundary>
+    );
+  }
 
   return (
     <ComponentErrorBoundary name="TodaysFocusReactQuery">
@@ -230,6 +304,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               placeholder="What's your main focus today?"
               placeholderTextColor={Colors.mediumGray}
               autoFocus
+              accessibilityLabel="Today's focus input"
+              accessibilityHint="Enter your main focus for today"
             />
             <Text style={styles.sectionHeaderWithTopMargin}>TOP PRIORITIES</Text>
             {data.priorities.map((priority, index) => (
@@ -242,6 +318,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   placeholder={`Priority ${index + 1}`}
                   placeholderTextColor={Colors.mediumGray}
                   onSubmitEditing={toggleEditing}
+                  accessibilityLabel={`Priority ${index + 1} input`}
+                  accessibilityHint={`Enter your ${index === 0 ? 'first' : index === 1 ? 'second' : 'third'} priority for today`}
                 />
               </View>
             ))}

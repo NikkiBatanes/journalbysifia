@@ -111,6 +111,15 @@ export const RETRY_CONFIGS = {
     jitter: true, // Add randomness to prevent thundering herd
   },
 
+  // Enhanced configuration for Today's Focus with optimized retry
+  FOCUS_ENHANCED: {
+    attempts: 4,
+    delay: 700,
+    backoff: 'exponential' as const,
+    maxDelay: 7000, // Cap at 7 seconds
+    jitter: true, // Add randomness to prevent thundering herd
+  },
+
   // For non-critical operations like analytics
   LIGHT: {
     attempts: 2,

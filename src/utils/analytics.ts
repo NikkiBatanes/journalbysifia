@@ -43,6 +43,42 @@ interface TodoAnalyticsEvents {
   };
 }
 
+interface FocusAnalyticsEvents {
+  'focus_updated': {
+    focus_length: number;
+    has_priorities: boolean;
+    priorities_count: number;
+    date: string;
+  };
+  'focus_priority_completed': {
+    priority_index: number;
+    priority_text_length: number;
+    date: string;
+  };
+  'focus_priority_added': {
+    priority_index: number;
+    priority_text_length: number;
+    date: string;
+  };
+  'focus_priority_removed': {
+    priority_index: number;
+    was_completed: boolean;
+    date: string;
+  };
+  'focus_loaded': {
+    has_focus: boolean;
+    priorities_count: number;
+    completed_priorities: number;
+    load_time_ms: number;
+    date: string;
+  };
+  'focus_error': {
+    error_type: string;
+    operation: string;
+    date: string;
+  };
+}
+
 class Analytics {
   private events: AnalyticsEvent[] = [];
   private isEnabled: boolean = __DEV__; // Only enable in development for now
@@ -53,6 +89,19 @@ class Analytics {
   trackTodoEvent<T extends keyof TodoAnalyticsEvents>(
     event: T,
     properties: TodoAnalyticsEvents[T],
+    userId?: string
+  ): void {
+    if (!this.isEnabled) return;
+
+    this.track(event, properties, userId);
+  }
+
+  /**
+   * Track a Today's Focus-specific event
+   */
+  trackFocusEvent<T extends keyof FocusAnalyticsEvents>(
+    event: T,
+    properties: FocusAnalyticsEvents[T],
     userId?: string
   ): void {
     if (!this.isEnabled) return;
@@ -124,4 +173,4 @@ class Analytics {
 export const analytics = new Analytics();
 
 // Export types for use in components
-export type { TodoAnalyticsEvents, AnalyticsEvent };
+export type { TodoAnalyticsEvents, FocusAnalyticsEvents, AnalyticsEvent };

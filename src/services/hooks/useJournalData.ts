@@ -81,8 +81,8 @@ export const useTodaysFocusData = (userId: string, date: string, config?: Partia
     enabled: !!userId && !!date,
     refetchOnMount: true, // Refetch on mount to ensure data is loaded
     refetchOnWindowFocus: false, // Don't refetch on window focus to avoid unnecessary requests
-    retry: createRetryFunction(RETRY_CONFIGS.STANDARD),
-    retryDelay: createRetryDelayFunction(RETRY_CONFIGS.STANDARD),
+    retry: createRetryFunction(RETRY_CONFIGS.FOCUS_ENHANCED),
+    retryDelay: createRetryDelayFunction(RETRY_CONFIGS.FOCUS_ENHANCED),
   };
 
   const finalConfig = { ...defaultConfig, ...config };
