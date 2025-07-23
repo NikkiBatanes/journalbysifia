@@ -42,6 +42,18 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // React Query hooks with performance tracking
   const loadStartTime = React.useRef<number>(Date.now());
   const { data: gratitudeEntries = [], isLoading, error } = useGratitudeData(user?.id || '', dateStr);
+  
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔍 GratitudeList Debug:', {
+      userId: user?.id,
+      dateStr,
+      gratitudeEntriesCount: gratitudeEntries.length,
+      gratitudeEntries,
+      isLoading,
+      error: error?.message,
+    });
+  }, [user?.id, dateStr, gratitudeEntries, isLoading, error]);
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
   const deleteMutation = useDeleteJournalEntry();
@@ -55,22 +67,39 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       parsedContent = { items: [] };
     }
 
+    console.log('🔄 Transforming entry:', {
+      entryId: entry.id,
+      rawContent: entry.content,
+      parsedContent,
+      contentType: entry.content_type,
+    });
+
     // Handle both single item and items array formats
     if (parsedContent.items && Array.isArray(parsedContent.items)) {
-      return parsedContent.items.map((item: any, index: number) => ({
+      const transformedItems = parsedContent.items.map((item: any, index: number) => ({
         id: `${entry.id}_${index}`,
         text: item.text || item,
         date: selectedDate,
       }));
+      console.log('✅ Transformed items:', transformedItems);
+      return transformedItems;
     } else if (parsedContent.text) {
-      return [{
+      const singleItem = [{
         id: entry.id,
         text: parsedContent.text,
         date: selectedDate,
       }];
+      console.log('✅ Single item:', singleItem);
+      return singleItem;
     }
+    console.log('⚠️ No items found in entry');
     return [];
   }).flat();
+  
+  console.log('🎆 Final gratitudeItems:', {
+    count: gratitudeItems.length,
+    items: gratitudeItems,
+  });
 
   // Track loading performance
   React.useEffect(() => {

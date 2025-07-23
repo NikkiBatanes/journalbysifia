@@ -24,14 +24,19 @@ export const useGratitudeData = (userId: string, date: string, config?: Partial<
     queryKey: queryKeys.journal.gratitude(userId, date),
     queryFn: async () => {
       try {
+        console.log('🔍 useGratitudeData fetching:', { userId, date });
+        
         // Try cache first
         const cached = await JournalCache.getCache(userId, date, 'gratitude');
         if (cached) {
+          console.log('💾 Cache hit:', { count: cached.length, cached });
           return cached;
         }
 
         // Fetch from API
+        console.log('🌐 Fetching from API...');
         const entries = await JournalApi.getGratitudeEntries(userId, date);
+        console.log('📊 API response:', { count: entries.length, entries });
 
         // Cache the results
         await JournalCache.setCache(userId, date, entries, 'gratitude');
