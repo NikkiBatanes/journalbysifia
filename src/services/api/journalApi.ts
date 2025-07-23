@@ -4,7 +4,7 @@ import { supabase } from '../supabaseApi';
 export interface JournalApiEntry {
   id: string;
   user_id: string;
-  content_type: 'gratitude' | 'todo' | 'today_win' | 'looking_forward' | 'todays_focus' | 'reflection_log';
+  content_type: 'gratitude' | 'todo' | 'today_win' | 'looking_forward' | 'todays_focus';
   content: string;
   selected_date: string;
   created_at: string;
@@ -92,6 +92,59 @@ export class JournalApi {
     id: string,
     updates: Partial<Omit<JournalApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<JournalApiEntry> {
+    console.log('🔄 JournalApi.updateJournalEntry:', { id, updates });
+
+    // First check if there are duplicates and clean them up
+    const { data: existingEntries } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .eq('id', id)
+      .order('created_at', { ascending: true });
+
+    console.log('📊 Existing entries with this ID:', { count: existingEntries?.length, entries: existingEntries });
+
+    // Handle different scenarios
+    if (!existingEntries || existingEntries.length === 0) {
+      console.error('❌ No entries found with ID:', id);
+      throw new Error(`No journal entry found with ID: ${id}`);
+    }
+
+    if (existingEntries.length > 1) {
+      console.log('⚠️ Found duplicate entries, cleaning up...');
+      const [keepEntry, ...duplicateEntries] = existingEntries;
+
+      // Delete duplicates (but keep the first one)
+      for (const duplicate of duplicateEntries) {
+        const { error: deleteError } = await supabase
+          .from('journal_entries')
+          .delete()
+          .eq('id', duplicate.id);
+
+        if (deleteError) {
+          console.error('❌ Error deleting duplicate:', deleteError);
+        } else {
+          console.log('🗑️ Deleted duplicate entry:', duplicate.id);
+        }
+      }
+
+      console.log('✅ Cleanup complete, proceeding with update of entry:', keepEntry.id);
+    } else {
+      console.log('✅ Single entry found, proceeding with update:', existingEntries[0].id);
+    }
+
+    // Verify the entry still exists before updating
+    const { data: verifyEntries } = await supabase
+      .from('journal_entries')
+      .select('id')
+      .eq('id', id);
+
+    console.log('🔍 Entries before update:', verifyEntries);
+
+    if (!verifyEntries || verifyEntries.length === 0) {
+      console.error('❌ No entry found to update after cleanup');
+      throw new Error('Entry was deleted during cleanup process');
+    }
+
     const { data, error } = await supabase
       .from('journal_entries')
       .update({
@@ -103,9 +156,39 @@ export class JournalApi {
       .single();
 
     if (error) {
-      console.error('Error updating journal entry:', error);
+      console.error('❌ Error updating journal entry by ID:', error);
+      console.error('❌ Update details:', { id, updates, verifyEntries });
+
+      // Try fallback update using natural key if we have the necessary info
+      if (existingEntries && existingEntries.length > 0) {
+        const entry = existingEntries[0];
+        console.log('🔄 Attempting fallback update using natural key...');
+
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('journal_entries')
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', entry.user_id)
+          .eq('selected_date', entry.selected_date)
+          .eq('content_type', entry.content_type)
+          .select()
+          .single();
+
+        if (fallbackError) {
+          console.error('❌ Fallback update also failed:', fallbackError);
+          throw new Error(`Failed to update journal entry: ${error.message}`);
+        }
+
+        console.log('✅ Fallback update successful:', fallbackData);
+        return fallbackData;
+      }
+
       throw new Error(`Failed to update journal entry: ${error.message}`);
     }
+
+    console.log('✅ Successfully updated entry:', data);
 
     return data;
   }
