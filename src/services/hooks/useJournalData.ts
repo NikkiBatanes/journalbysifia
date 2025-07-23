@@ -598,3 +598,98 @@ export const useInvalidateJournalData = () => {
 
   return { invalidateAllJournalData, clearJournalCache };
 };
+
+// Specific mutation hooks for Todos
+export const useCreateTodoEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (entry: { user_id: string; selected_date: string; content: any; content_type: string; completed?: boolean }) =>
+      JournalApi.createJournalEntry({
+        ...entry,
+        content_type: 'todo',
+      }),
+    onMutate: async (newEntry) => {
+      // Cancel any outgoing refetches
+      const queryKey = queryKeys.journal.todos(newEntry.user_id, newEntry.selected_date);
+      await queryClient.cancelQueries({ queryKey });
+
+      // Snapshot the previous value
+      const previousEntries = queryClient.getQueryData(queryKey);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
+        ...old,
+        {
+          ...newEntry,
+          id: 'temp-' + Date.now(),
+          content_type: 'todo',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ]);
+
+      return { previousEntries };
+    },
+    onError: (err, newEntry, context) => {
+      console.error('Error creating todo entry:', err);
+      if (context?.previousEntries) {
+        try {
+          const queryKey = queryKeys.journal.todos(newEntry.user_id, newEntry.selected_date);
+          queryClient.setQueryData(queryKey, context.previousEntries);
+        } catch (rollbackError) {
+          console.error('Error rolling back todo entry creation:', rollbackError);
+        }
+      }
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch related queries
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.journal.todos(variables.user_id, variables.selected_date),
+      });
+
+      // Clear cache to force fresh data
+      JournalCache.clearCache(variables.user_id, variables.selected_date, 'todo');
+    },
+  });
+};
+
+export const useUpdateTodoEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
+      JournalApi.updateJournalEntry(id, updates),
+    onSuccess: (data) => {
+      // Update the specific entry in the todos query
+      queryClient.setQueryData(
+        queryKeys.journal.todos(data.user_id, data.selected_date),
+        (old: JournalApiEntry[] = []) =>
+          old.map(entry => entry.id === data.id ? data : entry)
+      );
+
+      // Clear cache to ensure consistency
+      JournalCache.clearCache(data.user_id, data.selected_date, 'todo');
+    },
+  });
+};
+
+export const useDeleteTodoEntry = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: JournalApi.deleteJournalEntry,
+    onMutate: async (entryId: string) => {
+      // We need to find the entry first to get user_id and selected_date
+      // This is a limitation of the current API design
+      return { entryId };
+    },
+    onSuccess: (_, _deletedId, _context: any) => {
+      // Remove the entry from todos queries
+      // Since we don't have user_id and selected_date, we invalidate all todos queries
+      queryClient.invalidateQueries({
+        queryKey: ['journal', 'todos'],
+      });
+    },
+  });
+};
