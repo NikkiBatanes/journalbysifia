@@ -12,7 +12,6 @@ export const useTimeBlockData = (userId: string, date: string) => {
     staleTime: 1000, // 1 second stale time to prevent excessive refetching
     gcTime: 10 * 60 * 1000,
     enabled: !!userId && !!date,
-    refetchOnMount: false, // Don't refetch on mount to prevent loading flash
     initialData: [], // Provide empty array as initial data
     retry: createRetryFunction(RETRY_CONFIGS.TIMEBLOCK_ENHANCED),
   });

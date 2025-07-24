@@ -221,15 +221,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setIsAdding(true);
     setEditId(block.id);
     setNewBlock({
-      title: block.title,
-      startTime: new Date(block.startTime),
-      endTime: new Date(block.endTime),
-      category: block.category,
+      ...block,
       notes: block.notes || '',
       location: block.location || '',
-      isAllDay: block.isAllDay,
-      repeat: block.repeat,
+      startTime: new Date(block.startTime),
+      endTime: new Date(block.endTime),
     });
+    setInputValue(block.repeat.customFrequency?.value?.toString() || '1');
+    setCustomFrequency(block.repeat.customFrequency || { value: 1, unit: 'week' });
+    // Always start with repeat options closed when editing
+    setShowRepeatOptions(false);
   };
 
   const handleDeleteBlock = async (id: string) => {
@@ -493,29 +494,27 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               delete swipeableRefs.current[block.id];
             }
           }}
-        renderRightActions={() => (
-          <View style={styles.timeblockSwipeActions}>
-            <TouchableOpacity
-              style={styles.editActionBtn}
-              onPress={() => {
-                closeAllSwipeables();
-                handleEditBlock(block);
-              }}
-            >
-              <Ionicons name="pencil" size={16} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.deleteActionBtn}
-              onPress={() => {
-                closeAllSwipeables();
-                handleDeleteBlock(block.id);
-              }}
-            >
-              <Ionicons name="trash" size={16} color="white" />
-            </TouchableOpacity>
-          </View>
-        )}
-        onSwipeableWillOpen={closeAllSwipeables}
+          renderRightActions={() => (
+            <View style={styles.timeblockSwipeActions}>
+              <TouchableOpacity
+                style={styles.editActionBtn}
+                onPress={() => handleEditBlock(block)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={22} color="white" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.deleteActionBtn}
+                onPress={() => handleDeleteBlock(block.id)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="trash-outline" size={22} color="white" />
+              </TouchableOpacity>
+            </View>
+          )}
+          rightThreshold={40}
+          friction={2}
+          overshootRight={false}
       >
         <View style={styles.timeBlockCard}>
           <View style={styles.timeColumn}>
