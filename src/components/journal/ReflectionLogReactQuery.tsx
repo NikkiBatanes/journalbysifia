@@ -91,7 +91,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       content: entry.content,
       type: entry.type,
       source: entry.source,
-      prompt: entry.question_text,
+      prompt: undefined, // Prompt not stored in database
       tags: [], // Tags would need to be parsed from content or stored separately
       location: undefined,
       devotionalTitle: entry.devotional_title,
@@ -532,13 +532,11 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               }
 
               try {
+                // Only include fields that exist in the database schema
                 const saveData = {
                   title: entryData.title,
                   content: entryData.content,
                   type: entryData.type || newEntry.type || 'free',
-                  question_text: entryData.prompt || selectedPrompt || '',
-                  tags: entryData.tags || [],
-                  source: entryData.source,
                   user_id: user.id,
                   selected_date: dateStr,
                 };
@@ -567,7 +565,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                     title_length: saveData.title.length,
                     content_length: saveData.content.length,
                     type: saveData.type,
-                    has_prompt: Boolean(saveData.question_text),
+                    has_prompt: Boolean(entryData.prompt || selectedPrompt),
                     date: dateStr,
                   }, user.id);
                 }

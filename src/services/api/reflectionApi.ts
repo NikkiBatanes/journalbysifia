@@ -16,7 +16,6 @@ export interface ReflectionApiEntry {
   day_title?: string;
   total_days?: number;
   question_number?: number;
-  question_text?: string;
 }
 
 export class ReflectionApi {
