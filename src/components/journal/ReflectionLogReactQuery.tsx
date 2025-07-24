@@ -1,10 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { NotebookPen as LuNotebookPen, X } from 'lucide-react-native';
+
 import ReflectionLogEditor from './ReflectionLogEditor';
 import { styles as reflectionLogStyles } from './ReflectionLog';
 import { useAuth } from '../../context/AuthContext';
@@ -17,7 +18,6 @@ import {
 } from '../../services/hooks/useReflectionData';
 import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
 import { analytics } from '../../utils/analytics';
-import { QueryErrorBoundary } from '../ErrorBoundary/QueryErrorBoundary';
 
 type ViewMode = 'free' | 'guided';
 
@@ -125,8 +125,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState('');
-  // const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null); // Unused
-  // const [showEntryModal, setShowEntryModal] = useState(false); // Unused
+  const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
   const [newEntry, setNewEntry] = useState({
     title: '',
     content: '',
@@ -150,6 +149,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     setSelectedPrompt('');
     setIsAdding(false);
     setEditingId(null);
+    setSelectedEntry(null);
   }, []);
 
   const handleDeleteEntry = useCallback(async (entryId: string) => {
@@ -266,6 +266,38 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     </Modal>
   );
 
+  // Handle entry press for editing
+  const handleEntryPress = (entry: ReflectionLogEntry) => {
+    console.log('🔍 Editing entry:', entry.id, entry.title, 'type:', entry.type);
+    
+    // Set editing state
+    setEditingId(entry.id);
+    setSelectedEntry(entry);
+    
+    // For guided entries, set the selected prompt if available
+    if (entry.type === 'guided') {
+      // Use the stored prompt, or the title if it was used as a prompt, or empty string
+      const promptToUse = entry.prompt || (entry.title && GUIDED_PROMPTS.includes(entry.title) ? entry.title : '');
+      setSelectedPrompt(promptToUse);
+    } else {
+      setSelectedPrompt('');
+    }
+    
+    // Populate the form with existing entry data
+    setNewEntry({
+      title: entry.title || '',
+      content: entry.content,
+      type: entry.type,
+      source: entry.source,
+      prompt: entry.prompt || '',
+      tags: entry.tags || [],
+      location: entry.location || '',
+    });
+    
+    // Open the editor modal
+    setIsAdding(true);
+  };
+
   const renderEntries = () => {
     if (isLoading) {
       return <ReflectionSkeleton />;
@@ -301,21 +333,30 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     console.log('🔍 ReflectionLog Debug:', {
       totalEntries: entries.length,
       currentDate: dateStr,
-      entriesData: entries.map(e => ({ id: e.id, date: e.selected_date, title: e.title })),
+      rawReflectionEntries: reflectionEntries,
+      transformedEntries: entries,
+      isLoading,
+      error: error?.message,
+      userId: user?.id,
     });
 
     // Filter entries to only show those from the current date
     const filteredEntries = entries.filter(entry => {
+      console.log('🔍 Comparing dates:', entry.selected_date, '===', dateStr, entry.selected_date === dateStr);
       return entry.selected_date === dateStr;
     });
 
     console.log('🔍 Filtered entries for date:', dateStr, 'count:', filteredEntries.length);
+    
+    // TEMPORARY: Show all entries for debugging
+    const entriesToShow = filteredEntries.length > 0 ? filteredEntries : entries;
+    console.log('🔍 Entries to show:', entriesToShow.length);
 
     // Show empty state instead of returning null
-    if (filteredEntries.length === 0) {
+    if (entriesToShow.length === 0) {
       return (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No reflections for this date</Text>
+          <Text style={styles.emptyText}>No reflections found</Text>
           <Text style={styles.emptySubtext}>Tap the + button to add your first reflection</Text>
         </View>
       );
@@ -324,24 +365,27 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     return (
       <>
         <View style={styles.entriesContainer}>
-          {filteredEntries.slice(0, visibleCount).map((entry) => (
+          {entriesToShow.slice(0, visibleCount).map((entry) => (
             <React.Fragment key={entry.id}>
               {renderEntryCard(entry)}
             </React.Fragment>
           ))}
         </View>
-        {(filteredEntries.length > visibleCount || visibleCount > 3) && (
+        {(entriesToShow.length > visibleCount || visibleCount > 3) && (
           <View style={styles.paginationContainer}>
             <View style={styles.paginationButtonGroup}>
-              {filteredEntries.length > visibleCount && (
+              {entriesToShow.length > visibleCount && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showMoreButton]}
-                  onPress={() => setVisibleCount(prev => Math.min(prev + 3, filteredEntries.length))}
+                  onPress={() => setVisibleCount(prev => Math.min(prev + 3, entriesToShow.length))}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Show more reflections. ${entriesToShow.length - visibleCount} remaining`}
+                  accessibilityHint="Loads 3 more reflection items to the list"
                 >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
                   <Text style={[styles.paginationButtonText, styles.showMoreText]}>
-                    Show more
+                    Show more ({entriesToShow.length - visibleCount})
                   </Text>
                 </TouchableOpacity>
               )}
@@ -350,6 +394,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   style={[styles.paginationButton, styles.showLessButton]}
                   onPress={() => setVisibleCount(3)}
                   activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Show less reflections"
+                  accessibilityHint="Collapses the list to show only the first 3 reflections"
                 >
                   <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
                   <Text style={[styles.paginationButtonText, styles.showLessText]}>
@@ -375,6 +422,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             ? styles.guidedEntry
             : styles.freeFormEntry,
       ]}
+      onPress={() => handleEntryPress(entry)}
       activeOpacity={0.8}
     >
       {entry.source === 'devotional' ? (
@@ -390,7 +438,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             })}
           </Text>
         </View>
-      ) : entry.type === 'guided' && entry.prompt ? (
+      ) : entry.type === 'guided' ? (
         <View style={styles.guidedPromptRow}>
           <View style={styles.guidedPromptContainer}>
             <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
@@ -409,8 +457,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           </Text>
         </View>
       )}
-      {entry.type === 'guided' && entry.prompt ? (
-        <Text style={styles.promptCardText}>{entry.prompt}</Text>
+      {entry.type === 'guided' ? (
+        <Text style={styles.promptCardText}>{entry.prompt || entry.title || 'Guided Reflection'}</Text>
       ) : entry.title ? (
         <Text style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</Text>
       ) : null}
@@ -448,18 +496,16 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Loading state with skeleton
   if (isLoading) {
     return (
-      <QueryErrorBoundary>
-        <JournalCard
-          icon={<LuNotebookPen size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
-          title="Reflection Log"
-          subtitle="Loading your reflections..."
-          showAddButton={false}
-          onAdd={() => {}}
-          isAdding={false}
-        >
-          <ReflectionSkeleton count={3} />
-        </JournalCard>
-      </QueryErrorBoundary>
+      <JournalCard
+        icon={<LuNotebookPen size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
+        title="Reflection Log"
+        subtitle="Loading your reflections..."
+        showAddButton={false}
+        onAdd={() => {}}
+        isAdding={false}
+      >
+        <ReflectionSkeleton count={3} />
+      </JournalCard>
     );
   }
 
@@ -499,27 +545,27 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   }
 
   return (
-    <QueryErrorBoundary>
-      <JournalCard
-        icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        title="Reflection Log"
-        subtitle={entries && entries.length > 0 ? `${entries.length} reflections` : 'No reflections yet'}
-        showAddButton={true}
-        onAdd={() => {
-          setNewEntry({
-            title: '',
-            content: '',
-            type: 'free',
-            prompt: '',
-            tags: [],
-            location: '',
-            source: undefined,
-          });
-          setSelectedPrompt('');
-          setIsAdding(true);
-          setEditingId(null);
-        }}
-      >
+    <JournalCard
+      icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
+      title="Reflection Log"
+      subtitle={entries && entries.length > 0 ? `${entries.length} reflections` : 'No reflections yet'}
+      showAddButton={true}
+      onAdd={() => {
+        setNewEntry({
+          title: '',
+          content: '',
+          type: 'free',
+          prompt: '',
+          tags: [],
+          location: '',
+          source: undefined,
+        });
+        setSelectedPrompt('');
+        setIsAdding(true);
+        setEditingId(null);
+        setSelectedEntry(null);
+      }}
+    >
       {/* Entries List */}
       {renderEntries()}
 
@@ -527,23 +573,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       <Modal
         visible={isAdding}
         animationType="slide"
-        transparent
-        onRequestClose={() => {
-          Keyboard.dismiss();
-          // Small delay to ensure keyboard is fully dismissed before closing
-          setTimeout(() => {
-            resetForm();
-            setIsAdding(false);
-          }, 10);
-        }}
+        transparent={false}
+        onRequestClose={() => setIsAdding(false)}
       >
-        <KeyboardAvoidingView
-          style={modalStyles.centeredView}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <View style={modalStyles.modalView}>
-            {isAdding && (
-              <ReflectionLogEditor
+        <ReflectionLogEditor
             onSave={async (entryData: any) => {
               if (!user) {
                 console.error('User not authenticated');
@@ -555,12 +588,19 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                 const saveData = {
                   title: entryData.title,
                   content: entryData.content,
-                  type: entryData.type || newEntry.type || 'free',
+                  type: editingId ? (selectedEntry?.type || newEntry.type || 'free') : (entryData.type || newEntry.type || 'free'),
                   user_id: user.id,
                   selected_date: dateStr,
                 };
 
                 console.log('🔍 Saving reflection with data:', saveData);
+                console.log('🔍 Entry context:', {
+                  editingId,
+                  selectedEntryType: selectedEntry?.type,
+                  newEntryType: newEntry.type,
+                  entryDataType: entryData.type,
+                  finalType: saveData.type
+                });
 
                 if (editingId) {
                   // Update existing entry
@@ -619,13 +659,13 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               source: newEntry.source,
               prompt: newEntry.prompt,
             }}
-            initialMode={selectedPrompt ? 'guided' : (newEntry.type === 'guided' ? 'guided' : 'free-form')}
-            initialPrompt={selectedPrompt || newEntry.prompt || ''}
-            initialTitle={selectedPrompt || newEntry.title}
-            lockTitle={Boolean(selectedPrompt)}
-            source={selectedPrompt ? 'guided' : 'freeform'}
+            initialMode={newEntry.type === 'guided' ? 'guided' : 'free-form'}
+            initialPrompt={newEntry.type === 'guided' ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
+            initialTitle={newEntry.type === 'guided' && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
+            lockTitle={newEntry.type === 'guided' && Boolean(selectedPrompt)}
+            source={newEntry.type === 'guided' && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
             styles={reflectionLogStyles}
-            dateString={(function() {
+            dateString={(() => {
               const now = new Date();
               const year = now.getFullYear();
               const todayString = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -633,15 +673,11 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               return year === new Date().getFullYear() ? todayString : todayStringWithYear;
             })()}
           />
-            )}
-          </View>
-        </KeyboardAvoidingView>
       </Modal>
 
       {/* Prompt Picker Modal */}
       {renderPromptPicker()}
     </JournalCard>
-    </QueryErrorBoundary>
   );
 };
 
@@ -1135,13 +1171,19 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
     fontFamily: Fonts.medium,
     lineHeight: 14,
+  },
+  showMoreButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  showMoreText: {
+    color: Colors.alertCoral,
   },
   showLessButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
@@ -1151,28 +1193,4 @@ const styles = StyleSheet.create({
   },
 });
 
-// Modal styles for the white background modal
-const modalStyles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  modalView: {
-    backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    padding: 0,
-    width: '100%',
-    height: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    overflow: 'hidden',
-  },
-});
+

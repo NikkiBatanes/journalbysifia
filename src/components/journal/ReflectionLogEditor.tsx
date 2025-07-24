@@ -237,44 +237,47 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     return '@reflection_editor_draft';
   }, [source, devotionalTitle, dayNumber, questionNumber]);
 
-  // Load draft when component mounts
+  // Load draft when component mounts (only for new entries, not when editing)
   useEffect(() => {
-    const loadDraft = async () => {
-      try {
-        const draftKey = getDraftKey();
-        const draft = await AsyncStorage.getItem(draftKey);
-        if (draft) {
-          const { content, title } = JSON.parse(draft);
+    // Only load drafts when creating new entries, not when editing existing ones
+    if (!isEditing) {
+      const loadDraft = async () => {
+        try {
+          const draftKey = getDraftKey();
+          const draft = await AsyncStorage.getItem(draftKey);
+          if (draft) {
+            const { content, title } = JSON.parse(draft);
 
-          // Only load draft if there's actual content
-          if (content || title) {
-            setNewEntry(prev => ({
-              ...prev,
-              content: content || prev.content,
-              title: title || prev.title,
-            }));
+            // Only load draft if there's actual content
+            if (content || title) {
+              setNewEntry(prev => ({
+                ...prev,
+                content: content || prev.content,
+                title: title || prev.title,
+              }));
 
-            // Show notification
-            setShowDraftNotification(true);
+              // Show notification
+              setShowDraftNotification(true);
 
-            // Hide notification after 4 seconds
-            const timer = setTimeout(() => {
-              setShowDraftNotification(false);
-            }, 4000);
+              // Hide notification after 4 seconds
+              const timer = setTimeout(() => {
+                setShowDraftNotification(false);
+              }, 4000);
 
-            // Clear the draft after loading it
-            await AsyncStorage.removeItem(draftKey);
+              // Clear the draft after loading it
+              await AsyncStorage.removeItem(draftKey);
 
-            return () => clearTimeout(timer);
+              return () => clearTimeout(timer);
+            }
           }
+        } catch (error) {
+          console.error('Error loading draft:', error);
         }
-      } catch (error) {
-        console.error('Error loading draft:', error);
-      }
-    };
+      };
 
-    loadDraft();
-  }, [getDraftKey]);
+      loadDraft();
+    }
+  }, [getDraftKey, isEditing]);
 
   // Helper function to save draft
   const saveDraftHelper = async () => {
@@ -321,15 +324,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     }
   }, [initialTitle, newEntry.title]);
 
-  // Focus content field when in locked title mode
-  React.useEffect(() => {
-    if (lockTitle && contentInputRef.current) {
-      const timer = setTimeout(() => {
-        contentInputRef.current?.focus();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [lockTitle]);
+  // Removed automatic focus when in locked title mode to prevent cursor from appearing automatically
 
   // Keyboard listeners for FAB
   React.useEffect(() => {
@@ -550,7 +545,6 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   underlineColorAndroid="transparent"
                   selectionColor={Colors.hopeWhite}
                   multiline={true}
-                  autoFocus
                 />
               )}
               <TextInput
