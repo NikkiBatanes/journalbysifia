@@ -575,11 +575,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               setIsAdding(false);
             }}
             initialEntry={{
-              id: editingId || '',
               title: newEntry.title,
               content: newEntry.content,
               tags: newEntry.tags || [],
-              type: newEntry.type,
+              type: newEntry.type === 'free' ? 'free-form' : newEntry.type,
               source: newEntry.source,
               prompt: newEntry.prompt,
             }}
