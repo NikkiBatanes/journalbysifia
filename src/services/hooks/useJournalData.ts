@@ -521,47 +521,22 @@ export const useCreateTodayWinEntry = () => {
         ...entry,
         content_type: 'today_win',
       }),
-    onMutate: async (newEntry) => {
-      // Cancel any outgoing refetches
-      const queryKey = queryKeys.journal.todayWin(newEntry.user_id, newEntry.selected_date);
-      await queryClient.cancelQueries({ queryKey });
-
-      // Snapshot the previous value
-      const previousEntries = queryClient.getQueryData(queryKey);
-
-      // Optimistically update to the new value
-      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => [
-        ...old,
-        {
-          ...newEntry,
-          id: 'temp-' + Date.now(),
-          content_type: 'today_win',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-
-      return { previousEntries };
-    },
+    // Removed onMutate optimistic updates to prevent conflicts with component-level optimistic updates
     onError: (err, newEntry, context) => {
       console.error('Error creating today\'s win entry:', err);
-      if (context?.previousEntries) {
-        try {
-          const queryKey = queryKeys.journal.todayWin(newEntry.user_id, newEntry.selected_date);
-          queryClient.setQueryData(queryKey, context.previousEntries);
-        } catch (rollbackError) {
-          console.error('Error rolling back today\'s win entry creation:', rollbackError);
-        }
-      }
+      // Error handling is now managed at component level
     },
     onSuccess: (data, variables) => {
-      // Invalidate and refetch related queries
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.journal.todayWin(variables.user_id, variables.selected_date),
+      // Update cache with the new data instead of invalidating
+      const queryKey = queryKeys.journal.todayWin(variables.user_id, variables.selected_date);
+      queryClient.setQueryData(queryKey, (old: JournalApiEntry[] = []) => {
+        // Add the new entry to the cache
+        return [...old, data];
       });
 
-      // Clear cache to force fresh data
+      // Clear local cache
       JournalCache.clearCache(variables.user_id, variables.selected_date, 'today_win');
+      console.log('🏆 useCreateTodayWinEntry: Added new entry to cache', data);
     },
   });
 };
@@ -570,18 +545,36 @@ export const useUpdateTodayWinEntry = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) =>
-      JournalApi.updateJournalEntry(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<JournalApiEntry> }) => {
+      console.log('🏆 useUpdateTodayWinEntry: Starting API call', { id, updates });
+      return JournalApi.updateJournalEntry(id, updates);
+    },
     onSuccess: (data) => {
+      console.log('🏆 useUpdateTodayWinEntry: API call successful', data);
+      
+      const queryKey = queryKeys.journal.todayWin(data.user_id, data.selected_date);
+      console.log('🏆 useUpdateTodayWinEntry: Updating query cache', { queryKey });
+      
       // Update the specific entry in the today win query
       queryClient.setQueryData(
-        queryKeys.journal.todayWin(data.user_id, data.selected_date),
-        (old: JournalApiEntry[] = []) =>
-          old.map(entry => entry.id === data.id ? data : entry)
+        queryKey,
+        (old: JournalApiEntry[] = []) => {
+          console.log('🏆 useUpdateTodayWinEntry: Old cache data', old);
+          const updated = old.map(entry => entry.id === data.id ? data : entry);
+          console.log('🏆 useUpdateTodayWinEntry: New cache data', updated);
+          return updated;
+        }
       );
 
-      // Clear cache to ensure consistency
+      // Clear local cache to ensure consistency
       JournalCache.clearCache(data.user_id, data.selected_date, 'today_win');
+      console.log('🏆 useUpdateTodayWinEntry: Cache cleared');
+      
+      // Don't invalidate immediately to avoid overriding optimistic updates
+      // The cache is already updated above with the correct data
+    },
+    onError: (error) => {
+      console.error('🏆 useUpdateTodayWinEntry: API call failed', error);
     },
   });
 };

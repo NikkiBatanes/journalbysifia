@@ -107,6 +107,60 @@ interface GratitudeAnalyticsEvents {
   };
 }
 
+interface WinAnalyticsEvents {
+  'win_created': {
+    text_length: number;
+    date: string;
+  };
+  'win_updated': {
+    text_length: number;
+    previous_text_length: number;
+    date: string;
+  };
+  'win_deleted': {
+    win_id: string;
+    text_length: number;
+    date: string;
+  };
+  'win_loaded': {
+    has_win: boolean;
+    load_time_ms: number;
+    date: string;
+  };
+  'win_error': {
+    error_type: string;
+    operation: string;
+    date: string;
+  };
+}
+
+interface LookingForwardAnalyticsEvents {
+  'looking_forward_created': {
+    text_length: number;
+    date: string;
+  };
+  'looking_forward_updated': {
+    text_length: number;
+    previous_text_length: number;
+    date: string;
+  };
+  'looking_forward_deleted': {
+    entry_id: string;
+    text_length: number;
+    date: string;
+  };
+  'looking_forward_loaded': {
+    has_entry: boolean;
+    load_time_ms: number;
+    date: string;
+  };
+  'looking_forward_error': {
+    error_type: string;
+    operation: string;
+    date: string;
+  };
+}
+
 class Analytics {
   private events: AnalyticsEvent[] = [];
   private isEnabled: boolean = __DEV__; // Only enable in development for now
@@ -143,6 +197,32 @@ class Analytics {
   trackGratitudeEvent<T extends keyof GratitudeAnalyticsEvents>(
     event: T,
     properties: GratitudeAnalyticsEvents[T],
+    userId?: string
+  ): void {
+    if (!this.isEnabled) {return;}
+
+    this.track(event, properties, userId);
+  }
+
+  /**
+   * Track a Today's Win-specific event
+   */
+  trackWinEvent<T extends keyof WinAnalyticsEvents>(
+    event: T,
+    properties: WinAnalyticsEvents[T],
+    userId?: string
+  ): void {
+    if (!this.isEnabled) {return;}
+
+    this.track(event, properties, userId);
+  }
+
+  /**
+   * Track a Looking Forward-specific event
+   */
+  trackLookingForwardEvent<T extends keyof LookingForwardAnalyticsEvents>(
+    event: T,
+    properties: LookingForwardAnalyticsEvents[T],
     userId?: string
   ): void {
     if (!this.isEnabled) {return;}
@@ -214,4 +294,4 @@ class Analytics {
 export const analytics = new Analytics();
 
 // Export types for use in components
-export type { TodoAnalyticsEvents, FocusAnalyticsEvents, GratitudeAnalyticsEvents, AnalyticsEvent };
+export type { TodoAnalyticsEvents, FocusAnalyticsEvents, GratitudeAnalyticsEvents, WinAnalyticsEvents, LookingForwardAnalyticsEvents, AnalyticsEvent };

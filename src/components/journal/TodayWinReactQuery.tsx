@@ -13,16 +13,23 @@ import {
   useUpdateTodayWinEntry,
   useDeleteTodayWinEntry,
 } from '../../services/hooks/useJournalData';
+import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { TodayWinSkeleton } from '../SkeletonLoader/TodayWinSkeleton';
+import { analytics } from '../../utils/analytics';
 
 interface TodayWinProps {
   selectedDate: Date;
 }
 
-export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) => {
+const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
   const { user } = useAuth();
   const [winText, setWinText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [previousWin, setPreviousWin] = useState<{ id: string; text: string } | null>(null);
+  const [displayWin, setDisplayWin] = useState<{ id: string; text: string } | null>(null);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const swipeableRef = useRef<Swipeable>(null);
 
   const dateStr = toLocalDateString(selectedDate);
@@ -32,34 +39,145 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
     setWinText('');
     setIsAdding(false);
     setIsEditing(false);
+    setPreviousWin(null);
+    setDisplayWin(null);
+    setEditingEntryId(null);
+    setIsSaving(false);
     console.log('🏆 TodayWin: Resetting state for date:', dateStr);
   }, [dateStr]);
   const userId = user?.id || '';
 
-  // Get today's win entry
-  const { data: entries = [] } = useTodayWinData(userId, dateStr);
+  // Get today's win entry with performance tracking
+  const loadStartTime = useRef<number>(Date.now());
+  const { data: entries = [], isLoading, error, refetch } = useTodayWinData(userId, dateStr);
+  
+  // Debug: Log when entries change
+  React.useEffect(() => {
+    console.log('🏆 TodayWin: Entries changed:', entries);
+  }, [entries]);
+
+  // Track loading performance
+  React.useEffect(() => {
+    if (!isLoading && entries.length >= 0) {
+      const loadTime = Date.now() - loadStartTime.current;
+      const hasWin = entries.length > 0 && entries[0]?.content;
+
+      analytics.trackWinEvent('win_loaded', {
+        has_win: Boolean(hasWin),
+        load_time_ms: loadTime,
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [isLoading, entries.length, dateStr, user?.id]);
+
+  // Handle loading and error states
+  React.useEffect(() => {
+    if (error) {
+      analytics.trackWinEvent('win_error', {
+        error_type: error.message || 'unknown',
+        operation: 'load',
+        date: dateStr,
+      }, user?.id);
+
+      Alert.alert('Error', 'Failed to load today\'s win.');
+    }
+  }, [error, dateStr, user?.id]);
   const createMutation = useCreateTodayWinEntry();
   const updateMutation = useUpdateTodayWinEntry();
   const deleteMutation = useDeleteTodayWinEntry();
 
-  // Get the first entry (TodayWin typically has one entry)
+  // Get the first entry (TodayWin typically has one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
-  const win = entry ? {
-    id: entry.id,
-    text: (() => {
-      try {
-        const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-        return content?.win || '';
-      } catch {
-        return '';
-      }
-    })(),
-    date: selectedDate,
-  } : null;
+  
+  // Memoize the win object to prevent infinite re-renders - moved before early returns
+  const win = React.useMemo(() => {
+    if (!entry) return null;
+    
+    try {
+      const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+      const result = {
+        id: entry.id,
+        text: content.win || ''
+      };
+      console.log('🏆 TodayWin: Win object created:', result);
+      return result;
+    } catch {
+      const result = {
+        id: entry.id,
+        text: ''
+      };
+      console.log('🏆 TodayWin: Win object created (error case):', result);
+      return result;
+    }
+  }, [entry?.id, entry?.content]);
+
+  // Update displayWin when win data changes, but only if not currently editing or saving
+  React.useEffect(() => {
+    if (!isEditing && !isSaving) {
+      // Only update if the win has actually changed
+      setDisplayWin(prevDisplayWin => {
+        // Compare by ID and text to avoid unnecessary updates
+        if (!win && !prevDisplayWin) return prevDisplayWin;
+        if (!win || !prevDisplayWin) {
+          console.log('🏆 TodayWin: Updated displayWin from server:', win);
+          return win;
+        }
+        
+        // Don't override optimistic updates with the same content
+        if (win.id === prevDisplayWin.id && win.text === prevDisplayWin.text) {
+          return prevDisplayWin; // No change, keep previous
+        }
+        
+        // Don't override optimistic updates with older data
+        // (optimistic updates have temp IDs or are newer)
+        if (prevDisplayWin.id.startsWith('temp-') && win.text === prevDisplayWin.text) {
+          // Replace temp ID with real ID but keep the optimistic content
+          console.log('🏆 TodayWin: Replacing optimistic ID with real ID:', { from: prevDisplayWin.id, to: win.id });
+          return { ...prevDisplayWin, id: win.id };
+        }
+        
+        console.log('🏆 TodayWin: Updated displayWin from server:', win);
+        return win;
+      });
+    }
+  }, [win, isEditing]);
 
   const closeSwipeable = useCallback(() => {
     swipeableRef.current?.close();
   }, []);
+
+  // Handle loading state
+  if (isLoading) {
+    return <TodayWinSkeleton />;
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <JournalCard
+        title="Today's Win"
+        subtitle="What's your biggest win today?"
+        icon={<LuTrophy size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
+        showAddButton={false}
+      >
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            Failed to load today's win. Please try again.
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              // Trigger a refetch by clearing cache and refetching
+              refetch();
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </JournalCard>
+    );
+  }
 
   const renderRightActions = (progress: any, dragX: any) => {
     const scale = dragX.interpolate({
@@ -115,70 +233,199 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
   };
 
   const cancelAdding = () => {
+    console.log('🏆 TodayWin: Cancelling', { previousWin, isEditing, editingEntryId });
+    if (previousWin) {
+      // Restore the previous win if we were editing
+      setDisplayWin(previousWin);
+      setPreviousWin(null);
+    } else {
+      // Clear the input if we were adding a new win
+      setWinText('');
+    }
     setIsAdding(false);
     setIsEditing(false);
-    setWinText('');
+    setEditingEntryId(null);
+    setIsSaving(false);
+    console.log('🏆 TodayWin: Cancel complete');
   };
 
   const saveWin = () => {
     if (!winText.trim()) {return;}
 
-    if (isEditing && entry) {
+    console.log('🏆 TodayWin: Starting save process', {
+      winText: winText.trim(),
+      isEditing,
+      editingEntryId,
+      entriesCount: entries.length
+    });
+
+    if (isEditing && editingEntryId) {
       // Update existing entry
+      const currentEntry = entries.find(e => e.id === editingEntryId);
+      if (!currentEntry) {
+        console.error('🏆 TodayWin: Entry not found for editing:', editingEntryId);
+        console.error('🏆 TodayWin: Available entries:', entries.map(e => ({ id: e.id, content: e.content })));
+        return;
+      }
+
+      console.log('🏆 TodayWin: Found entry to update:', {
+        id: currentEntry.id,
+        currentContent: currentEntry.content,
+        newText: winText.trim()
+      });
+
       let updatedContent: any;
       try {
-        updatedContent = typeof entry.content === 'string'
-          ? JSON.parse(entry.content)
-          : entry.content;
+        updatedContent = typeof currentEntry.content === 'string'
+          ? JSON.parse(currentEntry.content)
+          : currentEntry.content;
       } catch {
         updatedContent = {};
       }
 
+      const oldWin = updatedContent.win;
       updatedContent.win = winText.trim();
 
+      console.log('🏆 TodayWin: Content update:', {
+        oldWin,
+        newWin: updatedContent.win,
+        fullContent: updatedContent
+      });
+
+      // Set saving state to prevent useEffect from overriding
+      setIsSaving(true);
+      
+      // Create optimistic update
+      const optimisticWin = {
+        id: editingEntryId,
+        text: winText.trim()
+      };
+      
+      // Apply optimistic update immediately
+      setDisplayWin(optimisticWin);
+      console.log('🏆 TodayWin: Optimistic update applied:', optimisticWin);
+      
+      // Clear editing state after optimistic update
+      setIsAdding(false);
+      setIsEditing(false);
+      setWinText('');
+      setPreviousWin(null);
+      setEditingEntryId(null);
+
       updateMutation.mutate({
-        id: entry.id,
+        id: editingEntryId,
         updates: {
           content: JSON.stringify(updatedContent),
         },
+      }, {
+        onSuccess: (data) => {
+          console.log('🏆 TodayWin: Update mutation successful', data);
+          setIsSaving(false);
+          
+          // Track analytics
+          analytics.trackWinEvent('win_updated', {
+            text_length: winText.trim().length,
+            previous_text_length: previousWin?.text.length || 0,
+            date: dateStr,
+          }, user?.id); // Allow useEffect to work again
+          // The optimistic update will be replaced by real data when it arrives
+        },
+        onError: (error) => {
+          console.error('🏆 TodayWin: Update mutation failed', error);
+          setIsSaving(false); // Allow useEffect to work again
+          // Revert optimistic update and restore editing state on error
+          const originalWin = {
+            id: editingEntryId,
+            text: (() => {
+              try {
+                const entry = entries.find(e => e.id === editingEntryId);
+                if (!entry) return '';
+                const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+                return content.win || '';
+              } catch {
+                return '';
+              }
+            })()
+          };
+          setDisplayWin(originalWin);
+          console.log('🏆 TodayWin: Reverted optimistic update due to error', originalWin);
+        }
       });
     } else {
       // Create new entry
+      // Set saving state to prevent useEffect from overriding
+      setIsSaving(true);
+      
+      // Create optimistic update
+      const optimisticWin = {
+        id: 'temp-' + Date.now(),
+        text: winText.trim()
+      };
+      
+      // Apply optimistic update immediately
+      setDisplayWin(optimisticWin);
+      console.log('🏆 TodayWin: Optimistic create applied:', optimisticWin);
+      
+      // Clear editing state after optimistic update
+      setIsAdding(false);
+      setIsEditing(false);
+      setWinText('');
+      setPreviousWin(null);
+      setEditingEntryId(null);
+
       createMutation.mutate({
         user_id: userId,
         selected_date: dateStr,
         content: JSON.stringify({ win: winText.trim() }),
+      }, {
+        onSuccess: (data) => {
+          console.log('🏆 TodayWin: Create mutation successful', data);
+          setIsSaving(false);
+          
+          // Track analytics
+          analytics.trackWinEvent('win_created', {
+            text_length: winText.trim().length,
+            date: dateStr,
+          }, user?.id); // Allow useEffect to work again
+          // The optimistic update will be replaced by real data when it arrives
+        },
+        onError: (error) => {
+          console.error('🏆 TodayWin: Create mutation failed', error);
+          setIsSaving(false); // Allow useEffect to work again
+          // Revert optimistic update on error
+          setDisplayWin(null);
+          console.log('🏆 TodayWin: Reverted optimistic create due to error');
+        }
       });
     }
 
-    setIsAdding(false);
-    setIsEditing(false);
-    setWinText('');
+    // State clearing is now handled above in each branch
   };
 
   const editWin = () => {
-    if (!win) {return;}
+    if (!displayWin) {return;}
 
-    setWinText(win.text);
+    console.log('🏆 TodayWin: Starting edit mode', { displayWin, isAdding, isEditing });
+    setPreviousWin(displayWin);
+    setWinText(displayWin.text);
+    setEditingEntryId(displayWin.id); // Store the entry ID for updating
+    setDisplayWin(null); // Clear the win state to show the edit form
     setIsEditing(true);
     setIsAdding(true);
+    console.log('🏆 TodayWin: Edit mode set', { isAdding: true, isEditing: true, editingEntryId: displayWin.id });
   };
-
-
-
-
 
   return (
     <JournalCard
       title="Today's Win"
       subtitle="What's your biggest win today?"
       icon={<LuTrophy size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      showAddButton={!win && !isAdding}
+      showAddButton={!displayWin && !isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
       onCancelAdd={cancelAdding}
       headerRight={
-        win && !isAdding ? (
+        displayWin && !isAdding ? (
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={editWin} style={styles.headerButton}>
               <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
@@ -187,27 +434,20 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
         ) : null
       }
     >
-      {win ? (
+      {displayWin && !isAdding && (
         <Swipeable
           ref={swipeableRef}
           renderRightActions={renderRightActions}
-          rightThreshold={20}
-          containerStyle={styles.swipeableContainer}
-          overshootRight={false}
-          friction={3}
-          enableTrackpadTwoFingerGesture
-          onSwipeableWillOpen={() => {
-            const { Vibration } = require('react-native');
-            Vibration.vibrate(10);
-          }}
+          rightThreshold={40}
         >
-          <View style={styles.winContainer}>
-            <View style={styles.winContent}>
-              <Text style={styles.winText}>{win.text}</Text>
+          <View style={styles.swipeableContainer}>
+            <View style={styles.winContainer}>
+              <Text style={styles.winText}>{displayWin.text}</Text>
             </View>
           </View>
         </Swipeable>
-      ) : isAdding ? (
+      )}
+      {isAdding && (
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}
@@ -242,8 +482,17 @@ export const TodayWinReactQuery: React.FC<TodayWinProps> = ({ selectedDate }) =>
             </View>
           </View>
         </View>
-      ) : null}
+      )}
     </JournalCard>
+  );
+};
+
+// Export with error boundary wrapper
+export const TodayWinReactQuery: React.FC<TodayWinProps> = (props) => {
+  return (
+    <ComponentErrorBoundary name="TodayWinReactQuery">
+      <TodayWinComponent {...props} />
+    </ComponentErrorBoundary>
   );
 };
 
@@ -289,6 +538,11 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
     fontSize: 14,
     lineHeight: 20,
+    flex: 1,
+  },
+  editButton: {
+    padding: 4,
+    marginLeft: 8,
   },
   headerActions: {
     flexDirection: 'row',
@@ -340,5 +594,32 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  
+  // Error state styles
+  errorContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    marginTop: 8,
+  },
+  errorText: {
+    fontFamily: Fonts.regular,
+    color: Colors.alertCoral,
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignSelf: 'center',
+  },
+  retryText: {
+    fontFamily: Fonts.medium,
+    color: Colors.hopeWhite,
+    fontSize: 12,
   },
 });

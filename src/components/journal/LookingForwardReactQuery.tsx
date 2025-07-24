@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native';
+import React, { useState, useRef, useCallback } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert, Vibration } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -13,58 +13,218 @@ import {
   useUpdateLookingForwardEntry,
   useDeleteLookingForwardEntry,
 } from '../../services/hooks/useJournalData';
+import { LookingForwardSkeleton } from '../SkeletonLoader/LookingForwardSkeleton';
+import { ComponentErrorBoundary } from '../ErrorBoundary/ErrorBoundary';
+import { analytics } from '../../utils/analytics';
 
 interface LookingForwardProps {
   selectedDate: Date;
 }
 
-export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ selectedDate }) => {
+const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }) => {
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
+  const [displayEntry, setDisplayEntry] = useState<any>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const swipeableRef = useRef<Swipeable>(null);
+  const loadStartTime = useRef<number>(Date.now());
 
   const dateStr = toLocalDateString(selectedDate);
+  const userId = user?.id || '';
+
+  // Get looking forward entries with performance tracking
+  const { data: entries = [], isLoading, error, refetch } = useLookingForwardData(userId, dateStr);
+  
+  const createMutation = useCreateLookingForwardEntry();
+  const updateMutation = useUpdateLookingForwardEntry();
+  const deleteMutation = useDeleteLookingForwardEntry();
+
+  // Get the first entry (LookingForward typically has only one entry) - moved before early returns
+  const entry = entries.length > 0 ? entries[0] : null;
+  
+  // Memoize the looking forward object to prevent infinite re-renders - moved before early returns
+  const lookingForward = React.useMemo(() => {
+    if (!entry) return null;
+    
+    try {
+      const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+      return {
+        id: entry.id,
+        text: content?.entry?.text || ''
+      };
+    } catch {
+      return {
+        id: entry.id,
+        text: ''
+      };
+    }
+  }, [entry?.id, entry?.content]);
+
+  // Update displayEntry when lookingForward data changes, but only if not currently editing or saving
+  React.useEffect(() => {
+    if (!isEditing && !isSaving) {
+      // Only update if the entry has actually changed
+      setDisplayEntry((prevDisplayEntry: any) => {
+        // Compare by ID and text to avoid unnecessary updates
+        if (!lookingForward && !prevDisplayEntry) return prevDisplayEntry;
+        if (!lookingForward || !prevDisplayEntry) {
+          console.log('🌅 LookingForward: Updated displayEntry from server:', lookingForward);
+          return lookingForward;
+        }
+        
+        // Don't override optimistic updates with the same content
+        if (lookingForward.id === prevDisplayEntry.id && lookingForward.text === prevDisplayEntry.text) {
+          return prevDisplayEntry; // No change, keep previous
+        }
+        
+        // Don't override optimistic updates with older data
+        // (optimistic updates have temp IDs or are newer)
+        if (prevDisplayEntry.id.startsWith('temp-') && lookingForward.text === prevDisplayEntry.text) {
+          // Replace temp ID with real ID but keep the optimistic content
+          console.log('🌅 LookingForward: Replacing optimistic ID with real ID:', { from: prevDisplayEntry.id, to: lookingForward.id });
+          return { ...prevDisplayEntry, id: lookingForward.id };
+        }
+        
+        console.log('🌅 LookingForward: Updated displayEntry from server:', lookingForward);
+        return lookingForward;
+      });
+    }
+  }, [lookingForward, isEditing, isSaving]);
+
+  const closeSwipeable = useCallback(() => {
+    swipeableRef.current?.close();
+  }, []);
 
   // Reset state when date changes (prevents stale data)
   React.useEffect(() => {
     setEntryText('');
     setIsAdding(false);
-    setEditingId(null);
+    setIsEditing(false);
+    setIsSaving(false);
     console.log('🌅 LookingForward: Resetting state for date:', dateStr);
   }, [dateStr]);
 
-  // Get looking forward entries
-  const { data: entries = [] } = useLookingForwardData(user?.id || '', dateStr);
+  // Track loading performance
+  React.useEffect(() => {
+    if (!isLoading && entries.length >= 0) {
+      const loadTime = Date.now() - loadStartTime.current;
+      const hasEntry = entries.length > 0 && entries[0]?.content;
 
-  const createEntryMutation = useCreateLookingForwardEntry();
-  const updateEntryMutation = useUpdateLookingForwardEntry();
-  const deleteEntryMutation = useDeleteLookingForwardEntry();
+      analytics.trackLookingForwardEvent('looking_forward_loaded', {
+        has_entry: Boolean(hasEntry),
+        load_time_ms: loadTime,
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [isLoading, entries.length, dateStr, user?.id]);
 
-  // Get the first entry (LookingForward typically has only one entry)
-  const entry = entries.length > 0 ? entries[0] : null;
+  // Handle loading and error states
+  React.useEffect(() => {
+    if (error) {
+      analytics.trackLookingForwardEvent('looking_forward_error', {
+        error_type: error.message || 'unknown',
+        operation: 'load',
+        date: dateStr,
+      }, user?.id);
+
+      Alert.alert('Error', 'Failed to load looking forward entry.');
+    }
+  }, [error, dateStr, user?.id]);
+
+  // Debug: Log when entries change
+  React.useEffect(() => {
+    console.log('🌅 LookingForward: Entries changed:', entries);
+  }, [entries]);
+
+  // Handle loading state
+  if (isLoading) {
+    return <LookingForwardSkeleton />;
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <JournalCard
+        title="Looking Forward To"
+        subtitle="What are you looking forward to tomorrow?"
+        icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
+        showAddButton={false}
+      >
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>
+            Failed to load looking forward entry. Please try again.
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              // Trigger a refetch by clearing cache and refetching
+              refetch();
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </JournalCard>
+    );
+  }
 
   const renderRightActions = (progress: any, dragX: any) => {
-    const trans = dragX.interpolate({
+    const scale = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [1, 0.8],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = dragX.interpolate({
       inputRange: [-100, -50, 0],
-      outputRange: [0, 50, 100],
+      outputRange: [1, 0.8, 0],
       extrapolate: 'clamp',
     });
 
     const handleDelete = () => {
-      if (!entry) {return;}
+      if (!displayEntry) return;
 
       Alert.alert(
         'Delete Entry',
-        'Are you sure you want to delete this entry?',
+        'Are you sure you want to delete this looking forward entry?',
         [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Delete',
             style: 'destructive',
-            onPress: () => {
-              deleteEntryMutation.mutate(entry.id);
+            onPress: async () => {
+              try {
+                // Track analytics
+                analytics.trackLookingForwardEvent('looking_forward_deleted', {
+                  entry_id: displayEntry.id,
+                  text_length: displayEntry.text.length,
+                  date: dateStr,
+                }, user?.id);
+
+                // Optimistic update: immediately remove from UI
+                setDisplayEntry(null);
+                closeSwipeable();
+
+                // Perform actual deletion
+                await deleteMutation.mutateAsync(displayEntry.id);
+              } catch (error) {
+                console.error('🌅 LookingForward: Delete failed:', error);
+                
+                // Revert optimistic update on error
+                setDisplayEntry(lookingForward);
+                
+                // Track error
+                analytics.trackLookingForwardEvent('looking_forward_error', {
+                  error_type: error instanceof Error ? error.message : 'unknown',
+                  operation: 'delete',
+                  date: dateStr,
+                }, user?.id);
+
+                Alert.alert('Error', 'Failed to delete entry. Please try again.');
+              }
             },
           },
         ]
@@ -72,97 +232,154 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
     };
 
     return (
-      <View style={styles.deleteButton}>
-        <Animated.View style={[styles.deleteButtonContent, { transform: [{ translateX: trans }] }]}>
-          <TouchableOpacity
-            onPress={handleDelete}
-            style={styles.deleteButtonContent}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.deleteButtonText}>
-              Delete
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
-      </View>
+      <Animated.View style={[styles.deleteButton, { opacity }]}>
+        <TouchableOpacity
+          style={styles.deleteButtonContent}
+          onPress={handleDelete}
+          activeOpacity={0.8}
+        >
+          <Animated.View style={{ transform: [{ scale }] }}>
+            <Text style={styles.deleteButtonText}>Delete</Text>
+          </Animated.View>
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
 
   const startAdding = () => {
     setIsAdding(true);
+    setIsEditing(false);
     setEntryText('');
   };
 
   const cancelAdding = () => {
     setIsAdding(false);
+    setIsEditing(false);
     setEntryText('');
   };
 
   const saveEntry = async () => {
-    if (!entryText.trim() || !user) {return;}
+    if (!entryText.trim() || !user || isSaving) return;
+
+    const trimmedText = entryText.trim();
+    setIsSaving(true);
 
     try {
-      if (editingId) {
-        // Update existing entry
-        await updateEntryMutation.mutateAsync({
-          id: editingId,
+      if (isEditing && displayEntry) {
+        // Update existing entry with optimistic update
+        const previousTextLength = displayEntry.text.length;
+        const optimisticEntry = {
+          ...displayEntry,
+          text: trimmedText
+        };
+        
+        // Optimistic update
+        setDisplayEntry(optimisticEntry);
+        setIsAdding(false);
+        setIsEditing(false);
+        setEntryText('');
+
+        // Track analytics
+        analytics.trackLookingForwardEvent('looking_forward_updated', {
+          text_length: trimmedText.length,
+          previous_text_length: previousTextLength,
+          date: dateStr,
+        }, user.id);
+
+        // Perform actual update
+        await updateMutation.mutateAsync({
+          id: displayEntry.id,
           updates: {
-            content: JSON.stringify({ entry: { id: editingId, text: entryText.trim(), date: selectedDate } }),
+            content: JSON.stringify({ 
+              entry: { 
+                id: displayEntry.id, 
+                text: trimmedText, 
+                date: selectedDate 
+              } 
+            }),
           },
         });
-        setEditingId(null);
+
+        console.log('🌅 LookingForward: Entry updated successfully');
       } else {
-        // Create new entry
-        await createEntryMutation.mutateAsync({
+        // Create new entry with optimistic update
+        const tempId = `temp-${Date.now()}`;
+        const optimisticEntry = {
+          id: tempId,
+          text: trimmedText
+        };
+        
+        // Optimistic update
+        setDisplayEntry(optimisticEntry);
+        setIsAdding(false);
+        setEntryText('');
+
+        // Track analytics
+        analytics.trackLookingForwardEvent('looking_forward_created', {
+          text_length: trimmedText.length,
+          date: dateStr,
+        }, user.id);
+
+        // Perform actual creation
+        await createMutation.mutateAsync({
           user_id: user.id,
           selected_date: dateStr,
           content: JSON.stringify({
             entry: {
               id: `looking_forward_${Date.now()}`,
-              text: entryText.trim(),
+              text: trimmedText,
               date: selectedDate,
             },
           }),
         });
-      }
 
-      setIsAdding(false);
-      setEntryText('');
+        console.log('🌅 LookingForward: Entry created successfully');
+      }
     } catch (error) {
-      console.error('Error saving looking forward entry:', error);
+      console.error('🌅 LookingForward: Save failed:', error);
+      
+      // Revert optimistic update on error
+      setDisplayEntry(lookingForward);
+      setIsAdding(true); // Show form again
+      
+      // Track error
+      analytics.trackLookingForwardEvent('looking_forward_error', {
+        error_type: error instanceof Error ? error.message : 'unknown',
+        operation: isEditing ? 'update' : 'create',
+        date: dateStr,
+      }, user.id);
+
       Alert.alert('Error', 'Failed to save entry. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const editEntry = () => {
-    if (!entry) {return;}
-    setEditingId(entry.id);
-    const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-    setEntryText(parsedContent?.entry?.text || '');
+    if (!displayEntry) return;
+    
+    setEntryText(displayEntry.text);
+    setIsEditing(true);
     setIsAdding(true);
   };
 
   const cancelEditing = () => {
-    setEditingId(null);
-    setEntryText('');
     setIsAdding(false);
+    setIsEditing(false);
+    setEntryText('');
   };
-
-
-
-
 
   return (
     <JournalCard
       title="Looking Forward To"
-      subtitle="What are you excited about tomorrow?"
+      subtitle="What are you looking forward to tomorrow?"
       icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      showAddButton={!entry && !isAdding}
+      showAddButton={!displayEntry && !isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
       onCancelAdd={cancelAdding}
       headerRight={
-        entry && !isAdding ? (
+        displayEntry && !isAdding ? (
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={editEntry} style={styles.headerButton}>
               <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
@@ -171,7 +388,7 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
         ) : null
       }
     >
-      {entry && !isAdding ? (
+      {displayEntry && !isAdding ? (
         <Swipeable
           ref={swipeableRef}
           renderRightActions={renderRightActions}
@@ -181,16 +398,12 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
           friction={3}
           enableTrackpadTwoFingerGesture
           onSwipeableWillOpen={() => {
-            const { Vibration } = require('react-native');
             Vibration.vibrate(10);
           }}
         >
           <View style={styles.entryContainer}>
             <Text style={styles.entryText}>
-              {(() => {
-                const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-                return parsedContent?.entry?.text || '';
-              })()}
+              {displayEntry.text}
             </Text>
           </View>
         </Swipeable>
@@ -208,7 +421,7 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
           <View style={styles.buttonRow}>
             <View style={styles.buttonGroup}>
               <TouchableOpacity
-                onPress={editingId ? cancelEditing : cancelAdding}
+                onPress={isEditing ? cancelEditing : cancelAdding}
                 style={[styles.button, styles.cancelButton]}
                 activeOpacity={0.8}
               >
@@ -219,9 +432,9 @@ export const LookingForwardReactQuery: React.FC<LookingForwardProps> = ({ select
                 style={[
                   styles.button,
                   styles.saveButton,
-                  !entryText.trim() && styles.disabledButton,
+                  (!entryText.trim() || isSaving) && styles.disabledButton,
                 ]}
-                disabled={!entryText.trim() || createEntryMutation.isPending || updateEntryMutation.isPending}
+                disabled={!entryText.trim() || isSaving || createMutation.isPending || updateMutation.isPending}
                 activeOpacity={0.8}
               >
                 <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
@@ -331,6 +544,24 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
+  errorContainer: {
+    backgroundColor: '#ebeef2',
+    borderRadius: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    minHeight: 60,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontFamily: Fonts.regular,
+    color: Colors.alertCoral,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   retryButton: {
     marginTop: 8,
     padding: 8,
@@ -344,3 +575,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+
+// Export the component wrapped with error boundary for production-ready error handling
+export const LookingForwardReactQuery: React.FC<LookingForwardProps> = (props) => (
+  <ComponentErrorBoundary name="LookingForwardReactQuery">
+    <LookingForwardComponent {...props} />
+  </ComponentErrorBoundary>
+);
