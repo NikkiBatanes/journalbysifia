@@ -1,23 +1,54 @@
 // src/services/api/prayerApi.ts
 import { supabase } from '../supabaseApi';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface PrayerApiEntry {
   id: string;
   user_id: string;
-  type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+  prayer_type: 'journal' | 'people' | 'devotional';
+  journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication';
   content: string;
   selected_date: string;
   created_at: string;
   updated_at: string;
-  is_answered?: boolean;
+  status?: 'pending' | 'answered';
+  answered_date?: string;
   person_name?: string;
-  is_request?: boolean;
-  is_prayed?: boolean;
+  is_prayer_request?: boolean;
+  prayed?: boolean;
   devotional_title?: string;
   day_number?: number;
   day_title?: string;
   total_days?: number;
+  // Legacy compatibility - computed fields
+  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+  is_answered?: boolean;
+  is_request?: boolean;
+  is_prayed?: boolean;
 }
+
+// Helper function to ensure Supabase is authenticated
+const ensureAuthenticated = async () => {
+  try {
+    const accessToken = await AsyncStorage.getItem('ACCESS_TOKEN');
+    const user = await AsyncStorage.getItem('USER');
+    
+    if (accessToken && user) {
+      const userData = JSON.parse(user);
+      // Set the session in Supabase client
+      const refreshToken = await AsyncStorage.getItem('REFRESH_TOKEN') || '';
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+      console.log('Supabase session set for user:', userData.id);
+    } else {
+      console.warn('No authentication tokens found');
+    }
+  } catch (error) {
+    console.error('Error setting Supabase session:', error);
+  }
+};
 
 export class PrayerApi {
   // Get all prayers for a user and date
@@ -66,13 +97,36 @@ export class PrayerApi {
     thanksgiving: PrayerApiEntry[];
     supplication: PrayerApiEntry[];
   }> {
-    const prayers = await this.getPrayers(userId, date);
+    // Ensure Supabase is authenticated
+    await ensureAuthenticated();
+    
+    const { data, error } = await supabase
+      .from('prayers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('selected_date', date)
+      .eq('prayer_type', 'journal')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching ACTS prayers:', error);
+      throw new Error(`Failed to fetch ACTS prayers: ${error.message}`);
+    }
+
+    const prayers = (data || []).map(prayer => ({
+      ...prayer,
+      // Add legacy compatibility fields
+      type: prayer.journal_category || (prayer.prayer_type === 'people' ? 'people' : 'devotional'),
+      is_answered: prayer.status === 'answered',
+      is_request: prayer.is_prayer_request,
+      is_prayed: prayer.prayed,
+    })) as PrayerApiEntry[];
 
     return {
-      adoration: prayers.filter(p => p.type === 'adoration'),
-      confession: prayers.filter(p => p.type === 'confession'),
-      thanksgiving: prayers.filter(p => p.type === 'thanksgiving'),
-      supplication: prayers.filter(p => p.type === 'supplication'),
+      adoration: prayers.filter(p => p.journal_category === 'adoration'),
+      confession: prayers.filter(p => p.journal_category === 'confession'),
+      thanksgiving: prayers.filter(p => p.journal_category === 'thanksgiving'),
+      supplication: prayers.filter(p => p.journal_category === 'supplication'),
     };
   }
 
@@ -107,16 +161,38 @@ export class PrayerApi {
   static async createPrayer(
     prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>
   ): Promise<PrayerApiEntry> {
+    // Ensure Supabase is authenticated
+    await ensureAuthenticated();
+    
     const now = new Date().toISOString();
-    const prayerWithTimestamps = {
-      ...prayer,
+    
+    // Transform legacy format to database format
+    const dbPrayer = {
+      user_id: prayer.user_id,
+      content: prayer.content,
+      selected_date: prayer.selected_date,
+      prayer_type: prayer.prayer_type || (prayer.type === 'people' ? 'people' : 
+                   prayer.type === 'devotional' ? 'devotional' : 'journal'),
+      journal_category: prayer.journal_category || (
+        ['adoration', 'confession', 'thanksgiving', 'supplication'].includes(prayer.type || '') 
+          ? prayer.type as 'adoration' | 'confession' | 'thanksgiving' | 'supplication'
+          : null
+      ),
+      status: prayer.status || (prayer.is_answered ? 'answered' : 'pending'),
+      person_name: prayer.person_name || null,
+      is_prayer_request: prayer.is_prayer_request || prayer.is_request || null,
+      prayed: prayer.prayed || prayer.is_prayed || null,
+      devotional_title: prayer.devotional_title || null,
+      day_number: prayer.day_number || null,
+      day_title: prayer.day_title || null,
+      total_days: prayer.total_days || null,
       created_at: now,
       updated_at: now,
     };
 
     const { data, error } = await supabase
       .from('prayers')
-      .insert(prayerWithTimestamps)
+      .insert(dbPrayer)
       .select()
       .single();
 
@@ -125,7 +201,14 @@ export class PrayerApi {
       throw new Error(`Failed to create prayer: ${error.message}`);
     }
 
-    return data;
+    // Transform back to API format
+    return {
+      ...data,
+      type: data.journal_category || (data.prayer_type === 'people' ? 'people' : 'devotional'),
+      is_answered: data.status === 'answered',
+      is_request: data.is_prayer_request,
+      is_prayed: data.prayed,
+    } as PrayerApiEntry;
   }
 
   // Update a prayer
@@ -133,12 +216,32 @@ export class PrayerApi {
     id: string,
     updates: Partial<Omit<PrayerApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<PrayerApiEntry> {
+    // Ensure Supabase is authenticated
+    await ensureAuthenticated();
+    
+    // Transform API format to database format
+    const dbUpdates: any = {
+      updated_at: new Date().toISOString(),
+    };
+
+    // Map API fields to database fields
+    if (updates.content !== undefined) dbUpdates.content = updates.content;
+    if (updates.selected_date !== undefined) dbUpdates.selected_date = updates.selected_date;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.answered_date !== undefined) dbUpdates.answered_date = updates.answered_date;
+    if (updates.person_name !== undefined) dbUpdates.person_name = updates.person_name;
+    if (updates.is_prayer_request !== undefined) dbUpdates.is_prayer_request = updates.is_prayer_request;
+    if (updates.prayed !== undefined) dbUpdates.prayed = updates.prayed;
+    if (updates.devotional_title !== undefined) dbUpdates.devotional_title = updates.devotional_title;
+    if (updates.day_number !== undefined) dbUpdates.day_number = updates.day_number;
+    if (updates.day_title !== undefined) dbUpdates.day_title = updates.day_title;
+    if (updates.total_days !== undefined) dbUpdates.total_days = updates.total_days;
+    if (updates.journal_category !== undefined) dbUpdates.journal_category = updates.journal_category;
+    if (updates.prayer_type !== undefined) dbUpdates.prayer_type = updates.prayer_type;
+
     const { data, error } = await supabase
       .from('prayers')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
+      .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -148,7 +251,14 @@ export class PrayerApi {
       throw new Error(`Failed to update prayer: ${error.message}`);
     }
 
-    return data;
+    // Transform back to API format
+    return {
+      ...data,
+      type: data.journal_category || (data.prayer_type === 'people' ? 'people' : 'devotional'),
+      is_answered: data.status === 'answered',
+      is_request: data.is_prayer_request,
+      is_prayed: data.prayed,
+    } as PrayerApiEntry;
   }
 
   // Delete a prayer
@@ -166,7 +276,11 @@ export class PrayerApi {
 
   // Mark supplication as answered
   static async markSupplicationAnswered(id: string, isAnswered: boolean): Promise<PrayerApiEntry> {
-    return this.updatePrayer(id, { is_answered: isAnswered });
+    return this.updatePrayer(id, { 
+      status: isAnswered ? 'answered' : 'pending',
+      answered_date: isAnswered ? new Date().toISOString() : undefined,
+      is_answered: isAnswered 
+    });
   }
 
   // Mark prayer request as prayed

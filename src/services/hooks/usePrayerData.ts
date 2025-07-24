@@ -2,6 +2,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PrayerApi, PrayerApiEntry } from '../api/prayerApi';
 import { queryKeys } from '../queryKeys';
+import { createRetryFunction } from '../../utils/retry';
+import { RETRY_CONFIGS } from '../../utils/retry';
 
 // ===== QUERY HOOKS =====
 
@@ -30,6 +32,7 @@ export const useACTSPrayerData = (userId: string, dateStr: string) => {
     queryFn: () => PrayerApi.getACTSPrayers(userId, dateStr),
     staleTime: 5 * 60 * 1000,
     enabled: !!userId && !!dateStr,
+    retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
   });
 };
 
@@ -42,6 +45,7 @@ export const usePeoplePrayerData = (userId: string, dateStr: string) => {
     queryFn: () => PrayerApi.getPeoplePrayers(userId, dateStr),
     staleTime: 5 * 60 * 1000,
     enabled: !!userId && !!dateStr,
+    retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
   });
 };
 

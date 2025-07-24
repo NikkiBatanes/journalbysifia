@@ -14,7 +14,7 @@ import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReac
 import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
 import { LookingForwardReactQuery } from '../components/journal/LookingForwardReactQuery';
 import { ScheduleContent } from '../components/journal/ScheduleContent';
-import PrayerJournalTab from '../components/journal/PrayerJournalTab';
+import PrayerJournalTabReactQuery from '../components/journal/PrayerJournalTabReactQuery';
 import { useAuth } from '../context/AuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
@@ -435,7 +435,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               />
             }
           >
-            <PrayerJournalTab selectedDate={currentDate} />
+            <PrayerJournalTabReactQuery selectedDate={currentDate} />
           </ScrollView>
         );
       case 'finance':

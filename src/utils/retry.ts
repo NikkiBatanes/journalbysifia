@@ -138,6 +138,15 @@ export const RETRY_CONFIGS = {
     jitter: true, // Add randomness to prevent thundering herd
   },
 
+  // Enhanced configuration for Prayer operations with optimized retry
+  PRAYER_ENHANCED: {
+    attempts: 4,
+    delay: 750, // Balanced delay for prayer operations
+    backoff: 'exponential' as const,
+    maxDelay: 7500, // Cap at 7.5 seconds
+    jitter: true, // Add randomness to prevent thundering herd
+  },
+
   // For non-critical operations like analytics
   LIGHT: {
     attempts: 2,

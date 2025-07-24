@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,9 @@ import {
   useUpdatePrayer,
   useMarkPrayerRequestPrayed,
 } from '../../services/hooks/usePrayerData';
+import ComponentErrorBoundary from '../../components/ErrorBoundary/ComponentErrorBoundary';
+import PrayerSkeleton from '../../components/SkeletonLoader/PrayerSkeleton';
+import { analytics } from '../../utils/analytics';
 
 interface EnhancedPrayerListReactQueryProps {
   selectedDate: Date;
@@ -31,12 +34,44 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
+  
+  // Performance tracking
+  const loadStartTime = useRef(Date.now());
 
   // React Query hooks
   const { data: peoplePrayers = [], isLoading, error, refetch } = usePeoplePrayerData(user?.id || '', dateStr);
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
+  
+  // Analytics tracking for data load
+  useEffect(() => {
+    if (peoplePrayers && !isLoading) {
+      const loadTime = Date.now() - loadStartTime.current;
+      const prayerRequests = peoplePrayers.filter(p => p.is_request === true);
+      const personalPrayers = peoplePrayers.filter(p => p.is_request === false);
+      
+      analytics.trackPrayerEvent('prayers_loaded', {
+        acts_count: 0,
+        people_count: personalPrayers.length,
+        devotional_count: 0,
+        requests_count: prayerRequests.length,
+        load_time_ms: loadTime,
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [peoplePrayers, isLoading, dateStr, user?.id]);
+  
+  // Analytics tracking for errors
+  useEffect(() => {
+    if (error) {
+      analytics.trackPrayerEvent('prayer_error', {
+        error_type: error instanceof Error ? error.message : 'Unknown error',
+        operation: 'load_people_prayers',
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [error, dateStr, user?.id]);
 
   // Local state
   const [activeTab, setActiveTab] = useState<'mine' | 'requests'>('mine');
@@ -112,27 +147,51 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       if (activeTab === 'requests') {
         // Adding a new prayer request
         if (name.trim() && prayer.trim()) {
+          const prayerContent = prayer.trim();
+          const personName = name.trim();
+          
           await createPrayerMutation.mutateAsync({
             user_id: user?.id || '',
-            content: prayer.trim(),
+            content: prayerContent,
             type: 'people',
-            person_name: name.trim(),
+            person_name: personName,
             is_request: true,
             selected_date: dateStr,
           });
+          
+          // Track prayer request creation
+          analytics.trackPrayerEvent('prayer_created', {
+            prayer_type: 'people',
+            content_length: prayerContent.length,
+            is_request: true,
+            date: dateStr,
+          }, user?.id);
+          
           shouldClearInputs = true;
         }
       } else {
         // Adding a personal prayer
         if (name.trim() && (prayer.trim() || notes.trim())) {
+          const prayerContent = prayer.trim();
+          const personName = name.trim();
+          
           await createPrayerMutation.mutateAsync({
             user_id: user?.id || '',
-            content: prayer.trim(),
+            content: prayerContent,
             type: 'people',
-            person_name: name.trim(),
+            person_name: personName,
             is_request: false,
             selected_date: dateStr,
           });
+          
+          // Track personal prayer creation
+          analytics.trackPrayerEvent('prayer_created', {
+            prayer_type: 'people',
+            content_length: prayerContent.length,
+            is_request: false,
+            date: dateStr,
+          }, user?.id);
+          
           shouldClearInputs = true;
         }
       }
@@ -141,6 +200,14 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         clearInputs();
       }
     } catch (err) {
+      // Track error
+      analytics.trackPrayerEvent('prayer_error', {
+        error_type: err instanceof Error ? err.message : 'Unknown error',
+        operation: 'create_people_prayer',
+        prayer_type: 'people',
+        date: dateStr,
+      }, user?.id);
+      
       console.error('Error adding prayer:', err);
       // Error is handled by React Query
     }
@@ -191,6 +258,47 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
   const isSubmitting = createPrayerMutation.isPending || updatePrayerMutation.isPending || markPrayedMutation.isPending;
   const canSubmit = name.trim() && (activeTab === 'requests' ? prayer.trim() : (prayer.trim() || notes.trim()));
+
+  // Loading state with skeleton
+  if (isLoading) {
+    return (
+      <View 
+        style={styles.container}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading people prayers"
+        accessibilityHint="Please wait while prayer data is being loaded"
+      >
+        <PrayerSkeleton showDropdown={true} showPrayerGroups={true} />
+      </View>
+    );
+  }
+
+  // Error state with retry
+  if (error) {
+    return (
+      <View 
+        style={styles.container}
+        accessibilityRole="alert"
+        accessibilityLabel="Error loading people prayers"
+      >
+        <View style={styles.errorStateContainer}>
+          <Ionicons name="alert-circle" size={24} color={Colors.alertCoral} style={styles.errorStateIcon} />
+          <Text style={styles.errorStateText}>Unable to load people prayers</Text>
+          <Text style={styles.errorStateSubtext}>Please check your connection and try again</Text>
+          <TouchableOpacity 
+            onPress={() => refetch()} 
+            style={styles.errorRetryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading people prayers"
+            accessibilityHint="Tap to attempt loading prayers again"
+          >
+            <Ionicons name="refresh" size={16} color={Colors.hopeWhite} style={styles.errorRetryIcon} />
+            <Text style={styles.errorRetryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -621,6 +729,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.8,
   },
+  errorStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+  },
+  errorStateIcon: {
+    marginBottom: 16,
+  },
+  errorStateText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.medium,
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  errorStateSubtext: {
+    color: Colors.anchorBlue,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    textAlign: 'center',
+    opacity: 0.8,
+    marginBottom: 20,
+  },
+  errorRetryButton: {
+    backgroundColor: Colors.anchorBlue,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorRetryIcon: {
+    marginRight: 4,
+  },
+  errorRetryText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+  },
 });
 
-export default EnhancedPrayerListReactQuery;
+// Wrap with error boundary for production safety
+const EnhancedPrayerListWithErrorBoundary: React.FC<EnhancedPrayerListReactQueryProps> = (props) => (
+  <ComponentErrorBoundary>
+    <EnhancedPrayerListReactQuery {...props} />
+  </ComponentErrorBoundary>
+);
+
+export default EnhancedPrayerListWithErrorBoundary;

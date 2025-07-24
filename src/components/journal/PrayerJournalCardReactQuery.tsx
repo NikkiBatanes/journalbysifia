@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
+import ComponentErrorBoundary from '../../components/ErrorBoundary/ComponentErrorBoundary';
+import PrayerSkeleton from '../../components/SkeletonLoader/PrayerSkeleton';
+import { analytics } from '../../utils/analytics';
 
 // Define the PrayerApiEntry type locally since it's only used for type checking
-type PrayerApiEntry = {
+interface PrayerApiEntry {
   id: string;
-  type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+  journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication';
   content: string;
   created_at: string;
   is_answered?: boolean;
@@ -73,6 +77,9 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
+  // Performance tracking
+  const loadStartTime = useRef<number>(Date.now());
+
   // React Query hooks
   const { data: actsData, isLoading, error, refetch } = useACTSPrayerData(user?.id || '', dateStr);
   const createPrayerMutation = useCreatePrayer();
@@ -83,11 +90,37 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [prayerText, setPrayerText] = useState('');
 
+  // Performance and analytics tracking
+  useEffect(() => {
+    if (actsData && !isLoading) {
+      const loadTime = Date.now() - loadStartTime.current;
+      analytics.trackPrayerEvent('prayers_loaded', {
+        acts_count: (actsData.adoration?.length || 0) + (actsData.confession?.length || 0) + 
+                   (actsData.thanksgiving?.length || 0) + (actsData.supplication?.length || 0),
+        people_count: 0, // This component only handles ACTS prayers
+        devotional_count: 0,
+        load_time_ms: loadTime,
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [actsData, isLoading, dateStr, user?.id]);
+
+  // Error analytics tracking
+  useEffect(() => {
+    if (error) {
+      analytics.trackPrayerEvent('prayer_error', {
+        error_type: error.message || 'Unknown error',
+        operation: 'load_acts_prayers',
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [error, dateStr, user?.id]);
+
   // Reset state when date changes
-  React.useEffect(() => {
+  useEffect(() => {
     setPrayerText('');
     setIsDropdownOpen(false);
-    console.log('🙏 PrayerJournalCard: Resetting state for date:', dateStr);
+    loadStartTime.current = Date.now();
   }, [dateStr]);
 
   if (!user) {
@@ -100,22 +133,37 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
 
   if (isLoading) {
     return (
-      <View style={styles.card}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.anchorBlue} />
-          <Text style={styles.loadingText}>Loading prayers...</Text>
-        </View>
+      <View 
+        style={styles.card}
+        accessibilityRole="progressbar"
+        accessibilityLabel="Loading prayers"
+        accessibilityHint="Please wait while prayer data is being loaded"
+      >
+        <PrayerSkeleton showDropdown={true} showPrayerGroups={true} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.card}>
+      <View 
+        style={styles.card}
+        accessibilityRole="alert"
+        accessibilityLabel="Error loading prayers"
+      >
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Error loading prayers</Text>
-          <TouchableOpacity onPress={() => refetch()} style={styles.retryButton}>
-            <Text style={styles.retryText}>Retry</Text>
+          <Ionicons name="alert-circle" size={24} color={Colors.alertCoral} style={styles.errorIcon} />
+          <Text style={styles.errorText}>Unable to load prayers</Text>
+          <Text style={styles.errorSubtext}>Please check your connection and try again</Text>
+          <TouchableOpacity 
+            onPress={() => refetch()} 
+            style={styles.retryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading prayers"
+            accessibilityHint="Tap to attempt loading prayers again"
+          >
+            <Ionicons name="refresh" size={16} color={Colors.hopeWhite} style={styles.retryIcon} />
+            <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -127,16 +175,51 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
   // Add prayer logic using React Query
   const handleAddPrayer = async () => {
     if (prayerText.trim() && !createPrayerMutation.isPending) {
+      const prayerContent = prayerText.trim();
+      
+      // Debug: Check user authentication
+      console.log('User context:', { user, userId: user?.id, isAuthenticated: !!user });
+      
+      if (!user || !user.id) {
+        console.error('User not authenticated or missing ID');
+        return;
+      }
+      
       try {
         await createPrayerMutation.mutateAsync({
           user_id: user.id,
-          content: prayerText.trim(),
+          content: prayerContent,
           type: selectedType.key as PrayerApiEntry['type'],
           selected_date: dateStr,
+          prayer_type: 'journal',
+          journal_category: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+          status: selectedType.key === 'supplication' ? 'pending' : 'answered',
           is_answered: selectedType.key === 'supplication' ? false : undefined,
         });
+        
+        // Track prayer creation
+        analytics.trackPrayerEvent('prayer_created', {
+          prayer_type: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+          content_length: prayerContent.length,
+          date: dateStr,
+        }, user.id);
+        
+        // Track prayer type selection
+        analytics.trackPrayerEvent('prayer_type_selected', {
+          prayer_type: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+          date: dateStr,
+        }, user.id);
+        
         setPrayerText('');
       } catch (err) {
+        // Track error
+        analytics.trackPrayerEvent('prayer_error', {
+          error_type: err instanceof Error ? err.message : 'Unknown error',
+          operation: 'create_prayer',
+          prayer_type: selectedType.key,
+          date: dateStr,
+        }, user.id);
+        
         console.error('Error adding prayer:', err);
         // Error is handled by React Query
       }
@@ -158,7 +241,30 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         _userId: user.id,
         _dateStr: dateStr,
       });
+      
+      // Track prayer answered event
+      if (newIsAnswered) {
+        const createdDate = new Date(prayer.created_at);
+        const currentDate = new Date();
+        const timeDiff = Math.abs(currentDate.getTime() - createdDate.getTime());
+        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        
+        analytics.trackPrayerEvent('prayer_answered', {
+          prayer_id: id,
+          prayer_type: 'supplication',
+          time_to_answer_days: daysDiff,
+          date: dateStr,
+        }, user.id);
+      }
     } catch (err) {
+      // Track error
+      analytics.trackPrayerEvent('prayer_error', {
+        error_type: err instanceof Error ? err.message : 'Unknown error',
+        operation: 'toggle_answered',
+        prayer_type: 'supplication',
+        date: dateStr,
+      }, user.id);
+      
       console.error('Error updating prayer status:', err);
       // Error is handled by React Query
     }
@@ -223,17 +329,14 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       {/* Header */}
       <View style={styles.headerRow}>
         <View style={styles.headerTitleContainer}>
-          <Ionicons name="heart" size={24} color={Colors.anchorBlue} />
+          <Ionicons name="heart" size={20} color={Colors.hopeWhite} style={styles.headerIcon} />
           <Text style={styles.headerTitle}>Prayer Journal</Text>
-          <Text style={styles.headerSubtitle}>ACTS Model</Text>
         </View>
-        {actsData && (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length) > 0 && (
-          <View style={styles.counterBadge}>
-            <Text style={styles.counterText}>
-              {actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length}
-            </Text>
-          </View>
-        )}
+        <View style={styles.headerPill}>
+          <Text style={styles.headerPillText}>
+            {actsData ? (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length) : 0} {(actsData ? (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length) : 0) === 1 ? 'PRAYER' : 'PRAYERS'}
+          </Text>
+        </View>
       </View>
 
       {/* Prayer Type Dropdown */}
@@ -241,6 +344,10 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         <TouchableOpacity
           style={styles.dropdownButton}
           onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+          accessibilityRole="button"
+          accessibilityLabel={`Prayer type: ${selectedType.displayName}`}
+          accessibilityHint={`Currently selected ${selectedType.description}. Tap to change prayer type`}
+          accessibilityState={{ expanded: isDropdownOpen }}
         >
           <View style={styles.dropdownButtonContent}>
             <Ionicons
@@ -300,6 +407,9 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           textAlignVertical="top"
           returnKeyType="default"
           blurOnSubmit={false}
+          accessibilityRole="text"
+          accessibilityLabel={`${selectedType.displayName} prayer input`}
+          accessibilityHint={`Enter your ${selectedType.description.toLowerCase()} here`}
         />
         <TouchableOpacity
           style={[
@@ -308,6 +418,10 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           ]}
           onPress={handleAddPrayer}
           disabled={!prayerText.trim() || createPrayerMutation.isPending}
+          accessibilityRole="button"
+          accessibilityLabel={createPrayerMutation.isPending ? 'Saving prayer' : 'Save prayer'}
+          accessibilityHint={`Add this ${selectedType.displayName.toLowerCase()} to your prayer journal`}
+          accessibilityState={{ disabled: !prayerText.trim() || createPrayerMutation.isPending }}
         >
           {createPrayerMutation.isPending ? (
             <ActivityIndicator size="small" color={Colors.anchorBlue} />
@@ -327,48 +441,56 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         </>
       )}
 
-      {actsData && actsData.adoration.length === 0 && actsData.confession.length === 0 && actsData.thanksgiving.length === 0 && actsData.supplication.length === 0 && !isLoading && (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No prayers yet for this date</Text>
-          <Text style={styles.emptySubtext}>Add your first prayer above</Text>
-        </View>
-      )}
+
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(26, 60, 109, 0.3)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.13,
+    shadowRadius: 8,
+    marginVertical: 18,
+    marginHorizontal: 8,
+    elevation: 4,
   },
   headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+  },
+  headerIcon: {
+    marginRight: 10,
+    marginLeft: 2,
   },
   headerTitle: {
+    fontSize: 17,
     fontFamily: Fonts.bold,
-    fontSize: 20,
     color: Colors.hopeWhite,
-    marginLeft: 12,
-    marginRight: 8,
+    marginLeft: 8,
+    letterSpacing: 0.5,
   },
-  headerSubtitle: {
-    fontFamily: Fonts.medium,
+  headerPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  headerPillText: {
     fontSize: 12,
-    color: Colors.anchorBlue,
-    letterSpacing: 1,
+    fontFamily: Fonts.medium,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
   },
   dropdownContainer: {
     marginBottom: 16,
@@ -612,18 +734,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 40,
   },
+  errorIcon: {
+    marginBottom: 12,
+  },
   errorText: {
     color: Colors.error,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.medium,
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
+  },
+  errorSubtext: {
+    color: Colors.mediumGray,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   retryButton: {
     backgroundColor: Colors.anchorBlue,
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  retryIcon: {
+    marginRight: 4,
   },
   retryText: {
     color: Colors.hopeWhite,
@@ -651,4 +789,11 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PrayerJournalCardReactQuery;
+// Wrap with error boundary for production safety
+const PrayerJournalCardWithErrorBoundary: React.FC<PrayerJournalCardReactQueryProps> = (props) => (
+  <ComponentErrorBoundary>
+    <PrayerJournalCardReactQuery {...props} />
+  </ComponentErrorBoundary>
+);
+
+export default PrayerJournalCardWithErrorBoundary;

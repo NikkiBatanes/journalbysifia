@@ -211,6 +211,57 @@ interface ReflectionAnalyticsEvents {
   };
 }
 
+interface PrayerAnalyticsEvents {
+  'prayer_created': {
+    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+    content_length: number;
+    is_request?: boolean;
+    date: string;
+  };
+  'prayer_updated': {
+    prayer_id: string;
+    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+    content_length: number;
+    previous_content_length: number;
+    date: string;
+  };
+  'prayer_deleted': {
+    prayer_id: string;
+    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+    content_length: number;
+    date: string;
+  };
+  'prayer_answered': {
+    prayer_id: string;
+    prayer_type: 'supplication';
+    time_to_answer_days: number;
+    date: string;
+  };
+  'prayer_request_prayed': {
+    prayer_id: string;
+    requested_by: string;
+    date: string;
+  };
+  'prayers_loaded': {
+    acts_count: number;
+    people_count: number;
+    devotional_count: number;
+    requests_count?: number;
+    load_time_ms: number;
+    date: string;
+  };
+  'prayer_type_selected': {
+    prayer_type: 'adoration' | 'confession' | 'thanksgiving' | 'supplication';
+    date: string;
+  };
+  'prayer_error': {
+    error_type: string;
+    operation: string;
+    prayer_type?: string;
+    date: string;
+  };
+}
+
 interface TimeBlockAnalyticsEvents {
   'timeblock_created': {
     title_length: number;
@@ -343,6 +394,19 @@ class Analytics {
   trackReflectionEvent<T extends keyof ReflectionAnalyticsEvents>(
     event: T,
     properties: ReflectionAnalyticsEvents[T],
+    userId?: string
+  ): void {
+    if (!this.isEnabled) {return;}
+
+    this.track(event, properties, userId);
+  }
+
+  /**
+   * Track a Prayer-specific event
+   */
+  trackPrayerEvent<T extends keyof PrayerAnalyticsEvents>(
+    event: T,
+    properties: PrayerAnalyticsEvents[T],
     userId?: string
   ): void {
     if (!this.isEnabled) {return;}
