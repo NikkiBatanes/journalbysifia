@@ -672,10 +672,213 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             {/* Custom Repeat Options */}
             {newBlock.repeat.frequency === 'custom' && (
               <View style={styles.customRepeatContainer}>
-                <Text style={styles.customRepeatLabel}>Custom repeat options coming soon...</Text>
+                {/* Frequency Selector */}
+                <View style={styles.frequencySelector}>
+                  <Text style={styles.frequencyLabel}>Repeat every:</Text>
+                  <View style={styles.frequencyInputs}>
+                    <TextInput
+                      style={styles.frequencyInput}
+                      value={_inputValue}
+                      onChangeText={(text) => {
+                        setInputValue(text);
+                        if (text === '') {
+                          const newFreq = { ...customFrequency, value: 1 };
+                          setCustomFrequency(newFreq);
+                          setNewBlock(prev => ({
+                            ...prev,
+                            repeat: {
+                              ...prev.repeat,
+                              customFrequency: newFreq,
+                            },
+                          }));
+                        } else if (/^\d+$/.test(text)) {
+                          const num = parseInt(text, 10);
+                          if (num >= 1) {
+                            const newFreq = { ...customFrequency, value: num };
+                            setCustomFrequency(newFreq);
+                            setNewBlock(prev => ({
+                              ...prev,
+                              repeat: {
+                                ...prev.repeat,
+                                customFrequency: newFreq,
+                              },
+                            }));
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!_inputValue || !/^\d+$/.test(_inputValue)) {
+                          setInputValue('1');
+                          const newFreq = { ...customFrequency, value: 1 };
+                          setCustomFrequency(newFreq);
+                          setNewBlock(prev => ({
+                            ...prev,
+                            repeat: {
+                              ...prev.repeat,
+                              customFrequency: newFreq,
+                            },
+                          }));
+                        }
+                      }}
+                      keyboardType="number-pad"
+                      maxLength={2}
+                      returnKeyType="done"
+                      selectTextOnFocus={true}
+                    />
+                    <TouchableOpacity
+                      style={styles.frequencyUnitButton}
+                      onPress={() => setShowFrequencySelector(!_showFrequencySelector)}
+                    >
+                      <Text style={styles.frequencyUnitText}>
+                        {customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1)}{customFrequency.value > 1 ? 's' : ''}
+                      </Text>
+                      <Ionicons name="chevron-down" size={14} color={Colors.darkGray} />
+                    </TouchableOpacity>
+                  </View>
+
+                  {_showFrequencySelector && (
+                    <View style={styles.frequencyOptions}>
+                      {['day', 'week', 'month', 'year'].map((unit) => (
+                        <TouchableOpacity
+                          key={unit}
+                          style={styles.frequencyOption}
+                          onPress={() => {
+                            const newFreq = { ...customFrequency, unit };
+                            setCustomFrequency(newFreq);
+                            setNewBlock(prev => ({
+                              ...prev,
+                              repeat: {
+                                ...prev.repeat,
+                                customFrequency: newFreq,
+                              },
+                            }));
+                            setShowFrequencySelector(false);
+                          }}
+                        >
+                          <Text style={styles.frequencyOptionText}>
+                            {unit.charAt(0).toUpperCase() + unit.slice(1)}
+                          </Text>
+                          {customFrequency.unit === unit && (
+                            <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+
+                {/* Days of Week Selector (only shown for weekly frequency) */}
+                {customFrequency.unit === 'week' && (
+                  <View style={styles.customDaysContainer}>
+                    <Text style={styles.customDaysLabel}>On days:</Text>
+                    <View style={styles.daysOfWeekContainer}>
+                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
+                        const isSelected = newBlock.repeat.customDays?.includes(index);
+                        return (
+                          <TouchableOpacity
+                            key={index}
+                            style={[
+                              styles.dayButton,
+                              isSelected && styles.dayButtonSelected,
+                            ]}
+                            onPress={() => {
+                              const updatedDays = newBlock.repeat.customDays || [];
+                              const newDays = updatedDays.includes(index)
+                                ? updatedDays.filter(d => d !== index)
+                                : [...updatedDays, index];
+
+                              setNewBlock({
+                                ...newBlock,
+                                repeat: {
+                                  ...newBlock.repeat,
+                                  customDays: newDays.sort((a, b) => a - b),
+                                },
+                              });
+                            }}
+                          >
+                            <Text style={[
+                              styles.dayButtonText,
+                              isSelected && styles.dayButtonTextSelected,
+                            ]}>
+                              {day}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
               </View>
             )}
           </View>
+
+          {/* End Repeat Options */}
+          {newBlock.repeat.frequency !== 'never' && (
+            <View style={styles.endRepeatContainer}>
+              <Text style={styles.endRepeatLabel}>End Repeat:</Text>
+              <View style={styles.endRepeatOptions}>
+                <TouchableOpacity
+                  style={[
+                    styles.endRepeatOption,
+                    !newBlock.repeat.endDate && styles.selectedEndRepeatOption,
+                  ]}
+                  onPress={() => {
+                    setNewBlock({
+                      ...newBlock,
+                      repeat: {
+                        ...newBlock.repeat,
+                        endDate: undefined,
+                      },
+                    });
+                  }}
+                >
+                  <Text style={styles.endRepeatOptionText}>Never</Text>
+                  {!newBlock.repeat.endDate && (
+                    <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.endRepeatOption,
+                    newBlock.repeat.endDate && styles.selectedEndRepeatOption,
+                  ]}
+                  onPress={() => {
+                    setShowEndDatePicker(true);
+                  }}
+                >
+                  <Text style={styles.endRepeatOptionText}>
+                    {newBlock.repeat.endDate
+                      ? newBlock.repeat.endDate.toLocaleDateString()
+                      : 'Select Date'}
+                  </Text>
+                  {newBlock.repeat.endDate && (
+                    <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                  )}
+                </TouchableOpacity>
+              </View>
+              {_showEndDatePicker && (
+                <View style={styles.datePickerContainer}>
+                  <DateTimePicker
+                    value={newBlock.repeat.endDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event, pickedDate) => {
+                      setShowEndDatePicker(false);
+                      if (event.type === 'set' && pickedDate) {
+                        setNewBlock({
+                          ...newBlock,
+                          repeat: {
+                            ...newBlock.repeat,
+                            endDate: pickedDate,
+                          },
+                        });
+                      }
+                    }}
+                  />
+                </View>
+              )}
+            </View>
+          )}
 
           {/* 6. Notes */}
           <View style={styles.notesContainer}>
@@ -967,9 +1170,9 @@ const styles = StyleSheet.create({
   },
   allDayToggle: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginLeft: 12,
+    paddingVertical: 4,
   },
   allDayLabel: {
     fontFamily: Fonts.medium,
@@ -1083,15 +1286,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxContainer: {
-    marginRight: 8,
+    position: 'relative',
+    marginRight: 10,
   },
   checkbox: {
     width: 16,
     height: 16,
     borderRadius: 3,
     borderWidth: 1.5,
-    borderColor: Colors.mediumGray,
-    backgroundColor: Colors.hopeWhite,
+    borderColor: Colors.trustGrey,
+    backgroundColor: 'rgba(176, 184, 193, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1271,5 +1475,159 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
+  },
+  frequencySelector: {
+    marginBottom: 12,
+  },
+  frequencyLabel: {
+    fontSize: 14,
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+    marginBottom: 8,
+  },
+  frequencyInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    gap: 8,
+  },
+  frequencyInput: {
+    width: 50,
+    height: 36,
+    backgroundColor: 'transparent',
+    borderRadius: 6,
+    padding: 8,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    textAlign: 'center',
+    fontSize: 14,
+  },
+  frequencyUnitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'transparent',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    paddingHorizontal: 10,
+    height: 36,
+    minWidth: 100,
+  },
+  frequencyUnitText: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  frequencyOptions: {
+    position: 'absolute',
+    top: 70,
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+    zIndex: 1000,
+    elevation: 5,
+  },
+  frequencyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  frequencyOptionText: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    fontSize: 14,
+  },
+  customDaysContainer: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  customDaysLabel: {
+    fontSize: 14,
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+    marginBottom: 8,
+  },
+  daysOfWeekContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    backgroundColor: 'transparent',
+  },
+  dayButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    margin: 2,
+  },
+  dayButtonSelected: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  dayButtonText: {
+    fontSize: 14,
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+  },
+  dayButtonTextSelected: {
+    color: 'white',
+  },
+  endRepeatContainer: {
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  endRepeatLabel: {
+    fontSize: 14,
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+    marginBottom: 8,
+  },
+  endRepeatOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  endRepeatOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  selectedEndRepeatOption: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderColor: Colors.alertCoral,
+  },
+  endRepeatOptionText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.darkGray,
+    flex: 1,
+  },
+  datePickerContainer: {
+    marginTop: 12,
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 8,
+    padding: 16,
   },
 });
