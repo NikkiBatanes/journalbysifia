@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import PrayerJournalCardReactQuery from './PrayerJournalCardReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
+import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 
 interface PrayerJournalTabReactQueryProps {
   selectedDate: Date;
@@ -24,6 +25,9 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
     <View style={styles.container}>
       {/* ACTS Prayer Journal Card */}
       <PrayerJournalCardReactQuery selectedDate={selectedDate} />
+
+      {/* Devotional Prayers List */}
+      <DevotionalPrayerListReactQuery selectedDate={selectedDate} />
 
       {/* People Prayers List */}
       <EnhancedPrayerListReactQuery selectedDate={selectedDate} />

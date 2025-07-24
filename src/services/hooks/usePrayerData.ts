@@ -530,3 +530,106 @@ export const useInvalidatePrayers = () => {
 
   return { invalidateAllPrayers, invalidatePrayersForDate };
 };
+
+// ===== DEVOTIONAL PRAYER HOOKS =====
+
+/**
+ * Create a devotional prayer entry
+ */
+export const useCreateDevotionalPrayer = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (prayer: {
+      content: string;
+      userId: string;
+      dateStr: string;
+      devotionalTitle: string;
+      dayNumber: number;
+      dayTitle: string;
+      totalDays?: number;
+    }) => {
+      return PrayerApi.createPrayer({
+        user_id: prayer.userId,
+        prayer_type: 'devotional',
+        content: prayer.content,
+        selected_date: prayer.dateStr,
+        status: 'pending',
+        devotional_title: prayer.devotionalTitle,
+        day_number: prayer.dayNumber,
+        day_title: prayer.dayTitle,
+        total_days: prayer.totalDays,
+      });
+    },
+    onMutate: async ({ userId, dateStr, content, devotionalTitle, dayNumber, dayTitle, totalDays }) => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: queryKeys.prayers.devotional(userId, dateStr) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.prayers.allDevotional(userId) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.prayers.entries(userId, dateStr) });
+
+      // Snapshot previous values
+      const previousDevotional = queryClient.getQueryData(queryKeys.prayers.devotional(userId, dateStr));
+      const previousAllDevotional = queryClient.getQueryData(queryKeys.prayers.allDevotional(userId));
+      const previousEntries = queryClient.getQueryData(queryKeys.prayers.entries(userId, dateStr));
+
+      // Create optimistic prayer entry
+      const optimisticPrayer: PrayerApiEntry = {
+        id: `temp-${Date.now()}`,
+        user_id: userId,
+        prayer_type: 'devotional',
+        content,
+        selected_date: dateStr,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: 'pending',
+        devotional_title: devotionalTitle,
+        day_number: dayNumber,
+        day_title: dayTitle,
+        total_days: totalDays,
+        type: 'devotional',
+        is_answered: false,
+      };
+
+      // Optimistically update devotional prayers for date
+      queryClient.setQueryData(
+        queryKeys.prayers.devotional(userId, dateStr),
+        (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
+      );
+
+      // Optimistically update all devotional prayers
+      queryClient.setQueryData(
+        queryKeys.prayers.allDevotional(userId),
+        (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
+      );
+
+      // Optimistically update all entries for date
+      queryClient.setQueryData(
+        queryKeys.prayers.entries(userId, dateStr),
+        (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
+      );
+
+      return { previousDevotional, previousAllDevotional, previousEntries };
+    },
+    onError: (error, { userId, dateStr }, context) => {
+      // Log the error for debugging
+      console.error('Error creating devotional prayer:', error);
+
+      // Rollback optimistic updates
+      if (context?.previousDevotional) {
+        queryClient.setQueryData(queryKeys.prayers.devotional(userId, dateStr), context.previousDevotional);
+      }
+      if (context?.previousAllDevotional) {
+        queryClient.setQueryData(queryKeys.prayers.allDevotional(userId), context.previousAllDevotional);
+      }
+      if (context?.previousEntries) {
+        queryClient.setQueryData(queryKeys.prayers.entries(userId, dateStr), context.previousEntries);
+      }
+    },
+    onSettled: (data, error, { userId, dateStr }) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.devotional(userId, dateStr) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.allDevotional(userId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.prayers.entries(userId, dateStr) });
+    },
+  });
+};
