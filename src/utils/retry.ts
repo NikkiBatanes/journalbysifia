@@ -129,6 +129,15 @@ export const RETRY_CONFIGS = {
     jitter: true, // Add randomness to prevent thundering herd
   },
 
+  // Enhanced configuration for TimeBlocks with optimized retry
+  TIMEBLOCK_ENHANCED: {
+    attempts: 4,
+    delay: 900, // Slightly higher delay for complex time block operations
+    backoff: 'exponential' as const,
+    maxDelay: 9000, // Cap at 9 seconds
+    jitter: true, // Add randomness to prevent thundering herd
+  },
+
   // For non-critical operations like analytics
   LIGHT: {
     attempts: 2,

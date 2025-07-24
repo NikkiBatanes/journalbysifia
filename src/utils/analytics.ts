@@ -211,6 +211,63 @@ interface ReflectionAnalyticsEvents {
   };
 }
 
+interface TimeBlockAnalyticsEvents {
+  'timeblock_created': {
+    title_length: number;
+    category: string;
+    duration_minutes: number;
+    is_all_day: boolean;
+    has_location: boolean;
+    has_notes: boolean;
+    repeat_frequency: string;
+    date: string;
+  };
+  'timeblock_updated': {
+    timeblock_id: string;
+    title_length: number;
+    category: string;
+    duration_minutes: number;
+    previous_duration_minutes: number;
+    is_all_day: boolean;
+    has_location: boolean;
+    has_notes: boolean;
+    repeat_frequency: string;
+    date: string;
+  };
+  'timeblock_deleted': {
+    timeblock_id: string;
+    category: string;
+    duration_minutes: number;
+    was_all_day: boolean;
+    date: string;
+  };
+  'timeblock_completed': {
+    timeblock_id: string;
+    category: string;
+    completion_time_ms: number;
+    date: string;
+  };
+  'timeblock_loaded': {
+    blocks_count: number;
+    load_time_ms: number;
+    date: string;
+  };
+  'timeblock_category_selected': {
+    category: string;
+    date: string;
+  };
+  'timeblock_repeat_configured': {
+    frequency: string;
+    has_end_date: boolean;
+    date: string;
+  };
+  'timeblock_error': {
+    error_type: string;
+    operation: string;
+    date: string;
+  };
+}
+
 class Analytics {
   private events: AnalyticsEvent[] = [];
   private isEnabled: boolean = __DEV__; // Only enable in development for now
@@ -294,6 +351,19 @@ class Analytics {
   }
 
   /**
+   * Track a TimeBlock-specific event
+   */
+  trackTimeBlockEvent<T extends keyof TimeBlockAnalyticsEvents>(
+    event: T,
+    properties: TimeBlockAnalyticsEvents[T],
+    userId?: string
+  ): void {
+    if (!this.isEnabled) {return;}
+
+    this.track(event, properties, userId);
+  }
+
+  /**
    * Track a general event
    */
   track(event: string, properties?: Record<string, any>, userId?: string): void {
@@ -357,4 +427,4 @@ class Analytics {
 export const analytics = new Analytics();
 
 // Export types for use in components
-export type { TodoAnalyticsEvents, FocusAnalyticsEvents, GratitudeAnalyticsEvents, WinAnalyticsEvents, LookingForwardAnalyticsEvents, ReflectionAnalyticsEvents, AnalyticsEvent };
+export type { TodoAnalyticsEvents, FocusAnalyticsEvents, GratitudeAnalyticsEvents, WinAnalyticsEvents, LookingForwardAnalyticsEvents, ReflectionAnalyticsEvents, TimeBlockAnalyticsEvents, AnalyticsEvent };

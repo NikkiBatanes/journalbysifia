@@ -8,7 +8,7 @@ import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { TodaysFocusReactQuery } from '../components/journal/TodaysFocusReactQuery';
 import { TodosReactQuery } from '../components/journal/TodosReactQuery';
-import { TimeBlockReactQuery } from '../components/journal/TimeBlockReactQuery';
+import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from '../components/journal/TimeBlockReactQuery';
 import { GratitudeListReactQuery } from '../components/journal/GratitudeListReactQuery';
 import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReactQuery';
 import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';

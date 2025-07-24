@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TimeBlockApi, TimeBlockApiEntry } from '../api/timeBlockApi';
 import { queryKeys } from '../queryKeys';
+import { RETRY_CONFIGS, createRetryFunction } from '../../utils/retry';
 
 // Hook for getting time blocks for a specific date
 export const useTimeBlockData = (userId: string, date: string) => {
@@ -13,6 +14,7 @@ export const useTimeBlockData = (userId: string, date: string) => {
     enabled: !!userId && !!date,
     refetchOnMount: false, // Don't refetch on mount to prevent loading flash
     initialData: [], // Provide empty array as initial data
+    retry: createRetryFunction(RETRY_CONFIGS.TIMEBLOCK_ENHANCED),
   });
 };
 
