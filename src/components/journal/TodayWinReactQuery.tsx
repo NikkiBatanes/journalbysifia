@@ -13,7 +13,7 @@ import {
   useUpdateTodayWinEntry,
   useDeleteTodayWinEntry,
 } from '../../services/hooks/useJournalData';
-import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { TodayWinSkeleton } from '../SkeletonLoader/TodayWinSkeleton';
 import { analytics } from '../../utils/analytics';
 
@@ -490,9 +490,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
 // Export with error boundary wrapper
 export const TodayWinReactQuery: React.FC<TodayWinProps> = (props) => {
   return (
-    <ComponentErrorBoundary name="TodayWinReactQuery">
+    <ErrorBoundary name="TodayWinReactQuery">
       <TodayWinComponent {...props} />
-    </ComponentErrorBoundary>
+    </ErrorBoundary>
   );
 };
 

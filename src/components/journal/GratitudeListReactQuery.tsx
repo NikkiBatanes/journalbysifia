@@ -15,7 +15,7 @@ import {
   useDeleteJournalEntry,
 } from '../../services/hooks/useJournalData';
 
-import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { GratitudeSkeleton } from '../SkeletonLoader/GratitudeSkeleton';
 import { analytics } from '../../utils/analytics';
 
@@ -398,7 +398,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Only show loading skeleton if we're loading initial data and have no cached data
   if (isLoading && gratitudeEntries.length === 0) {
     return (
-      <ComponentErrorBoundary name="GratitudeListReactQuery">
+      <ErrorBoundary name="GratitudeListReactQuery">
         <JournalCard
           icon={
             <LuHandHeart
@@ -420,12 +420,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             <GratitudeSkeleton count={3} />
           </View>
         </JournalCard>
-      </ComponentErrorBoundary>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <ComponentErrorBoundary name="GratitudeListReactQuery">
+    <ErrorBoundary name="GratitudeListReactQuery">
       <JournalCard
       icon={
         <LuHandHeart
@@ -530,7 +530,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         </View>
       ) : null}
     </JournalCard>
-    </ComponentErrorBoundary>
+    </ErrorBoundary>
   );
 };
 

@@ -9,7 +9,7 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 import { Check, CalendarClock as LuCalendarClock, X } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
-import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { TimeBlockSkeleton } from '../SkeletonLoader/TimeBlockSkeleton';
 import { analytics } from '../../utils/analytics';
 import {
@@ -1173,9 +1173,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
 // Export with error boundary wrapper
 export const TimeBlockReactQueryWithErrorBoundary: React.FC<TimeBlockProps> = (props) => (
-  <ComponentErrorBoundary>
+  <ErrorBoundary name="TimeBlockReactQuery"> 
     <TimeBlockReactQuery {...props} />
-  </ComponentErrorBoundary>
+  </ErrorBoundary>
 );
 
 // Export both versions for flexibility

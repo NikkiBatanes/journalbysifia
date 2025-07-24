@@ -12,7 +12,7 @@ import {
   useCreateJournalEntry,
   useUpdateJournalEntry,
 } from '../../services/hooks/useJournalData';
-import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
 import { analytics } from '../../utils/analytics';
 
@@ -256,7 +256,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   // Handle loading state
   if (isLoading) {
     return (
-      <ComponentErrorBoundary name="TodaysFocusReactQuery">
+      <ErrorBoundary name="TodaysFocusReactQuery">
         <JournalCard
           icon={
             <LuGoal
@@ -278,14 +278,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             <TodaysFocusSkeleton />
           </View>
         </JournalCard>
-      </ComponentErrorBoundary>
+      </ErrorBoundary>
     );
   }
 
   // Handle error state
   if (error) {
     return (
-      <ComponentErrorBoundary name="TodaysFocusReactQuery">
+      <ErrorBoundary name="TodaysFocusReactQuery">
         <JournalCard
           icon={
             <LuGoal
@@ -321,12 +321,12 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             </TouchableOpacity>
           </View>
         </JournalCard>
-      </ComponentErrorBoundary>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <ComponentErrorBoundary name="TodaysFocusReactQuery">
+    <ErrorBoundary name="TodaysFocusReactQuery">
       <JournalCard
         icon={
           <LuGoal
@@ -453,7 +453,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           )
         }
     </JournalCard>
-  </ComponentErrorBoundary>
+  </ErrorBoundary>
   );
 };
 

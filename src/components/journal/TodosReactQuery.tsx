@@ -8,7 +8,7 @@ import { Check, ListTodo as LuListTodo, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
-import { ComponentErrorBoundary } from '../ErrorBoundary';
+import { ErrorBoundary } from '../ErrorBoundary';
 import { TodoSkeleton } from '../SkeletonLoader/TodoSkeleton';
 import { analytics } from '../../utils/analytics';
 
@@ -618,9 +618,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
 // Export with error boundary wrapper
 export const TodosReactQuery: React.FC<TodosProps> = (props) => (
-  <ComponentErrorBoundary name="TodosReactQuery">
+  <ErrorBoundary name="TodosReactQuery">
     <TodosReactQueryComponent {...props} />
-  </ComponentErrorBoundary>
+  </ErrorBoundary>
 );
 
 const styles = StyleSheet.create({

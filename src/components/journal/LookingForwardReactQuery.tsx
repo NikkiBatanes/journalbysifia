@@ -14,7 +14,7 @@ import {
   useDeleteLookingForwardEntry,
 } from '../../services/hooks/useJournalData';
 import { LookingForwardSkeleton } from '../SkeletonLoader/LookingForwardSkeleton';
-import { ComponentErrorBoundary } from '../ErrorBoundary/ErrorBoundary';
+import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary';
 import { analytics } from '../../utils/analytics';
 
 interface LookingForwardProps {
@@ -578,7 +578,7 @@ const styles = StyleSheet.create({
 
 // Export the component wrapped with error boundary for production-ready error handling
 export const LookingForwardReactQuery: React.FC<LookingForwardProps> = (props) => (
-  <ComponentErrorBoundary name="LookingForwardReactQuery">
+  <ErrorBoundary name="LookingForwardReactQuery">
     <LookingForwardComponent {...props} />
-  </ComponentErrorBoundary>
+  </ErrorBoundary>
 );

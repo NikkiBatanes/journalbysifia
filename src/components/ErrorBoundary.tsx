@@ -4,6 +4,7 @@ import { Colors } from '../theme/colors';
 
 interface Props {
   children: ReactNode;
+  name?: string;
   fallback?: ReactNode;
   onReset?: () => void;
 }
@@ -68,13 +69,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.hopeWhite,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: Colors.error,
+    color: Colors.alertCoral,
   },
   error: {
     marginBottom: 20,
@@ -82,13 +83,13 @@ const styles = StyleSheet.create({
     color: Colors.darkGray,
   },
   button: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.anchorBlue,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 5,
   },
   buttonText: {
-    color: Colors.white,
+    color: Colors.hopeWhite,
     fontWeight: 'bold',
   },
 });
