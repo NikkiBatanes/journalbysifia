@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Swipeable } from 'react-native-gesture-handler';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, FlatList } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -73,7 +73,37 @@ const formatTime = (date: Date): string => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+// Helper function to format repeat text
+const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[], customFrequency?: { value: number, unit: string }): string => {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  switch (frequency) {
+    case 'never':
+      return 'Does not repeat';
+    case 'daily':
+      return 'Daily';
+    case 'weekly':
+      return 'Weekly';
+    case 'biweekly':
+      return 'Bi-weekly';
+    case 'monthly':
+      return 'Monthly';
+    case 'yearly':
+      return 'Yearly';
+    case 'custom':
+      if (customFrequency) {
+        const unit = customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1) + (customFrequency.value > 1 ? 's' : '');
+        if (customDays && customDays.length > 0 && customFrequency.unit === 'week') {
+          const days = customDays.map(day => dayNames[day]).join(', ');
+          return `Every ${customFrequency.value} ${unit} on ${days}`;
+        }
+        return `Every ${customFrequency.value} ${unit}`;
+      }
+      return 'Custom';
+    default:
+      return '';
+  }
+};
 
 const getCategoryColor = (categoryName: string): string => {
   const colors = [Colors.alertCoral, Colors.anchorBlue, Colors.growthGreen, '#FF6B6B', '#4ECDC4', '#45B7D1'];
@@ -126,10 +156,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [isAdding, setIsAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(5);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showTitleError, setShowTitleError] = useState(false);
   const [showCategoryError, setShowCategoryError] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showRepeatOptions, setShowRepeatOptions] = useState(false);
+  const [_showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [_showFrequencySelector, setShowFrequencySelector] = useState(false);
+  const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
+  const [_inputValue, setInputValue] = useState('1');
 
   const [newBlock, setNewBlock] = useState<{
     title: string;
@@ -286,6 +321,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setIsAdding(true);
     setShowTitleError(false);
     setShowCategoryError(false);
+    setShowCategoryPicker(false);
+    setShowRepeatOptions(false);
+    setShowEndDatePicker(false);
+    setShowFrequencySelector(false);
+    setCustomFrequency({ value: 1, unit: 'week' });
+    setInputValue('1');
   };
 
   const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
@@ -301,6 +342,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       }
     }
     setShowTimePicker({ start: false, end: false, id: null });
+  };
+
+  const toggleAllDay = () => {
+    setNewBlock(prev => ({ ...prev, isAllDay: !prev.isAllDay }));
   };
 
   React.useEffect(() => {
@@ -423,134 +468,296 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       ) : null}
 
       {isAdding && (
-        <View style={styles.addForm}>
-          <View style={styles.inputGroup}>
-            <TextInput
-              style={[styles.input, showTitleError && styles.inputError]}
-              value={newBlock.title}
-              onChangeText={(text) => {
-                setNewBlock(prev => ({ ...prev, title: text }));
-                if (showTitleError && text.trim()) {setShowTitleError(false);}
-              }}
-              placeholder="Event title"
-              placeholderTextColor={Colors.mediumGray}
-              autoFocus
-            />
-            {showTitleError && <Text style={styles.errorText}>Title is required</Text>}
-          </View>
-
-          <View style={styles.inputGroup}>
-            <TouchableOpacity
-              style={[styles.categorySelector, showCategoryError && styles.inputError]}
-              onPress={() => setShowCategoryPicker(!showCategoryPicker)}
-            >
-              <Text style={[styles.categorySelectorText, !newBlock.category && styles.placeholderText]}>
-                {newBlock.category || 'Select category'}
-              </Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.mediumGray} />
-            </TouchableOpacity>
-            {showCategoryError && <Text style={styles.errorText}>Category is required</Text>}
-
-            {showCategoryPicker && (
-              <View style={styles.categoryList}>
-                {CATEGORIES.map((category) => (
+        <View style={styles.addBlockContainer}>
+          {/* 1. Time Range / All Day */}
+          <View style={styles.editTimeContainer}>
+            <View style={styles.editTimeRow}>
+              {newBlock.isAllDay ? (
+                <View style={styles.allDayBadge}>
+                  <Text style={styles.allDayText}>ALL DAY</Text>
+                </View>
+              ) : (
+                <View style={styles.timeRangeEdit}>
                   <TouchableOpacity
-                    key={category.name}
-                    style={styles.categoryOption}
-                    onPress={() => {
-                      setNewBlock(prev => ({ ...prev, category: category.name }));
-                      setShowCategoryPicker(false);
-                      if (showCategoryError) {setShowCategoryError(false);}
-                    }}
+                    style={styles.timeButton}
+                    onPress={() => setShowTimePicker({ start: true, end: false, id: null })}
                   >
-                    <Ionicons name={category.icon} size={16} color={Colors.anchorBlue} style={styles.categoryIcon} />
-                    <Text style={styles.categoryOptionText}>{category.name}</Text>
+                    <Text style={styles.timeText}>{formatTime(newBlock.startTime)}</Text>
                   </TouchableOpacity>
-                ))}
+                  <View style={styles.timeSeparatorContainer}>
+                    <Text style={styles.timeSeparatorText}>TO</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.timeButton}
+                    onPress={() => setShowTimePicker({ start: false, end: true, id: null })}
+                  >
+                    <Text style={styles.timeText}>{formatTime(newBlock.endTime)}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <View style={styles.allDayToggle}>
+                <TouchableOpacity
+                  style={styles.rowCenter}
+                  onPress={toggleAllDay}
+                >
+                  <View style={styles.checkboxContainer}>
+                    <View style={[styles.checkbox, newBlock.isAllDay && styles.checkboxActive]}>
+                      {newBlock.isAllDay && <Check size={10} color={Colors.hopeWhite} strokeWidth={2.5} />}
+                    </View>
+                  </View>
+                  <Text style={styles.allDayLabel}>All Day</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {(showTimePicker.start || showTimePicker.end) && !showTimePicker.id && (
+              <View style={styles.timePickerContainer}>
+                <DateTimePicker
+                  value={showTimePicker.start ? newBlock.startTime : newBlock.endTime}
+                  mode="time"
+                  display="spinner"
+                  onChange={onTimeChange}
+                  themeVariant="light"
+                  minuteInterval={5}
+                />
+                <TouchableOpacity
+                  style={styles.doneButton}
+                  onPress={() => setShowTimePicker({ start: false, end: false, id: null })}
+                >
+                  <Text style={styles.doneButtonText}>Done</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
 
-          <TouchableOpacity
-            style={styles.allDayToggle}
-            onPress={() => setNewBlock(prev => ({ ...prev, isAllDay: !prev.isAllDay }))}
+          {/* 2. Activity Title */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, styles.fullWidth, showTitleError && styles.inputError]}
+              value={newBlock.title}
+              onChangeText={(text) => {
+                setNewBlock({...newBlock, title: text});
+                if (showTitleError && text.trim()) {
+                  setShowTitleError(false);
+                }
+              }}
+              placeholder="Enter a title"
+              placeholderTextColor={Colors.mediumGray}
+            />
+            {showTitleError && <Text style={styles.errorText}>Title is required</Text>}
+          </View>
+
+          {/* 3. Location */}
+          <View style={styles.locationContainer}>
+            <Ionicons
+              name="location-outline"
+              size={18}
+              color={Colors.darkGray}
+              style={styles.locationIcon}
+            />
+            <TextInput
+              style={[styles.input, styles.locationInput]}
+              value={newBlock.location}
+              onChangeText={(text) => setNewBlock({...newBlock, location: text})}
+              placeholder="Add location (optional)"
+              placeholderTextColor={Colors.mediumGray}
+            />
+          </View>
+
+          {/* 4. Category */}
+          <View style={styles.categorySelectorContainer}>
+            <TouchableOpacity
+              style={[
+                styles.categorySelector,
+                !newBlock.category && showCategoryError && styles.categorySelectorError,
+                newBlock.category && [
+                  { backgroundColor: getCategoryColor(newBlock.category) },
+                  styles.categorySelected,
+                ],
+              ]}
+              onPress={() => setShowCategoryPicker(true)}
+            >
+              <Ionicons
+                name={newBlock.category ? CATEGORIES.find(cat => cat.name === newBlock.category)?.icon || 'square-outline' : 'add-circle-outline'}
+                size={16}
+                color={newBlock.category ? Colors.anchorBlue : Colors.darkGray}
+              />
+              <Text style={[
+                styles.categorySelectorText,
+                !newBlock.category && styles.placeholderText,
+                !newBlock.category && showCategoryError && { color: Colors.alertCoral },
+              ]}>
+                {newBlock.category || 'Select a category'}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={16}
+                color={(!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.darkGray}
+              />
+            </TouchableOpacity>
+            {showCategoryError && !newBlock.category && (
+              <Text style={styles.errorText}>Please select a category</Text>
+            )}
+          </View>
+
+          {/* 5. Repeat Options */}
+          <View style={styles.repeatContainer}>
+            <TouchableOpacity
+              style={styles.repeatButton}
+              onPress={() => setShowRepeatOptions(!showRepeatOptions)}
+            >
+              <Ionicons
+                name="repeat-outline"
+                size={18}
+                color={Colors.darkGray}
+                style={styles.repeatIcon}
+              />
+              <Text style={styles.repeatText}>
+                {formatRepeatText(newBlock.repeat.frequency, newBlock.repeat.customDays, customFrequency)}{newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}
+              </Text>
+              <Ionicons
+                name={showRepeatOptions ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={Colors.darkGray}
+              />
+            </TouchableOpacity>
+
+            {showRepeatOptions && (
+              <View style={styles.repeatOptions}>
+                {['never', 'daily', 'weekly', 'biweekly', 'monthly', 'yearly', 'custom'].map((freq) => (
+                  <TouchableOpacity
+                    key={freq}
+                    style={[
+                      styles.repeatOption,
+                      newBlock.repeat.frequency === freq && styles.selectedRepeatOption,
+                    ]}
+                    onPress={() => {
+                      const newFrequency = freq as RepeatFrequency;
+                      const updatedBlock = {
+                        ...newBlock,
+                        repeat: {
+                          ...newBlock.repeat,
+                          frequency: newFrequency,
+                          ...(newFrequency === 'never' && { endDate: undefined }),
+                          ...(newFrequency === 'custom' && {
+                            customFrequency: { value: 1, unit: 'week' },
+                            customDays: newBlock.repeat.customDays || [],
+                          }),
+                        },
+                      };
+                      setNewBlock(updatedBlock);
+                      if (newFrequency === 'custom') {
+                        setCustomFrequency({ value: 1, unit: 'day' });
+                        setInputValue('1');
+                      } else {
+                        setShowRepeatOptions(false);
+                      }
+                    }}
+                  >
+                    <Text style={styles.repeatOptionText}>
+                      {freq === 'never' ? 'Never' :
+                       freq === 'daily' ? 'Every Day' :
+                       freq === 'weekly' ? 'Every Week' :
+                       freq === 'biweekly' ? 'Every 2 Weeks' :
+                       freq === 'monthly' ? 'Every Month' :
+                       freq === 'yearly' ? 'Every Year' : 'Custom...'}
+                    </Text>
+                    {newBlock.repeat.frequency === freq && (
+                      <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Custom Repeat Options */}
+            {newBlock.repeat.frequency === 'custom' && (
+              <View style={styles.customRepeatContainer}>
+                <Text style={styles.customRepeatLabel}>Custom repeat options coming soon...</Text>
+              </View>
+            )}
+          </View>
+
+          {/* 6. Notes */}
+          <View style={styles.notesContainer}>
+            <TextInput
+              style={[styles.input, styles.notesInput]}
+              value={newBlock.notes}
+              onChangeText={(text) => setNewBlock({...newBlock, notes: text})}
+              placeholder="Add notes (optional)"
+              placeholderTextColor={Colors.mediumGray}
+              multiline
+              numberOfLines={2}
+              textAlignVertical="top"
+            />
+          </View>
+
+          {/* Category Picker Modal */}
+          <Modal
+            visible={showCategoryPicker}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowCategoryPicker(false)}
           >
-            <Text style={styles.allDayLabel}>All day</Text>
-            <View style={[styles.toggle, newBlock.isAllDay && styles.toggleActive]}>
-              {newBlock.isAllDay && <View style={styles.toggleIndicator} />}
-            </View>
-          </TouchableOpacity>
-
-          {!newBlock.isAllDay && (
-            <View style={styles.timeContainer}>
-              <TouchableOpacity
-                style={styles.timeButton}
-                onPress={() => setShowTimePicker({ start: true, end: false, id: null })}
-              >
-                <Text style={styles.timeLabel}>Start: {formatTime(newBlock.startTime)}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.timeButton}
-                onPress={() => setShowTimePicker({ start: false, end: true, id: null })}
-              >
-                <Text style={styles.timeLabel}>End: {formatTime(newBlock.endTime)}</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <TextInput
-            style={styles.input}
-            value={newBlock.location}
-            onChangeText={(text) => setNewBlock(prev => ({ ...prev, location: text }))}
-            placeholder="Location (optional)"
-            placeholderTextColor={Colors.mediumGray}
-          />
-
-          <TextInput
-            style={[styles.input, styles.notesInput]}
-            value={newBlock.notes}
-            onChangeText={(text) => setNewBlock(prev => ({ ...prev, notes: text }))}
-            placeholder="Notes (optional)"
-            placeholderTextColor={Colors.mediumGray}
-            multiline
-            numberOfLines={3}
-          />
+            <TouchableWithoutFeedback onPress={() => setShowCategoryPicker(false)}>
+              <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                  <FlatList
+                    data={CATEGORIES}
+                    numColumns={2}
+                    keyExtractor={(item) => item.name}
+                    contentContainerStyle={styles.gridContainer}
+                    columnWrapperStyle={styles.columnWrapper}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={[
+                          styles.gridItem,
+                          { backgroundColor: getCategoryColor(item.name) },
+                          newBlock.category === item.name && styles.selectedPickerItem,
+                        ]}
+                        onPress={() => {
+                          setNewBlock({...newBlock, category: item.name});
+                          setShowCategoryPicker(false);
+                        }}
+                      >
+                        <Ionicons
+                          name={item.icon}
+                          size={18}
+                          color={Colors.anchorBlue}
+                          style={styles.categoryIcon}
+                        />
+                        <Text
+                          style={styles.gridItemText}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {item.name}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
 
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              onPress={() => {
-                setIsAdding(false);
-                setEditId(null);
-                setShowTitleError(false);
-                setShowCategoryError(false);
-              }}
-              style={[styles.button, styles.cancelButton]}
-            >
-              <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={addTimeBlock}
-              style={[
-                styles.button,
-                styles.saveButton,
-                (createMutation.isPending || updateMutation.isPending) && styles.disabledButton,
-              ]}
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-            </TouchableOpacity>
+            <View style={styles.buttonGroup}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={() => setIsAdding(false)}
+              >
+                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.button, styles.saveButton, !newBlock.title.trim() && styles.disabledButton]}
+                onPress={addTimeBlock}
+                disabled={!newBlock.title.trim()}
+              >
+                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      )}
-
-      {(showTimePicker.start || showTimePicker.end) && (
-        <DateTimePicker
-          value={showTimePicker.start ? newBlock.startTime : newBlock.endTime}
-          mode="time"
-          is24Hour={false}
-          display="default"
-          onChange={onTimeChange}
-        />
       )}
     </JournalCard>
   );
@@ -648,10 +855,11 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   timeText: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.mediumGray,
-    marginBottom: 4,
+    fontFamily: Fonts.medium,
+    color: Colors.darkGray,
+    fontSize: 13,
+    minWidth: 40,
+    lineHeight: 18,
   },
   locationRow: {
     flexDirection: 'row',
@@ -693,16 +901,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   input: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: Colors.darkGray,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    padding: 10,
+    fontFamily: Fonts.regular,
+    color: Colors.darkGray,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
     minHeight: 40,
+    fontSize: 14,
   },
   inputError: {
     borderColor: Colors.alertCoral,
@@ -720,10 +927,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
     minHeight: 40,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    width: '100%',
   },
   categorySelectorText: {
     fontFamily: Fonts.regular,
@@ -793,14 +1001,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   timeButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
+    padding: 4,
   },
   timeLabel: {
     fontFamily: Fonts.medium,
@@ -810,6 +1011,12 @@ const styles = StyleSheet.create({
   notesInput: {
     minHeight: 60,
     textAlignVertical: 'top',
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+    padding: 8,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -832,5 +1039,237 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  // Original TimeBlock styles
+  addBlockContainer: {
+    marginTop: 8,
+  },
+  editTimeContainer: {
+    marginBottom: 12,
+  },
+  editTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  allDayBadge: {
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  allDayText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.medium,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  timeRangeEdit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  timeSeparatorContainer: {
+    paddingHorizontal: 8,
+  },
+  timeSeparatorText: {
+    color: Colors.mediumGray,
+    fontFamily: Fonts.medium,
+    fontSize: 10,
+  },
+  rowCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxContainer: {
+    marginRight: 8,
+  },
+  checkbox: {
+    width: 16,
+    height: 16,
+    borderRadius: 3,
+    borderWidth: 1.5,
+    borderColor: Colors.mediumGray,
+    backgroundColor: Colors.hopeWhite,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxActive: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
+  },
+  timePickerContainer: {
+    marginTop: 12,
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 8,
+    padding: 16,
+  },
+  doneButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignSelf: 'center',
+    marginTop: 12,
+  },
+  doneButtonText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+  },
+  inputContainer: {
+    marginBottom: 12,
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.1)',
+    paddingHorizontal: 10,
+    minHeight: 40,
+  },
+  locationIcon: {
+    marginRight: 8,
+  },
+  locationInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    padding: 0,
+    color: Colors.darkGray,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    height: '100%',
+  },
+  categorySelectorContainer: {
+    marginBottom: 12,
+  },
+  categorySelectorError: {
+    borderColor: Colors.alertCoral,
+    borderWidth: 1,
+  },
+  categorySelected: {
+    borderWidth: 1,
+    borderColor: Colors.anchorBlue,
+  },
+  repeatContainer: {
+    marginBottom: 12,
+  },
+  repeatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+  },
+  repeatIcon: {
+    marginRight: 8,
+  },
+  repeatText: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.darkGray,
+  },
+  repeatOptions: {
+    marginTop: 8,
+    backgroundColor: Colors.hopeWhite,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+  },
+  repeatOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  selectedRepeatOption: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  repeatOptionText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.darkGray,
+  },
+  notesContainer: {
+    marginBottom: 12,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    width: '90%',
+    maxWidth: 285,
+    padding: 16,
+    margin: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  gridContainer: {
+    padding: 4,
+  },
+  columnWrapper: {
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    gap: 4,
+  },
+  gridItem: {
+    flex: 1,
+    minWidth: 0,
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 70,
+    maxWidth: 120,
+  },
+  selectedPickerItem: {
+    borderWidth: 2,
+    borderColor: Colors.alertCoral,
+  },
+  gridItemText: {
+    color: Colors.darkGray,
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  customRepeatContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+  },
+  customRepeatLabel: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
   },
 });
