@@ -23,7 +23,7 @@ import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import { LogoutContext } from './src/context/LogoutContext';
 import { DevotionalProvider } from './src/context/DevotionalContext';
 import { ScrollProvider } from './src/context/ScrollContext';
-import { PrayerProvider } from './src/context/PrayerContext';
+
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { QueryProvider } from './src/providers/QueryProvider';
 
@@ -88,27 +88,25 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <ScrollProvider>
         <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
-          <PrayerProvider>
-            <DevotionalProvider>
-              <UserProvider>
-                <LogoutContext.Provider value={{ onLogout: async () => {} }}>
-                  <NavigationContainer>
-                    {isAuthenticated ? (
-                      <RootStackNavigator
-                        isAuthenticated={isAuthenticated}
-                        handleLogin={() => {}}
-                        handleLogout={() => {}}
-                        onLogin={() => {}}
-                        AuthStack={AuthStackNavigator}
-                      />
-                    ) : (
-                      <AuthStackNavigator onLogin={() => {}} />
-                    )}
-                  </NavigationContainer>
-                </LogoutContext.Provider>
-              </UserProvider>
-            </DevotionalProvider>
-          </PrayerProvider>
+          <DevotionalProvider>
+            <UserProvider>
+              <LogoutContext.Provider value={{ onLogout: async () => {} }}>
+                <NavigationContainer>
+                  {isAuthenticated ? (
+                    <RootStackNavigator
+                      isAuthenticated={isAuthenticated}
+                      handleLogin={async () => {}}
+                      handleLogout={async () => {}}
+                      onLogin={async () => {}}
+                      AuthStack={AuthStackNavigator}
+                    />
+                  ) : (
+                    <AuthStackNavigator onLogin={async () => {}} />
+                  )}
+                </NavigationContainer>
+              </LogoutContext.Provider>
+            </UserProvider>
+          </DevotionalProvider>
         </ActionStepsProviderWrapper>
       </ScrollProvider>
     </GestureHandlerRootView>

@@ -254,19 +254,4 @@ export const usePrayerSelectors = () => {
   };
 };
 
-// Hook for legacy compatibility with PrayerContext
-export const useLegacyPrayerSupport = () => {
-  const {
-    prayedItems,
-    addPrayedItem,
-    clearPrayedItems,
-    setPrayedItems,
-  } = usePrayerStore();
 
-  return {
-    prayedItems,
-    addPrayedItem,
-    clearPrayedItems,
-    setPrayedItems,
-  };
-};
