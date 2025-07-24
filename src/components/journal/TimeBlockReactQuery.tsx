@@ -16,6 +16,8 @@ import {
   useDeleteTimeBlock,
 } from '../../services/hooks/useTimeBlockData';
 
+type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
+
 interface TimeBlockItem {
   id: string;
   title: string;
@@ -25,13 +27,36 @@ interface TimeBlockItem {
   notes?: string;
   location?: string;
   isAllDay: boolean;
+  repeat: {
+    frequency: RepeatFrequency;
+    endDate?: Date;
+    customDays?: number[]; // For custom repeat
+    customFrequency?: {
+      value: number;
+      unit: string;
+    };
+  };
 }
 
 const CATEGORIES = [
-  'Appointments', 'Break Time', 'Career Growth', 'Church Activities', 'Deep Work',
-  'Events', 'Family Time', 'Life Admin', 'Mental Health', 'Ministry',
-  'Personal Growth', 'Physical Health', 'Projects', 'Quiet Time',
-  'Recreation', 'Sleep & Recovery', 'Work Meetings', 'Others',
+  { name: 'Appointments', icon: 'calendar' },
+  { name: 'Break Time', icon: 'cafe' },
+  { name: 'Career Growth', icon: 'rocket' },
+  { name: 'Church Activities', icon: 'people' },
+  { name: 'Deep Work', icon: 'code-working' },
+  { name: 'Events', icon: 'calendar-number' },
+  { name: 'Family Time', icon: 'people-circle' },
+  { name: 'Life Admin', icon: 'document-text' },
+  { name: 'Mental Health', icon: 'heart' },
+  { name: 'Ministry', icon: 'hand-left' },
+  { name: 'Personal Growth', icon: 'person' },
+  { name: 'Physical Health', icon: 'barbell' },
+  { name: 'Projects', icon: 'folder' },
+  { name: 'Quiet Time', icon: 'book' },
+  { name: 'Recreation', icon: 'airplane' },
+  { name: 'Sleep & Recovery', icon: 'moon' },
+  { name: 'Work Meetings', icon: 'briefcase' },
+  { name: 'Others', icon: 'ellipsis-horizontal' },
 ];
 
 const formatDuration = (start: Date, end: Date): string => {
@@ -47,6 +72,8 @@ const formatDuration = (start: Date, end: Date): string => {
 const formatTime = (date: Date): string => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
+
+
 
 const getCategoryColor = (categoryName: string): string => {
   const colors = [Colors.alertCoral, Colors.anchorBlue, Colors.growthGreen, '#FF6B6B', '#4ECDC4', '#45B7D1'];
@@ -81,6 +108,17 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     notes: block.notes,
     location: block.location,
     isAllDay: block.all_day,
+    repeat: block.repeat_rule ? {
+      frequency: (block.repeat_rule.frequency || 'never') as RepeatFrequency,
+      endDate: block.repeat_until ? new Date(block.repeat_until) : undefined,
+      customDays: block.repeat_rule.customDays,
+      customFrequency: block.repeat_rule.customFrequency,
+    } : {
+      frequency: 'never' as RepeatFrequency,
+      endDate: undefined,
+      customDays: undefined,
+      customFrequency: undefined,
+    },
   }));
 
   // Local state
@@ -91,8 +129,26 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showTitleError, setShowTitleError] = useState(false);
   const [showCategoryError, setShowCategoryError] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean}>({ start: false, end: false });
-  const [newBlock, setNewBlock] = useState({
+  const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
+
+  const [newBlock, setNewBlock] = useState<{
+    title: string;
+    startTime: Date;
+    endTime: Date;
+    category: string;
+    notes: string;
+    location: string;
+    isAllDay: boolean;
+    repeat: {
+      frequency: RepeatFrequency;
+      endDate?: Date;
+      customDays?: number[];
+      customFrequency?: {
+        value: number;
+        unit: string;
+      };
+    };
+  }>({
     title: '',
     startTime: new Date(),
     endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
@@ -100,6 +156,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     notes: '',
     location: '',
     isAllDay: false,
+    repeat: {
+      frequency: 'never',
+      endDate: undefined,
+      customDays: undefined,
+      customFrequency: undefined,
+    },
   });
 
   const swipeableRefs = useRef<{[key: string]: any}>({});
@@ -125,6 +187,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       notes: block.notes || '',
       location: block.location || '',
       isAllDay: block.isAllDay,
+      repeat: block.repeat,
     });
   };
 
@@ -188,6 +251,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         notes: '',
         location: '',
         isAllDay: false,
+        repeat: {
+          frequency: 'never',
+          endDate: undefined,
+          customDays: undefined,
+          customFrequency: undefined,
+        },
       });
       setIsAdding(false);
       setEditId(null);
@@ -206,6 +275,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       notes: '',
       location: '',
       isAllDay: false,
+      repeat: {
+        frequency: 'never',
+        endDate: undefined,
+        customDays: undefined,
+        customFrequency: undefined,
+      },
     });
     setEditId(null);
     setIsAdding(true);
@@ -215,7 +290,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   const onTimeChange = (event: DateTimePickerEvent, selectedTime?: Date) => {
     if (event.type === 'dismissed') {
-      setShowTimePicker({ start: false, end: false });
+      setShowTimePicker({ start: false, end: false, id: null });
       return;
     }
     if (selectedTime) {
@@ -225,7 +300,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         setNewBlock(prev => ({ ...prev, endTime: selectedTime }));
       }
     }
-    setShowTimePicker({ start: false, end: false });
+    setShowTimePicker({ start: false, end: false, id: null });
   };
 
   React.useEffect(() => {
@@ -239,19 +314,19 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     const isExpanded = expandedNotes[block.id];
 
     return (
-      <Swipeable
-        key={block.id}
-        ref={(ref: any) => {
-          if (ref) {
-            swipeableRefs.current[block.id] = ref;
-          } else {
-            delete swipeableRefs.current[block.id];
-          }
-        }}
+      <View key={block.id} style={styles.swipeableContainer}>
+        <Swipeable
+          ref={(ref: any) => {
+            if (ref) {
+              swipeableRefs.current[block.id] = ref;
+            } else {
+              delete swipeableRefs.current[block.id];
+            }
+          }}
         renderRightActions={() => (
-          <View style={styles.swipeActions}>
+          <View style={styles.timeblockSwipeActions}>
             <TouchableOpacity
-              style={[styles.swipeAction, { backgroundColor: Colors.anchorBlue }]}
+              style={styles.editActionBtn}
               onPress={() => {
                 closeAllSwipeables();
                 handleEditBlock(block);
@@ -260,7 +335,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <Ionicons name="pencil" size={16} color="white" />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.swipeAction, { backgroundColor: Colors.alertCoral }]}
+              style={styles.deleteActionBtn}
               onPress={() => {
                 closeAllSwipeables();
                 handleDeleteBlock(block.id);
@@ -304,7 +379,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             </TouchableOpacity>
           )}
         </View>
-      </Swipeable>
+        </Swipeable>
+      </View>
     );
   };
 
@@ -333,7 +409,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       isAdding={isAdding}
     >
       {timeBlocks.length > 0 ? (
-        <View>
+        <View style={styles.timeBlocksContainer}>
           {timeBlocks.slice(0, visibleCount).map(renderTimeBlock)}
           {timeBlocks.length > visibleCount && (
             <TouchableOpacity
@@ -379,15 +455,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <View style={styles.categoryList}>
                 {CATEGORIES.map((category) => (
                   <TouchableOpacity
-                    key={category}
+                    key={category.name}
                     style={styles.categoryOption}
                     onPress={() => {
-                      setNewBlock(prev => ({ ...prev, category }));
+                      setNewBlock(prev => ({ ...prev, category: category.name }));
                       setShowCategoryPicker(false);
                       if (showCategoryError) {setShowCategoryError(false);}
                     }}
                   >
-                    <Text style={styles.categoryOptionText}>{category}</Text>
+                    <Ionicons name={category.icon} size={16} color={Colors.anchorBlue} style={styles.categoryIcon} />
+                    <Text style={styles.categoryOptionText}>{category.name}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -408,13 +485,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             <View style={styles.timeContainer}>
               <TouchableOpacity
                 style={styles.timeButton}
-                onPress={() => setShowTimePicker({ start: true, end: false })}
+                onPress={() => setShowTimePicker({ start: true, end: false, id: null })}
               >
                 <Text style={styles.timeLabel}>Start: {formatTime(newBlock.startTime)}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.timeButton}
-                onPress={() => setShowTimePicker({ start: false, end: true })}
+                onPress={() => setShowTimePicker({ start: false, end: true, id: null })}
               >
                 <Text style={styles.timeLabel}>End: {formatTime(newBlock.endTime)}</Text>
               </TouchableOpacity>
@@ -480,6 +557,33 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 };
 
 const styles = StyleSheet.create({
+  swipeableContainer: {
+    marginBottom: 8, // Match the card's marginBottom
+    overflow: 'hidden',
+  },
+  timeblockSwipeActions: {
+    flexDirection: 'row',
+    width: 160, // Make the total swipe area smaller
+    height: '100%', // Match the card height
+    marginLeft: -10, // Align with card edge
+    overflow: 'hidden', // Ensure rounded corners are respected
+    borderRadius: 6, // Match card border radius
+  },
+  editActionBtn: {
+    flex: 1, // Fill all space left of delete button
+    height: '100%',
+    backgroundColor: Colors.anchorBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 12, // Add padding to move icon to the right
+  },
+  deleteActionBtn: {
+    width: 75, // Make delete button smaller
+    height: '100%',
+    backgroundColor: '#f87171',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingText: {
     fontFamily: Fonts.regular,
     color: Colors.mediumGray,
@@ -506,16 +610,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   timeBlockCard: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
-    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    marginBottom: 0, // Remove margin from card as it's now on the container
+    borderRadius: 6,
+    backgroundColor: '#ebeef2',
+    borderWidth: 0.5,
+    borderColor: 'rgba(26, 60, 109, 0.15)',
+    minHeight: 60,
+    overflow: 'hidden',
+  },
+  timeBlocksContainer: {
     marginBottom: 8,
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    padding: 0,
   },
   titleRow: {
     flexDirection: 'row',
@@ -635,10 +743,14 @@ const styles = StyleSheet.create({
     borderColor: Colors.lightGray,
   },
   categoryOption: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomColor: Colors.lightGray,
+  },
+  categoryIcon: {
+    marginRight: 8,
   },
   categoryOptionText: {
     fontFamily: Fonts.regular,
