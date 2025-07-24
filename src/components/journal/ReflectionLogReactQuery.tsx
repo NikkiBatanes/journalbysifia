@@ -10,7 +10,6 @@ import ReflectionLogEditor from './ReflectionLogEditor';
 import { styles as reflectionLogStyles } from './reflectionStyles';
 import { GUIDED_PROMPTS } from './reflectionConstants';
 import { useAuth } from '../../context/AuthContext';
-import { toLocalDateString } from '../../utils/date';
 import {
   useReflectionData,
   useCreateReflection,
@@ -53,9 +52,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Generate a meaningful subtitle based on the number of entries
   const getReflectionSubtitle = (count: number): string => {
-    if (count === 0) return 'Start reflecting today';
-    if (count === 1) return '1 reflection today';
-    if (count < 5) return `${count} reflections today`;
+    if (count === 0) {return 'Start reflecting today';}
+    if (count === 1) {return '1 reflection today';}
+    if (count < 5) {return `${count} reflections today`;}
     return `You've shared ${count} reflections today`;
   };
 

@@ -168,11 +168,11 @@ export async function signIn(email: string, password: string) {
       password,
     });
 
-    console.log('Auth response:', { 
-      hasData: !!data, 
+    console.log('Auth response:', {
+      hasData: !!data,
       hasSession: !!data?.session,
       hasUser: !!data?.user,
-      error 
+      error,
     });
 
     if (error) {
