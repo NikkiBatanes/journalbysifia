@@ -6,7 +6,7 @@ export interface ReflectionApiEntry {
   user_id: string;
   title: string;
   content: string;
-  type: 'free' | 'guided';
+  type: 'free' | 'guided' | 'devotional';
   selected_date: string;
   created_at: string;
   updated_at: string;

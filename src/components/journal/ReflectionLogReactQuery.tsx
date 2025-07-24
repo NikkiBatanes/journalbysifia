@@ -19,7 +19,7 @@ import {
 import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
 import { analytics } from '../../utils/analytics';
 
-type ViewMode = 'free' | 'guided';
+type ViewMode = 'free' | 'guided' | 'devotional';
 
 export const GUIDED_PROMPTS = [
   "How did I seek God's guidance in my decisions today?",
@@ -178,7 +178,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   reflection_id: entryId,
                   title_length: entryToDelete.title.length,
                   content_length: entryToDelete.content.length,
-                  type: entryToDelete.type,
+                  type: entryToDelete.type === 'devotional' ? 'guided' : entryToDelete.type,
                   date: dateStr,
                 }, user.id);
               }
@@ -274,8 +274,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     setEditingId(entry.id);
     setSelectedEntry(entry);
 
-    // For guided entries, set the selected prompt if available
-    if (entry.type === 'guided') {
+    // For guided and devotional entries, set the selected prompt if available
+    if (entry.type === 'guided' || entry.type === 'devotional') {
       // Use the stored prompt, or the title if it was used as a prompt, or empty string
       const promptToUse = entry.prompt || (entry.title && GUIDED_PROMPTS.includes(entry.title) ? entry.title : '');
       setSelectedPrompt(promptToUse);
@@ -418,7 +418,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         styles.entryCard,
         entry.source === 'devotional'
           ? styles.devotionalEntry
-          : entry.type === 'guided'
+          : (entry.type === 'guided' || entry.type === 'devotional')
             ? styles.guidedEntry
             : styles.freeFormEntry,
       ]}
@@ -438,10 +438,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             })}
           </Text>
         </View>
-      ) : entry.type === 'guided' ? (
+      ) : (entry.type === 'guided' || entry.type === 'devotional') ? (
         <View style={styles.guidedPromptRow}>
           <View style={styles.guidedPromptContainer}>
-            <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
+            <Text style={styles.guidedPromptText}>{entry.type === 'devotional' ? 'DEVOTIONAL' : 'GUIDED PROMPT'}</Text>
           </View>
           <Text style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -457,7 +457,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           </Text>
         </View>
       )}
-      {entry.type === 'guided' ? (
+      {(entry.type === 'guided' || entry.type === 'devotional') ? (
         <Text style={styles.promptCardText}>{entry.prompt || entry.title || 'Guided Reflection'}</Text>
       ) : entry.title ? (
         <Text style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</Text>
@@ -655,15 +655,15 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               title: newEntry.title,
               content: newEntry.content,
               tags: newEntry.tags || [],
-              type: newEntry.type === 'free' ? 'free-form' : newEntry.type,
+              type: newEntry.type === 'free' ? 'free-form' : newEntry.type === 'devotional' ? 'guided' : newEntry.type,
               source: newEntry.source,
               prompt: newEntry.prompt,
             }}
-            initialMode={newEntry.type === 'guided' ? 'guided' : 'free-form'}
-            initialPrompt={newEntry.type === 'guided' ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
-            initialTitle={newEntry.type === 'guided' && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
-            lockTitle={newEntry.type === 'guided' && Boolean(selectedPrompt)}
-            source={newEntry.type === 'guided' && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
+            initialMode={(newEntry.type === 'guided' || newEntry.type === 'devotional') ? 'guided' : 'free-form'}
+            initialPrompt={(newEntry.type === 'guided' || newEntry.type === 'devotional') ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
+            initialTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
+            lockTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt)}
+            source={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
             styles={reflectionLogStyles}
             dateString={(() => {
               const now = new Date();

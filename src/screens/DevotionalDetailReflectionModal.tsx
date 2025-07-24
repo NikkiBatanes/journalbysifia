@@ -64,7 +64,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       const saveData = {
         title: entry.title,
         content: entry.content,
-        type: 'guided' as const, // Always guided for devotional reflections
+        type: 'devotional' as const, // Always devotional type for devotional reflections
         user_id: user.id,
         selected_date: dateStr,
         // TEMPORARY: Remove fields that don't exist in database yet
@@ -85,7 +85,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       analytics.trackReflectionEvent('reflection_created', {
         title_length: entry.title.length,
         content_length: entry.content.length,
-        type: 'guided',
+        type: 'guided', // Use 'guided' for analytics since devotional is a type of guided reflection
         has_prompt: Boolean(question),
         date: dateStr,
       }, user.id);
