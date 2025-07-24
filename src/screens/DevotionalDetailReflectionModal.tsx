@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Alert } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/ReflectionLog';
 import { Colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
-import { saveReflectionEntries, loadReflectionEntries, ReflectionLogEntry } from '../storage/reflectionStorage';
 import { toLocalDateString } from '../utils/date';
-
-// ReflectionLogEntry is now imported from reflectionStorage.ts
-// Removed duplicate interface definition
+import {
+  useCreateReflection,
+  useReflectionData,
+} from '../services/hooks/useReflectionData';
+import { analytics } from '../utils/analytics';
 
 interface DevotionalDetailReflectionModalProps {
   visible: boolean;
@@ -35,74 +36,71 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   onCancel,
 }) => {
   const { user } = useAuth();
-  const [_isSaving, setIsSaving] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [existingEntries, setExistingEntries] = useState<ReflectionLogEntry[]>([]);
+  const dateStr = toLocalDateString(new Date());
 
-  // Load existing entries on mount
-  React.useEffect(() => {
-    const loadEntries = async () => {
-      if (!user) {return;}
+  // React Query hooks
+  const createMutation = useCreateReflection();
+  const { refetch } = useReflectionData(user?.id || '', dateStr);
 
-      try {
-        const today = new Date();
-        const dateStr = toLocalDateString(today);
-        const savedEntries = await loadReflectionEntries(user.id, dateStr);
-        setExistingEntries(savedEntries);
-      } catch (error) {
-        console.error('Failed to load entries', error);
-      }
-    };
-    loadEntries();
-  }, [user]);
-
-  // Save reflection using new storage system
+  // Save reflection using React Query system
   const saveReflection = async (entry: { title: string; content: string; tags?: string[] }) => {
     try {
-      if (!user) {throw new Error('User not authenticated');}
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-      setIsSaving(true);
-      const now = new Date();
-      const dateStr = toLocalDateString(now);
-
-      // Create new entry with proper structure for new storage system
-      const newEntry: ReflectionLogEntry = {
-        id: Date.now().toString(),
-        user_id: user.id,
+      console.log('🔍 Saving devotional reflection with data:', {
         title: entry.title,
         content: entry.content,
+        source: 'devotional',
+        devotionalTitle,
+        dayNumber,
+        questionNumber,
+      });
+
+      // Create save data matching the database schema
+      const saveData = {
+        title: entry.title,
+        content: entry.content,
+        type: 'guided' as const, // Always guided for devotional reflections
+        user_id: user.id,
+        selected_date: dateStr,
+        // Include devotional-specific fields
+        source: 'devotional' as const,
         prompt: question,
         tags: entry.tags || [],
-        type: 'guided' as const,  // Always guided for devotional reflections
-        source: 'devotional',
-        date: now,
-        created_at: now.toISOString(),
-        updated_at: now.toISOString(),
-        selected_date: dateStr,
         // Include devotional metadata
-        ...(devotionalTitle && { devotionalTitle }),
-        ...(dayNumber !== undefined && { dayNumber }),
-        ...(dayTitle && { dayTitle }),
-        ...(totalDays !== undefined && { totalDays }),
-        ...(questionNumber !== undefined && { questionNumber }),
+        ...(devotionalTitle && { devotional_title: devotionalTitle }),
+        ...(dayNumber !== undefined && { day_number: dayNumber }),
+        ...(dayTitle && { day_title: dayTitle }),
+        ...(totalDays !== undefined && { total_days: totalDays }),
+        ...(questionNumber !== undefined && { question_number: questionNumber }),
       };
 
-      // Create updated entries array with new entry at the beginning
-      const updatedEntries = [newEntry, ...existingEntries];
+      // Save to database using React Query
+      const result = await createMutation.mutateAsync(saveData);
+      console.log('🔍 Devotional reflection saved successfully:', result);
 
-      // Save using new storage system
-      await saveReflectionEntries(user.id, dateStr, updatedEntries);
+      // Track analytics
+      analytics.trackReflectionEvent('reflection_created', {
+        title_length: entry.title.length,
+        content_length: entry.content.length,
+        type: 'guided',
+        has_prompt: Boolean(question),
+        date: dateStr,
+      }, user.id);
 
-      // Update local state
-      setExistingEntries(updatedEntries);
+      // Force refetch to ensure UI updates
+      await refetch();
+      console.log('🔍 Reflection data refetched after devotional save');
 
       setShowSuccessModal(true);
-      return newEntry;
+      return result;
     } catch (error) {
-      console.error('Error saving reflection:', error);
+      console.error('🔍 Error saving devotional reflection:', error);
+      Alert.alert('Error', 'Failed to save devotional reflection. Please try again.');
       throw error;
-    } finally {
-      setIsSaving(false);
     }
   };
 
