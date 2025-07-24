@@ -34,7 +34,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
-  
+
   // Performance tracking
   const loadStartTime = useRef(Date.now());
 
@@ -43,14 +43,14 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
   const markPrayedMutation = useMarkPrayerRequestPrayed();
-  
+
   // Analytics tracking for data load
   useEffect(() => {
     if (peoplePrayers && !isLoading) {
       const loadTime = Date.now() - loadStartTime.current;
       const prayerRequests = peoplePrayers.filter(p => p.is_request === true);
       const personalPrayers = peoplePrayers.filter(p => p.is_request === false);
-      
+
       analytics.trackPrayerEvent('prayers_loaded', {
         acts_count: 0,
         people_count: personalPrayers.length,
@@ -61,7 +61,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       }, user?.id);
     }
   }, [peoplePrayers, isLoading, dateStr, user?.id]);
-  
+
   // Analytics tracking for errors
   useEffect(() => {
     if (error) {
@@ -149,7 +149,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         if (name.trim() && prayer.trim()) {
           const prayerContent = prayer.trim();
           const personName = name.trim();
-          
+
           await createPrayerMutation.mutateAsync({
             user_id: user?.id || '',
             content: prayerContent,
@@ -158,7 +158,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             is_request: true,
             selected_date: dateStr,
           });
-          
+
           // Track prayer request creation
           analytics.trackPrayerEvent('prayer_created', {
             prayer_type: 'people',
@@ -166,7 +166,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             is_request: true,
             date: dateStr,
           }, user?.id);
-          
+
           shouldClearInputs = true;
         }
       } else {
@@ -174,7 +174,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         if (name.trim() && (prayer.trim() || notes.trim())) {
           const prayerContent = prayer.trim();
           const personName = name.trim();
-          
+
           await createPrayerMutation.mutateAsync({
             user_id: user?.id || '',
             content: prayerContent,
@@ -183,7 +183,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             is_request: false,
             selected_date: dateStr,
           });
-          
+
           // Track personal prayer creation
           analytics.trackPrayerEvent('prayer_created', {
             prayer_type: 'people',
@@ -191,7 +191,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             is_request: false,
             date: dateStr,
           }, user?.id);
-          
+
           shouldClearInputs = true;
         }
       }
@@ -207,7 +207,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         prayer_type: 'people',
         date: dateStr,
       }, user?.id);
-      
+
       console.error('Error adding prayer:', err);
       // Error is handled by React Query
     }
@@ -262,7 +262,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   // Loading state with skeleton
   if (isLoading) {
     return (
-      <View 
+      <View
         style={styles.container}
         accessibilityRole="progressbar"
         accessibilityLabel="Loading people prayers"
@@ -276,7 +276,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   // Error state with retry
   if (error) {
     return (
-      <View 
+      <View
         style={styles.container}
         accessibilityRole="alert"
         accessibilityLabel="Error loading people prayers"
@@ -285,8 +285,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           <Ionicons name="alert-circle" size={24} color={Colors.alertCoral} style={styles.errorStateIcon} />
           <Text style={styles.errorStateText}>Unable to load people prayers</Text>
           <Text style={styles.errorStateSubtext}>Please check your connection and try again</Text>
-          <TouchableOpacity 
-            onPress={() => refetch()} 
+          <TouchableOpacity
+            onPress={() => refetch()}
             style={styles.errorRetryButton}
             accessibilityRole="button"
             accessibilityLabel="Retry loading people prayers"

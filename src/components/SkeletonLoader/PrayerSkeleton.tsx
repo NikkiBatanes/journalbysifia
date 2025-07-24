@@ -7,9 +7,9 @@ interface PrayerSkeletonProps {
   showPrayerGroups?: boolean;
 }
 
-const PrayerSkeleton: React.FC<PrayerSkeletonProps> = ({ 
-  showDropdown = true, 
-  showPrayerGroups = true 
+const PrayerSkeleton: React.FC<PrayerSkeletonProps> = ({
+  showDropdown = true,
+  showPrayerGroups = true,
 }) => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
 
@@ -61,7 +61,7 @@ const PrayerSkeleton: React.FC<PrayerSkeletonProps> = ({
               <View style={styles.prayerGroupHeader}>
                 <Animated.View style={[styles.badgeSkeleton, { opacity }]} />
               </View>
-              
+
               {/* Prayer Items */}
               {[1, 2].map((itemIndex) => (
                 <View key={itemIndex} style={styles.prayerItem}>

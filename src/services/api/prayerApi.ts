@@ -32,14 +32,14 @@ const ensureAuthenticated = async () => {
   try {
     const accessToken = await AsyncStorage.getItem('ACCESS_TOKEN');
     const user = await AsyncStorage.getItem('USER');
-    
+
     if (accessToken && user) {
       const userData = JSON.parse(user);
       // Set the session in Supabase client
       const refreshToken = await AsyncStorage.getItem('REFRESH_TOKEN') || '';
       await supabase.auth.setSession({
         access_token: accessToken,
-        refresh_token: refreshToken
+        refresh_token: refreshToken,
       });
       console.log('Supabase session set for user:', userData.id);
     } else {
@@ -99,7 +99,7 @@ export class PrayerApi {
   }> {
     // Ensure Supabase is authenticated
     await ensureAuthenticated();
-    
+
     const { data, error } = await supabase
       .from('prayers')
       .select('*')
@@ -163,18 +163,18 @@ export class PrayerApi {
   ): Promise<PrayerApiEntry> {
     // Ensure Supabase is authenticated
     await ensureAuthenticated();
-    
+
     const now = new Date().toISOString();
-    
+
     // Transform legacy format to database format
     const dbPrayer = {
       user_id: prayer.user_id,
       content: prayer.content,
       selected_date: prayer.selected_date,
-      prayer_type: prayer.prayer_type || (prayer.type === 'people' ? 'people' : 
+      prayer_type: prayer.prayer_type || (prayer.type === 'people' ? 'people' :
                    prayer.type === 'devotional' ? 'devotional' : 'journal'),
       journal_category: prayer.journal_category || (
-        ['adoration', 'confession', 'thanksgiving', 'supplication'].includes(prayer.type || '') 
+        ['adoration', 'confession', 'thanksgiving', 'supplication'].includes(prayer.type || '')
           ? prayer.type as 'adoration' | 'confession' | 'thanksgiving' | 'supplication'
           : null
       ),
@@ -218,26 +218,26 @@ export class PrayerApi {
   ): Promise<PrayerApiEntry> {
     // Ensure Supabase is authenticated
     await ensureAuthenticated();
-    
+
     // Transform API format to database format
     const dbUpdates: any = {
       updated_at: new Date().toISOString(),
     };
 
     // Map API fields to database fields
-    if (updates.content !== undefined) dbUpdates.content = updates.content;
-    if (updates.selected_date !== undefined) dbUpdates.selected_date = updates.selected_date;
-    if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if (updates.answered_date !== undefined) dbUpdates.answered_date = updates.answered_date;
-    if (updates.person_name !== undefined) dbUpdates.person_name = updates.person_name;
-    if (updates.is_prayer_request !== undefined) dbUpdates.is_prayer_request = updates.is_prayer_request;
-    if (updates.prayed !== undefined) dbUpdates.prayed = updates.prayed;
-    if (updates.devotional_title !== undefined) dbUpdates.devotional_title = updates.devotional_title;
-    if (updates.day_number !== undefined) dbUpdates.day_number = updates.day_number;
-    if (updates.day_title !== undefined) dbUpdates.day_title = updates.day_title;
-    if (updates.total_days !== undefined) dbUpdates.total_days = updates.total_days;
-    if (updates.journal_category !== undefined) dbUpdates.journal_category = updates.journal_category;
-    if (updates.prayer_type !== undefined) dbUpdates.prayer_type = updates.prayer_type;
+    if (updates.content !== undefined) {dbUpdates.content = updates.content;}
+    if (updates.selected_date !== undefined) {dbUpdates.selected_date = updates.selected_date;}
+    if (updates.status !== undefined) {dbUpdates.status = updates.status;}
+    if (updates.answered_date !== undefined) {dbUpdates.answered_date = updates.answered_date;}
+    if (updates.person_name !== undefined) {dbUpdates.person_name = updates.person_name;}
+    if (updates.is_prayer_request !== undefined) {dbUpdates.is_prayer_request = updates.is_prayer_request;}
+    if (updates.prayed !== undefined) {dbUpdates.prayed = updates.prayed;}
+    if (updates.devotional_title !== undefined) {dbUpdates.devotional_title = updates.devotional_title;}
+    if (updates.day_number !== undefined) {dbUpdates.day_number = updates.day_number;}
+    if (updates.day_title !== undefined) {dbUpdates.day_title = updates.day_title;}
+    if (updates.total_days !== undefined) {dbUpdates.total_days = updates.total_days;}
+    if (updates.journal_category !== undefined) {dbUpdates.journal_category = updates.journal_category;}
+    if (updates.prayer_type !== undefined) {dbUpdates.prayer_type = updates.prayer_type;}
 
     const { data, error } = await supabase
       .from('prayers')
@@ -276,10 +276,10 @@ export class PrayerApi {
 
   // Mark supplication as answered
   static async markSupplicationAnswered(id: string, isAnswered: boolean): Promise<PrayerApiEntry> {
-    return this.updatePrayer(id, { 
+    return this.updatePrayer(id, {
       status: isAnswered ? 'answered' : 'pending',
       answered_date: isAnswered ? new Date().toISOString() : undefined,
-      is_answered: isAnswered 
+      is_answered: isAnswered,
     });
   }
 

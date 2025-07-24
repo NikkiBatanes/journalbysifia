@@ -24,7 +24,7 @@ interface PrayerApiEntry {
   day_number?: number;
   day_title?: string;
   total_days?: number;
-};
+}
 import {
   useACTSPrayerData,
   useCreatePrayer,
@@ -95,7 +95,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
     if (actsData && !isLoading) {
       const loadTime = Date.now() - loadStartTime.current;
       analytics.trackPrayerEvent('prayers_loaded', {
-        acts_count: (actsData.adoration?.length || 0) + (actsData.confession?.length || 0) + 
+        acts_count: (actsData.adoration?.length || 0) + (actsData.confession?.length || 0) +
                    (actsData.thanksgiving?.length || 0) + (actsData.supplication?.length || 0),
         people_count: 0, // This component only handles ACTS prayers
         devotional_count: 0,
@@ -133,7 +133,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
 
   if (isLoading) {
     return (
-      <View 
+      <View
         style={styles.card}
         accessibilityRole="progressbar"
         accessibilityLabel="Loading prayers"
@@ -146,7 +146,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
 
   if (error) {
     return (
-      <View 
+      <View
         style={styles.card}
         accessibilityRole="alert"
         accessibilityLabel="Error loading prayers"
@@ -155,8 +155,8 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           <Ionicons name="alert-circle" size={24} color={Colors.alertCoral} style={styles.errorIcon} />
           <Text style={styles.errorText}>Unable to load prayers</Text>
           <Text style={styles.errorSubtext}>Please check your connection and try again</Text>
-          <TouchableOpacity 
-            onPress={() => refetch()} 
+          <TouchableOpacity
+            onPress={() => refetch()}
             style={styles.retryButton}
             accessibilityRole="button"
             accessibilityLabel="Retry loading prayers"
@@ -176,15 +176,15 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
   const handleAddPrayer = async () => {
     if (prayerText.trim() && !createPrayerMutation.isPending) {
       const prayerContent = prayerText.trim();
-      
+
       // Debug: Check user authentication
       console.log('User context:', { user, userId: user?.id, isAuthenticated: !!user });
-      
+
       if (!user || !user.id) {
         console.error('User not authenticated or missing ID');
         return;
       }
-      
+
       try {
         await createPrayerMutation.mutateAsync({
           user_id: user.id,
@@ -196,20 +196,20 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           status: selectedType.key === 'supplication' ? 'pending' : 'answered',
           is_answered: selectedType.key === 'supplication' ? false : undefined,
         });
-        
+
         // Track prayer creation
         analytics.trackPrayerEvent('prayer_created', {
           prayer_type: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
           content_length: prayerContent.length,
           date: dateStr,
         }, user.id);
-        
+
         // Track prayer type selection
         analytics.trackPrayerEvent('prayer_type_selected', {
           prayer_type: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
           date: dateStr,
         }, user.id);
-        
+
         setPrayerText('');
       } catch (err) {
         // Track error
@@ -219,7 +219,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           prayer_type: selectedType.key,
           date: dateStr,
         }, user.id);
-        
+
         console.error('Error adding prayer:', err);
         // Error is handled by React Query
       }
@@ -241,14 +241,14 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         _userId: user.id,
         _dateStr: dateStr,
       });
-      
+
       // Track prayer answered event
       if (newIsAnswered) {
         const createdDate = new Date(prayer.created_at);
         const currentDate = new Date();
         const timeDiff = Math.abs(currentDate.getTime() - createdDate.getTime());
         const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-        
+
         analytics.trackPrayerEvent('prayer_answered', {
           prayer_id: id,
           prayer_type: 'supplication',
@@ -264,7 +264,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         prayer_type: 'supplication',
         date: dateStr,
       }, user.id);
-      
+
       console.error('Error updating prayer status:', err);
       // Error is handled by React Query
     }
