@@ -1173,7 +1173,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
 // Export with error boundary wrapper
 export const TimeBlockReactQueryWithErrorBoundary: React.FC<TimeBlockProps> = (props) => (
-  <ErrorBoundary name="TimeBlockReactQuery"> 
+  <ErrorBoundary name="TimeBlockReactQuery">
     <TimeBlockReactQuery {...props} />
   </ErrorBoundary>
 );
