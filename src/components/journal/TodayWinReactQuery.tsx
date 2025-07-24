@@ -50,7 +50,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
   // Get today's win entry with performance tracking
   const loadStartTime = useRef<number>(Date.now());
   const { data: entries = [], isLoading, error, refetch } = useTodayWinData(userId, dateStr);
-  
+
   // Debug: Log when entries change
   React.useEffect(() => {
     console.log('🏆 TodayWin: Entries changed:', entries);
@@ -68,7 +68,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
         date: dateStr,
       }, user?.id);
     }
-  }, [isLoading, entries.length, dateStr, user?.id]);
+  }, [isLoading, entries, entries.length, dateStr, user?.id]);
 
   // Handle loading and error states
   React.useEffect(() => {
@@ -88,28 +88,28 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
 
   // Get the first entry (TodayWin typically has one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
-  
+
   // Memoize the win object to prevent infinite re-renders - moved before early returns
   const win = React.useMemo(() => {
-    if (!entry) return null;
-    
+    if (!entry) {return null;}
+
     try {
       const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
       const result = {
         id: entry.id,
-        text: content.win || ''
+        text: content.win || '',
       };
       console.log('🏆 TodayWin: Win object created:', result);
       return result;
     } catch {
       const result = {
         id: entry.id,
-        text: ''
+        text: '',
       };
       console.log('🏆 TodayWin: Win object created (error case):', result);
       return result;
     }
-  }, [entry?.id, entry?.content]);
+  }, [entry]);
 
   // Update displayWin when win data changes, but only if not currently editing or saving
   React.useEffect(() => {
@@ -117,17 +117,17 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
       // Only update if the win has actually changed
       setDisplayWin(prevDisplayWin => {
         // Compare by ID and text to avoid unnecessary updates
-        if (!win && !prevDisplayWin) return prevDisplayWin;
+        if (!win && !prevDisplayWin) {return prevDisplayWin;}
         if (!win || !prevDisplayWin) {
           console.log('🏆 TodayWin: Updated displayWin from server:', win);
           return win;
         }
-        
+
         // Don't override optimistic updates with the same content
         if (win.id === prevDisplayWin.id && win.text === prevDisplayWin.text) {
           return prevDisplayWin; // No change, keep previous
         }
-        
+
         // Don't override optimistic updates with older data
         // (optimistic updates have temp IDs or are newer)
         if (prevDisplayWin.id.startsWith('temp-') && win.text === prevDisplayWin.text) {
@@ -135,12 +135,12 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
           console.log('🏆 TodayWin: Replacing optimistic ID with real ID:', { from: prevDisplayWin.id, to: win.id });
           return { ...prevDisplayWin, id: win.id };
         }
-        
+
         console.log('🏆 TodayWin: Updated displayWin from server:', win);
         return win;
       });
     }
-  }, [win, isEditing]);
+  }, [win, isEditing, isSaving]);
 
   const closeSwipeable = useCallback(() => {
     swipeableRef.current?.close();
@@ -256,7 +256,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
       winText: winText.trim(),
       isEditing,
       editingEntryId,
-      entriesCount: entries.length
+      entriesCount: entries.length,
     });
 
     if (isEditing && editingEntryId) {
@@ -271,7 +271,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
       console.log('🏆 TodayWin: Found entry to update:', {
         id: currentEntry.id,
         currentContent: currentEntry.content,
-        newText: winText.trim()
+        newText: winText.trim(),
       });
 
       let updatedContent: any;
@@ -289,22 +289,22 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
       console.log('🏆 TodayWin: Content update:', {
         oldWin,
         newWin: updatedContent.win,
-        fullContent: updatedContent
+        fullContent: updatedContent,
       });
 
       // Set saving state to prevent useEffect from overriding
       setIsSaving(true);
-      
+
       // Create optimistic update
       const optimisticWin = {
         id: editingEntryId,
-        text: winText.trim()
+        text: winText.trim(),
       };
-      
+
       // Apply optimistic update immediately
       setDisplayWin(optimisticWin);
       console.log('🏆 TodayWin: Optimistic update applied:', optimisticWin);
-      
+
       // Clear editing state after optimistic update
       setIsAdding(false);
       setIsEditing(false);
@@ -321,7 +321,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
         onSuccess: (data) => {
           console.log('🏆 TodayWin: Update mutation successful', data);
           setIsSaving(false);
-          
+
           // Track analytics
           analytics.trackWinEvent('win_updated', {
             text_length: winText.trim().length,
@@ -330,42 +330,42 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
           }, user?.id); // Allow useEffect to work again
           // The optimistic update will be replaced by real data when it arrives
         },
-        onError: (error) => {
-          console.error('🏆 TodayWin: Update mutation failed', error);
+        onError: (updateMutationError) => {
+          console.error('🏆 TodayWin: Update mutation failed', updateMutationError);
           setIsSaving(false); // Allow useEffect to work again
           // Revert optimistic update and restore editing state on error
           const originalWin = {
             id: editingEntryId,
             text: (() => {
               try {
-                const entry = entries.find(e => e.id === editingEntryId);
-                if (!entry) return '';
-                const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+                const foundEntry = entries.find(e => e.id === editingEntryId);
+                if (!foundEntry) {return '';}
+                const content = typeof foundEntry.content === 'string' ? JSON.parse(foundEntry.content) : foundEntry.content;
                 return content.win || '';
               } catch {
                 return '';
               }
-            })()
+            })(),
           };
           setDisplayWin(originalWin);
           console.log('🏆 TodayWin: Reverted optimistic update due to error', originalWin);
-        }
+        },
       });
     } else {
       // Create new entry
       // Set saving state to prevent useEffect from overriding
       setIsSaving(true);
-      
+
       // Create optimistic update
       const optimisticWin = {
         id: 'temp-' + Date.now(),
-        text: winText.trim()
+        text: winText.trim(),
       };
-      
+
       // Apply optimistic update immediately
       setDisplayWin(optimisticWin);
       console.log('🏆 TodayWin: Optimistic create applied:', optimisticWin);
-      
+
       // Clear editing state after optimistic update
       setIsAdding(false);
       setIsEditing(false);
@@ -381,7 +381,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
         onSuccess: (data) => {
           console.log('🏆 TodayWin: Create mutation successful', data);
           setIsSaving(false);
-          
+
           // Track analytics
           analytics.trackWinEvent('win_created', {
             text_length: winText.trim().length,
@@ -389,13 +389,13 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
           }, user?.id); // Allow useEffect to work again
           // The optimistic update will be replaced by real data when it arrives
         },
-        onError: (error) => {
-          console.error('🏆 TodayWin: Create mutation failed', error);
+        onError: (createMutationError) => {
+          console.error('🏆 TodayWin: Create mutation failed', createMutationError);
           setIsSaving(false); // Allow useEffect to work again
           // Revert optimistic update on error
           setDisplayWin(null);
           console.log('🏆 TodayWin: Reverted optimistic create due to error');
-        }
+        },
       });
     }
 
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
-  
+
   // Error state styles
   errorContainer: {
     alignItems: 'center',

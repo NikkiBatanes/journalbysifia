@@ -522,7 +522,7 @@ export const useCreateTodayWinEntry = () => {
         content_type: 'today_win',
       }),
     // Removed onMutate optimistic updates to prevent conflicts with component-level optimistic updates
-    onError: (err, newEntry, context) => {
+    onError: (err, _newEntry, _context) => {
       console.error('Error creating today\'s win entry:', err);
       // Error handling is now managed at component level
     },
@@ -551,10 +551,10 @@ export const useUpdateTodayWinEntry = () => {
     },
     onSuccess: (data) => {
       console.log('🏆 useUpdateTodayWinEntry: API call successful', data);
-      
+
       const queryKey = queryKeys.journal.todayWin(data.user_id, data.selected_date);
       console.log('🏆 useUpdateTodayWinEntry: Updating query cache', { queryKey });
-      
+
       // Update the specific entry in the today win query
       queryClient.setQueryData(
         queryKey,
@@ -569,7 +569,7 @@ export const useUpdateTodayWinEntry = () => {
       // Clear local cache to ensure consistency
       JournalCache.clearCache(data.user_id, data.selected_date, 'today_win');
       console.log('🏆 useUpdateTodayWinEntry: Cache cleared');
-      
+
       // Don't invalidate immediately to avoid overriding optimistic updates
       // The cache is already updated above with the correct data
     },

@@ -36,31 +36,31 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
 
   // Get looking forward entries with performance tracking
   const { data: entries = [], isLoading, error, refetch } = useLookingForwardData(userId, dateStr);
-  
+
   const createMutation = useCreateLookingForwardEntry();
   const updateMutation = useUpdateLookingForwardEntry();
   const deleteMutation = useDeleteLookingForwardEntry();
 
   // Get the first entry (LookingForward typically has only one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
-  
+
   // Memoize the looking forward object to prevent infinite re-renders - moved before early returns
   const lookingForward = React.useMemo(() => {
-    if (!entry) return null;
-    
+    if (!entry) {return null;}
+
     try {
       const content = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
       return {
         id: entry.id,
-        text: content?.entry?.text || ''
+        text: content?.entry?.text || '',
       };
     } catch {
       return {
         id: entry.id,
-        text: ''
+        text: '',
       };
     }
-  }, [entry?.id, entry?.content]);
+  }, [entry]);
 
   // Update displayEntry when lookingForward data changes, but only if not currently editing or saving
   React.useEffect(() => {
@@ -68,17 +68,17 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
       // Only update if the entry has actually changed
       setDisplayEntry((prevDisplayEntry: any) => {
         // Compare by ID and text to avoid unnecessary updates
-        if (!lookingForward && !prevDisplayEntry) return prevDisplayEntry;
+        if (!lookingForward && !prevDisplayEntry) {return prevDisplayEntry;}
         if (!lookingForward || !prevDisplayEntry) {
           console.log('🌅 LookingForward: Updated displayEntry from server:', lookingForward);
           return lookingForward;
         }
-        
+
         // Don't override optimistic updates with the same content
         if (lookingForward.id === prevDisplayEntry.id && lookingForward.text === prevDisplayEntry.text) {
           return prevDisplayEntry; // No change, keep previous
         }
-        
+
         // Don't override optimistic updates with older data
         // (optimistic updates have temp IDs or are newer)
         if (prevDisplayEntry.id.startsWith('temp-') && lookingForward.text === prevDisplayEntry.text) {
@@ -86,7 +86,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
           console.log('🌅 LookingForward: Replacing optimistic ID with real ID:', { from: prevDisplayEntry.id, to: lookingForward.id });
           return { ...prevDisplayEntry, id: lookingForward.id };
         }
-        
+
         console.log('🌅 LookingForward: Updated displayEntry from server:', lookingForward);
         return lookingForward;
       });
@@ -118,7 +118,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
         date: dateStr,
       }, user?.id);
     }
-  }, [isLoading, entries.length, dateStr, user?.id]);
+  }, [isLoading, entries, entries.length, dateStr, user?.id]);
 
   // Handle loading and error states
   React.useEffect(() => {
@@ -185,7 +185,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
     });
 
     const handleDelete = () => {
-      if (!displayEntry) return;
+      if (!displayEntry) {return;}
 
       Alert.alert(
         'Delete Entry',
@@ -210,15 +210,15 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
 
                 // Perform actual deletion
                 await deleteMutation.mutateAsync(displayEntry.id);
-              } catch (error) {
-                console.error('🌅 LookingForward: Delete failed:', error);
-                
+              } catch (deleteError) {
+                console.error('🌅 LookingForward: Delete failed:', deleteError);
+
                 // Revert optimistic update on error
                 setDisplayEntry(lookingForward);
-                
+
                 // Track error
                 analytics.trackLookingForwardEvent('looking_forward_error', {
-                  error_type: error instanceof Error ? error.message : 'unknown',
+                  error_type: deleteError instanceof Error ? deleteError.message : 'unknown',
                   operation: 'delete',
                   date: dateStr,
                 }, user?.id);
@@ -259,7 +259,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
   };
 
   const saveEntry = async () => {
-    if (!entryText.trim() || !user || isSaving) return;
+    if (!entryText.trim() || !user || isSaving) {return;}
 
     const trimmedText = entryText.trim();
     setIsSaving(true);
@@ -270,9 +270,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
         const previousTextLength = displayEntry.text.length;
         const optimisticEntry = {
           ...displayEntry,
-          text: trimmedText
+          text: trimmedText,
         };
-        
+
         // Optimistic update
         setDisplayEntry(optimisticEntry);
         setIsAdding(false);
@@ -290,12 +290,12 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
         await updateMutation.mutateAsync({
           id: displayEntry.id,
           updates: {
-            content: JSON.stringify({ 
-              entry: { 
-                id: displayEntry.id, 
-                text: trimmedText, 
-                date: selectedDate 
-              } 
+            content: JSON.stringify({
+              entry: {
+                id: displayEntry.id,
+                text: trimmedText,
+                date: selectedDate,
+              },
             }),
           },
         });
@@ -306,9 +306,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
         const tempId = `temp-${Date.now()}`;
         const optimisticEntry = {
           id: tempId,
-          text: trimmedText
+          text: trimmedText,
         };
-        
+
         // Optimistic update
         setDisplayEntry(optimisticEntry);
         setIsAdding(false);
@@ -335,16 +335,16 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
 
         console.log('🌅 LookingForward: Entry created successfully');
       }
-    } catch (error) {
-      console.error('🌅 LookingForward: Save failed:', error);
-      
+    } catch (saveError) {
+      console.error('🌅 LookingForward: Save failed:', saveError);
+
       // Revert optimistic update on error
       setDisplayEntry(lookingForward);
       setIsAdding(true); // Show form again
-      
+
       // Track error
       analytics.trackLookingForwardEvent('looking_forward_error', {
-        error_type: error instanceof Error ? error.message : 'unknown',
+        error_type: saveError instanceof Error ? saveError.message : 'unknown',
         operation: isEditing ? 'update' : 'create',
         date: dateStr,
       }, user.id);
@@ -356,8 +356,8 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
   };
 
   const editEntry = () => {
-    if (!displayEntry) return;
-    
+    if (!displayEntry) {return;}
+
     setEntryText(displayEntry.text);
     setIsEditing(true);
     setIsAdding(true);

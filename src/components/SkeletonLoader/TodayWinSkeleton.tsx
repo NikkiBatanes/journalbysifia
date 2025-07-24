@@ -1,13 +1,12 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Colors } from '../../theme/colors';
 
 export const TodayWinSkeleton: React.FC = () => {
   return (
     <View style={styles.container}>
       {/* Header skeleton */}
       <View style={styles.headerSkeleton} />
-      
+
       {/* Content skeleton */}
       <View style={styles.contentContainer}>
         <View style={styles.textLineSkeleton} />
