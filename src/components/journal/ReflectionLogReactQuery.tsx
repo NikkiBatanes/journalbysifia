@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet, Alert } from 'react-native';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { NotebookPen as LuNotebookPen, X, Check } from 'lucide-react-native';
+import { NotebookPen as LuNotebookPen, X } from 'lucide-react-native';
+import ReflectionLogEditor from './ReflectionLogEditor';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -66,7 +67,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
   const loadStartTime = useRef(Date.now());
-  const [isSaving, setIsSaving] = useState(false);
   // const [retryCount, setRetryCount] = useState(0); // Unused
 
   // React Query hooks with enhanced error handling
@@ -132,6 +132,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     prompt: '',
     tags: [] as string[],
     location: '',
+    source: undefined as string | undefined,
   });
 
   const resetForm = useCallback(() => {
@@ -142,101 +143,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       prompt: '',
       tags: [],
       location: '',
+      source: undefined,
     });
     setSelectedPrompt('');
     setIsAdding(false);
     setEditingId(null);
   }, []);
-
-  const handleSaveEntry = useCallback(async () => {
-    if (!user) {
-      console.warn('🔍 ReflectionLog: No user found, cannot save entry');
-      return;
-    }
-
-    if (!newEntry.title.trim() || !newEntry.content.trim()) {
-      Alert.alert('Error', 'Please fill in both title and content.');
-      analytics.trackReflectionEvent('reflection_error', {
-        error_type: 'validation_failed',
-        operation: editingId ? 'update' : 'create',
-        date: dateStr,
-      }, user.id);
-      return;
-    }
-
-    setIsSaving(true);
-    const startTime = Date.now();
-
-    try {
-      const entryData = {
-        user_id: user.id,
-        selected_date: dateStr,
-        title: newEntry.title.trim(),
-        content: newEntry.content.trim(),
-        type: newEntry.type,
-        question_text: newEntry.type === 'guided' ? newEntry.prompt : undefined,
-      };
-
-      if (editingId) {
-        console.log('🔍 ReflectionLog: Updating entry', editingId);
-
-        // Find existing entry for analytics
-        const existingEntry = entries.find(e => e.id === editingId);
-
-        await updateMutation.mutateAsync({
-          id: editingId,
-          updates: entryData,
-        });
-
-        // Track update analytics
-        analytics.trackReflectionEvent('reflection_updated', {
-          reflection_id: editingId,
-          title_length: entryData.title.length,
-          content_length: entryData.content.length,
-          previous_title_length: existingEntry?.title.length || 0,
-          previous_content_length: existingEntry?.content.length || 0,
-          type: entryData.type,
-          date: dateStr,
-        }, user.id);
-      } else {
-        console.log('🔍 ReflectionLog: Creating new entry');
-
-        await createMutation.mutateAsync(entryData);
-
-        // Track creation analytics
-        analytics.trackReflectionEvent('reflection_created', {
-          title_length: entryData.title.length,
-          content_length: entryData.content.length,
-          type: entryData.type,
-          has_prompt: Boolean(entryData.question_text),
-          date: dateStr,
-        }, user.id);
-      }
-
-      console.log('🔍 ReflectionLog: Entry saved successfully in', Date.now() - startTime, 'ms');
-      resetForm();
-    } catch (saveError) {
-      console.error('🔍 ReflectionLog: Error saving reflection entry:', saveError);
-
-      // Track error analytics
-      analytics.trackReflectionEvent('reflection_error', {
-        error_type: 'save_failed',
-        operation: editingId ? 'update' : 'create',
-        date: dateStr,
-      }, user.id);
-
-      Alert.alert(
-        'Error',
-        'Failed to save reflection entry. Please check your connection and try again.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Retry', onPress: () => handleSaveEntry() },
-        ]
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }, [user, newEntry, dateStr, editingId, entries, updateMutation, createMutation, resetForm]);
 
   const handleDeleteEntry = useCallback(async (entryId: string) => {
     const entryToDelete = entries.find(e => e.id === entryId);
@@ -295,32 +207,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }, [entries, deleteMutation, user, dateStr]);
 
-  const handleEntryPress = useCallback((entry: ReflectionLogEntry) => {
-    console.log('🔍 ReflectionLog: Editing entry', entry.id);
-
-    // Set the entry data for editing - matching original design
-    setNewEntry({
-      title: entry.title || '',
-      content: entry.content,
-      type: entry.type || 'free',
-      prompt: entry.prompt || '',
-      tags: entry.tags || [],
-      location: entry.location || '',
-    });
-
-    setSelectedPrompt(entry.prompt || '');
-    setEditingId(entry.id);
-    setIsAdding(true); // Open the same modal used for adding
-
-    // Track edit analytics
-    if (user) {
-      analytics.trackReflectionEvent('reflection_viewed', {
-        reflection_id: entry.id,
-        type: entry.type || 'free',
-        date: dateStr,
-      }, user.id);
-    }
-  }, [user, dateStr]);
+  // handleEntryPress removed - not used in original design
 
   // startAdding removed - not used in original design
 
@@ -339,20 +226,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     }
   }, [user, dateStr]);
 
-  // Handle type change with analytics
-  const handleTypeChange = useCallback((newType: ViewMode) => {
-    const oldType = newEntry.type;
-    setNewEntry(prev => ({ ...prev, type: newType }));
-
-    // Track type change analytics
-    if (user && oldType !== newType) {
-      analytics.trackReflectionEvent('reflection_type_changed', {
-        from_type: oldType,
-        to_type: newType,
-        date: dateStr,
-      }, user.id);
-    }
-  }, [newEntry.type, user, dateStr]);
+  // handleTypeChange removed - using ReflectionLogEditor instead
 
   // formatDate removed - not used in original design
 
@@ -484,7 +358,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             ? styles.guidedEntry
             : styles.freeFormEntry,
       ]}
-      onPress={() => handleEntryPress(entry)}
       activeOpacity={0.8}
     >
       {entry.source === 'devotional' ? (
@@ -543,113 +416,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     </TouchableOpacity>
   );
 
-  const renderEntryForm = () => (
-    <View style={styles.addForm}>
-      {/* Modal Header */}
-      <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>
-          {editingId ? 'Edit Reflection' : 'Add Reflection'}
-        </Text>
-        <TouchableOpacity onPress={() => setIsAdding(false)}>
-          <X size={24} color={Colors.darkGray} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Type selector */}
-      <View style={styles.typeSelector}>
-        <TouchableOpacity
-          style={[
-            styles.typeButton,
-            newEntry.type === 'free' && styles.typeButtonActive,
-          ]}
-          onPress={() => handleTypeChange('free')}
-        >
-          <Text style={[
-            styles.typeButtonText,
-            newEntry.type === 'free' && styles.typeButtonTextActive,
-          ]}>
-            Free-form
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.typeButton,
-            newEntry.type === 'guided' && styles.typeButtonActive,
-          ]}
-          onPress={() => handleTypeChange('guided')}
-        >
-          <Text style={[
-            styles.typeButtonText,
-            newEntry.type === 'guided' && styles.typeButtonTextActive,
-          ]}>
-            Guided
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Prompt selector for guided type */}
-      {newEntry.type === 'guided' && (
-        <View style={styles.promptSelector}>
-          <Text style={styles.promptLabel}>Reflection Prompt</Text>
-          <TouchableOpacity
-            style={styles.pickerContainer}
-            onPress={() => setShowPromptPicker(true)}
-          >
-            <Text style={[
-              styles.selectedPrompt,
-              !selectedPrompt && styles.placeholderText,
-            ]}>
-              {selectedPrompt || 'Select a prompt...'}
-            </Text>
-            <Ionicons name="chevron-down" size={16} color={Colors.mediumGray} />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Title input */}
-      <TextInput
-        style={styles.input}
-        value={newEntry.title}
-        onChangeText={(text) => setNewEntry(prev => ({ ...prev, title: text }))}
-        placeholder="Reflection title"
-        placeholderTextColor={Colors.mediumGray}
-        autoFocus
-      />
-
-      {/* Content input */}
-      <TextInput
-        style={[styles.input, styles.contentInput]}
-        value={newEntry.content}
-        onChangeText={(text) => setNewEntry(prev => ({ ...prev, content: text }))}
-        placeholder={newEntry.type === 'guided' ? 'Write your reflection...' : 'What\'s on your mind?'}
-        placeholderTextColor={Colors.mediumGray}
-        multiline
-        numberOfLines={6}
-        textAlignVertical="top"
-      />
-
-      {/* Action buttons */}
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          onPress={resetForm}
-          style={[styles.button, styles.cancelButton]}
-        >
-          <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={handleSaveEntry}
-          style={[
-            styles.button,
-            styles.saveButton,
-            (isSaving || createMutation.isPending || updateMutation.isPending) && styles.disabledButton,
-          ]}
-          disabled={isSaving || createMutation.isPending || updateMutation.isPending}
-        >
-          <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+  // renderEntryForm removed - using ReflectionLogEditor instead
 
   // renderEntryModal removed - not used in original design
 
@@ -726,6 +493,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           prompt: '',
           tags: [],
           location: '',
+          source: undefined,
         });
         setSelectedPrompt('');
         setIsAdding(true);
@@ -742,7 +510,87 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         transparent={false}
         onRequestClose={() => setIsAdding(false)}
       >
-        {renderEntryForm()}
+        {isAdding && (
+          <ReflectionLogEditor
+            onSave={async (entryData: any) => {
+              if (!user) {
+                console.error('User not authenticated');
+                return;
+              }
+
+              try {
+                const saveData = {
+                  title: entryData.title,
+                  content: entryData.content,
+                  type: entryData.type || newEntry.type || 'free',
+                  question_text: entryData.prompt || selectedPrompt || '',
+                  tags: entryData.tags || [],
+                  source: entryData.source,
+                  user_id: user.id,
+                  selected_date: dateStr,
+                };
+
+                if (editingId) {
+                  // Update existing entry
+                  await updateMutation.mutateAsync({ id: editingId, updates: saveData });
+
+                  // Track update analytics
+                  const existingEntry = entries.find(e => e.id === editingId);
+                  analytics.trackReflectionEvent('reflection_updated', {
+                    reflection_id: editingId,
+                    title_length: saveData.title.length,
+                    content_length: saveData.content.length,
+                    previous_title_length: existingEntry?.title.length || 0,
+                    previous_content_length: existingEntry?.content.length || 0,
+                    type: saveData.type as 'free' | 'guided',
+                    date: dateStr,
+                  }, user.id);
+                } else {
+                  // Create new entry
+                  await createMutation.mutateAsync(saveData);
+
+                  // Track creation analytics
+                  analytics.trackReflectionEvent('reflection_created', {
+                    title_length: saveData.title.length,
+                    content_length: saveData.content.length,
+                    type: saveData.type,
+                    has_prompt: Boolean(saveData.question_text),
+                    date: dateStr,
+                  }, user.id);
+                }
+
+                console.log('🔍 ReflectionLog: Entry saved successfully');
+              } catch (saveError) {
+                console.error('🔍 ReflectionLog: Save failed:', saveError);
+                Alert.alert('Error', 'Failed to save reflection entry. Please try again.');
+                return; // Don't close the modal if save failed
+              }
+
+              // Reset form and close modal on successful save
+              resetForm();
+              setIsAdding(false);
+            }}
+            onCancel={() => {
+              resetForm();
+              setIsAdding(false);
+            }}
+            initialEntry={{
+              id: editingId || '',
+              title: newEntry.title,
+              content: newEntry.content,
+              tags: newEntry.tags || [],
+              type: newEntry.type,
+              source: newEntry.source,
+              prompt: newEntry.prompt,
+            }}
+            initialMode={selectedPrompt ? 'guided' : (newEntry.type === 'guided' ? 'guided' : 'free-form')}
+            initialPrompt={selectedPrompt || newEntry.prompt || ''}
+            dateString={toLocalDateString(new Date())}
+            initialTitle={selectedPrompt || newEntry.title}
+            lockTitle={Boolean(selectedPrompt)}
+            source={selectedPrompt ? 'guided' : 'freeform'}
+          />
+        )}
       </Modal>
 
       {/* Prompt Picker Modal */}
