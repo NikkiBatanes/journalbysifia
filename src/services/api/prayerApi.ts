@@ -12,7 +12,7 @@ export interface PrayerApiEntry {
   created_at: string;
   updated_at: string;
   status?: 'pending' | 'answered';
-  answered_date?: string;
+  answered_date?: string | null;
   person_name?: string;
   is_prayer_request?: boolean;
   requested_by?: string;
@@ -301,11 +301,21 @@ export class PrayerApi {
 
   // Mark supplication as answered
   static async markSupplicationAnswered(id: string, isAnswered: boolean): Promise<PrayerApiEntry> {
-    return this.updatePrayer(id, {
+    const updates: Partial<PrayerApiEntry> = {
       status: isAnswered ? 'answered' : 'pending',
-      answered_date: isAnswered ? new Date().toISOString() : undefined,
       is_answered: isAnswered,
-    });
+    };
+
+    // Only update the answered_date when marking as answered
+    if (isAnswered) {
+      updates.answered_date = new Date().toISOString();
+    } else {
+      // When marking as pending again, we could clear the answered_date
+      // But this is optional depending on your requirements
+      updates.answered_date = null;
+    }
+
+    return this.updatePrayer(id, updates);
   }
 
   // Mark prayer request as prayed

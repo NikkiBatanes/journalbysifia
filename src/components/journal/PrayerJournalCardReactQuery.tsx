@@ -5,7 +5,21 @@ import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
-import ComponentErrorBoundary from '../../components/ErrorBoundary/ComponentErrorBoundary';
+// Using a simple error boundary since the custom one isn't available
+class ComponentErrorBoundary extends React.Component<{ children: React.ReactNode }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return null; // Or return a fallback UI
+    }
+    return this.props.children;
+  }
+}
 import { analytics } from '../../utils/analytics';
 
 // Define the PrayerApiEntry type locally since it's only used for type checking
@@ -16,6 +30,7 @@ interface PrayerApiEntry {
   content: string;
   created_at: string;
   is_answered?: boolean;
+  answered_date?: string | null;
   user_id?: string;
   selected_date?: string;
   updated_at?: string;
@@ -292,6 +307,14 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
                       style={styles.pillIcon}
                     />
                     <Text style={styles.answeredText}>Answered</Text>
+                    {prayer.answered_date && (
+                      <Text style={styles.answeredDate}>
+                        {new Date(prayer.answered_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </Text>
+                    )}
                   </View>
                 ) : (
                   <View style={styles.waitingContainer}>
@@ -645,25 +668,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     position: 'absolute',
-    bottom: 8,
-    right: 8,
+    bottom: 12,
+    right: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   answeredPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(209, 250, 229, 0.2)',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderRadius: 16,
     position: 'absolute',
-    bottom: 8,
-    right: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    marginLeft: 12,
-    marginTop: 4,
-    alignSelf: 'flex-start',
+    bottom: 12,
+    right: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
   },
   pendingText: {
     color: 'rgba(255, 255, 255, 0.8)',
@@ -684,12 +709,18 @@ const styles = StyleSheet.create({
   answeredContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 2,
+    justifyContent: 'center',
   },
   waitingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 2,
+    justifyContent: 'center',
+  },
+  answeredDate: {
+    color: 'rgba(16, 185, 129, 0.9)',
+    fontSize: 10,
+    fontFamily: Fonts.medium,
+    marginLeft: 4,
   },
   counterBadge: {
     position: 'absolute',

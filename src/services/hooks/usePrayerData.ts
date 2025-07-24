@@ -359,25 +359,58 @@ export const useMarkSupplicationAnswered = () => {
       _dateStr: string;
     }) => PrayerApi.markSupplicationAnswered(id, isAnswered),
     onMutate: async ({ id, isAnswered, _userId, _dateStr }) => {
-      // Optimistically update
+      // Optimistically update both entries and acts queries
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.acts(_userId, _dateStr),
       });
 
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr)
       );
+      const previousACTSData = queryClient.getQueryData(
+        queryKeys.prayers.acts(_userId, _dateStr)
+      );
 
+      // Update entries query
       queryClient.setQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr),
         (old = []) => old.map(prayer =>
           prayer.id === id
-            ? { ...prayer, is_answered: isAnswered, updated_at: new Date().toISOString() }
+            ? {
+                ...prayer,
+                is_answered: isAnswered,
+                answered_date: isAnswered ? new Date().toISOString() : null,
+                updated_at: new Date().toISOString(),
+              }
             : prayer
         )
       );
 
-      return { previousPrayers };
+      // Update ACTS query (this is the one the component uses)
+      queryClient.setQueryData(
+        queryKeys.prayers.acts(_userId, _dateStr),
+        (old: any) => {
+          if (!old) {return old;}
+          return {
+            ...old,
+            supplication: old.supplication?.map((prayer: any) =>
+              prayer.id === id
+                ? {
+                    ...prayer,
+                    is_answered: isAnswered,
+                    answered_date: isAnswered ? new Date().toISOString() : null,
+                    updated_at: new Date().toISOString(),
+                  }
+                : prayer
+            ) || [],
+          };
+        }
+      );
+
+      return { previousPrayers, previousACTSData };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
       console.error('Error marking supplication as answered:', err);
@@ -385,6 +418,12 @@ export const useMarkSupplicationAnswered = () => {
         queryClient.setQueryData(
           queryKeys.prayers.entries(_userId, _dateStr),
           context.previousPrayers
+        );
+      }
+      if (context?.previousACTSData) {
+        queryClient.setQueryData(
+          queryKeys.prayers.acts(_userId, _dateStr),
+          context.previousACTSData
         );
       }
     },
