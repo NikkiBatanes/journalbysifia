@@ -269,11 +269,11 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Handle entry press for editing
   const handleEntryPress = (entry: ReflectionLogEntry) => {
     console.log('🔍 Editing entry:', entry.id, entry.title, 'type:', entry.type);
-    
+
     // Set editing state
     setEditingId(entry.id);
     setSelectedEntry(entry);
-    
+
     // For guided entries, set the selected prompt if available
     if (entry.type === 'guided') {
       // Use the stored prompt, or the title if it was used as a prompt, or empty string
@@ -282,7 +282,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     } else {
       setSelectedPrompt('');
     }
-    
+
     // Populate the form with existing entry data
     setNewEntry({
       title: entry.title || '',
@@ -293,7 +293,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       tags: entry.tags || [],
       location: entry.location || '',
     });
-    
+
     // Open the editor modal
     setIsAdding(true);
   };
@@ -347,7 +347,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     });
 
     console.log('🔍 Filtered entries for date:', dateStr, 'count:', filteredEntries.length);
-    
+
     // TEMPORARY: Show all entries for debugging
     const entriesToShow = filteredEntries.length > 0 ? filteredEntries : entries;
     console.log('🔍 Entries to show:', entriesToShow.length);
@@ -599,7 +599,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   selectedEntryType: selectedEntry?.type,
                   newEntryType: newEntry.type,
                   entryDataType: entryData.type,
-                  finalType: saveData.type
+                  finalType: saveData.type,
                 });
 
                 if (editingId) {
@@ -633,7 +633,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                 }
 
                 console.log('🔍 ReflectionLog: Entry saved successfully');
-                
+
                 // Force refetch to ensure UI updates immediately
                 await refetch();
                 console.log('🔍 ReflectionLog: Data refetched after save');
@@ -1179,12 +1179,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     lineHeight: 14,
   },
-  showMoreButton: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-  },
-  showMoreText: {
-    color: Colors.alertCoral,
-  },
+
   showLessButton: {
     backgroundColor: 'rgba(0, 0, 0, 0.05)',
   },
