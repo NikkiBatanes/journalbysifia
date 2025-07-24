@@ -295,7 +295,32 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }, [entries, deleteMutation, user, dateStr]);
 
-  // handleEntryPress removed - not used in original design
+  const handleEntryPress = useCallback((entry: ReflectionLogEntry) => {
+    console.log('🔍 ReflectionLog: Editing entry', entry.id);
+
+    // Set the entry data for editing - matching original design
+    setNewEntry({
+      title: entry.title || '',
+      content: entry.content,
+      type: entry.type || 'free',
+      prompt: entry.prompt || '',
+      tags: entry.tags || [],
+      location: entry.location || '',
+    });
+
+    setSelectedPrompt(entry.prompt || '');
+    setEditingId(entry.id);
+    setIsAdding(true); // Open the same modal used for adding
+
+    // Track edit analytics
+    if (user) {
+      analytics.trackReflectionEvent('reflection_viewed', {
+        reflection_id: entry.id,
+        type: entry.type || 'free',
+        date: dateStr,
+      }, user.id);
+    }
+  }, [user, dateStr]);
 
   // startAdding removed - not used in original design
 
@@ -459,6 +484,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             ? styles.guidedEntry
             : styles.freeFormEntry,
       ]}
+      onPress={() => handleEntryPress(entry)}
       activeOpacity={0.8}
     >
       {entry.source === 'devotional' ? (
@@ -519,6 +545,16 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   const renderEntryForm = () => (
     <View style={styles.addForm}>
+      {/* Modal Header */}
+      <View style={styles.modalHeader}>
+        <Text style={styles.modalTitle}>
+          {editingId ? 'Edit Reflection' : 'Add Reflection'}
+        </Text>
+        <TouchableOpacity onPress={() => setIsAdding(false)}>
+          <X size={24} color={Colors.darkGray} />
+        </TouchableOpacity>
+      </View>
+
       {/* Type selector */}
       <View style={styles.typeSelector}>
         <TouchableOpacity
