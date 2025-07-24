@@ -162,41 +162,37 @@ export async function signIn(email: string, password: string) {
   try {
     console.log('Attempting to sign in with:', { email });
 
-    const response = await fetch(`${config.url}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': config.anonKey,
-      },
-      body: JSON.stringify({
-        email,
-        password,
-        client_id: config.anonKey,
-        grant_type: 'password',
-      }),
+    // Use Supabase's built-in authentication method
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
-    const data = await response.json();
-    console.log('Auth response:', { status: response.status, data });
+    console.log('Auth response:', { 
+      hasData: !!data, 
+      hasSession: !!data?.session,
+      hasUser: !!data?.user,
+      error 
+    });
 
-    if (!response.ok) {
-      console.error('Authentication failed:', data);
-      return { data: null, error: data };
+    if (error) {
+      console.error('Authentication failed:', error);
+      return { data: null, error };
     }
 
-    // Ensure we have a valid session with access_token
-    if (!data.access_token) {
-      const error = 'No access token received from server';
-      console.error(error);
-      return { data: null, error: { message: error } };
+    if (!data?.session) {
+      const errorMsg = 'No session received from Supabase';
+      console.error(errorMsg);
+      return { data: null, error: { message: errorMsg } };
     }
 
-    // Store the session
+    // The session is automatically stored by Supabase client
+    // But we also store it in our custom format for compatibility
     const session = {
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-      expires_in: data.expires_in,
-      token_type: data.token_type,
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+      expires_in: data.session.expires_in,
+      token_type: data.session.token_type,
       user: data.user,
     };
 
@@ -204,6 +200,7 @@ export async function signIn(email: string, password: string) {
       hasToken: !!session.access_token,
       tokenLength: session.access_token?.length,
       expiresIn: session.expires_in,
+      userId: data.user?.id,
     });
 
     await storeSession(session);
