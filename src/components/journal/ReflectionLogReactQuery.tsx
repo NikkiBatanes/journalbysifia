@@ -297,13 +297,28 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       );
     }
 
+    // Debug logging
+    console.log('🔍 ReflectionLog Debug:', {
+      totalEntries: entries.length,
+      currentDate: dateStr,
+      entriesData: entries.map(e => ({ id: e.id, date: e.selected_date, title: e.title })),
+    });
+
     // Filter entries to only show those from the current date
     const filteredEntries = entries.filter(entry => {
       return entry.selected_date === dateStr;
     });
 
+    console.log('🔍 Filtered entries for date:', dateStr, 'count:', filteredEntries.length);
+
+    // Show empty state instead of returning null
     if (filteredEntries.length === 0) {
-      return null; // Return nothing if no entries for the current date
+      return (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No reflections for this date</Text>
+          <Text style={styles.emptySubtext}>Tap the + button to add your first reflection</Text>
+        </View>
+      );
     }
 
     return (
@@ -545,6 +560,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   selected_date: dateStr,
                 };
 
+                console.log('🔍 Saving reflection with data:', saveData);
+
                 if (editingId) {
                   // Update existing entry
                   await updateMutation.mutateAsync({ id: editingId, updates: saveData });
@@ -562,7 +579,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   }, user.id);
                 } else {
                   // Create new entry
-                  await createMutation.mutateAsync(saveData);
+                  const result = await createMutation.mutateAsync(saveData);
+                  console.log('🔍 Created reflection result:', result);
 
                   // Track creation analytics
                   analytics.trackReflectionEvent('reflection_created', {
@@ -575,6 +593,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                 }
 
                 console.log('🔍 ReflectionLog: Entry saved successfully');
+                
+                // Force refetch to ensure UI updates immediately
+                await refetch();
+                console.log('🔍 ReflectionLog: Data refetched after save');
               } catch (saveError) {
                 console.error('🔍 ReflectionLog: Save failed:', saveError);
                 Alert.alert('Error', 'Failed to save reflection entry. Please try again.');
@@ -631,13 +653,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     padding: 16,
   },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+  },
   emptyText: {
+    fontFamily: Fonts.medium,
+    color: Colors.mediumGray,
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubtext: {
     fontFamily: Fonts.regular,
     color: Colors.mediumGray,
     fontSize: 13,
     textAlign: 'center',
     fontStyle: 'italic',
-    padding: 16,
   },
   showMoreButton: {
     alignItems: 'center',
