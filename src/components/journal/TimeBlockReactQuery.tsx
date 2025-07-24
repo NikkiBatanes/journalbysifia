@@ -1231,6 +1231,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   notesContainer: {
+    width: '100%',
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingVertical: 4,
@@ -1423,6 +1425,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 6,
+    width: '100%',
+    alignSelf: 'stretch',
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
     padding: 8,
