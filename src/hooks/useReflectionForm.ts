@@ -124,7 +124,7 @@ export function useReflectionForm({
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
-    if (!onSubmit) return;
+    if (!onSubmit) {return;}
 
     // Mark all fields as touched
     const allTouched = Object.keys(values).reduce((acc, key) => {

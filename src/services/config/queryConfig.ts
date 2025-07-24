@@ -1,5 +1,4 @@
 import { QueryClient } from '@tanstack/react-query';
-import { analytics } from '../../utils/analytics';
 
 // Enhanced retry logic with exponential backoff
 export const retryConfig = {
@@ -8,16 +7,16 @@ export const retryConfig = {
     if (error?.status >= 400 && error?.status < 500) {
       return false;
     }
-    
+
     // Don't retry on authentication errors
     if (error?.status === 401 || error?.status === 403) {
       return false;
     }
-    
+
     // Retry up to 3 times for server errors and network issues
     return failureCount < 3;
   },
-  
+
   retryDelay: (attemptIndex: number) => {
     // Exponential backoff: 1s, 2s, 4s, max 30s
     return Math.min(1000 * 2 ** attemptIndex, 30000);
@@ -41,11 +40,11 @@ export const defaultMutationOptions = {
     if (error?.status >= 400 && error?.status < 500) {
       return false;
     }
-    
+
     // Retry mutations only once for server errors
     return failureCount < 1;
   },
-  
+
   retryDelay: 1000, // 1 second delay for mutation retries
 };
 
@@ -56,7 +55,7 @@ export function createEnhancedQueryClient(): QueryClient {
       queries: {
         ...defaultQueryOptions,
       },
-      
+
       mutations: {
         ...defaultMutationOptions,
       },
@@ -72,14 +71,14 @@ export const queryOptionsPresets = {
     staleTime: 0,
     gcTime: 5 * 60 * 1000, // 5 minutes
   },
-  
+
   // Slow-changing data (user preferences, settings)
   stable: {
     ...defaultQueryOptions,
     staleTime: 30 * 60 * 1000, // 30 minutes
     gcTime: 60 * 60 * 1000, // 1 hour
   },
-  
+
   // Critical data that should always be fresh
   critical: {
     ...defaultQueryOptions,
@@ -88,7 +87,7 @@ export const queryOptionsPresets = {
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   },
-  
+
   // Background data that can be stale
   background: {
     ...defaultQueryOptions,

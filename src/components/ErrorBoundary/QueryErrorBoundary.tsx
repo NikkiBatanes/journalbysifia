@@ -16,22 +16,22 @@ function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
       <View style={styles.iconContainer}>
         <Ionicons name="alert-circle-outline" size={48} color={Colors.alertCoral} />
       </View>
-      
+
       <Text style={styles.title}>Something went wrong</Text>
-      
+
       <Text style={styles.message}>
         {error.message || 'An unexpected error occurred while loading your reflection data.'}
       </Text>
-      
-      <TouchableOpacity 
-        style={styles.retryButton} 
+
+      <TouchableOpacity
+        style={styles.retryButton}
         onPress={resetErrorBoundary}
         activeOpacity={0.8}
       >
         <Ionicons name="refresh" size={20} color={Colors.hopeWhite} style={styles.retryIcon} />
         <Text style={styles.retryText}>Try Again</Text>
       </TouchableOpacity>
-      
+
       {__DEV__ && (
         <View style={styles.debugContainer}>
           <Text style={styles.debugTitle}>Debug Info:</Text>
@@ -54,7 +54,7 @@ export function QueryErrorBoundary({ children, fallback }: QueryErrorBoundaryPro
       onError={(error: Error, errorInfo: any) => {
         // Log error to analytics/crash reporting
         console.error('Query Error Boundary caught an error:', error, errorInfo);
-        
+
         // You can add crash reporting here
         // crashlytics().recordError(error);
       }}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Alert } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Alert, Text, StyleSheet } from 'react-native';
 import ReflectionLogEditor from './ReflectionLogEditor';
 import { useReflectionForm } from '../../hooks/useReflectionForm';
 import { Colors } from '../../theme/colors';
@@ -56,7 +56,6 @@ export const EnhancedReflectionLogEditor: React.FC<EnhancedReflectionLogEditorPr
     errors,
     touched,
     isValid,
-    handleChange,
     handleSubmit,
     resetForm,
   } = useReflectionForm({
@@ -89,7 +88,7 @@ export const EnhancedReflectionLogEditor: React.FC<EnhancedReflectionLogEditorPr
   });
 
   // Handle save with validation
-  const handleValidatedSave = () => {
+  const handleValidatedSave = useCallback(() => {
     setShowValidationErrors(true);
     if (isValid) {
       handleSubmit();
@@ -100,14 +99,14 @@ export const EnhancedReflectionLogEditor: React.FC<EnhancedReflectionLogEditorPr
         Alert.alert('Validation Error', errorMessages[0]);
       }
     }
-  };
+  }, [isValid, handleSubmit, errors]);
 
   // Handle cancel
-  const handleValidatedCancel = () => {
+  const handleValidatedCancel = useCallback(() => {
     resetForm();
     setShowValidationErrors(false);
     onCancel();
-  };
+  }, [resetForm, onCancel]);
 
   // Create enhanced entry object for the editor
   const enhancedEntry = {
@@ -120,7 +119,7 @@ export const EnhancedReflectionLogEditor: React.FC<EnhancedReflectionLogEditorPr
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       {/* Validation Error Display */}
       {showValidationErrors && Object.keys(errors).length > 0 && (
         <View style={validationStyles.errorContainer}>
@@ -162,5 +161,11 @@ const validationStyles = {
     textAlign: 'center' as const,
   },
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
 
 export default EnhancedReflectionLogEditor;

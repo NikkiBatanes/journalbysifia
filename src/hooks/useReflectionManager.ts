@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Alert } from 'react-native';
-import { 
+import {
   useReflectionData,
   useCreateReflection,
   useUpdateReflection,
@@ -51,7 +51,7 @@ export function useReflectionManager({
   pageSize = 20,
 }: UseReflectionManagerOptions) {
   const dateStr = toLocalDateString(selectedDate);
-  
+
   // State management
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -70,14 +70,14 @@ export function useReflectionManager({
   const updateMutation = useUpdateReflection();
   const deleteMutation = useDeleteReflection();
 
-  // Optional hooks based on configuration
-  const infiniteQuery = enableInfiniteScroll 
-    ? useInfiniteReflections(userId, pageSize)
-    : null;
+  // Always call hooks unconditionally
+  const infiniteQuery = useInfiniteReflections(userId, pageSize, {
+    enabled: enableInfiniteScroll,
+  });
 
-  const searchQuery = enableSearch && searchTerm.length > 2
-    ? useSearchReflections(userId, searchTerm)
-    : null;
+  const searchQuery = useSearchReflections(userId, searchTerm, {
+    enabled: enableSearch && searchTerm.length > 2,
+  });
 
   const countQuery = useReflectionsCount(userId);
 
@@ -122,7 +122,7 @@ export function useReflectionManager({
     setSelectedPrompt('');
     setIsAdding(true);
     setEditingId(null);
-    
+
     analytics.track('reflection_add_started', {
       date: dateStr,
       source: 'manual',
@@ -139,7 +139,7 @@ export function useReflectionManager({
     });
     setEditingId(entry.id);
     setIsAdding(true);
-    
+
     analytics.track('reflection_edit_started', {
       entryId: entry.id,
       type: entry.type,
@@ -169,7 +169,7 @@ export function useReflectionManager({
           id: editingId,
           updates: apiData,
         });
-        
+
         analytics.track('reflection_updated', {
           entryId: editingId,
           type: entryData.type,
@@ -177,7 +177,7 @@ export function useReflectionManager({
         });
       } else {
         await createMutation.mutateAsync(apiData);
-        
+
         analytics.track('reflection_created', {
           type: entryData.type,
           contentLength: entryData.content.length,
@@ -189,9 +189,9 @@ export function useReflectionManager({
       form.resetForm();
       setIsAdding(false);
       setEditingId(null);
-      
-    } catch (error) {
-      console.error('Error saving reflection:', error);
+
+    } catch (err) {
+      console.error('Error saving reflection:', err);
       Alert.alert('Error', 'Failed to save reflection. Please try again.');
     }
   }, [editingId, userId, updateMutation, createMutation, form]);
@@ -208,12 +208,12 @@ export function useReflectionManager({
           onPress: async () => {
             try {
               await deleteMutation.mutateAsync(entryId);
-              
+
               analytics.track('reflection_deleted', {
                 entryId,
               });
-            } catch (error) {
-              console.error('Error deleting reflection:', error);
+            } catch (err) {
+              console.error('Error deleting reflection:', err);
               Alert.alert('Error', 'Failed to delete reflection. Please try again.');
             }
           },
@@ -244,7 +244,7 @@ export function useReflectionManager({
   const isDeleting = deleteMutation.isPending;
   const isSaving = isCreating || isUpdating;
 
-  // Error states
+  // Error states with unique names to avoid shadowing
   const createError = createMutation.error;
   const updateError = updateMutation.error;
   const deleteError = deleteMutation.error;
@@ -256,7 +256,7 @@ export function useReflectionManager({
     totalCount: countQuery.data || 0,
     searchResults: searchQuery?.data || [],
     infiniteData: infiniteQuery?.data,
-    
+
     // Loading states
     isLoading,
     isCreating,
@@ -264,21 +264,21 @@ export function useReflectionManager({
     isDeleting,
     isSaving,
     isLoadingMore: infiniteQuery?.isFetchingNextPage || false,
-    
+
     // Error states
     error,
     saveError,
     deleteError,
-    
+
     // UI state
     isAdding,
     editingId,
     searchTerm,
     selectedPrompt,
-    
+
     // Form
     form,
-    
+
     // Actions
     handleAdd,
     handleEdit,
@@ -287,11 +287,11 @@ export function useReflectionManager({
     handleCancel,
     handleSearch,
     refetch,
-    
+
     // Infinite scroll actions
     fetchNextPage: infiniteQuery?.fetchNextPage,
     hasNextPage: infiniteQuery?.hasNextPage,
-    
+
     // Setters for UI state
     setIsAdding,
     setEditingId,

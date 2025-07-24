@@ -22,7 +22,7 @@ export function useQueryPerformance() {
       if (event.type === 'queryAdded' || event.type === 'queryUpdated') {
         const query = event.query;
         const queryKeyString = JSON.stringify(query.queryKey);
-        
+
         if (query.state.fetchStatus === 'fetching') {
           metricsRef.current.set(queryKeyString, {
             startTime: Date.now(),
@@ -42,7 +42,7 @@ export function useQueryPerformance() {
         if (startData && query.state.fetchStatus === 'idle') {
           const duration = Date.now() - startData.startTime;
           const cacheHit = query.state.dataUpdatedAt < startData.startTime;
-          
+
           const metrics: QueryPerformanceMetrics = {
             queryKey: queryKeyString,
             duration,
@@ -53,7 +53,7 @@ export function useQueryPerformance() {
 
           // Log performance metrics
           trackQueryPerformance(metrics);
-          
+
           // Clean up
           metricsRef.current.delete(queryKeyString);
         }
@@ -76,7 +76,7 @@ function trackQueryPerformance(metrics: QueryPerformanceMetrics) {
   // Log to console in development
   if (__DEV__) {
     const logLevel = metrics.duration > 1000 ? 'warn' : 'log';
-    console[logLevel](`Query Performance:`, {
+    console[logLevel]('Query Performance:', {
       query: metrics.queryKey,
       duration: `${metrics.duration}ms`,
       status: metrics.status,
@@ -98,7 +98,7 @@ function trackQueryPerformance(metrics: QueryPerformanceMetrics) {
   // Alert for slow queries
   if (metrics.duration > 2000) {
     console.warn(`Slow query detected: ${metrics.queryKey} took ${metrics.duration}ms`);
-    
+
     analytics.track('slow_query_detected', {
       queryKey: metrics.queryKey,
       duration: metrics.duration,

@@ -57,12 +57,12 @@ export const offlineMutationOptions = {
     if (!onlineManager.isOnline()) {
       return false;
     }
-    
+
     // Don't retry client errors
     if (error?.status >= 400 && error?.status < 500) {
       return false;
     }
-    
+
     // Retry server errors up to 3 times
     return failureCount < 3;
   },

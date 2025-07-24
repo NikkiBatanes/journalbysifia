@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createEnhancedQueryClient } from '../services/config/queryConfig';
-import { 
-  setupNetworkListener, 
-  setupQueryPersistence, 
-  setupOnlineSync 
+import {
+  setupNetworkListener,
+  setupQueryPersistence,
+  setupOnlineSync,
 } from '../services/config/offlineConfig';
 import { useQueryPerformance } from '../hooks/useQueryPerformance';
 
@@ -47,7 +47,7 @@ export function EnhancedQueryProvider({ children }: EnhancedQueryProviderProps) 
         cleanup = setupOnlineSync(queryClient);
 
         setIsInitialized(true);
-        
+
         if (__DEV__) {
           console.log('Enhanced Query Client initialized with offline support');
         }

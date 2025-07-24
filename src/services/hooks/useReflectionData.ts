@@ -55,11 +55,11 @@ export const useInfiniteReflections = (userId: string, pageSize: number = 20) =>
     ...defaultQueryOptions,
     enabled: !!userId,
     getNextPageParam: (lastPage, allPages) => {
-      if (!lastPage || lastPage.length < pageSize) return undefined;
+      if (!lastPage || lastPage.length < pageSize) {return undefined;}
       return allPages.length;
     },
     getPreviousPageParam: (firstPage, allPages) => {
-      if (allPages.length <= 1) return undefined;
+      if (allPages.length <= 1) {return undefined;}
       return allPages.length - 2;
     },
   });
@@ -129,7 +129,7 @@ export const useCreateReflection = () => {
         const queryKey = queryKeys.reflections.byDate(variables.user_id, variables.selected_date);
         queryClient.setQueryData(queryKey, context.previousReflections);
       }
-      
+
       // Track creation error
       analytics.track('reflection_creation_failed', {
         error: error.message,
@@ -141,10 +141,10 @@ export const useCreateReflection = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date) });
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type) });
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.stats(variables.user_id, variables.selected_date, variables.selected_date) });
-      
+
       // Update search results
       queryClient.invalidateQueries({ queryKey: ['reflections', 'search'] });
-      
+
       // Track successful creation
       analytics.track('reflection_created', {
         type: variables.type,
@@ -189,8 +189,8 @@ export const useUpdateReflection = () => {
 
         // Optimistically update the reflection
         queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) =>
-          old.map(reflection => 
-            reflection.id === id 
+          old.map(reflection =>
+            reflection.id === id
               ? { ...reflection, ...updates, updated_at: new Date().toISOString() }
               : reflection
           )
@@ -201,7 +201,7 @@ export const useUpdateReflection = () => {
 
       return { id, updates };
     },
-    onError: (updateError, { id }, context) => {
+    onError: (updateError, { id: _id }, context) => {
       console.error('🔍 useUpdateReflection: API call failed', updateError);
       if (context?.previousReflections && context?.queryKey) {
         queryClient.setQueryData(context.queryKey, context.previousReflections);
@@ -209,7 +209,7 @@ export const useUpdateReflection = () => {
     },
     onSuccess: (data) => {
       console.log('🔍 useUpdateReflection: API call successful', data);
-      
+
       // Update the specific reflection in the main query
       const queryKey = queryKeys.reflections.byDate(data.user_id, data.selected_date);
       queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) =>
