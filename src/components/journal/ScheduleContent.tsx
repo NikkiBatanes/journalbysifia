@@ -158,20 +158,7 @@ export const ScheduleContent: React.FC<ScheduleContentProps> = ({ selectedDate =
 
   if (timeBlocks.length === 0) {
     console.log('No time blocks found for the selected date');
-    return (
-      <View style={styles.container}>
-        <View style={[styles.timelineContainer, styles.timelineBlocksContainer]}>
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              No time blocks scheduled for {format(selectedDate, 'MMMM d, yyyy')}
-            </Text>
-            <Text style={[styles.emptyText, styles.emptyTextSmall]}>
-              Add time blocks in the Journal tab to see them here
-            </Text>
-          </View>
-        </View>
-      </View>
-    );
+    return null;
   }
 
   return (

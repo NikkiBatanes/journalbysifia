@@ -344,13 +344,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             </TouchableOpacity>
           )}
         </View>
-      ) : (
-        !isAdding && (
-          <Text style={styles.emptyText}>
-            No time blocks scheduled for today. Tap the + button to add one.
-          </Text>
-        )
-      )}
+      ) : null}
 
       {isAdding && (
         <View style={styles.addForm}>
