@@ -36,20 +36,20 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   selectedDate,
 }) => {
   console.log('🙏 EnhancedPrayerList: Component is rendering!', { selectedDate });
-  
+
   const { user } = useAuth();
   const dateStr = selectedDate.toISOString().split('T')[0];
-  
+
   // React Query hooks for data fetching
-  const { data: peoplePrayers = [], isLoading, error, isFetching } = usePeoplePrayerData(
+  const { data: peoplePrayers = [], error } = usePeoplePrayerData(
     user?.id || '',
     dateStr
   );
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
-  
 
-  
+
+
   // Local state for form
   const [name, setName] = useState('');
   const [prayer, setPrayer] = useState('');
@@ -57,15 +57,15 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const [activeTab, setActiveTab] = useState<TabType>('mine');
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [isPrayerFocused, setIsPrayerFocused] = useState(false);
-  const [isNoteFocused, setIsNoteFocused] = useState(false);
+  const [_isNoteFocused, setIsNoteFocused] = useState(false);
   const [inputKey, setInputKey] = useState(0);
   const [currentRequestedBy, setCurrentRequestedBy] = useState<string | undefined>(undefined);
-  
+
   const prayerInputRef = useRef<TextInput>(null);
-  
+
   const handleAddPrayer = async () => {
-    if (!user?.id || !name.trim() || !prayer.trim()) return;
-    
+    if (!user?.id || !name.trim() || !prayer.trim()) {return;}
+
     try {
       // If we're adding a prayer that came from a request, mark the original request as prayed
       if (currentRequestedBy) {
@@ -77,11 +77,11 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             id: originalRequest.id,
             updates: { prayed: true },
             _userId: user.id,
-            _dateStr: dateStr
+            _dateStr: dateStr,
           });
         }
       }
-      
+
       // Create new prayer
       await createPrayerMutation.mutateAsync({
         user_id: user.id,
@@ -93,7 +93,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         requested_by: currentRequestedBy,
         selected_date: dateStr,
       });
-      
+
 
       // Clear inputs
       setName('');
@@ -101,14 +101,14 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       setNotes('');
       setCurrentRequestedBy(undefined);
       setInputKey(prev => prev + 1);
-      
+
       Keyboard.dismiss();
-    } catch (error) {
-      console.error('Error adding prayer:', error);
+    } catch (err) {
+      console.error('Error adding prayer:', err);
       // TODO: Show error message to user
     }
   };
-  
+
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     // Clear inputs when switching tabs
@@ -118,35 +118,35 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     setCurrentRequestedBy(undefined);
     setInputKey(prev => prev + 1);
   };
-  
+
   const handleAddToMyList = (prayerEntry: PersonPrayer) => {
     // Set the requestedBy first
     setCurrentRequestedBy(prayerEntry.requested_by || 'Someone');
-    
+
     // Switch to 'Prayers for People' tab
     setActiveTab('mine');
-    
+
     // Pre-fill the form fields after a small delay to ensure tab switch
     setTimeout(() => {
       setName(prayerEntry.person_name || '');
       setPrayer(''); // Keep prayer text empty for user to fill
       setNotes(prayerEntry.content); // Move the prayer request content to notes
       setInputKey(prev => prev + 1); // Force re-render of inputs
-      
+
       // Focus the prayer input field
       if (prayerInputRef.current) {
         prayerInputRef.current.focus();
       }
     }, 100);
   };
-  
+
   const prayerRequests = peoplePrayers.filter(p => p.is_prayer_request === true);
   const personalPrayers = peoplePrayers.filter(p => p.is_prayer_request !== true);
   const currentPrayers = activeTab === 'requests' ? prayerRequests : personalPrayers;
-  
+
   // Get count of unprayed requests for the badge
   const unprayedRequestsCount = prayerRequests.filter(item => !item.prayed).length;
-  
+
   // Handle no user case
   if (!user) {
     return (
@@ -157,7 +157,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
       </View>
     );
   }
-  
+
   if (error) {
     return (
       <View style={styles.card}>

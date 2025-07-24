@@ -149,7 +149,7 @@ export const useCreatePrayer = () => {
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date)
       );
-      const previousPeoplePrayers = newPrayer.prayer_type === 'people' 
+      const previousPeoplePrayers = newPrayer.prayer_type === 'people'
         ? queryClient.getQueryData<PrayerApiEntry[]>(
             queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date)
           )

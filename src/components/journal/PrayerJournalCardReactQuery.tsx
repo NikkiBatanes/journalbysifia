@@ -6,7 +6,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
 import ComponentErrorBoundary from '../../components/ErrorBoundary/ComponentErrorBoundary';
-import PrayerSkeleton from '../../components/SkeletonLoader/PrayerSkeleton';
 import { analytics } from '../../utils/analytics';
 
 // Define the PrayerApiEntry type locally since it's only used for type checking

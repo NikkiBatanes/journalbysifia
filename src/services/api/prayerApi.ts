@@ -135,7 +135,7 @@ export class PrayerApi {
   // Get people prayers
   static async getPeoplePrayers(userId: string, date: string): Promise<PrayerApiEntry[]> {
     await ensureAuthenticated();
-    
+
     const { data, error } = await supabase
       .from('prayers')
       .select('*')
