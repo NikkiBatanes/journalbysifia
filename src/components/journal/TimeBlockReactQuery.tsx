@@ -132,10 +132,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const timeBlocks: TimeBlockItem[] = timeBlockEntries.map(block => ({
     id: block.id,
     title: block.title,
-    startTime: new Date(`${block.selected_date}T${block.start_time}`),
-    endTime: new Date(`${block.selected_date}T${block.end_time}`),
+    startTime: new Date(block.start_time), // Now expects ISO timestamp
+    endTime: new Date(block.end_time), // Now expects ISO timestamp
     category: block.category,
-    notes: block.notes,
+    notes: block.description, // Map description field to notes
     location: block.location,
     isAllDay: block.all_day,
     repeat: block.repeat_rule ? {
@@ -259,17 +259,30 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setShowCategoryError(false);
 
     try {
+      // Create full datetime objects for the selected date
+      const startDateTime = newBlock.isAllDay
+        ? new Date(`${dateStr}T00:00:00`)
+        : new Date(`${dateStr}T${newBlock.startTime.toTimeString().slice(0, 8)}`);
+
+      const endDateTime = newBlock.isAllDay
+        ? new Date(`${dateStr}T23:59:59`)
+        : new Date(`${dateStr}T${newBlock.endTime.toTimeString().slice(0, 8)}`);
+
       const timeBlockData = {
         user_id: user.id,
         selected_date: dateStr,
         title: newBlock.title.trim(),
-        start_time: newBlock.isAllDay ? '00:00:00' : newBlock.startTime.toTimeString().slice(0, 8),
-        end_time: newBlock.isAllDay ? '23:59:59' : newBlock.endTime.toTimeString().slice(0, 8),
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
         category: newBlock.category,
-        notes: newBlock.notes.trim() || undefined,
+        description: newBlock.notes.trim() || undefined,
         location: newBlock.location.trim() || undefined,
         all_day: newBlock.isAllDay,
       };
+
+      console.log('Attempting to save time block:', timeBlockData);
+      console.log('User ID:', user.id);
+      console.log('Date string:', dateStr);
 
       if (editId) {
         await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
@@ -297,7 +310,24 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       setEditId(null);
 
     } catch (saveError) {
-      Alert.alert('Error', 'Failed to save time block. Please try again.');
+      console.error('Time block save error:', saveError);
+
+      // Provide more specific error messages
+      let errorMessage = 'Failed to save time block. Please try again.';
+
+      if (saveError instanceof Error) {
+        if (saveError.message.includes('duplicate')) {
+          errorMessage = 'A time block already exists at this time. Please choose a different time.';
+        } else if (saveError.message.includes('constraint')) {
+          errorMessage = 'Invalid data provided. Please check your inputs and try again.';
+        } else if (saveError.message.includes('network') || saveError.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else {
+          errorMessage = `Error: ${saveError.message}`;
+        }
+      }
+
+      Alert.alert('Error', errorMessage);
     }
   };
 
@@ -355,7 +385,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   }, [error]);
 
   const renderTimeBlock = (block: TimeBlockItem) => {
-    const categoryColor = getCategoryColor(block.category);
     const isExpanded = expandedNotes[block.id];
 
     return (
@@ -392,37 +421,89 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         )}
         onSwipeableWillOpen={closeAllSwipeables}
       >
-        <View style={[styles.timeBlockCard, { borderLeftColor: categoryColor }]}>
-          <View style={styles.titleRow}>
-            <Text style={styles.title}>{block.title}</Text>
-            <Text style={styles.category}>{block.category}</Text>
+        <View style={styles.timeBlockCard}>
+          <View style={styles.timeColumn}>
+            {block.isAllDay ? (
+              <View style={styles.allDayBadge}>
+                <Text style={styles.allDayText}>ALL DAY</Text>
+              </View>
+            ) : (
+              <View style={styles.timeRangeStacked}>
+                <Text style={styles.timeText}>{formatTime(block.startTime)}</Text>
+                <Text style={styles.timeSeparatorText}>TO</Text>
+                <Text style={styles.timeText}>{formatTime(block.endTime)}</Text>
+                <View style={styles.durationContainer}>
+                  <Text style={styles.durationText}>
+                    {formatDuration(block.startTime, block.endTime)}
+                  </Text>
+                </View>
+              </View>
+            )}
           </View>
-          <Text style={styles.timeText}>
-            {block.isAllDay ? 'All day' :
-              `${formatTime(block.startTime)} - ${formatTime(block.endTime)} (${formatDuration(block.startTime, block.endTime)})`
-            }
-          </Text>
-
-          {block.location && (
-            <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={12} color={Colors.mediumGray} />
-              <Text style={styles.locationText}>{block.location}</Text>
+          <View style={styles.detailsColumn}>
+            <View style={styles.detailsRow}>
+              <Text style={styles.blockTitle}>{block.title}</Text>
             </View>
-          )}
+            <View style={styles.detailsContent}>
+              <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(block.category) }]}>
+                <View style={styles.categoryContent}>
+                  <Ionicons
+                    name={CATEGORIES.find(cat => cat.name === block.category)?.icon || 'square-outline'}
+                    size={12}
+                    color={Colors.anchorBlue}
+                    style={styles.categoryIcon}
+                  />
+                  <Text style={styles.categoryLabel} numberOfLines={1} ellipsizeMode="tail">
+                    {block.category}
+                  </Text>
+                </View>
+              </View>
+              {(block.location || block.repeat.frequency !== 'never') && (
+                <View style={styles.metaInfoContainer}>
+                  {block.location && (
+                    <View style={styles.metaInfoRow}>
+                      <Ionicons name="location-outline" size={12} color={Colors.mediumGray} style={styles.metaIcon} />
+                      <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
+                        {block.location}
+                      </Text>
+                    </View>
+                  )}
+                  {block.repeat.frequency !== 'never' && (
+                    <View style={styles.metaInfoRow}>
+                      <Ionicons name="repeat-outline" size={12} color={Colors.mediumGray} style={styles.metaIcon} />
+                      <Text style={styles.metaText}>
+                        {formatRepeatText(block.repeat.frequency, block.repeat.customDays, block.repeat.customFrequency)}
+                        {block.repeat.endDate ? ` until ${block.repeat.endDate.toLocaleDateString()}` : ''}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
 
-          {block.notes && (
-            <TouchableOpacity style={styles.notesRow} onPress={() => toggleNotes(block.id)}>
-              <Ionicons name="document-text-outline" size={12} color={Colors.mediumGray} />
-              <Text style={styles.notesText} numberOfLines={isExpanded ? undefined : 1}>
-                {block.notes}
-              </Text>
-              <Ionicons
-                name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                size={12}
-                color={Colors.mediumGray}
-              />
-            </TouchableOpacity>
-          )}
+              {block.notes && (
+                <TouchableOpacity
+                  style={styles.notesContainer}
+                  onPress={() => toggleNotes(block.id)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="document-text-outline" size={12} color={Colors.mediumGray} style={styles.notesIcon} />
+                  <Text
+                    style={styles.notesText}
+                    numberOfLines={isExpanded ? undefined : 2}
+                    ellipsizeMode="tail"
+                  >
+                    {block.notes}
+                  </Text>
+                  <Ionicons
+                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={12}
+                    color={Colors.mediumGray}
+                    style={styles.notesChevron}
+                  />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
         </View>
         </Swipeable>
       </View>
@@ -446,28 +527,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   return (
     <JournalCard
-      icon={<LuCalendarClock size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
+      icon={<LuCalendarClock size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
       title="Time Blocks"
       subtitle="Schedule and organize your day"
       showAddButton={!isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
     >
-      {timeBlocks.length > 0 ? (
-        <View style={styles.timeBlocksContainer}>
-          {timeBlocks.slice(0, visibleCount).map(renderTimeBlock)}
-          {timeBlocks.length > visibleCount && (
-            <TouchableOpacity
-              style={styles.showMoreButton}
-              onPress={() => setVisibleCount(prev => prev + 5)}
-            >
-              <Text style={styles.showMoreText}>Show {Math.min(5, timeBlocks.length - visibleCount)} more</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : null}
-
-      {isAdding && (
+      {isAdding ? (
         <View style={styles.addBlockContainer}>
           {/* 1. Time Range / All Day */}
           <View style={styles.editTimeContainer}>
@@ -961,7 +1028,19 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             </View>
           </View>
         </View>
-      )}
+      ) : timeBlocks.length > 0 ? (
+        <View style={styles.timeBlocksContainer}>
+          {timeBlocks.slice(0, visibleCount).map(renderTimeBlock)}
+          {timeBlocks.length > visibleCount && (
+            <TouchableOpacity
+              style={styles.showMoreButton}
+              onPress={() => setVisibleCount(prev => prev + 5)}
+            >
+              <Text style={styles.showMoreText}>Show {Math.min(5, timeBlocks.length - visibleCount)} more</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : null}
     </JournalCard>
   );
 };
@@ -1035,6 +1114,143 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 0,
   },
+  timeColumn: {
+    width: 90,
+    paddingRight: 12,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(26, 60, 109, 0.1)',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    paddingLeft: 4,
+    paddingVertical: 8,
+    minHeight: 1, // Match the minimum height of the card
+  },
+  timeRangeStacked: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    width: '100%',
+  },
+  timeSeparatorText: {
+    fontFamily: Fonts.regular,
+    fontSize: 10,
+    color: Colors.mediumGray,
+    marginVertical: 2,
+    letterSpacing: 0.5,
+  },
+  allDayBadge: {
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  allDayText: {
+    fontFamily: Fonts.medium,
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+  },
+  durationContainer: {
+    marginTop: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.08)',
+    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+  },
+  durationText: {
+    fontFamily: Fonts.regular,
+    fontSize: 10,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+  },
+  detailsColumn: {
+    flex: 1,
+    paddingLeft: 12,
+    paddingVertical: 8,
+    justifyContent: 'flex-start',
+    minHeight: 60, // Match the minimum height of the card
+  },
+  detailsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  detailsContent: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  blockTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 14,
+    color: Colors.darkGray,
+    flex: 1,
+    marginRight: 8,
+  },
+  categoryTag: {
+    alignSelf: 'flex-start',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 60, 109, 0.1)',
+  },
+  categoryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryIcon: {
+    marginRight: 4,
+  },
+  categoryLabel: {
+    fontFamily: Fonts.medium,
+    fontSize: 11,
+    color: Colors.anchorBlue,
+    maxWidth: 100,
+  },
+  metaInfoContainer: {
+    marginBottom: 6,
+  },
+  metaInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  metaIcon: {
+    marginRight: 4,
+    width: 12,
+  },
+  metaText: {
+    fontFamily: Fonts.regular,
+    fontSize: 11,
+    color: Colors.mediumGray,
+    flex: 1,
+  },
+  notesContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 4,
+  },
+  notesIcon: {
+    marginRight: 4,
+    marginTop: 1,
+    width: 12,
+  },
+  notesChevron: {
+    marginLeft: 4,
+    marginTop: 1,
+  },
+  timeText: {
+    fontFamily: Fonts.medium,
+    color: Colors.darkGray,
+    fontSize: 13,
+    minWidth: 40,
+    lineHeight: 18,
+  },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1056,13 +1272,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-  },
-  timeText: {
-    fontFamily: Fonts.medium,
-    color: Colors.darkGray,
-    fontSize: 13,
-    minWidth: 40,
-    lineHeight: 18,
   },
   locationRow: {
     flexDirection: 'row',
@@ -1160,9 +1369,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.lightGray,
   },
-  categoryIcon: {
-    marginRight: 8,
-  },
   categoryOptionText: {
     fontFamily: Fonts.regular,
     fontSize: 14,
@@ -1255,19 +1461,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  allDayBadge: {
-    backgroundColor: Colors.alertCoral,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  allDayText: {
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
-    fontSize: 12,
-    textAlign: 'center',
-  },
   timeRangeEdit: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1275,11 +1468,6 @@ const styles = StyleSheet.create({
   },
   timeSeparatorContainer: {
     paddingHorizontal: 8,
-  },
-  timeSeparatorText: {
-    color: Colors.mediumGray,
-    fontFamily: Fonts.medium,
-    fontSize: 10,
   },
   rowCenter: {
     flexDirection: 'row',
@@ -1406,9 +1594,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.darkGray,
-  },
-  notesContainer: {
-    marginBottom: 12,
   },
   modalOverlay: {
     flex: 1,

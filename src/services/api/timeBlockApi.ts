@@ -16,7 +16,7 @@ export interface TimeBlockApiEntry {
   timezone?: string;
   is_completed?: boolean;
   completed_at?: string;
-  notes?: string; // description field in DB
+  description?: string; // notes field in the UI
   version?: number;
   metadata?: any; // jsonb
   created_at: string;
