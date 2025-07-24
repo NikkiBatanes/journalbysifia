@@ -425,23 +425,40 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       onPress={() => handleEntryPress(entry)}
       activeOpacity={0.8}
     >
-      {entry.source === 'devotional' ? (
-        <View style={styles.guidedPromptRow}>
-          <View style={styles.devotionalPromptContainer}>
-            <Text style={styles.devotionalPromptText}>DEVOTIONAL</Text>
+      {entry.source === 'devotional' || entry.type === 'devotional' ? (
+        <View>
+          <View style={styles.guidedPromptRow}>
+            <View style={styles.devotionalPromptContainer}>
+              <Text style={styles.devotionalPromptText}>DEVOTIONAL</Text>
+            </View>
+            <Text style={styles.timeText}>
+              {new Date(entry.created_at).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              })}
+            </Text>
           </View>
-          <Text style={styles.timeText}>
-            {new Date(entry.created_at).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true,
-            })}
-          </Text>
+          {/* Devotional Metadata */}
+          {(entry.devotionalTitle || entry.dayNumber || entry.dayTitle) && (
+            <View style={styles.devotionalMetadata}>
+              {entry.devotionalTitle && (
+                <Text style={styles.devotionalTitle}>{entry.devotionalTitle}</Text>
+              )}
+              {(entry.dayNumber || entry.dayTitle) && (
+                <Text style={styles.devotionalDayInfo}>
+                  {entry.dayNumber && `Day ${entry.dayNumber}`}
+                  {entry.dayNumber && entry.dayTitle && ' • '}
+                  {entry.dayTitle}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
-      ) : (entry.type === 'guided' || entry.type === 'devotional') ? (
+      ) : entry.type === 'guided' ? (
         <View style={styles.guidedPromptRow}>
           <View style={styles.guidedPromptContainer}>
-            <Text style={styles.guidedPromptText}>{entry.type === 'devotional' ? 'DEVOTIONAL' : 'GUIDED PROMPT'}</Text>
+            <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
           </View>
           <Text style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -457,7 +474,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           </Text>
         </View>
       )}
-      {(entry.type === 'guided' || entry.type === 'devotional') ? (
+      {entry.source === 'devotional' || entry.type === 'devotional' ? (
+        <Text style={styles.promptCardText}>{entry.prompt || entry.title || 'Devotional Reflection'}</Text>
+      ) : entry.type === 'guided' ? (
         <Text style={styles.promptCardText}>{entry.prompt || entry.title || 'Guided Reflection'}</Text>
       ) : entry.title ? (
         <Text style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</Text>
@@ -1193,6 +1212,23 @@ const styles = StyleSheet.create({
   },
   showLessText: {
     color: Colors.mediumGray,
+  },
+  // Devotional metadata styles
+  devotionalMetadata: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  devotionalTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: Colors.faithGold,
+    marginBottom: 2,
+  },
+  devotionalDayInfo: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.mediumGray,
+    fontStyle: 'italic',
   },
 });
 
