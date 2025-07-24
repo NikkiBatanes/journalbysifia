@@ -42,7 +42,7 @@ export const TimeBlockSkeleton: React.FC<TimeBlockSkeletonProps> = ({ count = 3 
         <Animated.View style={[styles.timeBlock, { opacity }]} />
         <Animated.View style={[styles.durationBlock, { opacity }]} />
       </View>
-      
+
       {/* Details Column */}
       <View style={styles.detailsColumn}>
         <Animated.View style={[styles.titleBlock, { opacity }]} />

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Swipeable } from 'react-native-gesture-handler';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, FlatList } from 'react-native';
 import { JournalCard } from './JournalCard';
@@ -124,7 +124,7 @@ interface TimeBlockProps {
 export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = new Date() }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
-  
+
   // Performance monitoring
   const loadStartTime = useRef<number>(Date.now());
 
@@ -211,12 +211,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const closeAllSwipeables = useCallback(() => {
-    Object.values(swipeableRefs.current).forEach(ref => {
-      if (ref?.close) {ref.close();}
-    });
-  }, []);
-
   const handleEditBlock = (block: TimeBlockItem) => {
     setIsAdding(true);
     setEditId(block.id);
@@ -243,11 +237,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           try {
             // Get block data for analytics before deletion
             const blockToDelete = timeBlocks.find(block => block.id === id);
-            const durationMinutes = blockToDelete ? 
+            const durationMinutes = blockToDelete ?
               Math.round((blockToDelete.endTime.getTime() - blockToDelete.startTime.getTime()) / (1000 * 60)) : 0;
-            
+
             await deleteMutation.mutateAsync(id);
-            
+
             // Track delete analytics
             analytics.trackTimeBlockEvent('timeblock_deleted', {
               timeblock_id: id,
@@ -263,7 +257,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               operation: 'delete_timeblock',
               date: dateStr,
             }, user?.id);
-            
+
             Alert.alert('Error', 'Failed to delete time block');
           }
         },
@@ -290,16 +284,16 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       // Create full datetime objects for the selected date
       let startDateTime: Date;
       let endDateTime: Date;
-      
+
       try {
         startDateTime = newBlock.isAllDay
           ? new Date(`${dateStr}T00:00:00`)
           : new Date(`${dateStr}T${newBlock.startTime.toTimeString().slice(0, 8)}`);
-        
+
         endDateTime = newBlock.isAllDay
           ? new Date(`${dateStr}T23:59:59`)
           : new Date(`${dateStr}T${newBlock.endTime.toTimeString().slice(0, 8)}`);
-          
+
         // Validate the created dates
         if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
           throw new Error('Invalid date/time values');
@@ -328,11 +322,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       if (editId) {
         // Track update analytics
         const existingBlock = timeBlocks.find(block => block.id === editId);
-        const previousDuration = existingBlock ? 
+        const previousDuration = existingBlock ?
           Math.round((existingBlock.endTime.getTime() - existingBlock.startTime.getTime()) / (1000 * 60)) : 0;
-        
+
         await updateMutation.mutateAsync({ id: editId, updates: timeBlockData });
-        
+
         analytics.trackTimeBlockEvent('timeblock_updated', {
           timeblock_id: editId,
           title_length: newBlock.title.trim().length,
@@ -347,7 +341,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         }, user?.id);
       } else {
         await createMutation.mutateAsync(timeBlockData);
-        
+
         analytics.trackTimeBlockEvent('timeblock_created', {
           title_length: newBlock.title.trim().length,
           category: newBlock.category,
@@ -381,7 +375,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
     } catch (saveError) {
       console.error('Time block save error:', saveError);
-      
+
       // Track error analytics
       analytics.trackTimeBlockEvent('timeblock_error', {
         error_type: saveError instanceof Error ? saveError.message : 'unknown_error',
@@ -476,7 +470,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         operation: 'fetch_timeblocks',
         date: dateStr,
       }, user?.id);
-      
+
       Alert.alert('Error', 'Failed to load time blocks.');
     }
   }, [error, dateStr, user?.id]);
@@ -669,7 +663,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   onPress={toggleAllDay}
                   accessibilityRole="checkbox"
                   accessibilityLabel="All day event"
-                  accessibilityHint={newBlock.isAllDay ? "Currently enabled. Tap to disable all-day mode." : "Currently disabled. Tap to enable all-day mode."}
+                  accessibilityHint={newBlock.isAllDay ? 'Currently enabled. Tap to disable all-day mode.' : 'Currently disabled. Tap to enable all-day mode.'}
                   accessibilityState={{ checked: newBlock.isAllDay }}
                 >
                   <View style={styles.checkboxContainer}>
@@ -751,7 +745,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               ]}
               onPress={() => setShowCategoryPicker(true)}
               accessibilityRole="button"
-              accessibilityLabel={newBlock.category ? `Selected category: ${newBlock.category}` : "Select category"}
+              accessibilityLabel={newBlock.category ? `Selected category: ${newBlock.category}` : 'Select category'}
               accessibilityHint="Tap to open category selection menu. This field is required."
             >
               <Ionicons
@@ -1098,7 +1092,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                         onPress={() => {
                           setNewBlock({...newBlock, category: item.name});
                           setShowCategoryPicker(false);
-                          
+
                           // Track category selection analytics
                           analytics.trackTimeBlockEvent('timeblock_category_selected', {
                             category: item.name,
@@ -1143,8 +1137,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 onPress={addTimeBlock}
                 disabled={!newBlock.title.trim()}
                 accessibilityRole="button"
-                accessibilityLabel={editId ? "Update time block" : "Save time block"}
-                accessibilityHint={!newBlock.title.trim() ? "Button is disabled. Please enter a title first." : "Saves the time block to your schedule"}
+                accessibilityLabel={editId ? 'Update time block' : 'Save time block'}
+                accessibilityHint={!newBlock.title.trim() ? 'Button is disabled. Please enter a title first.' : 'Saves the time block to your schedule'}
                 accessibilityState={{ disabled: !newBlock.title.trim() }}
               >
                 <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
@@ -1153,7 +1147,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           </View>
         </View>
       ) : timeBlocks.length > 0 ? (
-        <View 
+        <View
           style={styles.timeBlocksContainer}
           accessibilityRole="list"
           accessibilityLabel={`Time blocks for ${dateStr}`}
