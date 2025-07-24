@@ -7,7 +7,8 @@ import { Fonts } from '../../theme/fonts';
 import { NotebookPen as LuNotebookPen, X } from 'lucide-react-native';
 
 import ReflectionLogEditor from './ReflectionLogEditor';
-import { styles as reflectionLogStyles } from './ReflectionLog';
+import { styles as reflectionLogStyles } from './reflectionStyles';
+import { GUIDED_PROMPTS } from './reflectionConstants';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -20,25 +21,6 @@ import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
 import { analytics } from '../../utils/analytics';
 
 type ViewMode = 'free' | 'guided' | 'devotional';
-
-export const GUIDED_PROMPTS = [
-  "How did I seek God's guidance in my decisions today?",
-  "Did I reflect Christ's love in my interactions?",
-  'What challenged my faith, and how did I respond?',
-  'Am I prioritizing daily prayer and Scripture reading?',
-  "How am I using my talents and resources for God's glory?",
-  'What habit or sin is hindering me, and how can I address it?',
-  'Did I show forgiveness or grace to someone today?',
-  'Am I serving others in my church or community?',
-  "Is my career or business aligned with God's values?",
-  'How am I managing stress to protect my mental health?',
-  "What's one step I can take to improve my physical health?",
-  'Am I trusting God with my work or financial concerns?',
-  'How can I pursue excellence in my work to honor God?',
-  "Am I encouraging others' faith or well-being this week?",
-  "What's one way I can grow in a practical skill to reflect God's excellence?",
-  'Am I allowing comparison to steal my joy and gratitude for what God has given me?',
-];
 
 interface ReflectionLogEntry {
   id: string;
@@ -67,7 +49,16 @@ interface ReflectionLogProps {
 
 export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date() }) => {
   const { user } = useAuth();
-  const dateStr = toLocalDateString(selectedDate);
+  const dateStr = selectedDate.toISOString().split('T')[0];
+
+  // Generate a meaningful subtitle based on the number of entries
+  const getReflectionSubtitle = (count: number): string => {
+    if (count === 0) return 'Start reflecting today';
+    if (count === 1) return '1 reflection today';
+    if (count < 5) return `${count} reflections today`;
+    return `You've shared ${count} reflections today`;
+  };
+
   const loadStartTime = useRef(Date.now());
   // const [retryCount, setRetryCount] = useState(0); // Unused
 
@@ -352,14 +343,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     const entriesToShow = filteredEntries.length > 0 ? filteredEntries : entries;
     console.log('🔍 Entries to show:', entriesToShow.length);
 
-    // Show empty state instead of returning null
+    // Return null when there are no entries to show
     if (entriesToShow.length === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No reflections found</Text>
-          <Text style={styles.emptySubtext}>Tap the + button to add your first reflection</Text>
-        </View>
-      );
+      return null;
     }
 
     return (
@@ -567,7 +553,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     <JournalCard
       icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
       title="Reflection Log"
-      subtitle={entries && entries.length > 0 ? `${entries.length} reflections` : 'No reflections yet'}
+      subtitle={getReflectionSubtitle(entries?.length || 0)}
       showAddButton={true}
       onAdd={() => {
         setNewEntry({

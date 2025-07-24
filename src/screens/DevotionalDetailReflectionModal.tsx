@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Alert } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
-import { styles as reflectionLogStyles } from '../components/journal/ReflectionLog';
+import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { toLocalDateString } from '../utils/date';

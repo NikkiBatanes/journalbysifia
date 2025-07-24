@@ -4,7 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingVi
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
-import { GUIDED_PROMPTS } from './ReflectionLog';
+import { GUIDED_PROMPTS } from './reflectionConstants';
 
 type ViewMode = 'free-form' | 'guided';
 
