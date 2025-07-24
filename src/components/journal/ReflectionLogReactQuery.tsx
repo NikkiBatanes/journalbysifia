@@ -17,6 +17,7 @@ import {
 } from '../../services/hooks/useReflectionData';
 import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
 import { analytics } from '../../utils/analytics';
+import { QueryErrorBoundary } from '../ErrorBoundary/QueryErrorBoundary';
 
 type ViewMode = 'free' | 'guided';
 
@@ -432,16 +433,18 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Loading state with skeleton
   if (isLoading) {
     return (
-      <JournalCard
-        icon={<LuNotebookPen size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
-        title="Reflection Log"
-        subtitle="Capture your thoughts and insights"
-        showAddButton={false}
-        onAdd={() => {}}
-        isAdding={false}
-      >
-        <ReflectionSkeleton count={3} />
-      </JournalCard>
+      <QueryErrorBoundary>
+        <JournalCard
+          icon={<LuNotebookPen size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
+          title="Reflection Log"
+          subtitle="Loading your reflections..."
+          showAddButton={false}
+          onAdd={() => {}}
+          isAdding={false}
+        >
+          <ReflectionSkeleton count={3} />
+        </JournalCard>
+      </QueryErrorBoundary>
     );
   }
 
@@ -481,26 +484,27 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   }
 
   return (
-    <JournalCard
-      icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      title="Reflection Log"
-      subtitle={entries && entries.length > 0 ? `${entries.length} reflections` : 'No reflections yet'}
-      showAddButton={true}
-      onAdd={() => {
-        setNewEntry({
-          title: '',
-          content: '',
-          type: 'free',
-          prompt: '',
-          tags: [],
-          location: '',
-          source: undefined,
-        });
-        setSelectedPrompt('');
-        setIsAdding(true);
-        setEditingId(null);
-      }}
-    >
+    <QueryErrorBoundary>
+      <JournalCard
+        icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
+        title="Reflection Log"
+        subtitle={entries && entries.length > 0 ? `${entries.length} reflections` : 'No reflections yet'}
+        showAddButton={true}
+        onAdd={() => {
+          setNewEntry({
+            title: '',
+            content: '',
+            type: 'free',
+            prompt: '',
+            tags: [],
+            location: '',
+            source: undefined,
+          });
+          setSelectedPrompt('');
+          setIsAdding(true);
+          setEditingId(null);
+        }}
+      >
       {/* Entries List */}
       {renderEntries()}
 
@@ -615,6 +619,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       {/* Prompt Picker Modal */}
       {renderPromptPicker()}
     </JournalCard>
+    </QueryErrorBoundary>
   );
 };
 

@@ -1,17 +1,17 @@
 // src/services/hooks/useReflectionData.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { ReflectionApi, ReflectionApiEntry } from '../api/reflectionApi';
 import { queryKeys } from '../queryKeys';
+import { defaultQueryOptions, defaultMutationOptions, queryOptionsPresets } from '../config/queryConfig';
+import { analytics } from '../../utils/analytics';
 
 // Hook for getting reflection entries for a specific date
 export const useReflectionData = (userId: string, date: string) => {
   return useQuery({
     queryKey: queryKeys.reflections.byDate(userId, date),
     queryFn: () => ReflectionApi.getReflectionEntries(userId, date),
-    staleTime: 1000, // 1 second stale time to prevent excessive refetching
-    gcTime: 10 * 60 * 1000,
+    ...queryOptionsPresets.realtime,
     enabled: !!userId && !!date,
-    refetchOnMount: false, // Don't refetch on mount to prevent loading flash
     initialData: [], // Provide empty array as initial data
   });
 };
@@ -21,8 +21,7 @@ export const useReflectionsByType = (userId: string, date: string, type: 'free' 
   return useQuery({
     queryKey: queryKeys.reflections.byType(userId, date, type),
     queryFn: () => ReflectionApi.getReflectionsByType(userId, date, type),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    ...defaultQueryOptions,
     enabled: !!userId && !!date && !!type,
   });
 };
@@ -32,8 +31,7 @@ export const useDevotionalReflections = (userId: string, devotionalId: string) =
   return useQuery({
     queryKey: queryKeys.reflections.devotional(userId, devotionalId),
     queryFn: () => ReflectionApi.getDevotionalReflections(userId, devotionalId),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    ...queryOptionsPresets.stable,
     enabled: !!userId && !!devotionalId,
   });
 };
@@ -43,19 +41,32 @@ export const useReflectionsInRange = (userId: string, startDate: string, endDate
   return useQuery({
     queryKey: queryKeys.reflections.dateRange(userId, startDate, endDate),
     queryFn: () => ReflectionApi.getReflectionsInDateRange(userId, startDate, endDate),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    ...defaultQueryOptions,
     enabled: !!userId && !!startDate && !!endDate,
   });
 };
+
+// Note: Infinite query hook will be implemented when pagination API is ready
+// export const useInfiniteReflections = (userId: string, pageSize: number = 20) => {
+//   return useInfiniteQuery({
+//     queryKey: ['reflections', 'infinite', userId],
+//     queryFn: ({ pageParam = 0 }) => ReflectionApi.getPaginatedReflections(userId, pageParam, pageSize),
+//     initialPageParam: 0,
+//     ...defaultQueryOptions,
+//     enabled: !!userId,
+//     getNextPageParam: (lastPage, allPages) => {
+//       if (!lastPage || lastPage.length < pageSize) return undefined;
+//       return allPages.length;
+//     },
+//   });
+// };
 
 // Hook for searching reflections
 export const useSearchReflections = (userId: string, searchTerm: string) => {
   return useQuery({
     queryKey: queryKeys.reflections.search(userId, searchTerm),
     queryFn: () => ReflectionApi.searchReflections(userId, searchTerm),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    ...defaultQueryOptions,
     enabled: !!userId && !!searchTerm && searchTerm.length > 2,
   });
 };
@@ -65,8 +76,7 @@ export const useReflectionStats = (userId: string, startDate: string, endDate: s
   return useQuery({
     queryKey: queryKeys.reflections.stats(userId, startDate, endDate),
     queryFn: () => ReflectionApi.getReflectionStats(userId, startDate, endDate),
-    staleTime: 10 * 60 * 1000, // 10 minutes for stats
-    gcTime: 20 * 60 * 1000, // 20 minutes
+    ...queryOptionsPresets.background,
     enabled: !!userId && !!startDate && !!endDate,
   });
 };
@@ -77,6 +87,7 @@ export const useCreateReflection = () => {
 
   return useMutation({
     mutationFn: ReflectionApi.createReflectionEntry,
+    ...defaultMutationOptions,
     onMutate: async (newReflection) => {
       // Cancel any outgoing refetches
       const queryKey = queryKeys.reflections.byDate(newReflection.user_id, newReflection.selected_date);
@@ -98,35 +109,34 @@ export const useCreateReflection = () => {
 
       return { previousReflections };
     },
-    onError: (err, newReflection, context) => {
-      console.error('Error creating reflection:', err);
+    onError: (error, variables, context) => {
+      // Rollback optimistic update
       if (context?.previousReflections) {
-        const queryKey = queryKeys.reflections.byDate(newReflection.user_id, newReflection.selected_date);
+        const queryKey = queryKeys.reflections.byDate(variables.user_id, variables.selected_date);
         queryClient.setQueryData(queryKey, context.previousReflections);
       }
+      
+      // Track creation error
+      analytics.track('reflection_creation_failed', {
+        error: error.message,
+        type: variables.type,
+      });
     },
     onSuccess: (data, variables) => {
-      console.log('🔍 useCreateReflection: Successfully created reflection', data.id);
+      // Invalidate and refetch related queries
+      queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reflections.stats(variables.user_id, variables.selected_date, variables.selected_date) });
       
-      // Update cache with the real data instead of invalidating
-      const queryKey = queryKeys.reflections.byDate(variables.user_id, variables.selected_date);
-      queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) => {
-        // Replace the temporary entry with the real one
-        return old.map(entry => 
-          entry.id.startsWith('temp-') ? data : entry
-        );
+      // Update search results
+      queryClient.invalidateQueries({ queryKey: ['reflections', 'search'] });
+      
+      // Track successful creation
+      analytics.track('reflection_created', {
+        type: variables.type,
+        contentLength: variables.content.length,
+        hasTitle: !!variables.title,
       });
-
-      // Also update type-specific queries if type is specified
-      if (variables.type) {
-        queryClient.setQueryData(
-          queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type),
-          (old: ReflectionApiEntry[] = []) => {
-            const existingEntry = old.find(entry => entry.id === data.id);
-            return existingEntry ? old : [...old, data];
-          }
-        );
-      }
     },
   });
 };
