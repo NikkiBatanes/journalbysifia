@@ -67,14 +67,14 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         type: 'devotional' as const, // Always devotional type for devotional reflections
         user_id: user.id,
         selected_date: dateStr,
-        // TEMPORARY: Remove fields that don't exist in database yet
-        // prompt: question,
-        // tags: entry.tags || [],
-        // ...(devotionalTitle && { devotional_title: devotionalTitle }),
-        // ...(dayNumber !== undefined && { day_number: dayNumber }),
-        // ...(dayTitle && { day_title: dayTitle }),
-        // ...(totalDays !== undefined && { total_days: totalDays }),
-        // ...(questionNumber !== undefined && { question_number: questionNumber }),
+        // Include devotional metadata fields
+        prompt: question,
+        tags: entry.tags || [],
+        ...(devotionalTitle && { devotional_title: devotionalTitle }),
+        ...(dayNumber !== undefined && { day_number: dayNumber }),
+        ...(dayTitle && { day_title: dayTitle }),
+        ...(totalDays !== undefined && { total_days: totalDays }),
+        ...(questionNumber !== undefined && { question_number: questionNumber }),
       };
 
       // Save to database using React Query
