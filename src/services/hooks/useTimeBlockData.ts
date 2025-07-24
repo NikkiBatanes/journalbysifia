@@ -1,6 +1,11 @@
 // src/services/hooks/useTimeBlockData.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TimeBlockApi, TimeBlockApiEntry } from '../api/timeBlockApi';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  UseQueryOptions,
+} from '@tanstack/react-query';
+import { TimeBlockApi, TimeBlockApiEntry, ApiError } from '../api/timeBlockApi';
 import { queryKeys } from '../queryKeys';
 import { RETRY_CONFIGS, createRetryFunction } from '../../utils/retry';
 
@@ -19,25 +24,38 @@ const CACHE_CONFIG = {
   retry: createRetryFunction(RETRY_CONFIGS.TIMEBLOCK_ENHANCED),
 } as const;
 
-// Hook for getting time blocks for a specific date
-export const useTimeBlockData = (userId: string, date: string) => {
-  return useQuery<TimeBlockWithVersion[]>({
+// Hook for getting time blocks for a specific date with enhanced error handling
+export const useTimeBlockData = (
+  userId: string,
+  date: string,
+  options?: Omit<UseQueryOptions<TimeBlockWithVersion[], ApiError>, 'queryKey' | 'queryFn'>
+) => {
+  return useQuery<TimeBlockWithVersion[], ApiError>({
     queryKey: queryKeys.timeBlocks.byDate(userId, date),
     queryFn: async () => {
-      const data = await TimeBlockApi.getTimeBlocks(userId, date);
-      // Add version to each time block for optimistic updates
-      return data.map(block => ({
-        ...block,
-        version: 1, // Initial version
-      }));
+      try {
+        const data = await TimeBlockApi.getTimeBlocks(userId, date);
+        return data.map(block => ({
+          ...block,
+          version: 1,
+        }));
+      } catch (error) {
+        console.error(`Failed to fetch time blocks for ${date}:`, error);
+        throw new Error('Failed to load time blocks. Please try again.');
+      }
     },
     ...CACHE_CONFIG,
-    enabled: !!userId && !!date,
-    initialData: () => {
-      // Return undefined to prevent hydration mismatches
-      return undefined;
+    retry: (failureCount, error) => {
+      if (error.statusCode === 404 || error.statusCode === 401) {
+        return false;
+      }
+      return failureCount < 3;
     },
-    placeholderData: [], // Use placeholderData instead of initialData
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!userId && !!date,
+    // Use throwOnError for React Query v4+
+    throwOnError: (error) => error.statusCode !== 404, // Don't throw for 404s
+    ...options,
   });
 };
 

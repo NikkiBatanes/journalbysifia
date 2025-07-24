@@ -1,5 +1,60 @@
 // src/services/api/timeBlockApi.ts
+import { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '../supabaseApi';
+
+export class ApiError extends Error {
+  statusCode: number;
+  code?: string;
+  details?: unknown;
+
+  constructor(message: string, statusCode: number, code?: string, details?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.code = code;
+    this.details = details;
+
+    // Maintains proper stack trace for where our error was thrown
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ApiError);
+    }
+  }
+}
+
+export const handleApiError = (error: unknown, context: string): never => {
+  console.error(`[${context}] Error:`, error);
+
+  if (error instanceof ApiError) {
+    throw error; // Re-throw if it's already an ApiError
+  }
+
+  if (error instanceof Error) {
+    // Handle Supabase errors
+    if ('code' in error && 'details' in error && 'hint' in error) {
+      const supabaseError = error as PostgrestError;
+      throw new ApiError(
+        `Database error: ${supabaseError.message}`,
+        500,
+        supabaseError.code,
+        {
+          details: supabaseError.details,
+          hint: supabaseError.hint,
+        }
+      );
+    }
+
+    // Handle network errors
+    if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+      throw new ApiError('Network error. Please check your connection and try again.', 0, 'NETWORK_ERROR');
+    }
+
+    // Generic error
+    throw new ApiError(error.message, 500, 'INTERNAL_ERROR');
+  }
+
+  // Fallback for non-Error throws
+  throw new ApiError('An unknown error occurred', 500, 'UNKNOWN_ERROR');
+};
 
 export interface TimeBlockApiEntry {
   id: string;
@@ -26,19 +81,23 @@ export interface TimeBlockApiEntry {
 export class TimeBlockApi {
   // Get all time blocks for a user and date
   static async getTimeBlocks(userId: string, date: string): Promise<TimeBlockApiEntry[]> {
-    const { data, error } = await supabase
-      .from('time_blocks')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('selected_date', date)
-      .order('start_time', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('time_blocks')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('selected_date', date)
+        .order('start_time', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching time blocks:', error);
-      throw new Error(`Failed to fetch time blocks: ${error.message}`);
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      // This will always throw, but TypeScript doesn't know that
+      return handleApiError(error, 'getTimeBlocks') as never;
     }
-
-    return data || [];
   }
 
   // Create a new time block (with upsert to handle duplicates)
