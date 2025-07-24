@@ -60,22 +60,21 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       });
 
       // Create save data matching the database schema
+      // TODO: Add devotional metadata fields after database migration
       const saveData = {
         title: entry.title,
         content: entry.content,
         type: 'guided' as const, // Always guided for devotional reflections
         user_id: user.id,
         selected_date: dateStr,
-        // Include devotional-specific fields
-        source: 'devotional' as const,
-        prompt: question,
-        tags: entry.tags || [],
-        // Include devotional metadata
-        ...(devotionalTitle && { devotional_title: devotionalTitle }),
-        ...(dayNumber !== undefined && { day_number: dayNumber }),
-        ...(dayTitle && { day_title: dayTitle }),
-        ...(totalDays !== undefined && { total_days: totalDays }),
-        ...(questionNumber !== undefined && { question_number: questionNumber }),
+        // TEMPORARY: Remove fields that don't exist in database yet
+        // prompt: question,
+        // tags: entry.tags || [],
+        // ...(devotionalTitle && { devotional_title: devotionalTitle }),
+        // ...(dayNumber !== undefined && { day_number: dayNumber }),
+        // ...(dayTitle && { day_title: dayTitle }),
+        // ...(totalDays !== undefined && { total_days: totalDays }),
+        // ...(questionNumber !== undefined && { question_number: questionNumber }),
       };
 
       // Save to database using React Query
