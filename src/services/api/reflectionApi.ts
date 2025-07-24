@@ -205,4 +205,65 @@ export class ReflectionApi {
 
     return stats;
   }
+
+  // Get paginated reflections for infinite scrolling
+  static async getPaginatedReflections(
+    userId: string,
+    page: number = 0,
+    pageSize: number = 20
+  ): Promise<ReflectionApiEntry[]> {
+    const { data, error } = await supabase
+      .from('reflection_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .order('selected_date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error) {
+      console.error('Error fetching paginated reflections:', error);
+      throw new Error(`Failed to fetch reflections: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  // Batch operations for offline sync
+  static async batchCreateReflections(
+    entries: Omit<ReflectionApiEntry, 'id' | 'created_at' | 'updated_at'>[]
+  ): Promise<ReflectionApiEntry[]> {
+    const now = new Date().toISOString();
+    const entriesWithTimestamps = entries.map(entry => ({
+      ...entry,
+      created_at: now,
+      updated_at: now,
+    }));
+
+    const { data, error } = await supabase
+      .from('reflection_entries')
+      .insert(entriesWithTimestamps)
+      .select();
+
+    if (error) {
+      console.error('Error batch creating reflections:', error);
+      throw new Error(`Failed to create reflections: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  // Get reflections count for a user
+  static async getReflectionsCount(userId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('reflection_entries')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error fetching reflections count:', error);
+      throw new Error(`Failed to fetch reflections count: ${error.message}`);
+    }
+
+    return count || 0;
+  }
 }

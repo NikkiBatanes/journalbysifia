@@ -114,7 +114,7 @@ export const EnhancedReflectionLogEditor: React.FC<EnhancedReflectionLogEditorPr
     ...initialEntry,
     title: values.title,
     content: values.content,
-    type: values.type === 'free' ? 'free-form' : 'guided',
+    type: (values.type === 'free' ? 'free-form' : 'guided') as ViewMode,
     prompt: values.prompt,
     tags: values.tags,
   };

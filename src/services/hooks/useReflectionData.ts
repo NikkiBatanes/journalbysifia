@@ -46,20 +46,34 @@ export const useReflectionsInRange = (userId: string, startDate: string, endDate
   });
 };
 
-// Note: Infinite query hook will be implemented when pagination API is ready
-// export const useInfiniteReflections = (userId: string, pageSize: number = 20) => {
-//   return useInfiniteQuery({
-//     queryKey: ['reflections', 'infinite', userId],
-//     queryFn: ({ pageParam = 0 }) => ReflectionApi.getPaginatedReflections(userId, pageParam, pageSize),
-//     initialPageParam: 0,
-//     ...defaultQueryOptions,
-//     enabled: !!userId,
-//     getNextPageParam: (lastPage, allPages) => {
-//       if (!lastPage || lastPage.length < pageSize) return undefined;
-//       return allPages.length;
-//     },
-//   });
-// };
+// Hook for infinite scrolling reflections
+export const useInfiniteReflections = (userId: string, pageSize: number = 20) => {
+  return useInfiniteQuery({
+    queryKey: queryKeys.reflections.infinite(userId),
+    queryFn: ({ pageParam = 0 }) => ReflectionApi.getPaginatedReflections(userId, pageParam, pageSize),
+    initialPageParam: 0,
+    ...defaultQueryOptions,
+    enabled: !!userId,
+    getNextPageParam: (lastPage, allPages) => {
+      if (!lastPage || lastPage.length < pageSize) return undefined;
+      return allPages.length;
+    },
+    getPreviousPageParam: (firstPage, allPages) => {
+      if (allPages.length <= 1) return undefined;
+      return allPages.length - 2;
+    },
+  });
+};
+
+// Hook for getting reflections count
+export const useReflectionsCount = (userId: string) => {
+  return useQuery({
+    queryKey: queryKeys.reflections.count(userId),
+    queryFn: () => ReflectionApi.getReflectionsCount(userId),
+    ...queryOptionsPresets.stable,
+    enabled: !!userId,
+  });
+};
 
 // Hook for searching reflections
 export const useSearchReflections = (userId: string, searchTerm: string) => {

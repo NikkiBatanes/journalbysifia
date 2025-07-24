@@ -37,6 +37,8 @@ export const queryKeys = {
     dateRange: (userId: string, startDate: string, endDate: string) => ['reflections', 'dateRange', userId, startDate, endDate] as const,
     search: (userId: string, searchTerm: string) => ['reflections', 'search', userId, searchTerm] as const,
     stats: (userId: string, startDate: string, endDate: string) => ['reflections', 'stats', userId, startDate, endDate] as const,
+    infinite: (userId: string) => ['reflections', 'infinite', userId] as const,
+    count: (userId: string) => ['reflections', 'count', userId] as const,
   },
 
   // Prayer-related queries
