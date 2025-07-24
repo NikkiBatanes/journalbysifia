@@ -79,7 +79,7 @@ export const useAllDevotionalPrayerData = (userId: string) => {
 export const usePrayersByType = (
   userId: string,
   dateStr: string,
-  type: PrayerApiEntry['type']
+  type: NonNullable<PrayerApiEntry['type']>
 ) => {
   return useQuery({
     queryKey: queryKeys.prayers.byType(userId, dateStr, type),
@@ -138,10 +138,22 @@ export const useCreatePrayer = () => {
         queryKey: queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date),
       });
 
-      // Snapshot the previous value
+      // Also cancel people prayers query if this is a people prayer
+      if (newPrayer.prayer_type === 'people') {
+        await queryClient.cancelQueries({
+          queryKey: queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
+        });
+      }
+
+      // Snapshot the previous values
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date)
       );
+      const previousPeoplePrayers = newPrayer.prayer_type === 'people' 
+        ? queryClient.getQueryData<PrayerApiEntry[]>(
+            queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date)
+          )
+        : undefined;
 
       // Optimistically update to the new value
       const optimisticPrayer: PrayerApiEntry = {
@@ -151,13 +163,22 @@ export const useCreatePrayer = () => {
         updated_at: new Date().toISOString(),
       };
 
+      // Update main prayers query
       queryClient.setQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date),
         (old = []) => [optimisticPrayer, ...old]
       );
 
-      // Return a context object with the snapshotted value
-      return { previousPrayers, optimisticPrayer };
+      // Update people prayers query if applicable
+      if (newPrayer.prayer_type === 'people') {
+        queryClient.setQueryData<PrayerApiEntry[]>(
+          queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
+          (old = []) => [optimisticPrayer, ...old]
+        );
+      }
+
+      // Return a context object with the snapshotted values
+      return { previousPrayers, previousPeoplePrayers, optimisticPrayer };
     },
     onError: (err: Error, newPrayer, context) => {
       console.error('Error creating prayer:', err);
@@ -166,6 +187,12 @@ export const useCreatePrayer = () => {
         queryClient.setQueryData(
           queryKeys.prayers.entries(newPrayer.user_id, newPrayer.selected_date),
           context.previousPrayers
+        );
+      }
+      if (context?.previousPeoplePrayers && newPrayer.prayer_type === 'people') {
+        queryClient.setQueryData(
+          queryKeys.prayers.people(newPrayer.user_id, newPrayer.selected_date),
+          context.previousPeoplePrayers
         );
       }
     },
@@ -178,14 +205,21 @@ export const useCreatePrayer = () => {
         queryKey: queryKeys.prayers.entries(variables.user_id, variables.selected_date),
       });
 
-      // Also invalidate related queries
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.prayers.byType(variables.user_id, variables.selected_date, variables.type),
-      });
-
-      if (variables.type === 'devotional') {
+      // Invalidate specific prayer type queries
+      if (variables.prayer_type === 'people') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.prayers.people(variables.user_id, variables.selected_date),
+        });
+      } else if (variables.prayer_type === 'devotional') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.prayers.devotional(variables.user_id, variables.selected_date),
+        });
         queryClient.invalidateQueries({
           queryKey: queryKeys.prayers.allDevotional(variables.user_id),
+        });
+      } else if (variables.prayer_type === 'journal') {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.prayers.acts(variables.user_id, variables.selected_date),
         });
       }
     },

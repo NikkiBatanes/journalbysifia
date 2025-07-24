@@ -15,7 +15,9 @@ export interface PrayerApiEntry {
   answered_date?: string;
   person_name?: string;
   is_prayer_request?: boolean;
+  requested_by?: string;
   prayed?: boolean;
+  notes?: string;
   devotional_title?: string;
   day_number?: number;
   day_title?: string;
@@ -79,7 +81,7 @@ export class PrayerApi {
       .select('*')
       .eq('user_id', userId)
       .eq('selected_date', date)
-      .eq('type', type)
+      .eq('prayer_type', type)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -132,7 +134,22 @@ export class PrayerApi {
 
   // Get people prayers
   static async getPeoplePrayers(userId: string, date: string): Promise<PrayerApiEntry[]> {
-    return this.getPrayersByType(userId, date, 'people');
+    await ensureAuthenticated();
+    
+    const { data, error } = await supabase
+      .from('prayers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('selected_date', date)
+      .eq('prayer_type', 'people')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching people prayers:', error);
+      throw new Error(`Failed to fetch people prayers: ${error.message}`);
+    }
+
+    return data || [];
   }
 
   // Get devotional prayers
@@ -167,7 +184,7 @@ export class PrayerApi {
     const now = new Date().toISOString();
 
     // Transform legacy format to database format
-    const dbPrayer = {
+    const dbPrayer: any = {
       user_id: prayer.user_id,
       content: prayer.content,
       selected_date: prayer.selected_date,
@@ -189,6 +206,14 @@ export class PrayerApi {
       created_at: now,
       updated_at: now,
     };
+
+    // Add optional fields if they exist in the prayer object
+    if (prayer.requested_by !== undefined) {
+      dbPrayer.requested_by = prayer.requested_by;
+    }
+    if (prayer.notes !== undefined) {
+      dbPrayer.notes = prayer.notes;
+    }
 
     const { data, error } = await supabase
       .from('prayers')

@@ -131,18 +131,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
     );
   }
 
-  if (isLoading) {
-    return (
-      <View
-        style={styles.card}
-        accessibilityRole="progressbar"
-        accessibilityLabel="Loading prayers"
-        accessibilityHint="Please wait while prayer data is being loaded"
-      >
-        <PrayerSkeleton showDropdown={true} showPrayerGroups={true} />
-      </View>
-    );
-  }
+
 
   if (error) {
     return (
