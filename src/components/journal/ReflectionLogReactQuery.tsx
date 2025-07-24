@@ -682,7 +682,13 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             initialPrompt={(newEntry.type === 'guided' || newEntry.type === 'devotional') ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
             initialTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
             lockTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt)}
-            source={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
+            source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : (newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
+            // Pass devotional metadata for existing entries
+            devotionalTitle={editingId && selectedEntry ? selectedEntry.devotionalTitle : undefined}
+            dayNumber={editingId && selectedEntry ? selectedEntry.dayNumber : undefined}
+            dayTitle={editingId && selectedEntry ? selectedEntry.dayTitle : undefined}
+            totalDays={editingId && selectedEntry ? selectedEntry.totalDays : undefined}
+            questionNumber={editingId && selectedEntry ? selectedEntry.questionNumber : undefined}
             styles={reflectionLogStyles}
             dateString={(() => {
               const now = new Date();

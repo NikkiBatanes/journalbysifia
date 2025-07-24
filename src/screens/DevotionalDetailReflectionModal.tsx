@@ -65,6 +65,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         title: entry.title,
         content: entry.content,
         type: 'devotional' as const, // Always devotional type for devotional reflections
+        source: 'devotional' as const, // Mark as devotional source for metadata display
         user_id: user.id,
         selected_date: dateStr,
         // Include devotional metadata fields
