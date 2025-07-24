@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Modal, StyleSheet, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
@@ -13,6 +13,8 @@ import {
   useUpdateReflection,
   useDeleteReflection,
 } from '../../services/hooks/useReflectionData';
+import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
+import { analytics } from '../../utils/analytics';
 
 type ViewMode = 'free' | 'guided';
 
@@ -63,33 +65,57 @@ interface ReflectionLogProps {
 export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date() }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
+  const loadStartTime = useRef(Date.now());
+  const [isSaving, setIsSaving] = useState(false);
+  // const [retryCount, setRetryCount] = useState(0); // Unused
 
-  // React Query hooks
-  const { data: reflectionEntries = [], isLoading, error } = useReflectionData(user?.id || '', dateStr);
+  // React Query hooks with enhanced error handling
+  const {
+    data: reflectionEntries = [],
+    isLoading,
+    error,
+    refetch,
+    // isRefetching, // Unused
+  } = useReflectionData(user?.id || '', dateStr);
+
   const createMutation = useCreateReflection();
   const updateMutation = useUpdateReflection();
   const deleteMutation = useDeleteReflection();
 
-  // Transform API data to local format
-  const entries: ReflectionLogEntry[] = reflectionEntries.map(entry => ({
-    id: entry.id,
-    title: entry.title,
-    content: entry.content,
-    type: entry.type,
-    source: entry.source,
-    prompt: entry.question_text,
-    tags: [], // Tags would need to be parsed from content or stored separately
-    location: undefined,
-    devotionalTitle: entry.devotional_title,
-    dayNumber: entry.day_number,
-    dayTitle: entry.day_title,
-    totalDays: entry.total_days,
-    questionNumber: entry.question_number,
-    user_id: entry.user_id,
-    created_at: entry.created_at,
-    updated_at: entry.updated_at,
-    selected_date: entry.selected_date,
-  }));
+  // Transform API data to local format with memoization
+  const entries: ReflectionLogEntry[] = React.useMemo(() =>
+    reflectionEntries.map(entry => ({
+      id: entry.id,
+      title: entry.title,
+      content: entry.content,
+      type: entry.type,
+      source: entry.source,
+      prompt: entry.question_text,
+      tags: [], // Tags would need to be parsed from content or stored separately
+      location: undefined,
+      devotionalTitle: entry.devotional_title,
+      dayNumber: entry.day_number,
+      dayTitle: entry.day_title,
+      totalDays: entry.total_days,
+      questionNumber: entry.question_number,
+      user_id: entry.user_id,
+      created_at: entry.created_at,
+      updated_at: entry.updated_at,
+      selected_date: entry.selected_date,
+    })), [reflectionEntries]
+  );
+
+  // Analytics tracking for load performance
+  useEffect(() => {
+    if (!isLoading && reflectionEntries.length >= 0) {
+      const loadTime = Date.now() - loadStartTime.current;
+      analytics.trackReflectionEvent('reflection_loaded', {
+        entries_count: reflectionEntries.length,
+        load_time_ms: loadTime,
+        date: dateStr,
+      }, user?.id);
+    }
+  }, [isLoading, reflectionEntries.length, dateStr, user?.id]);
 
   // Local state
   const [visibleCount, setVisibleCount] = useState(3);
@@ -97,8 +123,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showPromptPicker, setShowPromptPicker] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState('');
-  const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null);
-  const [showEntryModal, setShowEntryModal] = useState(false);
+  // const [selectedEntry, setSelectedEntry] = useState<ReflectionLogEntry | null>(null); // Unused
+  // const [showEntryModal, setShowEntryModal] = useState(false); // Unused
   const [newEntry, setNewEntry] = useState({
     title: '',
     content: '',
@@ -108,7 +134,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     location: '',
   });
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setNewEntry({
       title: '',
       content: '',
@@ -120,15 +146,26 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     setSelectedPrompt('');
     setIsAdding(false);
     setEditingId(null);
-  };
+  }, []);
 
-  const handleSaveEntry = async () => {
-    if (!user) {return;}
+  const handleSaveEntry = useCallback(async () => {
+    if (!user) {
+      console.warn('🔍 ReflectionLog: No user found, cannot save entry');
+      return;
+    }
 
     if (!newEntry.title.trim() || !newEntry.content.trim()) {
       Alert.alert('Error', 'Please fill in both title and content.');
+      analytics.trackReflectionEvent('reflection_error', {
+        error_type: 'validation_failed',
+        operation: editingId ? 'update' : 'create',
+        date: dateStr,
+      }, user.id);
       return;
     }
+
+    setIsSaving(true);
+    const startTime = Date.now();
 
     try {
       const entryData = {
@@ -141,36 +178,69 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       };
 
       if (editingId) {
+        console.log('🔍 ReflectionLog: Updating entry', editingId);
+
+        // Find existing entry for analytics
+        const existingEntry = entries.find(e => e.id === editingId);
+
         await updateMutation.mutateAsync({
           id: editingId,
           updates: entryData,
         });
+
+        // Track update analytics
+        analytics.trackReflectionEvent('reflection_updated', {
+          reflection_id: editingId,
+          title_length: entryData.title.length,
+          content_length: entryData.content.length,
+          previous_title_length: existingEntry?.title.length || 0,
+          previous_content_length: existingEntry?.content.length || 0,
+          type: entryData.type,
+          date: dateStr,
+        }, user.id);
       } else {
+        console.log('🔍 ReflectionLog: Creating new entry');
+
         await createMutation.mutateAsync(entryData);
+
+        // Track creation analytics
+        analytics.trackReflectionEvent('reflection_created', {
+          title_length: entryData.title.length,
+          content_length: entryData.content.length,
+          type: entryData.type,
+          has_prompt: Boolean(entryData.question_text),
+          date: dateStr,
+        }, user.id);
       }
 
+      console.log('🔍 ReflectionLog: Entry saved successfully in', Date.now() - startTime, 'ms');
       resetForm();
     } catch (saveError) {
-      console.error('Error saving reflection entry:', saveError);
-      Alert.alert('Error', 'Failed to save reflection entry. Please try again.');
+      console.error('🔍 ReflectionLog: Error saving reflection entry:', saveError);
+
+      // Track error analytics
+      analytics.trackReflectionEvent('reflection_error', {
+        error_type: 'save_failed',
+        operation: editingId ? 'update' : 'create',
+        date: dateStr,
+      }, user.id);
+
+      Alert.alert(
+        'Error',
+        'Failed to save reflection entry. Please check your connection and try again.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Retry', onPress: () => handleSaveEntry() },
+        ]
+      );
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [user, newEntry, dateStr, editingId, entries, updateMutation, createMutation, resetForm]);
 
-  const handleEditEntry = (entry: ReflectionLogEntry) => {
-    setNewEntry({
-      title: entry.title,
-      content: entry.content,
-      type: entry.type,
-      prompt: entry.prompt || '',
-      tags: entry.tags,
-      location: entry.location || '',
-    });
-    setSelectedPrompt(entry.prompt || '');
-    setEditingId(entry.id);
-    setIsAdding(true);
-  };
+  const handleDeleteEntry = useCallback(async (entryId: string) => {
+    const entryToDelete = entries.find(e => e.id === entryId);
 
-  const handleDeleteEntry = async (entryId: string) => {
     Alert.alert(
       'Delete Reflection',
       'Are you sure you want to delete this reflection entry?',
@@ -180,36 +250,86 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            console.log('🔍 ReflectionLog: Deleting entry', entryId);
+            const startTime = Date.now();
+
             try {
               await deleteMutation.mutateAsync(entryId);
+
+              console.log('🔍 ReflectionLog: Entry deleted successfully in', Date.now() - startTime, 'ms');
+
+              // Track deletion analytics
+              if (entryToDelete && user) {
+                analytics.trackReflectionEvent('reflection_deleted', {
+                  reflection_id: entryId,
+                  title_length: entryToDelete.title.length,
+                  content_length: entryToDelete.content.length,
+                  type: entryToDelete.type,
+                  date: dateStr,
+                }, user.id);
+              }
             } catch (deleteError) {
-              Alert.alert('Error', 'Failed to delete reflection entry');
+              console.error('🔍 ReflectionLog: Error deleting reflection entry:', deleteError);
+
+              // Track error analytics
+              if (user) {
+                analytics.trackReflectionEvent('reflection_error', {
+                  error_type: 'delete_failed',
+                  operation: 'delete',
+                  date: dateStr,
+                }, user.id);
+              }
+
+              Alert.alert(
+                'Error',
+                'Failed to delete reflection entry. Please check your connection and try again.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Retry', onPress: () => handleDeleteEntry(entryId) },
+                ]
+              );
             }
           },
         },
       ]
     );
-  };
+  }, [entries, deleteMutation, user, dateStr]);
 
-  const handleEntryPress = (entry: ReflectionLogEntry) => {
-    setSelectedEntry(entry);
-    setShowEntryModal(true);
-  };
+  // handleEntryPress removed - not used in original design
 
-  const startAdding = () => {
-    resetForm();
-    setIsAdding(true);
-  };
+  // startAdding removed - not used in original design
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  // Handle prompt selection with analytics
+  const handlePromptSelection = useCallback((prompt: string) => {
+    setSelectedPrompt(prompt);
+    setNewEntry(prev => ({ ...prev, prompt, type: 'guided' }));
+    setShowPromptPicker(false);
+
+    // Track prompt selection analytics
+    if (user) {
+      analytics.trackReflectionEvent('reflection_prompt_selected', {
+        prompt_text: prompt,
+        date: dateStr,
+      }, user.id);
+    }
+  }, [user, dateStr]);
+
+  // Handle type change with analytics
+  const handleTypeChange = useCallback((newType: ViewMode) => {
+    const oldType = newEntry.type;
+    setNewEntry(prev => ({ ...prev, type: newType }));
+
+    // Track type change analytics
+    if (user && oldType !== newType) {
+      analytics.trackReflectionEvent('reflection_type_changed', {
+        from_type: oldType,
+        to_type: newType,
+        date: dateStr,
+      }, user.id);
+    }
+  }, [newEntry.type, user, dateStr]);
+
+  // formatDate removed - not used in original design
 
   const renderPromptPicker = () => (
     <Modal
@@ -234,11 +354,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   styles.promptOption,
                   selectedPrompt === prompt && styles.selectedPromptOption,
                 ]}
-                onPress={() => {
-                  setSelectedPrompt(prompt);
-                  setNewEntry(prev => ({ ...prev, prompt }));
-                  setShowPromptPicker(false);
-                }}
+                onPress={() => handlePromptSelection(prompt)}
               >
                 <Text style={styles.promptOptionText}>{prompt}</Text>
               </TouchableOpacity>
@@ -249,50 +365,154 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     </Modal>
   );
 
+  const renderEntries = () => {
+    if (isLoading) {
+      return <ReflectionSkeleton />;
+    }
+
+    if (error) {
+      return (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Failed to load reflections</Text>
+          <Text style={styles.errorMessage}>
+            {error.message || 'Something went wrong. Please try again.'}
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              console.log('🔄 User retrying reflection fetch');
+              analytics.trackReflectionEvent('reflection_error', {
+                error_type: error.message || 'Unknown error',
+                operation: 'fetch',
+                date: dateStr,
+              });
+              refetch();
+            }}
+          >
+            <Ionicons name="refresh" size={16} color={Colors.hopeWhite} style={styles.spinning} />
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // Filter entries to only show those from the current date
+    const filteredEntries = entries.filter(entry => {
+      return entry.selected_date === dateStr;
+    });
+
+    if (filteredEntries.length === 0) {
+      return null; // Return nothing if no entries for the current date
+    }
+
+    return (
+      <>
+        <View style={styles.entriesContainer}>
+          {filteredEntries.slice(0, visibleCount).map((entry) => (
+            <React.Fragment key={entry.id}>
+              {renderEntryCard(entry)}
+            </React.Fragment>
+          ))}
+        </View>
+        {(filteredEntries.length > visibleCount || visibleCount > 3) && (
+          <View style={styles.paginationContainer}>
+            <View style={styles.paginationButtonGroup}>
+              {filteredEntries.length > visibleCount && (
+                <TouchableOpacity
+                  style={[styles.paginationButton, styles.showMoreButton]}
+                  onPress={() => setVisibleCount(prev => Math.min(prev + 3, filteredEntries.length))}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                  <Text style={[styles.paginationButtonText, styles.showMoreText]}>
+                    Show more
+                  </Text>
+                </TouchableOpacity>
+              )}
+              {visibleCount > 3 && (
+                <TouchableOpacity
+                  style={[styles.paginationButton, styles.showLessButton]}
+                  onPress={() => setVisibleCount(3)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                  <Text style={[styles.paginationButtonText, styles.showLessText]}>
+                    Show less
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+      </>
+    );
+  };
+
   const renderEntryCard = (entry: ReflectionLogEntry) => (
     <TouchableOpacity
       key={entry.id}
-      style={styles.entryCard}
-      onPress={() => handleEntryPress(entry)}
+      style={[
+        styles.entryCard,
+        entry.source === 'devotional'
+          ? styles.devotionalEntry
+          : entry.type === 'guided'
+            ? styles.guidedEntry
+            : styles.freeFormEntry,
+      ]}
       activeOpacity={0.8}
     >
-      <View style={styles.entryHeader}>
-        <Text style={styles.entryTitle} numberOfLines={1}>
-          {entry.title}
-        </Text>
-        <View style={styles.entryActions}>
-          <TouchableOpacity
-            onPress={() => handleEditEntry(entry)}
-            style={styles.actionButton}
-          >
-            <Ionicons name="pencil" size={14} color={Colors.anchorBlue} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => handleDeleteEntry(entry.id)}
-            style={styles.actionButton}
-          >
-            <Ionicons name="trash" size={14} color={Colors.alertCoral} />
-          </TouchableOpacity>
+      {entry.source === 'devotional' ? (
+        <View style={styles.guidedPromptRow}>
+          <View style={styles.devotionalPromptContainer}>
+            <Text style={styles.devotionalPromptText}>DEVOTIONAL</Text>
+          </View>
+          <Text style={styles.timeText}>
+            {new Date(entry.created_at).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            })}
+          </Text>
         </View>
-      </View>
-
-      <Text style={styles.entryContent} numberOfLines={2}>
-        {entry.content}
+      ) : entry.type === 'guided' && entry.prompt ? (
+        <View style={styles.guidedPromptRow}>
+          <View style={styles.guidedPromptContainer}>
+            <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
+          </View>
+          <Text style={styles.timeText}>
+            {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.freeFormPromptRow}>
+          <View style={styles.freeFormPromptContainer}>
+            <Text style={styles.freeFormPromptText}>FREE FORM</Text>
+          </View>
+          <Text style={styles.timeText}>
+            {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+          </Text>
+        </View>
+      )}
+      {entry.type === 'guided' && entry.prompt ? (
+        <Text style={styles.promptCardText}>{entry.prompt}</Text>
+      ) : entry.title ? (
+        <Text style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</Text>
+      ) : null}
+      <Text
+        style={styles.entryContent}
+        numberOfLines={3}
+        ellipsizeMode="tail"
+      >
+        {typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content)}
       </Text>
-
-      <View style={styles.entryMeta}>
-        <Text style={styles.entryType}>
-          {entry.type === 'guided' ? 'Guided' : 'Free-form'}
-        </Text>
-        <Text style={styles.entryDate}>
-          {formatDate(entry.created_at)}
-        </Text>
-      </View>
-
-      {entry.prompt && (
-        <Text style={styles.entryPrompt} numberOfLines={1}>
-          Prompt: {entry.prompt}
-        </Text>
+      {entry.tags && entry.tags.length > 0 && (
+        <View style={styles.tagsContainer}>
+          {entry.tags.map((tag, index) => (
+            <View key={index} style={styles.tag}>
+              <Text style={styles.tagText}>{tag}</Text>
+            </View>
+          ))}
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -306,7 +526,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             styles.typeButton,
             newEntry.type === 'free' && styles.typeButtonActive,
           ]}
-          onPress={() => setNewEntry(prev => ({ ...prev, type: 'free' }))}
+          onPress={() => handleTypeChange('free')}
         >
           <Text style={[
             styles.typeButtonText,
@@ -320,7 +540,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             styles.typeButton,
             newEntry.type === 'guided' && styles.typeButtonActive,
           ]}
-          onPress={() => setNewEntry(prev => ({ ...prev, type: 'guided' }))}
+          onPress={() => handleTypeChange('guided')}
         >
           <Text style={[
             styles.typeButtonText,
@@ -385,9 +605,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           style={[
             styles.button,
             styles.saveButton,
-            (createMutation.isPending || updateMutation.isPending) && styles.disabledButton,
+            (isSaving || createMutation.isPending || updateMutation.isPending) && styles.disabledButton,
           ]}
-          disabled={createMutation.isPending || updateMutation.isPending}
+          disabled={isSaving || createMutation.isPending || updateMutation.isPending}
         >
           <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
         </TouchableOpacity>
@@ -395,46 +615,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     </View>
   );
 
-  const renderEntryModal = () => (
-    <Modal
-      visible={showEntryModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowEntryModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{selectedEntry?.title}</Text>
-            <TouchableOpacity onPress={() => setShowEntryModal(false)}>
-              <X size={24} color={Colors.darkGray} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.modalBody}>
-            {selectedEntry?.prompt && (
-              <View style={styles.promptContainer}>
-                <Text style={styles.promptText}>"{selectedEntry.prompt}"</Text>
-              </View>
-            )}
-
-            <Text style={styles.modalContentText}>
-              {selectedEntry?.content}
-            </Text>
-
-            <View style={styles.modalMeta}>
-              <Text style={styles.modalMetaText}>
-                {selectedEntry?.type === 'guided' ? 'Guided Reflection' : 'Free-form Reflection'}
-              </Text>
-              <Text style={styles.modalMetaText}>
-                {selectedEntry && formatDate(selectedEntry.created_at)}
-              </Text>
-            </View>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
+  // renderEntryModal removed - not used in original design
 
   React.useEffect(() => {
     if (error) {
@@ -442,6 +623,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     }
   }, [error]);
 
+  // handleRetry removed - not used in original design
+
+  // Loading state with skeleton
   if (isLoading) {
     return (
       <JournalCard
@@ -452,45 +636,81 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         onAdd={() => {}}
         isAdding={false}
       >
-        <Text style={styles.loadingText}>Loading reflections...</Text>
+        <ReflectionSkeleton count={3} />
+      </JournalCard>
+    );
+  }
+
+  // Error state with retry option
+  if (error) {
+    return (
+      <JournalCard
+        icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
+        title="Reflection Log"
+        subtitle="Unable to load reflections"
+        showAddButton={false}
+        onAdd={() => {}}
+      >
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Failed to load reflections</Text>
+          <Text style={styles.errorMessage}>
+            {error.message || 'Something went wrong. Please try again.'}
+          </Text>
+          <TouchableOpacity
+            style={styles.retryButton}
+            onPress={() => {
+              console.log('🔄 User retrying reflection fetch');
+              analytics.trackReflectionEvent('reflection_error', {
+                error_type: error.message || 'Unknown error',
+                operation: 'retry',
+                date: dateStr,
+              });
+              refetch();
+            }}
+          >
+            <Ionicons name="refresh" size={16} color={Colors.hopeWhite} style={styles.spinning} />
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
       </JournalCard>
     );
   }
 
   return (
     <JournalCard
-      icon={<LuNotebookPen size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
+      icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
       title="Reflection Log"
-      subtitle="Capture your thoughts and insights"
-      showAddButton={!isAdding}
-      onAdd={startAdding}
-      isAdding={isAdding}
+      subtitle={entries && entries.length > 0 ? `${entries.length} reflections` : 'No reflections yet'}
+      showAddButton={true}
+      onAdd={() => {
+        setNewEntry({
+          title: '',
+          content: '',
+          type: 'free',
+          prompt: '',
+          tags: [],
+          location: '',
+        });
+        setSelectedPrompt('');
+        setIsAdding(true);
+        setEditingId(null);
+      }}
     >
-      {entries.length > 0 ? (
-        <View>
-          {entries.slice(0, visibleCount).map(renderEntryCard)}
-          {entries.length > visibleCount && (
-            <TouchableOpacity
-              style={styles.showMoreButton}
-              onPress={() => setVisibleCount(prev => prev + 3)}
-            >
-              <Text style={styles.showMoreText}>
-                Show {Math.min(3, entries.length - visibleCount)} more
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : (
-        !isAdding && (
-          <Text style={styles.emptyText}>
-            No reflections yet. Tap the + button to start writing.
-          </Text>
-        )
-      )}
+      {/* Entries List */}
+      {renderEntries()}
 
-      {isAdding && renderEntryForm()}
+      {/* Add/Edit Entry Modal */}
+      <Modal
+        visible={isAdding}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsAdding(false)}
+      >
+        {renderEntryForm()}
+      </Modal>
+
+      {/* Prompt Picker Modal */}
       {renderPromptPicker()}
-      {renderEntryModal()}
     </JournalCard>
   );
 };
@@ -556,10 +776,15 @@ const styles = StyleSheet.create({
   },
   entryContent: {
     fontFamily: Fonts.regular,
-    fontSize: 13,
     color: Colors.darkGray,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 20,
     marginBottom: 8,
+    marginLeft: 16,
+    paddingLeft: 16,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(26, 60, 109, 0.1)',
+    borderTopLeftRadius: 2,
   },
   entryMeta: {
     flexDirection: 'row',
@@ -791,6 +1016,195 @@ const styles = StyleSheet.create({
   modalMetaText: {
     fontFamily: Fonts.regular,
     fontSize: 12,
+    color: Colors.mediumGray,
+  },
+  // Error handling styles
+  errorContainer: {
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 16,
+    color: Colors.darkGray,
+    marginTop: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  retryButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  spinning: {
+    // Add rotation animation if needed
+    opacity: 0.7,
+  },
+  // Original layout styles
+  devotionalEntry: {
+    backgroundColor: 'rgba(245, 166, 35, 0.05)',
+    borderColor: 'rgba(245, 166, 35, 0.15)',
+    borderWidth: 0.5,
+  },
+  guidedEntry: {
+    backgroundColor: 'rgba(255, 107, 107, 0.05)',
+    borderColor: 'rgba(255, 107, 107, 0.15)',
+  },
+  freeFormEntry: {
+    backgroundColor: 'rgba(76, 184, 144, 0.05)',
+    borderColor: 'rgba(76, 184, 144, 0.15)',
+  },
+  guidedPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  devotionalPromptContainer: {
+    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  devotionalPromptText: {
+    fontSize: 8,
+    color: Colors.faithGold,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  guidedPromptContainer: {
+    backgroundColor: 'rgba(255, 81, 90, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  guidedPromptText: {
+    fontSize: 8,
+    color: Colors.alertCoral,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  freeFormPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  freeFormPromptContainer: {
+    backgroundColor: 'rgba(76, 184, 144, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  freeFormPromptText: {
+    fontSize: 8,
+    color: Colors.growthGreen,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  timeText: {
+    fontSize: 10,
+    color: Colors.mediumGray,
+    fontFamily: Fonts.regular,
+  },
+  promptCardText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'left',
+    marginBottom: 16,
+    fontWeight: '500',
+    letterSpacing: 0.15,
+    width: '100%',
+  },
+  normalTitleText: {
+    fontStyle: 'normal',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 60, 109, 0.05)',
+    borderRadius: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    marginLeft: 4,
+    marginBottom: 4,
+    height: 20,
+  },
+  tagText: {
+    fontSize: 8,
+    color: Colors.anchorBlue,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  // Entry list styles
+  entriesContainer: {
+    width: '100%',
+  },
+  paginationContainer: {
+    width: '100%',
+    paddingVertical: 1,
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 0,
+    paddingTop: 10,
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  paginationButtonText: {
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    lineHeight: 14,
+  },
+  showLessButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  showLessText: {
     color: Colors.mediumGray,
   },
 });

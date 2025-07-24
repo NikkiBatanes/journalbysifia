@@ -161,6 +161,56 @@ interface LookingForwardAnalyticsEvents {
   };
 }
 
+interface ReflectionAnalyticsEvents {
+  'reflection_created': {
+    title_length: number;
+    content_length: number;
+    type: 'free' | 'guided';
+    has_prompt: boolean;
+    date: string;
+  };
+  'reflection_updated': {
+    reflection_id: string;
+    title_length: number;
+    content_length: number;
+    previous_title_length: number;
+    previous_content_length: number;
+    type: 'free' | 'guided';
+    date: string;
+  };
+  'reflection_deleted': {
+    reflection_id: string;
+    title_length: number;
+    content_length: number;
+    type: 'free' | 'guided';
+    date: string;
+  };
+  'reflection_viewed': {
+    reflection_id: string;
+    type: 'free' | 'guided';
+    date: string;
+  };
+  'reflection_loaded': {
+    entries_count: number;
+    load_time_ms: number;
+    date: string;
+  };
+  'reflection_prompt_selected': {
+    prompt_text: string;
+    date: string;
+  };
+  'reflection_type_changed': {
+    from_type: 'free' | 'guided';
+    to_type: 'free' | 'guided';
+    date: string;
+  };
+  'reflection_error': {
+    error_type: string;
+    operation: string;
+    date: string;
+  };
+}
+
 class Analytics {
   private events: AnalyticsEvent[] = [];
   private isEnabled: boolean = __DEV__; // Only enable in development for now
@@ -223,6 +273,19 @@ class Analytics {
   trackLookingForwardEvent<T extends keyof LookingForwardAnalyticsEvents>(
     event: T,
     properties: LookingForwardAnalyticsEvents[T],
+    userId?: string
+  ): void {
+    if (!this.isEnabled) {return;}
+
+    this.track(event, properties, userId);
+  }
+
+  /**
+   * Track a Reflection-specific event
+   */
+  trackReflectionEvent<T extends keyof ReflectionAnalyticsEvents>(
+    event: T,
+    properties: ReflectionAnalyticsEvents[T],
     userId?: string
   ): void {
     if (!this.isEnabled) {return;}
@@ -294,4 +357,4 @@ class Analytics {
 export const analytics = new Analytics();
 
 // Export types for use in components
-export type { TodoAnalyticsEvents, FocusAnalyticsEvents, GratitudeAnalyticsEvents, WinAnalyticsEvents, LookingForwardAnalyticsEvents, AnalyticsEvent };
+export type { TodoAnalyticsEvents, FocusAnalyticsEvents, GratitudeAnalyticsEvents, WinAnalyticsEvents, LookingForwardAnalyticsEvents, ReflectionAnalyticsEvents, AnalyticsEvent };

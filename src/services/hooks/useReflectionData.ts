@@ -106,16 +106,26 @@ export const useCreateReflection = () => {
       }
     },
     onSuccess: (data, variables) => {
-      // Invalidate and refetch related queries
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date),
+      console.log('🔍 useCreateReflection: Successfully created reflection', data.id);
+      
+      // Update cache with the real data instead of invalidating
+      const queryKey = queryKeys.reflections.byDate(variables.user_id, variables.selected_date);
+      queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) => {
+        // Replace the temporary entry with the real one
+        return old.map(entry => 
+          entry.id.startsWith('temp-') ? data : entry
+        );
       });
 
-      // Also invalidate type-specific queries if type is specified
+      // Also update type-specific queries if type is specified
       if (variables.type) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type),
-        });
+        queryClient.setQueryData(
+          queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type),
+          (old: ReflectionApiEntry[] = []) => {
+            const existingEntry = old.find(entry => entry.id === data.id);
+            return existingEntry ? old : [...old, data];
+          }
+        );
       }
     },
   });
@@ -126,14 +136,60 @@ export const useUpdateReflection = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<ReflectionApiEntry, 'id' | 'user_id' | 'created_at'>> }) =>
-      ReflectionApi.updateReflectionEntry(id, updates),
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Omit<ReflectionApiEntry, 'id' | 'user_id' | 'created_at'>> }) => {
+      console.log('🔍 useUpdateReflection: Starting API call', { id, updates });
+      return ReflectionApi.updateReflectionEntry(id, updates);
+    },
+    onMutate: async ({ id, updates }) => {
+      // Find the reflection to get user_id and selected_date
+      const queries = queryClient.getQueriesData({ queryKey: ['reflections'] });
+      let reflectionToUpdate: ReflectionApiEntry | undefined;
+      let queryKey: any;
+
+      for (const [key, data] of queries) {
+        if (Array.isArray(data)) {
+          reflectionToUpdate = data.find((reflection: ReflectionApiEntry) => reflection.id === id);
+          if (reflectionToUpdate) {
+            queryKey = key;
+            break;
+          }
+        }
+      }
+
+      if (reflectionToUpdate && queryKey) {
+        // Cancel any outgoing refetches
+        await queryClient.cancelQueries({ queryKey });
+
+        // Snapshot the previous value
+        const previousReflections = queryClient.getQueryData(queryKey);
+
+        // Optimistically update the reflection
+        queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) =>
+          old.map(reflection => 
+            reflection.id === id 
+              ? { ...reflection, ...updates, updated_at: new Date().toISOString() }
+              : reflection
+          )
+        );
+
+        return { previousReflections, queryKey, reflectionToUpdate };
+      }
+
+      return { id, updates };
+    },
+    onError: (updateError, { id }, context) => {
+      console.error('🔍 useUpdateReflection: API call failed', updateError);
+      if (context?.previousReflections && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousReflections);
+      }
+    },
     onSuccess: (data) => {
-      // Update the specific reflection in the query
-      queryClient.setQueryData(
-        queryKeys.reflections.byDate(data.user_id, data.selected_date),
-        (old: ReflectionApiEntry[] = []) =>
-          old.map(reflection => reflection.id === data.id ? data : reflection)
+      console.log('🔍 useUpdateReflection: API call successful', data);
+      
+      // Update the specific reflection in the main query
+      const queryKey = queryKeys.reflections.byDate(data.user_id, data.selected_date);
+      queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) =>
+        old.map(reflection => reflection.id === data.id ? data : reflection)
       );
 
       // Also update type-specific queries if type is specified
