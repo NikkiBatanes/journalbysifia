@@ -1,11 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet, Platform, KeyboardAvoidingView, Keyboard } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { NotebookPen as LuNotebookPen, X } from 'lucide-react-native';
 import ReflectionLogEditor from './ReflectionLogEditor';
+import { styles as reflectionLogStyles } from './ReflectionLog';
 import { useAuth } from '../../context/AuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -507,11 +508,23 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       <Modal
         visible={isAdding}
         animationType="slide"
-        transparent={false}
-        onRequestClose={() => setIsAdding(false)}
+        transparent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          // Small delay to ensure keyboard is fully dismissed before closing
+          setTimeout(() => {
+            resetForm();
+            setIsAdding(false);
+          }, 10);
+        }}
       >
-        {isAdding && (
-          <ReflectionLogEditor
+        <KeyboardAvoidingView
+          style={modalStyles.centeredView}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={modalStyles.modalView}>
+            {isAdding && (
+              <ReflectionLogEditor
             onSave={async (entryData: any) => {
               if (!user) {
                 console.error('User not authenticated');
@@ -584,12 +597,21 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             }}
             initialMode={selectedPrompt ? 'guided' : (newEntry.type === 'guided' ? 'guided' : 'free-form')}
             initialPrompt={selectedPrompt || newEntry.prompt || ''}
-            dateString={toLocalDateString(new Date())}
             initialTitle={selectedPrompt || newEntry.title}
             lockTitle={Boolean(selectedPrompt)}
             source={selectedPrompt ? 'guided' : 'freeform'}
+            styles={reflectionLogStyles}
+            dateString={(function() {
+              const now = new Date();
+              const year = now.getFullYear();
+              const todayString = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+              const todayStringWithYear = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+              return year === new Date().getFullYear() ? todayString : todayStringWithYear;
+            })()}
           />
-        )}
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Prompt Picker Modal */}
@@ -1089,5 +1111,31 @@ const styles = StyleSheet.create({
   },
   showLessText: {
     color: Colors.mediumGray,
+  },
+});
+
+// Modal styles for the white background modal
+const modalStyles = StyleSheet.create({
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  modalView: {
+    backgroundColor: Colors.hopeWhite,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    padding: 0,
+    width: '100%',
+    height: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    overflow: 'hidden',
   },
 });
