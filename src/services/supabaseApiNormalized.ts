@@ -683,3 +683,57 @@ export async function updatePlaybookStatus(
     throw error;
   }
 }
+
+// Calculate task statistics for action steps
+export function calculateTaskStats(actionSteps: ActionStep[]): { completed: number; total: number } {
+  let completed = 0;
+  let total = 0;
+
+  actionSteps.forEach(step => {
+    if (step.subTasks && step.subTasks.length > 0) {
+      // Count subtasks
+      step.subTasks.forEach(subTask => {
+        total++;
+        if (subTask.completed) {
+          completed++;
+        }
+      });
+    } else {
+      // Count the step itself if no subtasks
+      total++;
+      if (step.completed) {
+        completed++;
+      }
+    }
+  });
+
+  return { completed, total };
+}
+
+// Update all action steps for a playbook
+export async function updatePlaybookActionSteps(
+  playbookId: string,
+  actionSteps: ActionStep[]
+): Promise<void> {
+  try {
+    console.log(`[updatePlaybookActionSteps] Updating ${actionSteps.length} action steps for playbook ${playbookId}`);
+    
+    // For now, just update playbook progress without individual step updates
+    // TODO: Implement proper normalized updates when we have user context
+    
+    // Update playbook progress
+    const stats = calculateTaskStats(actionSteps);
+    const progress = stats.total > 0 ? (stats.completed / stats.total) : 0;
+    const allCompleted = stats.total > 0 && stats.completed === stats.total;
+    
+    await updatePlaybookStatus(
+      playbookId,
+      allCompleted ? 'completed' : 'ongoing'
+    );
+    
+    console.log(`[updatePlaybookActionSteps] Successfully updated playbook status for ${playbookId}`);
+  } catch (error) {
+    console.error('[updatePlaybookActionSteps] Error updating action steps:', error);
+    throw error;
+  }
+}

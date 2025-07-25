@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
-import { updatePlaybookActionSteps, calculateTaskStats } from '../services/supabaseApi';
+import { updatePlaybookActionSteps, calculateTaskStats } from '../services/supabaseApiNormalized';
 import { usePlaybookStore } from '../store/usePlaybookStore';
 import { Playbook } from '../interfaces/playbook';
 
