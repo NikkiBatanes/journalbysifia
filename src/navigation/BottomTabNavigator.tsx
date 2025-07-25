@@ -9,7 +9,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
 import { Spacing, FontSizes } from '../theme/styles';
 import { TabBarIcons } from './TabBarIcons';
-import PlaybookListScreen from '../screens/PlaybookListScreen';
+import PlaybookListScreenSimple from '../screens/PlaybookListScreenSimple';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 import DevotionalsScreen from '../screens/DevotionalsScreen';
@@ -187,7 +187,7 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
       />
       <Tab.Screen
         name="Playbooks"
-        component={PlaybookListScreen}
+        component={PlaybookListScreenSimple}
         options={{
           tabBarLabel: 'Playbooks',
           title: 'Playbooks',

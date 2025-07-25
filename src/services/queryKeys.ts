@@ -68,12 +68,15 @@ export const queryKeys = {
 
   // Playbook-related queries
   playbooks: {
-    all: ['playbooks'] as const,
-    list: (userId: string) => ['playbooks', 'list', userId] as const,
+    all: (userId: string) => ['playbooks', userId] as const,
+    lists: () => ['playbooks'] as const,
     detail: (userId: string, playbookId: string) => ['playbooks', 'detail', userId, playbookId] as const,
+    byStatus: (userId: string, status: string) => ['playbooks', 'status', userId, status] as const,
     actionSteps: (playbookId: string) => ['playbooks', 'actionSteps', playbookId] as const,
-    active: (userId: string) => ['playbooks', 'active', userId] as const,
-    completed: (userId: string) => ['playbooks', 'completed', userId] as const,
+    affirmations: (playbookId: string) => ['playbooks', 'affirmations', playbookId] as const,
+    progress: (userId: string) => ['playbooks', 'progress', userId] as const,
+    stats: (userId: string) => ['playbooks', 'stats', userId] as const,
+    search: (userId: string, searchTerm: string) => ['playbooks', 'search', userId, searchTerm] as const,
   },
 
   // User-related queries

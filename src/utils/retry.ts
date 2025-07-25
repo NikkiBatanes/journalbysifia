@@ -147,6 +147,15 @@ export const RETRY_CONFIGS = {
     jitter: true, // Add randomness to prevent thundering herd
   },
 
+  // Enhanced configuration for Playbook operations with optimized retry
+  PLAYBOOKS: {
+    attempts: 4,
+    delay: 800, // Balanced delay for playbook operations
+    backoff: 'exponential' as const,
+    maxDelay: 8000, // Cap at 8 seconds
+    jitter: true, // Add randomness to prevent thundering herd
+  },
+
   // For non-critical operations like analytics
   LIGHT: {
     attempts: 2,
