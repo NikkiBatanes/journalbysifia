@@ -199,9 +199,9 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   // Ensure playbooks are loaded when userId changes
   useEffect(() => {
     if (userId) {
-      loadPlaybooks(userId);
+      refetch();
     }
-  }, [userId, loadPlaybooks]);
+  }, [userId, refetch]);
 
   // Filter and sort playbooks by completion status (optimized)
   const filteredPlaybooks = useMemo(() => {
@@ -355,18 +355,14 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              removePlaybook(id); // Optimistically update UI
-              await deletePlaybook(id, userId)
-                .catch(async (error) => {
-                  console.error('Error deleting playbook:', error);
-                  // If there was an error, reload the playbooks to restore the correct state
-                  await loadPlaybooks(userId);
-                  Alert.alert('Error', 'Failed to delete playbook. Please try again.');
-                });
+              // Delete from database
+              await deletePlaybook(id);
+              // Refresh the list after successful deletion
+              await refetch();
             } catch (error) {
               console.error('Error deleting playbook:', error);
               // If there was an error, reload the playbooks to restore the correct state
-              await loadPlaybooks(userId);
+              await refetch();
               Alert.alert('Error', 'Failed to delete playbook. Please try again.');
             }
           },
@@ -447,7 +443,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
             title="Refresh"
             onPress={() => {
               if (userId) {
-                loadPlaybooks(userId);
+                refetch();
               }
             }}
           />
