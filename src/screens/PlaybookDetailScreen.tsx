@@ -80,8 +80,39 @@ interface CardData {
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   // State management
-  const playbook = route.params.playbook;
+  const playbook = route.params?.playbook;
   const [isLoading, setIsLoading] = useState(!playbook);
+  
+  // Debug: Log playbook data
+  console.log('[PlaybookDetailScreen] Playbook data:', {
+    hasPlaybook: !!playbook,
+    title: playbook?.title,
+    userInput: playbook?.userInput,
+    hasUserInput: !!(playbook?.userInput),
+    actionStepsCount: playbook?.actionSteps?.length || 0,
+    firstActionStep: playbook?.actionSteps?.[0]
+  });
+  
+  // Early return if no playbook data
+  if (!playbook) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.progressText}>No playbook data available</Text>
+        <TouchableOpacity 
+          style={styles.navButton} 
+          onPress={() => {
+            try {
+              navigation.goBack();
+            } catch (error) {
+              console.log('Navigation error:', error);
+            }
+          }}
+        >
+          <Text style={styles.navButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   // Card state
   const [currentCard, setCurrentCard] = useState(0);
@@ -232,12 +263,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     {
       type: 'action' as const,
       steps: Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
-            (Array.isArray(playbook.actionSteps) ? playbook.actionSteps : []),
+            (Array.isArray(playbook?.actionSteps) ? playbook.actionSteps : []),
       tappable: false,
     },
     {
       type: 'affirmation' as const,
-      affirmations: Array.isArray(playbook.affirmations)
+      affirmations: Array.isArray(playbook?.affirmations)
         ? playbook.affirmations.filter((a): a is Required<Affirmation> =>
             a?.id !== undefined &&
             a?.text !== undefined &&
@@ -338,7 +369,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerLeft = React.useCallback(() => (
     <View style={styles.headerLeftContainer}>
       <TouchableOpacity
-        onPress={() => navigation.goBack()}
+        onPress={() => {
+          try {
+            navigation.goBack();
+          } catch (error) {
+            console.log('Navigation error:', error);
+          }
+        }}
         style={styles.backButtonContainer}
       >
         <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
@@ -451,6 +488,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
     if (playbook?.actionSteps && !isInitialized) {
       console.log('[DEBUG] Initializing action steps from playbook');
+      console.log('[DEBUG] Playbook action steps:', playbook.actionSteps.slice(0, 2));
+      console.log('[DEBUG] First action step examples:', playbook.actionSteps[0]?.examples);
       setActionSteps(playbook.actionSteps);
       setIsInitialized(true);
     }

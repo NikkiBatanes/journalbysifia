@@ -149,17 +149,42 @@ export default function ActionStepsCard({
         ) : (
           <View style={styles.stepsContainer}>
             {steps.map((step, index) => {
-              const examples = Array.isArray((step as any).examples)
-                ? (step as any).examples.map((ex: string, i: number) => ({
-                    id: `ex-${i}`,
-                    text: ex,
-                  }))
-                : (step.subTasks || [])
-                    .filter((st) => typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:'))
-                    .map((st, i) => ({
-                      id: st.id || `ex-${i}`,
-                      text: st.text.replace(/^Example:/i, '').trim(),
-                    }));
+              // Handle examples from database (string) or from sub-tasks
+              let examples: { id: string; text: string }[] = [];
+              
+              // Debug: Log step data
+              console.log(`[ActionStepsCard] Step ${index}:`, {
+                id: step.id,
+                title: step.title,
+                examples: (step as any).examples,
+                examplesType: typeof (step as any).examples,
+                hasExamples: !!(step as any).examples
+              });
+              
+              // First, check if step has examples field from database
+              if ((step as any).examples && typeof (step as any).examples === 'string') {
+                // Split examples by "Example:" and clean them up
+                const exampleText = (step as any).examples;
+                const exampleMatches = exampleText.split(/Example:\s*/i).filter((text: string) => text.trim().length > 0);
+                examples = exampleMatches.map((ex: string, i: number) => ({
+                  id: `ex-${i}`,
+                  text: ex.trim(),
+                }));
+              } else if (Array.isArray((step as any).examples)) {
+                // Handle array format (legacy)
+                examples = (step as any).examples.map((ex: string, i: number) => ({
+                  id: `ex-${i}`,
+                  text: ex,
+                }));
+              } else {
+                // Fallback: extract from sub-tasks that start with "Example:"
+                examples = (step.subTasks || [])
+                  .filter((st) => typeof st.text === 'string' && st.text.toLowerCase().startsWith('example:'))
+                  .map((st, i) => ({
+                    id: st.id || `ex-${i}`,
+                    text: st.text.replace(/^Example:/i, '').trim(),
+                  }));
+              }
               const subtasks = (step.subTasks || []).filter(
                 (st) => typeof st.text === 'string' && !st.text.toLowerCase().startsWith('example:')
               );

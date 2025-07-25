@@ -21,7 +21,9 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 
 import { useUser } from '../context/UserContext';
-import { generatePlaybook, savePlaybook } from '../services/supabaseApi';
+import { generatePlaybook } from '../services/supabaseApi';
+import { createPlaybook } from '../services/supabaseApiNormalized';
+import { debugAuthState, getCurrentUserId } from '../utils/authCheck';
 import { Colors } from '../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
@@ -127,10 +129,65 @@ const UserInputScreen: React.FC = () => {
 
     setIsLoading(true);
     try {
+      // Generate playbook content via AI
       const aiResponse = await generatePlaybook(userInput, userName);
-      aiResponse.createdAt = new Date().toISOString();
+      console.log('[UserInputScreen] AI Response received:', aiResponse);
+      console.log('[UserInputScreen] Raw AI Response JSON:', JSON.stringify(aiResponse, null, 2));
+      // Save to database using normalized API
+      let savedPlaybook;
+      
+      console.log('[UserInputScreen] User ID from context:', userId);
+      console.log('[UserInputScreen] User ID type:', typeof userId);
+      console.log('[UserInputScreen] User authenticated:', !!userId);
+      
+      // Debug authentication state
+      await debugAuthState();
+      
+      // Try to get user ID from multiple sources
+      let actualUserId = userId;
+      if (!actualUserId) {
+        console.log('[UserInputScreen] Trying to get user ID from auth sources...');
+        actualUserId = await getCurrentUserId();
+      }
+      
+      if (!actualUserId) {
+        console.error('[UserInputScreen] No user ID available from any source');
+        throw new Error('User not authenticated. Please log in and try again.');
+      }
+      
+      console.log('[UserInputScreen] Final user ID to use:', actualUserId);
+      
       if (userId) {
-        await savePlaybook(aiResponse, userId);
+        console.log('[UserInputScreen] Saving playbook to database...');
+        console.log('[UserInputScreen] AI Response structure:', {
+          title: aiResponse.title,
+          actionStepsCount: aiResponse.actionSteps?.length || 0,
+          actionSteps: aiResponse.actionSteps,
+          affirmationsCount: aiResponse.affirmations?.length || 0,
+          affirmations: aiResponse.affirmations,
+          truthInLove: aiResponse.truthInLove,
+          bibleVerse: aiResponse.bibleVerse,
+          directChallenge: aiResponse.directChallenge
+        });
+        
+        savedPlaybook = await createPlaybook({
+          user_id: actualUserId,
+          title: aiResponse.title,
+          userInput: userInput,
+          truthInLove: aiResponse.truthInLove,
+          bibleVerse: aiResponse.bibleVerse,
+          directChallenge: aiResponse.directChallenge,
+          challengeCTA: aiResponse.challengeCTA,
+          actionSteps: aiResponse.actionSteps || [],
+          affirmations: aiResponse.affirmations || [],
+          progress: 0,
+          totalTasks: (aiResponse.actionSteps?.length || 0) + (aiResponse.affirmations?.length || 0),
+          status: 'ongoing'
+        });
+        console.log('[UserInputScreen] Playbook saved successfully:', savedPlaybook.id);
+      } else {
+        console.warn('[UserInputScreen] No user ID, cannot save to database');
+        savedPlaybook = aiResponse;
       }
 
       // Navigate to PlaybookDetail with the generated playbook
@@ -144,7 +201,7 @@ const UserInputScreen: React.FC = () => {
             ],
             index: 1, // Make sure PlaybookList is active
           }},
-          { name: 'PlaybookDetail', params: { playbook: aiResponse } },
+          { name: 'PlaybookDetail', params: { playbook: savedPlaybook || aiResponse } },
         ],
       });
   } catch (_error) {

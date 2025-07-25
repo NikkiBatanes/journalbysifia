@@ -13,6 +13,7 @@ export interface ActionStep {
   id: string;
   title: string;
   description?: string; // For steps without sub-tasks
+  examples?: string; // Examples from database
   subTasks?: SubTask[]; // Only present if there are sub-tasks
   completed: boolean; // Always boolean for strict typing
 }

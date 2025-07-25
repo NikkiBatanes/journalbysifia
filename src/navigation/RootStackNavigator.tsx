@@ -59,21 +59,39 @@ const renderWhiteProfileImage = () => (
 const PlaybookHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
   <HeaderLeft
     color={Colors.anchorBlue}
-    onPress={() => navigation.goBack()}
+    onPress={() => {
+      try {
+        navigation.goBack();
+      } catch (error) {
+        console.log('Navigation error in PlaybookHeaderLeft:', error);
+      }
+    }}
   />
 ));
 
 const CardHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
   <HeaderLeft
     color={Colors.hopeWhite}
-    onPress={() => navigation.goBack()}
+    onPress={() => {
+      try {
+        navigation.goBack();
+      } catch (error) {
+        console.log('Navigation error in CardHeaderLeft:', error);
+      }
+    }}
   />
 ));
 
 const DevotionalHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
   <HeaderLeft
     color={Colors.anchorBlue}
-    onPress={() => navigation.goBack()}
+    onPress={() => {
+      try {
+        navigation.goBack();
+      } catch (error) {
+        console.log('Navigation error in DevotionalHeaderLeft:', error);
+      }
+    }}
   />
 ));
 

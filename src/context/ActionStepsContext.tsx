@@ -13,6 +13,7 @@ export type ActionStep = {
   id: string;
   title: string;
   description?: string;
+  examples?: string;
   subTasks?: SubTask[];
   completed: boolean;
 };
@@ -177,37 +178,16 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
         return;
       }
 
+      console.log(`[ActionStepsContext] Saving action steps for playbook ${pbId}`);
       const stats = calculateTaskStats(actionSteps);
       const allCompleted = areAllStepsCompleted(actionSteps);
+      
+      console.log(`[ActionStepsContext] Stats: ${stats.completed}/${stats.total}, allCompleted: ${allCompleted}`);
 
-      // Get the current playbook to preserve other fields
-      const currentPlaybook = usePlaybookStore.getState().playbooks.find(p => p.id === pbId);
-
-      if (!currentPlaybook) {
-        console.warn(`[ActionStepsContext] Playbook with id ${pbId} not found`);
-        return;
-      }
-
-      // Update the local store first for immediate feedback
-      const updatedPlaybook: Playbook = {
-        ...currentPlaybook,
-        actionSteps,
-        progress: stats.completed / Math.max(stats.total, 1),
-        status: allCompleted ? 'completed' : 'inProgress',
-        updatedAt: new Date().toISOString(),
-        totalTasks: stats.total,
-      };
-
-      updatePlaybook(updatedPlaybook);
-
-      // Then save to the database
-      await updatePlaybookActionSteps(
-        pbId,
-        actionSteps,
-        allCompleted ? new Date().toISOString() : null
-      );
-
-      console.log('[ActionStepsContext] Successfully saved action steps to database');
+      // Save action steps directly to database without relying on Zustand store
+      await updatePlaybookActionSteps(pbId, actionSteps);
+      
+      console.log(`[ActionStepsContext] Successfully saved action steps for playbook ${pbId}`);
     } catch (error) {
       console.error('[ActionStepsContext] Error saving action steps:', error);
       throw error;
