@@ -85,7 +85,7 @@ interface CardData {
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   // Get playbook ID from route params (we only need the ID, not the full data)
-  const playbookId = route.params?.playbook?.id || route.params?.playbookId;
+  const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
   const { id: userId } = useUser();
   
   // Fetch fresh playbook data from database
@@ -110,44 +110,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     error
   });
   
-  // Early return if no playbook ID
-  if (!playbookId) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.progressText}>No playbook ID provided</Text>
-      </View>
-    );
-  }
-  
-  // Early return if loading
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.progressText}>Loading fresh playbook data...</Text>
-      </View>
-    );
-  }
-  
-  // Early return if error or no playbook data
-  if (error || !playbook) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.progressText}>Failed to load playbook data</Text>
-        <TouchableOpacity 
-          style={styles.navButton} 
-          onPress={() => {
-            try {
-              navigation.goBack();
-            } catch (error) {
-              console.log('Navigation error:', error);
-            }
-          }}
-        >
-          <Text style={styles.navButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  // NO EARLY RETURNS - ALL HOOKS MUST BE CALLED FIRST
+  // Conditional rendering will be handled in JSX return
 
   // Card state
   const [currentCard, setCurrentCard] = useState(0);
@@ -265,12 +229,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   elevation: shadowElevation.value,
 }));
 
-  // Effect to handle loading state
-  useEffect(() => {
-    if (playbook) {
-      setIsLoading(false);
-    }
-  }, [playbook]);
+  // React Query handles loading state automatically - no need for manual setIsLoading
 
   // Effect to handle chevron animation
   useEffect(() => {
@@ -372,12 +331,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     }
   }, [cardData.length, cardCount, isLoading]);
 
-  // Set loading state when playbook is loaded
-  useEffect(() => {
-    if (playbook) {
-      setIsLoading(false);
-    }
-  }, [playbook]);
+  // React Query handles loading state automatically - no need for manual setIsLoading
 
   // Handle initial render and loading state
   useEffect(() => {
@@ -957,6 +911,43 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </View>
     );
   };
+
+  // Handle conditional rendering here instead of early returns
+  if (!playbookId) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.progressText}>No playbook ID provided</Text>
+      </View>
+    );
+  }
+  
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.progressText}>Loading fresh playbook data...</Text>
+      </View>
+    );
+  }
+  
+  if (error || !playbook) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.progressText}>Failed to load playbook data</Text>
+        <TouchableOpacity 
+          style={styles.navButton} 
+          onPress={() => {
+            try {
+              navigation.goBack();
+            } catch (error) {
+              console.log('Navigation error:', error);
+            }
+          }}
+        >
+          <Text style={styles.navButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
