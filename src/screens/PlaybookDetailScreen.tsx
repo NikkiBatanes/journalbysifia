@@ -48,6 +48,11 @@ import DevotionalButton from '../components/DevotionalButton';
 import DevotionalModal from '../components/DevotionalModal';
 import { useNavigation } from '@react-navigation/native';
 
+// Data fetching
+import { useQuery } from '@tanstack/react-query';
+import { getPlaybook } from '../services/supabaseApiNormalized';
+import { useUser } from '../context/UserContext';
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 // Gesture state is now managed with useSharedValue
@@ -79,25 +84,55 @@ interface CardData {
 }
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
-  // State management
-  const playbook = route.params?.playbook;
-  const [isLoading, setIsLoading] = useState(!playbook);
+  // Get playbook ID from route params (we only need the ID, not the full data)
+  const playbookId = route.params?.playbook?.id || route.params?.playbookId;
+  const { id: userId } = useUser();
   
-  // Debug: Log playbook data
-  console.log('[PlaybookDetailScreen] Playbook data:', {
+  // Fetch fresh playbook data from database
+  const { data: playbook, isLoading, error } = useQuery<Playbook | null>({
+    queryKey: ['playbook', playbookId],
+    queryFn: () => getPlaybook(userId || '', playbookId),
+    enabled: !!playbookId && !!userId,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache to ensure fresh data (replaces cacheTime)
+  });
+  
+  // Debug: Log fresh playbook data
+  console.log('[PlaybookDetailScreen] Fresh playbook data:', {
+    playbookId,
     hasPlaybook: !!playbook,
     title: playbook?.title,
     userInput: playbook?.userInput,
     hasUserInput: !!(playbook?.userInput),
     actionStepsCount: playbook?.actionSteps?.length || 0,
-    firstActionStep: playbook?.actionSteps?.[0]
+    firstActionStep: playbook?.actionSteps?.[0],
+    isLoading,
+    error
   });
   
-  // Early return if no playbook data
-  if (!playbook) {
+  // Early return if no playbook ID
+  if (!playbookId) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.progressText}>No playbook data available</Text>
+        <Text style={styles.progressText}>No playbook ID provided</Text>
+      </View>
+    );
+  }
+  
+  // Early return if loading
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.progressText}>Loading fresh playbook data...</Text>
+      </View>
+    );
+  }
+  
+  // Early return if error or no playbook data
+  if (error || !playbook) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.progressText}>Failed to load playbook data</Text>
         <TouchableOpacity 
           style={styles.navButton} 
           onPress={() => {
