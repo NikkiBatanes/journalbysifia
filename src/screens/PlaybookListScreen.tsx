@@ -19,9 +19,9 @@ import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import PlaybookCard from '../components/PlaybookCard';
 import { Colors, Fonts } from '../theme';
 import type { Playbook } from '../interfaces/playbook';
-import { deletePlaybook } from '../services/supabaseApi';
-import { usePlaybookStore } from '../store/usePlaybookStore';
+import { deletePlaybook, getPlaybooks } from '../services/supabaseApiNormalized';
 import { useUser } from '../context/UserContext';
+import { useQuery } from '@tanstack/react-query';
 
 // Import gesture handler at the top level
 import 'react-native-gesture-handler'; // This is needed for gesture handling
@@ -83,17 +83,33 @@ const formatDate = (date: Date): string => {
 };
 
 const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
-  // Zustand global state for playbooks
-  const { playbooks, isLoading, loadPlaybooks, removePlaybook } = usePlaybookStore();
+  // Get user info
+  const { id: userId } = useUser();
+  
+  // Fetch fresh playbooks from database using React Query
+  const { data: playbooks = [], isLoading, error, refetch } = useQuery<Playbook[]>({
+    queryKey: ['playbooks', userId],
+    queryFn: () => getPlaybooks(userId || ''),
+    enabled: !!userId,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache to ensure fresh data
+  });
+  
   // Set filter to 'all' by default to ensure all playbooks are visible
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('all');
+  
+  // Debug: Log fresh playbooks data
+  console.log('[PlaybookListScreen] Fresh playbooks data:', {
+    userId,
+    playbooksCount: playbooks.length,
+    playbooks: playbooks.map(p => ({ id: p.id, title: p.title })),
+    isLoading,
+    error
+  });
 
   // Refs
   const animatedValues = useRef<Animated.Value[]>([]);
   const rowRefs = useRef<{ [key: string]: any }>({});
-
-  // Get user info
-  const { id: userId } = useUser();
 
   // Initialize animation values
   const initAnimations = (count: number) => {
@@ -137,11 +153,10 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 
   // Load playbooks using Zustand store
   const loadPlaybooksCallback = useCallback(async () => {
-    if (!userId) {
-      return;
-    }
-    await loadPlaybooks(userId);
-  }, [userId, loadPlaybooks]);
+    if (!userId) return;
+    
+    await refetch();
+  }, [userId, refetch]);
 
   // Initialize animations on mount and when playbooks change
   useEffect(() => {
