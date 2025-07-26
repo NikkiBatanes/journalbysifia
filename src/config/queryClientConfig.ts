@@ -1,19 +1,7 @@
 /**
- * DEPRECATED: Legacy Query Client Configuration
- *
- * This file has been replaced by queryClientConfigV2.ts which provides:
- * - React Query v5 compatibility
- * - Enhanced performance monitoring
- * - Background sync capabilities
- * - Better TypeScript support
- * - Network-aware operations
- *
- * Please use queryClientConfigV2.ts for all new implementations.
- * This file is kept for reference only and will be removed in a future version.
+ * Query Client Configuration
  */
 
-// Re-export from the new configuration
+// Re-export from the new implementation
 export * from './queryClientConfigV2';
-
-// Legacy export for backward compatibility
-export { createOptimizedQueryClient as createQueryClient } from './queryClientConfigV2';
+export { createOptimizedQueryClient as default } from './queryClientConfigV2';
