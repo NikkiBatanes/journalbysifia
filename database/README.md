@@ -20,6 +20,6 @@ For future migrations, consider using a proper migration system like:
 - [Knex.js](https://knexjs.org/)
 - [TypeORM](https://typeorm.io/)
 
-## Backups
+## Future Migrations
 
-A backup of the old migration files is available in the `database_backup/` directory.
+When the application is ready for production, consider implementing a proper migration system. The current approach is suitable for development and testing phases.
