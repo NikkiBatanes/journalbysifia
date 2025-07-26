@@ -22,7 +22,6 @@ import {
 } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/AuthContext';
 import { useUser } from '../context/UserContext';
-import { Devotional } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
@@ -44,7 +43,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const { devotionalId } = route.params;
   const { user } = useAuth();
   const { id: userId } = useUser();
-  
+
   // React Query hooks for devotional data
   const { data: devotional, isLoading: devotionalLoading } = useDevotionalByIdReactQuery(userId || '', devotionalId);
   const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
@@ -248,8 +247,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       // Mark the day as complete in the database
       const success = await markDayComplete(devotional.id, dayToMark.dayNumber);
       if (success) {
-        // Update local state to reflect the completed day
-        const updatedDays = [...devotional.days];
         // React Query handles optimistic updates automatically
         // Store the completed day index for modal display
         setCompletedDayIndex(currentDayIndex);

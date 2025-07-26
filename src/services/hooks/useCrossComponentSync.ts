@@ -31,7 +31,7 @@ export const useCrossComponentSync = (userId: string) => {
       type: 'playbook_progress',
       playbookId,
       userId,
-      metadata: { progress, timestamp: new Date().toISOString() }
+      metadata: { progress, timestamp: new Date().toISOString() },
     };
 
     // Update playbook-related queries
@@ -68,7 +68,7 @@ export const useCrossComponentSync = (userId: string) => {
       devotionalId,
       playbookId,
       userId,
-      metadata: { timestamp: new Date().toISOString() }
+      metadata: { timestamp: new Date().toISOString() },
     };
 
     // Update devotional queries
@@ -88,7 +88,7 @@ export const useCrossComponentSync = (userId: string) => {
         (oldData: any) => ({
           ...oldData,
           lastDevotionalCompleted: devotionalId,
-          lastSynced: new Date().toISOString()
+          lastSynced: new Date().toISOString(),
         })
       );
     }
@@ -105,7 +105,7 @@ export const useCrossComponentSync = (userId: string) => {
       type: 'journal_entry',
       date,
       userId,
-      metadata: { entryType, timestamp: new Date().toISOString() }
+      metadata: { entryType, timestamp: new Date().toISOString() },
     };
 
     // Update journal queries
@@ -115,7 +115,7 @@ export const useCrossComponentSync = (userId: string) => {
 
     // Check if this journal entry relates to any active playbooks
     const activePlaybooks = queryClient.getQueryData(queryKeys.playbooks.byStatus(userId, 'ongoing')) as any[];
-    
+
     if (activePlaybooks && activePlaybooks.length > 0) {
       // Update cross-component relationships for active playbooks
       activePlaybooks.forEach(playbook => {
@@ -124,7 +124,7 @@ export const useCrossComponentSync = (userId: string) => {
           (oldData: any) => ({
             ...oldData,
             lastJournalEntry: { type: entryType, date },
-            lastSynced: new Date().toISOString()
+            lastSynced: new Date().toISOString(),
           })
         );
       });
@@ -142,7 +142,7 @@ export const useCrossComponentSync = (userId: string) => {
       type: 'prayer_added',
       date,
       userId,
-      metadata: { prayerType, content: content.substring(0, 100), timestamp: new Date().toISOString() }
+      metadata: { prayerType, content: content.substring(0, 100), timestamp: new Date().toISOString() },
     };
 
     // Update prayer queries
@@ -152,11 +152,11 @@ export const useCrossComponentSync = (userId: string) => {
 
     // Check if this prayer relates to any playbook themes
     const allPlaybooks = queryClient.getQueryData(queryKeys.playbooks.all(userId)) as any[];
-    
+
     if (allPlaybooks && allPlaybooks.length > 0) {
       // Simple keyword matching to find related playbooks
       const keywords = content.toLowerCase().split(' ').filter(word => word.length > 3);
-      
+
       const relatedPlaybooks = allPlaybooks.filter(playbook => {
         const playbookText = `${playbook.title} ${playbook.userInput || ''}`.toLowerCase();
         return keywords.some(keyword => playbookText.includes(keyword));
@@ -169,7 +169,7 @@ export const useCrossComponentSync = (userId: string) => {
           (oldData: any) => ({
             ...oldData,
             lastRelatedPrayer: { type: prayerType, date },
-            lastSynced: new Date().toISOString()
+            lastSynced: new Date().toISOString(),
           })
         );
       });
@@ -205,7 +205,7 @@ export const useCrossComponentSync = (userId: string) => {
   // Get relationship data between components
   const getRelationshipData = useCallback((playbookId: string, date?: string) => {
     const currentDate = date || new Date().toISOString().split('T')[0];
-    
+
     return {
       devotionals: queryClient.getQueryData(queryKeys.devotionals.playbook(playbookId)) || [],
       journalEntries: queryClient.getQueryData(queryKeys.playbooks.withJournal(userId, playbookId, currentDate)) || [],
@@ -216,7 +216,7 @@ export const useCrossComponentSync = (userId: string) => {
   // Prefetch related data for better performance
   const prefetchRelatedData = useCallback(async (playbookId: string, date?: string) => {
     const currentDate = date || new Date().toISOString().split('T')[0];
-    
+
     console.log('[CrossComponentSync] Prefetching related data for:', playbookId);
 
     const prefetchPromises = [
@@ -247,10 +247,10 @@ export const useCrossComponentSync = (userId: string) => {
     syncDevotionalCompletion,
     syncJournalEntry,
     syncPrayerAddition,
-    
+
     // Batch operations
     batchSync,
-    
+
     // Data access
     getRelationshipData,
     prefetchRelatedData,

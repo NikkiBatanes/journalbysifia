@@ -50,7 +50,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { getPlaybook } from '../services/supabaseApiNormalized';
 import { useUser } from '../context/UserContext';
-import { useAdjacentPlaybooks, useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
+import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
 
 // Navigation types
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -97,7 +97,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   });
 
   // 2b. Advanced playbook hooks for prefetching and navigation
-  const { data: _adjacentPlaybooks } = useAdjacentPlaybooks(userId || '', playbookId);
   const { prefetchForCurrentPlaybook } = useIntelligentPrefetching(userId || '');
 
   // 3. Context hooks
@@ -404,10 +403,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   useEffect(() => {
     if (playbookId && userId && playbook) {
       console.log('[PlaybookDetailScreen] Starting intelligent prefetching for:', playbook.title);
-      
+
       // Prefetch adjacent playbooks and related data
-      prefetchForCurrentPlaybook(playbookId).catch(error => {
-        console.warn('[PlaybookDetailScreen] Prefetching failed:', error);
+      prefetchForCurrentPlaybook(playbookId).catch(prefetchError => {
+        console.warn('[PlaybookDetailScreen] Prefetching failed:', prefetchError);
       });
     }
   }, [playbookId, userId, playbook, prefetchForCurrentPlaybook]);

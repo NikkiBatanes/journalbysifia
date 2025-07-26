@@ -327,8 +327,8 @@ const runValidation = () => {
 
 // Run validation if called directly
 if (require.main === module) {
-  const success = runValidation();
-  process.exit(success ? 0 : 1);
+  const isSuccessful = runValidation();
+  process.exit(isSuccessful ? 0 : 1);
 }
 
 module.exports = { runValidation };

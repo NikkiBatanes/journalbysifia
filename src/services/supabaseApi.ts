@@ -836,7 +836,7 @@ export async function generateDevotional(duration: number, playbookId?: string, 
       // Validate the response structure
       if (result && Array.isArray(result.days) && result.days.length > 0) {
         console.log('Devotional generated successfully, now saving to database...');
-        
+
         // Save the generated devotional to the database
         const { data: savedDevotional, error: saveError } = await supabase
           .from('devotionals')
@@ -855,25 +855,25 @@ export async function generateDevotional(duration: number, playbookId?: string, 
             completed: false,
             days: result.days,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .select()
           .single();
-          
+
         if (saveError) {
           console.error('Error saving devotional to database:', saveError);
           throw new Error(`Failed to save devotional: ${saveError.message}`);
         }
-        
+
         console.log('Devotional saved to database:', savedDevotional.id);
-        
+
         // Return the saved devotional with the database ID
         return {
           ...result,
           id: savedDevotional.id,
           user_id: savedDevotional.user_id,
           created_at: savedDevotional.created_at,
-          updated_at: savedDevotional.updated_at
+          updated_at: savedDevotional.updated_at,
         };
       } else {
         throw new Error('Invalid devotional format received from server');

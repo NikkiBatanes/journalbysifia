@@ -34,10 +34,10 @@ export const useAdjacentPlaybooks = (userId: string, currentPlaybookId: string) 
     queryFn: withQueryPerformance(
       async (): Promise<AdjacentPlaybooks> => {
         console.log('[useAdjacentPlaybooks] Finding adjacent playbooks for:', currentPlaybookId);
-        
+
         // Get all playbooks to determine order
         const allPlaybooks = await getPlaybooksApi(userId);
-        
+
         // Sort by creation date (or updated date) to maintain consistent order
         const sortedPlaybooks = allPlaybooks.sort((a, b) => {
           const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
@@ -58,7 +58,7 @@ export const useAdjacentPlaybooks = (userId: string, currentPlaybookId: string) 
         console.log('[useAdjacentPlaybooks] Found adjacent:', {
           previous: previous?.title,
           current: current.title,
-          next: next?.title
+          next: next?.title,
         });
 
         return { previous, current, next };
@@ -82,7 +82,7 @@ export const usePrefetchPlaybooks = (userId: string) => {
     console.log('[usePrefetchPlaybooks] Prefetching playbooks:', playbookIds);
 
     // Prefetch each playbook individually for better cache granularity
-    const prefetchPromises = playbookIds.map(playbookId => 
+    const prefetchPromises = playbookIds.map(playbookId =>
       queryClient.prefetchQuery({
         queryKey: queryKeys.playbooks.detail(userId, playbookId),
         queryFn: () => getPlaybookApi(userId, playbookId),
@@ -96,7 +96,7 @@ export const usePrefetchPlaybooks = (userId: string) => {
 
   const prefetchAdjacentPlaybooks = useCallback(async (currentPlaybookId: string) => {
     console.log('[usePrefetchPlaybooks] Prefetching adjacent for:', currentPlaybookId);
-    
+
     // First get the adjacent playbooks
     const adjacentData = await queryClient.fetchQuery({
       queryKey: queryKeys.playbooks.adjacent(userId, currentPlaybookId),
@@ -120,7 +120,7 @@ export const usePrefetchPlaybooks = (userId: string) => {
     // Prefetch the adjacent playbooks
     const prefetchIds = [
       adjacentData.previous?.id,
-      adjacentData.next?.id
+      adjacentData.next?.id,
     ].filter(Boolean) as string[];
 
     if (prefetchIds.length > 0) {
@@ -146,10 +146,10 @@ export const usePlaybookWithRelationships = (userId: string, playbookId: string)
     queryFn: withQueryPerformance(
       async (): Promise<PlaybookWithRelationships> => {
         console.log('[usePlaybookWithRelationships] Fetching relationships for:', playbookId);
-        
+
         // Get the main playbook
         const playbook = await getPlaybookApi(userId, playbookId);
-        
+
         // Get related data from cache if available, otherwise fetch
         const relatedDevotionals = (queryClient.getQueryData(
           queryKeys.devotionals.playbook(playbookId)
@@ -167,7 +167,7 @@ export const usePlaybookWithRelationships = (userId: string, playbookId: string)
         console.log('[usePlaybookWithRelationships] Found relationships:', {
           devotionals: relatedDevotionals.length,
           journalEntries: relatedJournalEntries.length,
-          prayers: relatedPrayers.length
+          prayers: relatedPrayers.length,
         });
 
         return {
@@ -204,7 +204,7 @@ export const useIntelligentPrefetching = (userId: string) => {
   const prefetchForCurrentPlaybook = useCallback(async (currentPlaybookId: string) => {
     // Prefetch adjacent playbooks for seamless navigation
     await prefetchAdjacentPlaybooks(currentPlaybookId);
-    
+
     // Prefetch related data
     const relatedQueries = [
       queryKeys.devotionals.playbook(currentPlaybookId),
@@ -239,12 +239,12 @@ export const useCrossComponentSync = (userId: string) => {
   // Sync playbook progress with journal entries
   const syncWithJournal = useCallback(async (playbookId: string, date: string) => {
     console.log('[useCrossComponentSync] Syncing playbook with journal:', { playbookId, date });
-    
+
     // Invalidate related journal queries when playbook progress changes
     await queryClient.invalidateQueries({
       queryKey: queryKeys.journal.entries(userId, date),
     });
-    
+
     // Update cross-component relationship cache
     queryClient.setQueryData(
       queryKeys.playbooks.withJournal(userId, playbookId, date),
@@ -258,7 +258,7 @@ export const useCrossComponentSync = (userId: string) => {
   // Sync playbook completion with devotionals
   const syncWithDevotionals = useCallback(async (playbookId: string) => {
     console.log('[useCrossComponentSync] Syncing playbook with devotionals:', playbookId);
-    
+
     // Invalidate devotional queries related to this playbook
     await queryClient.invalidateQueries({
       queryKey: queryKeys.devotionals.playbook(playbookId),
@@ -268,7 +268,7 @@ export const useCrossComponentSync = (userId: string) => {
   // Sync playbook themes with prayers
   const syncWithPrayers = useCallback(async (playbookId: string) => {
     console.log('[useCrossComponentSync] Syncing playbook with prayers:', playbookId);
-    
+
     // Invalidate prayer queries that might be related to playbook themes
     await queryClient.invalidateQueries({
       queryKey: queryKeys.playbooks.withPrayers(userId, playbookId),

@@ -28,11 +28,11 @@ export interface Devotional {
   description: string;
   category: DevotionalCategory;
   categories: string[]; // For multiple categories support
-  
+
   // Playbook relationship (ENHANCED)
   playbookId?: string; // Reference to the playbook that generated this devotional
   playbookTitle?: string; // Cached playbook title for quick access
-  
+
   // Content and progress
   days: DevotionalDay[];
   currentDay: number;
@@ -40,16 +40,16 @@ export interface Devotional {
   progress: number;
   completed: boolean;
   completedAt?: string; // When the devotional was completed
-  
+
   // User feedback (ENHANCED)
   rating?: number; // 1-5 star rating
   ratedAt?: string; // When the rating was submitted
   feedback?: string; // User feedback text
-  
+
   // Metadata
   createdAt: string;
   updatedAt: string;
-  
+
   // Legacy fields (for backward compatibility)
   userInput?: string; // The user input from the playbook
   isFallback?: boolean; // Indicates if this is a fallback devotional

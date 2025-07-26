@@ -29,12 +29,11 @@ type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, '
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
   const { id: userId } = useUser();
-  const { 
-    devotionals, 
-    deleteDevotional, 
-    fetchPlaybookById, 
+  const {
+    devotionals,
+    deleteDevotional,
+    fetchPlaybookById,
     isLoading,
-    isDeleting 
   } = useDevotionalOperations(userId || '');
 
   const handleDevotionalPress = (devotional: Devotional) => {

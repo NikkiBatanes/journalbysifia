@@ -45,7 +45,7 @@ export const usePlaybookPerformanceMonitoring = () => {
   const trackPrefetch = useCallback((playbookId: string, startTime: number, success: boolean, cacheHit: boolean) => {
     const endTime = Date.now();
     const metrics = metricsRef.current;
-    
+
     metrics.prefetches.push({
       playbookId,
       startTime,
@@ -70,7 +70,7 @@ export const usePlaybookPerformanceMonitoring = () => {
       duration: endTime - startTime,
       success,
       cacheHit,
-      totalCacheHitRate: (metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses) * 100).toFixed(1) + '%'
+      totalCacheHitRate: (metrics.cacheHits / (metrics.cacheHits + metrics.cacheMisses) * 100).toFixed(1) + '%',
     });
   }, []);
 
@@ -79,7 +79,7 @@ export const usePlaybookPerformanceMonitoring = () => {
     const endTime = Date.now();
     const duration = endTime - startTime;
     const metrics = metricsRef.current;
-    
+
     metrics.navigationTimes.push(duration);
 
     // Keep only last 50 navigation times
@@ -89,7 +89,7 @@ export const usePlaybookPerformanceMonitoring = () => {
 
     console.log('[PlaybookPerformance] Navigation tracked:', {
       duration,
-      averageNavTime: (metrics.navigationTimes.reduce((a, b) => a + b, 0) / metrics.navigationTimes.length).toFixed(1) + 'ms'
+      averageNavTime: (metrics.navigationTimes.reduce((a, b) => a + b, 0) / metrics.navigationTimes.length).toFixed(1) + 'ms',
     });
   }, []);
 
@@ -98,7 +98,7 @@ export const usePlaybookPerformanceMonitoring = () => {
     const endTime = Date.now();
     const duration = endTime - startTime;
     const metrics = metricsRef.current;
-    
+
     metrics.syncTimes.push(duration);
 
     // Keep only last 50 sync times
@@ -109,14 +109,14 @@ export const usePlaybookPerformanceMonitoring = () => {
     console.log('[PlaybookPerformance] Sync tracked:', {
       operation,
       duration,
-      averageSyncTime: (metrics.syncTimes.reduce((a, b) => a + b, 0) / metrics.syncTimes.length).toFixed(1) + 'ms'
+      averageSyncTime: (metrics.syncTimes.reduce((a, b) => a + b, 0) / metrics.syncTimes.length).toFixed(1) + 'ms',
     });
   }, []);
 
   // Get current performance metrics
   const getPerformanceMetrics = useCallback((): PerformanceMetrics => {
     const metrics = metricsRef.current;
-    
+
     const avgPrefetchTime = metrics.prefetches.length > 0
       ? metrics.prefetches.reduce((sum, p) => sum + ((p.endTime || Date.now()) - p.startTime), 0) / metrics.prefetches.length
       : 0;
@@ -149,7 +149,7 @@ export const usePlaybookPerformanceMonitoring = () => {
   // Optimize cache based on performance metrics
   const optimizeCache = useCallback(() => {
     const metrics = getPerformanceMetrics();
-    
+
     console.log('[PlaybookPerformance] Current metrics:', metrics);
 
     // If cache hit rate is low, increase stale time
@@ -202,15 +202,15 @@ export const usePlaybookPerformanceMonitoring = () => {
     if (metrics.cacheHitRate < 70) {
       report.recommendations.push('Consider increasing stale time for better cache utilization');
     }
-    
+
     if (metrics.navigationSpeed > 300) {
       report.recommendations.push('Consider implementing more aggressive prefetching');
     }
-    
+
     if (metrics.syncLatency > 1000) {
       report.recommendations.push('Consider optimizing sync operations or using background sync');
     }
-    
+
     if (metrics.memoryUsage > 15) {
       report.recommendations.push('Consider implementing cache size limits or more aggressive garbage collection');
     }
@@ -252,10 +252,10 @@ export const usePlaybookPerformanceMonitoring = () => {
     return (...args: T) => {
       const startTime = Date.now();
       const result = fn(...args);
-      
+
       // Track navigation after a short delay to capture full navigation time
       setTimeout(() => trackNavigation(startTime), 100);
-      
+
       return result;
     };
   }, [trackNavigation]);
@@ -282,12 +282,12 @@ export const usePlaybookPerformanceMonitoring = () => {
     trackPrefetch,
     trackNavigation,
     trackSync,
-    
+
     // Metrics and optimization
     getPerformanceMetrics,
     optimizeCache,
     generatePerformanceReport,
-    
+
     // Wrapper functions for easy integration
     withPrefetchTracking,
     withNavigationTracking,

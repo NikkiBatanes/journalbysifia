@@ -69,7 +69,7 @@ export const useDevotionalByIdReactQuery = (userId: string, id: string) => {
     queryKey: queryKeys.devotionals.detail(userId, id),
     queryFn: async () => {
       console.log('[useDevotionalByIdReactQuery] Fetching devotional:', id);
-      
+
       // Validate UUID format before making API call
       if (!isValidUUID(id)) {
         console.warn('[useDevotionalByIdReactQuery] Invalid UUID format, skipping API call:', id);
@@ -92,17 +92,17 @@ export const useCreateDevotionalReactQuery = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ params, userId }: { params: DevotionalCreationParams; userId: string }) => {
+    mutationFn: async ({ params, userId: _userId }: { params: DevotionalCreationParams; userId: string }) => {
       console.log('[useCreateDevotionalReactQuery] Creating devotional:', params.duration, 'days');
       const devotional = await DevotionalApi.generateDevotional(params);
       return devotional;
     },
-    onSuccess: (data, { userId }) => {
+    onSuccess: (data, { userId: _userId }) => {
       console.log('[useCreateDevotionalReactQuery] Success:', data.id);
-      
+
       // Invalidate and refetch devotionals list
       queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.list(userId),
+        queryKey: queryKeys.devotionals.list(_userId),
       });
 
       // Analytics tracking removed for now
@@ -132,7 +132,7 @@ export const useMarkDayCompleteReactQuery = () => {
     },
     onSuccess: (data, { devotionalId, dayNumber, userId }) => {
       console.log('[useMarkDayCompleteReactQuery] Success:', { devotionalId, dayNumber });
-      
+
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: queryKeys.devotionals.list(userId),
@@ -168,7 +168,7 @@ export const useSubmitDevotionalRatingReactQuery = () => {
     },
     onSuccess: (data, { devotionalId, rating, userId }) => {
       console.log('[useSubmitDevotionalRatingReactQuery] Success:', { devotionalId, rating });
-      
+
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: queryKeys.devotionals.list(userId),
@@ -202,7 +202,7 @@ export const useDeleteDevotionalReactQuery = () => {
     },
     onSuccess: (_, { devotionalId, userId }) => {
       console.log('[useDeleteDevotionalReactQuery] Success:', devotionalId);
-      
+
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: queryKeys.devotionals.list(userId),

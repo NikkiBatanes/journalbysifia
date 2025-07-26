@@ -443,7 +443,7 @@ export const usePlaybookDataWithStore = (userId: string) => {
       if (updatedPlaybook) {
         const progress = getPlaybookProgress(playbookId);
         await syncPlaybookProgress(playbookId, progress.percentage);
-        
+
         // Prefetch related data for better UX
         await prefetchRelatedData(playbookId);
       }

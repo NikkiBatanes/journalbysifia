@@ -58,7 +58,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 }) => {
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const { user } = useAuth();
-  const { createDevotional, isLoading, isCreating, error } = useDevotionalOperations(user?.id || '');
+  const { createDevotional, isCreating, error } = useDevotionalOperations(user?.id || '');
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isVisible, setIsVisible] = useState(false);
@@ -70,7 +70,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Success state and checkmark animation
   const [isSuccess, setIsSuccess] = useState(false);
-  
+
   // Debug logging
   React.useEffect(() => {
     console.log('[DevotionalModal] State changed:', { isCreating, error: !!error, isSuccess, selectedDuration });
@@ -183,7 +183,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     console.log('[DevotionalModal] Button pressed for duration:', days);
     console.log('[DevotionalModal] Current props:', { playbookId, userInput, onSelectDuration });
     console.log('[DevotionalModal] User ID:', user?.id);
-    
+
     try {
       setSelectedDuration(days);
 
@@ -229,7 +229,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       console.error('[DevotionalModal] Error details:', {
         message: (err as any)?.message,
         stack: (err as any)?.stack,
-        name: (err as any)?.name
+        name: (err as any)?.name,
       });
     }
   };
