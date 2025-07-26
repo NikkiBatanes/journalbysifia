@@ -8,14 +8,32 @@ export interface DevotionalApiEntry {
   user_id: string;
   title: string;
   description: string;
+  
+  // Category and classification
+  category: string;
+  categories: string[];
+  
+  // Playbook relationship
+  playbook_id?: string;
+  playbook_title?: string;
+  user_input?: string;
+  
+  // Progress tracking
   total_days: number;
   current_day: number;
   progress: number;
   completed: boolean;
+  completed_at?: string;
+  
+  // Content
   days: any[]; // JSON array of devotional days
-  playbook_id?: string;
+  
+  // User feedback
   rating?: number;
   rated_at?: string;
+  feedback?: string;
+  
+  // Metadata
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +61,15 @@ export class DevotionalApi {
    * Get a specific devotional by ID
    */
   static async getDevotionalById(id: string): Promise<DevotionalApiEntry | null> {
+    console.log('[DevotionalApi] getDevotionalById called with ID:', id);
+    
+    // Check if ID looks like a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      console.warn('[DevotionalApi] Invalid UUID format:', id);
+      return null;
+    }
+    
     const { data, error } = await supabase
       .from('devotionals')
       .select('*')

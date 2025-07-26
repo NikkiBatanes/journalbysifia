@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing, ActivityIndicator } from 'react-native';
 import { Colors, defaultFontFamily } from '../theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useDevotional } from '../context/DevotionalContext';
+import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
+import { useAuth } from '../context/AuthContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -56,7 +57,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   onDevotionalCreated,
 }) => {
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
-  const { createDevotional, isLoading, error } = useDevotional();
+  const { user } = useAuth();
+  const { createDevotional, isLoading, isCreating, error } = useDevotionalOperations(user?.id || '');
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [isVisible, setIsVisible] = useState(false);
@@ -68,6 +70,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Success state and checkmark animation
   const [isSuccess, setIsSuccess] = useState(false);
+  
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[DevotionalModal] State changed:', { isCreating, error: !!error, isSuccess, selectedDuration });
+  }, [isCreating, error, isSuccess, selectedDuration]);
   // Animation for the overlay (fade in/out)
   // Fade animation for backdrop dim
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
@@ -82,7 +89,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
   // Animate the ellipsis
   React.useEffect(() => {
-    if (!isLoading) {return;}
+    if (!isCreating) {return;}
 
     const timer = setInterval(() => {
       setEllipsis((prev: string) => {
@@ -92,7 +99,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     }, 300);
 
     return () => clearInterval(timer);
-  }, [isLoading]);
+  }, [isCreating]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -173,6 +180,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   };
 
   const handleSelectDuration = async (days: number) => {
+    console.log('[DevotionalModal] Button pressed for duration:', days);
+    console.log('[DevotionalModal] Current props:', { playbookId, userInput, onSelectDuration });
+    console.log('[DevotionalModal] User ID:', user?.id);
+    
     try {
       setSelectedDuration(days);
 
@@ -183,11 +194,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
       // If no onSelectDuration provided, handle devotional creation here
       if (playbookId && userInput) {
+        console.log('[DevotionalModal] Creating devotional with params:', { duration: days, playbookId, userInput });
         const devotional = await createDevotional({
           duration: days,
           playbookId,
           userInput,
         });
+        console.log('[DevotionalModal] Devotional created:', devotional);
 
         if (devotional && onDevotionalCreated) {
           setIsSuccess(true);
@@ -212,7 +225,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }
       }
     } catch (err) {
-      console.error('Error creating devotional:', err);
+      console.error('[DevotionalModal] Error creating devotional:', err);
+      console.error('[DevotionalModal] Error details:', {
+        message: (err as any)?.message,
+        stack: (err as any)?.stack,
+        name: (err as any)?.name
+      });
     }
   };
 
@@ -300,7 +318,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             </View>
 
             <View style={styles.scrollableContent}>
-              {playbookInfo && (
+              {(playbookInfo || userInput) && (
                 <View style={styles.playbookInfoContainer}>
                   <TouchableOpacity
                     style={styles.playbookInfoHeader}
@@ -327,10 +345,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               )}
 
               <View style={styles.optionsContainer}>
-                {!(isLoading || isSuccess) && (
+                {!(isCreating || isSuccess) && (
                   <Text style={styles.durationPrompt}>Select a devotional duration:</Text>
                 )}
-                {(isLoading || isSuccess) ? (
+                {(isCreating || isSuccess) ? (
     <View style={styles.loadingContainer}>
       {!isSuccess ? (
         <>
@@ -358,7 +376,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     </View>
   ) : error ? (
     <View style={styles.errorContainer}>
-      <Text style={styles.errorText}>{error}</Text>
+      <Text style={styles.errorText}>{error?.message || 'An error occurred'}</Text>
       <TouchableOpacity
         style={styles.retryButton}
         onPress={handleClose}
@@ -373,7 +391,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           key={option.days}
           style={styles.optionButton}
           onPress={() => handleSelectDuration(option.days)}
-          disabled={isLoading}
+          disabled={isCreating}
         >
           <Text style={styles.optionDays}>{option.days} DAY</Text>
           <Text style={styles.optionTitle}>{option.title}</Text>

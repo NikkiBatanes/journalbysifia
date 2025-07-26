@@ -949,6 +949,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           <DevotionalModal
             visible={showDevotionalModal}
             onClose={() => setShowDevotionalModal(false)}
+            playbookId={playbookId}
+            userInput={playbook?.userInput}
             onDevotionalCreated={(devotionalId: string) => {
               setHasCreatedDevotional(true);
               setShowDevotionalModal(false);

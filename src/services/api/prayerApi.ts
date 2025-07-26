@@ -163,7 +163,7 @@ export class PrayerApi {
       .from('prayers')
       .select('*')
       .eq('user_id', userId)
-      .eq('type', 'devotional')
+      .eq('prayer_type', 'devotional')
       .order('created_at', { ascending: false });
 
     if (error) {

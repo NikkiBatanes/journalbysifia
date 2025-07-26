@@ -16,8 +16,12 @@ import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { runOnJS } from 'react-native-reanimated';
 import { RootStackParamList } from '../navigation/types';
-import { useDevotional } from '../context/DevotionalContext';
+import {
+  useDevotionalByIdReactQuery,
+  useDevotionalOperations,
+} from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/AuthContext';
+import { useUser } from '../context/UserContext';
 import { Devotional } from '../interfaces/devotional';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -38,15 +42,18 @@ import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
 
   const { devotionalId } = route.params;
-  const { devotionals, markDayComplete, submitDevotionalRating } = useDevotional();
   const { user } = useAuth();
+  const { id: userId } = useUser();
+  
+  // React Query hooks for devotional data
+  const { data: devotional, isLoading: devotionalLoading } = useDevotionalByIdReactQuery(userId || '', devotionalId);
+  const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
 
   // React Query hooks for prayer data
   const { data: allDevotionalPrayers = [] } = useAllDevotionalPrayerData(user?.id || '');
   const createDevotionalPrayerMutation = useCreateDevotionalPrayer();
-  const [devotional, setDevotional] = useState<Devotional | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const loading = devotionalLoading; // Use React Query loading state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   // Store the index of the completed day for modal display
   const [completedDayIndex, setCompletedDayIndex] = useState<number | null>(null);
@@ -94,14 +101,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
   }, [devotional]);
 
-  useEffect(() => {
-    // Find the devotional by ID
-    const foundDevotional = devotionals.find(d => d.id === devotionalId);
-    if (foundDevotional) {
-      setDevotional(foundDevotional);
-    }
-    setLoading(false);
-  }, [devotionalId, devotionals]);
+  // No longer needed - devotional comes directly from React Query
 
   // Sync prayed status with database devotional prayers
   useEffect(() => {
@@ -250,22 +250,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       if (success) {
         // Update local state to reflect the completed day
         const updatedDays = [...devotional.days];
-        const dayIndex = updatedDays.findIndex(d => d.dayNumber === dayToMark.dayNumber);
-        if (dayIndex !== -1) {
-          updatedDays[dayIndex] = {
-            ...updatedDays[dayIndex],
-            completed: true,
-            completedAt: new Date().toISOString(),
-          };
-          // Update the local devotional state
-          setDevotional({
-            ...devotional,
-            days: updatedDays,
-          });
-          // Store the completed day index for modal display
-          setCompletedDayIndex(currentDayIndex);
-          setShowCompletionModal(true);
-        }
+        // React Query handles optimistic updates automatically
+        // Store the completed day index for modal display
+        setCompletedDayIndex(currentDayIndex);
+        setShowCompletionModal(true);
       } else {
         console.error('Failed to mark day as complete');
       }
@@ -383,20 +371,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       // Submit the rating
       await submitDevotionalRating(devotional.id, rating);
 
-      // Update local state to reflect the completed day if needed
-      const completedDay = devotional.days[completedDayIndex];
-      if (completedDay && !completedDay.completed) {
-        const updatedDays = [...devotional.days];
-        updatedDays[completedDayIndex] = {
-          ...completedDay,
-          completed: true,
-          completedAt: completedDay.completedAt || new Date().toISOString(),
-        };
-        setDevotional({
-          ...devotional,
-          days: updatedDays,
-        });
-      }
+      // React Query handles optimistic updates automatically
+      // No need to update local state
     } catch (error) {
       console.error('Error submitting rating:', error);
       // Don't close the modal on error - let the user try again

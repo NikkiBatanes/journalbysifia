@@ -12,7 +12,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
-import { useDevotional } from '../context/DevotionalContext';
+import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
+import { useUser } from '../context/UserContext';
 
 import { Devotional } from '../interfaces/devotional';
 import { format } from 'date-fns';
@@ -27,7 +28,14 @@ type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, '
 
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
-  const { devotionals, deleteDevotional, fetchPlaybookById, isLoading } = useDevotional();
+  const { id: userId } = useUser();
+  const { 
+    devotionals, 
+    deleteDevotional, 
+    fetchPlaybookById, 
+    isLoading,
+    isDeleting 
+  } = useDevotionalOperations(userId || '');
 
   const handleDevotionalPress = (devotional: Devotional) => {
     // Log title extraction for debugging

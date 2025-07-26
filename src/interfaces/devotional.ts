@@ -23,18 +23,34 @@ export interface DevotionalDay {
 
 export interface Devotional {
   id: string;
+  userId?: string; // User ID for the devotional
   title: string;
   description: string;
   category: DevotionalCategory;
-  categories: string[]; // For backward compatibility with API responses
+  categories: string[]; // For multiple categories support
+  
+  // Playbook relationship (ENHANCED)
+  playbookId?: string; // Reference to the playbook that generated this devotional
+  playbookTitle?: string; // Cached playbook title for quick access
+  
+  // Content and progress
   days: DevotionalDay[];
   currentDay: number;
   totalDays: number;
   progress: number;
   completed: boolean;
+  completedAt?: string; // When the devotional was completed
+  
+  // User feedback (ENHANCED)
+  rating?: number; // 1-5 star rating
+  ratedAt?: string; // When the rating was submitted
+  feedback?: string; // User feedback text
+  
+  // Metadata
   createdAt: string;
   updatedAt: string;
-  playbookId?: string; // Reference to the playbook that generated this devotional
+  
+  // Legacy fields (for backward compatibility)
   userInput?: string; // The user input from the playbook
   isFallback?: boolean; // Indicates if this is a fallback devotional
 }
@@ -70,6 +86,7 @@ export interface DevotionalCreationParams {
   title?: string;
   description?: string;
   topic?: string;
+  category?: DevotionalCategory; // NEW: Category for the devotional
   duration: number;
   playbookId?: string;
   userInput?: string;

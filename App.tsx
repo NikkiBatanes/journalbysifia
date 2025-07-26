@@ -21,7 +21,7 @@ import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper
 import { UserProvider } from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import { LogoutContext } from './src/context/LogoutContext';
-import { DevotionalProvider } from './src/context/DevotionalContext';
+// import { DevotionalProvider } from './src/context/DevotionalContext'; // Removed - migrated to React Query
 import { ScrollProvider } from './src/context/ScrollContext';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
@@ -88,7 +88,6 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <ScrollProvider>
         <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
-          <DevotionalProvider>
             <UserProvider>
               <LogoutContext.Provider value={{ onLogout: async () => {} }}>
                 <NavigationContainer>
@@ -106,7 +105,6 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
                 </NavigationContainer>
               </LogoutContext.Provider>
             </UserProvider>
-          </DevotionalProvider>
         </ActionStepsProviderWrapper>
       </ScrollProvider>
     </GestureHandlerRootView>
