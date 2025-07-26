@@ -8,7 +8,7 @@ import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
-import PlaybookDetailScreen from '../screens/PlaybookDetailScreen';
+import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
 import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';

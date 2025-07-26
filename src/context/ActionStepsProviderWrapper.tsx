@@ -5,11 +5,12 @@ import { ActionStepsProvider } from './ActionStepsContext';
 interface ActionStepsProviderWrapperProps {
   initialSteps: any[];
   children: ReactNode;
+  playbookId?: string;
 }
 
-export default function ActionStepsProviderWrapper({ initialSteps, children }: ActionStepsProviderWrapperProps) {
+export default function ActionStepsProviderWrapper({ initialSteps, children, playbookId }: ActionStepsProviderWrapperProps) {
   return (
-    <ActionStepsProvider initialSteps={initialSteps}>
+    <ActionStepsProvider initialSteps={initialSteps} playbookId={playbookId}>
       {children}
     </ActionStepsProvider>
   );

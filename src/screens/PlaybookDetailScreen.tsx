@@ -98,8 +98,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   });
   
   // Debug: Log fresh playbook data
-  console.log('[PlaybookDetailScreen] Fresh playbook data:', {
+  console.log('[PlaybookDetailScreen] DETAILED DEBUG:', {
     playbookId,
+    userId,
     hasPlaybook: !!playbook,
     title: playbook?.title,
     userInput: playbook?.userInput,
@@ -107,8 +108,21 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     actionStepsCount: playbook?.actionSteps?.length || 0,
     firstActionStep: playbook?.actionSteps?.[0],
     isLoading,
-    error
+    error: error?.message || error,
+    queryEnabled: !!playbookId && !!userId,
+    routeParams: route.params
   });
+  
+  // Debug: Log which condition will be triggered
+  if (!playbookId) {
+    console.log('[PlaybookDetailScreen] ❌ NO PLAYBOOK ID - showing error');
+  } else if (isLoading) {
+    console.log('[PlaybookDetailScreen] ⏳ LOADING - showing loading screen');
+  } else if (error || !playbook) {
+    console.log('[PlaybookDetailScreen] ❌ ERROR OR NO PLAYBOOK - showing error screen', { error: error?.message, hasPlaybook: !!playbook });
+  } else {
+    console.log('[PlaybookDetailScreen] ✅ SUCCESS - showing playbook content');
+  }
   
   // NO EARLY RETURNS - ALL HOOKS MUST BE CALLED FIRST
   // Conditional rendering will be handled in JSX return
@@ -418,7 +432,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       title: playbook?.title,
       affirmations: playbook?.affirmations,
       affirmationsCount: playbook?.affirmations?.length,
-      hasAffirmations: Array.isArray(playbook?.affirmations) && playbook.affirmations.length > 0,
+      hasAffirmations: Array.isArray(playbook?.affirmations) && playbook?.affirmations.length > 0,
       playbookKeys: playbook ? Object.keys(playbook) : [],
     }, null, 2));
   }, [playbook]);
@@ -509,7 +523,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     total,
     progress,
     actionStepsCount: actionSteps.length,
-    playbookStepsCount: playbook.actionSteps?.length || 0,
+    playbookStepsCount: playbook?.actionSteps?.length || 0,
     completedTasksCount,
     totalTasksCount,
   });
@@ -586,7 +600,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // These declarations have been moved to the top of the component
   // to ensure all hooks are called unconditionally at the top level
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  // TEMPORARILY DISABLED - RULES OF HOOKS VIOLATION
+  // TODO: Fix this by moving all hooks to top of component
+  const gestureHandler = null;
+  
+  /*
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_event) => {
       // Cancel any running animations when a new gesture starts
@@ -708,6 +726,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       gestureState.value = { isSwiping: false };
     },
   });
+  */
 
   // Animation values are now defined at the top of the component
 
@@ -743,6 +762,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // chevronStyle is now defined at the top with other animation values
 
   const renderContent = () => {
+    // Safety check - should not be called if playbook is null
+    if (!playbook) {
+      console.error('[PlaybookDetailScreen] renderContent called with null playbook!');
+      return null;
+    }
+    
     return (
       <View style={styles.contentContainer}>
         {/* Main Header - Only show when not scrolled or in stack view */}
@@ -894,7 +919,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     return (
       <View style={styles.cardStackContainer}>
         {backCards}
-        <PanGestureHandler ref={gestureHandlerRef} onGestureEvent={gestureHandler}>
+        {/* <PanGestureHandler ref={gestureHandlerRef} onGestureEvent={gestureHandler}> */}
           <Animated.View style={[animatedCardStyle, styles.cardWrapperStyle]}>
             <TouchableOpacity
               activeOpacity={0.85}
@@ -907,51 +932,41 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               {renderCard(currentCard, 0, (mode: 'stack' | 'document') => setViewMode(mode))}
             </TouchableOpacity>
           </Animated.View>
-        </PanGestureHandler>
+        {/* </PanGestureHandler> */}
       </View>
     );
   };
 
-  // Handle conditional rendering here instead of early returns
-  if (!playbookId) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.progressText}>No playbook ID provided</Text>
-      </View>
-    );
-  }
-  
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.progressText}>Loading fresh playbook data...</Text>
-      </View>
-    );
-  }
-  
-  if (error || !playbook) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.progressText}>Failed to load playbook data</Text>
-        <TouchableOpacity 
-          style={styles.navButton} 
-          onPress={() => {
-            try {
-              navigation.goBack();
-            } catch (error) {
-              console.log('Navigation error:', error);
-            }
-          }}
-        >
-          <Text style={styles.navButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
+  // Handle conditional rendering in JSX instead of early returns
   return (
     <View style={styles.container}>
-      {renderContent()}
+      {!playbookId ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.progressText}>No playbook ID provided</Text>
+        </View>
+      ) : isLoading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.progressText}>Loading fresh playbook data...</Text>
+        </View>
+      ) : error || !playbook ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.progressText}>Failed to load playbook data</Text>
+          <TouchableOpacity 
+            style={styles.navButton} 
+            onPress={() => {
+              try {
+                navigation.goBack();
+              } catch (error) {
+                console.log('Navigation error:', error);
+              }
+            }}
+          >
+            <Text style={styles.navButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          {renderContent()}
       {viewMode === 'stack' && currentCard === 0 && !showUserInput && !hasReachedLastCard && (
         <View style={styles.swipeUpIndicatorContainer}>
           <SwipeUpIndicator />
@@ -988,6 +1003,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           }, 500);
         }}
       />
+        </>
+      )}
     </View>
   );
 }

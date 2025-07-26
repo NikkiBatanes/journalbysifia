@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, StatusBar, Text } from 'react-native';
+import { View, ScrollView, StyleSheet, StatusBar, Text, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
 import PlaybookHeader from '../components/PlaybookHeader';
@@ -39,6 +40,38 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     marginLeft: 4,
   }));
   const [userInput] = useState(playbook?.userInput || '');
+
+  // Header left component
+  const headerLeft = React.useCallback(() => (
+    <View style={styles.headerLeftContainer}>
+      <TouchableOpacity
+        onPress={() => {
+          try {
+            navigation.goBack();
+          } catch (error) {
+            console.log('Navigation error:', error);
+          }
+        }}
+        style={styles.backButtonContainer}
+      >
+        <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+    </View>
+  ), [navigation]);
+
+  // Set navigation options
+  React.useLayoutEffect(() => {
+    console.log('[DEBUG] CardDetailScreen: Setting navigation options with headerLeft');
+    navigation.setOptions({
+      headerTitle: '',
+      headerLeft,
+      headerShown: true,
+      headerTransparent: false,
+      headerStyle: {
+        backgroundColor: Colors.anchorBlue,
+      },
+    });
+  }, [navigation, headerLeft]);
 
   // Force re-render to get updated progress
   useFocusEffect(
@@ -285,6 +318,15 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.growthGreen,
     borderRadius: 4,
+  },
+  headerLeftContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+  },
+  backButtonContainer: {
+    padding: 8,
+    paddingLeft: 0,
   },
 
 });

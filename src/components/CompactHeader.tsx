@@ -14,10 +14,14 @@ const CompactHeader: React.FC<CompactHeaderProps> = ({
   progress,
   completedTasks,
   totalTasks,
+  title,
   style,
 }) => {
   return (
     <View style={[styles.container, style]}>
+      {title && (
+        <Text style={styles.title}>{title}</Text>
+      )}
       <View style={styles.progressRow}>
         <View style={styles.progressBar}>
           <View
@@ -40,12 +44,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.hopeWhite,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
     paddingTop: 0,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.textDark,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   progressRow: {
     flexDirection: 'row',

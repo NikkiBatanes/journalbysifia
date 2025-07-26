@@ -26,6 +26,38 @@ import { useQuery } from '@tanstack/react-query';
 // Import gesture handler at the top level
 import 'react-native-gesture-handler'; // This is needed for gesture handling
 
+// Skeleton Loader Component
+const SkeletonLoader = () => {
+  const opacity = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [opacity]);
+
+  return (
+    <View style={styles.skeletonContainer}>
+      {[1, 2, 3].map((item) => (
+        <Animated.View key={item} style={[styles.skeletonItem, { opacity }]} />
+      ))}
+    </View>
+  );
+};
+
 interface TaskStats {
   completed: number;
   total: number;
@@ -33,43 +65,31 @@ interface TaskStats {
 
 // Calculate completed and total tasks for a playbook's action steps (optimized)
 export const calculateTaskStats = (actionSteps: any[] = []): TaskStats => {
-  try {
-    // Early return for empty or invalid input
-    if (!Array.isArray(actionSteps) || actionSteps.length === 0) {
-      return { completed: 0, total: 0 };
-    }
-
-    let completed = 0;
-    let total = 0;
-    const chunkSize = 100; // Process in chunks to avoid blocking
-
-    for (let i = 0; i < actionSteps.length; i += chunkSize) {
-      const chunk = actionSteps.slice(i, i + chunkSize);
-
-      for (const step of chunk) {
-        if (!step) {continue;}
-
-        if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
-          // Count sub-tasks for steps that have them
-          let subCompleted = 0;
-          for (const subTask of step.subTasks) {
-            if (subTask?.completed) {subCompleted++;}
-          }
-          completed += subCompleted;
-          total += step.subTasks.length;
-        } else {
-          // Count regular steps that don't have sub-tasks
-          if (step.completed) {completed++;}
-          total++;
-        }
-      }
-    }
-
-    return { completed, total };
-  } catch (error) {
-    console.error('Error in calculateTaskStats:', error);
+  // Early return for empty or invalid input
+  if (!Array.isArray(actionSteps) || actionSteps.length === 0) {
     return { completed: 0, total: 0 };
   }
+
+  let completed = 0;
+  let total = 0;
+
+  for (const step of actionSteps) {
+    if (!step) continue;
+
+    if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
+      // Count sub-tasks for steps that have them
+      for (const subTask of step.subTasks) {
+        if (subTask?.completed) completed++;
+        total++;
+      }
+    } else {
+      // Count regular steps that don't have sub-tasks
+      if (step.completed) completed++;
+      total++;
+    }
+  }
+
+  return { completed, total };
 };
 
 
@@ -86,26 +106,19 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   // Get user info
   const { id: userId } = useUser();
   
-  // Fetch fresh playbooks from database using React Query
+  // Fetch playbooks from database using React Query with proper caching
   const { data: playbooks = [], isLoading, error, refetch } = useQuery<Playbook[]>({
     queryKey: ['playbooks', userId],
     queryFn: () => getPlaybooks(userId || ''),
     enabled: !!userId,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache to ensure fresh data
+    staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes
   });
   
-  // Set filter to 'all' by default to ensure all playbooks are visible
-  const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('all');
+  // Set filter to 'ongoing' by default to show in-progress playbooks first
+  const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
   
-  // Debug: Log fresh playbooks data
-  console.log('[PlaybookListScreen] Fresh playbooks data:', {
-    userId,
-    playbooksCount: playbooks.length,
-    playbooks: playbooks.map(p => ({ id: p.id, title: p.title })),
-    isLoading,
-    error
-  });
+  // Component renders with current state
 
   // Refs
   const animatedValues = useRef<Animated.Value[]>([]);
@@ -151,12 +164,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     }
   };
 
-  // Load playbooks using Zustand store
-  const loadPlaybooksCallback = useCallback(async () => {
-    if (!userId) return;
-    
-    await refetch();
-  }, [userId, refetch]);
+  // Removed loadPlaybooksCallback - React Query handles data fetching automatically
 
   // Initialize animations on mount and when playbooks change
   useEffect(() => {
@@ -165,11 +173,11 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     }
   }, [playbooks.length]);
 
-  // Reset animations and set filter to 'ongoing' when screen comes into focus
+  // Reset animations when screen comes into focus (but preserve filter state)
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
-      setFilter('ongoing');
-
+      // Don't reset filter - preserve user's tab selection
+      
       // Safely reset animation values if they exist
       if (animatedValues.current && Array.isArray(animatedValues.current)) {
         animatedValues.current.forEach(value => {
@@ -184,8 +192,8 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
         if (playbooks.length > 0) {
           initAnimations(playbooks.length);
         }
-        // Always reload playbooks on focus
-        loadPlaybooksCallback();
+        // Only refetch if data is stale (React Query will handle this automatically)
+        refetch();
       }, 150);
 
       return () => clearTimeout(timer);
@@ -194,72 +202,45 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     return () => {
       unsubscribe();
     };
-  }, [navigation, playbooks.length, loadPlaybooksCallback]);
+  }, [navigation, playbooks.length, refetch]);
 
-  // Ensure playbooks are loaded when userId changes
-  useEffect(() => {
-    if (userId) {
-      refetch();
-    }
-  }, [userId, refetch]);
+  // React Query will automatically refetch when userId changes due to queryKey dependency
 
-  // Filter and sort playbooks by completion status (optimized)
+  // Filter and sort playbooks by completion status (simplified)
   const filteredPlaybooks = useMemo(() => {
-    try {
-      // Early return for empty playbooks
-      if (!Array.isArray(playbooks) || playbooks.length === 0) {
-        return [];
-      }
-
-      // Define type for our intermediate playbook object
-      type PlaybookWithMetadata = {
-        playbook: Playbook;
-        progress: number;
-        isCompleted: boolean;
-        sortDate: number;
-      };
-
-      // Process filtering and sorting in a single pass
-      const result = playbooks
-        .map(playbook => {
-          if (!playbook?.actionSteps) {return null;}
-
-          const { completed, total } = calculateTaskStats(playbook.actionSteps);
-          const progress = total > 0 ? (completed / total) * 100 : 0;
-          const isCompleted = progress >= 100;
-
-          // Calculate sort date once per playbook
-          const getSortableDate = () => {
-            if (playbook.completedAt) {return new Date(playbook.completedAt).getTime();}
-            if (playbook.updatedAt) {return new Date(playbook.updatedAt).getTime();}
-            if (playbook.createdAt) {return new Date(playbook.createdAt).getTime();}
-            return 0;
-          };
-
-          return { playbook, progress, isCompleted, sortDate: getSortableDate() } as PlaybookWithMetadata;
-        })
-        .filter((item): item is PlaybookWithMetadata => item !== null)
-        .filter(({ progress: _progress, isCompleted }) => {
-          switch (filter) {
-            case 'all':
-              return true;
-            case 'ongoing':
-              // Include playbooks that are started (progress > 0) or newly created (progress = 0)
-              return !isCompleted;
-            case 'completed':
-              return isCompleted;
-            default:
-              return false;
-          }
-        })
-        .sort((a, b) => b.sortDate - a.sortDate)
-        .map(({ playbook }) => playbook);
-
-      return result;
-    } catch (error) {
-      console.error('Error filtering playbooks:', error);
+    // Early return for empty playbooks
+    if (!Array.isArray(playbooks) || playbooks.length === 0) {
       return [];
     }
+    
+    // Simple filtering logic
+    const filtered = playbooks.filter(playbook => {
+      if (!playbook?.actionSteps) return false;
+      
+      const { completed, total } = calculateTaskStats(playbook.actionSteps);
+      const progress = total > 0 ? (completed / total) * 100 : 0;
+      const isCompleted = progress >= 100;
+      
+      switch (filter) {
+        case 'all':
+          return true;
+        case 'ongoing':
+          return !isCompleted;
+        case 'completed':
+          return isCompleted;
+        default:
+          return false;
+      }
+    });
+    
+    // Sort by most recent
+    const sorted = filtered.sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+    
+    return sorted;
   }, [playbooks, filter]);
 
   // (Remove any other filteredPlaybooks declarations below this point)
@@ -274,24 +255,19 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
         return [];
       }
 
-      // Process playbooks in chunks to avoid blocking
-      const chunkSize = 50;
-      for (let i = 0; i < playbooksList.length; i += chunkSize) {
-        const chunk = playbooksList.slice(i, i + chunkSize);
+      // Group playbooks by month/year
+      for (const pb of playbooksList) {
+        // Skip invalid items
+        if (!pb?.createdAt) {continue;}
 
-        for (const pb of chunk) {
-          // Skip invalid items
-          if (!pb?.createdAt) {continue;}
+        const date = new Date(pb.createdAt);
+        if (isNaN(date.getTime())) {continue;}
 
-          const date = new Date(pb.createdAt);
-          if (isNaN(date.getTime())) {continue;}
-
-          const key = formatDate(date);
-          if (!groups[key]) {
-            groups[key] = [];
-          }
-          groups[key].push(pb);
+        const key = formatDate(date);
+        if (!groups[key]) {
+          groups[key] = [];
         }
+        groups[key].push(pb);
       }
 
       // Helper function to get the most relevant date for sorting
@@ -333,7 +309,9 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   const sections = useMemo(() => {
     // Ensure filteredPlaybooks is an array before passing to groupPlaybooksByMonth
     const safeFilteredPlaybooks = Array.isArray(filteredPlaybooks) ? filteredPlaybooks : [];
-    return groupPlaybooksByMonth(safeFilteredPlaybooks);
+    const result = groupPlaybooksByMonth(safeFilteredPlaybooks);
+    
+    return result;
   }, [filteredPlaybooks, groupPlaybooksByMonth]);
 
   const handleDelete = async (id: string) => {
@@ -395,7 +373,8 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       outputRange: [50, 0],
     }) || new Animated.Value(0);
 
-    const opacity = currentAnimatedValue || 0;
+    // Fix: Ensure opacity is always 1 if animation value is not available
+    const opacity = currentAnimatedValue || new Animated.Value(1);
 
     return (
       <Animated.View
@@ -432,8 +411,8 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     );
   };
 
-  // Show empty state only when we're not loading and there are no playbooks
-  if (playbooks.length === 0 && !isLoading) {
+  // Only show empty state when we're sure there are no playbooks (not loading and no data)
+  if (playbooks.length === 0 && !isLoading && userId) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={[styles.container, styles.centered]}>
@@ -442,9 +421,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           <Button
             title="Refresh"
             onPress={() => {
-              if (userId) {
-                refetch();
-              }
+              refetch();
             }}
           />
         </View>
@@ -479,17 +456,23 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
             </Pressable>
           ))}
         </View>
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          renderSectionHeader={({ section: { title } }) => (
-            <View style={styles.sectionHeader}><Text style={styles.sectionHeaderText}>{title}</Text></View>
-          )}
-          contentContainerStyle={styles.listContent}
-          stickySectionHeadersEnabled
-          showsVerticalScrollIndicator={false}
-        />
+        {isLoading ? (
+          <SkeletonLoader />
+        ) : (
+          <SectionList
+            key={`${filter}-${sections.length}`}
+            sections={sections}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            renderSectionHeader={({ section: { title } }) => (
+              <View style={styles.sectionHeader}><Text style={styles.sectionHeaderText}>{title}</Text></View>
+            )}
+            contentContainerStyle={styles.listContent}
+            stickySectionHeadersEnabled
+            showsVerticalScrollIndicator={false}
+            extraData={filter}
+          />
+        )}
       </View>
     </SafeAreaView>
   );
@@ -623,6 +606,15 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     textTransform: 'uppercase',
   },
-
-
+  skeletonContainer: {
+    flex: 1,
+    padding: 16,
+  },
+  skeletonItem: {
+    height: 88,
+    backgroundColor: Colors.anchorBlue,
+    opacity: 0.1,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
 });

@@ -83,7 +83,11 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         truth={playbook.truthInLove?.text}
         summary={playbook.truthInLove?.summary}
         expanded={true}
-        style={[propStyles.docCard, propStyles.truthCard]}
+        style={(() => {
+          console.log('[DEBUG] Colors.anchorBlue value:', Colors.anchorBlue);
+          console.log('[DEBUG] propStyles.truthCard:', propStyles.truthCard);
+          return [propStyles.docCard, propStyles.truthCard, { backgroundColor: Colors.anchorBlue }];
+        })()}
       />
       <ActionStepsCard
         key="action"
@@ -145,7 +149,7 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: -1 }],
   },
   bibleVerseCard: {
-    marginTop: 16,
+    // No extra margin - docCard already provides marginBottom: 16
   },
 });
 

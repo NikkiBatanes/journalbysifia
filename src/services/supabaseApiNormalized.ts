@@ -718,10 +718,48 @@ export async function updatePlaybookActionSteps(
   try {
     console.log(`[updatePlaybookActionSteps] Updating ${actionSteps.length} action steps for playbook ${playbookId}`);
     
-    // For now, just update playbook progress without individual step updates
-    // TODO: Implement proper normalized updates when we have user context
+    // Update each action step in the database
+    for (const step of actionSteps) {
+      console.log(`[updatePlaybookActionSteps] Updating step ${step.id}, completed: ${step.completed}`);
+      
+      // Update the main action step
+      const { error: stepError } = await supabase
+        .from('playbook_action_steps')
+        .update({ 
+          completed: step.completed, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('playbook_id', playbookId)
+        .eq('id', step.id);
+
+      if (stepError) {
+        console.error(`[updatePlaybookActionSteps] Error updating step ${step.id}:`, stepError);
+        // Continue with other steps even if one fails
+      }
+
+      // Update sub-tasks if they exist
+      if (step.subTasks && step.subTasks.length > 0) {
+        for (const subTask of step.subTasks) {
+          console.log(`[updatePlaybookActionSteps] Updating subtask ${subTask.id}, completed: ${subTask.completed}`);
+          
+          const { error: subTaskError } = await supabase
+            .from('playbook_sub_tasks')
+            .update({ 
+              completed: subTask.completed, 
+              updated_at: new Date().toISOString() 
+            })
+            .eq('action_step_id', step.id)
+            .eq('id', subTask.id);
+
+          if (subTaskError) {
+            console.error(`[updatePlaybookActionSteps] Error updating subtask ${subTask.id}:`, subTaskError);
+            // Continue with other subtasks even if one fails
+          }
+        }
+      }
+    }
     
-    // Update playbook progress
+    // Update playbook progress and status
     const stats = calculateTaskStats(actionSteps);
     const progress = stats.total > 0 ? (stats.completed / stats.total) : 0;
     const allCompleted = stats.total > 0 && stats.completed === stats.total;
@@ -731,7 +769,7 @@ export async function updatePlaybookActionSteps(
       allCompleted ? 'completed' : 'ongoing'
     );
     
-    console.log(`[updatePlaybookActionSteps] Successfully updated playbook status for ${playbookId}`);
+    console.log(`[updatePlaybookActionSteps] Successfully updated all action steps and status for ${playbookId}`);
   } catch (error) {
     console.error('[updatePlaybookActionSteps] Error updating action steps:', error);
     throw error;

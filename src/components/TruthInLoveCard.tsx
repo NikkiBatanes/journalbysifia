@@ -34,7 +34,7 @@ export default function TruthInLoveCard({
   };
 
   return (
-    <View style={[style, styles.container]}>
+    <View style={[styles.container, style]}>
       <View style={styles.headerContainer}>
         <View style={styles.headingContainer}>
           <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
