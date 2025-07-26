@@ -12,6 +12,7 @@ import {
   useUpdateSubTask,
   useUpdateAffirmation,
 } from '../services/hooks/usePlaybookData';
+import { useCrossComponentSync } from '../services/hooks/useCrossComponentSync';
 
 type PlaybookStatus = 'inProgress' | 'completed';
 
@@ -409,6 +410,9 @@ export const usePlaybookDataWithStore = (userId: string) => {
   const updateSubTaskMutation = useUpdateSubTask();
   const updateAffirmationMutation = useUpdateAffirmation();
 
+  // Cross-component synchronization
+  const { syncPlaybookProgress, prefetchRelatedData } = useCrossComponentSync(userId);
+
   // Sync server data with local store
   useEffect(() => {
     if (serverPlaybooks.length > 0) {
@@ -434,14 +438,22 @@ export const usePlaybookDataWithStore = (userId: string) => {
         userId,
       });
 
-      // 3. Mark offline change as synced
-      // (This could be enhanced to remove the specific offline change)
-      console.log('[usePlaybookDataWithStore] Action step synced successfully');
+      // 3. Calculate new progress and sync with related components
+      const updatedPlaybook = getPlaybookById(playbookId);
+      if (updatedPlaybook) {
+        const progress = getPlaybookProgress(playbookId);
+        await syncPlaybookProgress(playbookId, progress.percentage);
+        
+        // Prefetch related data for better UX
+        await prefetchRelatedData(playbookId);
+      }
+
+      console.log('[usePlaybookDataWithStore] Action step synced successfully with cross-component sync');
     } catch (error) {
       console.error('[usePlaybookDataWithStore] Action step sync failed:', error);
       // React Query will handle rollback automatically
     }
-  }, [updateActionStepOptimistic, updateActionStepMutation, userId]);
+  }, [updateActionStepOptimistic, updateActionStepMutation, userId, getPlaybookById, getPlaybookProgress, syncPlaybookProgress, prefetchRelatedData]);
 
   const handleSubTaskUpdate = useCallback(async (
     playbookId: string,

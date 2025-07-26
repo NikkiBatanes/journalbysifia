@@ -22,6 +22,7 @@ import type { Playbook } from '../interfaces/playbook';
 import { deletePlaybook, getPlaybooks } from '../services/supabaseApiNormalized';
 import { useUser } from '../context/UserContext';
 import { useQuery } from '@tanstack/react-query';
+import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
 
 // Import gesture handler at the top level
 import 'react-native-gesture-handler'; // This is needed for gesture handling
@@ -114,6 +115,9 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes
   });
+
+  // Advanced prefetching for lightning-fast navigation
+  const { prefetchVisiblePlaybooks } = useIntelligentPrefetching(userId || '');
 
   // Set filter to 'ongoing' by default to show in-progress playbooks first
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
@@ -242,6 +246,17 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 
     return sorted;
   }, [playbooks, filter]);
+
+  // Intelligent prefetching: prefetch visible playbooks for instant navigation
+  useEffect(() => {
+    if (filteredPlaybooks.length > 0 && userId) {
+      // Prefetch the first 5 visible playbooks for instant navigation
+      const visiblePlaybookIds = filteredPlaybooks.slice(0, 5).map(p => p.id);
+      prefetchVisiblePlaybooks(visiblePlaybookIds).catch(error => {
+        console.warn('[PlaybookListScreen] Prefetching failed:', error);
+      });
+    }
+  }, [filteredPlaybooks, userId, prefetchVisiblePlaybooks]);
 
   // (Remove any other filteredPlaybooks declarations below this point)
 

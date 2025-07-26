@@ -77,6 +77,20 @@ export const queryKeys = {
     progress: (userId: string) => ['playbooks', 'progress', userId] as const,
     stats: (userId: string) => ['playbooks', 'stats', userId] as const,
     search: (userId: string, searchTerm: string) => ['playbooks', 'search', userId, searchTerm] as const,
+    
+    // Advanced prefetching patterns
+    adjacent: (userId: string, currentPlaybookId: string) => ['playbooks', 'adjacent', userId, currentPlaybookId] as const,
+    batch: (userId: string, playbookIds: string[]) => ['playbooks', 'batch', userId, ...playbookIds.sort()] as const,
+    related: (userId: string, playbookId: string) => ['playbooks', 'related', userId, playbookId] as const,
+    
+    // Cross-component relationships
+    withDevotionals: (userId: string, playbookId: string) => ['playbooks', 'withDevotionals', userId, playbookId] as const,
+    withJournal: (userId: string, playbookId: string, date: string) => ['playbooks', 'withJournal', userId, playbookId, date] as const,
+    withPrayers: (userId: string, playbookId: string) => ['playbooks', 'withPrayers', userId, playbookId] as const,
+    
+    // Performance optimization keys
+    infinite: (userId: string) => ['playbooks', 'infinite', userId] as const,
+    prefetch: (userId: string, playbookIds: string[]) => ['playbooks', 'prefetch', userId, ...playbookIds.sort()] as const,
   },
 
   // User-related queries
