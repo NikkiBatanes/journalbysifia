@@ -1,11 +1,13 @@
 -- ========================================
--- COMPLETE DATABASE SETUP FOR SIFIA APP
+-- COMPLETE DATABASE SCHEMA FOR SIFIA APP
 -- Industry Standard Data Management
 -- ========================================
 -- Run this script in Supabase SQL Editor to create all required tables
+-- Includes all tables, indexes, functions, and security policies
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ========================================
 -- 1. JOURNAL ENTRIES TABLE
@@ -18,35 +20,15 @@ CREATE TABLE IF NOT EXISTS journal_entries (
     selected_date DATE NOT NULL,
     completed BOOLEAN DEFAULT FALSE,
     priority TEXT CHECK (priority IN ('high', 'medium', 'low')),
-    metadata JSONB DEFAULT '{}',
-    
-    -- Timestamps
+    metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Journal entries indexes
+-- Indexes for journal entries
 CREATE INDEX IF NOT EXISTS idx_journal_entries_user_id ON journal_entries(user_id);
-CREATE INDEX IF NOT EXISTS idx_journal_entries_selected_date ON journal_entries(selected_date);
-CREATE INDEX IF NOT EXISTS idx_journal_entries_content_type ON journal_entries(content_type);
-CREATE INDEX IF NOT EXISTS idx_journal_entries_user_date ON journal_entries(user_id, selected_date);
-CREATE INDEX IF NOT EXISTS idx_journal_entries_user_date_type ON journal_entries(user_id, selected_date, content_type);
-CREATE INDEX IF NOT EXISTS idx_journal_entries_completed ON journal_entries(completed);
-
--- Journal entries RLS
-ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own journal entries" ON journal_entries
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own journal entries" ON journal_entries
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own journal entries" ON journal_entries
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own journal entries" ON journal_entries
-    FOR DELETE USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_date ON journal_entries(selected_date);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_type ON journal_entries(content_type);
 
 -- ========================================
 -- 2. REFLECTION ENTRIES TABLE
@@ -57,46 +39,15 @@ CREATE TABLE IF NOT EXISTS reflection_entries (
     title TEXT,
     content TEXT NOT NULL,
     content_type TEXT DEFAULT 'reflection',
-    type TEXT CHECK (type IN ('free', 'guided')) DEFAULT 'free',
-    source TEXT, -- 'devotional' or null for regular reflections
-    selected_date DATE NOT NULL,
-    
-    -- Devotional metadata (when source = 'devotional')
-    devotional_title TEXT,
-    day_number INTEGER,
-    day_title TEXT,
-    total_days INTEGER,
-    question_number INTEGER,
-    
-    -- Version field for conflict resolution
-    version INTEGER DEFAULT 1,
-    
-    -- Timestamps
+    tags TEXT[],
+    metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Reflection entries indexes
+-- Indexes for reflection entries
 CREATE INDEX IF NOT EXISTS idx_reflection_entries_user_id ON reflection_entries(user_id);
-CREATE INDEX IF NOT EXISTS idx_reflection_entries_selected_date ON reflection_entries(selected_date);
-CREATE INDEX IF NOT EXISTS idx_reflection_entries_user_date ON reflection_entries(user_id, selected_date);
-CREATE INDEX IF NOT EXISTS idx_reflection_entries_source ON reflection_entries(source);
-CREATE INDEX IF NOT EXISTS idx_reflection_entries_devotional_title ON reflection_entries(devotional_title);
-
--- Reflection entries RLS
-ALTER TABLE reflection_entries ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own reflection entries" ON reflection_entries
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own reflection entries" ON reflection_entries
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own reflection entries" ON reflection_entries
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own reflection entries" ON reflection_entries
-    FOR DELETE USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_reflection_entries_created_at ON reflection_entries(created_at DESC);
 
 -- ========================================
 -- 3. TIME BLOCKS TABLE
@@ -106,38 +57,21 @@ CREATE TABLE IF NOT EXISTS time_blocks (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     description TEXT,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    selected_date DATE NOT NULL,
-    color TEXT DEFAULT '#007AFF',
-    completed BOOLEAN DEFAULT FALSE,
-    metadata JSONB DEFAULT '{}',
-    
-    -- Timestamps
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL,
+    category TEXT,
+    color TEXT,
+    is_completed BOOLEAN DEFAULT FALSE,
+    metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CHECK (end_time > start_time)
 );
 
--- Time blocks indexes
+-- Indexes for time blocks
 CREATE INDEX IF NOT EXISTS idx_time_blocks_user_id ON time_blocks(user_id);
-CREATE INDEX IF NOT EXISTS idx_time_blocks_selected_date ON time_blocks(selected_date);
-CREATE INDEX IF NOT EXISTS idx_time_blocks_user_date ON time_blocks(user_id, selected_date);
 CREATE INDEX IF NOT EXISTS idx_time_blocks_start_time ON time_blocks(start_time);
-
--- Time blocks RLS
-ALTER TABLE time_blocks ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own time blocks" ON time_blocks
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own time blocks" ON time_blocks
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own time blocks" ON time_blocks
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own time blocks" ON time_blocks
-    FOR DELETE USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_time_blocks_end_time ON time_blocks(end_time);
 
 -- ========================================
 -- 4. PRAYERS TABLE
@@ -145,103 +79,98 @@ CREATE POLICY "Users can delete their own time blocks" ON time_blocks
 CREATE TABLE IF NOT EXISTS prayers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    prayer_type TEXT NOT NULL CHECK (prayer_type IN ('adoration', 'confession', 'thanksgiving', 'supplication', 'people')),
-    content TEXT NOT NULL,
-    selected_date DATE NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
     is_answered BOOLEAN DEFAULT FALSE,
-    answered_date DATE,
-    notes TEXT,
-    requested_by TEXT, -- For people prayers
-    metadata JSONB DEFAULT '{}',
-    
-    -- Timestamps
+    answered_at TIMESTAMPTZ,
+    answered_notes TEXT,
+    requested_by TEXT,
+    category TEXT,
+    is_public BOOLEAN DEFAULT FALSE,
+    metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Prayers indexes
+-- Indexes for prayers
 CREATE INDEX IF NOT EXISTS idx_prayers_user_id ON prayers(user_id);
-CREATE INDEX IF NOT EXISTS idx_prayers_selected_date ON prayers(selected_date);
-CREATE INDEX IF NOT EXISTS idx_prayers_prayer_type ON prayers(prayer_type);
-CREATE INDEX IF NOT EXISTS idx_prayers_user_date ON prayers(user_id, selected_date);
-CREATE INDEX IF NOT EXISTS idx_prayers_user_date_type ON prayers(user_id, selected_date, prayer_type);
 CREATE INDEX IF NOT EXISTS idx_prayers_is_answered ON prayers(is_answered);
-
--- Prayers RLS
-ALTER TABLE prayers ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own prayers" ON prayers
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own prayers" ON prayers
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own prayers" ON prayers
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own prayers" ON prayers
-    FOR DELETE USING (auth.uid() = user_id);
+CREATE INDEX IF NOT EXISTS idx_prayers_created_at ON prayers(created_at DESC);
 
 -- ========================================
--- 5. PLAYBOOKS TABLE (NEW - INDUSTRY STANDARD)
+-- 5. PLAYBOOKS TABLE
 -- ========================================
 CREATE TABLE IF NOT EXISTS playbooks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
-    user_input TEXT NOT NULL,
+    description TEXT,
+    category TEXT,
+    is_public BOOLEAN DEFAULT FALSE,
+    cover_image_url TEXT,
+    difficulty_level TEXT CHECK (difficulty_level IN ('beginner', 'intermediate', 'advanced')),
+    estimated_duration_minutes INTEGER,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for playbooks
+CREATE INDEX IF NOT EXISTS idx_playbooks_user_id ON playbooks(user_id);
+CREATE INDEX IF NOT EXISTS idx_playbooks_category ON playbooks(category);
+
+-- ========================================
+-- 6. DEVOTIONALS TABLE (UPDATED)
+-- ========================================
+CREATE TABLE IF NOT EXISTS devotionals (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     
-    -- Truth in Love section
-    truth_in_love_text TEXT NOT NULL,
-    truth_in_love_summary TEXT NOT NULL,
+    -- Basic information
+    title TEXT NOT NULL,
+    description TEXT,
     
-    -- Bible verse
-    bible_verse_text TEXT NOT NULL,
-    bible_verse_reference TEXT NOT NULL,
+    -- Category and classification
+    category TEXT NOT NULL DEFAULT 'Growth' CHECK (category IN (
+        'Prayer', 'Growth', 'Healing', 'Wisdom', 'Relationships', 
+        'Purpose', 'Career', 'Finances', 'Mental Health', 'Parenting', 'Health'
+    )),
+    categories TEXT[] DEFAULT ARRAY['Growth'],
     
-    -- Direct challenge (can be string or structured)
-    direct_challenge TEXT,
-    challenge_cta TEXT,
+    -- Playbook relationship
+    playbook_id UUID REFERENCES playbooks(id) ON DELETE SET NULL,
+    playbook_title TEXT,
     
     -- Progress tracking
-    progress DECIMAL(3,2) DEFAULT 0.00 CHECK (progress >= 0 AND progress <= 1),
-    total_tasks INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'inProgress' CHECK (status IN ('inProgress', 'completed')),
+    total_days INTEGER NOT NULL DEFAULT 7 CHECK (total_days > 0),
+    current_day INTEGER NOT NULL DEFAULT 1 CHECK (current_day >= 1),
+    progress INTEGER NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
     
-    -- Profile and metadata
-    profile_image TEXT,
-    metadata JSONB DEFAULT '{}',
+    -- Content structure
+    days JSONB NOT NULL DEFAULT '[]'::jsonb,
+    
+    -- User feedback
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    rated_at TIMESTAMPTZ,
+    feedback TEXT,
     
     -- Timestamps
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ
 );
 
--- Playbooks indexes
-CREATE INDEX IF NOT EXISTS idx_playbooks_user_id ON playbooks(user_id);
-CREATE INDEX IF NOT EXISTS idx_playbooks_status ON playbooks(status);
-CREATE INDEX IF NOT EXISTS idx_playbooks_created_at ON playbooks(created_at);
-CREATE INDEX IF NOT EXISTS idx_playbooks_user_status ON playbooks(user_id, status);
-CREATE INDEX IF NOT EXISTS idx_playbooks_progress ON playbooks(progress);
-
--- Playbooks RLS
-ALTER TABLE playbooks ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view their own playbooks" ON playbooks
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own playbooks" ON playbooks
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own playbooks" ON playbooks
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own playbooks" ON playbooks
-    FOR DELETE USING (auth.uid() = user_id);
+-- Indexes for devotionals
+CREATE INDEX IF NOT EXISTS idx_devotionals_user_id ON devotionals(user_id);
+CREATE INDEX IF NOT EXISTS idx_devotionals_category ON devotionals(category);
+CREATE INDEX IF NOT EXISTS idx_devotionals_playbook_id ON devotionals(playbook_id);
+CREATE INDEX IF NOT EXISTS idx_devotionals_completed ON devotionals(completed);
+CREATE INDEX IF NOT EXISTS idx_devotionals_progress ON devotionals(progress);
+CREATE INDEX IF NOT EXISTS idx_devotionals_created_at ON devotionals(created_at DESC);
 
 -- ========================================
--- 6. PLAYBOOK ACTION STEPS TABLE (NEW)
+-- 7. PLAYBOOK ACTION STEPS
 -- ========================================
 CREATE TABLE IF NOT EXISTS playbook_action_steps (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -249,194 +178,106 @@ CREATE TABLE IF NOT EXISTS playbook_action_steps (
     title TEXT NOT NULL,
     description TEXT,
     step_order INTEGER NOT NULL,
-    completed BOOLEAN DEFAULT FALSE,
-    metadata JSONB DEFAULT '{}',
-    
-    -- Timestamps
+    estimated_duration_minutes INTEGER,
+    is_required BOOLEAN DEFAULT TRUE,
+    metadata JSONB,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Action steps indexes
-CREATE INDEX IF NOT EXISTS idx_action_steps_playbook_id ON playbook_action_steps(playbook_id);
-CREATE INDEX IF NOT EXISTS idx_action_steps_step_order ON playbook_action_steps(step_order);
-CREATE INDEX IF NOT EXISTS idx_action_steps_completed ON playbook_action_steps(completed);
-CREATE INDEX IF NOT EXISTS idx_action_steps_playbook_order ON playbook_action_steps(playbook_id, step_order);
-
--- Action steps RLS
-ALTER TABLE playbook_action_steps ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view action steps of their playbooks" ON playbook_action_steps
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM playbooks 
-            WHERE playbooks.id = playbook_action_steps.playbook_id 
-            AND playbooks.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can insert action steps to their playbooks" ON playbook_action_steps
-    FOR INSERT WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM playbooks 
-            WHERE playbooks.id = playbook_action_steps.playbook_id 
-            AND playbooks.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can update action steps of their playbooks" ON playbook_action_steps
-    FOR UPDATE USING (
-        EXISTS (
-            SELECT 1 FROM playbooks 
-            WHERE playbooks.id = playbook_action_steps.playbook_id 
-            AND playbooks.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can delete action steps of their playbooks" ON playbook_action_steps
-    FOR DELETE USING (
-        EXISTS (
-            SELECT 1 FROM playbooks 
-            WHERE playbooks.id = playbook_action_steps.playbook_id 
-            AND playbooks.user_id = auth.uid()
-        )
-    );
+-- Indexes for action steps
+CREATE INDEX IF NOT EXISTS idx_playbook_action_steps_playbook_id ON playbook_action_steps(playbook_id);
+CREATE INDEX IF NOT EXISTS idx_playbook_action_steps_step_order ON playbook_action_steps(playbook_id, step_order);
 
 -- ========================================
--- 7. PLAYBOOK SUB TASKS TABLE (NEW)
--- ========================================
-CREATE TABLE IF NOT EXISTS playbook_sub_tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    action_step_id UUID NOT NULL REFERENCES playbook_action_steps(id) ON DELETE CASCADE,
-    text TEXT NOT NULL,
-    task_order INTEGER NOT NULL,
-    completed BOOLEAN DEFAULT FALSE,
-    metadata JSONB DEFAULT '{}',
-    
-    -- Timestamps
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
-);
-
--- Sub tasks indexes
-CREATE INDEX IF NOT EXISTS idx_sub_tasks_action_step_id ON playbook_sub_tasks(action_step_id);
-CREATE INDEX IF NOT EXISTS idx_sub_tasks_task_order ON playbook_sub_tasks(task_order);
-CREATE INDEX IF NOT EXISTS idx_sub_tasks_completed ON playbook_sub_tasks(completed);
-CREATE INDEX IF NOT EXISTS idx_sub_tasks_step_order ON playbook_sub_tasks(action_step_id, task_order);
-
--- Sub tasks RLS
-ALTER TABLE playbook_sub_tasks ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view sub tasks of their action steps" ON playbook_sub_tasks
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM playbook_action_steps pas
-            JOIN playbooks p ON p.id = pas.playbook_id
-            WHERE pas.id = playbook_sub_tasks.action_step_id 
-            AND p.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can insert sub tasks to their action steps" ON playbook_sub_tasks
-    FOR INSERT WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM playbook_action_steps pas
-            JOIN playbooks p ON p.id = pas.playbook_id
-            WHERE pas.id = playbook_sub_tasks.action_step_id 
-            AND p.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can update sub tasks of their action steps" ON playbook_sub_tasks
-    FOR UPDATE USING (
-        EXISTS (
-            SELECT 1 FROM playbook_action_steps pas
-            JOIN playbooks p ON p.id = pas.playbook_id
-            WHERE pas.id = playbook_sub_tasks.action_step_id 
-            AND p.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can delete sub tasks of their action steps" ON playbook_sub_tasks
-    FOR DELETE USING (
-        EXISTS (
-            SELECT 1 FROM playbook_action_steps pas
-            JOIN playbooks p ON p.id = pas.playbook_id
-            WHERE pas.id = playbook_sub_tasks.action_step_id 
-            AND p.user_id = auth.uid()
-        )
-    );
-
--- ========================================
--- 8. PLAYBOOK AFFIRMATIONS TABLE (NEW)
+-- 8. PLAYBOOK AFFIRMATIONS
 -- ========================================
 CREATE TABLE IF NOT EXISTS playbook_affirmations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     playbook_id UUID NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
     text TEXT NOT NULL,
     affirmation_order INTEGER NOT NULL,
-    completed BOOLEAN DEFAULT FALSE,
-    metadata JSONB DEFAULT '{}',
-    
-    -- Timestamps
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    completed_at TIMESTAMPTZ
+    category TEXT,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Affirmations indexes
-CREATE INDEX IF NOT EXISTS idx_affirmations_playbook_id ON playbook_affirmations(playbook_id);
-CREATE INDEX IF NOT EXISTS idx_affirmations_order ON playbook_affirmations(affirmation_order);
-CREATE INDEX IF NOT EXISTS idx_affirmations_completed ON playbook_affirmations(completed);
-CREATE INDEX IF NOT EXISTS idx_affirmations_playbook_order ON playbook_affirmations(playbook_id, affirmation_order);
-
--- Affirmations RLS
-ALTER TABLE playbook_affirmations ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view affirmations of their playbooks" ON playbook_affirmations
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM playbooks 
-            WHERE playbooks.id = playbook_affirmations.playbook_id 
-            AND playbooks.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can insert affirmations to their playbooks" ON playbook_affirmations
-    FOR INSERT WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM playbooks 
-            WHERE playbooks.id = playbook_affirmations.playbook_id 
-            AND playbooks.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can update affirmations of their playbooks" ON playbook_affirmations
-    FOR UPDATE USING (
-        EXISTS (
-            SELECT 1 FROM playbooks 
-            WHERE playbooks.id = playbook_affirmations.playbook_id 
-            AND playbooks.user_id = auth.uid()
-        )
-    );
-
-CREATE POLICY "Users can delete affirmations of their playbooks" ON playbook_affirmations
-    FOR DELETE USING (
-        EXISTS (
-            SELECT 1 FROM playbooks 
-            WHERE playbooks.id = playbooks_affirmations.playbook_id 
-            AND playbooks.user_id = auth.uid()
-        )
-    );
+-- Indexes for affirmations
+CREATE INDEX IF NOT EXISTS idx_playbook_affirmations_playbook_id ON playbook_affirmations(playbook_id);
 
 -- ========================================
--- TRIGGERS FOR UPDATED_AT TIMESTAMPS
+-- 9. PLAYBOOK BIBLE VERSES
+-- ========================================
+CREATE TABLE IF NOT EXISTS playbook_bible_verses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    playbook_id UUID NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+    verse_text TEXT NOT NULL,
+    reference TEXT NOT NULL,
+    verse_order INTEGER NOT NULL,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for bible verses
+CREATE INDEX IF NOT EXISTS idx_playbook_bible_verses_playbook_id ON playbook_bible_verses(playbook_id);
+
+-- ========================================
+-- 10. PLAYBOOK CHALLENGES
+-- ========================================
+CREATE TABLE IF NOT EXISTS playbook_challenges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    playbook_id UUID NOT NULL REFERENCES playbooks(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT,
+    challenge_text TEXT NOT NULL,
+    challenge_order INTEGER NOT NULL,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for challenges
+CREATE INDEX IF NOT EXISTS idx_playbook_challenges_playbook_id ON playbook_challenges(playbook_id);
+
+-- ========================================
+-- 11. USER PROGRESS
+-- ========================================
+CREATE TABLE IF NOT EXISTS user_progress (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    entity_type TEXT NOT NULL, -- 'playbook', 'devotional', etc.
+    entity_id UUID NOT NULL,
+    progress_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMPTZ,
+    metadata JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, entity_type, entity_id)
+);
+
+-- Indexes for user progress
+CREATE INDEX IF NOT EXISTS idx_user_progress_user_id ON user_progress(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_progress_entity ON user_progress(entity_type, entity_id);
+
+-- ========================================
+-- 12. USER SETTINGS
+-- ========================================
+CREATE TABLE IF NOT EXISTS user_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    settings JSONB NOT NULL DEFAULT '{}'::jsonb,
+    notification_preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
+-- ========================================
+-- FUNCTIONS
 -- ========================================
 
--- Generic function for updating timestamps
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- Function to update timestamps
+CREATE OR REPLACE FUNCTION update_timestamp()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
@@ -444,206 +285,337 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Journal entries trigger
-CREATE TRIGGER trigger_update_journal_entries_updated_at
-    BEFORE UPDATE ON journal_entries
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Reflection entries trigger
-CREATE TRIGGER trigger_update_reflection_entries_updated_at
-    BEFORE UPDATE ON reflection_entries
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Time blocks trigger
-CREATE TRIGGER trigger_update_time_blocks_updated_at
-    BEFORE UPDATE ON time_blocks
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Prayers trigger
-CREATE TRIGGER trigger_update_prayers_updated_at
-    BEFORE UPDATE ON prayers
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Playbooks trigger
-CREATE TRIGGER trigger_update_playbooks_updated_at
-    BEFORE UPDATE ON playbooks
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Action steps trigger
-CREATE TRIGGER trigger_update_action_steps_updated_at
-    BEFORE UPDATE ON playbook_action_steps
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Sub tasks trigger
-CREATE TRIGGER trigger_update_sub_tasks_updated_at
-    BEFORE UPDATE ON playbook_sub_tasks
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- Affirmations trigger
-CREATE TRIGGER trigger_update_affirmations_updated_at
-    BEFORE UPDATE ON playbook_affirmations
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- ========================================
--- FUNCTIONS FOR PLAYBOOK PROGRESS CALCULATION
--- ========================================
-
--- Function to update playbook progress when action steps change
-CREATE OR REPLACE FUNCTION update_playbook_progress()
-RETURNS TRIGGER AS $$
+-- Function to calculate devotional progress
+CREATE OR REPLACE FUNCTION calculate_devotional_progress(devotional_id UUID)
+RETURNS INTEGER AS $$
 DECLARE
-    total_steps INTEGER;
-    completed_steps INTEGER;
-    total_subtasks INTEGER;
-    completed_subtasks INTEGER;
-    new_progress DECIMAL(3,2);
-    new_status TEXT;
-    playbook_id_var UUID;
+    total_days_count INTEGER;
+    completed_days_count INTEGER;
+    calculated_progress INTEGER;
 BEGIN
-    -- Get playbook_id from the trigger context
-    IF TG_TABLE_NAME = 'playbook_action_steps' THEN
-        playbook_id_var := COALESCE(NEW.playbook_id, OLD.playbook_id);
-    ELSIF TG_TABLE_NAME = 'playbook_sub_tasks' THEN
-        SELECT pas.playbook_id INTO playbook_id_var
-        FROM playbook_action_steps pas
-        WHERE pas.id = COALESCE(NEW.action_step_id, OLD.action_step_id);
-    END IF;
-
-    -- Count total and completed action steps
-    SELECT COUNT(*), COUNT(*) FILTER (WHERE completed = TRUE)
-    INTO total_steps, completed_steps
-    FROM playbook_action_steps
-    WHERE playbook_id = playbook_id_var;
-
-    -- Count total and completed subtasks
-    SELECT COUNT(*), COUNT(*) FILTER (WHERE pst.completed = TRUE)
-    INTO total_subtasks, completed_subtasks
-    FROM playbook_sub_tasks pst
-    JOIN playbook_action_steps pas ON pas.id = pst.action_step_id
-    WHERE pas.playbook_id = playbook_id_var;
-
-    -- Calculate progress (steps + subtasks)
-    IF (total_steps + total_subtasks) > 0 THEN
-        new_progress := (completed_steps + completed_subtasks)::DECIMAL / (total_steps + total_subtasks)::DECIMAL;
+    -- Get total days
+    SELECT total_days INTO total_days_count
+    FROM devotionals 
+    WHERE id = devotional_id;
+    
+    -- Count completed days from JSON
+    SELECT COUNT(*)::INTEGER INTO completed_days_count
+    FROM devotionals,
+         jsonb_array_elements(days) AS day_elem
+    WHERE id = devotional_id
+      AND (day_elem->>'completed')::boolean = true;
+    
+    -- Calculate progress percentage
+    IF total_days_count > 0 THEN
+        calculated_progress := ROUND((completed_days_count::DECIMAL / total_days_count::DECIMAL) * 100);
     ELSE
-        new_progress := 0;
+        calculated_progress := 0;
     END IF;
-
-    -- Determine status
-    IF new_progress >= 1.0 THEN
-        new_status := 'completed';
-    ELSE
-        new_status := 'inProgress';
-    END IF;
-
-    -- Update playbook
-    UPDATE playbooks
-    SET 
-        progress = new_progress,
-        total_tasks = total_steps + total_subtasks,
-        status = new_status,
-        completed_at = CASE WHEN new_status = 'completed' AND status != 'completed' THEN NOW() ELSE completed_at END,
-        updated_at = NOW()
-    WHERE id = playbook_id_var;
-
-    RETURN COALESCE(NEW, OLD);
+    
+    -- Update the devotional record
+    UPDATE devotionals 
+    SET progress = calculated_progress,
+        current_day = LEAST(completed_days_count + 1, total_days_count)
+    WHERE id = devotional_id;
+    
+    RETURN calculated_progress;
 END;
 $$ LANGUAGE plpgsql;
 
--- Triggers for automatic progress updates
-CREATE TRIGGER trigger_update_playbook_progress_on_action_step_change
-    AFTER INSERT OR UPDATE OR DELETE ON playbook_action_steps
-    FOR EACH ROW
-    EXECUTE FUNCTION update_playbook_progress();
+-- Function to create devotional from playbook
+CREATE OR REPLACE FUNCTION create_devotional_from_playbook(
+    p_user_id UUID,
+    p_playbook_id UUID,
+    p_title TEXT,
+    p_description TEXT DEFAULT '',
+    p_category TEXT DEFAULT 'Growth',
+    p_duration INTEGER DEFAULT 7
+)
+RETURNS UUID AS $$
+DECLARE
+    new_devotional_id UUID;
+    playbook_title_cache TEXT;
+BEGIN
+    -- Get playbook title for caching
+    SELECT title INTO playbook_title_cache
+    FROM playbooks 
+    WHERE id = p_playbook_id;
+    
+    -- Create the devotional
+    INSERT INTO devotionals (
+        user_id,
+        title,
+        description,
+        category,
+        categories,
+        playbook_id,
+        playbook_title,
+        total_days,
+        days
+    ) VALUES (
+        p_user_id,
+        p_title,
+        p_description,
+        p_category,
+        ARRAY[p_category],
+        p_playbook_id,
+        playbook_title_cache,
+        p_duration,
+        -- Generate empty days structure
+        (
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'dayNumber', day_num,
+                    'title', 'Day ' || day_num,
+                    'content', '',
+                    'reflection', '',
+                    'reflectionQuestions', '[]'::jsonb,
+                    'prayer', '',
+                    'scripture', jsonb_build_object('text', '', 'reference', ''),
+                    'completed', false,
+                    'completedAt', null
+                )
+            )
+            FROM generate_series(1, p_duration) AS day_num
+        )
+    )
+    RETURNING id INTO new_devotional_id;
+    
+    RETURN new_devotional_id;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_update_playbook_progress_on_sub_task_change
-    AFTER INSERT OR UPDATE OR DELETE ON playbook_sub_tasks
-    FOR EACH ROW
-    EXECUTE FUNCTION update_playbook_progress();
+-- Function to mark devotional day as complete
+CREATE OR REPLACE FUNCTION mark_devotional_day_complete(
+    p_devotional_id UUID,
+    p_day_number INTEGER
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    updated_days JSONB;
+BEGIN
+    -- Update the specific day in the days array
+    UPDATE devotionals
+    SET days = (
+        SELECT jsonb_agg(
+            CASE 
+                WHEN (elem->>'dayNumber')::INTEGER = p_day_number 
+                THEN elem || jsonb_build_object('completed', true, 'completedAt', NOW())
+                ELSE elem
+            END
+        )
+        FROM jsonb_array_elements(days) AS elem
+    )
+    WHERE id = p_devotional_id
+      AND auth.uid() = user_id;
+    
+    -- Recalculate progress
+    PERFORM calculate_devotional_progress(p_devotional_id);
+    
+    RETURN FOUND;
+END;
+$$ LANGUAGE plpgsql;
 
 -- ========================================
--- VIEWS FOR EASY DATA ACCESS
+-- TRIGGERS
 -- ========================================
 
--- View for complete playbook data with progress
-CREATE OR REPLACE VIEW playbooks_with_details AS
+-- Create update triggers for all tables with updated_at
+DO $$
+DECLARE
+    t record;
+BEGIN
+    FOR t IN 
+        SELECT table_name 
+        FROM information_schema.columns 
+        WHERE column_name = 'updated_at' 
+        AND table_schema = 'public'
+    LOOP
+        EXECUTE format('DROP TRIGGER IF EXISTS update_%s_timestamp ON %I', 
+                      t.table_name, t.table_name);
+        EXECUTE format('CREATE TRIGGER update_%s_timestamp
+                      BEFORE UPDATE ON %I
+                      FOR EACH ROW EXECUTE FUNCTION update_timestamp()',
+                      t.table_name, t.table_name);
+    END LOOP;
+END;
+$$;
+
+-- Special trigger for devotionals to handle completion
+CREATE OR REPLACE FUNCTION update_devotional_completion()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Auto-update completion status based on progress
+    IF NEW.progress >= 100 AND NEW.completed = FALSE THEN
+        NEW.completed := TRUE;
+        NEW.completed_at := NOW();
+    ELSIF NEW.progress < 100 AND NEW.completed = TRUE THEN
+        NEW.completed := FALSE;
+        NEW.completed_at := NULL;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_devotional_completion ON devotionals;
+CREATE TRIGGER trigger_devotional_completion
+    BEFORE UPDATE ON devotionals
+    FOR EACH ROW
+    EXECUTE FUNCTION update_devotional_completion();
+
+-- ========================================
+-- ROW LEVEL SECURITY (RLS)
+-- ========================================
+
+-- Enable RLS on all tables
+DO $$
+DECLARE
+    t record;
+BEGIN
+    FOR t IN 
+        SELECT tablename 
+        FROM pg_tables 
+        WHERE schemaname = 'public'
+        AND tablename NOT IN ('spatial_ref_sys')  -- Exclude PostGIS tables if any
+    LOOP
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t.tablename);
+    END LOOP;
+END;
+$$;
+
+-- Journal Entries Policies
+CREATE POLICY "Users can manage own journal entries" ON journal_entries
+    USING (auth.uid() = user_id);
+
+-- Reflection Entries Policies
+CREATE POLICY "Users can manage own reflection entries" ON reflection_entries
+    USING (auth.uid() = user_id);
+
+-- Time Blocks Policies
+CREATE POLICY "Users can manage own time blocks" ON time_blocks
+    USING (auth.uid() = user_id);
+
+-- Prayers Policies
+CREATE POLICY "Users can manage own prayers" ON prayers
+    USING (auth.uid() = user_id);
+
+-- Playbooks Policies
+CREATE POLICY "Users can manage own playbooks" ON playbooks
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Public playbooks are viewable" ON playbooks
+    FOR SELECT USING (is_public = true);
+
+-- Devotionals Policies
+CREATE POLICY "Users can manage own devotionals" ON devotionals
+    USING (auth.uid() = user_id);
+
+-- User Progress Policies
+CREATE POLICY "Users can manage own progress" ON user_progress
+    USING (auth.uid() = user_id);
+
+-- User Settings Policies
+CREATE POLICY "Users can manage own settings" ON user_settings
+    USING (auth.uid() = user_id);
+
+-- ========================================
+-- SEARCH FUNCTIONALITY
+-- ========================================
+
+-- Add search vector to devotionals
+ALTER TABLE devotionals ADD COLUMN IF NOT EXISTS search_vector tsvector
+    GENERATED ALWAYS AS (
+        to_tsvector('english', 
+            COALESCE(title, '') || ' ' || 
+            COALESCE(description, '') || ' ' || 
+            COALESCE(category, '') || ' ' ||
+            COALESCE(playbook_title, '')
+        )
+    ) STORED;
+
+CREATE INDEX IF NOT EXISTS idx_devotionals_search ON devotionals USING GIN(search_vector);
+
+-- ========================================
+-- VIEWS
+-- ========================================
+
+-- View for devotional analytics
+CREATE OR REPLACE VIEW devotional_analytics AS
 SELECT 
-    p.*,
-    COUNT(pas.id) as total_action_steps,
-    COUNT(pas.id) FILTER (WHERE pas.completed = TRUE) as completed_action_steps,
-    COUNT(pst.id) as total_sub_tasks,
-    COUNT(pst.id) FILTER (WHERE pst.completed = TRUE) as completed_sub_tasks,
-    COUNT(pa.id) as total_affirmations,
-    COUNT(pa.id) FILTER (WHERE pa.completed = TRUE) as completed_affirmations
-FROM playbooks p
-LEFT JOIN playbook_action_steps pas ON pas.playbook_id = p.id
-LEFT JOIN playbook_sub_tasks pst ON pst.action_step_id = pas.id
-LEFT JOIN playbook_affirmations pa ON pa.playbook_id = p.id
-GROUP BY p.id;
+    user_id,
+    category,
+    COUNT(*) as total_devotionals,
+    COUNT(*) FILTER (WHERE completed = true) as completed_devotionals,
+    AVG(progress) as avg_progress,
+    AVG(rating) FILTER (WHERE rating IS NOT NULL) as avg_rating,
+    COUNT(*) FILTER (WHERE playbook_id IS NOT NULL) as from_playbooks,
+    MIN(created_at) as first_devotional,
+    MAX(updated_at) as last_activity
+FROM devotionals
+GROUP BY user_id, category;
+
+-- View for user progress summary
+CREATE OR REPLACE VIEW user_progress_summary AS
+SELECT 
+    up.user_id,
+    up.entity_type,
+    COUNT(*) as total_items,
+    COUNT(*) FILTER (WHERE up.completed = true) as completed_items,
+    ROUND(COUNT(*) FILTER (WHERE up.completed = true) * 100.0 / 
+          NULLIF(COUNT(*), 0), 1) as completion_percentage,
+    MAX(up.updated_at) as last_updated
+FROM user_progress up
+GROUP BY up.user_id, up.entity_type;
 
 -- ========================================
--- SAMPLE DATA (OPTIONAL - FOR TESTING)
+-- PERMISSIONS
 -- ========================================
 
--- Uncomment the following lines to insert sample data for testing
+-- Grant necessary permissions to authenticated users
+GRANT USAGE ON SCHEMA public TO authenticated;
 
-/*
--- Sample playbook
-INSERT INTO playbooks (user_id, title, user_input, truth_in_love_text, truth_in_love_summary, bible_verse_text, bible_verse_reference, direct_challenge)
-VALUES (
-    auth.uid(),
-    'Overcoming Anxiety',
-    'I struggle with anxiety and worry constantly',
-    'God has not given you a spirit of fear, but of power, love, and sound mind.',
-    'You are equipped with divine strength to overcome anxiety.',
-    'For God has not given us a spirit of fear, but of power, of love and of sound mind.',
-    '2 Timothy 1:7',
-    'Challenge yourself to replace one anxious thought with a truth from God''s word each day.'
-);
+-- Tables
+GRANT SELECT, INSERT, UPDATE, DELETE ON 
+    journal_entries, 
+    reflection_entries, 
+    time_blocks, 
+    prayers, 
+    playbooks, 
+    devotionals,
+    playbook_action_steps,
+    playbook_affirmations,
+    playbook_bible_verses,
+    playbook_challenges,
+    user_progress,
+    user_settings
+TO authenticated;
 
--- Sample action steps (you would need to replace the playbook_id with actual UUID)
--- INSERT INTO playbook_action_steps (playbook_id, title, description, step_order)
--- VALUES 
---     ('your-playbook-uuid', 'Daily Scripture Reading', 'Read one verse about God''s peace each morning', 1),
---     ('your-playbook-uuid', 'Prayer Time', 'Spend 10 minutes in prayer when anxiety arises', 2);
-*/
+-- Sequences (for auto-incrementing IDs if any)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- Functions
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+
+-- Views
+GRANT SELECT ON 
+    devotional_analytics,
+    user_progress_summary
+TO authenticated;
 
 -- ========================================
--- COMPLETION MESSAGE
+-- FINAL SETUP
 -- ========================================
 
+-- Notify completion
 DO $$
 BEGIN
     RAISE NOTICE '========================================';
     RAISE NOTICE 'DATABASE SETUP COMPLETE!';
     RAISE NOTICE '========================================';
-    RAISE NOTICE 'Created tables:';
-    RAISE NOTICE '- journal_entries (with RLS and indexes)';
-    RAISE NOTICE '- reflection_entries (with RLS and indexes)';
-    RAISE NOTICE '- time_blocks (with RLS and indexes)';
-    RAISE NOTICE '- prayers (with RLS and indexes)';
-    RAISE NOTICE '- playbooks (with RLS and indexes)';
-    RAISE NOTICE '- playbook_action_steps (with RLS and indexes)';
-    RAISE NOTICE '- playbook_sub_tasks (with RLS and indexes)';
-    RAISE NOTICE '- playbook_affirmations (with RLS and indexes)';
-    RAISE NOTICE '';
-    RAISE NOTICE 'Created triggers for:';
-    RAISE NOTICE '- Automatic updated_at timestamps';
-    RAISE NOTICE '- Automatic playbook progress calculation';
-    RAISE NOTICE '';
-    RAISE NOTICE 'Created views:';
-    RAISE NOTICE '- playbooks_with_details (complete playbook data)';
-    RAISE NOTICE '';
-    RAISE NOTICE 'All tables have Row Level Security (RLS) enabled';
-    RAISE NOTICE 'All tables have proper indexes for performance';
-    RAISE NOTICE 'Ready for production use!';
+    RAISE NOTICE 'Created tables with RLS and proper indexing.';
+    RAISE NOTICE 'All tables have update_at triggers.';
+    RAISE NOTICE 'Row Level Security (RLS) is enabled on all tables.';
     RAISE NOTICE '========================================';
-END $$;
+END;
+$$;
