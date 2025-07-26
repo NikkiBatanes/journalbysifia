@@ -74,17 +74,17 @@ export const calculateTaskStats = (actionSteps: any[] = []): TaskStats => {
   let total = 0;
 
   for (const step of actionSteps) {
-    if (!step) continue;
+    if (!step) {continue;}
 
     if (Array.isArray(step.subTasks) && step.subTasks.length > 0) {
       // Count sub-tasks for steps that have them
       for (const subTask of step.subTasks) {
-        if (subTask?.completed) completed++;
+        if (subTask?.completed) {completed++;}
         total++;
       }
     } else {
       // Count regular steps that don't have sub-tasks
-      if (step.completed) completed++;
+      if (step.completed) {completed++;}
       total++;
     }
   }
@@ -105,19 +105,19 @@ const formatDate = (date: Date): string => {
 const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   // Get user info
   const { id: userId } = useUser();
-  
+
   // Fetch playbooks from database using React Query with proper caching
-  const { data: playbooks = [], isLoading, error, refetch } = useQuery<Playbook[]>({
+  const { data: playbooks = [], isLoading, refetch } = useQuery<Playbook[]>({
     queryKey: ['playbooks', userId],
     queryFn: () => getPlaybooks(userId || ''),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes
   });
-  
+
   // Set filter to 'ongoing' by default to show in-progress playbooks first
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
-  
+
   // Component renders with current state
 
   // Refs
@@ -158,8 +158,8 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       }
 
       return () => {}; // No-op cleanup function
-    } catch (error) {
-      console.error('Error initializing animations:', error);
+    } catch (err) {
+      console.error('Error initializing animations:', err);
       return () => {}; // Ensure we always return a cleanup function
     }
   };
@@ -177,7 +177,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       // Don't reset filter - preserve user's tab selection
-      
+
       // Safely reset animation values if they exist
       if (animatedValues.current && Array.isArray(animatedValues.current)) {
         animatedValues.current.forEach(value => {
@@ -212,15 +212,15 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     if (!Array.isArray(playbooks) || playbooks.length === 0) {
       return [];
     }
-    
+
     // Simple filtering logic
     const filtered = playbooks.filter(playbook => {
-      if (!playbook?.actionSteps) return false;
-      
+      if (!playbook?.actionSteps) {return false;}
+
       const { completed, total } = calculateTaskStats(playbook.actionSteps);
       const progress = total > 0 ? (completed / total) * 100 : 0;
       const isCompleted = progress >= 100;
-      
+
       switch (filter) {
         case 'all':
           return true;
@@ -232,14 +232,14 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           return false;
       }
     });
-    
+
     // Sort by most recent
     const sorted = filtered.sort((a, b) => {
       const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
       const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
       return dateB - dateA;
     });
-    
+
     return sorted;
   }, [playbooks, filter]);
 
@@ -300,8 +300,8 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 
           return getMostRecentDate(b.data) - getMostRecentDate(a.data);
         });
-    } catch (error) {
-      console.error('Error in groupPlaybooksByMonth:', error);
+    } catch (err) {
+      console.error('Error in groupPlaybooksByMonth:', err);
       return [];
     }
   }, [filter]);
@@ -310,7 +310,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     // Ensure filteredPlaybooks is an array before passing to groupPlaybooksByMonth
     const safeFilteredPlaybooks = Array.isArray(filteredPlaybooks) ? filteredPlaybooks : [];
     const result = groupPlaybooksByMonth(safeFilteredPlaybooks);
-    
+
     return result;
   }, [filteredPlaybooks, groupPlaybooksByMonth]);
 
@@ -337,8 +337,8 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
               await deletePlaybook(id);
               // Refresh the list after successful deletion
               await refetch();
-            } catch (error) {
-              console.error('Error deleting playbook:', error);
+            } catch (err) {
+              console.error('Error deleting playbook:', err);
               // If there was an error, reload the playbooks to restore the correct state
               await refetch();
               Alert.alert('Error', 'Failed to delete playbook. Please try again.');

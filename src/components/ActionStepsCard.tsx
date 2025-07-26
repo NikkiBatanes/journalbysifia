@@ -151,16 +151,16 @@ export default function ActionStepsCard({
             {steps.map((step, index) => {
               // Handle examples from database (string) or from sub-tasks
               let examples: { id: string; text: string }[] = [];
-              
+
               // Debug: Log step data
               console.log(`[ActionStepsCard] Step ${index}:`, {
                 id: step.id,
                 title: step.title,
                 examples: (step as any).examples,
                 examplesType: typeof (step as any).examples,
-                hasExamples: !!(step as any).examples
+                hasExamples: !!(step as any).examples,
               });
-              
+
               // First, check if step has examples field from database
               if ((step as any).examples && typeof (step as any).examples === 'string') {
                 // Split examples by "Example:" and clean them up

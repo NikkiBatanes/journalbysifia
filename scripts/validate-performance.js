@@ -42,15 +42,15 @@ const validateFileExists = (filePath, description) => {
 
 const validateFileContent = (filePath, patterns, description) => {
   const fullPath = path.join(__dirname, '..', filePath);
-  
+
   if (!fs.existsSync(fullPath)) {
     error(`${description} file missing: ${filePath}`);
     return false;
   }
-  
+
   const content = fs.readFileSync(fullPath, 'utf8');
   let allPassed = true;
-  
+
   patterns.forEach(({ pattern, name }) => {
     if (content.includes(pattern)) {
       success(`${description}: ${name} ✓`);
@@ -59,7 +59,7 @@ const validateFileContent = (filePath, patterns, description) => {
       allPassed = false;
     }
   });
-  
+
   return allPassed;
 };
 
@@ -69,9 +69,9 @@ const performanceChecks = [
     name: 'Database Schema Validation',
     check: () => {
       return validateFileExists('supabase/migrations/20250726012643_safe_playbook_migration.sql', 'Safe migration file');
-    }
+    },
   },
-  
+
   {
     name: 'API Functions Validation',
     check: () => {
@@ -88,9 +88,9 @@ const performanceChecks = [
         ],
         'Normalized API'
       );
-    }
+    },
   },
-  
+
   {
     name: 'Performance Monitoring Validation',
     check: () => {
@@ -106,9 +106,9 @@ const performanceChecks = [
         ],
         'Performance Monitor'
       );
-    }
+    },
   },
-  
+
   {
     name: 'Query Client Configuration Validation',
     check: () => {
@@ -124,9 +124,9 @@ const performanceChecks = [
         ],
         'Query Client Config'
       );
-    }
+    },
   },
-  
+
   {
     name: 'Hybrid Store Validation',
     check: () => {
@@ -142,18 +142,18 @@ const performanceChecks = [
         ],
         'Hybrid Store'
       );
-    }
+    },
   },
-  
+
   {
     name: 'Hybrid Components Validation',
     check: () => {
       const listScreen = validateFileExists('src/screens/PlaybookListScreenHybrid.tsx', 'Hybrid List Screen');
       const detailScreen = validateFileExists('src/screens/PlaybookDetailScreenHybrid.tsx', 'Hybrid Detail Screen');
       return listScreen && detailScreen;
-    }
+    },
   },
-  
+
   {
     name: 'React Query Hooks Validation',
     check: () => {
@@ -169,7 +169,7 @@ const performanceChecks = [
         ],
         'React Query Hooks'
       );
-    }
+    },
   },
 ];
 
@@ -208,7 +208,7 @@ const codeQualityChecks = [
         'src/utils/performanceMonitor.ts',
         'src/config/queryClientConfig.ts',
       ];
-      
+
       let allTyped = true;
       files.forEach(file => {
         if (validateFileContent(file, [
@@ -220,11 +220,11 @@ const codeQualityChecks = [
           allTyped = false;
         }
       });
-      
+
       return allTyped;
-    }
+    },
   },
-  
+
   {
     name: 'Error Handling',
     check: () => {
@@ -238,9 +238,9 @@ const codeQualityChecks = [
         ],
         'Error Handling'
       );
-    }
+    },
   },
-  
+
   {
     name: 'Performance Monitoring Integration',
     check: () => {
@@ -251,17 +251,17 @@ const codeQualityChecks = [
         ],
         'Performance Integration'
       ) || warning('Performance monitoring not fully integrated in hooks');
-    }
+    },
   },
 ];
 
 // Main validation function
 const runValidation = () => {
   log('\n🚀 Starting Playbook System Performance Validation\n', colors.bold);
-  
+
   let totalChecks = 0;
   let passedChecks = 0;
-  
+
   // Run performance checks
   log('📊 Performance Implementation Checks:', colors.bold);
   performanceChecks.forEach(({ name, check }) => {
@@ -272,7 +272,7 @@ const runValidation = () => {
     }
     console.log('');
   });
-  
+
   // Display performance benchmarks
   log('⏱️  Performance Benchmarks:', colors.bold);
   Object.entries(performanceBenchmarks).forEach(([name, { target, description }]) => {
@@ -280,7 +280,7 @@ const runValidation = () => {
     log(`   ${description}`, colors.reset);
   });
   console.log('');
-  
+
   // Run code quality checks
   log('🔍 Code Quality Checks:', colors.bold);
   codeQualityChecks.forEach(({ name, check }) => {
@@ -291,16 +291,16 @@ const runValidation = () => {
     }
     console.log('');
   });
-  
+
   // Summary
   log('📋 Validation Summary:', colors.bold);
   log(`Total Checks: ${totalChecks}`);
   log(`Passed: ${passedChecks}`, passedChecks === totalChecks ? colors.green : colors.yellow);
   log(`Failed: ${totalChecks - passedChecks}`, totalChecks - passedChecks === 0 ? colors.green : colors.red);
-  
+
   const successRate = (passedChecks / totalChecks) * 100;
   log(`Success Rate: ${successRate.toFixed(1)}%`, successRate >= 90 ? colors.green : successRate >= 70 ? colors.yellow : colors.red);
-  
+
   if (successRate >= 90) {
     success('\n🎉 Performance validation passed! System is ready for production.');
   } else if (successRate >= 70) {
@@ -308,7 +308,7 @@ const runValidation = () => {
   } else {
     error('\n❌ Performance validation failed. Critical issues need to be addressed.');
   }
-  
+
   // Next steps
   log('\n📝 Next Steps:', colors.bold);
   if (successRate >= 90) {
@@ -320,7 +320,7 @@ const runValidation = () => {
     info('🧪 Run additional performance tests');
     info('📊 Review performance benchmarks');
   }
-  
+
   console.log('');
   return successRate >= 90;
 };

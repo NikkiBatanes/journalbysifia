@@ -7,7 +7,6 @@ import {
   View,
   Text,
   Dimensions,
-  StatusBar,
   ViewStyle,
   TextStyle,
   ImageStyle,
@@ -57,8 +56,7 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../navigation/types';
 
 // Screen dimensions
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Types
 interface PlaybookScreenProps {
@@ -82,12 +80,12 @@ interface CardData {
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   // ===== ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP =====
-  
+
   // 1. Route and navigation data
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
   const { id: userId } = useUser();
   const rootNavigation = useNavigation<any>();
-  
+
   // 2. Data fetching hooks
   const { data: playbook, isLoading, error } = useQuery<Playbook | null>({
     queryKey: ['playbook', playbookId],
@@ -96,10 +94,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     staleTime: 0,
     gcTime: 0,
   });
-  
+
   // 3. Context hooks
   const { actionSteps, setActionSteps, saveActionSteps } = useActionSteps();
-  
+
   // 4. State hooks - UI state
   const [currentCard, setCurrentCard] = useState(0);
   const [viewMode, setViewMode] = useState<'stack' | 'document'>('stack');
@@ -111,7 +109,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalButton, setShowDevotionalButton] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
   // 5. Ref hooks
   const isInitialRender = useRef(true);
   const animationRefs = useRef<{
@@ -125,14 +123,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     springAnimation: null as any,
   });
   const hasEverReachedLastCard = useRef(false);
-  
+
   // 6. Shared value hooks - Animation values
   const nudgeY = useSharedValue(0);
   const bounceY = useSharedValue(0);
   const cardScale = useSharedValue(1);
   const shadowElevation = useSharedValue(4);
   const shadowOpacity = useSharedValue(0.15);
-  const scrollY = useSharedValue(0);
+
   const translateY = useSharedValue(0);
   const isTransitioning = useSharedValue(false);
   const cardCount = useSharedValue(0);
@@ -141,25 +139,25 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const headerOpacity = useSharedValue(1);
   const headerHeight = useSharedValue(1);
   const chevronAnim = useSharedValue(0);
-  
+
   // 7. Gesture state shared values
   const gestureState = useSharedValue({ isSwiping: false });
   const gestureStartY = useSharedValue(0);
   const gestureVelocityY = useSharedValue(0);
   const gestureTranslationY = useSharedValue(0);
   const gestureStartTime = useSharedValue(0);
-  
+
   // 8. Constants
   const SWIPE_THRESHOLD = 120;
   const MIN_SWIPE_DISTANCE = 10;
   const MIN_SWIPE_VELOCITY = 500;
-  
+
   // 9. Animated style hooks
   const chevronStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
     marginLeft: 4,
   }));
-  
+
   const animatedCardStyle = useAnimatedStyle(() => ({
     transform: [
       {
@@ -170,12 +168,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     shadowOpacity: shadowOpacity.value,
     elevation: shadowElevation.value,
   }));
-  
+
   // 10. Callback hooks
   const getCompletedStepsCount = useCallback(() => getTaskStats(actionSteps), [actionSteps]);
 
   // 11. Gesture handler will be defined after navigation functions
-  
+
   // 12. Memoized values
   const cardData: CardData[] = useMemo(() => playbook ? [
     {
@@ -217,8 +215,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       challengeCTA: playbook.challengeCTA,
       tappable: false,
     },
-  ] : [], [playbook, actionSteps, userId]);
-  
+  ] : [], [playbook, actionSteps]);
+
   // Navigation callbacks that depend on cardData
   const goToNextCard = useCallback(() => {
     if (currentCard < cardData.length - 1) {
@@ -231,8 +229,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       setCurrentCard(prevCard => prevCard - 1);
     }
   }, [currentCard]);
-  
-  const { completed: completedTasksCount, total: totalTasksCount } = useMemo(() => 
+
+  const { completed: completedTasksCount, total: totalTasksCount } = useMemo(() =>
     getCompletedStepsCount(), [getCompletedStepsCount]
   );
 
@@ -301,17 +299,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
         const handleSwipe = (direction: 'up' | 'down') => {
           isTransitioning.value = true;
-          
+
           if (direction === 'up') {
             runOnJS(goToNextCard)();
           } else {
             runOnJS(goToPrevCard)();
           }
-          
+
           translateY.value = withSpring(0, { damping: 15, stiffness: 300 }, () => {
             isTransitioning.value = false;
           });
-          
+
           bounceY.value = withSpring(0, { damping: 10, stiffness: 200 });
         };
 
@@ -334,12 +332,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
       gestureState.value = { isSwiping: false };
     });
-  
-  const progress = useMemo(() => 
-    totalTasksCount > 0 ? (completedTasksCount / totalTasksCount) * 100 : 0, 
+
+  const progress = useMemo(() =>
+    totalTasksCount > 0 ? (completedTasksCount / totalTasksCount) * 100 : 0,
     [completedTasksCount, totalTasksCount]
   );
-  
+
   // Header left component
   const headerLeft = React.useCallback(() => (
     <View style={styles.headerLeftContainer}>
@@ -347,8 +345,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         onPress={() => {
           try {
             navigation.goBack();
-          } catch (error) {
-            console.log('Navigation error:', error);
+          } catch (err) {
+            console.log('Navigation error:', err);
           }
         }}
         style={styles.backButtonContainer}
@@ -366,9 +364,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       )}
     </View>
   ), [navigation, showCompactHeader, playbook?.title]);
-  
+
   // ===== EFFECT HOOKS =====
-  
+
   // Debug logging effect
   useEffect(() => {
     console.log('[PlaybookDetailScreen] DETAILED DEBUG:', {
@@ -383,9 +381,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       isLoading,
       error: error?.message || error,
       queryEnabled: !!playbookId && !!userId,
-      routeParams: route.params
+      routeParams: route.params,
     });
-    
+
     if (!playbookId) {
       console.log('[PlaybookDetailScreen] ❌ NO PLAYBOOK ID - showing error');
     } else if (isLoading) {
@@ -396,7 +394,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       console.log('[PlaybookDetailScreen] ✅ SUCCESS - showing playbook content');
     }
   }, [playbookId, userId, playbook, isLoading, error, route.params]);
-  
+
   // Playbook data debug effect
   useEffect(() => {
     console.log('[DEBUG] Playbook data received in PlaybookDetailScreen:', JSON.stringify({
@@ -408,14 +406,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       playbookKeys: playbook ? Object.keys(playbook) : [],
     }, null, 2));
   }, [playbook]);
-  
+
   // View mode change effect
   useEffect(() => {
     if (viewMode === 'document') {
       setHasReachedLastCard(false);
     }
   }, [viewMode]);
-  
+
   // Cleanup effect for animations
   useEffect(() => {
     const currentAnimationRefs = animationRefs.current;
@@ -435,7 +433,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       });
     };
   }, []);
-  
+
   // Chevron animation effect
   useEffect(() => {
     const animation = withTiming(showUserInput ? 1 : 0, { duration: 200 });
@@ -448,7 +446,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       }
     };
   }, [showUserInput, chevronAnim]);
-  
+
   // Action steps initialization effect
   useEffect(() => {
     if (playbook?.actionSteps && !isInitialized) {
@@ -456,12 +454,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       setIsInitialized(true);
     }
   }, [playbook?.actionSteps, setActionSteps, isInitialized]);
-  
+
   // Current card shared value sync effect
   useEffect(() => {
     currentCardShared.value = currentCard;
   }, [currentCard, currentCardShared]);
-  
+
   // Update card count when cardData changes
   useEffect(() => {
     if (!isLoading && !isInitialRender.current) {
@@ -499,7 +497,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         currentCard,
         cardDataLength: cardData.length,
         isLastCard,
-        hasEverReachedLastCard: hasEverReachedLastCard.current
+        hasEverReachedLastCard: hasEverReachedLastCard.current,
       });
       if (isLastCard) {
         hasEverReachedLastCard.current = true;
@@ -529,7 +527,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       hasReachedLastCard,
       hasCreatedDevotional,
       viewMode,
-      shouldShow: hasReachedLastCard && !hasCreatedDevotional && viewMode === 'stack'
+      shouldShow: hasReachedLastCard && !hasCreatedDevotional && viewMode === 'stack',
     });
 
     if (hasReachedLastCard && !hasCreatedDevotional && viewMode === 'stack') {
@@ -566,7 +564,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Debounced save function to prevent excessive calls
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const debouncedSaveProgress = useCallback(() => {
     if (!playbook?.id) {
       return;
@@ -589,8 +587,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         console.log('[DEBUG] Debounced save triggered for playbook ID:', playbook.id);
         await saveActionSteps(playbook.id);
         console.log('[DEBUG] Debounced save completed successfully');
-      } catch (error) {
-        console.error('Error in debounced save:', error);
+      } catch (err) {
+        console.error('Error in debounced save:', err);
       } finally {
         setIsSaving(false);
       }
@@ -602,9 +600,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     console.log('[DEBUG] ActionSteps effect triggered:', {
       isInitialized,
       actionStepsLength: actionSteps.length,
-      actionSteps: actionSteps.map(step => ({ id: step.id, completed: step.completed, subTasksCount: step.subTasks?.length || 0 }))
+      actionSteps: actionSteps.map(step => ({ id: step.id, completed: step.completed, subTasksCount: step.subTasks?.length || 0 })),
     });
-    
+
     if (isInitialized && actionSteps.length > 0) {
       console.log('[DEBUG] ActionSteps changed, triggering debounced save');
       debouncedSaveProgress();
@@ -617,7 +615,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   /*
   useEffect(() => {
     console.log('[DEBUG] Save effect triggered - isSaving:', isSaving, 'isInitialized:', isInitialized, 'playbookId:', playbook?.id);
-    
+
     if (!isInitialized || isSaving || !playbook?.id) {
       console.log('[DEBUG] Skipping save - conditions not met');
       return;
@@ -625,7 +623,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
     // Convert actionSteps to string for comparison
     const currentActionStepsStr = JSON.stringify(actionSteps);
-    
+
     // Skip if actionSteps haven't actually changed
     if (currentActionStepsStr === lastSavedActionSteps.current) {
       console.log('[DEBUG] ActionSteps unchanged, skipping save');
@@ -635,13 +633,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     console.log('[DEBUG] ActionSteps changed, saving progress');
     console.log('[DEBUG] Previous actionSteps length:', lastSavedActionSteps.current.length);
     console.log('[DEBUG] Current actionSteps length:', currentActionStepsStr.length);
-    
+
     const saveProgress = async () => {
       try {
         setIsSaving(true);
         console.log('[DEBUG] Saving progress for playbook ID:', playbook.id);
         await saveActionSteps(playbook.id);
-        
+
         // Update the last saved state to prevent loops
         lastSavedActionSteps.current = currentActionStepsStr;
         console.log('[DEBUG] Progress saved successfully');
@@ -675,11 +673,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       }
     };
   }, [playbook?.id, actionSteps, saveActionSteps]);
-  
+
   // ===== HANDLER FUNCTIONS =====
-  
+
   const handleCardPress = (cardType: CardType, cardItem: CardData) => {
-    const { tappable: _, ...serializableCardData } = cardItem;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { tappable, ...serializableCardData } = cardItem;
     const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
     navigation.navigate('CardDetail', {
       cardType,
@@ -691,16 +690,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       viewMode,
     });
   };
-  
+
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const scrollY = event.nativeEvent.contentOffset.y;
-    const shouldShowCompactHeader = scrollY > 100;
-    
+    const scrollYValue = event.nativeEvent.contentOffset.y;
+    const shouldShowCompactHeader = scrollYValue > 100;
+
     if (shouldShowCompactHeader !== showCompactHeader) {
       setShowCompactHeader(shouldShowCompactHeader);
     }
   };
-  
+
   const handleLastCardVisible = useCallback((visible: boolean) => {
     // Only update if we're in document view and the value has changed
     if (viewMode === 'document') {
@@ -710,15 +709,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       });
     }
   }, [viewMode]);
-  
+
   // ===== RENDER FUNCTIONS =====
-  
+
   const renderContent = () => {
     if (!playbook) {
       console.error('[PlaybookDetailScreen] renderContent called with null playbook!');
       return null;
     }
-    
+
     return (
       <View style={styles.contentContainer}>
         {/* Main Header - Only show when not scrolled or in stack view */}
@@ -775,18 +774,16 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const renderStackCards = () => {
     console.log(`[DEBUG] renderStackCards: Called with ${cardData.length} cards`);
     console.log(`[DEBUG] renderStackCards: Current card index: ${currentCard}`);
-    console.log(`[DEBUG] renderStackCards: Card data:`, cardData.map(c => ({ type: c.type, hasContent: !!c.truth || !!c.steps || !!c.affirmations })));
-    
+    console.log('[DEBUG] renderStackCards: Card data:', cardData.map(c => ({ type: c.type, hasContent: !!c.truth || !!c.steps || !!c.affirmations })));
+
     if (cardData.length === 0) {
-      console.log(`[DEBUG] renderStackCards: No cards to render`);
+      console.log('[DEBUG] renderStackCards: No cards to render');
       return null;
     }
 
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
 
-    const getCardColor = (_index: number) => {
-      return Colors.anchorBlue;
-    };
+
 
     const renderCard = (cardIndex: number, stackIndex: number, _onToggleView: (mode: 'stack' | 'document') => void) => {
       const card = cardData[cardIndex];
@@ -794,9 +791,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         console.log(`[DEBUG] renderCard: No card at index ${cardIndex}`);
         return null;
       }
-      
+
       console.log(`[DEBUG] renderCard: Rendering card ${cardIndex}, stackIndex ${stackIndex}, type: ${card.type}`);
-      console.log(`[DEBUG] renderCard: Card data:`, { type: card.type, hasContent: !!card.truth || !!card.steps || !!card.affirmations });
+      console.log('[DEBUG] renderCard: Card data:', { type: card.type, hasContent: !!card.truth || !!card.steps || !!card.affirmations });
 
       const scaleY = 1 - stackIndex * 0.01;
       const scaleX = 1 - stackIndex * 0.05;
@@ -883,7 +880,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   };
 
   // ===== MAIN RENDER =====
-  
+
   return (
     <View style={styles.container}>
       {!playbookId ? (
@@ -897,13 +894,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       ) : error || !playbook ? (
         <View style={styles.loadingContainer}>
           <Text style={styles.progressText}>Failed to load playbook data</Text>
-          <TouchableOpacity 
-            style={styles.navButton} 
+          <TouchableOpacity
+            style={styles.navButton}
             onPress={() => {
               try {
                 navigation.goBack();
-              } catch (error) {
-                console.log('Navigation error:', error);
+              } catch (err) {
+                console.log('Navigation error:', err);
               }
             }}
           >

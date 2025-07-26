@@ -87,7 +87,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Get playbook ID from route params (we only need the ID, not the full data)
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
   const { id: userId } = useUser();
-  
+
   // Fetch fresh playbook data from database
   const { data: playbook, isLoading, error } = useQuery<Playbook | null>({
     queryKey: ['playbook', playbookId],
@@ -96,7 +96,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     staleTime: 0, // Always fetch fresh data
     gcTime: 0, // Don't cache to ensure fresh data (replaces cacheTime)
   });
-  
+
   // Debug: Log fresh playbook data
   console.log('[PlaybookDetailScreen] DETAILED DEBUG:', {
     playbookId,
@@ -110,9 +110,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     isLoading,
     error: error?.message || error,
     queryEnabled: !!playbookId && !!userId,
-    routeParams: route.params
+    routeParams: route.params,
   });
-  
+
   // Debug: Log which condition will be triggered
   if (!playbookId) {
     console.log('[PlaybookDetailScreen] ❌ NO PLAYBOOK ID - showing error');
@@ -123,7 +123,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   } else {
     console.log('[PlaybookDetailScreen] ✅ SUCCESS - showing playbook content');
   }
-  
+
   // NO EARLY RETURNS - ALL HOOKS MUST BE CALLED FIRST
   // Conditional rendering will be handled in JSX return
 
@@ -603,7 +603,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // TEMPORARILY DISABLED - RULES OF HOOKS VIOLATION
   // TODO: Fix this by moving all hooks to top of component
   const gestureHandler = null;
-  
+
   /*
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_event) => {
@@ -767,7 +767,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       console.error('[PlaybookDetailScreen] renderContent called with null playbook!');
       return null;
     }
-    
+
     return (
       <View style={styles.contentContainer}>
         {/* Main Header - Only show when not scrolled or in stack view */}
@@ -951,8 +951,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       ) : error || !playbook ? (
         <View style={styles.loadingContainer}>
           <Text style={styles.progressText}>Failed to load playbook data</Text>
-          <TouchableOpacity 
-            style={styles.navButton} 
+          <TouchableOpacity
+            style={styles.navButton}
             onPress={() => {
               try {
                 navigation.goBack();

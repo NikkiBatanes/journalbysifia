@@ -36,12 +36,12 @@ class PerformanceMonitor {
    */
   startTiming(name: string, type: PerformanceMetric['type'], metadata?: Record<string, any>) {
     const startTime = performance.now();
-    
+
     return {
       end: () => {
         const endTime = performance.now();
         const duration = endTime - startTime;
-        
+
         this.recordMetric({
           name,
           duration,
@@ -49,9 +49,9 @@ class PerformanceMonitor {
           type,
           metadata,
         });
-        
+
         return duration;
-      }
+      },
     };
   }
 
@@ -60,17 +60,17 @@ class PerformanceMonitor {
    */
   recordMetric(metric: PerformanceMetric) {
     this.metrics.push(metric);
-    
+
     // Keep only the most recent metrics
     if (this.metrics.length > this.maxMetrics) {
       this.metrics = this.metrics.slice(-this.maxMetrics);
     }
-    
+
     // Log slow operations
     if (metric.duration > this.getSlowThreshold(metric.type)) {
       console.warn(`[Performance] Slow ${metric.type}: ${metric.name} took ${metric.duration.toFixed(2)}ms`, metric.metadata);
     }
-    
+
     // Persist to storage periodically
     if (this.metrics.length % 10 === 0) {
       this.saveMetricsToStorage();
@@ -82,14 +82,14 @@ class PerformanceMonitor {
    */
   getStats(name: string): PerformanceStats | null {
     const filteredMetrics = this.metrics.filter(m => m.name === name);
-    
+
     if (filteredMetrics.length === 0) {
       return null;
     }
-    
+
     const durations = filteredMetrics.map(m => m.duration);
     const errors = filteredMetrics.filter(m => m.metadata?.error).length;
-    
+
     return {
       averageDuration: durations.reduce((a, b) => a + b, 0) / durations.length,
       minDuration: Math.min(...durations),
@@ -105,14 +105,14 @@ class PerformanceMonitor {
   getAllStats(): Record<string, PerformanceStats> {
     const stats: Record<string, PerformanceStats> = {};
     const uniqueNames = [...new Set(this.metrics.map(m => m.name))];
-    
+
     uniqueNames.forEach(name => {
       const stat = this.getStats(name);
       if (stat) {
         stats[name] = stat;
       }
     });
-    
+
     return stats;
   }
 
@@ -149,14 +149,14 @@ class PerformanceMonitor {
     const stats = this.getAllStats();
     const slowOps = this.getSlowOperations();
     const recentMetrics = this.getRecentMetrics();
-    
+
     let report = '📊 Performance Report\n';
     report += '===================\n\n';
-    
+
     // Overall statistics
     report += `Total Metrics: ${this.metrics.length}\n`;
     report += `Recent Activity (5min): ${recentMetrics.length} operations\n\n`;
-    
+
     // Top slow operations
     if (slowOps.length > 0) {
       report += '🐌 Slowest Operations:\n';
@@ -165,7 +165,7 @@ class PerformanceMonitor {
       });
       report += '\n';
     }
-    
+
     // Statistics by metric
     report += '📈 Performance Statistics:\n';
     Object.entries(stats).forEach(([name, stat]) => {
@@ -175,7 +175,7 @@ class PerformanceMonitor {
       report += `  Total Calls: ${stat.totalCalls}\n`;
       report += `  Error Rate: ${(stat.errorRate * 100).toFixed(1)}%\n`;
     });
-    
+
     return report;
   }
 
@@ -239,7 +239,7 @@ export const withQueryPerformance = <T>(
       'query',
       { queryKey: [...queryKey] }
     );
-    
+
     try {
       const result = await queryFn();
       timer.end();
@@ -271,7 +271,7 @@ export const withMutationPerformance = <T, V>(
       'mutation',
       { variables }
     );
-    
+
     try {
       const result = await mutationFn(variables);
       timer.end();
@@ -304,11 +304,11 @@ export const withRenderPerformance = <P extends object>(
       `render:${componentName}`,
       'render'
     );
-    
+
     React.useEffect(() => {
       timer.end();
     });
-    
+
     return React.createElement(Component, props);
   });
 };
@@ -327,7 +327,7 @@ export const withDatabasePerformance = <T>(
       'database',
       metadata
     );
-    
+
     try {
       const result = await dbFn();
       timer.end();
@@ -356,7 +356,7 @@ export const PerformanceDebug = {
   logStats: () => {
     console.log(performanceMonitor.generateReport());
   },
-  
+
   /**
    * Get performance data for debugging
    */
@@ -365,7 +365,7 @@ export const PerformanceDebug = {
     slowOps: performanceMonitor.getSlowOperations(),
     recentMetrics: performanceMonitor.getRecentMetrics(),
   }),
-  
+
   /**
    * Monitor a specific function
    */
@@ -376,10 +376,10 @@ export const PerformanceDebug = {
   ): T => {
     return ((...args: Parameters<T>) => {
       const timer = performanceMonitor.startTiming(name, type, { args });
-      
+
       try {
         const result = fn(...args);
-        
+
         // Handle both sync and async functions
         if (result instanceof Promise) {
           return result.finally(() => timer.end());

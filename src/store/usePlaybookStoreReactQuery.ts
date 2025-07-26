@@ -2,10 +2,8 @@ import { useEffect, useCallback } from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQueryClient } from '@tanstack/react-query';
-import { Playbook, ActionStep, SubTask, Affirmation } from '../interfaces/playbook';
+import { Playbook, ActionStep } from '../interfaces/playbook';
 import { mergePlaybooks } from '../utils/mergePlaybooks';
-import { queryKeys } from '../services/queryKeys';
 
 // Import React Query hooks
 import {
@@ -13,7 +11,6 @@ import {
   useUpdateActionStep,
   useUpdateSubTask,
   useUpdateAffirmation,
-  useInvalidatePlaybookData,
 } from '../services/hooks/usePlaybookData';
 
 type PlaybookStatus = 'inProgress' | 'completed';
@@ -100,7 +97,7 @@ function updateActionStepInPlaybook(playbook: Playbook, stepId: string, complete
     return step;
   });
 
-  const { completed: completedCount, total, percentage, status } = calculateProgressAndStatus(updatedActionSteps);
+  const { total, percentage, status } = calculateProgressAndStatus(updatedActionSteps);
 
   return {
     ...playbook,
@@ -137,7 +134,7 @@ function updateSubTaskInPlaybook(playbook: Playbook, stepId: string, subTaskId: 
     return step;
   });
 
-  const { completed: completedCount, total, percentage, status } = calculateProgressAndStatus(updatedActionSteps);
+  const { total, percentage, status } = calculateProgressAndStatus(updatedActionSteps);
 
   return {
     ...playbook,
@@ -385,7 +382,7 @@ export const usePlaybookDataWithStore = (userId: string) => {
   const updateActionStepOptimistic = usePlaybookStoreReactQuery(state => state.updateActionStepOptimistic);
   const updateSubTaskOptimistic = usePlaybookStoreReactQuery(state => state.updateSubTaskOptimistic);
   const updateAffirmationOptimistic = usePlaybookStoreReactQuery(state => state.updateAffirmationOptimistic);
-  const localPlaybooks = usePlaybookStoreReactQuery(state => state.localPlaybooks);
+
   const getFilteredPlaybooks = usePlaybookStoreReactQuery(state => state.getFilteredPlaybooks);
   const getPlaybookById = usePlaybookStoreReactQuery(state => state.getPlaybookById);
   const selectedPlaybookId = usePlaybookStoreReactQuery(state => state.selectedPlaybookId);

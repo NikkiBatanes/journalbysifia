@@ -181,18 +181,18 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       console.log(`[ActionStepsContext] Saving action steps for playbook ${pbId}`);
       const stats = calculateTaskStats(actionSteps);
       const allCompleted = areAllStepsCompleted(actionSteps);
-      
+
       console.log(`[ActionStepsContext] Stats: ${stats.completed}/${stats.total}, allCompleted: ${allCompleted}`);
 
       // Save action steps directly to database without relying on Zustand store
       await updatePlaybookActionSteps(pbId, actionSteps);
-      
+
       console.log(`[ActionStepsContext] Successfully saved action steps for playbook ${pbId}`);
     } catch (error) {
       console.error('[ActionStepsContext] Error saving action steps:', error);
       throw error;
     }
-  }, [actionSteps, updatePlaybook, areAllStepsCompleted]);
+  }, [actionSteps, areAllStepsCompleted]);
 
   // Memoize the context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({

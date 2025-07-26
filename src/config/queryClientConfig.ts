@@ -5,7 +5,6 @@
 
 import { QueryClient, DefaultOptions } from '@tanstack/react-query';
 import { performanceMonitor, withQueryPerformance, withMutationPerformance } from '../utils/performanceMonitor';
-import { retryConfig } from '../utils/retry';
 
 // Performance-optimized default options
 const defaultOptions: DefaultOptions = {
@@ -13,43 +12,43 @@ const defaultOptions: DefaultOptions = {
     // Cache settings
     staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes - keep in cache for 10 minutes after unused
-    
+
     // Network settings
     retry: (failureCount, error: any) => {
       // Don't retry on authentication errors
       if (error?.status === 401 || error?.status === 403) {
         return false;
       }
-      
+
       // Don't retry on client errors (4xx)
       if (error?.status >= 400 && error?.status < 500) {
         return false;
       }
-      
+
       // Retry up to 3 times for other errors
       return failureCount < 3;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    
+
     // Performance settings
     refetchOnWindowFocus: false, // Disable refetch on window focus for mobile
     refetchOnReconnect: true, // Refetch when network reconnects
     refetchOnMount: true, // Refetch when component mounts
-    
+
     // Background updates
     refetchInterval: false, // Disable automatic background refetching
     refetchIntervalInBackground: false,
-    
+
     // Error handling
     useErrorBoundary: false, // Handle errors in components
-    
+
     // Performance monitoring
     onError: (error: any, query) => {
       console.error('[QueryClient] Query error:', {
         queryKey: query.queryKey,
         error: error.message,
       });
-      
+
       performanceMonitor.recordMetric({
         name: `query:${query.queryKey.join(':')}:error`,
         duration: 0,
@@ -62,7 +61,7 @@ const defaultOptions: DefaultOptions = {
         },
       });
     },
-    
+
     onSuccess: (data, query) => {
       console.log('[QueryClient] Query success:', {
         queryKey: query.queryKey,
@@ -70,7 +69,7 @@ const defaultOptions: DefaultOptions = {
       });
     },
   },
-  
+
   mutations: {
     // Retry settings for mutations
     retry: (failureCount, error: any) => {
@@ -78,20 +77,20 @@ const defaultOptions: DefaultOptions = {
       if (error?.status === 401 || error?.status === 403) {
         return false;
       }
-      
+
       // Don't retry on validation errors
       if (error?.status === 400 || error?.status === 422) {
         return false;
       }
-      
+
       // Retry once for network errors
       return failureCount < 1;
     },
     retryDelay: 1000, // 1 second delay between retries
-    
+
     // Error handling
     useErrorBoundary: false,
-    
+
     // Performance monitoring
     onError: (error: any, variables, context, mutation) => {
       console.error('[QueryClient] Mutation error:', {
@@ -99,7 +98,7 @@ const defaultOptions: DefaultOptions = {
         error: error.message,
         variables,
       });
-      
+
       performanceMonitor.recordMetric({
         name: `mutation:${mutation.options.mutationKey?.join(':') || 'unknown'}:error`,
         duration: 0,
@@ -113,7 +112,7 @@ const defaultOptions: DefaultOptions = {
         },
       });
     },
-    
+
     onSuccess: (data, variables, context, mutation) => {
       console.log('[QueryClient] Mutation success:', {
         mutationKey: mutation.options.mutationKey,
@@ -149,10 +148,10 @@ export const createOptimizedQueryClient = (): QueryClient => {
       `cache:setQueryData:${Array.isArray(queryKey) ? queryKey.join(':') : String(queryKey)}`,
       'query'
     );
-    
+
     const result = originalSetQueryData.call(this, queryKey, updater, options);
     timer.end();
-    
+
     return result;
   };
 
@@ -164,10 +163,10 @@ export const createOptimizedQueryClient = (): QueryClient => {
       'query',
       { filters }
     );
-    
+
     const result = originalInvalidateQueries.call(this, filters, options);
     timer.end();
-    
+
     return result;
   };
 
@@ -182,21 +181,21 @@ export const queryConfigs = {
     cacheTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
   },
-  
+
   // Standard queries (playbooks, prayers)
   standard: {
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
     retry: 3,
   },
-  
+
   // Slow queries (large datasets, reports)
   slow: {
     staleTime: 15 * 60 * 1000, // 15 minutes
     cacheTime: 30 * 60 * 1000, // 30 minutes
     retry: 2,
   },
-  
+
   // Real-time queries (notifications, live updates)
   realtime: {
     staleTime: 0, // Always stale
@@ -204,7 +203,7 @@ export const queryConfigs = {
     refetchInterval: 30 * 1000, // 30 seconds
     retry: 1,
   },
-  
+
   // Static queries (rarely changing data)
   static: {
     staleTime: 60 * 60 * 1000, // 1 hour
@@ -220,13 +219,13 @@ export const mutationConfigs = {
     retry: 3,
     retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 10000),
   },
-  
+
   // Standard mutations (most operations)
   standard: {
     retry: 1,
     retryDelay: 1000,
   },
-  
+
   // Fire-and-forget mutations (analytics, logging)
   fireAndForget: {
     retry: 0,
@@ -271,20 +270,20 @@ export const optimizationUtils = {
    */
   prefetchCriticalData: async (queryClient: QueryClient, userId: string) => {
     const timer = performanceMonitor.startTiming('prefetch:critical', 'query');
-    
+
     try {
       // Prefetch user's playbooks
       await queryClient.prefetchQuery({
         queryKey: ['playbooks', userId],
         staleTime: queryConfigs.standard.staleTime,
       });
-      
+
       // Prefetch user preferences
       await queryClient.prefetchQuery({
         queryKey: ['user', 'preferences', userId],
         staleTime: queryConfigs.fast.staleTime,
       });
-      
+
       timer.end();
     } catch (error) {
       timer.end();
@@ -297,17 +296,17 @@ export const optimizationUtils = {
    */
   cleanupCache: (queryClient: QueryClient) => {
     const timer = performanceMonitor.startTiming('cache:cleanup', 'query');
-    
+
     // Remove queries that haven't been used in the last hour
     queryClient.getQueryCache().findAll().forEach(query => {
       const lastUsed = query.state.dataUpdatedAt;
       const oneHourAgo = Date.now() - (60 * 60 * 1000);
-      
+
       if (lastUsed < oneHourAgo) {
         queryClient.removeQueries({ queryKey: query.queryKey });
       }
     });
-    
+
     timer.end();
   },
 
@@ -317,7 +316,7 @@ export const optimizationUtils = {
   getCacheStats: (queryClient: QueryClient) => {
     const queries = queryClient.getQueryCache().findAll();
     const mutations = queryClient.getMutationCache().findAll();
-    
+
     return {
       totalQueries: queries.length,
       totalMutations: mutations.length,

@@ -1,6 +1,6 @@
 // src/services/hooks/usePlaybookData.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Playbook, ActionStep, SubTask, Affirmation } from '../../interfaces/playbook';
+import { Playbook, ActionStep } from '../../interfaces/playbook';
 import { queryKeys } from '../queryKeys';
 import { createRetryFunction, createRetryDelayFunction, RETRY_CONFIGS } from '../../utils/retry';
 import { QueryConfig } from '../../types/api';
@@ -11,9 +11,6 @@ import {
   getPlaybooks as getPlaybooksApi,
   getPlaybook as getPlaybookApi,
   updatePlaybookActionStep,
-  updatePlaybookSubTask,
-  updatePlaybookAffirmation,
-  deletePlaybook as deletePlaybookApi,
 } from '../supabaseApiNormalized';
 
 // ========================================
@@ -151,7 +148,7 @@ export const useUpdateActionStep = () => {
         playbookId,
         stepId,
         completed,
-        userId,
+        _userId,
       }: {
         playbookId: string;
         stepId: string;
@@ -295,7 +292,7 @@ export const useUpdateSubTask = () => {
         stepId,
         subTaskId,
         completed,
-        userId,
+        _userId,
       }: {
         playbookId: string;
         stepId: string;
@@ -411,7 +408,7 @@ export const useUpdateAffirmation = () => {
         playbookId,
         affirmationId,
         completed,
-        userId,
+        _userId,
       }: {
         playbookId: string;
         affirmationId: string;

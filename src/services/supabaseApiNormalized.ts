@@ -146,7 +146,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
       console.error('[getPlaybooks] Error fetching action steps:', actionStepsError);
       throw actionStepsError;
     }
-    
+
     // Debug: Log fetched action steps
     console.log('[getPlaybooks] Fetched action steps:', actionSteps?.slice(0, 2));
     if (actionSteps && actionSteps.length > 0) {
@@ -157,7 +157,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     // Fetch all sub-tasks for these action steps
     const actionStepIds = actionSteps?.map(step => step.id) || [];
     let subTasks: SubTaskRow[] = [];
-    
+
     if (actionStepIds.length > 0) {
       const { data: subTasksData, error: subTasksError } = await supabase
         .from('playbook_sub_tasks')
@@ -189,7 +189,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     const result = playbooks.map(playbook => {
       const playbookActionSteps = actionSteps?.filter(step => step.playbook_id === playbook.id) || [];
       const playbookAffirmations = affirmations?.filter(aff => aff.playbook_id === playbook.id) || [];
-      
+
       return transformPlaybookRow(playbook, playbookActionSteps, subTasks, playbookAffirmations);
     });
 
@@ -241,7 +241,7 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
     // Fetch sub-tasks
     const actionStepIds = actionSteps?.map(step => step.id) || [];
     let subTasks: SubTaskRow[] = [];
-    
+
     if (actionStepIds.length > 0) {
       const { data: subTasksData, error: subTasksError } = await supabase
         .from('playbook_sub_tasks')
@@ -285,7 +285,7 @@ export async function getPlaybook(userId: string, playbookId: string): Promise<P
 export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt' | 'updatedAt'>): Promise<Playbook> {
   console.log('[createPlaybook] Creating playbook:', playbook.title);
   console.log('[createPlaybook] User ID:', playbook.user_id);
-  
+
   // Check current session
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   console.log('[createPlaybook] Current session:', session?.user?.id);
@@ -330,9 +330,9 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
               examples = stepAny.examples.join('\n');
             }
           }
-          
+
           console.log(`[createPlaybook] Action step ${index}: text="${(step.title || step.description || 'Untitled step').trim()}", examples="${examples}"`);
-          
+
           return {
             playbook_id: playbookId,
             text: (step.title || step.description || 'Untitled step').trim(),
@@ -341,7 +341,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
             order_index: index,
           };
         });
-      
+
       console.log('[createPlaybook] Filtered action steps count:', actionStepsToInsert.length);
 
       const { data: createdActionSteps, error: actionStepsError } = await supabase
@@ -357,24 +357,24 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
       // Create sub-tasks for action steps that have them
       const subTasksToInsert: any[] = [];
       console.log('[createPlaybook] Processing action steps for sub-tasks:', playbook.actionSteps.length);
-      
+
       playbook.actionSteps.forEach((step, stepIndex) => {
         console.log(`[createPlaybook] Step ${stepIndex}:`, {
           title: step.title,
           hasSubTasks: !!step.subTasks,
           subTasksLength: step.subTasks?.length || 0,
-          subTasks: step.subTasks
+          subTasks: step.subTasks,
         });
-        
+
         if (step.subTasks && step.subTasks.length > 0) {
           const actionStepId = createdActionSteps[stepIndex].id;
           console.log(`[createPlaybook] Processing ${step.subTasks.length} sub-tasks for step ${stepIndex}`);
-          
+
           step.subTasks.forEach((subTask, subTaskIndex) => {
             // Handle both string and object formats
             let subTaskText = '';
             let subTaskCompleted = false;
-            
+
             if (typeof subTask === 'string') {
               // Sub-task is a string
               subTaskText = subTask.trim();
@@ -383,7 +383,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
               subTaskText = ((subTask as any).text || (subTask as any).title || '').trim();
               subTaskCompleted = (subTask as any).completed || false;
             }
-            
+
             // Only insert sub-tasks with valid text
             if (subTaskText && subTaskText.length > 0) {
               subTasksToInsert.push({
@@ -418,14 +418,14 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
     // Create affirmations
     if (playbook.affirmations && playbook.affirmations.length > 0) {
       console.log('[createPlaybook] Processing affirmations:', playbook.affirmations.length);
-      
+
       const affirmationsToInsert: any[] = [];
-      
+
       playbook.affirmations.forEach((affirmation, index) => {
         // Handle both string and object formats
         let affirmationText = '';
         let affirmationCompleted = false;
-        
+
         if (typeof affirmation === 'string') {
           // Affirmation is a string
           affirmationText = affirmation.trim();
@@ -434,7 +434,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
           affirmationText = ((affirmation as any).text || (affirmation as any).title || '').trim();
           affirmationCompleted = (affirmation as any).completed || false;
         }
-        
+
         // Only insert affirmations with valid text
         if (affirmationText && affirmationText.length > 0) {
           affirmationsToInsert.push({
@@ -448,7 +448,7 @@ export async function createPlaybook(playbook: Omit<Playbook, 'id' | 'createdAt'
           console.warn('[createPlaybook] Skipping affirmation with invalid text:', affirmation);
         }
       });
-      
+
       console.log('[createPlaybook] Total affirmations to insert:', affirmationsToInsert.length);
 
       const { error: affirmationsError } = await supabase
@@ -717,17 +717,17 @@ export async function updatePlaybookActionSteps(
 ): Promise<void> {
   try {
     console.log(`[updatePlaybookActionSteps] Updating ${actionSteps.length} action steps for playbook ${playbookId}`);
-    
+
     // Update each action step in the database
     for (const step of actionSteps) {
       console.log(`[updatePlaybookActionSteps] Updating step ${step.id}, completed: ${step.completed}`);
-      
+
       // Update the main action step
       const { error: stepError } = await supabase
         .from('playbook_action_steps')
-        .update({ 
-          completed: step.completed, 
-          updated_at: new Date().toISOString() 
+        .update({
+          completed: step.completed,
+          updated_at: new Date().toISOString(),
         })
         .eq('playbook_id', playbookId)
         .eq('id', step.id);
@@ -741,12 +741,12 @@ export async function updatePlaybookActionSteps(
       if (step.subTasks && step.subTasks.length > 0) {
         for (const subTask of step.subTasks) {
           console.log(`[updatePlaybookActionSteps] Updating subtask ${subTask.id}, completed: ${subTask.completed}`);
-          
+
           const { error: subTaskError } = await supabase
             .from('playbook_sub_tasks')
-            .update({ 
-              completed: subTask.completed, 
-              updated_at: new Date().toISOString() 
+            .update({
+              completed: subTask.completed,
+              updated_at: new Date().toISOString(),
             })
             .eq('action_step_id', step.id)
             .eq('id', subTask.id);
@@ -758,17 +758,16 @@ export async function updatePlaybookActionSteps(
         }
       }
     }
-    
+
     // Update playbook progress and status
     const stats = calculateTaskStats(actionSteps);
-    const progress = stats.total > 0 ? (stats.completed / stats.total) : 0;
     const allCompleted = stats.total > 0 && stats.completed === stats.total;
-    
+
     await updatePlaybookStatus(
       playbookId,
       allCompleted ? 'completed' : 'ongoing'
     );
-    
+
     console.log(`[updatePlaybookActionSteps] Successfully updated all action steps and status for ${playbookId}`);
   } catch (error) {
     console.error('[updatePlaybookActionSteps] Error updating action steps:', error);

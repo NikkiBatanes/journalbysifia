@@ -135,28 +135,28 @@ const UserInputScreen: React.FC = () => {
       console.log('[UserInputScreen] Raw AI Response JSON:', JSON.stringify(aiResponse, null, 2));
       // Save to database using normalized API
       let savedPlaybook;
-      
+
       console.log('[UserInputScreen] User ID from context:', userId);
       console.log('[UserInputScreen] User ID type:', typeof userId);
       console.log('[UserInputScreen] User authenticated:', !!userId);
-      
+
       // Debug authentication state
       await debugAuthState();
-      
+
       // Try to get user ID from multiple sources
       let actualUserId = userId;
       if (!actualUserId) {
         console.log('[UserInputScreen] Trying to get user ID from auth sources...');
         actualUserId = await getCurrentUserId();
       }
-      
+
       if (!actualUserId) {
         console.error('[UserInputScreen] No user ID available from any source');
         throw new Error('User not authenticated. Please log in and try again.');
       }
-      
+
       console.log('[UserInputScreen] Final user ID to use:', actualUserId);
-      
+
       if (userId) {
         console.log('[UserInputScreen] Saving playbook to database...');
         console.log('[UserInputScreen] AI Response structure:', {
@@ -167,9 +167,9 @@ const UserInputScreen: React.FC = () => {
           affirmations: aiResponse.affirmations,
           truthInLove: aiResponse.truthInLove,
           bibleVerse: aiResponse.bibleVerse,
-          directChallenge: aiResponse.directChallenge
+          directChallenge: aiResponse.directChallenge,
         });
-        
+
         savedPlaybook = await createPlaybook({
           user_id: actualUserId,
           title: aiResponse.title,
@@ -182,7 +182,7 @@ const UserInputScreen: React.FC = () => {
           affirmations: aiResponse.affirmations || [],
           progress: 0,
           totalTasks: (aiResponse.actionSteps?.length || 0) + (aiResponse.affirmations?.length || 0),
-          status: 'ongoing'
+          status: 'ongoing',
         });
         console.log('[UserInputScreen] Playbook saved successfully:', savedPlaybook.id);
       } else {

@@ -758,12 +758,12 @@ export async function generatePlaybook(userInput: string, userName: string) {
   const functionUrl = `${config.url}/functions/v1/generate-playbook`;
   console.log('[generatePlaybook] Function URL:', functionUrl);
   console.log('[generatePlaybook] Config URL:', config.url);
-  
+
   try {
     const session = await getSession();
     console.log('[generatePlaybook] Session:', session?.user?.id);
     console.log('[generatePlaybook] Making request to:', functionUrl);
-    
+
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
@@ -780,7 +780,7 @@ export async function generatePlaybook(userInput: string, userName: string) {
     return await response.json();
   } catch (err: any) {
     console.error('generatePlaybook error:', err);
-    
+
     // Provide more specific error messages
     if (err.message?.includes('Network request failed')) {
       throw new Error('Unable to connect to the AI service. Please check your internet connection and try again.');
