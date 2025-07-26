@@ -610,6 +610,9 @@ export const useCreateDevotionalPrayer = () => {
 
       return { previousDevotional, previousAllDevotional, previousEntries };
     },
+    onSuccess: (_data, _variables) => {
+      // Cache is automatically handled by React Query optimistic updates
+    },
     onError: (error, { userId, dateStr }, context) => {
       // Log the error for debugging
       console.error('Error creating devotional prayer:', error);
