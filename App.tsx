@@ -26,6 +26,7 @@ import { ScrollProvider } from './src/context/ScrollContext';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { QueryProvider } from './src/providers/QueryProvider';
+import { NetworkStatus } from './src/components/NetworkStatus';
 
 // Stack navigator removed as it's not currently used
 
@@ -92,13 +93,16 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
               <LogoutContext.Provider value={{ onLogout: async () => {} }}>
                 <NavigationContainer>
                   {isAuthenticated ? (
-                    <RootStackNavigator
-                      isAuthenticated={isAuthenticated}
-                      handleLogin={async () => {}}
-                      handleLogout={async () => {}}
-                      onLogin={async () => {}}
-                      AuthStack={AuthStackNavigator}
-                    />
+                    <>
+                      <RootStackNavigator
+                        isAuthenticated={isAuthenticated}
+                        handleLogin={async () => {}}
+                        handleLogout={async () => {}}
+                        onLogin={async () => {}}
+                        AuthStack={AuthStackNavigator}
+                      />
+                      <NetworkStatus />
+                    </>
                   ) : (
                     <AuthStackNavigator onLogin={async () => {}} />
                   )}

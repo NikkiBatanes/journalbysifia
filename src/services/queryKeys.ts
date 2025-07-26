@@ -18,6 +18,10 @@ export const queryKeys = {
     reflections: (userId: string, date: string) => ['journal', 'reflections', userId, date] as const,
     todayWin: (userId: string, date: string) => ['journal', 'todayWin', userId, date] as const,
     lookingForward: (userId: string, date: string) => ['journal', 'lookingForward', userId, date] as const,
+
+    // Infinite queries
+    infinite: (userId: string, type: string) => ['journal', 'infinite', userId, type] as const,
+    search: (userId: string, searchTerm: string) => ['journal', 'search', userId, searchTerm] as const,
   },
 
   // TimeBlock-related queries (separate database)
@@ -54,14 +58,18 @@ export const queryKeys = {
     stats: (userId: string, startDate: string, endDate: string) => ['prayers', 'stats', userId, startDate, endDate] as const,
     prayed: (userId: string) => ['prayers', 'prayed', userId] as const,
     prayedItems: (userId: string) => ['prayers', 'prayedItems', userId] as const,
+
+    // Infinite queries
+    infinite: (userId: string, prayerType?: string) => ['prayers', 'infinite', userId, prayerType] as const,
   },
 
   // Devotional-related queries
   devotionals: {
     all: ['devotionals'] as const,
-    list: (userId: string) => ['devotionals', 'list', userId] as const,
-    detail: (userId: string, devotionalId: string) => ['devotionals', 'detail', userId, devotionalId] as const,
+    byUser: (userId: string) => ['devotionals', 'user', userId] as const,
+    byId: (devotionalId: string) => ['devotionals', 'detail', devotionalId] as const,
     progress: (userId: string, devotionalId: string) => ['devotionals', 'progress', userId, devotionalId] as const,
+    prayers: (userId: string, devotionalId: string) => ['devotionals', 'prayers', userId, devotionalId] as const,
     playbook: (playbookId: string) => ['devotionals', 'playbook', playbookId] as const,
     ratings: (userId: string) => ['devotionals', 'ratings', userId] as const,
   },
@@ -106,6 +114,13 @@ export const queryKeys = {
     all: ['auth'] as const,
     session: () => ['auth', 'session'] as const,
     user: () => ['auth', 'user'] as const,
+  },
+
+  // Global search queries
+  search: {
+    all: ['search'] as const,
+    infinite: (userId: string, searchTerm: string, contentTypes: string[]) => ['search', 'infinite', userId, searchTerm, contentTypes] as const,
+    recent: (userId: string) => ['search', 'recent', userId] as const,
   },
 } as const;
 

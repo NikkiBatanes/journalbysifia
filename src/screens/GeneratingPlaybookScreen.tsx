@@ -110,18 +110,23 @@ const GeneratingPlaybookScreen: React.FC<Props> = () => {
             useNativeDriver: true,
           }).start(() => {
             if (isMounted) {
-              // Move to next line or reset
-              const nextLine = (currentLine + 1) % lines.length;
-              setCurrentLine(nextLine);
-              setCurrentText('');
-              currentCharIndex = 0;
+              // Defer state updates to avoid useInsertionEffect conflicts
+              requestAnimationFrame(() => {
+                if (isMounted) {
+                  // Move to next line or reset
+                  const nextLine = (currentLine + 1) % lines.length;
+                  setCurrentLine(nextLine);
+                  setCurrentText('');
+                  currentCharIndex = 0;
 
-              // Fade in new text
-              Animated.timing(textAnim, {
-                toValue: 1,
-                duration: 300,
-                useNativeDriver: true,
-              }).start(typeNextCharacter);
+                  // Fade in new text
+                  Animated.timing(textAnim, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                  }).start(typeNextCharacter);
+                }
+              });
             }
           });
         }, 1500); // Pause before fading out
