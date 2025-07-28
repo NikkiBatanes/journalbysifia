@@ -81,6 +81,100 @@ interface CardData {
   tappable: boolean;
 }
 
+// Header left component extracted to fix linter warning
+const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle }: {
+  navigation: any;
+  showUserInput: boolean;
+  setShowUserInput: (show: boolean) => void;
+  chevronStyle: any;
+  showCompactHeader: boolean;
+  playbookTitle?: string;
+}) => (
+  <View style={styles.headerLeftContainer}>
+    <TouchableOpacity
+      onPress={() => {
+        try {
+          navigation.goBack();
+        } catch (err) {
+          console.log('Navigation error:', err);
+        }
+      }}
+      style={styles.backButtonContainer}
+    >
+      <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+    </TouchableOpacity>
+    <TouchableOpacity
+      style={styles.playbookLabelContainer}
+      onPress={() => setShowUserInput(!showUserInput)}
+      activeOpacity={0.7}
+    >
+      <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
+      <Animated.View style={chevronStyle}>
+        <Ionicons
+          name="chevron-down"
+          size={15}
+          color={Colors.anchorBlue}
+        />
+      </Animated.View>
+    </TouchableOpacity>
+    {showCompactHeader && (
+      <Text
+        style={styles.compactHeaderTitle}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {playbookTitle}
+      </Text>
+    )}
+  </View>
+);
+
+// Profile button component extracted to fix linter warning
+const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => (
+  <TouchableOpacity
+    onPress={() => {
+      console.log('Profile image pressed from PlaybookDetail');
+      try {
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'MainTabs',
+                state: {
+                  routes: [
+                    { name: 'Home' },
+                    { name: 'Playbooks' },
+                    { name: 'Devotionals' },
+                    { name: 'Profile' },
+                  ],
+                  index: 3,
+                },
+              },
+            ],
+          })
+        );
+      } catch (navigationError) {
+        console.log('Navigation error:', navigationError);
+      }
+    }}
+    style={styles.profileButton}
+    activeOpacity={0.7}
+  >
+    {user?.user_metadata?.avatar_url ? (
+      <Image
+        source={{ uri: user.user_metadata.avatar_url }}
+        style={styles.profileImage}
+        resizeMode="cover"
+      />
+    ) : (
+      <View style={styles.profilePlaceholder}>
+        <Ionicons name="person" size={16} color="#fff" />
+      </View>
+    )}
+  </TouchableOpacity>
+);
+
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   // ===== ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP =====
 
@@ -366,45 +460,20 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Header left component
   const headerLeft = React.useCallback(() => (
-    <View style={styles.headerLeftContainer}>
-      <TouchableOpacity
-        onPress={() => {
-          try {
-            navigation.goBack();
-          } catch (err) {
-            console.log('Navigation error:', err);
-          }
-        }}
-        style={styles.backButtonContainer}
-      >
-        <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.playbookLabelContainer}
-        onPress={() => setShowUserInput(!showUserInput)}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
-        <Animated.View style={chevronStyle}>
-          <Ionicons
-            name="chevron-down"
-            size={15}
-            color={Colors.anchorBlue}
-          />
-        </Animated.View>
-      </TouchableOpacity>
-      {showCompactHeader && (
-        <Text
-          style={styles.compactHeaderTitle}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {playbook?.title}
-        </Text>
-      )}
-
-    </View>
+    <HeaderLeft
+      navigation={navigation}
+      showUserInput={showUserInput}
+      setShowUserInput={setShowUserInput}
+      chevronStyle={chevronStyle}
+      showCompactHeader={showCompactHeader}
+      playbookTitle={playbook?.title}
+    />
   ), [navigation, showCompactHeader, playbook?.title, showUserInput, chevronStyle]);
+
+  // Header right component
+  const headerRight = React.useCallback(() => (
+    <ProfileButton user={user} navigation={navigation} />
+  ), [user, navigation]);
 
   // ===== EFFECT HOOKS =====
 
@@ -610,50 +679,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     navigation.setOptions({
       headerTitle: '',
       headerLeft,
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={() => {
-            console.log('Profile image pressed from PlaybookDetail');
-            try {
-              navigation.dispatch(
-                CommonActions.reset({
-                  index: 0,
-                  routes: [
-                    {
-                      name: 'MainTabs',
-                      state: {
-                        routes: [
-                          { name: 'Home' },
-                          { name: 'Playbooks' },
-                          { name: 'Devotionals' },
-                          { name: 'Profile' },
-                        ],
-                        index: 3,
-                      },
-                    },
-                  ],
-                })
-              );
-            } catch (error) {
-              console.log('Navigation error:', error);
-            }
-          }}
-          style={{ marginRight: 16 }}
-          activeOpacity={0.7}
-        >
-          {(user as any)?.user_metadata?.avatar_url ? (
-            <Image
-              source={{ uri: (user as any).user_metadata.avatar_url }}
-              style={{ width: 32, height: 32, borderRadius: 16 }}
-              resizeMode="cover"
-            />
-          ) : (
-            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#666', justifyContent: 'center', alignItems: 'center' }}>
-              <Ionicons name="person" size={16} color="#fff" />
-            </View>
-          )}
-        </TouchableOpacity>
-      ),
+      headerRight,
       headerShown: true,
       headerTransparent: false,
       headerStyle: {
@@ -664,7 +690,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         paddingTop: 0, // Reduced bottom padding for title
       },
     });
-  }, [navigation, headerLeft, user]);
+  }, [navigation, headerLeft, headerRight, user]);
 
   // Debounced save function to prevent excessive calls
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1548,5 +1574,25 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   },
   chevronIcon: {
     marginLeft: 4,
+  },
+  profileButton: {
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  profilePlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#666',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
