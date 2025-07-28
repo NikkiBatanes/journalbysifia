@@ -20,6 +20,33 @@ interface Props {
   navigation: any;
 }
 
+interface SocialButtonProps {
+  onPress: () => void;
+  icon: string;
+  title: string;
+  backgroundColor: string;
+  textColor?: string;
+  loading?: boolean;
+}
+
+const SocialButton: React.FC<SocialButtonProps> = ({
+  onPress,
+  icon,
+  title,
+  backgroundColor,
+  textColor = '#000',
+  loading = false,
+}) => (
+  <TouchableOpacity
+    style={[styles.socialButton, { backgroundColor }]}
+    onPress={onPress}
+    disabled={loading}
+  >
+    <Ionicons name={icon} size={20} color={textColor} />
+    <Text style={[styles.socialButtonText, { color: textColor }]}>{title}</Text>
+  </TouchableOpacity>
+);
+
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { signIn, signInWithGoogle, signInWithApple, loading } = useAuth();
 
@@ -89,28 +116,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Register');
   };
 
-  const SocialButton = ({
-    onPress,
-    icon,
-    title,
-    backgroundColor,
-    textColor = '#000',
-  }: {
-    onPress: () => void;
-    icon: string;
-    title: string;
-    backgroundColor: string;
-    textColor?: string;
-  }) => (
-    <TouchableOpacity
-      style={[styles.socialButton, { backgroundColor }]}
-      onPress={onPress}
-      disabled={loading}
-    >
-      <Ionicons name={icon} size={20} color={textColor} />
-      <Text style={[styles.socialButtonText, { color: textColor }]}>{title}</Text>
-    </TouchableOpacity>
-  );
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -137,6 +143,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               title="Continue with Google"
               backgroundColor="#fff"
               textColor="#000"
+              loading={loading}
             />
 
             {Platform.OS === 'ios' && (
@@ -146,6 +153,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 title="Continue with Apple"
                 backgroundColor="#000"
                 textColor="#fff"
+                loading={loading}
               />
             )}
           </View>

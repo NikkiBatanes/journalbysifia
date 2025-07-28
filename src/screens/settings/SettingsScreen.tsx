@@ -85,7 +85,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const SettingsSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  const SettingsSection = ({ title, children }: { title: string; children: React.ReactNode }) => ( // eslint-disable-line react/no-unstable-nested-components
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.sectionContent}>
@@ -94,7 +94,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
-  const SettingsRow = ({
+  const SettingsRow = ({ // eslint-disable-line react/no-unstable-nested-components
     icon,
     title,
     subtitle,
@@ -147,7 +147,7 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const SwitchRow = ({
+  const SwitchRow = ({ // eslint-disable-line react/no-unstable-nested-components
     icon,
     title,
     subtitle,

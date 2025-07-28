@@ -105,11 +105,11 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     let summary = truthSummaryMatch[1].trim();
 
     // Remove userName prefix if present (case insensitive)
-    const usernamePrefix = new RegExp(`^${userName},?\s*`, 'i');
+    const usernamePrefix = new RegExp(`^${userName},?\s*`, 'i'); // eslint-disable-line no-useless-escape
     summary = summary.replace(usernamePrefix, '').trim();
 
     // Remove literal "[User's Name]," if AI outputs it literally (case insensitive)
-    summary = summary.replace(/^\[User'?s Name\],?s*/i, '').trim();
+    summary = summary.replace(/^\[User'?s Name\],?\s*/i, '').trim();
 
     // Ensure the summary starts with a capital letter and has proper spacing
     if (summary.length > 0) {

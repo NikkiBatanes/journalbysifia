@@ -20,6 +20,63 @@ interface Props {
   navigation: any;
 }
 
+interface SocialButtonProps {
+  onPress: () => void;
+  icon: string;
+  title: string;
+  backgroundColor: string;
+  textColor?: string;
+  loading?: boolean;
+}
+
+const SocialButton: React.FC<SocialButtonProps> = ({
+  onPress,
+  icon,
+  title,
+  backgroundColor,
+  textColor = '#000',
+  loading = false,
+}) => (
+  <TouchableOpacity
+    style={[styles.socialButton, { backgroundColor }]}
+    onPress={onPress}
+    disabled={loading}
+  >
+    <Ionicons name={icon} size={20} color={textColor} />
+    <Text style={[styles.socialButtonText, { color: textColor }]}>{title}</Text>
+  </TouchableOpacity>
+);
+
+interface CheckboxRowProps {
+  checked: boolean;
+  onPress: () => void;
+  children: React.ReactNode;
+  error?: string;
+}
+
+const CheckboxRow: React.FC<CheckboxRowProps> = ({
+  checked,
+  onPress,
+  children,
+  error,
+}) => (
+  <View style={styles.checkboxContainer}>
+    <TouchableOpacity style={styles.checkboxRow} onPress={onPress}>
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+        {checked && (
+          <Ionicons name="checkmark" size={14} color="#fff" />
+        )}
+      </View>
+      <View style={styles.checkboxTextContainer}>
+        {children}
+      </View>
+    </TouchableOpacity>
+    {error && (
+      <Text style={styles.errorText}>{error}</Text>
+    )}
+  </View>
+);
+
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signUp, signInWithGoogle, signInWithApple, loading } = useAuth();
 
@@ -135,56 +192,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     Alert.alert('Privacy Policy', 'Privacy Policy content would be displayed here.');
   };
 
-  const SocialButton = ({
-    onPress,
-    icon,
-    title,
-    backgroundColor,
-    textColor = '#000',
-  }: {
-    onPress: () => void;
-    icon: string;
-    title: string;
-    backgroundColor: string;
-    textColor?: string;
-  }) => (
-    <TouchableOpacity
-      style={[styles.socialButton, { backgroundColor }]}
-      onPress={onPress}
-      disabled={loading}
-    >
-      <Ionicons name={icon} size={20} color={textColor} />
-      <Text style={[styles.socialButtonText, { color: textColor }]}>{title}</Text>
-    </TouchableOpacity>
-  );
 
-  const CheckboxRow = ({
-    checked,
-    onPress,
-    children,
-    error,
-  }: {
-    checked: boolean;
-    onPress: () => void;
-    children: React.ReactNode;
-    error?: string;
-  }) => (
-    <View style={styles.checkboxContainer}>
-      <TouchableOpacity style={styles.checkboxRow} onPress={onPress}>
-        <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
-          {checked && (
-            <Ionicons name="checkmark" size={14} color="#fff" />
-          )}
-        </View>
-        <View style={styles.checkboxTextContainer}>
-          {children}
-        </View>
-      </TouchableOpacity>
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
-    </View>
-  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -211,6 +219,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               title="Sign up with Google"
               backgroundColor="#fff"
               textColor="#000"
+              loading={loading}
             />
 
             {Platform.OS === 'ios' && (
@@ -220,6 +229,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 title="Sign up with Apple"
                 backgroundColor="#000"
                 textColor="#fff"
+                loading={loading}
               />
             )}
           </View>

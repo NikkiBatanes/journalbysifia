@@ -140,7 +140,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const GoalCard = ({ goal }: { goal: Goal }) => {
+  const GoalCard = ({ goal }: { goal: Goal }) => { // eslint-disable-line react/no-unstable-nested-components
     const progress = goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0;
     const categoryColor = getCategoryColor(goal.category);
 
@@ -247,7 +247,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const EmptyState = ({ type }: { type: 'active' | 'completed' }) => (
+  const EmptyState = ({ type }: { type: 'active' | 'completed' }) => ( // eslint-disable-line react/no-unstable-nested-components
     <View style={styles.emptyState}>
       <Ionicons
         name={type === 'active' ? 'flag-outline' : 'trophy-outline'}

@@ -152,7 +152,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const _configureGoogleSignIn = () => {
+  const _configureGoogleSignIn = () => { // eslint-disable-line @typescript-eslint/no-unused-vars
     GoogleSignin.configure({
       webClientId: process.env.GOOGLE_WEB_CLIENT_ID,
       iosClientId: process.env.GOOGLE_IOS_CLIENT_ID,

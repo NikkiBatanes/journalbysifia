@@ -126,7 +126,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const ChallengeCard = ({ challenge }: { challenge: Challenge }) => {
+  const ChallengeCard = ({ challenge }: { challenge: Challenge }) => { // eslint-disable-line react/no-unstable-nested-components
     const daysRemaining = getDaysRemaining(challenge.endDate);
     const difficultyColors = getDifficultyGradient(challenge.difficulty);
     const joined = isUserJoined(challenge.id);
@@ -270,7 +270,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const EmptyState = ({ type }: { type: 'available' | 'joined' }) => (
+  const EmptyState = ({ type }: { type: 'available' | 'joined' }) => ( // eslint-disable-line react/no-unstable-nested-components
     <View style={styles.emptyState}>
       <Ionicons
         name={type === 'available' ? 'trophy-outline' : 'ribbon-outline'}

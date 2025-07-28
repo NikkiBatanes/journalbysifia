@@ -23,6 +23,44 @@ export const useOperationState = () => {
   const [operations, setOperations] = useState<Map<string, OperationState>>(new Map());
   const timeoutRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
+  // Handle operation timeout
+  const handleOperationTimeout = useCallback((
+    operationId: string,
+    options: OperationOptions
+  ) => {
+    console.warn(`⏰ Operation timed out: ${operationId}`);
+
+    setOperations(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(operationId);
+      return newMap;
+    });
+
+    if (options.showUserFeedback !== false) {
+      Alert.alert(
+        '⏰ Operation Timeout',
+        `${options.operationName} is taking longer than expected. This might be due to a network issue or you may have been logged out.`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel' as const,
+          },
+          {
+            text: 'Check Connection',
+            onPress: () => {
+              // Could trigger a connectivity check or auth validation
+              if (options.onAuthRequired) {
+                options.onAuthRequired();
+              }
+            },
+            style: 'default' as const,
+          },
+        ],
+        { cancelable: false }
+      );
+    }
+  }, []);
+
   // Start an operation
   const startOperation = useCallback((
     operationId: string,
@@ -44,7 +82,7 @@ export const useOperationState = () => {
     }, timeoutMs);
 
     timeoutRefs.current.set(operationId, timeoutId);
-  }, []);
+  }, [handleOperationTimeout]);
 
   // Update operation progress
   const updateProgress = useCallback((
@@ -133,44 +171,6 @@ export const useOperationState = () => {
     });
 
     return result;
-  }, []);
-
-  // Handle operation timeout
-  const handleOperationTimeout = useCallback((
-    operationId: string,
-    options: OperationOptions
-  ) => {
-    console.warn(`⏰ Operation timed out: ${operationId}`);
-
-    setOperations(prev => {
-      const newMap = new Map(prev);
-      newMap.delete(operationId);
-      return newMap;
-    });
-
-    if (options.showUserFeedback !== false) {
-      Alert.alert(
-        '⏰ Operation Timeout',
-        `${options.operationName} is taking longer than expected. This might be due to a network issue or you may have been logged out.`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel' as const,
-          },
-          {
-            text: 'Check Connection',
-            onPress: () => {
-              // Could trigger a connectivity check or auth validation
-              if (options.onAuthRequired) {
-                options.onAuthRequired();
-              }
-            },
-            style: 'default' as const,
-          },
-        ],
-        { cancelable: false }
-      );
-    }
   }, []);
 
   // Execute operation with full error handling and state management
