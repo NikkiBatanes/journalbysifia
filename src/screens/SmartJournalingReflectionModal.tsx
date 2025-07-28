@@ -101,8 +101,15 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   };
 
   const handleSuccessModalClose = () => {
+    console.log('Closing success modal and reflection editor');
     setShowSuccessModal(false);
-    onCancel(); // Close the main modal
+    onCancel();
+  };
+
+  const handleEdit = () => {
+    console.log('Edit button pressed, closing success modal');
+    setShowSuccessModal(false);
+    // The editor will remain open since we're not calling onCancel
   };
 
   const handleCancel = () => {
@@ -145,24 +152,16 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               dayTitle={actionStepTitle}
               subtaskId={subtaskId}
             />
+
+          <SuccessModal
+            visible={showSuccessModal}
+            title="Reflection Saved"
+            message="Your reflection has been saved to your journal."
+            onDismiss={handleSuccessModalClose}
+            onEdit={handleEdit}
+          />
           </View>
         </KeyboardAvoidingView>
-      </Modal>
-
-      {/* SuccessModal with higher z-index to appear above reflection modal */}
-      <Modal
-        visible={showSuccessModal}
-        transparent={true}
-        animationType="fade"
-        statusBarTranslucent={true}
-      >
-        <SuccessModal
-          visible={showSuccessModal}
-          title="Reflection Saved!"
-          message="Your reflection has been saved to your journal."
-          onDismiss={handleSuccessModalClose}
-          buttonText="Continue"
-        />
       </Modal>
 
       {/* Loading overlay for save operation */}
