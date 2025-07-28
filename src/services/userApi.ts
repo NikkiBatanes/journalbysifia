@@ -11,7 +11,7 @@ class UserApiService {
   async updateProfile(accessToken: string, updates: Partial<User>): Promise<ApiResponse<Partial<User>>> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -21,8 +21,8 @@ class UserApiService {
 
       // Update auth user data if needed
       const authUpdates: any = {};
-      if (updates.email) authUpdates.email = updates.email;
-      
+      if (updates.email) {authUpdates.email = updates.email;}
+
       if (Object.keys(authUpdates).length > 0) {
         const { error: authError } = await supabase.auth.updateUser(authUpdates);
         if (authError) {
@@ -35,16 +35,16 @@ class UserApiService {
 
       // Update profile data
       const profileUpdates: any = {};
-      if (updates.firstName) profileUpdates.first_name = updates.firstName;
-      if (updates.lastName) profileUpdates.last_name = updates.lastName;
-      if (updates.displayName) profileUpdates.display_name = updates.displayName;
-      if (updates.avatar) profileUpdates.avatar_url = updates.avatar;
-      if (updates.phoneNumber) profileUpdates.phone_number = updates.phoneNumber;
-      if (updates.dateOfBirth) profileUpdates.date_of_birth = updates.dateOfBirth;
-      if (updates.gender) profileUpdates.gender = updates.gender;
-      if (updates.spiritualLevel) profileUpdates.spiritual_level = updates.spiritualLevel;
-      if (updates.denomination) profileUpdates.denomination = updates.denomination;
-      if (updates.churchName) profileUpdates.church_name = updates.churchName;
+      if (updates.firstName) {profileUpdates.first_name = updates.firstName;}
+      if (updates.lastName) {profileUpdates.last_name = updates.lastName;}
+      if (updates.displayName) {profileUpdates.display_name = updates.displayName;}
+      if (updates.avatar) {profileUpdates.avatar_url = updates.avatar;}
+      if (updates.phoneNumber) {profileUpdates.phone_number = updates.phoneNumber;}
+      if (updates.dateOfBirth) {profileUpdates.date_of_birth = updates.dateOfBirth;}
+      if (updates.gender) {profileUpdates.gender = updates.gender;}
+      if (updates.spiritualLevel) {profileUpdates.spiritual_level = updates.spiritualLevel;}
+      if (updates.denomination) {profileUpdates.denomination = updates.denomination;}
+      if (updates.churchName) {profileUpdates.church_name = updates.churchName;}
 
       profileUpdates.updated_at = new Date().toISOString();
 
@@ -89,7 +89,7 @@ class UserApiService {
   async updatePreferences(accessToken: string, preferences: UserPreferences): Promise<ApiResponse> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -99,7 +99,7 @@ class UserApiService {
 
       const { error } = await supabase
         .from('user_profiles')
-        .update({ 
+        .update({
           preferences,
           updated_at: new Date().toISOString(),
         })
@@ -124,7 +124,7 @@ class UserApiService {
   async getUserProgress(accessToken: string): Promise<ApiResponse<UserProgress>> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -191,7 +191,7 @@ class UserApiService {
   async updateUserProgress(accessToken: string, updates: Partial<UserProgress>): Promise<ApiResponse> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -204,14 +204,14 @@ class UserApiService {
         updated_at: new Date().toISOString(),
       };
 
-      if (updates.totalDevotionals !== undefined) progressUpdates.total_devotionals = updates.totalDevotionals;
-      if (updates.totalPrayers !== undefined) progressUpdates.total_prayers = updates.totalPrayers;
-      if (updates.totalJournalEntries !== undefined) progressUpdates.total_journal_entries = updates.totalJournalEntries;
-      if (updates.totalPlaybooksCompleted !== undefined) progressUpdates.total_playbooks_completed = updates.totalPlaybooksCompleted;
-      if (updates.currentStreak !== undefined) progressUpdates.current_streak = updates.currentStreak;
-      if (updates.longestStreak !== undefined) progressUpdates.longest_streak = updates.longestStreak;
-      if (updates.activeChallenges !== undefined) progressUpdates.active_challenges = updates.activeChallenges;
-      if (updates.completedChallenges !== undefined) progressUpdates.completed_challenges = updates.completedChallenges;
+      if (updates.totalDevotionals !== undefined) {progressUpdates.total_devotionals = updates.totalDevotionals;}
+      if (updates.totalPrayers !== undefined) {progressUpdates.total_prayers = updates.totalPrayers;}
+      if (updates.totalJournalEntries !== undefined) {progressUpdates.total_journal_entries = updates.totalJournalEntries;}
+      if (updates.totalPlaybooksCompleted !== undefined) {progressUpdates.total_playbooks_completed = updates.totalPlaybooksCompleted;}
+      if (updates.currentStreak !== undefined) {progressUpdates.current_streak = updates.currentStreak;}
+      if (updates.longestStreak !== undefined) {progressUpdates.longest_streak = updates.longestStreak;}
+      if (updates.activeChallenges !== undefined) {progressUpdates.active_challenges = updates.activeChallenges;}
+      if (updates.completedChallenges !== undefined) {progressUpdates.completed_challenges = updates.completedChallenges;}
 
       const { error } = await supabase
         .from('user_progress')
@@ -236,7 +236,7 @@ class UserApiService {
   async createGoal(accessToken: string, goal: Omit<Goal, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<Goal>> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -291,7 +291,7 @@ class UserApiService {
   async updateGoal(accessToken: string, goalId: string, updates: Partial<Goal>): Promise<ApiResponse<Goal>> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -303,19 +303,19 @@ class UserApiService {
         updated_at: new Date().toISOString(),
       };
 
-      if (updates.title) goalUpdates.title = updates.title;
-      if (updates.description) goalUpdates.description = updates.description;
-      if (updates.category) goalUpdates.category = updates.category;
-      if (updates.type) goalUpdates.type = updates.type;
-      if (updates.targetValue !== undefined) goalUpdates.target_value = updates.targetValue;
-      if (updates.currentValue !== undefined) goalUpdates.current_value = updates.currentValue;
-      if (updates.unit) goalUpdates.unit = updates.unit;
-      if (updates.startDate) goalUpdates.start_date = updates.startDate;
-      if (updates.endDate) goalUpdates.end_date = updates.endDate;
-      if (updates.isActive !== undefined) goalUpdates.is_active = updates.isActive;
-      if (updates.isCompleted !== undefined) goalUpdates.is_completed = updates.isCompleted;
-      if (updates.completedAt) goalUpdates.completed_at = updates.completedAt;
-      if (updates.reward) goalUpdates.reward = updates.reward;
+      if (updates.title) {goalUpdates.title = updates.title;}
+      if (updates.description) {goalUpdates.description = updates.description;}
+      if (updates.category) {goalUpdates.category = updates.category;}
+      if (updates.type) {goalUpdates.type = updates.type;}
+      if (updates.targetValue !== undefined) {goalUpdates.target_value = updates.targetValue;}
+      if (updates.currentValue !== undefined) {goalUpdates.current_value = updates.currentValue;}
+      if (updates.unit) {goalUpdates.unit = updates.unit;}
+      if (updates.startDate) {goalUpdates.start_date = updates.startDate;}
+      if (updates.endDate) {goalUpdates.end_date = updates.endDate;}
+      if (updates.isActive !== undefined) {goalUpdates.is_active = updates.isActive;}
+      if (updates.isCompleted !== undefined) {goalUpdates.is_completed = updates.isCompleted;}
+      if (updates.completedAt) {goalUpdates.completed_at = updates.completedAt;}
+      if (updates.reward) {goalUpdates.reward = updates.reward;}
 
       const { data, error } = await supabase
         .from('user_goals')
@@ -347,7 +347,7 @@ class UserApiService {
   async deleteGoal(accessToken: string, goalId: string): Promise<ApiResponse> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -421,7 +421,7 @@ class UserApiService {
   async joinChallenge(accessToken: string, challengeId: string): Promise<ApiResponse> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -478,7 +478,7 @@ class UserApiService {
   async addBadge(accessToken: string, badge: Omit<Badge, 'unlockedAt'>): Promise<ApiResponse> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -519,7 +519,7 @@ class UserApiService {
 
       const { error } = await supabase
         .from('user_profiles')
-        .update({ 
+        .update({
           badges: updatedBadges,
           updated_at: new Date().toISOString(),
         })
@@ -544,7 +544,7 @@ class UserApiService {
   async updateExperience(accessToken: string, experienceGained: number, pointsGained: number = 0): Promise<ApiResponse> {
     try {
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (!user.user) {
         return {
           success: false,
@@ -579,7 +579,7 @@ class UserApiService {
 
       const { error } = await supabase
         .from('user_profiles')
-        .update({ 
+        .update({
           level: newLevel,
           experience: newExperience,
           total_points: newPoints,
@@ -658,7 +658,7 @@ class UserApiService {
 
       // Extract stats from gamification_stats JSONB
       const stats = data.gamification_stats || {};
-      
+
       const profileStats = {
         faithPoints: data.faith_points || 0,
         level: data.growth_level || 1,

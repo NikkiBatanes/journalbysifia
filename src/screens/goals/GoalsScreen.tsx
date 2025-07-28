@@ -20,7 +20,7 @@ interface Props {
 }
 
 const GoalsScreen: React.FC<Props> = ({ navigation }) => {
-  const { user } = useAuth();
+  // const { user: _user } = useAuth(); // Unused
   const [goals, setGoals] = useState<Goal[]>([]);
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [loading, setLoading] = useState(true);
@@ -90,7 +90,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
 
       const response = await userApi.updateGoal('', goal.id, updates);
       if (response.success) {
-        setGoals(prev => prev.map(g => 
+        setGoals(prev => prev.map(g =>
           g.id === goal.id ? { ...g, ...updates } : g
         ));
       } else {
@@ -102,7 +102,7 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const getFilteredGoals = () => {
-    return goals.filter(goal => 
+    return goals.filter(goal =>
       activeTab === 'active' ? goal.isActive && !goal.isCompleted : goal.isCompleted
     );
   };
@@ -143,19 +143,19 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
   const GoalCard = ({ goal }: { goal: Goal }) => {
     const progress = goal.targetValue > 0 ? goal.currentValue / goal.targetValue : 0;
     const categoryColor = getCategoryColor(goal.category);
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.goalCard}
         onPress={() => navigation.navigate('GoalDetail', { goalId: goal.id })}
       >
         <View style={styles.goalHeader}>
           <View style={styles.goalTitleRow}>
             <View style={[styles.categoryIcon, { backgroundColor: categoryColor + '20' }]}>
-              <Ionicons 
-                name={getCategoryIcon(goal.category)} 
-                size={20} 
-                color={categoryColor} 
+              <Ionicons
+                name={getCategoryIcon(goal.category)}
+                size={20}
+                color={categoryColor}
               />
             </View>
             <View style={styles.goalTitleContainer}>
@@ -163,16 +163,16 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.goalType}>{getTypeLabel(goal.type)}</Text>
             </View>
           </View>
-          
+
           <View style={styles.goalActions}>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleToggleGoalStatus(goal)}
             >
-              <Ionicons 
-                name={goal.isActive ? 'pause-outline' : 'play-outline'} 
-                size={20} 
-                color={Colors.gray} 
+              <Ionicons
+                name={goal.isActive ? 'pause-outline' : 'play-outline'}
+                size={20}
+                color={Colors.gray}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -205,16 +205,16 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
               {Math.round(progress * 100)}%
             </Text>
           </View>
-          
+
           <View style={styles.progressBarBackground}>
-            <View 
+            <View
               style={[
-                styles.progressBarFill, 
-                { 
+                styles.progressBarFill,
+                {
                   width: `${Math.min(progress * 100, 100)}%`,
                   backgroundColor: categoryColor,
-                }
-              ]} 
+                },
+              ]}
             />
           </View>
         </View>
@@ -249,22 +249,22 @@ const GoalsScreen: React.FC<Props> = ({ navigation }) => {
 
   const EmptyState = ({ type }: { type: 'active' | 'completed' }) => (
     <View style={styles.emptyState}>
-      <Ionicons 
-        name={type === 'active' ? 'flag-outline' : 'trophy-outline'} 
-        size={64} 
-        color={Colors.gray} 
+      <Ionicons
+        name={type === 'active' ? 'flag-outline' : 'trophy-outline'}
+        size={64}
+        color={Colors.gray}
       />
       <Text style={styles.emptyStateTitle}>
         {type === 'active' ? 'No Active Goals' : 'No Completed Goals'}
       </Text>
       <Text style={styles.emptyStateText}>
-        {type === 'active' 
+        {type === 'active'
           ? 'Create your first goal to start tracking your spiritual journey'
           : 'Complete some goals to see them here'
         }
       </Text>
       {type === 'active' && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.createGoalButton}
           onPress={() => navigation.navigate('CreateGoal')}
         >

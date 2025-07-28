@@ -241,7 +241,7 @@ export class DevotionalApi {
     return generateDevotional({
       duration: params.duration,
       playbookId: params.playbookId,
-      userInput: params.userInput
+      userInput: params.userInput,
     });
   }
 }

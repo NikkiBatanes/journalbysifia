@@ -136,9 +136,9 @@ const UserInputScreen: React.FC = () => {
         onAuthRequired: () => {
           console.log('🔐 Authentication required for playbook generation');
           // The auth error handler will manage the user flow
-        }
+        },
       });
-      
+
       if (!aiResponse) {
         throw new Error('Playbook generation failed. Please try again.');
       }
@@ -184,7 +184,7 @@ const UserInputScreen: React.FC = () => {
         // Generate the playbook content
         savedPlaybook = await generatePlaybook(userInput, userName);
         console.log('[UserInputScreen] Playbook generated:', savedPlaybook.id);
-        
+
         // Save the generated playbook to the database
         const saveResult = await savePlaybook(savedPlaybook, actualUserId);
         if (!saveResult.success) {

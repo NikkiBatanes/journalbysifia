@@ -20,7 +20,7 @@ export async function generatePlaybook(
 ): Promise<Playbook> {
   // Get fresh session directly from Supabase
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
+
   if (sessionError || !session) {
     throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
   }
@@ -50,7 +50,7 @@ export async function generatePlaybook(
 
       if (!response.ok) {
         const errorText = await response.text();
-        
+
         // Handle specific error cases
         if (response.status === 401) {
           throw new Error(AUTH_ERROR_MESSAGES.SESSION_EXPIRED);
@@ -79,14 +79,14 @@ export async function generatePlaybook(
     } catch (err: unknown) {
       const error = err as Error;
       lastError = error;
-      
+
       console.warn(`Playbook generation attempt ${attempt + 1} failed:`, error.message);
-      
+
       // Don't retry on authentication errors
       if (error.message.includes('session') || error.message.includes('token') || error.message.includes('sign in')) {
         throw error;
       }
-      
+
       if (attempt < maxRetries) {
         // Exponential backoff delay
         const delay = API_RETRY_DELAY * Math.pow(2, attempt);
@@ -110,7 +110,7 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
   try {
     // Get fresh session directly from Supabase
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
+
     if (sessionError || !session) {
       throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
     }
@@ -149,23 +149,23 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
     // Save action steps to separate table
     if (playbook.actionSteps && playbook.actionSteps.length > 0) {
       console.log('💾 Saving action steps to separate table...');
-      
+
       // Delete existing action steps
       await supabase
         .from('playbook_action_steps')
         .delete()
         .eq('playbook_id', playbook.id);
-      
+
       // Insert new action steps with examples in dedicated field
       const actionStepsToInsert = playbook.actionSteps.map((step, index) => {
         // Handle both string and array formats for examples
         let examplesText = '';
         if (step.examples) {
-          examplesText = Array.isArray(step.examples) 
-            ? step.examples.join('; ') 
+          examplesText = Array.isArray(step.examples)
+            ? step.examples.join('; ')
             : step.examples;
         }
-        
+
         return {
           id: step.id,
           playbook_id: playbook.id,
@@ -175,29 +175,29 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
           order_index: index,
         };
       });
-      
+
       const { error: actionStepsError } = await supabase
         .from('playbook_action_steps')
         .insert(actionStepsToInsert);
-      
+
       if (actionStepsError) {
         console.error('❌ Error saving action steps:', actionStepsError);
         return { success: false, error: `Playbook saved but action steps failed: ${actionStepsError.message}` };
       }
-      
+
       console.log('✅ Action steps saved successfully');
-      
+
       // Save sub-tasks for each action step
       for (const [stepIndex, step] of playbook.actionSteps.entries()) {
         if (step.subTasks && step.subTasks.length > 0) {
           console.log(`💾 Saving ${step.subTasks.length} sub-tasks for step ${stepIndex + 1}...`);
-          
+
           // Delete existing sub-tasks for this action step
           await supabase
             .from('playbook_sub_tasks')
             .delete()
             .eq('action_step_id', step.id);
-          
+
           // Insert new sub-tasks
           const subTasksToInsert = step.subTasks.map((subTask, subIndex) => ({
             id: ensureValidUUID(generateUUID()),
@@ -206,16 +206,16 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
             completed: false,
             order_index: subIndex,
           }));
-          
+
           const { error: subTasksError } = await supabase
             .from('playbook_sub_tasks')
             .insert(subTasksToInsert);
-          
+
           if (subTasksError) {
             console.error('❌ Error saving sub-tasks:', subTasksError);
             return { success: false, error: `Sub-tasks failed for step ${stepIndex + 1}: ${subTasksError.message}` };
           }
-          
+
           console.log(`✅ Sub-tasks saved for step ${stepIndex + 1}`);
         }
       }
@@ -224,13 +224,13 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
     // Save affirmations to separate table
     if (playbook.affirmations && playbook.affirmations.length > 0) {
       console.log('💾 Saving affirmations to separate table...');
-      
+
       // Delete existing affirmations
       await supabase
         .from('playbook_affirmations')
         .delete()
         .eq('playbook_id', playbook.id);
-      
+
       // Insert new affirmations
       const affirmationsToInsert = playbook.affirmations.map((affirmation, index) => ({
         id: affirmation.id,
@@ -239,16 +239,16 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
         completed: affirmation.completed || false,
         order_index: index,
       }));
-      
+
       const { error: affirmationsError } = await supabase
         .from('playbook_affirmations')
         .insert(affirmationsToInsert);
-      
+
       if (affirmationsError) {
         console.error('❌ Error saving affirmations:', affirmationsError);
         return { success: false, error: `Playbook saved but affirmations failed: ${affirmationsError.message}` };
       }
-      
+
       console.log('✅ Affirmations saved successfully');
     }
 
@@ -276,7 +276,7 @@ export async function updatePlaybookActionSteps(
 
     // Get fresh session directly from Supabase
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
+
     if (sessionError || !session) {
       throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
     }
@@ -291,7 +291,7 @@ export async function updatePlaybookActionSteps(
       .eq('id', playbookId)
       .eq('user_id', userId)
       .single();
-    
+
     if (ownershipError || !playbookData) {
       console.error('❌ Playbook ownership verification failed:', ownershipError);
       return { success: false, error: 'Playbook not found or access denied' };
@@ -301,15 +301,15 @@ export async function updatePlaybookActionSteps(
     if (actionSteps && actionSteps.length > 0) {
       for (let index = 0; index < actionSteps.length; index++) {
         const step = actionSteps[index];
-        
+
         // Handle examples for updates
         let examplesText = '';
         if (step.examples) {
-          examplesText = Array.isArray(step.examples) 
-            ? step.examples.join('; ') 
+          examplesText = Array.isArray(step.examples)
+            ? step.examples.join('; ')
             : step.examples;
         }
-        
+
         const updateData = {
           text: step.title || step.text,
           examples: examplesText,
@@ -317,22 +317,22 @@ export async function updatePlaybookActionSteps(
           order_index: index,
           updated_at: new Date().toISOString(),
         };
-        
+
         const { error: updateError } = await supabase
           .from('playbook_action_steps')
           .update(updateData)
           .eq('id', step.id)
           .eq('playbook_id', playbookId);
-        
+
         if (updateError) {
           console.error(`❌ Error updating action step ${step.id}:`, updateError);
           return { success: false, error: `Failed to update action step ${index + 1}: ${updateError.message}` };
         }
-        
+
         // Update subtasks if they exist and have completion status
         if (step.subTasks && Array.isArray(step.subTasks) && step.subTasks.length > 0) {
           console.log(`📝 Updating ${step.subTasks.length} subtasks for step ${step.id}`);
-          
+
           for (const subTask of step.subTasks) {
             // Only update if subTask has an id (exists in database)
             if (subTask.id && typeof subTask === 'object' && 'completed' in subTask) {
@@ -344,7 +344,7 @@ export async function updatePlaybookActionSteps(
                 })
                 .eq('id', subTask.id)
                 .eq('action_step_id', step.id);
-              
+
               if (subTaskError) {
                 console.error(`❌ Error updating subtask ${subTask.id}:`, subTaskError);
                 // Continue with other subtasks even if one fails
@@ -355,7 +355,7 @@ export async function updatePlaybookActionSteps(
           }
         }
       }
-      
+
       console.log('✅ Action steps and subtasks updated successfully');
     }
 
@@ -393,7 +393,7 @@ export async function deletePlaybook(
   try {
     // Get fresh session directly from Supabase
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
+
     if (sessionError || !session) {
       throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
     }
@@ -450,9 +450,9 @@ export function calculateTaskStats(actionSteps: any[]) {
  */
 export async function getPlaybooks(userId: string): Promise<Playbook[]> {
   console.log('[modernGetPlaybooks] Fetching playbooks for user:', userId);
-  
+
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
+
   if (sessionError || !session) {
     throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
   }
@@ -479,7 +479,7 @@ export async function getPlaybooks(userId: string): Promise<Playbook[]> {
     // Calculate accurate progress including subtasks
     const { completed, total } = calculateTaskStats(item.action_steps || []);
     const accurateProgress = total > 0 ? Math.round((completed / total) * 100) : 0;
-    
+
     return {
       id: item.id,
       title: item.title,
@@ -516,7 +516,7 @@ export async function getPlaybook(
   try {
     // Get fresh session directly from Supabase
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
+
     if (sessionError || !session) {
       throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
     }
@@ -576,14 +576,14 @@ export async function getPlaybook(
     // Fetch sub-tasks for all action steps
     const actionStepIds = (actionStepsData || []).map(step => step.id);
     let subTasksData: any[] = [];
-    
+
     if (actionStepIds.length > 0) {
       const { data: subTasksResult, error: subTasksError } = await supabase
         .from('playbook_sub_tasks')
         .select('*')
         .in('action_step_id', actionStepIds)
         .order('order_index');
-      
+
       if (subTasksError) {
         console.warn('⚠️ Warning: Could not fetch sub-tasks:', subTasksError);
       } else {
@@ -600,7 +600,7 @@ export async function getPlaybook(
           text: subTask.text,
           completed: subTask.completed || false,
         }));
-      
+
       return {
         id: step.id,
         title: step.text,
@@ -622,10 +622,10 @@ export async function getPlaybook(
     // Count both action steps and subtasks for accurate progress
     let totalTasks = 0;
     let completedTasks = 0;
-    
+
     actionSteps.forEach(step => {
       const hasSubTasks = step.subTasks && step.subTasks.length > 0;
-      
+
       if (hasSubTasks) {
         // For steps with subtasks, count each subtask
         totalTasks += step.subTasks.length;
@@ -638,9 +638,9 @@ export async function getPlaybook(
         }
       }
     });
-    
+
     const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-    
+
     console.log('[DEBUG] Progress calculation:', { totalTasks, completedTasks, progress });
 
     // Transform to Playbook interface
@@ -682,11 +682,11 @@ export function validatePlaybookParams(userInput: string, userName: string): voi
   if (!userInput || userInput.trim().length === 0) {
     throw new Error('User input is required for playbook generation');
   }
-  
+
   if (userInput.length > 2000) {
     throw new Error('User input must be less than 2000 characters');
   }
-  
+
   if (!userName || userName.trim().length === 0) {
     throw new Error('User name is required for playbook generation');
   }

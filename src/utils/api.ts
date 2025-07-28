@@ -9,7 +9,7 @@ export const useApi = () => {
     signOut,
     loading,
   } = useAuth();
-  
+
   const retryCountRef = useRef<Map<string, number>>(new Map());
 
   // Authenticated fetch with comprehensive error handling
@@ -21,30 +21,30 @@ export const useApi = () => {
     const operationId = `${options.method || 'GET'}_${url}`;
     const maxRetries = errorHandlerOptions.retryAttempts || 2;
     const currentRetries = retryCountRef.current.get(operationId) || 0;
-    
+
     try {
       // Check if we have a valid session
       if (!session?.access_token) {
         console.warn('⚠️ No authentication token available');
-        
+
         const result = await authErrorHandler.handleApiError(
           { status: 401, message: 'No authentication token' },
           {
             ...errorHandlerOptions,
             operationName: errorHandlerOptions.operationName || 'API request',
-            onAuthRequired: () => signOut()
+            onAuthRequired: () => signOut(),
           }
         );
-        
+
         if (!result.handled) {
           throw new Error('Authentication required');
         }
-        
+
         return new Response(null, { status: 401 });
       }
 
       console.log(`🌐 Making API request: ${operationId}`);
-      
+
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -62,67 +62,67 @@ export const useApi = () => {
 
       // Handle error responses
       console.warn(`⚠️ API request failed: ${response.status} ${response.statusText}`);
-      
+
       const errorData = await response.text().catch(() => 'Unknown error');
       const error = {
         status: response.status,
         statusText: response.statusText,
         message: errorData,
-        url
+        url,
       };
 
       const result = await authErrorHandler.handleApiError(error, {
         ...errorHandlerOptions,
         retryAttempts: maxRetries - currentRetries,
         operationName: errorHandlerOptions.operationName || `API request to ${url}`,
-        onAuthRequired: () => signOut()
+        onAuthRequired: () => signOut(),
       });
 
       if (result.shouldRetry && currentRetries < maxRetries) {
         console.log(`🔄 Retrying API request: ${operationId} (attempt ${currentRetries + 1}/${maxRetries})`);
         retryCountRef.current.set(operationId, currentRetries + 1);
-        
+
         // Wait before retry (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetries) * 1000));
-        
+
         return authFetch(url, options, errorHandlerOptions);
       }
 
       // No retry or max retries reached
       retryCountRef.current.delete(operationId);
-      
+
       if (!result.handled) {
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
-      
+
       return response;
-      
+
     } catch (networkError: any) {
       console.error(`💥 Network error for ${operationId}:`, networkError);
-      
+
       const result = await authErrorHandler.handleApiError(networkError, {
         ...errorHandlerOptions,
         retryAttempts: maxRetries - currentRetries,
         operationName: errorHandlerOptions.operationName || `API request to ${url}`,
-        onAuthRequired: () => signOut()
+        onAuthRequired: () => signOut(),
       });
 
       if (result.shouldRetry && currentRetries < maxRetries) {
         console.log(`🔄 Retrying after network error: ${operationId} (attempt ${currentRetries + 1}/${maxRetries})`);
         retryCountRef.current.set(operationId, currentRetries + 1);
-        
+
         // Wait before retry
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetries) * 1000));
-        
+
         return authFetch(url, options, errorHandlerOptions);
       }
 
       retryCountRef.current.delete(operationId);
-      
+
       if (!result.handled) {
         throw networkError;
       }
-      
+
       // Return a failed response instead of throwing
       return new Response(null, { status: 500, statusText: 'Network Error' });
     }

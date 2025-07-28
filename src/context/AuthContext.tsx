@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('Starting login for:', email);
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       console.log('Sign in result:', JSON.stringify({ data, error }, null, 2));
-      
+
       const result = { data, error };
 
       // Check for error in the response
@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('No access token in response');
         throw new Error('Authentication failed: No access token received');
       }
-      
+
       const { access_token, refresh_token } = session;
 
       if (!authUser?.id) {

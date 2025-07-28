@@ -22,12 +22,12 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       console.log('📱 App state changed:', { from: appStateRef.current, to: nextAppState });
-      
+
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
         console.log('🔍 App became active, validating session...');
         await validateSessionOnAppForeground();
       }
-      
+
       appStateRef.current = nextAppState;
     };
 
@@ -54,7 +54,7 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
   const validateSessionOnAppForeground = async () => {
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-      
+
       if (error) {
         console.error('❌ Session validation error:', error);
         await handleSessionError('Session validation failed. Please log in again.');
@@ -78,7 +78,7 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
   const validateSessionPeriodically = async () => {
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-      
+
       if (error) {
         console.error('❌ Periodic session check error:', error);
         return; // Don't interrupt user for periodic check errors
@@ -99,7 +99,7 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
   // Handle silent logout with user notification
   const handleSilentLogout = async (message: string) => {
     setIsMonitoring(false); // Prevent multiple alerts
-    
+
     Alert.alert(
       '🔐 Session Expired',
       message,
@@ -110,12 +110,12 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
             // The auth context will handle the navigation to login screen
             setIsMonitoring(true);
           },
-          style: 'default'
-        }
+          style: 'default',
+        },
       ],
-      { 
+      {
         cancelable: false,
-        onDismiss: () => setIsMonitoring(true)
+        onDismiss: () => setIsMonitoring(true),
       }
     );
   };
@@ -131,7 +131,7 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
           onPress: async () => {
             await validateSessionOnAppForeground();
           },
-          style: 'default'
+          style: 'default',
         },
         {
           text: 'Log In Again',
@@ -139,8 +139,8 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
             // Force logout to clear any corrupted state
             supabase.auth.signOut();
           },
-          style: 'destructive'
-        }
+          style: 'destructive',
+        },
       ],
       { cancelable: false }
     );

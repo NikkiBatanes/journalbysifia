@@ -14,14 +14,7 @@ interface DevotionalGenerationParams {
   userInput?: string;
 }
 
-interface DevotionalDay {
-  day: number;
-  title: string;
-  verse: string;
-  reflection: string;
-  prayer: string;
-  action: string;
-}
+
 
 // Use the standard Devotional interface
 type GeneratedDevotional = Devotional;
@@ -35,10 +28,10 @@ export async function generateDevotional(
   maxRetries: number = API_RETRY_ATTEMPTS
 ): Promise<GeneratedDevotional> {
   const { duration, playbookId, userInput } = params;
-  
+
   // Get fresh session directly from Supabase
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-  
+
   if (sessionError || !session) {
     throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
   }
@@ -72,7 +65,7 @@ export async function generateDevotional(
 
       if (!response.ok) {
         const errorText = await response.text();
-        
+
         // Handle specific error cases
         if (response.status === 401) {
           throw new Error(AUTH_ERROR_MESSAGES.SESSION_EXPIRED);
@@ -145,14 +138,14 @@ export async function generateDevotional(
     } catch (err: unknown) {
       const error = err as Error;
       lastError = error;
-      
+
       console.warn(`Devotional generation attempt ${attempt + 1} failed:`, error.message);
-      
+
       // Don't retry on authentication errors
       if (error.message.includes('session') || error.message.includes('token') || error.message.includes('sign in')) {
         throw error;
       }
-      
+
       if (attempt < maxRetries) {
         // Exponential backoff delay
         const delay = API_RETRY_DELAY * Math.pow(2, attempt);
@@ -173,22 +166,12 @@ export async function generateDevotional(
  */
 export function validateDevotionalParams(params: DevotionalGenerationParams): void {
   const { duration, userInput } = params;
-  
+
   if (!duration || duration < 1 || duration > 365) {
     throw new Error('Duration must be between 1 and 365 days');
   }
-  
+
   if (userInput && userInput.length > 1000) {
     throw new Error('User input must be less than 1000 characters');
   }
-}
-
-/**
- * Get environment configuration with fallbacks
- */
-function getConfig() {
-  return {
-    url: process.env.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co',
-    anonKey: process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
-  };
 }

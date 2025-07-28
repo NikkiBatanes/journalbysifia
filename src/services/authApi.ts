@@ -1,10 +1,10 @@
 import { supabase } from './supabaseClient';
-import { 
-  User, 
-  LoginCredentials, 
-  RegisterData, 
+import {
+  User,
+  LoginCredentials,
+  RegisterData,
   AuthError,
-  UserPreferences 
+  UserPreferences,
 } from '../types/auth';
 
 interface ApiResponse<T = any> {
@@ -61,7 +61,7 @@ class AuthApiService {
 
       // Get user profile
       const userProfile = await this.getUserProfile(data.user.id);
-      
+
       const user: User = {
         id: data.user.id,
         email: data.user.email!,
@@ -260,7 +260,7 @@ class AuthApiService {
 
       // Check if user profile exists, create if not
       let userProfile = await this.getUserProfile(data.user.id);
-      
+
       if (!userProfile) {
         const newProfile = {
           id: data.user.id,
@@ -334,10 +334,10 @@ class AuthApiService {
     }
   }
 
-  async logout(accessToken: string): Promise<ApiResponse> {
+  async logout(_accessToken: string): Promise<ApiResponse> {
     try {
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         console.error('Logout error:', error);
         // Don't fail logout if API call fails
@@ -367,7 +367,7 @@ class AuthApiService {
       }
 
       const userProfile = await this.getUserProfile(data.user.id);
-      
+
       const user: User = {
         id: data.user.id,
         email: data.user.email!,
@@ -482,7 +482,7 @@ class AuthApiService {
     try {
       // First verify current password by attempting to sign in
       const { data: currentUser } = await supabase.auth.getUser(accessToken);
-      
+
       if (!currentUser.user?.email) {
         return {
           success: false,
@@ -536,7 +536,7 @@ class AuthApiService {
     }
   }
 
-  async sendEmailVerification(accessToken: string): Promise<ApiResponse> {
+  async sendEmailVerification(_accessToken: string): Promise<ApiResponse> {
     try {
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -598,7 +598,7 @@ class AuthApiService {
     try {
       // First delete user profile and related data
       const { data: user } = await supabase.auth.getUser(accessToken);
-      
+
       if (user.user) {
         // Delete user profile
         await supabase
@@ -650,13 +650,13 @@ class AuthApiService {
 
       if (error) {
         console.error('Get user profile error:', error);
-        
+
         // If profile doesn't exist, create a default one
         if (error.code === 'PGRST116') {
           console.log('Creating default profile for user:', userId);
           return await this.createDefaultProfile(userId);
         }
-        
+
         return null;
       }
 
@@ -683,11 +683,11 @@ class AuthApiService {
       // Get user email from Supabase auth
       const { data: authUser } = await supabase.auth.getUser();
       const userEmail = authUser.user?.email || 'user@example.com';
-      
+
       // Use the secure database function to create profile (bypasses RLS)
       const { data, error } = await supabase.rpc('create_default_user_profile', {
         p_user_id: userId,
-        p_email: userEmail
+        p_email: userEmail,
       });
 
       if (error) {

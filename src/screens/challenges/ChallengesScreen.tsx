@@ -17,14 +17,14 @@ import { userApi } from '../../services/userApi';
 import { Challenge } from '../../types/auth';
 import { Colors } from '../../theme/colors';
 
-const { width } = Dimensions.get('window');
+// const { width: _width } = Dimensions.get('window'); // Unused
 
 interface Props {
   navigation: any;
 }
 
 const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
-  const { user } = useAuth();
+  // const { user: _user } = useAuth(); // Unused
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [activeTab, setActiveTab] = useState<'available' | 'joined'>('available');
   const [loading, setLoading] = useState(true);
@@ -53,9 +53,9 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const handleJoinChallenge = async (challengeId: string) => {
+  const handleJoinChallenge = async (_challengeId: string) => {
     try {
-      const response = await userApi.joinChallenge('', challengeId);
+      const response = await userApi.joinChallenge('', _challengeId);
       if (response.success) {
         Alert.alert(
           'Challenge Joined!',
@@ -112,7 +112,7 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
     return Math.max(0, diffDays);
   };
 
-  const isUserJoined = (challengeId: string) => {
+  const isUserJoined = (_challengeId: string) => {
     // TODO: Implement user challenge participation tracking
     // For now, return false as community features are disabled
     return false;
@@ -130,9 +130,9 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
     const daysRemaining = getDaysRemaining(challenge.endDate);
     const difficultyColors = getDifficultyGradient(challenge.difficulty);
     const joined = isUserJoined(challenge.id);
-    
+
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.challengeCard}
         onPress={() => navigation.navigate('ChallengeDetail', { challengeId: challenge.id })}
       >
@@ -144,10 +144,10 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
         >
           <View style={styles.challengeHeaderContent}>
             <View style={styles.challengeIconContainer}>
-              <Ionicons 
-                name={getCategoryIcon(challenge.category)} 
-                size={24} 
-                color="#fff" 
+              <Ionicons
+                name={getCategoryIcon(challenge.category)}
+                size={24}
+                color="#fff"
               />
             </View>
             <View style={styles.challengeHeaderText}>
@@ -272,16 +272,16 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
 
   const EmptyState = ({ type }: { type: 'available' | 'joined' }) => (
     <View style={styles.emptyState}>
-      <Ionicons 
-        name={type === 'available' ? 'trophy-outline' : 'ribbon-outline'} 
-        size={64} 
-        color={Colors.gray} 
+      <Ionicons
+        name={type === 'available' ? 'trophy-outline' : 'ribbon-outline'}
+        size={64}
+        color={Colors.gray}
       />
       <Text style={styles.emptyStateTitle}>
         {type === 'available' ? 'No Available Challenges' : 'No Joined Challenges'}
       </Text>
       <Text style={styles.emptyStateText}>
-        {type === 'available' 
+        {type === 'available'
           ? 'Check back later for new challenges to join'
           : 'Join some challenges to track your progress here'
         }

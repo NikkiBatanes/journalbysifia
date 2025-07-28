@@ -23,7 +23,7 @@ describe('UUID Utils', () => {
       const validUUIDs = [
         '550e8400-e29b-41d4-a716-446655440000',
         'f47ac10b-58cc-4372-a567-0e02b2c3d479',
-        '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+        '6ba7b810-9dad-11d1-80b4-00c04fd430c8',
       ];
 
       validUUIDs.forEach(uuid => {
@@ -39,7 +39,7 @@ describe('UUID Utils', () => {
         '550e8400-e29b-41d4-a716-446655440000-extra', // too long
         '', // empty string
         null,
-        undefined
+        undefined,
       ];
 
       invalidUUIDs.forEach(uuid => {
@@ -65,7 +65,7 @@ describe('UUID Utils', () => {
     it('should generate a new UUID if null or undefined', () => {
       const result1 = ensureValidUUID(null, 'test');
       const result2 = ensureValidUUID(undefined, 'test');
-      
+
       expect(isValidUUID(result1)).toBe(true);
       expect(isValidUUID(result2)).toBe(true);
     });

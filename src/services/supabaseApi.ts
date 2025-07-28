@@ -87,7 +87,7 @@ console.log('Supabase Config:', {
 // Modern authentication uses direct Supabase session management
 
 // DEPRECATED: Session storage is handled automatically by Supabase
-export const storeSession = async (sessionToStore: any) => {
+export const storeSession = async (_sessionToStore: any) => {
   console.warn('DEPRECATED: storeSession() is no longer needed. Supabase handles session storage automatically.');
   return true;
 };
@@ -718,12 +718,12 @@ export async function generatePlaybook(userInput: string, userName: string) {
   try {
     // Get fresh session from Supabase (handles token refresh automatically)
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
+
     if (sessionError || !session) {
       console.error('[generatePlaybook] Session error:', sessionError);
       throw new Error('Authentication required. Please log in again.');
     }
-    
+
     console.log('[generatePlaybook] Session:', session?.user?.id);
     console.log('[generatePlaybook] Making request to:', functionUrl);
 

@@ -22,7 +22,7 @@ interface Props {
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { signIn, signInWithGoogle, signInWithApple, loading } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -30,24 +30,24 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  
+
   const passwordRef = useRef<TextInput>(null);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    
+
     if (!formData.email.trim()) {
       errors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = 'Please enter a valid email address';
     }
-    
+
     if (!formData.password) {
       errors.password = 'Password is required';
     } else if (formData.password.length < 6) {
       errors.password = 'Password must be at least 6 characters';
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -89,12 +89,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Register');
   };
 
-  const SocialButton = ({ 
-    onPress, 
-    icon, 
-    title, 
-    backgroundColor, 
-    textColor = '#000' 
+  const SocialButton = ({
+    onPress,
+    icon,
+    title,
+    backgroundColor,
+    textColor = '#000',
   }: {
     onPress: () => void;
     icon: string;
@@ -138,7 +138,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               backgroundColor="#fff"
               textColor="#000"
             />
-            
+
             {Platform.OS === 'ios' && (
               <SocialButton
                 onPress={handleAppleLogin}

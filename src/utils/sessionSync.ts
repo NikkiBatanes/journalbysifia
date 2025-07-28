@@ -23,13 +23,13 @@ export interface SessionSyncResult {
 export async function checkSessionSync(): Promise<SessionSyncResult> {
   try {
     console.log('🔄 Checking session synchronization...');
-    
+
     // Get session from supabase client
     const { data: { session }, error } = await supabase.auth.getSession();
-    
+
     const hasValidSession = !!(session && session.access_token && !error);
     const sessionExpired = session?.expires_at ? session.expires_at * 1000 < Date.now() : false;
-    
+
     const result: SessionSyncResult = {
       isAuthenticated: hasValidSession && !sessionExpired,
       hasValidSession,
@@ -37,21 +37,21 @@ export async function checkSessionSync(): Promise<SessionSyncResult> {
       details: {
         supabaseSession: !!session,
         sessionExpired,
-        tokenPresent: !!session?.access_token
-      }
+        tokenPresent: !!session?.access_token,
+      },
     };
-    
+
     console.log('📊 Session sync check result:', result);
-    
+
     return result;
   } catch (error) {
     console.error('❌ Session sync check failed:', error);
-    
+
     return {
       isAuthenticated: false,
       hasValidSession: false,
       sessionMismatch: true,
-      details: {}
+      details: {},
     };
   }
 }
@@ -62,19 +62,19 @@ export async function checkSessionSync(): Promise<SessionSyncResult> {
 export async function forceSessionRefresh(): Promise<{ success: boolean; error?: any }> {
   try {
     console.log('🔄 Forcing session refresh...');
-    
+
     const { data: { session }, error } = await supabase.auth.refreshSession();
-    
+
     if (error) {
       console.error('❌ Force refresh failed:', error);
       return { success: false, error };
     }
-    
+
     if (!session || !session.access_token) {
       console.warn('⚠️ No valid session after force refresh');
       return { success: false, error: 'No valid session returned' };
     }
-    
+
     console.log('✅ Session force refreshed successfully');
     return { success: true };
   } catch (error) {
@@ -89,9 +89,9 @@ export async function forceSessionRefresh(): Promise<{ success: boolean; error?:
 export async function clearSessionData(): Promise<void> {
   try {
     console.log('🧹 Clearing all session data...');
-    
+
     await supabase.auth.signOut();
-    
+
     console.log('✅ Session data cleared');
   } catch (error) {
     console.error('❌ Failed to clear session data:', error);
@@ -114,34 +114,34 @@ export async function validateSession(): Promise<{
 }> {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
-    
+
     const diagnostics = {
       hasSession: !!session,
       hasToken: !!session?.access_token,
       isExpired: session?.expires_at ? session.expires_at * 1000 < Date.now() : false,
       expiresAt: session?.expires_at,
       userId: session?.user?.id,
-      email: session?.user?.email
+      email: session?.user?.email,
     };
-    
-    const isValid = !error && 
-                   diagnostics.hasSession && 
-                   diagnostics.hasToken && 
+
+    const isValid = !error &&
+                   diagnostics.hasSession &&
+                   diagnostics.hasToken &&
                    !diagnostics.isExpired;
-    
+
     console.log('🔍 Session validation result:', { isValid, diagnostics });
-    
+
     return { isValid, diagnostics };
   } catch (error) {
     console.error('❌ Session validation failed:', error);
-    
+
     return {
       isValid: false,
       diagnostics: {
         hasSession: false,
         hasToken: false,
-        isExpired: true
-      }
+        isExpired: true,
+      },
     };
   }
 }

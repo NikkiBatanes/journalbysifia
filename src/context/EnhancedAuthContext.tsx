@@ -1,19 +1,19 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { 
-  GoogleSignin, 
-  statusCodes as GoogleStatusCodes 
+import {
+  GoogleSignin,
+  statusCodes as GoogleStatusCodes,
 } from '@react-native-google-signin/google-signin';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
-import { 
-  User, 
-  AuthState, 
-  LoginCredentials, 
-  RegisterData, 
+import {
+  User,
+  AuthState,
+  LoginCredentials,
+  RegisterData,
   SocialAuthProvider,
   AuthError,
-  UserPreferences 
+  UserPreferences,
 } from '../types/auth';
 import { authApi } from '../services/authApi';
 import { userApi } from '../services/userApi';
@@ -23,31 +23,31 @@ interface EnhancedAuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: AuthError }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: AuthError }>;
   logout: () => Promise<void>;
-  
+
   // Social auth
   loginWithGoogle: () => Promise<{ success: boolean; error?: AuthError }>;
   loginWithApple: () => Promise<{ success: boolean; error?: AuthError }>;
-  
+
   // Token management
   refreshAuthToken: () => Promise<boolean>;
   checkAuth: () => Promise<boolean>;
-  
+
   // Password management
   forgotPassword: (email: string) => Promise<{ success: boolean; error?: AuthError }>;
   resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; error?: AuthError }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; error?: AuthError }>;
-  
+
   // Email verification
   sendEmailVerification: () => Promise<{ success: boolean; error?: AuthError }>;
   verifyEmail: (token: string) => Promise<{ success: boolean; error?: AuthError }>;
-  
+
   // Profile management
   updateProfile: (updates: Partial<User>) => Promise<{ success: boolean; error?: AuthError }>;
   updatePreferences: (preferences: Partial<UserPreferences>) => Promise<{ success: boolean; error?: AuthError }>;
-  
+
   // Account management
   deleteAccount: () => Promise<{ success: boolean; error?: AuthError }>;
-  
+
   // Utility
   clearError: () => void;
 }
@@ -123,10 +123,10 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (accessToken && refreshToken && userJson) {
         const user = JSON.parse(userJson);
-        
+
         // Validate token with backend
         const isValid = await authApi.validateToken(accessToken);
-        
+
         if (isValid) {
           setAuthState(prev => ({
             ...prev,
@@ -167,10 +167,10 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
 
       const response = await authApi.login(credentials);
-      
+
       if (response.success && response.data) {
         const { user, accessToken, refreshToken } = response.data;
-        
+
         // Store auth data
         await Promise.all([
           AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken),
@@ -221,10 +221,10 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
         ...data,
         preferences: DEFAULT_PREFERENCES,
       });
-      
+
       if (response.success && response.data) {
         const { user, accessToken, refreshToken } = response.data;
-        
+
         // Store auth data
         await Promise.all([
           AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken),
@@ -262,7 +262,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
 
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      
+
       const response = await authApi.socialLogin({
         provider: 'google',
         token: userInfo.idToken!,
@@ -277,7 +277,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.success && response.data) {
         const { user, accessToken, refreshToken } = response.data;
-        
+
         await Promise.all([
           AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken),
           AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken),
@@ -300,7 +300,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error: any) {
       let authError: AuthError;
-      
+
       if (error.code === GoogleStatusCodes.SIGN_IN_CANCELLED) {
         authError = { code: 'CANCELLED', message: 'Sign in was cancelled' };
       } else if (error.code === GoogleStatusCodes.IN_PROGRESS) {
@@ -352,7 +352,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.success && response.data) {
         const { user, accessToken, refreshToken } = response.data;
-        
+
         await Promise.all([
           AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken),
           AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken),
@@ -397,7 +397,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Clear auth data
       await clearAuthData();
-      
+
       // Notify backend
       if (authState.accessToken) {
         await authApi.logout(authState.accessToken);
@@ -435,13 +435,13 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
       setAuthState(prev => ({ ...prev, refreshRetrying: true }));
 
       const refreshToken = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-      if (!refreshToken) return false;
+      if (!refreshToken) {return false;}
 
       const response = await authApi.refreshToken(refreshToken);
-      
+
       if (response.success && response.data) {
         const { accessToken: newAccessToken, refreshToken: newRefreshToken, user } = response.data;
-        
+
         await Promise.all([
           AsyncStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken),
           AsyncStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken),
@@ -469,7 +469,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAuth = async (): Promise<boolean> => {
     const token = await AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    if (!token) return false;
+    if (!token) {return false;}
 
     const isValid = await authApi.validateToken(token);
     if (!isValid) {
@@ -546,7 +546,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
   const verifyEmail = async (token: string): Promise<{ success: boolean; error?: AuthError }> => {
     try {
       const response = await authApi.verifyEmail(token);
-      
+
       if (response.success && authState.user) {
         const updatedUser = { ...authState.user, emailVerified: true };
         await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
@@ -569,7 +569,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const response = await userApi.updateProfile(authState.accessToken, updates);
-      
+
       if (response.success && response.data) {
         const updatedUser = { ...authState.user, ...response.data };
         await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
@@ -593,7 +593,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
 
       const updatedPreferences = { ...authState.user.preferences, ...preferences };
       const response = await userApi.updatePreferences(authState.accessToken, updatedPreferences);
-      
+
       if (response.success) {
         const updatedUser = { ...authState.user, preferences: updatedPreferences };
         await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
@@ -616,7 +616,7 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const response = await authApi.deleteAccount(authState.accessToken);
-      
+
       if (response.success) {
         await logout();
       }

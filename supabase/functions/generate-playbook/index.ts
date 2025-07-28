@@ -7,8 +7,8 @@ import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './
  */
 function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    const r = Math.floor(Math.random() * 16);
+    const v = c === 'x' ? r : ((r % 4) + 8);
     return v.toString(16);
   });
 }
@@ -72,11 +72,11 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
 
   // Clean up markdown formatting from titles
   const cleanMarkdown = (text: string): string => {
-    if (!text) return '';
+    if (!text) {return '';}
     // Remove markdown bold/italic formatting (**, __, *)
     return text.replace(/\*\*|__|\*/g, '').trim();
   };
-  
+
   mainTitle = cleanMarkdown(mainTitle);
   subtitle = cleanMarkdown(subtitle);
 
@@ -103,25 +103,25 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   const truthSummaryMatch = content.match(/TRUTH SUMMARY:\s*([\s\S]*?)(?=TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (truthSummaryMatch) {
     let summary = truthSummaryMatch[1].trim();
-    
+
     // Remove userName prefix if present (case insensitive)
     const usernamePrefix = new RegExp(`^${userName},?\s*`, 'i');
     summary = summary.replace(usernamePrefix, '').trim();
-    
+
     // Remove literal "[User's Name]," if AI outputs it literally (case insensitive)
     summary = summary.replace(/^\[User'?s Name\],?\s*/i, '').trim();
-    
+
     // Ensure the summary starts with a capital letter and has proper spacing
     if (summary.length > 0) {
       // First, trim any leading/trailing whitespace
       summary = summary.trim();
       // Then capitalize the first letter and ensure proper spacing after any punctuation
-      summary = summary.charAt(0).toUpperCase() + 
-               (summary.length > 1 ? summary.slice(1).replace(/^\s*[.,;:!?]\s*/, (match) => 
+      summary = summary.charAt(0).toUpperCase() +
+               (summary.length > 1 ? summary.slice(1).replace(/^\s*[.,;:!?]\s*/, (match) =>
                  match.trim() + ' '  // Add space after punctuation if missing
                ) : '');
     }
-    
+
     playbook.truthInLove.summary = summary;
   }
 
@@ -129,10 +129,10 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   const truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (truthInLoveMatch) {
     let truthText = truthInLoveMatch[1].trim();
-    
+
     // Replace [User's Name] placeholder with actual user name
     truthText = truthText.replace(/\[User's Name\]/g, userName);
-    
+
     playbook.truthInLove.text = truthText;
   }
 

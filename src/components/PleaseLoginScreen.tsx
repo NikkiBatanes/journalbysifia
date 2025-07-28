@@ -14,9 +14,9 @@ interface PleaseLoginScreenProps {
   message?: string;
 }
 
-const PleaseLoginScreen: React.FC<PleaseLoginScreenProps> = ({ 
-  onLoginPress, 
-  message = "Please sign in to continue using siFia" 
+const PleaseLoginScreen: React.FC<PleaseLoginScreenProps> = ({
+  onLoginPress,
+  message = 'Please sign in to continue using siFia',
 }) => {
   return (
     <SafeAreaView style={styles.container}>
@@ -24,14 +24,14 @@ const PleaseLoginScreen: React.FC<PleaseLoginScreenProps> = ({
         <View style={styles.iconContainer}>
           <Ionicons name="person-circle-outline" size={80} color={Colors.faithGold} />
         </View>
-        
+
         <Text style={styles.title}>Authentication Required</Text>
         <Text style={styles.message}>{message}</Text>
-        
+
         <TouchableOpacity style={styles.loginButton} onPress={onLoginPress}>
           <Text style={styles.loginButtonText}>Sign In</Text>
         </TouchableOpacity>
-        
+
         <Text style={styles.footerText}>
           Your session helps us provide a personalized experience
         </Text>

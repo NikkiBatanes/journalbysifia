@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Switch,
   Alert,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -31,9 +30,9 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
         [key]: value,
       },
     };
-    
+
     setPreferences(updatedPreferences);
-    
+
     try {
       await updatePreferences(updatedPreferences);
     } catch (error) {
@@ -95,14 +94,14 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     </View>
   );
 
-  const SettingsRow = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
+  const SettingsRow = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
     rightElement,
     showArrow = true,
-    danger = false 
+    danger = false,
   }: {
     icon: string;
     title: string;
@@ -112,17 +111,17 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     showArrow?: boolean;
     danger?: boolean;
   }) => (
-    <TouchableOpacity 
-      style={styles.settingsRow} 
+    <TouchableOpacity
+      style={styles.settingsRow}
       onPress={onPress}
       disabled={!onPress}
     >
       <View style={styles.settingsRowLeft}>
         <View style={[styles.settingsIcon, danger && styles.dangerIcon]}>
-          <Ionicons 
-            name={icon} 
-            size={20} 
-            color={danger ? Colors.error : Colors.primary} 
+          <Ionicons
+            name={icon}
+            size={20}
+            color={danger ? Colors.error : Colors.primary}
           />
         </View>
         <View style={styles.settingsText}>
@@ -137,10 +136,10 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.settingsRowRight}>
         {rightElement}
         {showArrow && onPress && (
-          <Ionicons 
-            name="chevron-forward" 
-            size={20} 
-            color={Colors.gray} 
+          <Ionicons
+            name="chevron-forward"
+            size={20}
+            color={Colors.gray}
             style={styles.arrowIcon}
           />
         )}
@@ -148,12 +147,12 @@ const SettingsScreen: React.FC<Props> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const SwitchRow = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    value, 
-    onValueChange 
+  const SwitchRow = ({
+    icon,
+    title,
+    subtitle,
+    value,
+    onValueChange,
   }: {
     icon: string;
     title: string;

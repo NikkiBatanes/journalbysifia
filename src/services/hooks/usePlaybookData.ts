@@ -10,7 +10,6 @@ import { performanceMonitor, withQueryPerformance, withMutationPerformance } fro
 import {
   getPlaybooks as getPlaybooksApi,
   getPlaybook as getPlaybookApi,
-  updatePlaybookActionSteps,
 } from '../apiIntegration';
 
 // ========================================

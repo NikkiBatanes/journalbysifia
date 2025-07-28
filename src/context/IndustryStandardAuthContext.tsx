@@ -43,7 +43,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       try {
         console.log('🔍 Getting initial session...');
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
           console.error('❌ Error getting initial session:', error);
           // Don't immediately set isAuthenticated to false on error
@@ -51,24 +51,24 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           setAuthState(prev => ({ ...prev, loading: false }));
           return;
         }
-        
+
         console.log('📋 Initial session result:', {
           hasSession: !!session,
           hasUser: !!session?.user,
           userId: session?.user?.id,
-          email: session?.user?.email
+          email: session?.user?.email,
         });
-        
+
         setAuthState({
           user: session?.user ?? null,
           session,
           loading: false,
           isAuthenticated: !!session?.user,
         });
-        
+
         console.log('✅ Initial auth state set:', {
           isAuthenticated: !!session?.user,
-          loading: false
+          loading: false,
         });
       } catch (error) {
         console.error('💥 Failed to get initial session:', error);
@@ -82,7 +82,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     };
 
     getInitialSession();
-    
+
     // Initialize session manager
     sessionManager.initialize();
 
@@ -94,27 +94,27 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           userId: session?.user?.id,
           email: session?.user?.email,
           hasSession: !!session,
-          expiresAt: session?.expires_at
+          expiresAt: session?.expires_at,
         });
-        
+
         // Don't immediately clear auth state on certain events
         if (event === 'SIGNED_OUT' && session === null) {
           console.log('⚠️ SIGNED_OUT event detected - checking if this was intentional');
           // Only clear state if this was an intentional logout
           // For now, let's be more conservative about clearing state
         }
-        
+
         setAuthState({
           user: session?.user ?? null,
           session,
           loading: false,
           isAuthenticated: !!session?.user,
         });
-        
+
         console.log('✅ Auth state updated:', {
           isAuthenticated: !!session?.user,
           hasUser: !!session?.user,
-          loading: false
+          loading: false,
         });
 
         // Handle specific auth events with persistent session strategy
@@ -162,14 +162,14 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       try {
         console.log(`[Auth] Attempting session refresh (attempt ${retryCount + 1}/${maxRetries + 1})`);
         const result = await supabase.auth.refreshSession();
-        
+
         if (result.error && retryCount < maxRetries) {
           console.log(`[Auth] Refresh failed, retrying in ${retryDelay}ms...`);
           await new Promise(resolve => setTimeout(resolve, retryDelay));
           refreshPromise = null;
           return refreshSession(retryCount + 1);
         }
-        
+
         console.log('[Auth] Session refresh successful');
         return result;
       } catch (error) {
@@ -183,7 +183,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         throw error;
       }
     })();
-    
+
     try {
       const result = await refreshPromise;
       refreshPromise = null;
@@ -199,31 +199,31 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     try {
       console.log('🔑 Starting sign in process...');
       setAuthState(prev => ({ ...prev, loading: true }));
-      
+
       const { error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
       });
-      
+
       if (error) {
         console.log('❌ Sign in failed:', error.message);
         setAuthState(prev => ({ ...prev, loading: false }));
         return { error };
       }
-      
+
       console.log('✅ Sign in successful, waiting for auth state change...');
       // Don't immediately set loading to false - let the auth state change handler do it
       // This prevents a race condition where loading becomes false before isAuthenticated becomes true
-      
+
       return { error: null };
     } catch (error) {
       console.error('💥 Sign in error:', error);
       setAuthState(prev => ({ ...prev, loading: false }));
-      return { 
-        error: { 
+      return {
+        error: {
           message: 'An unexpected error occurred during sign in',
-          status: 500
-        } as SupabaseAuthError 
+          status: 500,
+        } as SupabaseAuthError,
       };
     }
   };
@@ -231,16 +231,16 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const signUp = async (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => {
     try {
       setAuthState(prev => ({ ...prev, loading: true }));
-      
+
       // Prepare user metadata
       const userMetadata: any = {};
-      
+
       if (userData?.firstName && userData?.lastName) {
         userMetadata.full_name = `${userData.firstName.trim()} ${userData.lastName.trim()}`;
         userMetadata.first_name = userData.firstName.trim();
         userMetadata.last_name = userData.lastName.trim();
       }
-      
+
       const { error } = await supabase.auth.signUp({
         email: email.toLowerCase().trim(),
         password,
@@ -249,17 +249,17 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           data: userMetadata, // Add user metadata
         },
       });
-      
+
       setAuthState(prev => ({ ...prev, loading: false }));
       return { error };
     } catch (error) {
       console.error('Sign up error:', error);
       setAuthState(prev => ({ ...prev, loading: false }));
-      return { 
-        error: { 
+      return {
+        error: {
           message: 'An unexpected error occurred during sign up',
-          status: 500
-        } as SupabaseAuthError 
+          status: 500,
+        } as SupabaseAuthError,
       };
     }
   };
@@ -270,11 +270,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       return { error };
     } catch (error) {
       console.error('Sign out error:', error);
-      return { 
-        error: { 
+      return {
+        error: {
           message: 'An unexpected error occurred during sign out',
-          status: 500
-        } as SupabaseAuthError 
+          status: 500,
+        } as SupabaseAuthError,
       };
     }
   };
@@ -287,15 +287,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           redirectTo: 'sifia://reset-password',
         }
       );
-      
+
       return { error };
     } catch (error) {
       console.error('Reset password error:', error);
-      return { 
-        error: { 
+      return {
+        error: {
           message: 'An unexpected error occurred during password reset',
-          status: 500
-        } as SupabaseAuthError 
+          status: 500,
+        } as SupabaseAuthError,
       };
     }
   };
@@ -303,12 +303,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const updateProfile = async (profileData: { full_name?: string; bio?: string; location?: string; avatar_url?: string }) => {
     try {
       if (!authState.user) {
-        return { 
-          success: false, 
-          error: { 
-            message: 'User not authenticated', 
-            status: 401 
-          } as SupabaseAuthError 
+        return {
+          success: false,
+          error: {
+            message: 'User not authenticated',
+            status: 401,
+          } as SupabaseAuthError,
         };
       }
 
@@ -316,8 +316,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       const { error } = await supabase.auth.updateUser({
         data: {
           ...((authState.user as any).user_metadata || {}),
-          ...profileData
-        }
+          ...profileData,
+        },
       });
 
       if (error) {
@@ -328,12 +328,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       return { success: true };
     } catch (error) {
       console.error('Update profile error:', error);
-      return { 
-        success: false, 
-        error: { 
-          message: 'An unexpected error occurred during profile update', 
-          status: 500 
-        } as SupabaseAuthError 
+      return {
+        success: false,
+        error: {
+          message: 'An unexpected error occurred during profile update',
+          status: 500,
+        } as SupabaseAuthError,
       };
     }
   };
@@ -341,12 +341,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const updatePreferences = async (preferences: any) => {
     try {
       if (!authState.user) {
-        return { 
-          success: false, 
-          error: { 
-            message: 'User not authenticated', 
-            status: 401 
-          } as SupabaseAuthError 
+        return {
+          success: false,
+          error: {
+            message: 'User not authenticated',
+            status: 401,
+          } as SupabaseAuthError,
         };
       }
 
@@ -355,8 +355,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       const { error } = await supabase.auth.updateUser({
         data: {
           ...((authState.user as any).user_metadata || {}),
-          preferences
-        }
+          preferences,
+        },
       });
 
       if (error) {
@@ -367,12 +367,12 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       return { success: true };
     } catch (error) {
       console.error('Update preferences error:', error);
-      return { 
-        success: false, 
-        error: { 
-          message: 'An unexpected error occurred during preferences update', 
-          status: 500 
-        } as SupabaseAuthError 
+      return {
+        success: false,
+        error: {
+          message: 'An unexpected error occurred during preferences update',
+          status: 500,
+        } as SupabaseAuthError,
       };
     }
   };
@@ -385,15 +385,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           redirectTo: 'sifia://auth/callback',
         },
       });
-      
+
       return { error };
     } catch (error) {
       console.error('Google sign-in error:', error);
-      return { 
-        error: { 
-          message: 'An unexpected error occurred during Google sign-in', 
-          status: 500 
-        } as SupabaseAuthError 
+      return {
+        error: {
+          message: 'An unexpected error occurred during Google sign-in',
+          status: 500,
+        } as SupabaseAuthError,
       };
     }
   };
@@ -406,15 +406,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           redirectTo: 'sifia://auth/callback',
         },
       });
-      
+
       return { error };
     } catch (error) {
       console.error('Apple sign-in error:', error);
-      return { 
-        error: { 
-          message: 'An unexpected error occurred during Apple sign-in', 
-          status: 500 
-        } as SupabaseAuthError 
+      return {
+        error: {
+          message: 'An unexpected error occurred during Apple sign-in',
+          status: 500,
+        } as SupabaseAuthError,
       };
     }
   };
@@ -442,18 +442,18 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 // Industry-standard hook with proper error handling
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  
+
   if (context === undefined) {
     throw new Error('useAuth must be used within an IndustryStandardAuthProvider');
   }
-  
+
   return context;
 };
 
 // Utility hook for protected routes
 export const useRequireAuth = () => {
   const { isAuthenticated, loading } = useAuth();
-  
+
   return {
     isAuthenticated,
     loading,

@@ -84,14 +84,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // 1. Route and navigation data
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
-  
+
   // Debug logging for playbookId
   console.log('📖 PlaybookDetailScreen - Route params debug:', {
     'route.params?.playbook?.id': route.params?.playbook?.id,
     'route.params?.playbookId': (route.params as any)?.playbookId,
     'final playbookId': playbookId,
     'playbookId type': typeof playbookId,
-    'full route.params': route.params
+    'full route.params': route.params,
   });
   const { user } = useAuth();
   const userId = user?.id;

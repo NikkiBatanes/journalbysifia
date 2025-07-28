@@ -14,9 +14,9 @@ interface AuthGuardProps {
  * Industry-standard AuthGuard component
  * Protects routes and ensures only authenticated users can access protected content
  */
-export const AuthGuard: React.FC<AuthGuardProps> = ({ 
-  children, 
-  fallback 
+export const AuthGuard: React.FC<AuthGuardProps> = ({
+  children,
+  fallback,
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
 
@@ -25,7 +25,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     isAuthenticated,
     loading,
     hasUser: !!user,
-    userId: user?.id
+    userId: user?.id,
   });
 
   // Show loading spinner while checking auth state
@@ -33,9 +33,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
     console.log('⏳ AuthGuard: Showing loading state');
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator 
-          size="large" 
-          color={Colors.anchorBlue} 
+        <ActivityIndicator
+          size="large"
+          color={Colors.anchorBlue}
           testID="auth-loading-indicator"
         />
       </View>

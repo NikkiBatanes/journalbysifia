@@ -8,12 +8,12 @@ export interface User {
   phoneNumber?: string;
   dateOfBirth?: string;
   gender?: 'male' | 'female';
-  
+
   // Spiritual profile
   spiritualLevel?: 'beginner' | 'growing' | 'mature' | 'leader';
   denomination?: string;
   churchName?: string;
-  
+
   // Gamification
   level: number;
   experience: number;
@@ -21,10 +21,10 @@ export interface User {
   longestStreak: number;
   totalPoints: number;
   badges: Badge[];
-  
+
   // Preferences
   preferences: UserPreferences;
-  
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -59,19 +59,19 @@ export interface UserPreferences {
     reminderTime: string; // HH:MM format
     timezone: string;
   };
-  
+
   // Appearance
   theme: 'light' | 'dark' | 'system';
   fontSize: 'small' | 'medium' | 'large' | 'extra_large';
   colorScheme: 'default' | 'blue' | 'green' | 'purple' | 'pink' | 'warm';
-  
+
   // Privacy
   privacy: {
     profileVisibility: 'public' | 'private';
     shareProgress: boolean;
     shareJournal: boolean;
   };
-  
+
   // Content
   content: {
     language: string;

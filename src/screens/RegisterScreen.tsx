@@ -22,7 +22,7 @@ interface Props {
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signUp, signInWithGoogle, signInWithApple, loading } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -35,7 +35,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  
+
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
@@ -43,25 +43,25 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    
+
     if (!formData.firstName.trim()) {
       errors.firstName = 'First name is required';
     } else if (formData.firstName.trim().length < 2) {
       errors.firstName = 'First name must be at least 2 characters';
     }
-    
+
     if (!formData.lastName.trim()) {
       errors.lastName = 'Last name is required';
     } else if (formData.lastName.trim().length < 2) {
       errors.lastName = 'Last name must be at least 2 characters';
     }
-    
+
     if (!formData.email.trim()) {
       errors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = 'Please enter a valid email address';
     }
-    
+
     if (!formData.password) {
       errors.password = 'Password is required';
     } else if (formData.password.length < 6) {
@@ -69,21 +69,21 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
       errors.password = 'Password must contain uppercase, lowercase, and number';
     }
-    
+
     if (!formData.confirmPassword) {
       errors.confirmPassword = 'Please confirm your password';
     } else if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
     }
-    
+
     if (!acceptTerms) {
       errors.terms = 'You must accept the Terms of Service';
     }
-    
+
     if (!acceptPrivacy) {
       errors.privacy = 'You must accept the Privacy Policy';
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -98,7 +98,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       formData.password,
       {
         firstName: formData.firstName,
-        lastName: formData.lastName
+        lastName: formData.lastName,
       }
     );
 
@@ -135,12 +135,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     Alert.alert('Privacy Policy', 'Privacy Policy content would be displayed here.');
   };
 
-  const SocialButton = ({ 
-    onPress, 
-    icon, 
-    title, 
-    backgroundColor, 
-    textColor = '#000' 
+  const SocialButton = ({
+    onPress,
+    icon,
+    title,
+    backgroundColor,
+    textColor = '#000',
   }: {
     onPress: () => void;
     icon: string;
@@ -158,11 +158,11 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const CheckboxRow = ({ 
-    checked, 
-    onPress, 
-    children, 
-    error 
+  const CheckboxRow = ({
+    checked,
+    onPress,
+    children,
+    error,
   }: {
     checked: boolean;
     onPress: () => void;
@@ -212,7 +212,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               backgroundColor="#fff"
               textColor="#000"
             />
-            
+
             {Platform.OS === 'ios' && (
               <SocialButton
                 onPress={handleAppleSignUp}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -38,27 +38,27 @@ interface ProfileStats {
   journalEntries: number;
 }
 
-const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
+const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   const { user, signOut, updateProfile, updatePreferences } = useAuth();
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
-  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
   const [recentBadges, setRecentBadges] = useState<Badge[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Modal states
   const [editProfileModal, setEditProfileModal] = useState(false);
   const [settingsModal, setSettingsModal] = useState(false);
-  const [badgesModal, setBadgesModal] = useState(false);
-  
+  const [_badgesModal, setBadgesModal] = useState(false);
+
   // Form states
   const [profileForm, setProfileForm] = useState({
     full_name: (user as any)?.user_metadata?.full_name || '',
     bio: (user as any)?.user_metadata?.bio || '',
     location: (user as any)?.user_metadata?.location || '',
   });
-  
+
   const [preferences, setPreferences] = useState<UserPreferences>({
     notifications: {
       dailyDevotional: true,
@@ -89,9 +89,43 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     },
   });
 
+  const loadProfileData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Load user progress and stats
+      const progressResponse = await userApi.getUserProgress(user?.id || '');
+      if (progressResponse.success && progressResponse.data) {
+        setUserProgress(progressResponse.data);
+      }
+
+      // Load profile statistics
+      const statsResponse = await userApi.getProfileStats(user?.id || '');
+      if (statsResponse.success && statsResponse.data) {
+        setProfileStats(statsResponse.data);
+      }
+
+      // Load recent badges
+      const badgesResponse = await userApi.getRecentBadges(user?.id || '', 5);
+      if (badgesResponse.success && badgesResponse.data) {
+        setRecentBadges(badgesResponse.data);
+      }
+
+      // TODO: Load user preferences from separate API or user_metadata
+      // Supabase User doesn't have preferences property by default
+      // Will need to implement separate preferences loading
+
+    } catch (error) {
+      console.error('Failed to load profile data:', error);
+      Alert.alert('Error', 'Failed to load profile data');
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     loadProfileData();
-  }, []);
+  }, [loadProfileData]);
 
   // Sync profile form with user metadata
   useEffect(() => {
@@ -101,7 +135,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         bio: (user as any)?.user_metadata?.bio || '',
         location: (user as any)?.user_metadata?.location || '',
       });
-      
+
       // Load preferences from user metadata if available
       const userPreferences = (user as any)?.user_metadata?.preferences;
       if (userPreferences) {
@@ -109,40 +143,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       }
     }
   }, [user]);
-
-  const loadProfileData = async () => {
-    try {
-      setLoading(true);
-      
-      // Load user progress and stats
-      const progressResponse = await userApi.getUserProgress(user?.id || '');
-      if (progressResponse.success && progressResponse.data) {
-        setUserProgress(progressResponse.data);
-      }
-      
-      // Load profile statistics
-      const statsResponse = await userApi.getProfileStats(user?.id || '');
-      if (statsResponse.success && statsResponse.data) {
-        setProfileStats(statsResponse.data);
-      }
-      
-      // Load recent badges
-      const badgesResponse = await userApi.getRecentBadges(user?.id || '', 5);
-      if (badgesResponse.success && badgesResponse.data) {
-        setRecentBadges(badgesResponse.data);
-      }
-      
-      // TODO: Load user preferences from separate API or user_metadata
-      // Supabase User doesn't have preferences property by default
-      // Will need to implement separate preferences loading
-      
-    } catch (error) {
-      console.error('Failed to load profile data:', error);
-      Alert.alert('Error', 'Failed to load profile data');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -186,20 +186,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Logout', 
+        {
+          text: 'Logout',
           style: 'destructive',
           onPress: async () => {
             await signOut();
             // Navigation will be handled automatically by auth state change
-          }
+          },
         },
       ]
     );
   };
 
   const getLevelProgress = () => {
-    if (!profileStats) return 0;
+    if (!profileStats) {return 0;}
     const currentLevelPoints = profileStats.level * 1000;
     const nextLevelPoints = (profileStats.level + 1) * 1000;
     const progress = (profileStats.faithPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints);
@@ -224,17 +224,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="camera" size={16} color="#fff" />
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.profileInfo}>
           <Text style={styles.userName}>{(user as any)?.user_metadata?.full_name || 'User'}</Text>
           <Text style={styles.userEmail}>{user?.email}</Text>
           {(user as any)?.user_metadata?.bio && <Text style={styles.userBio}>{(user as any).user_metadata.bio}</Text>}
-          
+
           <View style={styles.levelContainer}>
             <Text style={styles.levelText}>Level {profileStats?.level || 1}</Text>
             <View style={styles.progressBar}>
-              <View 
-                style={[styles.progressFill, { width: `${getLevelProgress() * 100}%` }]} 
+              <View
+                style={[styles.progressFill, { width: `${getLevelProgress() * 100}%` }]}
               />
             </View>
             <Text style={styles.faithPointsText}>
@@ -242,8 +242,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </Text>
           </View>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.editButton}
           onPress={() => setEditProfileModal(true)}
         >
@@ -262,31 +262,31 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.statNumber}>{profileStats?.totalBadges || 0}</Text>
           <Text style={styles.statLabel}>Badges</Text>
         </View>
-        
+
         <View style={styles.statCard}>
           <Ionicons name="flame" size={24} color={Colors.faithGold} />
           <Text style={styles.statNumber}>{profileStats?.currentStreak || 0}</Text>
           <Text style={styles.statLabel}>Day Streak</Text>
         </View>
-        
+
         <View style={styles.statCard}>
           <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
           <Text style={styles.statNumber}>{profileStats?.goalsCompleted || 0}</Text>
           <Text style={styles.statLabel}>Goals</Text>
         </View>
-        
+
         <View style={styles.statCard}>
           <Ionicons name="book" size={24} color={Colors.devotionalPurple} />
           <Text style={styles.statNumber}>{profileStats?.devotionalsFinished || 0}</Text>
           <Text style={styles.statLabel}>Devotionals</Text>
         </View>
-        
+
         <View style={styles.statCard}>
           <Ionicons name="heart" size={24} color={Colors.error} />
           <Text style={styles.statNumber}>{profileStats?.prayerSessions || 0}</Text>
           <Text style={styles.statLabel}>Prayers</Text>
         </View>
-        
+
         <View style={styles.statCard}>
           <Ionicons name="journal" size={24} color={Colors.warning} />
           <Text style={styles.statNumber}>{profileStats?.journalEntries || 0}</Text>
@@ -304,7 +304,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.viewAllText}>View All</Text>
         </TouchableOpacity>
       </View>
-      
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.badgesList}>
           {recentBadges.map((badge, index) => (
@@ -323,7 +323,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderMenuOptions = () => (
     <View style={styles.menuContainer}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.menuItem}
         onPress={() => Alert.alert('Coming Soon', 'Goals feature is coming soon!')}
       >
@@ -331,8 +331,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.menuText}>My Goals</Text>
         <Ionicons name="chevron-forward" size={20} color={Colors.mediumGray} />
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.menuItem}
         onPress={() => Alert.alert('Coming Soon', 'Challenges feature is coming soon!')}
       >
@@ -340,8 +340,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.menuText}>Challenges</Text>
         <Ionicons name="chevron-forward" size={20} color={Colors.mediumGray} />
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.menuItem}
         onPress={() => setBadgesModal(true)}
       >
@@ -349,8 +349,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.menuText}>All Badges</Text>
         <Ionicons name="chevron-forward" size={20} color={Colors.mediumGray} />
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={styles.menuItem}
         onPress={() => setSettingsModal(true)}
       >
@@ -358,8 +358,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={styles.menuText}>Settings</Text>
         <Ionicons name="chevron-forward" size={20} color={Colors.mediumGray} />
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={[styles.menuItem, styles.logoutItem]}
         onPress={handleLogout}
       >
@@ -386,7 +386,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.saveText}>Save</Text>
           </TouchableOpacity>
         </View>
-        
+
         <ScrollView style={styles.modalContent}>
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Full Name</Text>
@@ -397,7 +397,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               placeholder="Enter your full name"
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Bio</Text>
             <TextInput
@@ -409,7 +409,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               numberOfLines={3}
             />
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Location</Text>
             <TextInput
@@ -440,50 +440,50 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <Text style={styles.saveText}>Save</Text>
           </TouchableOpacity>
         </View>
-        
+
         <ScrollView style={styles.modalContent}>
           <View style={styles.settingGroup}>
             <Text style={styles.settingTitle}>Notifications</Text>
-            
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>Push Notifications</Text>
               <Switch
                 value={preferences.notifications.pushEnabled}
-                onValueChange={(value) => 
-                  setPreferences({ 
-                    ...preferences, 
-                    notifications: { ...preferences.notifications, pushEnabled: value }
+                onValueChange={(value) =>
+                  setPreferences({
+                    ...preferences,
+                    notifications: { ...preferences.notifications, pushEnabled: value },
                   })
                 }
               />
             </View>
-            
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>Email Notifications</Text>
               <Switch
                 value={preferences.notifications.emailEnabled}
-                onValueChange={(value) => 
-                  setPreferences({ 
-                    ...preferences, 
-                    notifications: { ...preferences.notifications, emailEnabled: value }
+                onValueChange={(value) =>
+                  setPreferences({
+                    ...preferences,
+                    notifications: { ...preferences.notifications, emailEnabled: value },
                   })
                 }
               />
             </View>
           </View>
-          
+
           <View style={styles.settingGroup}>
             <Text style={styles.settingTitle}>Privacy</Text>
-            
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>Profile Visibility</Text>
               <Text style={styles.settingValue}>{preferences.privacy.profileVisibility}</Text>
             </View>
           </View>
-          
+
           <View style={styles.settingGroup}>
             <Text style={styles.settingTitle}>Appearance</Text>
-            
+
             <View style={styles.settingItem}>
               <Text style={styles.settingLabel}>Theme</Text>
               <Text style={styles.settingValue}>{preferences.theme}</Text>
@@ -515,7 +515,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         {renderRecentBadges()}
         {renderMenuOptions()}
       </ScrollView>
-      
+
       {renderEditProfileModal()}
       {renderSettingsModal()}
     </SafeAreaView>

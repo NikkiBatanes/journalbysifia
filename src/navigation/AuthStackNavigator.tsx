@@ -13,23 +13,23 @@ interface AuthStackNavigatorProps {
 
 export default function AuthStackNavigator({ onLogin }: AuthStackNavigatorProps) {
   return (
-    <Stack.Navigator 
+    <Stack.Navigator
       screenOptions={{ headerShown: false }}
       initialRouteName="Login"
     >
       {/* Enhanced Authentication Screens */}
-      <Stack.Screen 
-        name="Login" 
+      <Stack.Screen
+        name="Login"
         component={LoginScreen}
         options={{ title: 'Sign In' }}
       />
-      <Stack.Screen 
-        name="Register" 
+      <Stack.Screen
+        name="Register"
         component={RegisterScreen}
         options={{ title: 'Create Account' }}
       />
-      <Stack.Screen 
-        name="ForgotPassword" 
+      <Stack.Screen
+        name="ForgotPassword"
         component={ForgotPasswordScreen}
         options={{ title: 'Reset Password' }}
       />

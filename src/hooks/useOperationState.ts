@@ -29,11 +29,11 @@ export const useOperationState = () => {
     options: OperationOptions
   ) => {
     console.log(`🚀 Starting operation: ${operationId} (${options.operationName})`);
-    
+
     setOperations(prev => new Map(prev.set(operationId, {
       isLoading: true,
       error: null,
-      progress: 0
+      progress: 0,
     })));
 
     // Set timeout to prevent stuck loading states
@@ -54,12 +54,12 @@ export const useOperationState = () => {
   ) => {
     setOperations(prev => {
       const current = prev.get(operationId);
-      if (!current) return prev;
-      
+      if (!current) {return prev;}
+
       return new Map(prev.set(operationId, {
         ...current,
         progress,
-        error: message || current.error
+        error: message || current.error,
       }));
     });
   }, []);
@@ -70,7 +70,7 @@ export const useOperationState = () => {
     result?: any
   ) => {
     console.log(`✅ Operation completed: ${operationId}`);
-    
+
     // Clear timeout
     const timeoutId = timeoutRefs.current.get(operationId);
     if (timeoutId) {
@@ -94,7 +94,7 @@ export const useOperationState = () => {
     options: OperationOptions
   ) => {
     console.error(`❌ Operation failed: ${operationId}`, error);
-    
+
     // Clear timeout
     const timeoutId = timeoutRefs.current.get(operationId);
     if (timeoutId) {
@@ -106,7 +106,7 @@ export const useOperationState = () => {
     const result = await authErrorHandler.handleApiError(error, {
       operationName: options.operationName,
       showUserFeedback: options.showUserFeedback,
-      onAuthRequired: options.onAuthRequired
+      onAuthRequired: options.onAuthRequired,
     });
 
     setOperations(prev => {
@@ -114,7 +114,7 @@ export const useOperationState = () => {
         // Keep loading state for retry
         return prev;
       }
-      
+
       // Remove operation or set error state
       const newMap = new Map(prev);
       if (result.handled) {
@@ -125,7 +125,7 @@ export const useOperationState = () => {
           newMap.set(operationId, {
             ...current,
             isLoading: false,
-            error: error.message || 'Operation failed'
+            error: error.message || 'Operation failed',
           });
         }
       }
@@ -141,7 +141,7 @@ export const useOperationState = () => {
     options: OperationOptions
   ) => {
     console.warn(`⏰ Operation timed out: ${operationId}`);
-    
+
     setOperations(prev => {
       const newMap = new Map(prev);
       newMap.delete(operationId);
@@ -155,7 +155,7 @@ export const useOperationState = () => {
         [
           {
             text: 'Cancel',
-            style: 'cancel' as const
+            style: 'cancel' as const,
           },
           {
             text: 'Check Connection',
@@ -165,8 +165,8 @@ export const useOperationState = () => {
                 options.onAuthRequired();
               }
             },
-            style: 'default' as const
-          }
+            style: 'default' as const,
+          },
         ],
         { cancelable: false }
       );
@@ -181,19 +181,19 @@ export const useOperationState = () => {
   ): Promise<T | null> => {
     try {
       startOperation(operationId, options);
-      
+
       const result = await operation();
-      
+
       return completeOperation(operationId, result);
     } catch (error) {
       const errorResult = await failOperation(operationId, error, options);
-      
+
       if (errorResult.shouldRetry) {
         // Retry the operation
         console.log(`🔄 Retrying operation: ${operationId}`);
         return executeOperation(operationId, operation, options);
       }
-      
+
       return null;
     }
   }, [startOperation, completeOperation, failOperation]);
@@ -213,7 +213,7 @@ export const useOperationState = () => {
     // Clear all timeouts
     timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
     timeoutRefs.current.clear();
-    
+
     setOperations(new Map());
   }, []);
 
@@ -226,7 +226,7 @@ export const useOperationState = () => {
     getOperationState,
     hasLoadingOperations,
     clearAllOperations,
-    operations: Array.from(operations.entries()).map(([id, state]) => ({ id, ...state }))
+    operations: Array.from(operations.entries()).map(([id, state]) => ({ id, ...state })),
   };
 };
 

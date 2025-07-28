@@ -108,9 +108,9 @@ class SessionManager {
       'timeout',
       'fetch',
       'offline',
-      'unreachable'
+      'unreachable',
     ];
-    
+
     const errorMessage = error?.message?.toLowerCase() || '';
     return networkErrorMessages.some(msg => errorMessage.includes(msg));
   }
@@ -127,7 +127,7 @@ class SessionManager {
   // Facebook/Instagram style session validation
   async validateSession(): Promise<{ isValid: boolean; shouldRefresh: boolean }> {
     const { data: { session }, error } = await supabase.auth.getSession();
-    
+
     if (error) {
       const shouldLogout = await this.handleSessionError(error);
       return { isValid: false, shouldRefresh: !shouldLogout };
@@ -141,7 +141,7 @@ class SessionManager {
     const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
     const now = Date.now();
     const fiveMinutes = 5 * 60 * 1000;
-    
+
     if (expiresAt - now < fiveMinutes) {
       console.log('[SessionManager] Token close to expiry, should refresh');
       return { isValid: true, shouldRefresh: true };

@@ -109,7 +109,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
-                    if (emailError) setEmailError('');
+                    if (emailError) {setEmailError('');}
                   }}
                   keyboardType="email-address"
                   autoCapitalize="none"

@@ -30,7 +30,7 @@ export class AuthErrorHandler {
       showUserFeedback = true,
       retryAttempts = 1,
       onAuthRequired,
-      operationName = 'operation'
+      operationName = 'operation',
     } = options;
 
     console.log('🔍 Handling API error:', { error, operationName });
@@ -38,10 +38,10 @@ export class AuthErrorHandler {
     // Check if it's an authentication error
     if (this.isAuthError(error)) {
       console.warn('🔐 Authentication error detected:', error);
-      
+
       // Try to refresh session first
       const refreshResult = await this.attemptSessionRefresh();
-      
+
       if (refreshResult.success) {
         console.log('✅ Session refreshed successfully');
         return { shouldRetry: true, handled: true };
@@ -55,21 +55,21 @@ export class AuthErrorHandler {
     // Check if it's a network error
     if (this.isNetworkError(error)) {
       console.warn('🌐 Network error detected:', error);
-      
+
       if (showUserFeedback) {
         await this.showNetworkErrorDialog(operationName, retryAttempts);
       }
-      
+
       return { shouldRetry: retryAttempts > 0, handled: true };
     }
 
     // Unknown error
     console.error('❌ Unhandled API error:', error);
-    
+
     if (showUserFeedback) {
       await this.showGenericErrorDialog(operationName, error);
     }
-    
+
     return { shouldRetry: false, handled: false };
   }
 
@@ -77,8 +77,8 @@ export class AuthErrorHandler {
    * Check if error is authentication-related
    */
   private isAuthError(error: any): boolean {
-    if (!error) return false;
-    
+    if (!error) {return false;}
+
     const authErrorCodes = [401, 403];
     const authErrorMessages = [
       'invalid_token',
@@ -92,7 +92,7 @@ export class AuthErrorHandler {
       'please sign in',
       'session expired',
       'invalid session',
-      'authentication failed'
+      'authentication failed',
     ];
 
     // Check status code
@@ -103,12 +103,12 @@ export class AuthErrorHandler {
     // Check error message
     const errorMessage = (error.message || error.error_description || '').toLowerCase();
     const isAuthMessage = authErrorMessages.some(msg => errorMessage.includes(msg));
-    
+
     if (isAuthMessage) {
       console.log('🔍 Detected authentication error:', errorMessage);
       return true;
     }
-    
+
     return false;
   }
 
@@ -116,15 +116,15 @@ export class AuthErrorHandler {
    * Check if error is network-related
    */
   private isNetworkError(error: any): boolean {
-    if (!error) return false;
-    
+    if (!error) {return false;}
+
     const networkErrorMessages = [
       'network request failed',
       'network error',
       'connection failed',
       'timeout',
       'no internet',
-      'offline'
+      'offline',
     ];
 
     const errorMessage = (error.message || '').toLowerCase();
@@ -137,17 +137,17 @@ export class AuthErrorHandler {
   private async attemptSessionRefresh(): Promise<{ success: boolean; error?: any }> {
     try {
       console.log('🔄 Attempting session refresh...');
-      
+
       // First try to get the current session to see if it exists
       const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
+
       if (!currentSession) {
         console.warn('⚠️ No current session to refresh');
         return { success: false, error: 'No current session' };
       }
-      
+
       const { data: { session }, error } = await supabase.auth.refreshSession();
-      
+
       if (error) {
         console.error('❌ Session refresh failed:', error);
         return { success: false, error };
@@ -160,7 +160,7 @@ export class AuthErrorHandler {
 
       console.log('✅ Session refreshed successfully', {
         hasToken: !!session.access_token,
-        expiresAt: session.expires_at
+        expiresAt: session.expires_at,
       });
       return { success: true };
     } catch (error) {
@@ -184,7 +184,7 @@ export class AuthErrorHandler {
         [
           {
             text: 'Cancel',
-            style: 'cancel'
+            style: 'cancel',
           },
           {
             text: 'Log In',
@@ -196,8 +196,8 @@ export class AuthErrorHandler {
                 supabase.auth.signOut();
               }
             },
-            style: 'default'
-          }
+            style: 'default',
+          },
         ],
         { cancelable: false }
       );
@@ -221,13 +221,13 @@ export class AuthErrorHandler {
           {
             text: 'Cancel',
             onPress: () => resolve(),
-            style: 'cancel' as const
+            style: 'cancel' as const,
           },
           ...(retryAttempts > 0 ? [{
             text: 'Retry',
             onPress: () => resolve(),
-            style: 'default' as const
-          }] : [])
+            style: 'default' as const,
+          }] : []),
         ],
         { cancelable: false }
       );
@@ -243,7 +243,7 @@ export class AuthErrorHandler {
   ): Promise<void> {
     return new Promise((resolve) => {
       const errorMessage = error?.message || 'An unexpected error occurred';
-      
+
       Alert.alert(
         '⚠️ Error',
         `Failed to complete ${operationName}: ${errorMessage}`,
@@ -251,8 +251,8 @@ export class AuthErrorHandler {
           {
             text: 'OK',
             onPress: () => resolve(),
-            style: 'default'
-          }
+            style: 'default',
+          },
         ],
         { cancelable: false }
       );
@@ -271,7 +271,7 @@ export class AuthErrorHandler {
    */
   async executeRetryQueue(): Promise<void> {
     console.log(`🔄 Executing ${this.retryQueue.size} queued operations...`);
-    
+
     for (const [operationId, operation] of this.retryQueue.entries()) {
       try {
         await operation();
