@@ -67,7 +67,7 @@ export const PlaybookSkeleton: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16, // Match PlaybookListScreen container padding exactly
+    // No padding - skeleton is rendered inside PlaybookListScreen's padded container
   },
   sectionHeader: {
     backgroundColor: '#f6f8fa',
