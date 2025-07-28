@@ -21,12 +21,17 @@ export interface ReflectionApiEntry {
 export class ReflectionApi {
   // Get all reflection entries for a user and date
   static async getReflectionEntries(userId: string, date: string): Promise<ReflectionApiEntry[]> {
+    console.log('🔍 ReflectionApi: getReflectionEntries called with userId:', userId, 'date:', date);
     const { data, error } = await supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .eq('selected_date', date)
       .order('created_at', { ascending: false });
+    
+    console.log('🔍 ReflectionApi: getReflectionEntries response - data:', data?.length, 'entries');
+    console.log('🔍 ReflectionApi: getReflectionEntries response - error:', error);
+    console.log('🔍 ReflectionApi: getReflectionEntries response - full data:', data);
 
     if (error) {
       console.error('Error fetching reflection entries:', error);
@@ -80,18 +85,23 @@ export class ReflectionApi {
   static async createReflectionEntry(
     entry: Omit<ReflectionApiEntry, 'id' | 'created_at' | 'updated_at'>
   ): Promise<ReflectionApiEntry> {
+    console.log('🔍 ReflectionApi: createReflectionEntry called with:', entry);
     const now = new Date().toISOString();
     const entryWithTimestamps = {
       ...entry,
       created_at: now,
       updated_at: now,
     };
+    console.log('🔍 ReflectionApi: About to insert into database:', entryWithTimestamps);
 
     const { data, error } = await supabase
       .from('reflection_entries')
       .insert(entryWithTimestamps)
       .select()
       .single();
+    
+    console.log('🔍 ReflectionApi: Database response - data:', data);
+    console.log('🔍 ReflectionApi: Database response - error:', error);
 
     if (error) {
       console.error('Error creating reflection entry:', error);

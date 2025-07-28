@@ -46,6 +46,10 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   // Save reflection using React Query system
   const saveReflection = async (entry: { title: string; content: string; tags?: string[] }) => {
     try {
+      console.log('🔍 DevotionalDetailReflectionModal: saveReflection started with:', entry);
+      console.log('🔍 DevotionalDetailReflectionModal: User:', user?.id);
+      console.log('🔍 DevotionalDetailReflectionModal: Date string:', dateStr);
+      
       if (!user) {
         throw new Error('User not authenticated');
       }
@@ -82,8 +86,10 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       console.log('🔍 DevotionalDetailReflectionModal: Saving with data:', saveData);
       console.log('🔍 DevotionalDetailReflectionModal: Date string:', dateStr);
       console.log('🔍 DevotionalDetailReflectionModal: User ID:', user.id);
+      console.log('🔍 DevotionalDetailReflectionModal: About to call createMutation.mutateAsync with:', saveData);
+      console.log('🔍 DevotionalDetailReflectionModal: Mutation status:', { isLoading: createMutation.isPending, isError: createMutation.isError });
       const result = await createMutation.mutateAsync(saveData);
-      console.log('🔍 Devotional reflection saved successfully:', result);
+      console.log('🔍 DevotionalDetailReflectionModal: Mutation completed successfully:', result);
 
       // Track analytics
       analytics.trackReflectionEvent('reflection_created', {
@@ -97,7 +103,10 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       // Force refetch to ensure UI updates
       console.log('🔍 DevotionalDetailReflectionModal: About to refetch reflection data...');
       const refetchResult = await refetch();
-      console.log('🔍 DevotionalDetailReflectionModal: Refetch completed:', refetchResult.data?.length, 'entries found');
+      console.log('🔍 DevotionalDetailReflectionModal: Refetch completed. Data:', refetchResult.data?.length, 'entries');
+      console.log('🔍 DevotionalDetailReflectionModal: Refetch result:', refetchResult);
+      console.log('🔍 DevotionalDetailReflectionModal: Refetch data:', refetchResult.data);
+      console.log('🔍 DevotionalDetailReflectionModal: Refetch error:', refetchResult.error);
 
       setShowSuccessModal(true);
       return result;
@@ -119,12 +128,14 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     [key: string]: any;
   }) => {
     try {
-      console.log('Saving reflection...');
+      console.log('🔍 DevotionalDetailReflectionModal: handleSave called with entry:', entry);
+      console.log('🔍 DevotionalDetailReflectionModal: About to call saveReflection...');
       const savedEntry = await saveReflection({
         title: entry.title,
         content: entry.content,
         tags: entry.tags,
       });
+      console.log('🔍 DevotionalDetailReflectionModal: saveReflection completed:', savedEntry);
 
       console.log('Reflection saved, calling onSave callback');
       // Call the original onSave with the saved entry data
