@@ -475,8 +475,9 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     );
   }
 
-  // Only show empty state when we're sure there are no playbooks (not loading and no data)
-  if (playbooks.length === 0 && !isLoading && !isFetching && userId) {
+  // Show empty state when we have no playbooks and we're not in initial loading state
+  // Allow isFetching to be true (for pull-to-refresh) as long as we're not in initial loading
+  if (playbooks.length === 0 && !isLoading && userId) {
     console.log('[PlaybookListScreen] Showing empty state');
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -522,7 +523,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
             </Pressable>
           ))}
         </View>
-        {(isLoading || isFetching) ? (
+        {isLoading ? (
           <PlaybookSkeleton />
         ) : (
           <SectionList
