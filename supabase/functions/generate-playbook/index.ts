@@ -2,6 +2,17 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { strategicAdvisorPersona, applyPersonaContext, enforcePersona } from './persona.config.ts';
 
+/**
+ * Generate a UUID v4 compatible with Deno
+ */
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 interface Playbook {
   id: string;
   title: string;
@@ -39,7 +50,6 @@ interface OpenAIData {
 
 function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: string): Playbook {
   const content = aiData.choices[0]?.message?.content || '';
-  const timestamp = Date.now();
 
   // Extract playbook title and subtitle
   let mainTitle = '';
@@ -60,8 +70,18 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     }
   }
 
+  // Clean up markdown formatting from titles
+  const cleanMarkdown = (text: string): string => {
+    if (!text) return '';
+    // Remove markdown bold/italic formatting (**, __, *)
+    return text.replace(/\*\*|__|\*/g, '').trim();
+  };
+  
+  mainTitle = cleanMarkdown(mainTitle);
+  subtitle = cleanMarkdown(subtitle);
+
   const playbook: Playbook = {
-    id: timestamp.toString(),
+    id: generateUUID(),
     title: mainTitle,
     subtitle,
     truthInLove: {
@@ -83,17 +103,37 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   const truthSummaryMatch = content.match(/TRUTH SUMMARY:\s*([\s\S]*?)(?=TRUTH IN LOVE:|ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (truthSummaryMatch) {
     let summary = truthSummaryMatch[1].trim();
-    const usernamePrefix = `${userName},`;
-    if (summary.startsWith(usernamePrefix)) {
-      summary = summary.slice(usernamePrefix.length).trim();
+    
+    // Remove userName prefix if present (case insensitive)
+    const usernamePrefix = new RegExp(`^${userName},?\s*`, 'i');
+    summary = summary.replace(usernamePrefix, '').trim();
+    
+    // Remove literal "[User's Name]," if AI outputs it literally (case insensitive)
+    summary = summary.replace(/^\[User'?s Name\],?\s*/i, '').trim();
+    
+    // Ensure the summary starts with a capital letter and has proper spacing
+    if (summary.length > 0) {
+      // First, trim any leading/trailing whitespace
+      summary = summary.trim();
+      // Then capitalize the first letter and ensure proper spacing after any punctuation
+      summary = summary.charAt(0).toUpperCase() + 
+               (summary.length > 1 ? summary.slice(1).replace(/^\s*[.,;:!?]\s*/, (match) => 
+                 match.trim() + ' '  // Add space after punctuation if missing
+               ) : '');
     }
+    
     playbook.truthInLove.summary = summary;
   }
 
   // Parse Truth in Love
   const truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (truthInLoveMatch) {
-    playbook.truthInLove.text = truthInLoveMatch[1].trim();
+    let truthText = truthInLoveMatch[1].trim();
+    
+    // Replace [User's Name] placeholder with actual user name
+    truthText = truthText.replace(/\[User's Name\]/g, userName);
+    
+    playbook.truthInLove.text = truthText;
   }
 
   // Parse Action Steps
@@ -103,7 +143,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
       .split(/\n(?=\d+\.\s)/)
       .filter((block: string) => block.match(/^\d+\./));
 
-    playbook.actionSteps = stepBlocks.map((block: string, idx: number) => {
+    playbook.actionSteps = stepBlocks.map((block: string, _idx: number) => {
       const lines = block.split('\n').map((l: string) => l.trim()).filter(Boolean);
       const titleLine = lines[0].replace(/^\d+\.\s*/, '');
       const subTasks: string[] = [];
@@ -125,7 +165,7 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
       });
 
       return {
-        id: `${timestamp}-step-${idx}`,
+        id: generateUUID(),
         title: titleLine,
         subTasks,
         examples,
@@ -140,11 +180,11 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   const affMatch = content.match(/AFFIRMATIONS?:\s*([\s\S]*?)(?=BIBLE VERSE:|CHALLENGE:|$)/i);
   if (affMatch) {
     const affirmations = affMatch[1].split(/\n/).filter(l => l.trim().length > 0);
-    playbook.affirmations = affirmations.map((text, idx) => {
+    playbook.affirmations = affirmations.map((text, _idx) => {
       // Remove any leading numbers, dots, dashes, or other punctuation
       const cleanText = text.replace(/^[\s\d\-*•.]+/, '').trim();
       return {
-        id: `${timestamp}-aff-${idx}`,
+        id: generateUUID(),
         text: cleanText,
         completed: false,
       };
