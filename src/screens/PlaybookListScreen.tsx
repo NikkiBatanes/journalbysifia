@@ -23,41 +23,10 @@ import { deletePlaybook, getPlaybooks } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
+import { PlaybookSkeleton } from '../components/SkeletonLoader/PlaybookSkeleton';
 
 // Import gesture handler at the top level
 import 'react-native-gesture-handler'; // This is needed for gesture handling
-
-// Skeleton Loader Component
-const SkeletonLoader = () => {
-  const opacity = useRef(new Animated.Value(0.3)).current;
-
-  useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [opacity]);
-
-  return (
-    <View style={styles.skeletonContainer}>
-      {[1, 2, 3].map((item) => (
-        <Animated.View key={item} style={[styles.skeletonItem, { opacity }]} />
-      ))}
-    </View>
-  );
-};
 
 interface TaskStats {
   completed: number;
@@ -473,7 +442,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           ))}
         </View>
         {isLoading ? (
-          <SkeletonLoader />
+          <PlaybookSkeleton />
         ) : (
           <SectionList
             key={`${filter}-${sections.length}`}
@@ -621,16 +590,5 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     marginBottom: 2,
     textTransform: 'uppercase',
-  },
-  skeletonContainer: {
-    flex: 1,
-    padding: 16,
-  },
-  skeletonItem: {
-    height: 88,
-    backgroundColor: Colors.anchorBlue,
-    opacity: 0.1,
-    borderRadius: 16,
-    marginBottom: 12,
   },
 });
