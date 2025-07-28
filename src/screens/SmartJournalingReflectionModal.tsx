@@ -70,8 +70,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         content: entry.content,
         type: 'free' as const,
         selected_date: dateStr,
-        // Note: source is optional and typed as 'devotional' only, so we omit it for smart journaling
-        // subtask_id, playbook_id, subtask_title will be stored in the content field as metadata
+        tags: [...(entry.tags || []), 'playbook'], // Add 'playbook' tag to identify source
+        // Add playbook metadata for identification and filtering
+        // Using devotional fields to store playbook metadata for now
+        ...(playbookTitle && { devotional_title: playbookTitle }),
+        ...(actionStepNumber !== undefined && { day_number: actionStepNumber }),
+        ...(actionStepTitle && { day_title: actionStepTitle }),
+        // Store subtask and playbook IDs in content metadata or tags
+        // This helps identify playbook reflections in the daily log
       };
 
       await createMutation.mutateAsync(reflectionData);
@@ -136,18 +142,27 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               devotionalTitle={playbookTitle}
               dayNumber={actionStepNumber}
               dayTitle={actionStepTitle}
+              subtaskId={subtaskId}
             />
           </View>
         </KeyboardAvoidingView>
       </Modal>
 
-      <SuccessModal
+      {/* SuccessModal with higher z-index to appear above reflection modal */}
+      <Modal
         visible={showSuccessModal}
-        title="Reflection Saved!"
-        message="Your reflection has been saved to your journal."
-        onDismiss={handleSuccessModalClose}
-        buttonText="Continue"
-      />
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+      >
+        <SuccessModal
+          visible={showSuccessModal}
+          title="Reflection Saved!"
+          message="Your reflection has been saved to your journal."
+          onDismiss={handleSuccessModalClose}
+          buttonText="Continue"
+        />
+      </Modal>
     </>
   );
 };

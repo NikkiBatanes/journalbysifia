@@ -38,6 +38,7 @@ interface ReflectionLogEditorProps {
   initialTitle?: string;
   lockTitle?: boolean;
   source?: 'freeform' | 'guided' | 'devotional' | 'playbook' | string;
+  subtaskId?: string;
   styles?: any;
 }
 
@@ -189,6 +190,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   initialTitle = '',
   lockTitle = false,
   source = 'freeform',
+  subtaskId,
   styles,
 }) => {
   // Merge styles prop with fallbackStyles
@@ -229,17 +231,30 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 
   // Helper function to get draft key (unique for each devotional question)
   const getDraftKey = React.useCallback(() => {
+    console.log('[ReflectionLogEditor] getDraftKey:', { source, devotionalTitle, dayNumber, questionNumber });
+
     if (source === 'devotional' && devotionalTitle && dayNumber !== undefined && questionNumber !== undefined) {
       // Create unique key for each devotional question
-      return `@reflection_editor_draft_${devotionalTitle}_day${dayNumber}_q${questionNumber}`;
+      const key = `@reflection_editor_draft_${devotionalTitle.replace(/[^a-zA-Z0-9]/g, '_')}_day${dayNumber}_q${questionNumber}`;
+      console.log('[ReflectionLogEditor] Devotional draft key:', key);
+      return key;
     }
-    if (source === 'playbook' && devotionalTitle && dayNumber !== undefined) {
-      // Create unique key for each playbook step reflection
-      return `@reflection_editor_draft_playbook_${devotionalTitle}_step${dayNumber}`;
+
+    if (source === 'playbook') {
+      // Create unique key for each playbook subtask reflection
+      const playbookName = devotionalTitle ? devotionalTitle.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
+      const stepNum = dayNumber !== undefined ? dayNumber : 'unknown';
+      const taskId = subtaskId ? subtaskId.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
+      const key = `@reflection_editor_draft_playbook_${playbookName}_step${stepNum}_task${taskId}`;
+      console.log('[ReflectionLogEditor] Playbook draft key:', key);
+      return key;
     }
+
     // Default key for other reflections
-    return '@reflection_editor_draft';
-  }, [source, devotionalTitle, dayNumber, questionNumber]);
+    const key = '@reflection_editor_draft';
+    console.log('[ReflectionLogEditor] Default draft key:', key);
+    return key;
+  }, [source, devotionalTitle, dayNumber, questionNumber, subtaskId]);
 
   // Load draft when component mounts (only for new entries, not when editing)
   useEffect(() => {
@@ -478,8 +493,8 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
             strokeWidth={1.5}
           />
         </TouchableOpacity>
-        {/* Hide guided prompt icon for devotional source */}
-        {!isEditing && source !== 'devotional' && (
+        {/* Hide guided prompt icon for devotional and playbook sources */}
+        {!isEditing && source !== 'devotional' && source !== 'playbook' && (
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
             onPress={() => {
