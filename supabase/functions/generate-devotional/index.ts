@@ -1,5 +1,6 @@
 /** @deno-types="https://deno.land/x/types/http/server.d.ts" */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from './persona.config.ts';
 
 interface Scripture {
@@ -46,6 +47,32 @@ interface DevotionalRequestBody {
   playbookId?: string;
   userInput?: string;
   userName?: string;
+}
+
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Function to fetch playbook data including truth_in_love content
+async function fetchPlaybookData(playbookId: string) {
+  try {
+    const { data: playbook, error } = await supabase
+      .from('playbooks')
+      .select('id, title, description, truth_in_love')
+      .eq('id', playbookId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching playbook:', error);
+      return null;
+    }
+
+    return playbook;
+  } catch (error) {
+    console.error('Error in fetchPlaybookData:', error);
+    return null;
+  }
 }
 
 interface Scripture {
@@ -747,6 +774,33 @@ serve(async (req: Request): Promise<Response> => {
   try {
     applyPersonaContext(devotionalAdvisorPersona, userInput);
 
+    // Fetch playbook data if playbookId is provided
+    let playbookContext = '';
+    if (playbookId) {
+      console.log(`Fetching playbook data for ID: ${playbookId}`);
+      const playbookData = await fetchPlaybookData(playbookId);
+      
+      if (playbookData && playbookData.truth_in_love) {
+        const truthInLove = playbookData.truth_in_love;
+        console.log('Truth in Love data found:', truthInLove);
+        
+        playbookContext = `\n\n## PLAYBOOK CONTEXT - TRUTH IN LOVE\n`;
+        playbookContext += `Playbook: ${playbookData.title || 'Unknown'}\n`;
+        
+        if (truthInLove.text) {
+          playbookContext += `Truth: ${truthInLove.text}\n`;
+        }
+        
+        if (truthInLove.summary) {
+          playbookContext += `Summary: ${truthInLove.summary}\n`;
+        }
+        
+        playbookContext += `\nIMPORTANT: The devotional MUST align with and reinforce the truth and principles from this playbook. Use this context to guide the spiritual themes, biblical references, and practical applications in the devotional.`;
+      } else {
+        console.log('No truth_in_love data found for playbook:', playbookId);
+      }
+    }
+
     const openAIRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -758,7 +812,7 @@ serve(async (req: Request): Promise<Response> => {
         messages: [
           {
             role: 'system',
-            content: devotionalAdvisorPersona.systemPrompt,
+            content: devotionalAdvisorPersona.systemPrompt + playbookContext,
           },
           {
             role: 'user',
