@@ -82,13 +82,16 @@ interface CardData {
 }
 
 // Header left component extracted to fix linter warning
-const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle }: {
+const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage }: {
   navigation: any;
   showUserInput: boolean;
   setShowUserInput: (show: boolean) => void;
   chevronStyle: any;
   showCompactHeader: boolean;
   playbookTitle?: string;
+  completedTasksCount: number;
+  totalTasksCount: number;
+  progressPercentage: number;
 }) => (
   <View style={styles.headerLeftContainer}>
     <TouchableOpacity
@@ -103,28 +106,45 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
     >
       <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
     </TouchableOpacity>
-    <TouchableOpacity
-      style={styles.playbookLabelContainer}
-      onPress={() => setShowUserInput(!showUserInput)}
-      activeOpacity={0.7}
-    >
-      <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
-      <Animated.View style={chevronStyle}>
-        <Ionicons
-          name="chevron-down"
-          size={15}
-          color={Colors.anchorBlue}
-        />
-      </Animated.View>
-    </TouchableOpacity>
-    {showCompactHeader && (
-      <Text
-        style={styles.compactHeaderTitle}
-        numberOfLines={1}
-        ellipsizeMode="tail"
+    {!showCompactHeader && (
+      <TouchableOpacity
+        style={styles.playbookLabelContainer}
+        onPress={() => setShowUserInput(!showUserInput)}
+        activeOpacity={0.7}
       >
-        {playbookTitle}
-      </Text>
+        <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
+        <Animated.View style={chevronStyle}>
+          <Ionicons
+            name="chevron-down"
+            size={15}
+            color={Colors.anchorBlue}
+          />
+        </Animated.View>
+      </TouchableOpacity>
+    )}
+    {showCompactHeader && (
+      <View style={styles.headerProgressContainer}>
+        <Text
+          style={styles.compactHeaderTitle}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {playbookTitle}
+        </Text>
+        <View style={styles.headerProgressRow}>
+          <View style={styles.headerProgressBarBg}>
+            <View
+              style={[
+                styles.headerProgressBarFill,
+                { width: `${progressPercentage}%` },
+              ]}
+            />
+          </View>
+          <Text style={styles.headerTasksText}>
+            {completedTasksCount}/{totalTasksCount} Tasks
+          </Text>
+        </View>
+      </View>
     )}
   </View>
 );
@@ -467,8 +487,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       chevronStyle={chevronStyle}
       showCompactHeader={showCompactHeader}
       playbookTitle={playbook?.title}
+      completedTasksCount={completedTasksCount}
+      totalTasksCount={totalTasksCount}
+      progressPercentage={progress}
     />
-  ), [navigation, showCompactHeader, playbook?.title, showUserInput, chevronStyle]);
+  ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress]);
 
   // Header right component
   const headerRight = React.useCallback(() => (
@@ -1158,6 +1181,14 @@ interface PlaybookDetailStyles {
   playbookLabelContainer: ViewStyle;
   playbookLabelText: TextStyle;
   chevronIcon: ViewStyle;
+  profileButton: ViewStyle;
+  profileImage: ImageStyle;
+  profilePlaceholder: ViewStyle;
+  headerProgressContainer: ViewStyle;
+  headerProgressRow: ViewStyle;
+  headerProgressBarBg: ViewStyle;
+  headerProgressBarFill: ViewStyle;
+  headerTasksText: TextStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
@@ -1594,5 +1625,31 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: '#666',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerProgressContainer: {
+    marginLeft: 12,
+    maxWidth: 260,
+  },
+  headerProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  headerProgressBarBg: {
+    height: 6,
+    backgroundColor: 'rgba(26, 60, 109, 0.2)',
+    borderRadius: 3,
+    flex: 1,
+    marginRight: 8,
+  },
+  headerProgressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 3,
+  },
+  headerTasksText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.anchorBlue,
   },
 });
