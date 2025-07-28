@@ -233,7 +233,11 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       // Create unique key for each devotional question
       return `@reflection_editor_draft_${devotionalTitle}_day${dayNumber}_q${questionNumber}`;
     }
-    // Default key for non-devotional reflections
+    if (source === 'playbook' && devotionalTitle && dayNumber !== undefined) {
+      // Create unique key for each playbook step reflection
+      return `@reflection_editor_draft_playbook_${devotionalTitle}_step${dayNumber}`;
+    }
+    // Default key for other reflections
     return '@reflection_editor_draft';
   }, [source, devotionalTitle, dayNumber, questionNumber]);
 
@@ -583,6 +587,26 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   {questionNumber && (
                     <Text style={s.metadataText}>
                       Question to Ponder #{questionNumber}
+                    </Text>
+                  )}
+                  </View>
+                </View>
+              )}
+              {(source === 'playbook') && (devotionalTitle || dayNumber || dayTitle) && (
+                <View style={s.metadataContainer}>
+                  <View style={s.verticalLine} />
+                  <View>
+                  <Text style={s.fromText}>
+                    FROM PLAYBOOK
+                  </Text>
+                  {devotionalTitle && (
+                    <Text style={s.metadataText}>
+                      {devotionalTitle}
+                    </Text>
+                  )}
+                  {dayNumber && dayTitle && (
+                    <Text style={s.metadataText}>
+                      Step {dayNumber}: {dayTitle}
                     </Text>
                   )}
                   </View>

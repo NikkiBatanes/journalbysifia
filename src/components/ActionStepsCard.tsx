@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { NavigationProp } from '@react-navigation/native';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
+import SmartJournalingReflectionModal from '../screens/SmartJournalingReflectionModal';
 
 type SubTask = {
   id: string;
@@ -32,6 +33,9 @@ type ActionStepsCardProps = {
   solidCardBackground?: boolean;
   checkboxColor?: string;
   stepCircleBackground?: string;
+  // Smart Journaling Metadata
+  playbookTitle?: string;
+  playbookId?: string;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -122,8 +126,15 @@ export default function ActionStepsCard({
   solidCardBackground,
   checkboxColor,
   stepCircleBackground,
+  playbookTitle,
+  playbookId,
 }: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
+
+  // Smart Journaling Modal State
+  const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
+  const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
+  const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string } | null>(null);
 
   const steps = useMemo(() => {
     const rawSteps = (propSteps && propSteps.length > 0) ? propSteps : contextSteps;
@@ -146,23 +157,45 @@ export default function ActionStepsCard({
     handleToggleStep(stepId, subTaskId);
   }, [handleToggleStep]);
 
-  const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask) => {
+  const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string }) => {
     console.log('[ActionStepsCard] Journal type pressed:', { journalType, subTask });
-
-    if (!navigation) {
-      console.warn('[ActionStepsCard] Navigation not available for journal type navigation');
-      return;
-    }
 
     if (journalType === 'none') {
       console.log('[ActionStepsCard] No journaling needed for this task');
       return;
     }
 
-    // Use smart journaling navigation service
+    // Handle reflection type with modal
+    if (journalType === 'reflection') {
+      console.log('[ActionStepsCard] Opening reflection modal for:', subTask.text);
+      setSelectedSubtask(subTask);
+      setSelectedActionStep(stepInfo || null);
+      setReflectionModalVisible(true);
+      return;
+    }
+
+    // For other journal types, use navigation service
+    if (!navigation) {
+      console.warn('[ActionStepsCard] Navigation not available for journal type navigation');
+      return;
+    }
+
     const navService = SmartJournalingNavigation.create(navigation);
     navService.navigateToJournaling(journalType as any, subTask);
   }, [navigation]);
+
+  // Modal handlers
+  const handleReflectionSave = React.useCallback((entry: any) => {
+    console.log('[ActionStepsCard] Reflection saved:', entry);
+    // Modal will close automatically after showing success
+  }, []);
+
+  const handleReflectionCancel = React.useCallback(() => {
+    console.log('[ActionStepsCard] Reflection modal cancelled');
+    setReflectionModalVisible(false);
+    setSelectedSubtask(null);
+    setSelectedActionStep(null);
+  }, []);
 
   // Create dynamic styles based on props
   const dynamicStyles = useMemo(() => ({
@@ -196,7 +229,8 @@ export default function ActionStepsCard({
   });
 
   return (
-    <View style={style}>
+    <>
+      <View style={style}>
       <View style={styles.headingContainer}>
         <MaterialCommunityIcons
           name="playlist-check"
@@ -259,9 +293,10 @@ export default function ActionStepsCard({
                     text: st.text.replace(/^Example:/i, '').trim(),
                   }));
               }
-              const subtasks = (step.subTasks || []).filter(
-                (st) => typeof st.text === 'string' && !st.text.toLowerCase().startsWith('example:')
-              );
+              const subtasks = (step.subTasks || [])
+                .filter(
+                  (st) => typeof st.text === 'string' && !st.text.toLowerCase().startsWith('example:')
+                );
 
               return (
                 <View
@@ -349,7 +384,7 @@ export default function ActionStepsCard({
                                         styles.journalTypeIndicator,
                                         typeIndex > 0 && styles.journalTypeIndicatorSpaced,
                                       ]}
-                                      onPress={() => onJournalTypePress(journalType, subTask)}
+                                      onPress={() => onJournalTypePress(journalType, subTask, { stepNumber: index + 1, stepTitle: step.title })}
                                       activeOpacity={0.7}
                                     >
                                       <MaterialCommunityIcons
@@ -400,8 +435,22 @@ export default function ActionStepsCard({
             })}
           </View>
         )}
+        </View>
       </View>
-    </View>
+
+      {/* Smart Journaling Reflection Modal */}
+      <SmartJournalingReflectionModal
+        visible={reflectionModalVisible}
+        subtaskTitle={selectedSubtask?.text || ''}
+        subtaskId={selectedSubtask?.id}
+        playbookId={playbookId}
+        playbookTitle={playbookTitle}
+        actionStepNumber={selectedActionStep?.stepNumber}
+        actionStepTitle={selectedActionStep?.stepTitle}
+        onSave={handleReflectionSave}
+        onCancel={handleReflectionCancel}
+      />
+    </>
   );
 }
 
