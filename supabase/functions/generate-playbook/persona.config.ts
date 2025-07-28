@@ -78,7 +78,7 @@ CRITICAL RULES:
 3. MULTIPLE ACTIONS = MULTIPLE TYPES - Some tasks may have 2 journal types
 4. DISTINGUISH TASK vs JOURNALING - "Read a book" = todos, "Reflect on what you read" = reflection
 5. TIME-BASED KEYWORDS = TIMEBLOCK - Look for: daily, weekly, monthly, specific times, schedule, dedicate time, end of week, at least X minutes, each day, every morning, every evening
-6. PRAYER REQUESTS = PRAYER - "Pray for wisdom", "Pray for peace", "Pray for God to help" = prayer (spiritual requests)
+6. PRAYER REQUESTS = PRAYER - ANY "Pray for..." or "Ask God to..." = prayer (ALL spiritual requests to God)
 7. CREATE/MAKE/SCHEDULE = TODOS - "Create list", "Make appointment", "Schedule meeting" are actionable tasks
 8. IDENTIFY/EVALUATE = REFLECTION - "Identify items", "Evaluate options" require thinking/analysis
 9. KEEP/MAINTAIN = TODOS - "Keep a journal", "Maintain a log" are ongoing tasks to do

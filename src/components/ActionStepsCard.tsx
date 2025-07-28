@@ -9,6 +9,9 @@ type SubTask = {
   text: string;
   completed: boolean;
   isExample?: boolean;
+  detected_journal_type?: string;
+  is_example?: boolean;
+  example_interactive?: boolean;
 };
 
 type ActionStep = {
@@ -30,6 +33,45 @@ type ActionStepsCardProps = {
 
 import { useActionSteps } from '../context/ActionStepsContext';
 
+// Smart Journaling Helper Functions
+const getJournalTypeIcon = (journalType?: string): string => {
+  switch (journalType) {
+    case 'prayer': return 'hands-pray';
+    case 'reflection': return 'head-lightbulb';
+    case 'gratitude': return 'heart';
+    case 'win': return 'trophy';
+    case 'timeblock': return 'clock';
+    case 'todos': return 'checkbox-marked-circle';
+    case 'focus': return 'target';
+    case 'financial_budgeting': return 'currency-usd';
+    case 'financial_tithing': return 'gift';
+    case 'financial_debt': return 'credit-card-minus';
+    case 'none': return '';
+    default: return '';
+  }
+};
+
+const getJournalTypeColor = (journalType?: string): string => {
+  switch (journalType) {
+    case 'prayer': return '#9B59B6'; // Purple
+    case 'reflection': return '#3498DB'; // Blue
+    case 'gratitude': return '#E74C3C'; // Red/Pink
+    case 'win': return '#F39C12'; // Orange/Gold
+    case 'timeblock': return '#2ECC71'; // Green
+    case 'todos': return '#1ABC9C'; // Teal
+    case 'focus': return '#E67E22'; // Orange
+    case 'financial_budgeting': return '#27AE60'; // Green
+    case 'financial_tithing': return '#8E44AD'; // Purple
+    case 'financial_debt': return '#C0392B'; // Dark Red
+    case 'none': return 'transparent';
+    default: return 'transparent';
+  }
+};
+
+const shouldShowJournalIcon = (journalType?: string): boolean => {
+  return journalType !== 'none' && journalType !== undefined && journalType !== '';
+};
+
 const cleanMarkdown = (text: string | undefined): string => {
   if (!text) {return '';}
   return text
@@ -49,6 +91,9 @@ const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTas
       : task.id || (stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`),
     text: cleanMarkdown(typeof task === 'string' ? task : task.text || task.toString()),
     completed: typeof task === 'string' ? false : Boolean(task.completed),
+    detected_journal_type: typeof task === 'object' ? task.detected_journal_type : undefined,
+    is_example: typeof task === 'object' ? task.is_example : false,
+    example_interactive: typeof task === 'object' ? task.example_interactive : false,
   }));
 };
 
@@ -89,6 +134,12 @@ export default function ActionStepsCard({
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
     handleToggleStep(stepId, subTaskId);
   }, [handleToggleStep]);
+
+  const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask) => {
+    console.log('[ActionStepsCard] Journal type pressed:', { journalType, subTask });
+    // TODO: Navigate to appropriate journaling component based on type
+    // This will be implemented when we add navigation handlers
+  }, []);
 
   // Create dynamic styles based on props
   const dynamicStyles = useMemo(() => ({
@@ -245,14 +296,30 @@ export default function ActionStepsCard({
                               ]}
                             />
                           </View>
-                          <Text
-                            style={[
-                              dynamicStyles.subTaskText,
-                              subTask.completed && styles.completedText,
-                            ]}
-                          >
-                            {subTask.text}
-                          </Text>
+                          <View style={styles.subTaskContent}>
+                            <Text
+                              style={[
+                                dynamicStyles.subTaskText,
+                                subTask.completed && styles.completedText,
+                              ]}
+                            >
+                              {subTask.text}
+                            </Text>
+                            {shouldShowJournalIcon(subTask.detected_journal_type) && (
+                              <TouchableOpacity
+                                style={styles.journalTypeIndicator}
+                                onPress={() => onJournalTypePress(subTask.detected_journal_type!, subTask)}
+                                activeOpacity={0.7}
+                              >
+                                <MaterialCommunityIcons
+                                  name={getJournalTypeIcon(subTask.detected_journal_type)}
+                                  size={16}
+                                  color={getJournalTypeColor(subTask.detected_journal_type)}
+                                  style={styles.journalIcon}
+                                />
+                              </TouchableOpacity>
+                            )}
+                          </View>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -421,6 +488,22 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     fontWeight: '400',
     flex: 1,
+  },
+  subTaskContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  journalTypeIndicator: {
+    marginLeft: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  journalIcon: {
+    // Icon styling handled by MaterialCommunityIcons
   },
   exampleText: {
     color: 'rgba(255,255,255,0.7)',
