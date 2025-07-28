@@ -38,6 +38,7 @@ interface SubTaskRow {
   text: string;
   completed: boolean;
   order_index: number;
+  detected_journal_type?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -68,6 +69,7 @@ function transformPlaybookRow(
       id: subTask.id,
       text: subTask.text,
       completed: subTask.completed,
+      detected_journal_type: subTask.detected_journal_type ?? undefined, // Preserve smart journaling data
     });
     return acc;
   }, {} as Record<string, SubTask[]>);

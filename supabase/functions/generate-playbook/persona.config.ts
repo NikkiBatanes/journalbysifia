@@ -72,19 +72,19 @@ NONE (for simple reminders/notifications only):
 - Actions that are just "do this" without any journaling component
 - NOTE: Use TODOS if task needs checking off or UI interaction.
 
-CRITICAL RULES:
-1. NOT EVERY TASK NEEDS JOURNALING - Use 'none' for regular activities
-2. FOCUS ON THE CORE ACTION - What is the person actually doing?
-3. MULTIPLE ACTIONS = MULTIPLE TYPES - Some tasks may have 2 journal types
-4. DISTINGUISH TASK vs JOURNALING - "Read a book" = todos, "Reflect on what you read" = reflection
-5. TIME-BASED KEYWORDS = TIMEBLOCK - Look for: daily, weekly, monthly, specific times, schedule, dedicate time, end of week, at least X minutes, each day, every morning, every evening
-6. PRAYER REQUESTS = PRAYER - ANY "Pray for..." or "Ask God to..." = prayer (ALL spiritual requests to God)
+CRITICAL RULES - FOLLOW THESE EXACTLY:
+1. PRAYER KEYWORDS = PRAYER - ANY task with "Pray", "Ask God", "Seek God", "Request from God" = prayer (NOT reflection!)
+2. TIME ALLOCATION = TIMEBLOCK - "Dedicate time", "Schedule", "Set aside time", "daily", "weekly", "X minutes", "each day" = timeblock
+3. GRATITUDE LISTS = GRATITUDE - "List things grateful for", "Write down blessings", "Count blessings" = gratitude (NOT reflection!)
+4. SCHEDULING ACTIVITIES = TIMEBLOCK - "Schedule check-ins", "Set regular times", "Plan meetings" = timeblock (NOT none!)
+5. SPIRITUAL REQUESTS = PRAYER - "Ask God to reveal", "Pray for clarity", "Seek God's guidance" = prayer (NOT reflection!)
+6. DISTINGUISH TASK vs JOURNALING - "Read a book" = todos, "Reflect on what you read" = reflection
 7. CREATE/MAKE/SCHEDULE = TODOS - "Create list", "Make appointment", "Schedule meeting" are actionable tasks
 8. IDENTIFY/EVALUATE = REFLECTION - "Identify items", "Evaluate options" require thinking/analysis
 9. KEEP/MAINTAIN = TODOS - "Keep a journal", "Maintain a log" are ongoing tasks to do
 10. MEDITATE/CONTEMPLATE = REFLECTION - "Meditate on verse", "Contemplate meaning" require deep thinking
 11. PREPARE = REFLECTION - "Prepare questions", "Prepare topics" require planning and thinking
-12. AFFIRMATION INTEGRATION - If task involves creating affirmations and playbook already has affirmations, suggest timeblock for when to recite existing affirmations instead
+12. MULTIPLE ACTIONS = MULTIPLE TYPES - Some tasks may have 2 journal types
 
 JOURNAL TYPES:
 
@@ -192,6 +192,16 @@ CORRECT EXAMPLES:
 - "Pray for peace and restfulness during your sleep" → prayer (spiritual request)
 - "Create a daily schedule that includes set work hours and breaks" → timeblock (creating schedule with specific times)
 
+🚨 COMMON MISTAKES TO AVOID:
+- "Ask God to reveal areas where you may be lacking trust" → prayer (NOT reflection - it's a spiritual request)
+- "Dedicate time each day to pray for contentment" → timeblock (NOT none - it's time allocation)
+- "Schedule regular check-ins to discuss your progress" → timeblock (NOT none - it's scheduling)
+- "Pray for clarity regarding your desires and motivations" → prayer (NOT none - it's a spiritual request)
+- "List ten things you are grateful for" → gratitude (NOT reflection - it's gratitude expression)
+- "Write down what you're thankful for" → gratitude (NOT reflection - it's gratitude expression)
+- "Set aside 15 minutes daily for prayer" → timeblock (NOT prayer - it's time allocation)
+- "Spend time asking God for wisdom" → prayer (NOT reflection - it's a spiritual request)
+
 For each response, follow this exact format:
 
 PLAYBOOK TITLE:
@@ -253,8 +263,25 @@ export const applyPersonaContext = (persona: Persona, userInput: string): string
     '• Reference Jesus\' prayer life as an example\n\n' +
     'EXAMPLE PRAYER COMPONENT:\n' +
     '"Prayer: Begin by asking God for [specific request related to step]. Use [Scripture reference] as your prayer guide. Spend 5 minutes in silence, listening for God\'s response."\n\n' +
+    '🎯 JOURNAL TYPE CLASSIFICATION - MANDATORY PROCESS:\n' +
+    'FOR EACH SUBTASK, FOLLOW THIS EXACT PROCESS:\n' +
+    '1. IDENTIFY THE PRIMARY ACTION VERB (first verb in the sentence)\n' +
+    '2. APPLY THESE RULES IN ORDER:\n' +
+    '   • Contains "Pray", "Ask God", "Seek God" = PRAYER (ALWAYS!)\n' +
+    '   • Contains "List.*grateful", "Write.*thankful", "Count.*blessings" = GRATITUDE (ALWAYS!)\n' +
+    '   • Contains "Dedicate.*time", "Schedule", "Set.*time", "daily", "weekly" = TIMEBLOCK (ALWAYS!)\n' +
+    '   • Contains "Reflect", "Meditate", "Consider", "Think about" = REFLECTION\n' +
+    '   • Contains "Create", "Make", "Write" (not prayer/gratitude) = TODOS\n' +
+    '3. IGNORE secondary actions - focus on the PRIMARY action only\n' +
+    '4. When in doubt between two types, choose the more specific one\n\n' +
+    'EXAMPLES OF CORRECT CLASSIFICATION:\n' +
+    '• "Ask God to reveal areas where you lack trust" = PRAYER (primary action: Ask God)\n' +
+    '• "List ten things you are grateful for" = GRATITUDE (primary action: List grateful things)\n' +
+    '• "Dedicate time each day to pray" = TIMEBLOCK (primary action: Dedicate time)\n' +
+    '• "Schedule regular check-ins" = TIMEBLOCK (primary action: Schedule)\n' +
+    '• "Write a prayer asking God for clarity" = PRAYER (it\'s a prayer, not just writing)\n\n' +
     `User's Request: ${userInput}\n\n` +
-    'IMPORTANT: Your response must be deeply rooted in Scripture and prayer. Every action step must include a prayer component that helps the user connect with God.';
+    'IMPORTANT: Your response must be deeply rooted in Scripture and prayer. Every action step must include a prayer component that helps the user connect with God. ENSURE CORRECT JOURNAL TYPE CLASSIFICATION FOR EVERY SUBTASK!';
 };
 
 export const enforcePersona = (response: string, _persona: Persona): string => {

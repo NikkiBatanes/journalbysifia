@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { NavigationProp } from '@react-navigation/native';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';
 import AffirmationCard from './AffirmationCard';
@@ -33,9 +34,10 @@ interface DocumentCardViewProps {
     firstName?: string;
     lastName?: string;
   };
+  navigation?: NavigationProp<any>;
 }
 
-const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser }) => {
+const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation }) => {
   if (card.type === 'truth') {
     return (
       <View style={styles.truthCardContainer}>
@@ -52,7 +54,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     );
   }
   if (card.type === 'action') {
-    return <ActionStepsCard steps={card.steps ?? []} style={styles.actionCard} />;
+    return <ActionStepsCard steps={card.steps ?? []} style={styles.actionCard} navigation={navigation} />;
   }
   if (card.type === 'affirmation') {
     return (

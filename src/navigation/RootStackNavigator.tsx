@@ -13,6 +13,7 @@ import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
 import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
+import JournalScreen from '../screens/JournalScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 
 
@@ -244,6 +245,11 @@ export default function RootStackNavigator({
             name="DevotionalDetail"
             component={DevotionalDetailScreen as unknown as React.ComponentType}
             options={({ navigation }) => getDevotionalDetailOptions({ navigation })}
+          />
+          <Stack.Screen
+            name="Journal"
+            component={JournalScreen as React.ComponentType}
+            options={{ headerShown: false }}
           />
         </>
       ) : (

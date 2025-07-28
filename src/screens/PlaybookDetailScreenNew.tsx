@@ -214,23 +214,47 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const userId = user?.id;
   const rootNavigation = useNavigation<any>();
 
-  // 2. Data fetching hooks
-  const { data: playbook, isLoading, error } = useQuery<Playbook | null>({
+  // 2. Data fetching hooks - Use route params first, then fetch from database
+  const routePlaybook = route.params?.playbook;
+  // Only use route playbook if it has the full playbook structure (not just id)
+  const isFullPlaybook = routePlaybook && typeof routePlaybook === 'object' && 'title' in routePlaybook && 'actionSteps' in routePlaybook;
+  const shouldFetchFromDB = !isFullPlaybook && !!playbookId && !!userId;
+  
+  console.log('📖 PlaybookDetailScreen - Data source decision:', {
+    hasRoutePlaybook: !!routePlaybook,
+    shouldFetchFromDB,
+    routePlaybookId: routePlaybook?.id,
+    playbookId
+  });
+  
+  const { data: fetchedPlaybook, isLoading, error } = useQuery<Playbook | null>({
     queryKey: ['playbook', playbookId],
     queryFn: async () => {
-      console.log('🔍 Fetching playbook with:', { userId, playbookId });
+      console.log('🔍 Fetching playbook from database with:', { userId, playbookId });
       try {
         const result = await getPlaybook(userId || '', playbookId);
-        console.log('✅ Playbook fetch result:', result ? 'Found playbook' : 'Playbook is null');
+        console.log('✅ Database fetch result:', result ? 'Found playbook' : 'Playbook is null');
         return result;
       } catch (err) {
-        console.error('❌ Playbook fetch error:', err);
+        console.error('❌ Database fetch error:', err);
         throw err;
       }
     },
-    enabled: !!playbookId && !!userId,
+    enabled: shouldFetchFromDB,
     staleTime: 0,
     gcTime: 0,
+  });
+  
+  // Use route params playbook if it's a full playbook, otherwise use fetched playbook
+  const playbook = isFullPlaybook ? (routePlaybook as Playbook) : fetchedPlaybook;
+  
+  console.log('📖 PlaybookDetailScreen - Final playbook source:', {
+    hasRoutePlaybook: !!routePlaybook,
+    isFullPlaybook,
+    usingRouteParams: isFullPlaybook,
+    usingDatabase: !!fetchedPlaybook && !isFullPlaybook,
+    hasPlaybook: !!playbook,
+    playbookTitle: playbook?.title
   });
 
   // 2b. Advanced playbook hooks for prefetching and navigation
@@ -1015,6 +1039,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
               lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
             } : undefined}
+            navigation={rootNavigation}
           />
         </TouchableOpacity>
       );

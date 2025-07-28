@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { NavigationProp } from '@react-navigation/native';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
+import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
 
 type SubTask = {
   id: string;
@@ -24,6 +26,7 @@ type ActionStep = {
 
 type ActionStepsCardProps = {
   steps?: ActionStep[];
+  navigation?: NavigationProp<any>;
   style?: StyleProp<ViewStyle>;
   textColor?: string;
   solidCardBackground?: boolean;
@@ -113,6 +116,7 @@ const processSteps = (steps: ActionStep[]): ActionStep[] => {
 
 export default function ActionStepsCard({
   steps: propSteps,
+  navigation,
   style,
   textColor,
   solidCardBackground,
@@ -144,9 +148,21 @@ export default function ActionStepsCard({
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask) => {
     console.log('[ActionStepsCard] Journal type pressed:', { journalType, subTask });
-    // TODO: Navigate to appropriate journaling component based on type
-    // This will be implemented when we add navigation handlers
-  }, []);
+    
+    if (!navigation) {
+      console.warn('[ActionStepsCard] Navigation not available for journal type navigation');
+      return;
+    }
+    
+    if (journalType === 'none') {
+      console.log('[ActionStepsCard] No journaling needed for this task');
+      return;
+    }
+    
+    // Use smart journaling navigation service
+    const navService = SmartJournalingNavigation.create(navigation);
+    navService.navigateToJournaling(journalType as any, subTask);
+  }, [navigation]);
 
   // Create dynamic styles based on props
   const dynamicStyles = useMemo(() => ({
@@ -282,61 +298,74 @@ export default function ActionStepsCard({
 
                   {subtasks.length > 0 && (
                     <View style={styles.subTasksList}>
-                      {subtasks.map((subTask) => (
-                        <TouchableOpacity
-                          key={subTask.id}
-                          style={styles.subTaskButton}
-                          onPress={() => onToggleSubTask(step.id, subTask.id)}
-                          activeOpacity={0.7}
-                        >
-                          <View style={styles.checkboxContainer}>
-                            <MaterialCommunityIcons
-                              name={
-                                subTask.completed
-                                  ? 'checkbox-marked-circle'
-                                  : 'checkbox-blank-circle-outline'
-                              }
-                              size={24}
-                              style={[
-                                styles.checkboxIcon,
-                                getCheckboxColor(subTask.completed),
-                              ]}
-                            />
-                          </View>
-                          <View style={styles.subTaskContent}>
-                            <Text
-                              style={[
-                                dynamicStyles.subTaskText,
-                                subTask.completed && styles.completedText,
-                              ]}
+                      {subtasks.map((subTask) => {
+                        // Debug: Log subtask data for smart journaling
+                        console.log('[ActionStepsCard] Subtask debug:', {
+                          text: subTask.text?.substring(0, 30) + '...',
+                          detected_journal_type: subTask.detected_journal_type,
+                          completed: subTask.completed,
+                          shouldShow: shouldShowJournalIcon(subTask.detected_journal_type),
+                          parsedTypes: parseJournalTypes(subTask.detected_journal_type)
+                        });
+                        
+                        return (
+                          <View
+                            key={subTask.id}
+                            style={styles.subTaskButton}
+                          >
+                            <TouchableOpacity
+                              style={styles.checkboxContainer}
+                              onPress={() => onToggleSubTask(step.id, subTask.id)}
+                              activeOpacity={0.7}
                             >
-                              {subTask.text}
-                            </Text>
-                            {shouldShowJournalIcon(subTask.detected_journal_type) && (
-                              <View style={styles.journalTypesContainer}>
-                                {parseJournalTypes(subTask.detected_journal_type).map((journalType, typeIndex) => (
-                                  <TouchableOpacity
-                                    key={`${journalType}-${typeIndex}`}
-                                    style={[
-                                      styles.journalTypeIndicator,
-                                      typeIndex > 0 && styles.journalTypeIndicatorSpaced,
-                                    ]}
-                                    onPress={() => onJournalTypePress(journalType, subTask)}
-                                    activeOpacity={0.7}
-                                  >
-                                    <MaterialCommunityIcons
-                                      name={getJournalTypeIcon(journalType)}
-                                      size={16}
-                                      color={getJournalTypeColor(journalType)}
-                                      style={styles.journalIcon}
-                                    />
-                                  </TouchableOpacity>
-                                ))}
-                              </View>
-                            )}
+                              <MaterialCommunityIcons
+                                name={
+                                  subTask.completed
+                                    ? 'checkbox-marked-circle'
+                                    : 'checkbox-blank-circle-outline'
+                                }
+                                size={24}
+                                style={[
+                                  styles.checkboxIcon,
+                                  getCheckboxColor(subTask.completed),
+                                ]}
+                              />
+                            </TouchableOpacity>
+                            <View style={styles.subTaskContent}>
+                              <Text
+                                style={[
+                                  dynamicStyles.subTaskText,
+                                  subTask.completed && styles.completedText,
+                                ]}
+                              >
+                                {subTask.text}
+                              </Text>
+                              {shouldShowJournalIcon(subTask.detected_journal_type) && (
+                                <View style={styles.journalTypesContainer}>
+                                  {parseJournalTypes(subTask.detected_journal_type).map((journalType, typeIndex) => (
+                                    <TouchableOpacity
+                                      key={`${journalType}-${typeIndex}`}
+                                      style={[
+                                        styles.journalTypeIndicator,
+                                        typeIndex > 0 && styles.journalTypeIndicatorSpaced,
+                                      ]}
+                                      onPress={() => onJournalTypePress(journalType, subTask)}
+                                      activeOpacity={0.7}
+                                    >
+                                      <MaterialCommunityIcons
+                                        name={getJournalTypeIcon(journalType)}
+                                        size={16}
+                                        color={getJournalTypeColor(journalType)}
+                                        style={styles.journalIcon}
+                                      />
+                                    </TouchableOpacity>
+                                  ))}
+                                </View>
+                              )}
+                            </View>
                           </View>
-                        </TouchableOpacity>
-                      ))}
+                        );
+                      })}
                     </View>
                   )}
 

@@ -181,9 +181,9 @@ const UserInputScreen: React.FC = () => {
           directChallenge: aiResponse.directChallenge,
         });
 
-        // Generate the playbook content
-        savedPlaybook = await generatePlaybook(userInput, userName);
-        console.log('[UserInputScreen] Playbook generated:', savedPlaybook.id);
+        // Use the AI response that already contains smart journaling data
+        savedPlaybook = aiResponse;
+        console.log('[UserInputScreen] Using AI response with smart journaling data:', savedPlaybook.id);
 
         // Save the generated playbook to the database
         const saveResult = await savePlaybook(savedPlaybook, actualUserId);

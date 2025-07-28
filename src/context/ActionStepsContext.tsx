@@ -7,6 +7,7 @@ export type SubTask = {
   id: string;
   text: string;
   completed: boolean;
+  detected_journal_type?: string;
 };
 
 export type ActionStep = {
@@ -89,6 +90,7 @@ export const ActionStepsProvider: React.FC<ActionStepsProviderProps> = ({
       id: task.id || `${stepId}-subtask-${index}`,
       text: task.text || '',
       completed: Boolean(task.completed),
+      detected_journal_type: task.detected_journal_type || 'none', // Preserve smart journaling data
     };
   }, []);
 
