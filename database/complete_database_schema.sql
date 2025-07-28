@@ -1,5 +1,6 @@
 -- Complete Database Schema for siFia Application
--- Generated on: 2025-07-28
+-- Updated on: 2025-07-29
+-- Includes reflection_entries table with all migrated fields
 
 -- Enable necessary extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";

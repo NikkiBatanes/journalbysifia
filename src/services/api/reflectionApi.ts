@@ -4,15 +4,16 @@ import { supabase } from '../supabaseClient';
 export interface ReflectionApiEntry {
   id: string;
   user_id: string;
-  title: string;
+  title?: string; // Optional in database
   content: string;
-  type: 'free' | 'guided' | 'devotional';
-  selected_date: string;
+  type: string; // Can be 'free', 'guided', 'devotional', 'playbook', etc.
+  selected_date: string; // timestamp with time zone as string
   created_at: string;
   updated_at: string;
-  // Additional fields added by migration
+  is_deleted?: boolean; // Optional with default false in database
+  // Additional fields from migration
   prompt?: string;
-  tags?: string[];
+  tags?: string[]; // ARRAY type in database
   source?: string;
   devotional_title?: string;
   day_number?: number;

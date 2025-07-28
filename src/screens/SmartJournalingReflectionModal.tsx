@@ -69,7 +69,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         user_id: user.id,
         title: entry.title,
         content: entry.content,
-        type: 'free' as const,
+        type: 'playbook' as const, // Save as 'playbook' type for smart journaling
+        source: 'playbook' as const, // Mark source as playbook for filtering
         selected_date: dateStr,
         tags: [...(entry.tags || []), 'playbook'], // Add 'playbook' tag to identify source
         // Add playbook metadata for identification and filtering
