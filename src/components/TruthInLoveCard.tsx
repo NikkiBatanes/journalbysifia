@@ -33,8 +33,21 @@ export default function TruthInLoveCard({
   currentUser,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   // Replace [User's Name] placeholders with current user's name
-  const processedTruth = currentUser ? replaceAllNamePlaceholders(truth, currentUser) : truth;
-  const processedSummary = currentUser ? replaceAllNamePlaceholders(summary, currentUser) : summary;
+  console.log('[TruthInLoveCard] Debug Info:', {
+    originalTruth: truth,
+    originalSummary: summary,
+    currentUser,
+    hasCurrentUser: !!currentUser,
+  });
+
+  const processedTruth = currentUser ? replaceAllNamePlaceholders(truth, currentUser, { replaceHardcodedNames: true }) : truth;
+  const processedSummary = currentUser ? replaceAllNamePlaceholders(summary, currentUser, { replaceHardcodedNames: true }) : summary;
+
+  console.log('[TruthInLoveCard] Processed:', {
+    processedTruth,
+    processedSummary,
+    changed: processedTruth !== truth || processedSummary !== summary,
+  });
 
   // Debug styles - can be removed after fixing
   const debugStyle = {
