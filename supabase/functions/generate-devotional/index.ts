@@ -779,23 +779,23 @@ serve(async (req: Request): Promise<Response> => {
     if (playbookId) {
       console.log(`Fetching playbook data for ID: ${playbookId}`);
       const playbookData = await fetchPlaybookData(playbookId);
-      
+
       if (playbookData && playbookData.truth_in_love) {
         const truthInLove = playbookData.truth_in_love;
         console.log('Truth in Love data found:', truthInLove);
-        
-        playbookContext = `\n\n## PLAYBOOK CONTEXT - TRUTH IN LOVE\n`;
+
+        playbookContext = '\n\n## PLAYBOOK CONTEXT - TRUTH IN LOVE\n';
         playbookContext += `Playbook: ${playbookData.title || 'Unknown'}\n`;
-        
+
         if (truthInLove.text) {
           playbookContext += `Truth: ${truthInLove.text}\n`;
         }
-        
+
         if (truthInLove.summary) {
           playbookContext += `Summary: ${truthInLove.summary}\n`;
         }
-        
-        playbookContext += `\nIMPORTANT: The devotional MUST align with and reinforce the truth and principles from this playbook. Use this context to guide the spiritual themes, biblical references, and practical applications in the devotional.`;
+
+        playbookContext += '\nIMPORTANT: The devotional MUST align with and reinforce the truth and principles from this playbook. Use this context to guide the spiritual themes, biblical references, and practical applications in the devotional.';
       } else {
         console.log('No truth_in_love data found for playbook:', playbookId);
       }

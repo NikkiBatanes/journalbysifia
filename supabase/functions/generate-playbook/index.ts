@@ -13,6 +13,26 @@ function generateUUID(): string {
   });
 }
 
+interface SubTask {
+  id: string;
+  text: string;
+  completed: boolean;
+  detected_journal_type?: string;
+  is_example?: boolean;
+  example_interactive?: boolean;
+  orderIndex?: number;
+}
+
+interface ActionStep {
+  id: string;
+  title: string;
+  subTasks: SubTask[];
+  examples: string[];
+  example_interactive?: boolean;
+  completed: boolean;
+  orderIndex?: number;
+}
+
 interface Playbook {
   id: string;
   title: string;
@@ -21,13 +41,7 @@ interface Playbook {
     summary: string;
     text: string;
   };
-  actionSteps: {
-    id: string;
-    title: string;
-    subTasks: string[];
-    examples: string[];
-    completed: boolean;
-  }[];
+  actionSteps: ActionStep[];
   affirmations: { id: string; text: string; completed: boolean }[];
   bibleVerse: { text: string; reference: string };
   directChallenge: string;
@@ -137,31 +151,67 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
     playbook.truthInLove.text = truthText;
   }
 
-  // Parse Action Steps
+  // Parse Action Steps with Smart Journaling
   const actionStepsMatch = content.match(/ACTION STEPS:\s*([\s\S]*?)(?=AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (actionStepsMatch) {
     const stepBlocks = actionStepsMatch[1]
       .split(/\n(?=\d+\.\s)/)
       .filter((block: string) => block.match(/^\d+\./));
 
-    playbook.actionSteps = stepBlocks.map((block: string, _idx: number) => {
+    playbook.actionSteps = stepBlocks.map((block: string, idx: number) => {
       const lines = block.split('\n').map((l: string) => l.trim()).filter(Boolean);
       const titleLine = lines[0].replace(/^\d+\.\s*/, '');
-      const subTasks: string[] = [];
+      const subTasks: SubTask[] = [];
       const examples: string[] = [];
+      let exampleInteractive = false;
 
       lines.slice(1).forEach((line: string) => {
         const trimmedLine = line.trim();
         if (/^-\s*Sub-task:/i.test(trimmedLine)) {
-          const subTask = trimmedLine.replace(/^-\s*Sub-task:\s*/i, '').trim();
-          if (subTask) {subTasks.push(subTask);}
+          const subTaskText = trimmedLine.replace(/^-\s*Sub-task:\s*/i, '').trim();
+
+          // Extract journal type(s) if present
+          let journalTypes = ['none']; // default to none instead of reflection
+          let cleanSubTaskText = subTaskText;
+
+          const journalMatch = subTaskText.match(/(.+?)\s*\|\s*Journal:\s*([a-z_,\s]+)/i);
+          if (journalMatch) {
+            cleanSubTaskText = journalMatch[1].trim();
+            const journalTypeString = journalMatch[2].trim();
+            // Handle multiple types separated by commas
+            journalTypes = journalTypeString.split(',').map(type => type.trim()).filter(type => type.length > 0);
+          }
+
+          // Use the first journal type for the main field (for backward compatibility)
+          const primaryJournalType = journalTypes[0] || 'none';
+
+          if (cleanSubTaskText) {
+            subTasks.push({
+              id: generateUUID(),
+              text: cleanSubTaskText,
+              completed: false,
+              detected_journal_type: primaryJournalType,
+              is_example: false,
+              example_interactive: false,
+              orderIndex: subTasks.length,
+            });
+          }
         } else if (/^-\s*Example:/i.test(trimmedLine)) {
-          const example = trimmedLine.replace(/^-\s*Example:\s*/i, '').trim();
-          if (example) {examples.push(example);}
+          const exampleText = trimmedLine.replace(/^-\s*Example:\s*/i, '').trim();
+
+          // Check if example is interactive
+          const interactiveMatch = exampleText.match(/(.+?)\s*\|\s*Interactive:\s*(true|false)/i);
+          if (interactiveMatch) {
+            const cleanExampleText = interactiveMatch[1].trim();
+            exampleInteractive = interactiveMatch[2].toLowerCase() === 'true';
+            if (cleanExampleText) {examples.push(cleanExampleText);}
+          } else if (exampleText) {
+            examples.push(exampleText);
+          }
         } else if (subTasks.length > 0 && !trimmedLine.startsWith('- ')) {
-          // Handle multi-line sub-tasks or examples
+          // Handle multi-line sub-tasks
           const lastIndex = subTasks.length - 1;
-          subTasks[lastIndex] = `${subTasks[lastIndex]} ${trimmedLine}`.trim();
+          subTasks[lastIndex].text = `${subTasks[lastIndex].text} ${trimmedLine}`.trim();
         }
       });
 
@@ -170,11 +220,14 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
         title: titleLine,
         subTasks,
         examples,
+        example_interactive: exampleInteractive,
         completed: false,
+        orderIndex: idx,
       };
     });
 
-    playbook.totalTasks = playbook.actionSteps.length;
+    // Calculate total tasks (count all subtasks)
+    playbook.totalTasks = playbook.actionSteps.reduce((total, step) => total + step.subTasks.length, 0);
   }
 
   // Parse Affirmations

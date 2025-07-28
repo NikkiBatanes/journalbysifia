@@ -7,6 +7,10 @@ export interface SubTask {
   id: string;
   text: string;
   completed: boolean;
+  detected_journal_type?: string; // AI-detected journal type
+  is_example?: boolean; // Whether this subtask is an example
+  example_interactive?: boolean; // Whether the example can be interacted with
+  orderIndex?: number; // For ordering subtasks
 }
 
 export interface ActionStep {
@@ -14,8 +18,10 @@ export interface ActionStep {
   title: string;
   description?: string; // For steps without sub-tasks
   examples?: string; // Examples from database
+  example_interactive?: boolean; // Whether examples can be interacted with
   subTasks?: SubTask[]; // Only present if there are sub-tasks
   completed: boolean; // Always boolean for strict typing
+  orderIndex?: number; // For ordering action steps
 }
 
 export interface TruthInLove {

@@ -29,7 +29,7 @@ import { extractCleanTitle } from '../utils/titleUtils';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
-import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
+
 
 type DevotionalDetailScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'DevotionalDetail'>;
@@ -43,14 +43,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const { devotionalId } = route.params;
   const { user } = useAuth();
   const userId = user?.id;
-
-  // Map Supabase user to currentUser format for name replacement
-  const currentUser = user ? {
-    firstName: user.user_metadata?.firstName || user.user_metadata?.first_name || '',
-    lastName: user.user_metadata?.lastName || user.user_metadata?.last_name || '',
-    displayName: user.user_metadata?.displayName || user.user_metadata?.full_name ||
-                 `${user.user_metadata?.firstName || user.user_metadata?.first_name || ''} ${user.user_metadata?.lastName || user.user_metadata?.last_name || ''}`.trim() || 'User',
-  } : null;
 
   // React Query hooks for devotional data
   const { data: devotional, isLoading: devotionalLoading } = useDevotionalByIdReactQuery(userId || '', devotionalId);

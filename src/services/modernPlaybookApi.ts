@@ -173,6 +173,7 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
           examples: examplesText, // Store examples in dedicated field
           completed: step.completed || false,
           order_index: index,
+          example_interactive: step.example_interactive || false,
         };
       });
 
@@ -199,13 +200,25 @@ export async function savePlaybook(playbook: Playbook, userId: string): Promise<
             .eq('action_step_id', step.id);
 
           // Insert new sub-tasks
-          const subTasksToInsert = step.subTasks.map((subTask, subIndex) => ({
-            id: ensureValidUUID(generateUUID()),
-            action_step_id: step.id,
-            text: subTask,
-            completed: false,
-            order_index: subIndex,
-          }));
+          const subTasksToInsert = step.subTasks.map((subTask, subIndex) => {
+            // Handle both string and object formats for subtasks
+            const subTaskText = typeof subTask === 'string' ? subTask : subTask.text;
+            const subTaskId = typeof subTask === 'object' && subTask.id ? subTask.id : ensureValidUUID(generateUUID());
+            const detectedJournalType = typeof subTask === 'object' ? subTask.detected_journal_type : null;
+            const isExample = typeof subTask === 'object' ? subTask.is_example : false;
+            const exampleInteractive = typeof subTask === 'object' ? subTask.example_interactive : false;
+
+            return {
+              id: subTaskId,
+              action_step_id: step.id,
+              text: subTaskText,
+              completed: typeof subTask === 'object' ? subTask.completed : false,
+              order_index: subIndex,
+              detected_journal_type: detectedJournalType,
+              is_example: isExample,
+              example_interactive: exampleInteractive,
+            };
+          });
 
           const { error: subTasksError } = await supabase
             .from('playbook_sub_tasks')
