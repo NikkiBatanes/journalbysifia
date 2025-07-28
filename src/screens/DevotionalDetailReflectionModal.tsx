@@ -44,7 +44,18 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   const { refetch } = useReflectionData(user?.id || '', dateStr);
 
   // Save reflection using React Query system
-  const saveReflection = async (entry: { title: string; content: string; tags?: string[] }) => {
+  const saveReflection = async (entry: { 
+    title: string; 
+    content: string; 
+    tags?: string[];
+    prompt?: string;
+    source?: string;
+    devotionalTitle?: string;
+    dayNumber?: number;
+    dayTitle?: string;
+    totalDays?: number;
+    questionNumber?: number;
+  }) => {
     try {
       console.log('🔍 DevotionalDetailReflectionModal: saveReflection started with:', entry);
       console.log('🔍 DevotionalDetailReflectionModal: User:', user?.id);
@@ -64,22 +75,27 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       });
 
       // Create save data matching the database schema
-      // TODO: Add devotional metadata fields after database migration
       const saveData = {
         title: entry.title,
         content: entry.content,
         type: 'devotional' as const, // Always devotional type for devotional reflections
-        source: 'devotional' as const, // Mark as devotional source for metadata display
+        source: entry.source || 'devotional' as const, // Use entry source or default to devotional
         user_id: user.id,
         selected_date: dateStr,
-        // Include devotional metadata fields
-        prompt: question,
+        // Include devotional metadata fields - prefer entry fields over props
+        prompt: entry.prompt || question,
         tags: entry.tags || [],
-        ...(devotionalTitle && { devotional_title: devotionalTitle }),
-        ...(dayNumber !== undefined && { day_number: dayNumber }),
-        ...(dayTitle && { day_title: dayTitle }),
-        ...(totalDays !== undefined && { total_days: totalDays }),
-        ...(questionNumber !== undefined && { question_number: questionNumber }),
+        ...(entry.devotionalTitle && { devotional_title: entry.devotionalTitle }),
+        ...(entry.dayNumber !== undefined && { day_number: entry.dayNumber }),
+        ...(entry.dayTitle && { day_title: entry.dayTitle }),
+        ...(entry.totalDays !== undefined && { total_days: entry.totalDays }),
+        ...(entry.questionNumber !== undefined && { question_number: entry.questionNumber }),
+        // Fallback to props if entry fields are not provided
+        ...(!entry.devotionalTitle && devotionalTitle && { devotional_title: devotionalTitle }),
+        ...(!entry.dayNumber && dayNumber !== undefined && { day_number: dayNumber }),
+        ...(!entry.dayTitle && dayTitle && { day_title: dayTitle }),
+        ...(!entry.totalDays && totalDays !== undefined && { total_days: totalDays }),
+        ...(!entry.questionNumber && questionNumber !== undefined && { question_number: questionNumber }),
       };
 
       // Save to database using React Query
@@ -133,7 +149,15 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       const savedEntry = await saveReflection({
         title: entry.title,
         content: entry.content,
-        tags: entry.tags,
+        tags: entry.tags || [],
+        // Pass through all the metadata fields from the entry
+        ...(entry.prompt && { prompt: entry.prompt }),
+        ...(entry.source && { source: entry.source }),
+        ...(entry.devotionalTitle && { devotionalTitle: entry.devotionalTitle }),
+        ...(entry.dayNumber !== undefined && { dayNumber: entry.dayNumber }),
+        ...(entry.dayTitle && { dayTitle: entry.dayTitle }),
+        ...(entry.totalDays !== undefined && { totalDays: entry.totalDays }),
+        ...(entry.questionNumber !== undefined && { questionNumber: entry.questionNumber }),
       });
       console.log('🔍 DevotionalDetailReflectionModal: saveReflection completed:', savedEntry);
 
