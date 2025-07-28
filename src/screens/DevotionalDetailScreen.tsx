@@ -618,10 +618,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     <View style={styles.questionCardContainer}>
                       <Text style={styles.questionCardNumber}>{idx + 1}</Text>
                       <Text style={styles.questionCardText}>
-                        {currentUser
-                          ? replaceAllNamePlaceholders(question.text || 'Reflection question', currentUser)
-                          : (question.text || 'Reflection question')
-                        }
+                        {question.text || 'Reflection question'}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -640,10 +637,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 <Text style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
-                    ? (currentUser
-                        ? replaceAllNamePlaceholders(day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n'), currentUser)
-                        : day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
-                      )
+                    ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
                     : 'No prayer for today.'}
                 </Text>
                 <TouchableOpacity
