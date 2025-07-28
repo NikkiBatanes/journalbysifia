@@ -29,6 +29,7 @@ import { extractCleanTitle } from '../utils/titleUtils';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
+import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 
 type DevotionalDetailScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'DevotionalDetail'>;
@@ -42,6 +43,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const { devotionalId } = route.params;
   const { user } = useAuth();
   const userId = user?.id;
+
+  // Map Supabase user to currentUser format for name replacement
+  const currentUser = user ? {
+    firstName: user.user_metadata?.firstName || user.user_metadata?.first_name || '',
+    lastName: user.user_metadata?.lastName || user.user_metadata?.last_name || '',
+    displayName: user.user_metadata?.displayName || user.user_metadata?.full_name || 
+                 `${user.user_metadata?.firstName || user.user_metadata?.first_name || ''} ${user.user_metadata?.lastName || user.user_metadata?.last_name || ''}`.trim() || 'User'
+  } : null;
 
   // React Query hooks for devotional data
   const { data: devotional, isLoading: devotionalLoading } = useDevotionalByIdReactQuery(userId || '', devotionalId);
@@ -584,7 +593,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               title="Daily Reflection"
               subtitle="Meditate on this"
             >
-              <Text style={styles.reflectionText}>{day?.reflection || ''}</Text>
+              <Text style={styles.reflectionText}>
+                {currentUser ? replaceAllNamePlaceholders(day?.reflection || '', currentUser) : (day?.reflection || '')}
+              </Text>
             </DevotionalSectionCard>
 
             {/* Questions Card */}
@@ -607,7 +618,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     <View style={styles.questionCardContainer}>
                       <Text style={styles.questionCardNumber}>{idx + 1}</Text>
                       <Text style={styles.questionCardText}>
-                        {question.text || 'Reflection question'}
+                        {currentUser 
+                          ? replaceAllNamePlaceholders(question.text || 'Reflection question', currentUser)
+                          : (question.text || 'Reflection question')
+                        }
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -626,7 +640,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 <Text style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
-                    ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
+                    ? (currentUser 
+                        ? replaceAllNamePlaceholders(day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n'), currentUser)
+                        : day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
+                      )
                     : 'No prayer for today.'}
                 </Text>
                 <TouchableOpacity

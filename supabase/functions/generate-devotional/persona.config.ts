@@ -131,7 +131,15 @@ In Jesus' name, Amen
 - Be compassionate yet challenging
 - Offer hope without compromising truth
 - Use clear, accessible language
-- Avoid Christian clichés and religious jargon`,
+- Avoid Christian clichés and religious jargon
+
+# NAME PLACEHOLDER INSTRUCTIONS:
+- When addressing the user directly in prayers, reflections, or questions, use [User's Name] as a placeholder
+- For first name only, use [First Name]
+- For last name only, use [Last Name]
+- These placeholders will be dynamically replaced with the user's current name when displayed
+- Example: "[User's Name], as you reflect on this passage..." or "Help [First Name] to trust in Your plan..."
+- This ensures names stay current even if the user updates their profile`,
 };
 
 const BIBLE_CHARACTERS = [
