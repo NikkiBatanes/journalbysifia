@@ -658,6 +658,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       headerTransparent: false,
       headerStyle: {
         backgroundColor: Colors.hopeWhite,
+        height: 50, // Reduced from default ~60
+      },
+      headerTitleStyle: {
+        paddingBottom: 4, // Reduced bottom padding for title
       },
     });
   }, [navigation, headerLeft, user]);

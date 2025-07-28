@@ -132,6 +132,10 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       headerTransparent: false,
       headerStyle: {
         backgroundColor: Colors.anchorBlue,
+        height: 50, // Reduced from default ~60
+      },
+      headerTitleStyle: {
+        paddingBottom: 0, // Reduced bottom padding for title
       },
     });
   }, [navigation, headerLeft, user]);
