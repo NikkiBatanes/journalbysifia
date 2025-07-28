@@ -148,17 +148,17 @@ export default function ActionStepsCard({
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask) => {
     console.log('[ActionStepsCard] Journal type pressed:', { journalType, subTask });
-    
+
     if (!navigation) {
       console.warn('[ActionStepsCard] Navigation not available for journal type navigation');
       return;
     }
-    
+
     if (journalType === 'none') {
       console.log('[ActionStepsCard] No journaling needed for this task');
       return;
     }
-    
+
     // Use smart journaling navigation service
     const navService = SmartJournalingNavigation.create(navigation);
     navService.navigateToJournaling(journalType as any, subTask);
@@ -305,9 +305,9 @@ export default function ActionStepsCard({
                           detected_journal_type: subTask.detected_journal_type,
                           completed: subTask.completed,
                           shouldShow: shouldShowJournalIcon(subTask.detected_journal_type),
-                          parsedTypes: parseJournalTypes(subTask.detected_journal_type)
+                          parsedTypes: parseJournalTypes(subTask.detected_journal_type),
                         });
-                        
+
                         return (
                           <View
                             key={subTask.id}

@@ -2,7 +2,7 @@
 
 /**
  * Live UI Debug Script for Smart Journaling
- * 
+ *
  * This script helps debug why smart journaling UI indicators aren't showing
  * by checking various aspects of the implementation.
  */
@@ -22,15 +22,15 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function debugSmartJournalingUI() {
   console.log('🔍 Live UI Debug for Smart Journaling\n');
-  
+
   // 1. Check database schema
   console.log('📋 1. Checking Database Schema...');
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('playbook_sub_tasks')
       .select('id, text, detected_journal_type, is_example, example_interactive')
       .limit(1);
-    
+
     if (error) {
       console.error('❌ Database schema check failed:', error.message);
       return;
@@ -40,7 +40,7 @@ async function debugSmartJournalingUI() {
     console.error('❌ Database connection failed:', err.message);
     return;
   }
-  
+
   // 2. Check recent playbooks with smart journaling data
   console.log('\n📚 2. Checking Recent Playbooks...');
   try {
@@ -60,12 +60,12 @@ async function debugSmartJournalingUI() {
       `)
       .order('created_at', { ascending: false })
       .limit(5);
-    
+
     if (error) {
       console.error('❌ Failed to fetch playbooks:', error.message);
       return;
     }
-    
+
     if (!playbooks || playbooks.length === 0) {
       console.log('📝 No playbooks found. Generate a new one in the app!');
       console.log('\n🎯 Steps to test:');
@@ -75,16 +75,16 @@ async function debugSmartJournalingUI() {
       console.log('4. Look for colored journal type icons next to subtasks');
       return;
     }
-    
+
     let foundSmartJournaling = false;
     playbooks.forEach((playbook, index) => {
       console.log(`\n📖 Playbook ${index + 1}: ${playbook.title}`);
       console.log(`   Created: ${new Date(playbook.created_at).toLocaleString()}`);
-      
-      const smartSubtasks = playbook.playbook_sub_tasks?.filter(st => 
+
+      const smartSubtasks = playbook.playbook_sub_tasks?.filter(st =>
         st.detected_journal_type && st.detected_journal_type !== 'none'
       ) || [];
-      
+
       if (smartSubtasks.length > 0) {
         foundSmartJournaling = true;
         console.log(`   ✅ Smart journaling subtasks: ${smartSubtasks.length}`);
@@ -95,7 +95,7 @@ async function debugSmartJournalingUI() {
         console.log('   ⚪ No smart journaling data found');
       }
     });
-    
+
     if (foundSmartJournaling) {
       console.log('\n✅ Smart journaling data exists in database!');
       console.log('\n🔍 If UI indicators are still not showing:');
@@ -108,11 +108,11 @@ async function debugSmartJournalingUI() {
       console.log('\n📝 No smart journaling data found in recent playbooks.');
       console.log('Generate a new playbook with spiritual content to test!');
     }
-    
+
   } catch (err) {
     console.error('❌ Failed to check playbooks:', err.message);
   }
-  
+
   // 3. Test API directly
   console.log('\n🧪 3. Testing API Integration...');
   try {
@@ -124,18 +124,18 @@ async function debugSmartJournalingUI() {
       },
       body: JSON.stringify({
         userInput: 'Help me pray for my family and reflect on God\'s goodness this week',
-        userId: 'debug-test-user'
-      })
+        userId: 'debug-test-user',
+      }),
     });
-    
+
     if (!response.ok) {
       console.log('⚠️  API test skipped (expected in some environments)');
     } else {
       const result = await response.json();
-      const smartSubtasks = result.actionSteps?.flatMap(step => 
+      const smartSubtasks = result.actionSteps?.flatMap(step =>
         step.subTasks?.filter(st => st.detected_journal_type && st.detected_journal_type !== 'none') || []
       ) || [];
-      
+
       if (smartSubtasks.length > 0) {
         console.log(`✅ API generates smart journaling data: ${smartSubtasks.length} subtasks`);
       } else {
@@ -145,7 +145,7 @@ async function debugSmartJournalingUI() {
   } catch (err) {
     console.log('⚠️  API test skipped:', err.message);
   }
-  
+
   // 4. Component integration checklist
   console.log('\n🔧 4. Component Integration Checklist:');
   console.log('✅ ActionStepsCard.tsx - Smart journaling logic implemented');
@@ -153,14 +153,14 @@ async function debugSmartJournalingUI() {
   console.log('✅ PlaybookDetailScreenNew.tsx - Navigation prop passed');
   console.log('✅ SmartJournalingNavigation.ts - Service implemented');
   console.log('✅ Database migration - Smart journaling columns added');
-  
+
   console.log('\n📱 Next Steps:');
   console.log('1. Open React Native debugger');
   console.log('2. Generate a spiritual playbook in the app');
   console.log('3. Check console for [ActionStepsCard] logs');
   console.log('4. Look for colored journal icons next to subtasks');
   console.log('5. Tap icons to test navigation');
-  
+
   console.log('\n🎯 Expected UI:');
   console.log('• Prayer subtasks: 🙏 (blue)');
   console.log('• Reflection subtasks: 💡 (purple)');
@@ -179,7 +179,7 @@ function getJournalEmoji(type) {
     todos: '✅',
     focus: '🎯',
     financial_budgeting: '💰',
-    financial_tithing: '🎁'
+    financial_tithing: '🎁',
   };
   return emojis[type] || '📝';
 }

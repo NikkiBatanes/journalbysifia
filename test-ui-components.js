@@ -16,7 +16,7 @@ console.log('📱 Test 1: ActionStepsCard Implementation');
 const actionStepsPath = path.join(__dirname, 'src/components/ActionStepsCard.tsx');
 if (fs.existsSync(actionStepsPath)) {
   const content = fs.readFileSync(actionStepsPath, 'utf8');
-  
+
   const requiredFeatures = [
     { name: 'Smart Journaling Import', pattern: /SmartJournalingNavigation/ },
     { name: 'Navigation Prop', pattern: /navigation\?:/ },
@@ -24,9 +24,9 @@ if (fs.existsSync(actionStepsPath)) {
     { name: 'Journal Type Icon Function', pattern: /getJournalTypeIcon/ },
     { name: 'Journal Type Color Function', pattern: /getJournalTypeColor/ },
     { name: 'Multiple Journal Types Support', pattern: /split.*,.*map/ },
-    { name: 'Navigation Service Usage', pattern: /SmartJournalingNavigation\.create/ }
+    { name: 'Navigation Service Usage', pattern: /SmartJournalingNavigation\.create/ },
   ];
-  
+
   console.log('✅ ActionStepsCard found');
   requiredFeatures.forEach(feature => {
     if (feature.pattern.test(content)) {
@@ -35,7 +35,7 @@ if (fs.existsSync(actionStepsPath)) {
       console.log(`   ❌ ${feature.name} - Missing or incorrect`);
     }
   });
-  
+
   // Check for journal type mappings
   const journalTypes = ['prayer', 'reflection', 'gratitude', 'timeblock', 'todos'];
   console.log('\n   📋 Journal Type Mappings:');
@@ -46,7 +46,7 @@ if (fs.existsSync(actionStepsPath)) {
       console.log(`   ❌ ${type} - Not found`);
     }
   });
-  
+
 } else {
   console.log('❌ ActionStepsCard not found');
 }
@@ -57,14 +57,14 @@ console.log('\n🔗 Test 2: DocumentCardView Integration');
 const docCardPath = path.join(__dirname, 'src/components/DocumentCardView.tsx');
 if (fs.existsSync(docCardPath)) {
   const content = fs.readFileSync(docCardPath, 'utf8');
-  
+
   const integrationChecks = [
     { name: 'Navigation Import', pattern: /NavigationProp/ },
     { name: 'Navigation Prop in Interface', pattern: /navigation\?\s*:\s*NavigationProp/ },
     { name: 'Navigation Prop Destructuring', pattern: /navigation.*\}\s*=/ },
-    { name: 'Navigation Passed to ActionStepsCard', pattern: /navigation=\{navigation\}/ }
+    { name: 'Navigation Passed to ActionStepsCard', pattern: /navigation=\{navigation\}/ },
   ];
-  
+
   console.log('✅ DocumentCardView found');
   integrationChecks.forEach(check => {
     if (check.pattern.test(content)) {
@@ -73,7 +73,7 @@ if (fs.existsSync(docCardPath)) {
       console.log(`   ❌ ${check.name} - Missing`);
     }
   });
-  
+
 } else {
   console.log('❌ DocumentCardView not found');
 }
@@ -84,7 +84,7 @@ console.log('\n📺 Test 3: PlaybookDetailScreenNew Integration');
 const playbookPath = path.join(__dirname, 'src/screens/PlaybookDetailScreenNew.tsx');
 if (fs.existsSync(playbookPath)) {
   const content = fs.readFileSync(playbookPath, 'utf8');
-  
+
   if (content.includes('navigation={rootNavigation}')) {
     console.log('✅ PlaybookDetailScreenNew found');
     console.log('   ✅ Navigation prop passed to DocumentCardView');
@@ -92,7 +92,7 @@ if (fs.existsSync(playbookPath)) {
     console.log('✅ PlaybookDetailScreenNew found');
     console.log('   ❌ Navigation prop not passed to DocumentCardView');
   }
-  
+
 } else {
   console.log('❌ PlaybookDetailScreenNew not found');
 }
@@ -103,16 +103,16 @@ console.log('\n🧭 Test 4: Smart Journaling Navigation Service');
 const navServicePath = path.join(__dirname, 'src/services/smartJournalingNavigation.ts');
 if (fs.existsSync(navServicePath)) {
   const content = fs.readFileSync(navServicePath, 'utf8');
-  
+
   const navigationMethods = [
     'navigateToJournaling',
-    'navigateToPrayer', 
+    'navigateToPrayer',
     'navigateToReflection',
     'navigateToGratitude',
     'navigateToTimeBlock',
-    'navigateToTodos'
+    'navigateToTodos',
   ];
-  
+
   console.log('✅ Smart Journaling Navigation Service found');
   navigationMethods.forEach(method => {
     if (content.includes(method)) {
@@ -121,7 +121,7 @@ if (fs.existsSync(navServicePath)) {
       console.log(`   ❌ ${method} - Missing`);
     }
   });
-  
+
 } else {
   console.log('❌ Smart Journaling Navigation Service not found');
 }
@@ -157,12 +157,12 @@ console.log('   If you\'re still not seeing indicators, try the debugging steps 
 // Create a mock data example
 console.log('\n📋 **Expected Data Structure:**');
 const mockData = {
-  id: "test-subtask",
-  text: "Pray for healing for my family",
+  id: 'test-subtask',
+  text: 'Pray for healing for my family',
   completed: false,
-  detected_journal_type: "prayer",
+  detected_journal_type: 'prayer',
   is_example: false,
-  example_interactive: false
+  example_interactive: false,
 };
 
 console.log(JSON.stringify(mockData, null, 2));

@@ -219,14 +219,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Only use route playbook if it has the full playbook structure (not just id)
   const isFullPlaybook = routePlaybook && typeof routePlaybook === 'object' && 'title' in routePlaybook && 'actionSteps' in routePlaybook;
   const shouldFetchFromDB = !isFullPlaybook && !!playbookId && !!userId;
-  
+
   console.log('📖 PlaybookDetailScreen - Data source decision:', {
     hasRoutePlaybook: !!routePlaybook,
     shouldFetchFromDB,
     routePlaybookId: routePlaybook?.id,
-    playbookId
+    playbookId,
   });
-  
+
   const { data: fetchedPlaybook, isLoading, error } = useQuery<Playbook | null>({
     queryKey: ['playbook', playbookId],
     queryFn: async () => {
@@ -244,17 +244,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     staleTime: 0,
     gcTime: 0,
   });
-  
+
   // Use route params playbook if it's a full playbook, otherwise use fetched playbook
   const playbook = isFullPlaybook ? (routePlaybook as Playbook) : fetchedPlaybook;
-  
+
   console.log('📖 PlaybookDetailScreen - Final playbook source:', {
     hasRoutePlaybook: !!routePlaybook,
     isFullPlaybook,
     usingRouteParams: isFullPlaybook,
     usingDatabase: !!fetchedPlaybook && !isFullPlaybook,
     hasPlaybook: !!playbook,
-    playbookTitle: playbook?.title
+    playbookTitle: playbook?.title,
   });
 
   // 2b. Advanced playbook hooks for prefetching and navigation

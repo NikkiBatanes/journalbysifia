@@ -10,27 +10,27 @@ console.log('🔍 Testing Smart Journaling Icon Names\n');
 // Icon mapping from ActionStepsCard.tsx
 const iconMapping = {
   prayer: 'hands-pray',
-  reflection: 'head-lightbulb', 
+  reflection: 'head-lightbulb',
   gratitude: 'heart',
   win: 'trophy',
   timeblock: 'clock',
   todos: 'checkbox-marked-circle',
   focus: 'target',
   financial_budgeting: 'currency-usd',
-  financial_tithing: 'gift'
+  financial_tithing: 'gift',
 };
 
 // Color mapping
 const colorMapping = {
   prayer: '#4A90E2',      // Blue
-  reflection: '#9B59B6',   // Purple  
+  reflection: '#9B59B6',   // Purple
   gratitude: '#E91E63',    // Pink
   win: '#FF9800',          // Orange
   timeblock: '#FF9800',    // Orange
   todos: '#4CAF50',        // Green
   focus: '#2196F3',        // Blue
   financial_budgeting: '#4CAF50', // Green
-  financial_tithing: '#4CAF50'    // Green
+  financial_tithing: '#4CAF50',    // Green
 };
 
 console.log('📋 Icon Validation:');

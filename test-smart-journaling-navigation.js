@@ -15,7 +15,7 @@ const path = require('path');
 const navServicePath = path.join(__dirname, 'src/services/smartJournalingNavigation.ts');
 if (fs.existsSync(navServicePath)) {
   console.log('✅ Smart journaling navigation service exists');
-  
+
   // Read and check key functions
   const content = fs.readFileSync(navServicePath, 'utf8');
   const functions = [
@@ -24,9 +24,9 @@ if (fs.existsSync(navServicePath)) {
     'navigateToReflection',
     'navigateToGratitude',
     'navigateToTimeBlock',
-    'navigateToTodos'
+    'navigateToTodos',
   ];
-  
+
   functions.forEach(func => {
     if (content.includes(func)) {
       console.log(`✅ Function ${func} found`);
@@ -42,15 +42,15 @@ console.log('\n📱 Test 2: Checking ActionStepsCard integration...');
 const actionStepsPath = path.join(__dirname, 'src/components/ActionStepsCard.tsx');
 if (fs.existsSync(actionStepsPath)) {
   console.log('✅ ActionStepsCard component exists');
-  
+
   const content = fs.readFileSync(actionStepsPath, 'utf8');
   const integrations = [
     'SmartJournalingNavigation',
     'NavigationProp',
     'onJournalTypePress',
-    'navigation?:'
+    'navigation?:',
   ];
-  
+
   integrations.forEach(integration => {
     if (content.includes(integration)) {
       console.log(`✅ Integration ${integration} found`);
@@ -66,14 +66,14 @@ console.log('\n🔗 Test 3: Checking DocumentCardView integration...');
 const docCardPath = path.join(__dirname, 'src/components/DocumentCardView.tsx');
 if (fs.existsSync(docCardPath)) {
   console.log('✅ DocumentCardView component exists');
-  
+
   const content = fs.readFileSync(docCardPath, 'utf8');
   const integrations = [
     'NavigationProp',
     'navigation?:',
-    'navigation={navigation}'
+    'navigation={navigation}',
   ];
-  
+
   integrations.forEach(integration => {
     if (content.includes(integration)) {
       console.log(`✅ Integration ${integration} found`);
@@ -89,7 +89,7 @@ console.log('\n📺 Test 4: Checking PlaybookDetailScreenNew integration...');
 const playbookPath = path.join(__dirname, 'src/screens/PlaybookDetailScreenNew.tsx');
 if (fs.existsSync(playbookPath)) {
   console.log('✅ PlaybookDetailScreenNew exists');
-  
+
   const content = fs.readFileSync(playbookPath, 'utf8');
   if (content.includes('navigation={rootNavigation}')) {
     console.log('✅ Navigation prop passed to DocumentCardView');
@@ -104,10 +104,10 @@ console.log('\n🎯 Test 5: Journal Type Detection Integration...');
 const journalTypesPath = path.join(__dirname, 'src/types/journalTypes.ts');
 if (fs.existsSync(journalTypesPath)) {
   console.log('✅ Journal types file exists');
-  
+
   const content = fs.readFileSync(journalTypesPath, 'utf8');
   const types = ['prayer', 'reflection', 'gratitude', 'timeblock', 'todos', 'win'];
-  
+
   types.forEach(type => {
     if (content.includes(`'${type}'`) || content.includes(`"${type}"`)) {
       console.log(`✅ Journal type ${type} found`);

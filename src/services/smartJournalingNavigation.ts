@@ -1,12 +1,12 @@
 import { NavigationProp } from '@react-navigation/native';
 
-export type JournalType = 
-  | 'prayer' 
-  | 'reflection' 
-  | 'gratitude' 
-  | 'win' 
-  | 'timeblock' 
-  | 'todos' 
+export type JournalType =
+  | 'prayer'
+  | 'reflection'
+  | 'gratitude'
+  | 'win'
+  | 'timeblock'
+  | 'todos'
   | 'focus'
   | 'financial_budgeting'
   | 'financial_tithing'
@@ -43,42 +43,42 @@ export class SmartJournalingNavigation {
       case 'prayer':
         this.navigateToPrayer(subTask, context);
         break;
-      
+
       case 'reflection':
         this.navigateToReflection(subTask, context);
         break;
-      
+
       case 'gratitude':
         this.navigateToGratitude(subTask, context);
         break;
-      
+
       case 'win':
         this.navigateToWin(subTask, context);
         break;
-      
+
       case 'timeblock':
         this.navigateToTimeBlock(subTask, context);
         break;
-      
+
       case 'todos':
         this.navigateToTodos(subTask, context);
         break;
-      
+
       case 'focus':
         this.navigateToFocus(subTask, context);
         break;
-      
+
       case 'financial_budgeting':
       case 'financial_tithing':
       case 'financial_debt':
         this.navigateToFinancial(journalType, subTask, context);
         break;
-      
+
       case 'none':
         // No navigation needed for 'none' type
         console.log('[SmartJournalingNavigation] No journaling needed for this task');
         break;
-      
+
       default:
         console.warn('[SmartJournalingNavigation] Unknown journal type:', journalType);
         this.navigateToJournalDefault(subTask, context);
@@ -89,7 +89,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Prayer tab with context
    */
-  private navigateToPrayer(subTask: SubTask, context?: any) {
+  private navigateToPrayer(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to Prayer for:', subTask.text);
     this.navigation.navigate('Journal' as never);
   }
@@ -97,7 +97,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Reflection component with context
    */
-  private navigateToReflection(subTask: SubTask, context?: any) {
+  private navigateToReflection(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to Reflection for:', subTask.text);
     this.navigation.navigate('Journal' as never);
   }
@@ -105,7 +105,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Gratitude component with context
    */
-  private navigateToGratitude(subTask: SubTask, context?: any) {
+  private navigateToGratitude(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to Gratitude for:', subTask.text);
     this.navigation.navigate('Journal' as never);
   }
@@ -113,7 +113,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Win component with context
    */
-  private navigateToWin(subTask: SubTask, context?: any) {
+  private navigateToWin(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to Win for:', subTask.text);
     this.navigation.navigate('Journal' as never);
   }
@@ -121,7 +121,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to TimeBlock component with context
    */
-  private navigateToTimeBlock(subTask: SubTask, context?: any) {
+  private navigateToTimeBlock(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to TimeBlock for:', subTask.text);
     this.navigation.navigate('Journal' as never);
   }
@@ -129,7 +129,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Todos component with context
    */
-  private navigateToTodos(subTask: SubTask, context?: any) {
+  private navigateToTodos(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to Todos for:', subTask.text);
     this.navigation.navigate('Journal' as never);
   }
@@ -137,7 +137,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Focus component with context
    */
-  private navigateToFocus(subTask: SubTask, context?: any) {
+  private navigateToFocus(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to Focus for:', subTask.text);
     this.navigation.navigate('Journal' as never);
   }
@@ -145,7 +145,7 @@ export class SmartJournalingNavigation {
   /**
    * Navigate to Financial journaling (future implementation)
    */
-  private navigateToFinancial(journalType: string, subTask: SubTask, context?: any) {
+  private navigateToFinancial(journalType: string, subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to Financial for:', subTask.text, 'Type:', journalType);
     this.navigation.navigate('Journal' as never);
   }
@@ -153,7 +153,7 @@ export class SmartJournalingNavigation {
   /**
    * Default navigation to journal screen
    */
-  private navigateToJournalDefault(subTask: SubTask, context?: any) {
+  private navigateToJournalDefault(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to Journal (default) for:', subTask.text);
     this.navigation.navigate('Journal' as never);
   }

@@ -9,25 +9,25 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Test scenarios for smart journaling detection
 const testScenarios = [
   {
-    name: "Prayer Detection Test",
+    name: 'Prayer Detection Test',
     userInput: "I'm struggling with forgiveness and need help processing emotions",
-    expectedPatterns: ["prayer", "reflection"]
+    expectedPatterns: ['prayer', 'reflection'],
   },
   {
-    name: "Time Management Test", 
-    userInput: "I need to establish better work-life balance and sleep schedule",
-    expectedPatterns: ["timeblock", "reflection"]
+    name: 'Time Management Test',
+    userInput: 'I need to establish better work-life balance and sleep schedule',
+    expectedPatterns: ['timeblock', 'reflection'],
   },
   {
-    name: "Financial Stewardship Test",
-    userInput: "I want to improve my spending habits and practice biblical stewardship",
-    expectedPatterns: ["reflection", "todos", "financial_budgeting"]
+    name: 'Financial Stewardship Test',
+    userInput: 'I want to improve my spending habits and practice biblical stewardship',
+    expectedPatterns: ['reflection', 'todos', 'financial_budgeting'],
   },
   {
-    name: "Mixed Journal Types Test",
-    userInput: "Help me create a morning routine with prayer, Bible study, and exercise",
-    expectedPatterns: ["timeblock", "prayer", "reflection", "todos"]
-  }
+    name: 'Mixed Journal Types Test',
+    userInput: 'Help me create a morning routine with prayer, Bible study, and exercise',
+    expectedPatterns: ['timeblock', 'prayer', 'reflection', 'todos'],
+  },
 ];
 
 async function testPlaybookGeneration(scenario) {
@@ -65,19 +65,19 @@ async function testPlaybookGeneration(scenario) {
     // Analyze the smart journaling detection
     if (result && result.actionSteps) {
       console.log('\n📊 Smart Journaling Analysis:');
-      
+
       const detectedTypes = new Set();
       let totalSubtasks = 0;
       let subtasksWithJournaling = 0;
 
       result.actionSteps.forEach((step, stepIndex) => {
         console.log(`\n  Step ${stepIndex + 1}: ${step.title}`);
-        
+
         if (step.subTasks && step.subTasks.length > 0) {
           step.subTasks.forEach((subtask, subtaskIndex) => {
             totalSubtasks++;
             const journalType = subtask.detected_journal_type || 'none';
-            
+
             if (journalType !== 'none') {
               subtasksWithJournaling++;
               detectedTypes.add(journalType);
@@ -88,20 +88,20 @@ async function testPlaybookGeneration(scenario) {
         }
       });
 
-      console.log(`\n📈 Detection Summary:`);
+      console.log('\n📈 Detection Summary:');
       console.log(`  Total subtasks: ${totalSubtasks}`);
-      console.log(`  With journaling: ${subtasksWithJournaling} (${Math.round(subtasksWithJournaling/totalSubtasks*100)}%)`);
+      console.log(`  With journaling: ${subtasksWithJournaling} (${Math.round(subtasksWithJournaling / totalSubtasks * 100)}%)`);
       console.log(`  Detected types: ${Array.from(detectedTypes).join(', ')}`);
-      
+
       // Check if expected patterns were found
-      const foundExpected = scenario.expectedPatterns.filter(pattern => 
+      const foundExpected = scenario.expectedPatterns.filter(pattern =>
         detectedTypes.has(pattern)
       );
-      
-      console.log(`\n🎯 Pattern Matching:`);
+
+      console.log('\n🎯 Pattern Matching:');
       console.log(`  Expected: ${scenario.expectedPatterns.join(', ')}`);
       console.log(`  Found: ${foundExpected.join(', ')}`);
-      console.log(`  Match rate: ${Math.round(foundExpected.length/scenario.expectedPatterns.length*100)}%`);
+      console.log(`  Match rate: ${Math.round(foundExpected.length / scenario.expectedPatterns.length * 100)}%`);
 
       return foundExpected.length >= scenario.expectedPatterns.length * 0.5; // 50% match threshold
     } else {
@@ -130,14 +130,14 @@ async function runAllTests() {
     } else {
       console.log('❌ FAILED\n');
     }
-    
+
     // Add delay between tests
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
 
   console.log('=' .repeat(60));
-  console.log(`\n📊 Test Results: ${passedTests}/${totalTests} tests passed (${Math.round(passedTests/totalTests*100)}%)`);
-  
+  console.log(`\n📊 Test Results: ${passedTests}/${totalTests} tests passed (${Math.round(passedTests / totalTests * 100)}%)`);
+
   if (passedTests === totalTests) {
     console.log('🎉 All tests passed! Smart journaling detection is working correctly.');
   } else if (passedTests >= totalTests * 0.75) {

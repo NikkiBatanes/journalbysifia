@@ -20,7 +20,7 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 
 const testRequest = {
   userInput: "Help me grow spiritually this week. I want to pray for my family, reflect on God's faithfulness, schedule time for devotions, and write down what I'm grateful for.",
-  userId: "test-user-123"
+  userId: 'test-user-123',
 };
 
 console.log('📤 Testing generate-playbook API...');
@@ -30,7 +30,7 @@ function makeAPICall() {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(testRequest);
     const url = new URL(`${SUPABASE_URL}/functions/v1/generate-playbook`);
-    
+
     const options = {
       hostname: url.hostname,
       port: 443,
@@ -39,17 +39,17 @@ function makeAPICall() {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Length': data.length
-      }
+        'Content-Length': data.length,
+      },
     };
 
     const req = https.request(options, (res) => {
       let responseData = '';
-      
+
       res.on('data', (chunk) => {
         responseData += chunk;
       });
-      
+
       res.on('end', () => {
         try {
           const result = JSON.parse(responseData);
@@ -72,49 +72,49 @@ function makeAPICall() {
 async function testAPI() {
   try {
     console.log('⏳ Calling API...\n');
-    
+
     const response = await makeAPICall();
-    
+
     console.log(`✅ API Response (Status: ${response.status})\n`);
-    
+
     if (response.status !== 200) {
       console.log('❌ API Error:', response.data);
       return;
     }
-    
+
     const playbook = response.data;
-    
+
     // Analyze the response for smart journaling data
     console.log('📊 Smart Journaling Analysis:\n');
-    
+
     if (!playbook.actionSteps || playbook.actionSteps.length === 0) {
       console.log('❌ No action steps found in response');
       return;
     }
-    
+
     let totalSubtasks = 0;
     let smartJournalingSubtasks = 0;
-    
+
     playbook.actionSteps.forEach((step, stepIndex) => {
       console.log(`📋 Step ${stepIndex + 1}: ${step.title}`);
-      
+
       if (!step.subTasks || step.subTasks.length === 0) {
         console.log('   ❌ No subtasks found');
         return;
       }
-      
+
       step.subTasks.forEach((subtask, taskIndex) => {
         totalSubtasks++;
         const journalType = subtask.detected_journal_type || 'none';
         const hasSmartJournaling = journalType !== 'none' && journalType !== null;
-        
+
         if (hasSmartJournaling) {
           smartJournalingSubtasks++;
         }
-        
+
         const icon = getJournalIcon(journalType);
         const status = hasSmartJournaling ? '✅' : '❌';
-        
+
         console.log(`   ${taskIndex + 1}. "${subtask.text}"`);
         console.log(`      Journal Type: ${journalType} ${icon} ${status}`);
         console.log(`      Is Example: ${subtask.is_example || false}`);
@@ -122,28 +122,28 @@ async function testAPI() {
         console.log('');
       });
     });
-    
+
     console.log('📈 Summary:');
     console.log(`   Total Subtasks: ${totalSubtasks}`);
     console.log(`   Smart Journaling Subtasks: ${smartJournalingSubtasks}`);
     console.log(`   Detection Rate: ${totalSubtasks > 0 ? Math.round((smartJournalingSubtasks / totalSubtasks) * 100) : 0}%`);
-    
+
     if (smartJournalingSubtasks === 0) {
       console.log('\n❌ No smart journaling detected!');
       console.log('🔧 Possible issues:');
       console.log('   1. AI prompt not generating Journal: tags');
       console.log('   2. Parsing logic not working');
       console.log('   3. API not using enhanced persona config');
-      
+
       // Show raw AI response for debugging
       console.log('\n🔍 Raw AI Response (first 500 chars):');
       console.log(JSON.stringify(playbook, null, 2).substring(0, 500) + '...');
-      
+
     } else {
       console.log('\n✅ Smart journaling is working!');
       console.log('🎯 These subtasks should show UI indicators in the app.');
     }
-    
+
   } catch (error) {
     console.error('❌ API Test Failed:', error.message);
   }
@@ -158,7 +158,7 @@ function getJournalIcon(type) {
     todos: '✅',
     win: '🏆',
     focus: '🎯',
-    none: '⚪'
+    none: '⚪',
   };
   return icons[type] || '❓';
 }

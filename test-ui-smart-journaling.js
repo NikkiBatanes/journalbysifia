@@ -5,31 +5,32 @@
  * Generate a playbook with smart journaling data to test UI indicators
  */
 
-const https = require('https');
+// const https = require('https'); // Used in commented function
 
 console.log('🧪 Testing Smart Journaling UI Integration\n');
 
 // Test data that should trigger smart journaling detection
 const testPlaybookRequest = {
-  userInput: "Help me grow spiritually this week through prayer, reflection, and gratitude",
+  userInput: 'Help me grow spiritually this week through prayer, reflection, and gratitude',
   userProfile: {
-    name: "Test User",
-    spiritualGoals: ["prayer", "reflection", "gratitude"],
+    name: 'Test User',
+    spiritualGoals: ['prayer', 'reflection', 'gratitude'],
     preferences: {
       journaling: true,
-      timeBlocking: true
-    }
-  }
+      timeBlocking: true,
+    },
+  },
 };
 
 console.log('📝 Test Request:');
 console.log(JSON.stringify(testPlaybookRequest, null, 2));
 
-// Function to make API request
+// Function to make API request (commented out as it's unused)
+/*
 function testSmartJournalingAPI() {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify(testPlaybookRequest);
-    
+
     const options = {
       hostname: 'your-supabase-project.supabase.co', // Replace with actual Supabase URL
       port: 443,
@@ -38,17 +39,17 @@ function testSmartJournalingAPI() {
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': data.length,
-        'Authorization': 'Bearer YOUR_SUPABASE_ANON_KEY' // Replace with actual key
-      }
+        'Authorization': 'Bearer YOUR_SUPABASE_ANON_KEY', // Replace with actual key
+      },
     };
 
     const req = https.request(options, (res) => {
       let responseData = '';
-      
+
       res.on('data', (chunk) => {
         responseData += chunk;
       });
-      
+
       res.on('end', () => {
         try {
           const result = JSON.parse(responseData);
@@ -67,44 +68,45 @@ function testSmartJournalingAPI() {
     req.end();
   });
 }
+*/
 
 // Test scenarios that should show smart journaling indicators
 const testScenarios = [
   {
-    name: "Prayer Request",
-    subtask: "Pray for healing for family members",
-    expectedType: "prayer",
-    expectedIcon: "🙏",
-    expectedColor: "purple"
+    name: 'Prayer Request',
+    subtask: 'Pray for healing for family members',
+    expectedType: 'prayer',
+    expectedIcon: '🙏',
+    expectedColor: 'purple',
   },
   {
-    name: "Reflection Task", 
+    name: 'Reflection Task',
     subtask: "Reflect on God's faithfulness this week",
-    expectedType: "reflection",
-    expectedIcon: "💡",
-    expectedColor: "blue"
+    expectedType: 'reflection',
+    expectedIcon: '💡',
+    expectedColor: 'blue',
   },
   {
-    name: "Gratitude Expression",
+    name: 'Gratitude Expression',
     subtask: "Write down three things you're grateful for",
-    expectedType: "gratitude", 
-    expectedIcon: "❤️",
-    expectedColor: "yellow"
+    expectedType: 'gratitude',
+    expectedIcon: '❤️',
+    expectedColor: 'yellow',
   },
   {
-    name: "Time Scheduling",
-    subtask: "Schedule 30 minutes for morning devotions",
-    expectedType: "timeblock",
-    expectedIcon: "🕐", 
-    expectedColor: "green"
+    name: 'Time Scheduling',
+    subtask: 'Schedule 30 minutes for morning devotions',
+    expectedType: 'timeblock',
+    expectedIcon: '🕐',
+    expectedColor: 'green',
   },
   {
-    name: "Action Todo",
-    subtask: "Call church to volunteer for food drive",
-    expectedType: "todos",
-    expectedIcon: "✅",
-    expectedColor: "teal"
-  }
+    name: 'Action Todo',
+    subtask: 'Call church to volunteer for food drive',
+    expectedType: 'todos',
+    expectedIcon: '✅',
+    expectedColor: 'teal',
+  },
 ];
 
 console.log('\n🎯 Expected Smart Journaling UI Indicators:\n');
@@ -114,7 +116,7 @@ testScenarios.forEach((scenario, index) => {
   console.log(`   Subtask: "${scenario.subtask}"`);
   console.log(`   Expected Type: ${scenario.expectedType}`);
   console.log(`   Expected UI: ${scenario.expectedIcon} ${scenario.expectedColor} icon (tappable)`);
-  console.log(`   Navigation: Tap → Journal screen`);
+  console.log('   Navigation: Tap → Journal screen');
   console.log('');
 });
 
@@ -159,12 +161,12 @@ console.log('\n✨ **The UI is ready - just needs smart journaling data!**');
 // Mock data example for testing
 console.log('\n📋 **Mock Data Example (for testing):**');
 const mockSubtask = {
-  id: "test-subtask-1",
-  text: "Pray for healing for my grandmother",
+  id: 'test-subtask-1',
+  text: 'Pray for healing for my grandmother',
   completed: false,
-  detected_journal_type: "prayer",
+  detected_journal_type: 'prayer',
   is_example: false,
-  example_interactive: false
+  example_interactive: false,
 };
 
 console.log(JSON.stringify(mockSubtask, null, 2));

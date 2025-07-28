@@ -16,44 +16,44 @@ const testScenarios = [
     name: 'Prayer Request Detection',
     input: 'Pray for healing for my grandmother who is in the hospital',
     expectedType: 'prayer',
-    description: 'Should detect prayer requests and show purple prayer icon'
+    description: 'Should detect prayer requests and show purple prayer icon',
   },
   {
     name: 'Time Management',
     input: 'Schedule 30 minutes for morning devotions at 6 AM',
     expectedType: 'timeblock',
-    description: 'Should detect time scheduling and show green timeblock icon'
+    description: 'Should detect time scheduling and show green timeblock icon',
   },
   {
     name: 'Reflection Task',
     input: 'Reflect on how God showed His faithfulness this week',
     expectedType: 'reflection',
-    description: 'Should detect reflection needs and show blue reflection icon'
+    description: 'Should detect reflection needs and show blue reflection icon',
   },
   {
     name: 'Gratitude Expression',
     input: 'Write down three things you are grateful for today',
     expectedType: 'gratitude',
-    description: 'Should detect gratitude journaling and show yellow gratitude icon'
+    description: 'Should detect gratitude journaling and show yellow gratitude icon',
   },
   {
     name: 'Action Todo',
     input: 'Call the church office to volunteer for the food drive',
     expectedType: 'todos',
-    description: 'Should detect actionable tasks and show teal todo icon'
+    description: 'Should detect actionable tasks and show teal todo icon',
   },
   {
     name: 'Multiple Types',
     input: 'Schedule time to pray for missionaries and reflect on their impact',
     expectedTypes: ['timeblock', 'prayer', 'reflection'],
-    description: 'Should detect multiple journal types and show multiple icons'
+    description: 'Should detect multiple journal types and show multiple icons',
   },
   {
     name: 'None Type Task',
     input: 'Pick up dry cleaning on the way home',
     expectedType: 'none',
-    description: 'Should detect non-journaling tasks and show no icons'
-  }
+    description: 'Should detect non-journaling tasks and show no icons',
+  },
 ];
 
 console.log('📋 Test Scenarios Validation:\n');
@@ -73,16 +73,16 @@ const personaConfigPath = path.join(__dirname, 'supabase/functions/generate-play
 if (fs.existsSync(personaConfigPath)) {
   console.log('✅ Persona config exists');
   const content = fs.readFileSync(personaConfigPath, 'utf8');
-  
+
   const detectionRules = [
     'Prayer requests always detected as prayer',
     'Time-based scheduling detected as timeblock',
     'Reflection and contemplation detected as reflection',
     'Gratitude expressions detected as gratitude',
     'Actionable tasks detected as todos',
-    'Multiple journal types supported'
+    'Multiple journal types supported',
   ];
-  
+
   detectionRules.forEach(rule => {
     // Check for key phrases that indicate the rule is implemented
     if (content.includes('prayer') && content.includes('timeblock') && content.includes('reflection')) {
@@ -100,13 +100,13 @@ const uiComponents = [
   {
     name: 'ActionStepsCard',
     path: 'src/components/ActionStepsCard.tsx',
-    features: ['Multiple journal type icons', 'Color-coded indicators', 'Tappable navigation']
+    features: ['Multiple journal type icons', 'Color-coded indicators', 'Tappable navigation'],
   },
   {
     name: 'Journal Type Icons',
     path: 'src/components/ActionStepsCard.tsx',
-    features: ['Prayer (purple)', 'Reflection (blue)', 'Timeblock (green)', 'Todos (teal)', 'Gratitude (yellow)']
-  }
+    features: ['Prayer (purple)', 'Reflection (blue)', 'Timeblock (green)', 'Todos (teal)', 'Gratitude (yellow)'],
+  },
 ];
 
 uiComponents.forEach(component => {
@@ -114,7 +114,7 @@ uiComponents.forEach(component => {
   if (fs.existsSync(componentPath)) {
     console.log(`✅ ${component.name} exists`);
     const content = fs.readFileSync(componentPath, 'utf8');
-    
+
     component.features.forEach(feature => {
       // Check for implementation indicators
       if (content.includes('getJournalTypeIcon') || content.includes('getJournalTypeColor') || content.includes('onJournalTypePress')) {
@@ -135,14 +135,14 @@ const navigationFeatures = [
   'Prayer tab navigation',
   'Reflection component navigation',
   'Timeblock navigation',
-  'Todos navigation'
+  'Todos navigation',
 ];
 
 const navServicePath = path.join(__dirname, 'src/services/smartJournalingNavigation.ts');
 if (fs.existsSync(navServicePath)) {
   console.log('✅ Navigation service exists');
   const content = fs.readFileSync(navServicePath, 'utf8');
-  
+
   navigationFeatures.forEach(feature => {
     if (content.includes('navigateToJournaling') || content.includes('navigateToPrayer') || content.includes('navigateToReflection')) {
       console.log(`   ✅ ${feature}`);
@@ -159,13 +159,13 @@ const backendFiles = [
   {
     name: 'Playbook Generation API',
     path: 'supabase/functions/generate-playbook/index.ts',
-    features: ['Smart journaling detection', 'Multiple journal types', 'AI prompt integration']
+    features: ['Smart journaling detection', 'Multiple journal types', 'AI prompt integration'],
   },
   {
     name: 'Database Migration',
     path: 'scripts/run-smart-journaling-migration.js',
-    features: ['Smart journaling tables', 'Foreign key relationships', 'Index optimization']
-  }
+    features: ['Smart journaling tables', 'Foreign key relationships', 'Index optimization'],
+  },
 ];
 
 backendFiles.forEach(file => {
@@ -190,7 +190,7 @@ const userFlows = [
   '4. User taps journal type icon',
   '5. App navigates to appropriate journaling component',
   '6. User completes journaling activity',
-  '7. Progress is tracked and saved'
+  '7. Progress is tracked and saved',
 ];
 
 userFlows.forEach(flow => {
@@ -206,7 +206,7 @@ const testResults = {
   'Navigation Integration': '✅ Complete',
   'Backend API': '✅ Complete',
   'Database Schema': '⏳ Ready (migration pending)',
-  'End-to-End Flow': '✅ Complete'
+  'End-to-End Flow': '✅ Complete',
 };
 
 Object.entries(testResults).forEach(([test, status]) => {
