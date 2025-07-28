@@ -31,6 +31,11 @@ export const PlaybookSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Section Header Skeleton */}
+      <View style={styles.sectionHeader}>
+        <Animated.View style={[styles.sectionHeaderSkeleton, { opacity }]} />
+      </View>
+
       {[1, 2, 3].map((item) => (
         <View key={item} style={styles.card}>
           <View style={styles.cardContent}>
@@ -64,6 +69,20 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  sectionHeader: {
+    backgroundColor: '#f6f8fa',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 2,
+  },
+  sectionHeaderSkeleton: {
+    height: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)', // Match TodaysFocus skeleton color
+    borderRadius: 4,
+    width: '25%', // Approximate width for "JULY 2025"
+  },
   card: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 16,
@@ -81,19 +100,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dateSkeleton: {
-    height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)', // Match the skeleton color pattern
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
     borderRadius: 4,
     marginBottom: 4,
-    width: '45%', // Approximate width for "MONDAY, JULY 28, 2025"
+    width: '60%', // Approximate width for "MONDAY, JULY 28, 2025"
   },
   titleSkeleton: {
-    height: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    height: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
     borderRadius: 4,
     marginBottom: 8,
     marginTop: 1,
-    width: '75%', // Approximate width for title
+    width: '85%', // Approximate width for title
   },
   progressContainer: {
     marginTop: 'auto', // Push to bottom like the real progress bar
@@ -109,13 +128,13 @@ const styles = StyleSheet.create({
   },
   progressBarSkeleton: {
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
     borderRadius: 2,
     width: '100%',
   },
   tasksSkeleton: {
     height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
     borderRadius: 4,
     width: 50, // Approximate width for "0/5 Tasks"
   },
