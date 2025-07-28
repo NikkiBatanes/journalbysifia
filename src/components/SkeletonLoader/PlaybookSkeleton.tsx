@@ -74,14 +74,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
-    marginTop: 12,
+    marginTop: 0, // Remove top margin to start at the same position
     marginBottom: 2,
   },
   sectionHeaderSkeleton: {
     height: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.1)', // Match TodaysFocus skeleton color
     borderRadius: 4,
-    width: '25%', // Approximate width for "JULY 2025"
+    width: '30%', // Increased width to better match "JULY 2025"
   },
   card: {
     backgroundColor: Colors.anchorBlue,
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
     borderRadius: 4,
     marginBottom: 4,
-    width: '60%', // Approximate width for "MONDAY, JULY 28, 2025"
+    width: '70%', // Increased width to better match "MONDAY, JULY 28, 2025"
   },
   titleSkeleton: {
     height: 16,
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginBottom: 8,
     marginTop: 1,
-    width: '85%', // Approximate width for title
+    width: '90%', // Increased width to better match title
   },
   progressContainer: {
     marginTop: 'auto', // Push to bottom like the real progress bar
@@ -136,6 +136,6 @@ const styles = StyleSheet.create({
     height: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
     borderRadius: 4,
-    width: 50, // Approximate width for "0/5 Tasks"
+    width: 60, // Increased width to better match "0/5 Tasks"
   },
 });
