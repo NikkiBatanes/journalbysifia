@@ -594,7 +594,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               subtitle="Meditate on this"
             >
               <Text style={styles.reflectionText}>
-                {currentUser ? replaceAllNamePlaceholders(day?.reflection || '', currentUser) : (day?.reflection || '')}
+                {day?.reflection || ''}
               </Text>
             </DevotionalSectionCard>
 
