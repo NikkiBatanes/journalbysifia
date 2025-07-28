@@ -267,8 +267,8 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
           if (draft) {
             const { content, title } = JSON.parse(draft);
 
-            // Only load draft if there's actual content
-            if (content || title) {
+            // Only load draft if there's actual meaningful content
+            if ((content && content.trim()) || (title && title.trim())) {
               setNewEntry(prev => ({
                 ...prev,
                 content: content || prev.content,

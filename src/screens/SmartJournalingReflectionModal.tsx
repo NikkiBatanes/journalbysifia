@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Alert } from 'react-native';
+import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Text, ActivityIndicator } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
@@ -40,6 +40,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   // React Query hooks
   const createMutation = useCreateReflection();
+  const isLoading = createMutation.isPending;
   // Note: We don't need to refetch data since the modal will close after saving
 
   // Save reflection using React Query system
@@ -163,6 +164,23 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           buttonText="Continue"
         />
       </Modal>
+
+      {/* Loading overlay for save operation */}
+      {isLoading && (
+        <Modal
+          visible={isLoading}
+          transparent={true}
+          animationType="fade"
+          statusBarTranslucent={true}
+        >
+          <View style={styles.loadingOverlay}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.alertCoral} />
+              <Text style={styles.loadingText}>Saving reflection...</Text>
+            </View>
+          </View>
+        </Modal>
+      )}
     </>
   );
 };
@@ -171,6 +189,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+  },
+  loadingOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    backgroundColor: Colors.hopeWhite,
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: Colors.anchorBlue,
+    fontWeight: '500',
   },
 });
 
