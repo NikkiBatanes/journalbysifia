@@ -167,12 +167,14 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
     }
   }, [playbooks.length]);
 
-  // Reset animations when screen comes into focus (but preserve filter state)
+  // Reset animations when screen comes into focus and set to In Progress tab
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
       console.log('[PlaybookListScreen] Screen focused, userId:', userId, 'playbooks count:', playbooks.length);
 
-      // Don't reset filter - preserve user's tab selection
+      // Always reset to 'ongoing' (In Progress) tab when navigating to this screen
+      console.log('[PlaybookListScreen] Resetting filter to ongoing (In Progress) tab');
+      setFilter('ongoing');
 
       // Safely reset animation values if they exist
       if (animatedValues.current && Array.isArray(animatedValues.current)) {
