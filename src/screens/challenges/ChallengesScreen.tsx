@@ -7,12 +7,12 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
-  Dimensions,
+  // Dimensions, // Unused
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
+// import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
 import { userApi } from '../../services/userApi';
 import { Challenge } from '../../types/auth';
 import { Colors } from '../../theme/colors';

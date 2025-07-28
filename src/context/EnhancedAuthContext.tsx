@@ -11,7 +11,7 @@ import {
   AuthState,
   LoginCredentials,
   RegisterData,
-  SocialAuthProvider,
+  // SocialAuthProvider, // Unused for email-only auth
   AuthError,
   UserPreferences,
 } from '../types/auth';
@@ -111,9 +111,9 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     initializeAuth();
     // configureGoogleSignIn(); // Disabled for email-only auth
-  }, []);
+  }, [initializeAuth]);
 
-  const initializeAuth = async () => {
+  const initializeAuth = useCallback(async () => {
     try {
       const [accessToken, refreshToken, userJson] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN),
@@ -150,9 +150,9 @@ export const EnhancedAuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Auth initialization error:', error);
       setAuthState(prev => ({ ...prev, loading: false, error: 'Failed to initialize authentication' }));
     }
-  };
+  }, []);
 
-  const configureGoogleSignIn = () => {
+  const _configureGoogleSignIn = () => {
     GoogleSignin.configure({
       webClientId: process.env.GOOGLE_WEB_CLIENT_ID,
       iosClientId: process.env.GOOGLE_IOS_CLIENT_ID,

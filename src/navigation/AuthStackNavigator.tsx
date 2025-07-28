@@ -11,7 +11,7 @@ interface AuthStackNavigatorProps {
   onLogin: () => void;
 }
 
-export default function AuthStackNavigator({ onLogin }: AuthStackNavigatorProps) {
+export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavigatorProps) {
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}

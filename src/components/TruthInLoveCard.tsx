@@ -18,7 +18,7 @@ type TruthInLoveCardProps = {
 export default function TruthInLoveCard({
   truth,
   summary,
-  username: propUsername,
+  username: _propUsername,
   expanded = false,
   style,
   textColor = Colors.hopeWhite,

@@ -104,10 +104,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       console.log('Starting login for:', email);
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      console.log('Sign in result:', JSON.stringify({ data, error }, null, 2));
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      console.log('Sign in result:', JSON.stringify({ data, error: authError }, null, 2));
 
-      const result = { data, error };
+      const result = { data, error: authError };
 
       // Check for error in the response
       if (result.error) {

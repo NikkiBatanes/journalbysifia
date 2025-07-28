@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, AppState, AppStateStatus } from 'react-native';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { supabase } from '../services/supabaseClient';
@@ -12,92 +12,14 @@ interface AuthStateMonitorProps {
  * Handles silent logouts, session expiry, and provides user feedback
  */
 export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) => {
-  const { isAuthenticated, user, session } = useAuth();
-  const [lastAuthCheck, setLastAuthCheck] = useState<Date>(new Date());
+  const { isAuthenticated, user } = useAuth();
+  const [_lastAuthCheck, setLastAuthCheck] = useState<Date>(new Date());
   const [isMonitoring, setIsMonitoring] = useState(true);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const sessionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Monitor app state changes for session validation
-  useEffect(() => {
-    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      console.log('📱 App state changed:', { from: appStateRef.current, to: nextAppState });
-
-      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-        console.log('🔍 App became active, validating session...');
-        await validateSessionOnAppForeground();
-      }
-
-      appStateRef.current = nextAppState;
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-    return () => subscription?.remove();
-  }, []);
-
-  // Periodic session validation (every 5 minutes when app is active)
-  useEffect(() => {
-    if (isAuthenticated && isMonitoring) {
-      sessionCheckIntervalRef.current = setInterval(async () => {
-        await validateSessionPeriodically();
-      }, 5 * 60 * 1000); // 5 minutes
-    }
-
-    return () => {
-      if (sessionCheckIntervalRef.current) {
-        clearInterval(sessionCheckIntervalRef.current);
-      }
-    };
-  }, [isAuthenticated, isMonitoring]);
-
-  // Validate session when app comes to foreground
-  const validateSessionOnAppForeground = async () => {
-    try {
-      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error('❌ Session validation error:', error);
-        await handleSessionError('Session validation failed. Please log in again.');
-        return;
-      }
-
-      if (!currentSession && isAuthenticated) {
-        console.warn('⚠️ Silent logout detected on app foreground');
-        await handleSilentLogout('Your session has expired. Please log in again.');
-      } else if (currentSession) {
-        console.log('✅ Session valid on app foreground');
-        setLastAuthCheck(new Date());
-      }
-    } catch (error) {
-      console.error('💥 Session validation failed:', error);
-      await handleSessionError('Unable to verify your session. Please check your connection.');
-    }
-  };
-
-  // Periodic session validation
-  const validateSessionPeriodically = async () => {
-    try {
-      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-
-      if (error) {
-        console.error('❌ Periodic session check error:', error);
-        return; // Don't interrupt user for periodic check errors
-      }
-
-      if (!currentSession && isAuthenticated) {
-        console.warn('⚠️ Silent logout detected during periodic check');
-        await handleSilentLogout('Your session has expired. Please log in again to continue.');
-      } else if (currentSession) {
-        setLastAuthCheck(new Date());
-      }
-    } catch (error) {
-      console.error('💥 Periodic session check failed:', error);
-      // Don't interrupt user for network errors during periodic checks
-    }
-  };
-
   // Handle silent logout with user notification
-  const handleSilentLogout = async (message: string) => {
+  const handleSilentLogout = useCallback(async (message: string) => {
     setIsMonitoring(false); // Prevent multiple alerts
 
     Alert.alert(
@@ -118,33 +40,108 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
         onDismiss: () => setIsMonitoring(true),
       }
     );
-  };
+  }, [setIsMonitoring]);
 
   // Handle session errors with user notification
-  const handleSessionError = async (message: string) => {
+  const handleSessionError = useCallback(async (message: string) => {
     Alert.alert(
       '⚠️ Authentication Issue',
       message,
       [
         {
           text: 'Retry',
-          onPress: async () => {
-            await validateSessionOnAppForeground();
-          },
+          onPress: () => {},
           style: 'default',
         },
         {
           text: 'Log In Again',
           onPress: () => {
-            // Force logout to clear any corrupted state
-            supabase.auth.signOut();
+            // The auth context will handle the navigation to login screen
           },
           style: 'destructive',
         },
       ],
       { cancelable: false }
     );
-  };
+  }, []);
+
+  // Validate session when app comes to foreground
+  const validateSessionOnAppForeground = useCallback(async () => {
+    try {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('❌ Session validation error:', error);
+        await handleSessionError('Session validation failed. Please log in again.');
+        return;
+      }
+
+      if (!currentSession && isAuthenticated) {
+        console.warn('⚠️ Silent logout detected on app foreground');
+        await handleSilentLogout('Your session has expired. Please log in again.');
+      } else if (currentSession) {
+        console.log('✅ Session valid on app foreground');
+        setLastAuthCheck(new Date());
+      }
+    } catch (error) {
+      console.error('💥 Session validation failed:', error);
+      await handleSessionError('Unable to verify your session. Please check your connection.');
+    }
+  }, [isAuthenticated, handleSilentLogout, handleSessionError, setLastAuthCheck]);
+
+  // Periodic session validation
+  const validateSessionPeriodically = useCallback(async () => {
+    try {
+      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('❌ Periodic session check error:', error);
+        return; // Don't interrupt user for periodic check errors
+      }
+
+      if (!currentSession && isAuthenticated) {
+        console.warn('⚠️ Silent logout detected during periodic check');
+        await handleSilentLogout('Your session has expired. Please log in again to continue.');
+      } else if (currentSession) {
+        setLastAuthCheck(new Date());
+      }
+    } catch (error) {
+      console.error('💥 Periodic session check failed:', error);
+      // Don't interrupt user for network errors during periodic checks
+    }
+  }, [isAuthenticated, handleSilentLogout, setLastAuthCheck]);
+
+  // Monitor app state changes for session validation
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      console.log('📱 App state changed:', { from: appStateRef.current, to: nextAppState });
+
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        console.log('🔍 App became active, validating session...');
+        await validateSessionOnAppForeground();
+      }
+
+      appStateRef.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription?.remove();
+  }, [validateSessionOnAppForeground]);
+
+  // Periodic session validation (every 5 minutes when app is active)
+  useEffect(() => {
+    if (isAuthenticated && isMonitoring) {
+      sessionCheckIntervalRef.current = setInterval(async () => {
+        await validateSessionPeriodically();
+      }, 5 * 60 * 1000); // 5 minutes
+    }
+
+    return () => {
+      if (sessionCheckIntervalRef.current) {
+        clearInterval(sessionCheckIntervalRef.current);
+      }
+    };
+  }, [isAuthenticated, isMonitoring, validateSessionPeriodically]);
 
   // Monitor authentication state changes
   useEffect(() => {

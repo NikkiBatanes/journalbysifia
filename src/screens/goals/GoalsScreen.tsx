@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
+// import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
 import { userApi } from '../../services/userApi';
 import { Goal } from '../../types/auth';
 import { Colors } from '../../theme/colors';
