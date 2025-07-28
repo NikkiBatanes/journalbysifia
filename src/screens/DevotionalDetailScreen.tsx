@@ -65,6 +65,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [showFAB, setShowFAB] = useState(false);
   // Track scroll positions for each day to reset when needed
   const [scrollPositions, setScrollPositions] = useState<{[key: number]: number}>({});
+  // Flag to prevent feedback loop between programmatic and user scrolls
+  const isScrollingProgrammatically = useRef(false);
 
   useEffect(() => {
     // Log for debugging
@@ -163,10 +165,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         // Force scroll to day 1 after a short delay
         setTimeout(() => {
           if (flatListRef.current) {
+            isScrollingProgrammatically.current = true;
             flatListRef.current.scrollToIndex({
               index: 0,
               animated: false,
             });
+            setTimeout(() => {
+              isScrollingProgrammatically.current = false;
+            }, 100);
           }
         }, 100);
       } else {
@@ -179,10 +185,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         // Scroll to the target day
         setTimeout(() => {
           if (flatListRef.current) {
+            isScrollingProgrammatically.current = true;
             flatListRef.current.scrollToIndex({
               index: targetIndex,
               animated: false,
             });
+            setTimeout(() => {
+              isScrollingProgrammatically.current = false;
+            }, 100);
           }
         }, 100);
       }
@@ -198,21 +208,19 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
       console.log('Scrolling to day:', safeIndex + 1); // Debug log
 
+      // Set flag to indicate programmatic scroll
+      isScrollingProgrammatically.current = true;
+
+      // Single scroll operation to prevent momentum conflicts
       flatListRef.current.scrollToIndex({
         index: safeIndex,
         animated: false,
         viewPosition: 0.5,
       });
 
-      // Force update the scroll position after a short delay to ensure it takes effect
+      // Reset flag after scroll completes
       setTimeout(() => {
-        if (flatListRef.current) {
-          flatListRef.current.scrollToIndex({
-            index: safeIndex,
-            animated: false,
-            viewPosition: 0.5,
-          });
-        }
+        isScrollingProgrammatically.current = false;
       }, 100);
     }
   }, [devotional, flatListRef]);
@@ -511,13 +519,19 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             index,
           })}
           onMomentumScrollEnd={event => {
+            // Skip if this is a programmatic scroll to prevent feedback loop
+            if (isScrollingProgrammatically.current) {
+              console.log('Skipping momentum scroll - programmatic scroll in progress');
+              return;
+            }
+
             const newIndex = Math.min(
               Math.round(event.nativeEvent.contentOffset.x / Dimensions.get('window').width),
               devotional.days.length - 1
             );
             // Only update if the index actually changed and is within bounds
             if (newIndex !== currentDayIndex && newIndex >= 0 && newIndex < devotional.days.length) {
-              console.log('Momentum scroll ended at day:', newIndex + 1); // Debug log
+              console.log('User scroll ended at day:', newIndex + 1); // Debug log
               setCurrentDayIndex(newIndex);
               // Reset FAB visibility when changing pages
               setShowFAB(false);
