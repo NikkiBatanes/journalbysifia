@@ -10,7 +10,10 @@ export interface ReflectionApiEntry {
   selected_date: string;
   created_at: string;
   updated_at: string;
-  source?: 'devotional';
+  // Additional fields added by migration
+  prompt?: string;
+  tags?: string[];
+  source?: string;
   devotional_title?: string;
   day_number?: number;
   day_title?: string;
