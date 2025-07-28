@@ -72,6 +72,13 @@ const shouldShowJournalIcon = (journalType?: string): boolean => {
   return journalType !== 'none' && journalType !== undefined && journalType !== '';
 };
 
+const parseJournalTypes = (journalType?: string): string[] => {
+  if (!journalType || journalType === 'none') {
+    return [];
+  }
+  return journalType.split(',').map(type => type.trim()).filter(type => type && type !== 'none');
+};
+
 const cleanMarkdown = (text: string | undefined): string => {
   if (!text) {return '';}
   return text
@@ -306,18 +313,26 @@ export default function ActionStepsCard({
                               {subTask.text}
                             </Text>
                             {shouldShowJournalIcon(subTask.detected_journal_type) && (
-                              <TouchableOpacity
-                                style={styles.journalTypeIndicator}
-                                onPress={() => onJournalTypePress(subTask.detected_journal_type!, subTask)}
-                                activeOpacity={0.7}
-                              >
-                                <MaterialCommunityIcons
-                                  name={getJournalTypeIcon(subTask.detected_journal_type)}
-                                  size={16}
-                                  color={getJournalTypeColor(subTask.detected_journal_type)}
-                                  style={styles.journalIcon}
-                                />
-                              </TouchableOpacity>
+                              <View style={styles.journalTypesContainer}>
+                                {parseJournalTypes(subTask.detected_journal_type).map((journalType, typeIndex) => (
+                                  <TouchableOpacity
+                                    key={`${journalType}-${typeIndex}`}
+                                    style={[
+                                      styles.journalTypeIndicator,
+                                      typeIndex > 0 && styles.journalTypeIndicatorSpaced,
+                                    ]}
+                                    onPress={() => onJournalTypePress(journalType, subTask)}
+                                    activeOpacity={0.7}
+                                  >
+                                    <MaterialCommunityIcons
+                                      name={getJournalTypeIcon(journalType)}
+                                      size={16}
+                                      color={getJournalTypeColor(journalType)}
+                                      style={styles.journalIcon}
+                                    />
+                                  </TouchableOpacity>
+                                ))}
+                              </View>
                             )}
                           </View>
                         </TouchableOpacity>
@@ -495,12 +510,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  journalTypeIndicator: {
+  journalTypesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginLeft: 8,
+  },
+  journalTypeIndicator: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  journalTypeIndicatorSpaced: {
+    marginLeft: 4,
   },
   journalIcon: {
     // Icon styling handled by MaterialCommunityIcons
