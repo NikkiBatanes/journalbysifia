@@ -48,8 +48,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const currentUser = user ? {
     firstName: user.user_metadata?.firstName || user.user_metadata?.first_name || '',
     lastName: user.user_metadata?.lastName || user.user_metadata?.last_name || '',
-    displayName: user.user_metadata?.displayName || user.user_metadata?.full_name || 
-                 `${user.user_metadata?.firstName || user.user_metadata?.first_name || ''} ${user.user_metadata?.lastName || user.user_metadata?.last_name || ''}`.trim() || 'User'
+    displayName: user.user_metadata?.displayName || user.user_metadata?.full_name ||
+                 `${user.user_metadata?.firstName || user.user_metadata?.first_name || ''} ${user.user_metadata?.lastName || user.user_metadata?.last_name || ''}`.trim() || 'User',
   } : null;
 
   // React Query hooks for devotional data
@@ -618,7 +618,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     <View style={styles.questionCardContainer}>
                       <Text style={styles.questionCardNumber}>{idx + 1}</Text>
                       <Text style={styles.questionCardText}>
-                        {currentUser 
+                        {currentUser
                           ? replaceAllNamePlaceholders(question.text || 'Reflection question', currentUser)
                           : (question.text || 'Reflection question')
                         }
@@ -640,7 +640,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <View style={styles.prayerContainer}>
                 <Text style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
-                    ? (currentUser 
+                    ? (currentUser
                         ? replaceAllNamePlaceholders(day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n'), currentUser)
                         : day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
                       )
