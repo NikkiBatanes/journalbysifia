@@ -19,8 +19,8 @@ import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import PlaybookCard from '../components/PlaybookCard';
 import { Colors, Fonts } from '../theme';
 import type { Playbook } from '../interfaces/playbook';
-import { deletePlaybook, getPlaybooks } from '../services/supabaseApiNormalized';
-import { useUser } from '../context/UserContext';
+import { deletePlaybook, getPlaybooks } from '../services/apiIntegration';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
 
@@ -105,7 +105,8 @@ const formatDate = (date: Date): string => {
 
 const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   // Get user info
-  const { id: userId } = useUser();
+  const { user } = useAuth();
+  const userId = user?.id;
 
   // Fetch playbooks from database using React Query with proper caching
   const { data: playbooks = [], isLoading, refetch } = useQuery<Playbook[]>({
@@ -349,7 +350,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
           onPress: async () => {
             try {
               // Delete from database
-              await deletePlaybook(id);
+              await deletePlaybook(id, user?.id || '');
               // Refresh the list after successful deletion
               await refetch();
             } catch (err) {

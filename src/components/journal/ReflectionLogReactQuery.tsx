@@ -9,7 +9,7 @@ import { NotebookPen as LuNotebookPen, X } from 'lucide-react-native';
 import ReflectionLogEditor from './ReflectionLogEditor';
 import { styles as reflectionLogStyles } from './reflectionStyles';
 import { GUIDED_PROMPTS } from './reflectionConstants';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import {
   useReflectionData,
   useCreateReflection,

@@ -7,7 +7,7 @@ import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Check, CalendarClock as LuCalendarClock, X } from 'lucide-react-native';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TimeBlockSkeleton } from '../SkeletonLoader/TimeBlockSkeleton';

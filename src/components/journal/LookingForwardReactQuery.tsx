@@ -5,7 +5,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
   useLookingForwardData,

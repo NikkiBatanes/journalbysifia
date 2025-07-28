@@ -10,8 +10,8 @@ import { performanceMonitor, withQueryPerformance, withMutationPerformance } fro
 import {
   getPlaybooks as getPlaybooksApi,
   getPlaybook as getPlaybookApi,
-  updatePlaybookActionStep,
-} from '../supabaseApiNormalized';
+  updatePlaybookActionSteps,
+} from '../apiIntegration';
 
 // ========================================
 // QUERY HOOKS

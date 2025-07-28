@@ -48,8 +48,8 @@ import { useNavigation } from '@react-navigation/native';
 
 // Data & API
 import { useQuery } from '@tanstack/react-query';
-import { getPlaybook } from '../services/supabaseApiNormalized';
-import { useUser } from '../context/UserContext';
+import { getPlaybook } from '../services/apiIntegration';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useIntelligentPrefetching } from '../services/hooks/useAdvancedPlaybookData';
 
 // Navigation types
@@ -84,13 +84,33 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // 1. Route and navigation data
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
-  const { id: userId } = useUser();
+  
+  // Debug logging for playbookId
+  console.log('📖 PlaybookDetailScreen - Route params debug:', {
+    'route.params?.playbook?.id': route.params?.playbook?.id,
+    'route.params?.playbookId': (route.params as any)?.playbookId,
+    'final playbookId': playbookId,
+    'playbookId type': typeof playbookId,
+    'full route.params': route.params
+  });
+  const { user } = useAuth();
+  const userId = user?.id;
   const rootNavigation = useNavigation<any>();
 
   // 2. Data fetching hooks
   const { data: playbook, isLoading, error } = useQuery<Playbook | null>({
     queryKey: ['playbook', playbookId],
-    queryFn: () => getPlaybook(userId || '', playbookId),
+    queryFn: async () => {
+      console.log('🔍 Fetching playbook with:', { userId, playbookId });
+      try {
+        const result = await getPlaybook(userId || '', playbookId);
+        console.log('✅ Playbook fetch result:', result ? 'Found playbook' : 'Playbook is null');
+        return result;
+      } catch (err) {
+        console.error('❌ Playbook fetch error:', err);
+        throw err;
+      }
+    },
     enabled: !!playbookId && !!userId,
     staleTime: 0,
     gcTime: 0,
@@ -465,9 +485,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // Action steps initialization effect
   useEffect(() => {
-    if (playbook?.actionSteps && !isInitialized) {
+    if (playbook?.actionSteps) {
+      console.log('[DEBUG] Syncing action steps from database:', playbook.actionSteps.length, 'steps');
       setActionSteps(playbook.actionSteps);
-      setIsInitialized(true);
+      if (!isInitialized) {
+        setIsInitialized(true);
+      }
     }
   }, [playbook?.actionSteps, setActionSteps, isInitialized]);
 

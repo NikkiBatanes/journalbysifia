@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { signIn } from '../services/supabaseApi';
+import { supabase } from '../services/supabaseClient';
 
 // Types
 interface User {
@@ -104,8 +104,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       console.log('Starting login for:', email);
-      const result = await signIn(email, password);
-      console.log('Sign in result:', JSON.stringify(result, null, 2));
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      console.log('Sign in result:', JSON.stringify({ data, error }, null, 2));
+      
+      const result = { data, error };
 
       // Check for error in the response
       if (result.error) {
@@ -119,13 +121,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('No response data received from server');
       }
 
-      const { access_token, refresh_token, user: authUser } = result.data;
+      const { session, user: authUser } = result.data;
 
       // Validate the response data
-      if (!access_token) {
+      if (!session?.access_token) {
         console.error('No access token in response');
         throw new Error('Authentication failed: No access token received');
       }
+      
+      const { access_token, refresh_token } = session;
 
       if (!authUser?.id) {
         console.error('No user ID in response');

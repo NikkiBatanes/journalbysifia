@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 
 import { Devotional } from '../interfaces/devotional';
 import { format } from 'date-fns';
@@ -28,7 +28,8 @@ type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, '
 
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
-  const { id: userId } = useUser();
+  const { user } = useAuth();
+  const userId = user?.id;
   const {
     devotionals,
     deleteDevotional,

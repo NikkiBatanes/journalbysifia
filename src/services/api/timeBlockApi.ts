@@ -1,6 +1,6 @@
 // src/services/api/timeBlockApi.ts
 import { PostgrestError } from '@supabase/supabase-js';
-import { supabase } from '../supabaseApi';
+import { supabase } from '../supabaseClient';
 
 export class ApiError extends Error {
   statusCode: number;

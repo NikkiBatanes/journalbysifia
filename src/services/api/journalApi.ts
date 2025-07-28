@@ -1,5 +1,5 @@
 // src/services/api/journalApi.ts
-import { supabase } from '../supabaseApi';
+import { supabase } from '../supabaseClient';
 import {
   JournalEntry,
 } from '../../types/api';

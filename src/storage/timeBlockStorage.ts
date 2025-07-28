@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../services/supabaseApi';
+import { supabase } from '../services/supabaseClient';
 import { toLocalDateString } from '../utils/date';
 
 // Generate UUID function

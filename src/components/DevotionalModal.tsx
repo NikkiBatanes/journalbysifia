@@ -3,7 +3,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, 
 import { Colors, defaultFontFamily } from '../theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 

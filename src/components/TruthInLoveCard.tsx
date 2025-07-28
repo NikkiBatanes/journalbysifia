@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
-import { useUser } from '../context/UserContext';
+
 
 type TruthInLoveCardProps = {
   truth: string;
@@ -25,8 +25,6 @@ export default function TruthInLoveCard({
   numberOfLines = 5,
   ellipsizeMode = 'tail' as const,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
-  const { name: contextUsername } = useUser();
-  const username = propUsername || contextUsername || 'Friend';
   // Debug styles - can be removed after fixing
   const debugStyle = {
     // borderWidth: 1,
@@ -41,7 +39,6 @@ export default function TruthInLoveCard({
           <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
         </View>
         <Text style={[styles.content, styles.contentWithMargin, { color: textColor }]}>
-          <Text style={[styles.username, { color: textColor }]}>{username}, </Text>
           <Text style={[styles.summary, { color: textColor }]}>{summary}</Text>
         </Text>
       </View>
@@ -117,9 +114,6 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     color: Colors.hopeWhite,
     marginBottom: 4, // Reduced from 12 to 4
-  },
-  username: {
-    ...Typography.interBlack,
   },
   summary: {
     ...Typography.interBlack,

@@ -24,9 +24,11 @@ import { LogoutContext } from './src/context/LogoutContext';
 // import { DevotionalProvider } from './src/context/DevotionalContext'; // Removed - migrated to React Query
 import { ScrollProvider } from './src/context/ScrollContext';
 
-import { AuthProvider, useAuth } from './src/context/AuthContext';
+import IndustryStandardAuthProvider from './src/context/IndustryStandardAuthContext';
+import AuthGuard from './src/components/AuthGuard';
 import { QueryProvider } from './src/providers/QueryProvider';
 import { NetworkStatus } from './src/components/NetworkStatus';
+import AuthStateMonitor from './src/components/AuthStateMonitor';
 
 // Stack navigator removed as it's not currently used
 
@@ -64,19 +66,15 @@ function App(): React.JSX.Element {
 
   return (
     <QueryProvider>
-      <AuthProvider>
+      <IndustryStandardAuthProvider>
         <AppWithAuth fontsLoaded={fontsLoaded} playbook={playbook} />
-      </AuthProvider>
+      </IndustryStandardAuthProvider>
     </QueryProvider>
   );
 }
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
-  const { isAuthenticated, loading } = useAuth();
-
-  const isAppReady = fontsLoaded && !loading;
-
-  if (!isAppReady) {
+  if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.anchorBlue} />
@@ -85,33 +83,31 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
   }
 
   return (
-    <GestureHandlerRootView style={styles.gestureHandler}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      <ScrollProvider>
-        <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
+    <NavigationContainer>
+      <GestureHandlerRootView style={styles.gestureHandler}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+        <ScrollProvider>
+          <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
             <UserProvider>
               <LogoutContext.Provider value={{ onLogout: async () => {} }}>
-                <NavigationContainer>
-                  {isAuthenticated ? (
-                    <>
-                      <RootStackNavigator
-                        isAuthenticated={isAuthenticated}
-                        handleLogin={async () => {}}
-                        handleLogout={async () => {}}
-                        onLogin={async () => {}}
-                        AuthStack={AuthStackNavigator}
-                      />
-                      <NetworkStatus />
-                    </>
-                  ) : (
-                    <AuthStackNavigator onLogin={async () => {}} />
-                  )}
-                </NavigationContainer>
+                <AuthStateMonitor>
+                  <AuthGuard>
+                    <RootStackNavigator
+                      isAuthenticated={true} // Will be managed by AuthGuard
+                      handleLogin={async () => {}}
+                      handleLogout={async () => {}}
+                      onLogin={async () => {}}
+                      AuthStack={AuthStackNavigator}
+                    />
+                    <NetworkStatus />
+                  </AuthGuard>
+                </AuthStateMonitor>
               </LogoutContext.Provider>
             </UserProvider>
-        </ActionStepsProviderWrapper>
-      </ScrollProvider>
-    </GestureHandlerRootView>
+          </ActionStepsProviderWrapper>
+        </ScrollProvider>
+      </GestureHandlerRootView>
+    </NavigationContainer>
   );
 }
 

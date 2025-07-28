@@ -1,5 +1,5 @@
 // src/services/api/reflectionApi.ts
-import { supabase } from '../supabaseApi';
+import { supabase } from '../supabaseClient';
 
 export interface ReflectionApiEntry {
   id: string;

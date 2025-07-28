@@ -6,7 +6,7 @@ import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Check, HandHeart as LuHandHeart, X } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
   useGratitudeData,

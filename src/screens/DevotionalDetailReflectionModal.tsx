@@ -4,7 +4,7 @@ import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
 import {
   useCreateReflection,

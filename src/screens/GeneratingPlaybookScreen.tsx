@@ -98,7 +98,12 @@ const GeneratingPlaybookScreen: React.FC<Props> = () => {
       const currentLineText = lines[currentLine];
 
       if (currentCharIndex < currentLineText.length) {
-        setCurrentText(currentLineText.substring(0, currentCharIndex + 1));
+        // Use requestAnimationFrame to avoid useInsertionEffect conflicts
+        requestAnimationFrame(() => {
+          if (isMounted) {
+            setCurrentText(currentLineText.substring(0, currentCharIndex + 1));
+          }
+        });
         currentCharIndex++;
         timeout = setTimeout(typeNextCharacter, 30); // Faster typing speed
       } else {

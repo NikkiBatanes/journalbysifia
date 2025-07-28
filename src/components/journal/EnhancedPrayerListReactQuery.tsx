@@ -16,7 +16,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import ComponentErrorBoundary from '../../components/ErrorBoundary/ComponentErrorBoundary';
 import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer } from '../../services/hooks/usePrayerData';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 // Types and Interfaces
 type TabType = 'mine' | 'requests';

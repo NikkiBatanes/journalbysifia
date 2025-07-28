@@ -20,8 +20,7 @@ import {
   useDevotionalByIdReactQuery,
   useDevotionalOperations,
 } from '../services/hooks/useDevotionalDataSimplified';
-import { useAuth } from '../context/AuthContext';
-import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Typography as TypographyStyles } from '../theme/typography';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
@@ -42,7 +41,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
   const { devotionalId } = route.params;
   const { user } = useAuth();
-  const { id: userId } = useUser();
+  const userId = user?.id;
 
   // React Query hooks for devotional data
   const { data: devotional, isLoading: devotionalLoading } = useDevotionalByIdReactQuery(userId || '', devotionalId);

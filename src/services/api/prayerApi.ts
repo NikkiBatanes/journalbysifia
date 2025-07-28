@@ -1,5 +1,5 @@
 // src/services/api/prayerApi.ts
-import { supabase } from '../supabaseApi';
+import { supabase } from '../supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface PrayerApiEntry {

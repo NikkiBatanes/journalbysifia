@@ -5,7 +5,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
 import { Check, Goal as LuGoal, X } from 'lucide-react-native';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
   useTodaysFocusData,

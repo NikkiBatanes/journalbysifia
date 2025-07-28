@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Playbook } from '../interfaces/playbook';
 import { mergePlaybooks } from '../utils/mergePlaybooks';
 
-import { getPlaybooks, updatePlaybookActionSteps } from '../services/supabaseApi';
+import { getPlaybooks, updatePlaybookActionSteps } from '../services/apiIntegration';
 
 type PlaybookStatus = 'inProgress' | 'completed';
 

@@ -7,7 +7,9 @@ import { Playbook } from '../interfaces/playbook';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@env';
 
 // Session key for AsyncStorage
-const SESSION_KEY = '@supabase_session';
+import { SESSION_STORAGE_KEY } from '../constants/sessionConstants';
+
+const SESSION_KEY = SESSION_STORAGE_KEY;
 
 // Fallback values for development
 const DEFAULT_SUPABASE_URL = 'https://aesmrjinczhknchlrsmt.supabase.co';
@@ -80,83 +82,37 @@ console.log('Supabase Config:', {
   url: config.url === DEFAULT_SUPABASE_URL ? 'Using default URL' : 'Using custom URL',
 });
 
-// Session management
-export const storeSession = async (session: any) => {
-  try {
-    if (!session) {
-      console.error('Cannot store null or undefined session');
-      return false;
-    }
+// Legacy session management functions - DEPRECATED
+// These functions are no longer used and will be removed in future versions
+// Modern authentication uses direct Supabase session management
 
-    // Add expires_at if we have expires_in
-    const sessionToStore = { ...session };
-    if (session.expires_in && !session.expires_at) {
-      sessionToStore.expires_at = Math.floor(Date.now() / 1000) + session.expires_in;
-    }
-
-    console.log('Storing session:', {
-      hasToken: !!sessionToStore.access_token,
-      tokenLength: sessionToStore.access_token?.length,
-      expiresAt: sessionToStore.expires_at ? new Date(sessionToStore.expires_at * 1000).toISOString() : 'Not set',
-    });
-
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(sessionToStore));
-    return true;
-  } catch (error) {
-    console.error('Error storing session:', error);
-    return false;
-  }
+// DEPRECATED: Session storage is handled automatically by Supabase
+export const storeSession = async (sessionToStore: any) => {
+  console.warn('DEPRECATED: storeSession() is no longer needed. Supabase handles session storage automatically.');
+  return true;
 };
 
-
-
+// DEPRECATED: Use supabase.auth.getSession() instead
 export const getSession = async () => {
-  try {
-    const sessionString = await AsyncStorage.getItem(SESSION_KEY);
-    if (!sessionString) {
-      console.log('No session found in storage');
-      return null;
-    }
-
-    const session = JSON.parse(sessionString);
-    console.log('Retrieved session:', {
-      hasToken: !!session?.access_token,
-      tokenLength: session?.access_token?.length,
-      expiresIn: session?.expires_in,
-    });
-
-    // Check if token is expired
-    if (session?.expires_at && Date.now() >= session.expires_at * 1000) {
-      console.log('Session token has expired');
-      await clearSession();
-      return null;
-    }
-
-    return session;
-  } catch (error) {
-    console.error('Error getting session:', error);
-    return null;
-  }
+  console.warn('DEPRECATED: getSession() from supabaseApi.ts is deprecated. Use supabase.auth.getSession() instead.');
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
 };
 
-export const clearSession = async () => {
-  try {
-    await AsyncStorage.removeItem(SESSION_KEY);
-    return true;
-  } catch (error) {
-    console.error('Error clearing session:', error);
-    return false;
-  }
-};
-
-// Check if user is authenticated
+// DEPRECATED: Use supabase.auth.getSession() instead
 export const checkAuth = async () => {
-  const session = await getSession();
+  console.warn('DEPRECATED: checkAuth() from supabaseApi.ts is deprecated. Use supabase.auth.getSession() instead.');
+  const { data: { session } } = await supabase.auth.getSession();
   return !!session?.access_token;
 };
 
-// Sign in with email and password
+// DEPRECATED: Session clearing is handled by supabase.auth.signOut()
+export const clearSession = async () => {
+  console.warn('DEPRECATED: clearSession() is deprecated. Use supabase.auth.signOut() instead.');
+  return true;
+};
 
+// Sign in with email and password
 
 export async function signIn(email: string, password: string) {
   try {
@@ -760,7 +716,14 @@ export async function generatePlaybook(userInput: string, userName: string) {
   console.log('[generatePlaybook] Config URL:', config.url);
 
   try {
-    const session = await getSession();
+    // Get fresh session from Supabase (handles token refresh automatically)
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      console.error('[generatePlaybook] Session error:', sessionError);
+      throw new Error('Authentication required. Please log in again.');
+    }
+    
     console.log('[generatePlaybook] Session:', session?.user?.id);
     console.log('[generatePlaybook] Making request to:', functionUrl);
 
@@ -769,7 +732,7 @@ export async function generatePlaybook(userInput: string, userName: string) {
       headers: {
         'Content-Type': 'application/json',
         'apikey': config.anonKey,
-        'Authorization': `Bearer ${session?.access_token || ''}`,
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ userInput, userName }),
     });
@@ -782,7 +745,11 @@ export async function generatePlaybook(userInput: string, userName: string) {
     console.error('generatePlaybook error:', err);
 
     // Provide more specific error messages
-    if (err.message?.includes('Network request failed')) {
+    if (err.message?.includes('Invalid JWT') || err.message?.includes('401')) {
+      throw new Error('Your session has expired. Please log out and log back in.');
+    } else if (err.message?.includes('Authentication required')) {
+      throw new Error('Authentication required. Please log in again.');
+    } else if (err.message?.includes('Network request failed')) {
       throw new Error('Unable to connect to the AI service. Please check your internet connection and try again.');
     } else if (err.message?.includes('Failed to fetch')) {
       throw new Error('Connection timeout. Please try generating your playbook again.');

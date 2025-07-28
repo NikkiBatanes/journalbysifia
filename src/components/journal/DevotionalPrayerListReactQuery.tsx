@@ -7,7 +7,7 @@ import {
 import { Colors } from '../../theme/colors';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDevotionalPrayerData } from '../../services/hooks/usePrayerData';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 
 const formatPrayerDate = (prayerDate: Date): string => {

@@ -1,55 +1,152 @@
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { authErrorHandler, AuthErrorHandlerOptions } from './authErrorHandler';
+import { useCallback, useRef } from 'react';
 
-// Example API wrapper using fetch
-export const apiFetch = async (): Promise<Response> => {
-  // Access AuthContext (must be inside a React component or custom hook)
-  // For non-hook usage, pass token explicitly or refactor to support context
-  // Here, we assume you will wrap API calls in a custom hook
-  throw new Error('apiFetch must be called from within a useApi hook');
-};
-
-// Custom hook for API usage with auth
+// Enhanced API wrapper with authentication recovery
 export const useApi = () => {
   const {
-    accessToken,
-    refreshAuthToken,
-    logout,
-    refreshRetrying,
+    session,
+    signOut,
     loading,
   } = useAuth();
+  
+  const retryCountRef = useRef<Map<string, number>>(new Map());
 
-  // Authenticated fetch with 401/403 handling
-  const authFetch = async (
+  // Authenticated fetch with comprehensive error handling
+  const authFetch = useCallback(async (
     url: string,
     options: RequestInit = {},
-    retry = true
+    errorHandlerOptions: AuthErrorHandlerOptions = {}
   ): Promise<Response> => {
-    // Use the parameters to avoid unused variable warnings
-    const fetchOptions = { ...options };
-    const headers = {
-      ...(options.headers || {}),
-      Authorization: accessToken ? `Bearer ${accessToken}` : '',
-    };
+    const operationId = `${options.method || 'GET'}_${url}`;
+    const maxRetries = errorHandlerOptions.retryAttempts || 2;
+    const currentRetries = retryCountRef.current.get(operationId) || 0;
+    
     try {
-      const response = await fetch(url, { ...fetchOptions, headers });
-      if (response.status === 401 || response.status === 403) {
-        // Try to refresh token and retry once
-        if (retry && !refreshRetrying && !loading) {
-          const refreshed = await refreshAuthToken();
-          if (refreshed) {
-            return authFetch(url, fetchOptions, false);
-          } else {
-            // Only log out if refresh truly fails
-            await logout();
+      // Check if we have a valid session
+      if (!session?.access_token) {
+        console.warn('⚠️ No authentication token available');
+        
+        const result = await authErrorHandler.handleApiError(
+          { status: 401, message: 'No authentication token' },
+          {
+            ...errorHandlerOptions,
+            operationName: errorHandlerOptions.operationName || 'API request',
+            onAuthRequired: () => signOut()
           }
+        );
+        
+        if (!result.handled) {
+          throw new Error('Authentication required');
         }
+        
+        return new Response(null, { status: 401 });
       }
-      return response;
-    } catch (e) {
-      // Network error: do not log out, just rethrow
-      throw e;
-    }
-  };
 
-  return { authFetch };
+      console.log(`🌐 Making API request: ${operationId}`);
+      
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      // Reset retry count on successful request
+      if (response.ok) {
+        retryCountRef.current.delete(operationId);
+        return response;
+      }
+
+      // Handle error responses
+      console.warn(`⚠️ API request failed: ${response.status} ${response.statusText}`);
+      
+      const errorData = await response.text().catch(() => 'Unknown error');
+      const error = {
+        status: response.status,
+        statusText: response.statusText,
+        message: errorData,
+        url
+      };
+
+      const result = await authErrorHandler.handleApiError(error, {
+        ...errorHandlerOptions,
+        retryAttempts: maxRetries - currentRetries,
+        operationName: errorHandlerOptions.operationName || `API request to ${url}`,
+        onAuthRequired: () => signOut()
+      });
+
+      if (result.shouldRetry && currentRetries < maxRetries) {
+        console.log(`🔄 Retrying API request: ${operationId} (attempt ${currentRetries + 1}/${maxRetries})`);
+        retryCountRef.current.set(operationId, currentRetries + 1);
+        
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetries) * 1000));
+        
+        return authFetch(url, options, errorHandlerOptions);
+      }
+
+      // No retry or max retries reached
+      retryCountRef.current.delete(operationId);
+      
+      if (!result.handled) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+      }
+      
+      return response;
+      
+    } catch (networkError: any) {
+      console.error(`💥 Network error for ${operationId}:`, networkError);
+      
+      const result = await authErrorHandler.handleApiError(networkError, {
+        ...errorHandlerOptions,
+        retryAttempts: maxRetries - currentRetries,
+        operationName: errorHandlerOptions.operationName || `API request to ${url}`,
+        onAuthRequired: () => signOut()
+      });
+
+      if (result.shouldRetry && currentRetries < maxRetries) {
+        console.log(`🔄 Retrying after network error: ${operationId} (attempt ${currentRetries + 1}/${maxRetries})`);
+        retryCountRef.current.set(operationId, currentRetries + 1);
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetries) * 1000));
+        
+        return authFetch(url, options, errorHandlerOptions);
+      }
+
+      retryCountRef.current.delete(operationId);
+      
+      if (!result.handled) {
+        throw networkError;
+      }
+      
+      // Return a failed response instead of throwing
+      return new Response(null, { status: 500, statusText: 'Network Error' });
+    }
+  }, [session, signOut]);
+
+  // Simplified fetch for non-authenticated requests
+  const simpleFetch = useCallback(async (
+    url: string,
+    options: RequestInit = {}
+  ): Promise<Response> => {
+    return fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }, []);
+
+  return {
+    authFetch,
+    simpleFetch,
+    isAuthenticated: !!session,
+    loading,
+    session,
+  };
 };

@@ -1,5 +1,5 @@
 // src/services/api/devotionalApi.ts
-import { supabase } from '../supabaseApi';
+import { supabase } from '../supabaseClient';
 import { Devotional, DevotionalCreationParams } from '../../interfaces/devotional';
 import { Playbook } from '../../interfaces/playbook';
 
@@ -236,8 +236,12 @@ export class DevotionalApi {
    * Generate a new devotional using AI
    */
   static async generateDevotional(params: DevotionalCreationParams): Promise<Devotional> {
-    // This would call the existing generateDevotional function
-    const { generateDevotional } = await import('../supabaseApi');
-    return generateDevotional(params.duration, params.playbookId, params.userInput);
+    // Use the modern devotional API directly
+    const { generateDevotional } = await import('../modernDevotionalApi');
+    return generateDevotional({
+      duration: params.duration,
+      playbookId: params.playbookId,
+      userInput: params.userInput
+    });
   }
 }

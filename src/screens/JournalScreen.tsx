@@ -15,7 +15,7 @@ import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
 import { LookingForwardReactQuery } from '../components/journal/LookingForwardReactQuery';
 import { ScheduleContent } from '../components/journal/ScheduleContent';
 import PrayerJournalTabReactQuery from '../components/journal/PrayerJournalTabReactQuery';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
 

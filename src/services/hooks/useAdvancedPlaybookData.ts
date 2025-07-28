@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { Playbook } from '../../interfaces/playbook';
 import { queryKeys } from '../queryKeys';
-import { getPlaybooks as getPlaybooksApi, getPlaybook as getPlaybookApi } from '../supabaseApiNormalized';
+import { getPlaybooks as getPlaybooksApi, getPlaybook as getPlaybookApi } from '../apiIntegration';
 import { withQueryPerformance } from '../../utils/performanceMonitor';
 
 // Types for advanced features

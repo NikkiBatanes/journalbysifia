@@ -7,7 +7,7 @@ const generateUUID = (): string => {
   });
 };
 
-import { supabase } from '../services/supabaseApi';
+import { supabase } from '../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { toLocalDateString } from '../utils/date';
 
@@ -1035,7 +1035,6 @@ export const updateCloudEntry = async (userId: string, entryId: string, updatedD
             continue;
           } catch (refreshError) {
             console.error('Failed to refresh session:', refreshError);
-            await supabase.auth.signOut();
             throw new Error('Session expired. Please log in again.');
           }
         }
@@ -1158,7 +1157,6 @@ export const getCloudEntry = async (userId: string, entryId: string, date: strin
           return getCloudEntry(userId, entryId, date);
         } catch (refreshError) {
           console.error('Failed to refresh session:', refreshError);
-          await supabase.auth.signOut();
           throw new Error('Session expired. Please log in again.');
         }
       }
