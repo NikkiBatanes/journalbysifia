@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, StatusBar, Text, TouchableOpacity } from 'react-native';
+import { View, ScrollView, StyleSheet, StatusBar, Text, TouchableOpacity, Image } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
+import { CommonActions } from '@react-navigation/native';
 import PlaybookHeader from '../components/PlaybookHeader';
 import { Colors } from '../theme';
 import TruthInLoveCard from '../components/TruthInLoveCard';
@@ -83,13 +84,57 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     navigation.setOptions({
       headerTitle: '',
       headerLeft,
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => {
+            console.log('Profile image pressed from CardDetail');
+            try {
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'MainTabs',
+                      state: {
+                        routes: [
+                          { name: 'Home' },
+                          { name: 'Playbooks' },
+                          { name: 'Devotionals' },
+                          { name: 'Profile' },
+                        ],
+                        index: 3,
+                      },
+                    },
+                  ],
+                })
+              );
+            } catch (error) {
+              console.log('Navigation error:', error);
+            }
+          }}
+          style={{ marginRight: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', borderRadius: 16, overflow: 'hidden' }}
+          activeOpacity={0.7}
+        >
+          {(user as any)?.user_metadata?.avatar_url ? (
+            <Image
+              source={{ uri: (user as any).user_metadata.avatar_url }}
+              style={{ width: 32, height: 32, borderRadius: 16 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#666', justifyContent: 'center', alignItems: 'center' }}>
+              <Ionicons name="person" size={16} color="#fff" />
+            </View>
+          )}
+        </TouchableOpacity>
+      ),
       headerShown: true,
       headerTransparent: false,
       headerStyle: {
         backgroundColor: Colors.anchorBlue,
       },
     });
-  }, [navigation, headerLeft]);
+  }, [navigation, headerLeft, user]);
 
   // Force re-render to get updated progress
   useFocusEffect(

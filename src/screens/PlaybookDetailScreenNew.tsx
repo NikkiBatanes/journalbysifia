@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
   Text,
+  Image,
   Dimensions,
   ViewStyle,
   TextStyle,
@@ -15,6 +16,7 @@ import {
 // Navigation & Gestures
 import { GestureDetector } from 'react-native-gesture-handler';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 
 // Animation
 import Animated, {
@@ -608,13 +610,57 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     navigation.setOptions({
       headerTitle: '',
       headerLeft,
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => {
+            console.log('Profile image pressed from PlaybookDetail');
+            try {
+              navigation.dispatch(
+                CommonActions.reset({
+                  index: 0,
+                  routes: [
+                    {
+                      name: 'MainTabs',
+                      state: {
+                        routes: [
+                          { name: 'Home' },
+                          { name: 'Playbooks' },
+                          { name: 'Devotionals' },
+                          { name: 'Profile' },
+                        ],
+                        index: 3,
+                      },
+                    },
+                  ],
+                })
+              );
+            } catch (error) {
+              console.log('Navigation error:', error);
+            }
+          }}
+          style={{ marginRight: 16 }}
+          activeOpacity={0.7}
+        >
+          {(user as any)?.user_metadata?.avatar_url ? (
+            <Image
+              source={{ uri: (user as any).user_metadata.avatar_url }}
+              style={{ width: 32, height: 32, borderRadius: 16 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#666', justifyContent: 'center', alignItems: 'center' }}>
+              <Ionicons name="person" size={16} color="#fff" />
+            </View>
+          )}
+        </TouchableOpacity>
+      ),
       headerShown: true,
       headerTransparent: false,
       headerStyle: {
         backgroundColor: Colors.hopeWhite,
       },
     });
-  }, [navigation, headerLeft]);
+  }, [navigation, headerLeft, user]);
 
   // Debounced save function to prevent excessive calls
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
