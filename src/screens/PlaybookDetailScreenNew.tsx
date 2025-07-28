@@ -802,6 +802,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 onScroll={handleScroll}
                 scrollEventThrottle={16}
                 onLastCardVisible={handleLastCardVisible}
+                currentUser={user ? {
+                  displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+                  firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+                  lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+                } : undefined}
               />
             )}
           </View>
@@ -888,7 +893,15 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             extraStyle,
           ]}
         >
-          <DocumentCardView card={card} styles={styles} />
+          <DocumentCardView
+            card={card}
+            styles={styles}
+            currentUser={user ? {
+              displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+              firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+              lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+            } : undefined}
+          />
         </TouchableOpacity>
       );
     };

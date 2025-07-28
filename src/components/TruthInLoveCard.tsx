@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
+import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 
 
 type TruthInLoveCardProps = {
@@ -13,6 +14,11 @@ type TruthInLoveCardProps = {
   expanded?: boolean;
   style?: StyleProp<ViewStyle>;
   textColor?: string;
+  currentUser?: {
+    displayName?: string;
+    firstName?: string;
+    lastName?: string;
+  };
 };
 
 export default function TruthInLoveCard({
@@ -24,7 +30,12 @@ export default function TruthInLoveCard({
   textColor = Colors.hopeWhite,
   numberOfLines = 5,
   ellipsizeMode = 'tail' as const,
+  currentUser,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
+  // Replace [User's Name] placeholders with current user's name
+  const processedTruth = currentUser ? replaceAllNamePlaceholders(truth, currentUser) : truth;
+  const processedSummary = currentUser ? replaceAllNamePlaceholders(summary, currentUser) : summary;
+
   // Debug styles - can be removed after fixing
   const debugStyle = {
     // borderWidth: 1,
@@ -39,7 +50,7 @@ export default function TruthInLoveCard({
           <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
         </View>
         <Text style={[styles.content, styles.contentWithMargin, { color: textColor }]}>
-          <Text style={[styles.summary, { color: textColor }]}>{summary}</Text>
+          <Text style={[styles.summary, { color: textColor }]}>{processedSummary}</Text>
         </Text>
       </View>
 
@@ -57,7 +68,7 @@ export default function TruthInLoveCard({
             allowFontScaling={true}
             adjustsFontSizeToFit={false}
           >
-            {truth}
+            {processedTruth}
           </Text>
         </View>
       </View>

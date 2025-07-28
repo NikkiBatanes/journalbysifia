@@ -9,6 +9,7 @@ import { Colors } from '../theme';
 import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
 import { useActionSteps } from '../context/ActionStepsContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
@@ -25,6 +26,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
 
   // Get the latest progress and task counts from context
   const { getCompletedStepsCount, actionSteps } = useActionSteps();
+  const { user } = useAuth();
   const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
   const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
@@ -84,7 +86,16 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
   const renderCard = (cardSteps: any) => {
     switch (cardType) {
       case 'truth':
-        return <TruthInLoveCard {...cardData} expanded={true} textColor={Colors.anchorBlue} />;
+        return <TruthInLoveCard
+          {...cardData}
+          expanded={true}
+          textColor={Colors.anchorBlue}
+          currentUser={user ? {
+            displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+            firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+            lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+          } : undefined}
+        />;
       case 'action':
         return <ActionStepsCard
           steps={cardSteps}

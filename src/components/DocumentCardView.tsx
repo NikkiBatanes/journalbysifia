@@ -28,9 +28,14 @@ interface Card {
 interface DocumentCardViewProps {
   card: Card;
   styles: any;
+  currentUser?: {
+    displayName?: string;
+    firstName?: string;
+    lastName?: string;
+  };
 }
 
-const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles }) => {
+const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser }) => {
   if (card.type === 'truth') {
     return (
       <View style={styles.truthCardContainer}>
@@ -41,6 +46,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
           style={styles.truthCardContent}
           numberOfLines={5}
           ellipsizeMode="tail"
+          currentUser={currentUser}
         />
       </View>
     );

@@ -17,6 +17,11 @@ interface DocumentCardsProps {
   onScroll?: (event: any) => void;
   scrollEventThrottle?: number;
   onLastCardVisible?: (visible: boolean) => void;
+  currentUser?: {
+    displayName?: string;
+    firstName?: string;
+    lastName?: string;
+  };
 }
 
 const DocumentCards: React.FC<DocumentCardsProps> = ({
@@ -26,6 +31,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
   onScroll,
   scrollEventThrottle = 16,
   onLastCardVisible,
+  currentUser,
 }) => {
   // DEBUG: Log actionSteps received by DocumentCards
   console.log('[DEBUG] DocumentCards - Received actionSteps:', {
@@ -88,6 +94,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
           console.log('[DEBUG] propStyles.truthCard:', propStyles.truthCard);
           return [propStyles.docCard, propStyles.truthCard, { backgroundColor: Colors.anchorBlue }];
         })()}
+        currentUser={currentUser}
       />
       <ActionStepsCard
         key="action"

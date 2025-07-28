@@ -128,10 +128,11 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   // Parse Truth in Love
   const truthInLoveMatch = content.match(/TRUTH IN LOVE:\s*([\s\S]*?)(?=ACTION STEPS:|AFFIRMATIONS:|BIBLE VERSE:|CHALLENGE:|$)/i);
   if (truthInLoveMatch) {
-    let truthText = truthInLoveMatch[1].trim();
+    const truthText = truthInLoveMatch[1].trim();
 
-    // Replace [User's Name] placeholder with actual user name
-    truthText = truthText.replace(/\[User's Name\]/g, userName);
+    // Keep [User's Name] placeholder for dynamic replacement in the UI
+    // This allows the name to update when user changes their name in settings
+    // truthText = truthText.replace(/\[User's Name\]/g, userName);
 
     playbook.truthInLove.text = truthText;
   }
