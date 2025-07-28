@@ -67,14 +67,14 @@ export const PlaybookSkeleton: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: 16, // Match PlaybookListScreen container padding exactly
   },
   sectionHeader: {
     backgroundColor: '#f6f8fa',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
-    marginTop: 0, // Remove top margin to start at the same position
+    marginTop: 12, // Match PlaybookListScreen section header margin
     marginBottom: 2,
   },
   sectionHeaderSkeleton: {
