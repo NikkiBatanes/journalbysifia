@@ -10,8 +10,8 @@ const authApiPath = path.join(__dirname, 'src/services/authApi.ts');
 const authApiContent = fs.readFileSync(authApiPath, 'utf8');
 
 // Check if createDefaultProfile is fixed
-if (authApiContent.includes('growth_level: \'Seedling\'') && 
-    authApiContent.includes('email: userEmail') && 
+if (authApiContent.includes('growth_level: \'Seedling\'') &&
+    authApiContent.includes('email: userEmail') &&
     !authApiContent.includes('badges: []')) {
   console.log('✅ Database schema fix: createDefaultProfile matches actual schema');
 } else {
@@ -26,7 +26,7 @@ const filesToCheck = [
   'src/utils/api.ts',
   'src/screens/LoginScreen.tsx',
   'src/components/journal/GratitudeListReactQuery.tsx',
-  'src/screens/JournalScreen.tsx'
+  'src/screens/JournalScreen.tsx',
 ];
 
 let migratedFiles = 0;

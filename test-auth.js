@@ -10,7 +10,7 @@ const filesToCheck = [
   'src/screens/auth/SimpleRegisterScreen.tsx',
   'src/screens/profile/EnhancedProfileScreen.tsx',
   'src/navigation/AuthStackNavigator.tsx',
-  'src/navigation/BottomTabNavigator.tsx'
+  'src/navigation/BottomTabNavigator.tsx',
 ];
 
 let allFilesExist = true;

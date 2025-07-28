@@ -29,8 +29,8 @@ if (authApiContent.includes('createDefaultProfile(userId: string)')) {
 }
 
 // Check if default profile has required fields
-if (authApiContent.includes('first_name: \'User\'') && 
-    authApiContent.includes('faith_points: 0') && 
+if (authApiContent.includes('first_name: \'User\'') &&
+    authApiContent.includes('faith_points: 0') &&
     authApiContent.includes('level: 1')) {
   console.log('✅ Default profile has required fields');
 } else {
@@ -40,7 +40,7 @@ if (authApiContent.includes('first_name: \'User\'') &&
 console.log('\n📋 Checking SimpleLoginScreen.tsx:');
 
 // Check if manual navigation is removed
-if (!loginContent.includes("navigation.reset({")) {
+if (!loginContent.includes('navigation.reset({')) {
   console.log('✅ Manual navigation reset removed');
 } else {
   console.log('❌ Manual navigation reset still present');

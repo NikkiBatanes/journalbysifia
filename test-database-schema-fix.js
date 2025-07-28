@@ -18,7 +18,7 @@ console.log('📋 Checking Database Schema:');
 const expectedColumns = [
   'id', 'email', 'first_name', 'last_name', 'bio', 'avatar_url',
   'faith_points', 'growth_level', 'current_streak', 'longest_streak',
-  'gamification_stats', 'preferences', 'notification_preferences'
+  'gamification_stats', 'preferences', 'notification_preferences',
 ];
 
 let foundColumns = 0;
