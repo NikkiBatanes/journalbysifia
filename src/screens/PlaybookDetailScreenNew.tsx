@@ -47,6 +47,7 @@ import { Playbook, ActionStep, Affirmation } from '../interfaces/playbook';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { getCompletedStepsCount as getTaskStats } from '../utils/taskUtils';
 import { useNavigation } from '@react-navigation/native';
+import PlaybookSkeletonLoader from '../components/PlaybookSkeletonLoader';
 
 // Data & API
 import { useQuery } from '@tanstack/react-query';
@@ -1053,9 +1054,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           <Text style={styles.progressText}>No playbook ID provided</Text>
         </View>
       ) : isLoading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.progressText}>Loading fresh playbook data...</Text>
-        </View>
+        <PlaybookSkeletonLoader />
       ) : error || !playbook ? (
         <View style={styles.loadingContainer}>
           <Text style={styles.progressText}>Failed to load playbook data</Text>
