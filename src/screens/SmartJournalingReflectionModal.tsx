@@ -8,7 +8,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../utils/date';
 import {
   useCreateReflection,
-  useReflectionData,
 } from '../services/hooks/useReflectionData';
 import { analytics } from '../utils/analytics';
 
@@ -41,8 +40,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   // React Query hooks
   const createMutation = useCreateReflection();
-  const { refetch } = useReflectionData(user?.id || '', dateStr);
   const isLoading = createMutation.isPending;
+  // Note: We don't need to refetch data since the modal will close after saving
 
   // Save reflection using React Query system
   const saveReflection = async (entry: { title: string; content: string; tags?: string[] }) => {
@@ -82,13 +81,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         // This helps identify playbook reflections in the daily log
       };
 
-      console.log('💭 SmartJournalingReflectionModal: Saving reflection with data:', reflectionData);
-      const result = await createMutation.mutateAsync(reflectionData);
-      console.log('💭 SmartJournalingReflectionModal: Reflection saved successfully:', result);
-
-      // Force refetch to ensure UI updates in reflection log
-      await refetch();
-      console.log('💭 SmartJournalingReflectionModal: Reflection data refetched after save');
+      await createMutation.mutateAsync(reflectionData);
 
       // Show success modal
       setShowSuccessModal(true);
