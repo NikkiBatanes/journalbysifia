@@ -113,26 +113,6 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
       <View style={[styles.container, dynamicStyles.container]}>
         <View style={[styles.headerContainer, dynamicStyles.headerContainer]}>
           <View style={styles.headerCenter}>
-            {onPlaybookLabelPress ? (
-              <TouchableOpacity
-                style={styles.row}
-                onPress={onPlaybookLabelPress}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.playbookLabel, dynamicStyles.playbookLabel]}>
-                  PLAYBOOK
-                </Text>
-                {renderChevron()}
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.row}>
-                <Text style={[styles.playbookLabel, dynamicStyles.playbookLabel]}>
-                  PLAYBOOK
-                </Text>
-                {renderChevron()}
-              </View>
-            )}
-
             {showUserInput && userInput && (
               <View style={[styles.userInputCard, dynamicStyles.userInputCard]}>
                 <Text style={[styles.userInputText, dynamicStyles.userInputText]}>

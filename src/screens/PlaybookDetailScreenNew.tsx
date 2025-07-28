@@ -377,6 +377,19 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       >
         <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.playbookLabelContainer}
+        onPress={() => setShowUserInput(!showUserInput)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
+        <Ionicons 
+          name="chevron-down" 
+          size={15} 
+          color={Colors.anchorBlue}
+          style={[styles.chevronIcon, showUserInput && styles.chevronRotated]}
+        />
+      </TouchableOpacity>
       {showCompactHeader && (
         <Text
           style={styles.compactHeaderTitle}
@@ -387,7 +400,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </Text>
       )}
     </View>
-  ), [navigation, showCompactHeader, playbook?.title]);
+  ), [navigation, showCompactHeader, playbook?.title, showUserInput]);
 
   // ===== EFFECT HOOKS =====
 
@@ -1065,6 +1078,10 @@ interface PlaybookDetailStyles {
   headerLeftContainer: ViewStyle;
   backButtonContainer: ViewStyle;
   compactHeaderTitle: TextStyle;
+  playbookLabelContainer: ViewStyle;
+  playbookLabelText: TextStyle;
+  chevronIcon: ViewStyle;
+  chevronRotated: ViewStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
@@ -1464,5 +1481,25 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     color: Colors.anchorBlue,
     marginLeft: 4,
     maxWidth: 260,
+  },
+  playbookLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 32,
+  },
+  playbookLabelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.anchorBlue,
+    letterSpacing: 0.5,
+  },
+  chevronIcon: {
+    marginLeft: 4,
+  },
+  chevronRotated: {
+    transform: [{ rotate: '180deg' }],
   },
 });

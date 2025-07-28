@@ -58,8 +58,21 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
       >
         <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.playbookLabelContainer}
+        onPress={() => setShowUserInput(!showUserInput)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
+        <Ionicons 
+          name="chevron-down" 
+          size={15} 
+          color="#FFFFFF"
+          style={[styles.chevronIcon, showUserInput && styles.chevronRotated]}
+        />
+      </TouchableOpacity>
     </View>
-  ), [navigation]);
+  ), [navigation, showUserInput]);
 
   // Set navigation options
   React.useLayoutEffect(() => {
@@ -333,11 +346,30 @@ const styles = StyleSheet.create({
   headerLeftContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
   },
   backButtonContainer: {
     padding: 8,
     paddingLeft: 0,
+  },
+  playbookLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    minHeight: 32,
+  },
+  playbookLabelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  chevronIcon: {
+    marginLeft: 4,
+  },
+  chevronRotated: {
+    transform: [{ rotate: '180deg' }],
   },
 
 });
