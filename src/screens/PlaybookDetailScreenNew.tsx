@@ -383,12 +383,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         activeOpacity={0.7}
       >
         <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
-        <Ionicons 
-          name="chevron-down" 
-          size={15} 
-          color={Colors.anchorBlue}
-          style={[styles.chevronIcon, showUserInput && styles.chevronRotated]}
-        />
+        <Animated.View style={chevronStyle}>
+          <Ionicons
+            name="chevron-down"
+            size={15}
+            color={Colors.anchorBlue}
+          />
+        </Animated.View>
       </TouchableOpacity>
       {showCompactHeader && (
         <Text
@@ -400,7 +401,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </Text>
       )}
     </View>
-  ), [navigation, showCompactHeader, playbook?.title, showUserInput]);
+  ), [navigation, showCompactHeader, playbook?.title, showUserInput, chevronStyle]);
 
   // ===== EFFECT HOOKS =====
 
@@ -795,10 +796,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               setHasReachedLastCard(false);
               setViewMode(mode);
             }}
-            onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
             showUserInput={showUserInput}
             userInput={playbook.userInput}
-            chevronAnimatedStyle={chevronStyle}
             showTitle={false}
           />
         )}
@@ -1081,7 +1080,6 @@ interface PlaybookDetailStyles {
   playbookLabelContainer: ViewStyle;
   playbookLabelText: TextStyle;
   chevronIcon: ViewStyle;
-  chevronRotated: ViewStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
@@ -1498,8 +1496,5 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   },
   chevronIcon: {
     marginLeft: 4,
-  },
-  chevronRotated: {
-    transform: [{ rotate: '180deg' }],
   },
 });

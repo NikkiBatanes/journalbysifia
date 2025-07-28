@@ -14,7 +14,7 @@ import AffirmationCard from '../components/AffirmationCard';
 import BibleVerseCard from '../components/BibleVerseCard';
 import DirectChallengeCard from '../components/DirectChallengeCard';
 import { RootStackParamList } from '../navigation/types';
-import { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 export default function CardDetailScreen({ route, navigation }: StackScreenProps<RootStackParamList, 'CardDetail'>) {
   const [headerHeight, setHeaderHeight] = useState(150); // Default header height
@@ -32,7 +32,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
 
   const [showUserInput, setShowUserInput] = useState(false);
 
-  // Chevron animation logic (same as PlaybookDetailScreen)
+  // Chevron animation logic
   const chevronAnim = useSharedValue(0);
   React.useEffect(() => {
     chevronAnim.value = withTiming(showUserInput ? 1 : 0, { duration: 200 });
@@ -41,6 +41,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
     marginLeft: 4,
   }));
+
   const [userInput] = useState(playbook?.userInput || '');
 
   // Header left component
@@ -64,15 +65,16 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
         activeOpacity={0.7}
       >
         <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
-        <Ionicons 
-          name="chevron-down" 
-          size={15} 
-          color="#FFFFFF"
-          style={[styles.chevronIcon, showUserInput && styles.chevronRotated]}
-        />
+        <Animated.View style={chevronStyle}>
+          <Ionicons
+            name="chevron-down"
+            size={15}
+            color="#FFFFFF"
+          />
+        </Animated.View>
       </TouchableOpacity>
     </View>
-  ), [navigation, showUserInput]);
+  ), [navigation, showUserInput, chevronStyle]);
 
   // Set navigation options
   React.useLayoutEffect(() => {
@@ -201,8 +203,6 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           userInputBackgroundColor={'#264776'}
           userInputBorderColor={'#385886'}
           userInputTextColor={Colors.hopeWhite}
-          onPlaybookLabelPress={() => setShowUserInput(!showUserInput)}
-          chevronAnimatedStyle={chevronStyle}
         />
       </View>
 
@@ -367,9 +367,6 @@ const styles = StyleSheet.create({
   },
   chevronIcon: {
     marginLeft: 4,
-  },
-  chevronRotated: {
-    transform: [{ rotate: '180deg' }],
   },
 
 });

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Animated from 'react-native-reanimated';
+
 import { Colors } from '../theme';
 
 interface PlaybookHeaderProps {
@@ -18,7 +18,6 @@ interface PlaybookHeaderProps {
   onToggleView?: (mode: 'stack' | 'document') => void;
   profileImageUri?: string;
   showProfileImage?: boolean;
-  onPlaybookLabelPress?: () => void;
   showUserInput?: boolean;
   userInput?: string;
   backgroundColor?: string;
@@ -27,7 +26,6 @@ interface PlaybookHeaderProps {
   userInputBackgroundColor?: string;
   userInputBorderColor?: string;
   userInputTextColor?: string;
-  chevronAnimatedStyle?: any;
 }
 
 const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
@@ -41,7 +39,6 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   onToggleView,
   profileImageUri,
   showProfileImage = false,
-  onPlaybookLabelPress,
   showUserInput,
   userInput,
   backgroundColor = Colors.hopeWhite,
@@ -50,7 +47,6 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInputBackgroundColor,
   userInputBorderColor,
   userInputTextColor,
-  chevronAnimatedStyle,
 }) => {
   // Split title at newlines to handle title and subtitle on separate lines
   const titleLines = title.split('\n').map(part => part.trim()).filter(part => part.length > 0);
@@ -93,20 +89,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
     },
   };
 
-  const renderChevron = () => (
-    chevronAnimatedStyle ? (
-      <Animated.View style={chevronAnimatedStyle}>
-        <Ionicons name="chevron-down" size={15} color={textColor} />
-      </Animated.View>
-    ) : (
-      <Ionicons
-        name="chevron-down"
-        size={15}
-        color={textColor}
-        style={styles.chevronIcon}
-      />
-    )
-  );
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
