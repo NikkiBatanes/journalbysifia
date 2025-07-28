@@ -6,12 +6,14 @@ import {
 } from '@react-navigation/native-stack';
 import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { CommonActions } from '@react-navigation/native';
 import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
 import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 
 
 // Header Components
@@ -28,17 +30,71 @@ const BackButton = React.memo<BackButtonProps>(({ onPress, color = Colors.anchor
 
 interface ProfileImageProps {
   containerStyle?: object;
+  navigation?: any;
 }
 
-const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle }) => (
-  <View style={[styles.profileImageContainer, containerStyle]}>
-    <Image
-      source={{ uri: 'https://randomuser.me/api/portraits/women/44.jpg' }}
-      style={styles.profileImage}
-      resizeMode="cover"
-    />
-  </View>
-));
+const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation }) => {
+  const { user } = useAuth();
+
+  return (
+    <TouchableOpacity
+      onPress={() => {
+        console.log('Profile image pressed');
+        if (navigation) {
+          console.log('Navigation object exists');
+          try {
+            // Use CommonActions to reset navigation stack and go to Profile tab
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: 'MainTabs',
+                    state: {
+                      routes: [
+                        { name: 'Home' },
+                        { name: 'Playbooks' },
+                        { name: 'Devotionals' },
+                        { name: 'Profile' },
+                      ],
+                      index: 3, // Profile tab index
+                    },
+                  },
+                ],
+              })
+            );
+            console.log('Navigation dispatch successful');
+          } catch (error) {
+            console.log('Navigation error:', error);
+            // Fallback: just navigate to MainTabs
+            try {
+              navigation.navigate('MainTabs');
+              console.log('Fallback navigation successful');
+            } catch (fallbackError) {
+              console.log('Fallback navigation error:', fallbackError);
+            }
+          }
+        } else {
+          console.log('Navigation object is null/undefined');
+        }
+      }}
+      style={[styles.profileImageContainer, containerStyle]}
+      activeOpacity={0.7}
+    >
+      {(user as any)?.user_metadata?.avatar_url ? (
+        <Image
+          source={{ uri: (user as any).user_metadata.avatar_url }}
+          style={styles.profileImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.profileImage, styles.defaultProfileImage]}>
+          <Ionicons name="person" size={16} color="#fff" />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+});
 
 // Memoized header components
 const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?: string, onPress: () => void }) => {
@@ -49,10 +105,10 @@ const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?:
 
 // Header right components as functions
 // These are used in navigation options below
-const renderDefaultProfileImage = () => <ProfileImage />;
+const renderDefaultProfileImage = ({ navigation }: any) => <ProfileImage navigation={navigation} />;
 
-const renderWhiteProfileImage = () => (
-  <ProfileImage containerStyle={styles.whiteProfileImageContainer} />
+const renderWhiteProfileImage = ({ navigation }: any) => (
+  <ProfileImage containerStyle={styles.whiteProfileImageContainer} navigation={navigation} />
 );
 
 // Header left components for different screens
@@ -221,6 +277,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+  },
+  defaultProfileImage: {
+    backgroundColor: '#666',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 18,

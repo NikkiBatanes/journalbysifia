@@ -73,6 +73,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           />
         </Animated.View>
       </TouchableOpacity>
+
     </View>
   ), [navigation, showUserInput, chevronStyle]);
 
@@ -203,6 +204,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           userInputBackgroundColor={'#264776'}
           userInputBorderColor={'#385886'}
           userInputTextColor={Colors.hopeWhite}
+
         />
       </View>
 

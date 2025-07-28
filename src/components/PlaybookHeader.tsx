@@ -26,6 +26,7 @@ interface PlaybookHeaderProps {
   userInputBackgroundColor?: string;
   userInputBorderColor?: string;
   userInputTextColor?: string;
+  onProfilePress?: () => void;
 }
 
 const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
@@ -47,6 +48,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
   userInputBackgroundColor,
   userInputBorderColor,
   userInputTextColor,
+  onProfilePress,
 }) => {
   // Split title at newlines to handle title and subtitle on separate lines
   const titleLines = title.split('\n').map(part => part.trim()).filter(part => part.length > 0);
@@ -173,13 +175,21 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
             </View>
           </View>
 
-          {showProfileImage && profileImageUri && (
+          {showProfileImage && (
             <View style={styles.headerRight}>
-              <Image
-                source={{ uri: profileImageUri }}
-                style={styles.profileImage}
-                resizeMode="cover"
-              />
+              <TouchableOpacity onPress={onProfilePress} activeOpacity={0.7}>
+                {profileImageUri ? (
+                  <Image
+                    source={{ uri: profileImageUri }}
+                    style={styles.profileImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={[styles.profileImage, styles.defaultProfileImage]}>
+                    <Ionicons name="person" size={20} color="#fff" />
+                  </View>
+                )}
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -339,6 +349,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+  },
+  defaultProfileImage: {
+    backgroundColor: '#666',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

@@ -400,6 +400,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           {playbook?.title}
         </Text>
       )}
+
     </View>
   ), [navigation, showCompactHeader, playbook?.title, showUserInput, chevronStyle]);
 
@@ -799,6 +800,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             showUserInput={showUserInput}
             userInput={playbook.userInput}
             showTitle={false}
+
           />
         )}
 
