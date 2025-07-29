@@ -375,8 +375,17 @@ export default function ActionStepsCard({
                               >
                                 {subTask.text}
                               </Text>
-                              {shouldShowJournalIcon(subTask.detected_journal_type) && (
-                                <View style={styles.journalTypesContainer}>
+                              {subTask.detected_journal_type && subTask.detected_journal_type !== 'none' && (
+                              <View style={styles.journalTypesContainer}>
+                                {/* Debug: Log journal types */}
+                                {(() => {
+                                  console.log('[ActionStepsCard] Rendering journal types for subtask:', {
+                                    subtaskText: subTask.text,
+                                    detectedType: subTask.detected_journal_type,
+                                    parsedTypes: parseJournalTypes(subTask.detected_journal_type)
+                                  });
+                                  return null;
+                                })()}
                                   {parseJournalTypes(subTask.detected_journal_type).map((journalType, typeIndex) => (
                                     <TouchableOpacity
                                       key={`${journalType}-${typeIndex}`}

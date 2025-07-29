@@ -34,6 +34,13 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   onSave,
   onCancel,
 }) => {
+  console.log('💭 SmartJournalingReflectionModal: Rendered with props:', {
+    visible,
+    subtaskTitle,
+    playbookTitle,
+    actionStepNumber,
+    actionStepTitle
+  });
   const { user } = useAuth();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const dateStr = toLocalDateString(new Date());
