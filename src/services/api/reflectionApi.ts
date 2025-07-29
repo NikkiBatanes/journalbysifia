@@ -20,6 +20,10 @@ export interface ReflectionApiEntry {
   day_title?: string;
   total_days?: number;
   question_number?: number;
+  // Playbook-specific fields
+  playbook_title?: string;
+  playbook_id?: string;
+  subtask_id?: string;
 }
 
 export class ReflectionApi {
@@ -83,6 +87,111 @@ export class ReflectionApi {
     }
 
     return data || [];
+  }
+
+  // Get playbook reflections
+  static async getPlaybookReflections(userId: string, date: string): Promise<ReflectionApiEntry[]> {
+    const { data, error } = await supabase
+      .from('reflection_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('selected_date', date)
+      .eq('type', 'playbook')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching playbook reflections:', error);
+      throw new Error(`Failed to fetch playbook reflections: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  // Get reflections by playbook ID
+  static async getReflectionsByPlaybook(userId: string, playbookId: string): Promise<ReflectionApiEntry[]> {
+    const { data, error } = await supabase
+      .from('reflection_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('playbook_id', playbookId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching reflections by playbook:', error);
+      throw new Error(`Failed to fetch reflections by playbook: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  // Get reflection by subtask ID
+  static async getReflectionBySubtask(userId: string, subtaskId: string): Promise<ReflectionApiEntry | null> {
+    console.log('🔍 ReflectionApi: getReflectionBySubtask called with:', {
+      userId,
+      subtaskId,
+      subtaskIdType: typeof subtaskId,
+      subtaskIdLength: subtaskId?.length,
+    });
+    
+    const { data, error } = await supabase
+      .from('reflection_entries')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('subtask_id', subtaskId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    console.log('🔍 ReflectionApi: getReflectionBySubtask response:', {
+      data,
+      error,
+      hasData: !!data,
+    });
+
+    if (error) {
+      // If no reflection found, return null instead of throwing error
+      if (error.code === 'PGRST116') {
+        console.log('🔍 ReflectionApi: No reflection found for subtask:', subtaskId);
+        
+        // Try fallback query by user_id and type to see if there are any playbook reflections
+        console.log('🔍 ReflectionApi: Attempting fallback query for debugging...');
+        try {
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('reflection_entries')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('type', 'playbook')
+            .order('created_at', { ascending: false })
+            .limit(5);
+            
+          console.log('🔍 ReflectionApi: Fallback query results:', {
+            count: fallbackData?.length || 0,
+            reflections: fallbackData?.map(r => ({
+              id: r.id,
+              subtask_id: r.subtask_id,
+              playbook_title: r.playbook_title,
+              title: r.title,
+            })) || [],
+            error: fallbackError,
+          });
+        } catch (fallbackErr) {
+          console.log('🔍 ReflectionApi: Fallback query failed:', fallbackErr);
+        }
+        
+        return null;
+      }
+      console.error('Error fetching reflection by subtask:', error);
+      throw new Error(`Failed to fetch reflection by subtask: ${error.message}`);
+    }
+
+    console.log('🔍 ReflectionApi: Found reflection for subtask:', {
+      subtaskId,
+      reflectionId: data?.id,
+      reflectionTitle: data?.title,
+      reflectionContent: data?.content?.substring(0, 50) + '...',
+    });
+
+    return data;
   }
 
   // Create a new reflection entry

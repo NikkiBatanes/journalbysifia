@@ -36,6 +36,26 @@ export const useDevotionalReflections = (userId: string, devotionalId: string) =
   });
 };
 
+// Hook for getting reflections by playbook
+export const useReflectionsByPlaybook = (userId: string, playbookId: string) => {
+  return useQuery({
+    queryKey: ['reflections', 'playbook', userId, playbookId],
+    queryFn: () => ReflectionApi.getReflectionsByPlaybook(userId, playbookId),
+    ...queryOptionsPresets.stable,
+    enabled: !!userId && !!playbookId,
+  });
+};
+
+// Hook for getting reflection by subtask
+export const useReflectionBySubtask = (userId: string, subtaskId: string) => {
+  return useQuery({
+    queryKey: ['reflections', 'subtask', userId, subtaskId],
+    queryFn: () => ReflectionApi.getReflectionBySubtask(userId, subtaskId),
+    ...queryOptionsPresets.stable,
+    enabled: !!userId && !!subtaskId,
+  });
+};
+
 // Hook for getting reflections in a date range
 export const useReflectionsInRange = (userId: string, startDate: string, endDate: string) => {
   return useQuery({

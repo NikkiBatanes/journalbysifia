@@ -19,22 +19,26 @@ import {
 import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
 import { analytics } from '../../utils/analytics';
 
-type ViewMode = 'free' | 'guided' | 'devotional';
+type ViewMode = 'free' | 'guided' | 'devotional' | 'playbook';
 
 interface ReflectionLogEntry {
   id: string;
   title: string;
   content: string;
   type: ViewMode;
-  source?: 'devotional';
+  source?: 'devotional' | 'playbook';
   prompt?: string;
   tags: string[];
   location?: string;
-  devotionalTitle?: string;
-  dayNumber?: number;
-  dayTitle?: string;
-  totalDays?: number;
-  questionNumber?: number;
+  devotional_title?: string;
+  day_number?: number;
+  day_title?: string;
+  total_days?: number;
+  question_number?: number;
+  // Playbook-specific fields
+  playbook_title?: string;
+  playbook_id?: string;
+  subtask_id?: string;
   user_id: string;
   created_at: string;
   updated_at: string;
@@ -78,18 +82,22 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const entries: ReflectionLogEntry[] = React.useMemo(() =>
     reflectionEntries.map(entry => ({
       id: entry.id,
-      title: entry.title,
+      title: entry.title || '', // Handle optional title from API
       content: entry.content,
-      type: entry.type,
-      source: entry.source,
-      prompt: undefined, // Prompt not stored in database
-      tags: [], // Tags would need to be parsed from content or stored separately
+      type: entry.type as ViewMode,
+      source: entry.source as 'devotional' | undefined,
+      prompt: entry.prompt, // Use prompt from API
+      tags: entry.tags || [], // Use tags from API or empty array
       location: undefined,
-      devotionalTitle: entry.devotional_title,
-      dayNumber: entry.day_number,
-      dayTitle: entry.day_title,
-      totalDays: entry.total_days,
-      questionNumber: entry.question_number,
+      devotional_title: entry.devotional_title,
+      day_number: entry.day_number,
+      day_title: entry.day_title,
+      total_days: entry.total_days,
+      question_number: entry.question_number,
+      // Playbook-specific fields
+      playbook_title: entry.playbook_title,
+      playbook_id: entry.playbook_id,
+      subtask_id: entry.subtask_id,
       user_id: entry.user_id,
       created_at: entry.created_at,
       updated_at: entry.updated_at,
@@ -168,7 +176,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   reflection_id: entryId,
                   title_length: entryToDelete.title.length,
                   content_length: entryToDelete.content.length,
-                  type: entryToDelete.type === 'devotional' ? 'guided' : entryToDelete.type,
+                  type: entryToDelete.type === 'devotional' ? 'guided' : entryToDelete.type === 'playbook' ? 'free' : entryToDelete.type,
                   date: dateStr,
                 }, user.id);
               }
@@ -425,20 +433,44 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             </Text>
           </View>
           {/* Devotional Metadata */}
-          {(entry.devotionalTitle || entry.dayNumber || entry.dayTitle) && (
+          {(entry.devotional_title || entry.day_number || entry.day_title) && (
             <View style={styles.devotionalMetadata}>
-              {entry.devotionalTitle && (
-                <Text style={styles.devotionalTitle}>{entry.devotionalTitle}</Text>
+              {entry.devotional_title && (
+                <Text style={styles.devotionalTitle}>{entry.devotional_title}</Text>
               )}
-              {(entry.dayNumber || entry.dayTitle) && (
+              {(entry.day_number || entry.day_title) && (
                 <Text style={styles.devotionalDayInfo}>
-                  {entry.dayNumber && `Day ${entry.dayNumber}`}
-                  {entry.dayNumber && entry.dayTitle && ' • '}
-                  {entry.dayTitle}
+                  {entry.day_number && `Day ${entry.day_number}`}
+                  {entry.day_number && entry.day_title && ' • '}
+                  {entry.day_title}
                 </Text>
               )}
             </View>
           )}
+          {/* Playbook Metadata */}
+          {(entry.playbook_title || entry.day_number || entry.day_title) && entry.source === 'playbook' && (
+            <View style={styles.devotionalMetadata}>
+              {entry.playbook_title && (
+                <Text style={styles.devotionalTitle}>{entry.playbook_title}</Text>
+              )}
+              {(entry.day_number || entry.day_title) && (
+                <Text style={styles.devotionalDayInfo}>
+                  {entry.day_number && `Day ${entry.day_number}`}
+                  {entry.day_number && entry.day_title && ' • '}
+                  {entry.day_title}
+                </Text>
+              )}
+            </View>
+          )}
+        </View>
+      ) : entry.source === 'playbook' || entry.type === 'playbook' ? (
+        <View style={styles.guidedPromptRow}>
+          <View style={styles.devotionalPromptContainer}>
+            <Text style={styles.devotionalPromptText}>PLAYBOOK</Text>
+          </View>
+          <Text style={styles.timeText}>
+            {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+          </Text>
         </View>
       ) : entry.type === 'guided' ? (
         <View style={styles.guidedPromptRow}>
@@ -473,9 +505,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       >
         {typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content)}
       </Text>
-      {entry.tags && entry.tags.length > 0 && (
+      {entry.tags && entry.tags.filter(tag => tag !== 'playbook').length > 0 && (
         <View style={styles.tagsContainer}>
-          {entry.tags.map((tag, index) => (
+          {entry.tags.filter(tag => tag !== 'playbook').map((tag, index) => (
             <View key={index} style={styles.tag}>
               <Text style={styles.tagText}>{tag}</Text>
             </View>
@@ -655,11 +687,22 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               resetForm();
               setIsAdding(false);
             }}
+            onDelete={editingId ? async (id: string) => {
+              try {
+                await deleteMutation.mutateAsync(id);
+                await refetch();
+                console.log('Reflection deleted successfully');
+              } catch (error) {
+                console.error('Failed to delete reflection:', error);
+                Alert.alert('Error', 'Failed to delete reflection. Please try again.');
+              }
+            } : undefined}
+            entryId={editingId || undefined}
             initialEntry={{
               title: newEntry.title,
               content: newEntry.content,
               tags: newEntry.tags || [],
-              type: newEntry.type === 'free' ? 'free-form' : newEntry.type === 'devotional' ? 'guided' : newEntry.type,
+              type: newEntry.type === 'free' ? 'free-form' : newEntry.type === 'devotional' ? 'guided' : newEntry.type === 'playbook' ? 'free-form' : newEntry.type,
               source: newEntry.source,
               prompt: newEntry.prompt,
             }}
@@ -667,13 +710,14 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             initialPrompt={(newEntry.type === 'guided' || newEntry.type === 'devotional') ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
             initialTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? (selectedPrompt || newEntry.prompt || newEntry.title || '') : ''}
             lockTitle={(newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt)}
-            source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : (newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
-            // Pass devotional metadata for existing entries
-            devotionalTitle={editingId && selectedEntry ? selectedEntry.devotionalTitle : undefined}
-            dayNumber={editingId && selectedEntry ? selectedEntry.dayNumber : undefined}
-            dayTitle={editingId && selectedEntry ? selectedEntry.dayTitle : undefined}
-            totalDays={editingId && selectedEntry ? selectedEntry.totalDays : undefined}
-            questionNumber={editingId && selectedEntry ? selectedEntry.questionNumber : undefined}
+            source={editingId && selectedEntry?.source === 'devotional' ? 'devotional' : editingId && selectedEntry?.source === 'playbook' ? 'playbook' : (newEntry.type === 'guided' || newEntry.type === 'devotional') && Boolean(selectedPrompt) ? 'guided' : 'freeform'}
+            // Pass devotional/playbook metadata for existing entries
+            devotionalTitle={editingId && selectedEntry && selectedEntry.source === 'devotional' ? selectedEntry.devotional_title : undefined}
+            playbookTitle={editingId && selectedEntry && selectedEntry.source === 'playbook' ? selectedEntry.playbook_title : undefined}
+            dayNumber={editingId && selectedEntry ? selectedEntry.day_number : undefined}
+            dayTitle={editingId && selectedEntry ? selectedEntry.day_title : undefined}
+            totalDays={editingId && selectedEntry ? selectedEntry.total_days : undefined}
+            questionNumber={editingId && selectedEntry ? selectedEntry.question_number : undefined}
             styles={reflectionLogStyles}
             dateString={(() => {
               const now = new Date();

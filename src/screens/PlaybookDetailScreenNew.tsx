@@ -1040,6 +1040,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
             } : undefined}
             navigation={rootNavigation}
+            playbookTitle={playbook?.title}
+            playbookId={playbook?.id}
           />
         </TouchableOpacity>
       );

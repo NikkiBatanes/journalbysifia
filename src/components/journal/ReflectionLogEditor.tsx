@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Pencil } from 'lucide-react-native';
+import { Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { GUIDED_PROMPTS } from './reflectionConstants';
 
@@ -19,7 +19,10 @@ interface ReflectionLogEditorProps {
     source?: 'freeform' | 'guided' | 'devotional' | 'playbook' | string;
   }) => void;
   onCancel: () => void;
+  onDelete?: (id: string) => void;
+  entryId?: string;
   devotionalTitle?: string;
+  playbookTitle?: string;
   totalDays?: number;
   dayNumber?: number;
   dayTitle?: string;
@@ -178,7 +181,10 @@ const fallbackStyles = {
 const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   onSave,
   onCancel,
+  onDelete,
+  entryId,
   devotionalTitle,
+  playbookTitle,
   totalDays,
   dayNumber,
   dayTitle,
@@ -228,6 +234,21 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 
   // State for showing draft notification
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
+  // Track if this is the first load to control draft notification display
+  const [isFirstLoad, setIsFirstLoad] = React.useState(true);
+  // Track if user has made any changes from initial state
+  const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
+  // Store initial state to compare against
+  const [initialState, setInitialState] = React.useState({
+    content: initialEntry?.content || '',
+    title: initialEntry?.title || initialTitle || ''
+  });
+
+  // Function to check if user has made changes from initial state
+  const checkForChanges = React.useCallback((content: string, title: string) => {
+    const hasChanges = content !== initialState.content || title !== initialState.title;
+    setHasUserMadeChanges(hasChanges);
+  }, [initialState]);
 
   // Helper function to get draft key (unique for each devotional question)
   const getDraftKey = React.useCallback(() => {
@@ -242,7 +263,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 
     if (source === 'playbook') {
       // Create unique key for each playbook subtask reflection
-      const playbookName = devotionalTitle ? devotionalTitle.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
+      const playbookName = playbookTitle ? playbookTitle.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
       const stepNum = dayNumber !== undefined ? dayNumber : 'unknown';
       const taskId = subtaskId ? subtaskId.replace(/[^a-zA-Z0-9]/g, '_') : 'unknown';
       const key = `@reflection_editor_draft_playbook_${playbookName}_step${stepNum}_task${taskId}`;
@@ -254,7 +275,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     const key = '@reflection_editor_draft';
     console.log('[ReflectionLogEditor] Default draft key:', key);
     return key;
-  }, [source, devotionalTitle, dayNumber, questionNumber, subtaskId]);
+  }, [source, devotionalTitle, playbookTitle, dayNumber, questionNumber, subtaskId]);
 
   // Load draft when component mounts (only for new entries, not when editing)
   useEffect(() => {
@@ -274,19 +295,43 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 content: content || prev.content,
                 title: title || prev.title,
               }));
+              
+              // Update initial state to the loaded draft so changes are tracked from this point
+              setInitialState({
+                content: content || '',
+                title: title || ''
+              });
 
-              // Show notification
-              setShowDraftNotification(true);
+              // Set cursor to end of content after a short delay
+              setTimeout(() => {
+                if (content && contentInputRef.current) {
+                  contentInputRef.current.focus();
+                  // Set selection to end of text
+                  const textLength = content.length;
+                  contentInputRef.current.setNativeProps({
+                    selection: { start: textLength, end: textLength }
+                  });
+                }
+              }, 100);
 
-              // Hide notification after 4 seconds
-              const timer = setTimeout(() => {
-                setShowDraftNotification(false);
-              }, 4000);
+              // Only show notification on first load (when modal is initially opened)
+              let timer: NodeJS.Timeout | undefined;
+              if (isFirstLoad) {
+                setShowDraftNotification(true);
+
+                // Hide notification after 4 seconds
+                timer = setTimeout(() => {
+                  setShowDraftNotification(false);
+                }, 4000);
+              }
+              
+              // Mark that first load is complete
+              setIsFirstLoad(false);
 
               // Clear the draft after loading it
               await AsyncStorage.removeItem(draftKey);
 
-              return () => clearTimeout(timer);
+              return timer ? () => clearTimeout(timer) : undefined;
             }
           }
         } catch (error) {
@@ -301,8 +346,11 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   // Helper function to save draft
   const saveDraftHelper = async () => {
     try {
-      // Only save draft if there's actual content
-      if (newEntry.content.trim() || newEntry.title.trim()) {
+      // Only save draft if there's actual meaningful content (not just whitespace)
+      const hasContent = newEntry.content.trim().length > 0;
+      const hasTitle = newEntry.title.trim().length > 0;
+      
+      if (hasContent || hasTitle) {
         const draftData = {
           content: newEntry.content,
           title: newEntry.title,
@@ -396,8 +444,10 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   // Cancel handler
   const handleCancel = async () => {
     try {
-      // Save draft before canceling (only if there's content)
-      await saveDraftHelper();
+      // Save draft before canceling (only if user made changes)
+      if (hasUserMadeChanges) {
+        await saveDraftHelper();
+      }
 
       Keyboard.dismiss();
       // Small delay to ensure keyboard is fully dismissed before closing
@@ -409,6 +459,33 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       Keyboard.dismiss();
       onCancel();
     }
+  };
+
+  // Delete handler for saved entries
+  const handleDelete = () => {
+    if (!onDelete || !entryId) {
+      console.warn('Delete function or entry ID not available');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Reflection',
+      'Are you sure you want to delete this reflection? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            onDelete(entryId);
+            onCancel(); // Close the modal after deletion
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -493,6 +570,19 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
             strokeWidth={1.5}
           />
         </TouchableOpacity>
+        {/* Delete icon - only visible in edit mode */}
+        {isEditing && (
+          <TouchableOpacity
+            style={s.modeButton}
+            onPress={handleDelete}
+          >
+            <Trash2
+              size={22}
+              color={Colors.inactiveIcon}
+              strokeWidth={1.5}
+            />
+          </TouchableOpacity>
+        )}
         {/* Hide guided prompt icon for devotional and playbook sources */}
         {!isEditing && source !== 'devotional' && source !== 'playbook' && (
           <TouchableOpacity
@@ -560,7 +650,21 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   placeholder="Name Your Reflection..."
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={newEntry.title}
-                  onChangeText={(text: string) => setNewEntry({ ...newEntry, title: text })}
+                  onChangeText={(text: string) => {
+                    setNewEntry({ ...newEntry, title: text });
+                    checkForChanges(newEntry.content, text);
+                  }}
+                  onFocus={() => {
+                    // In edit mode, position cursor at end instead of selecting all
+                    if (isEditing && titleInputRef.current) {
+                      setTimeout(() => {
+                        const textLength = newEntry.title.length;
+                        titleInputRef.current?.setNativeProps({
+                          selection: { start: textLength, end: textLength }
+                        });
+                      }, 10);
+                    }
+                  }}
                   underlineColorAndroid="transparent"
                   selectionColor={Colors.hopeWhite}
                   multiline={true}
@@ -573,7 +677,21 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 multiline
                 value={newEntry.content}
-                onChangeText={(text: string) => setNewEntry({ ...newEntry, content: text })}
+                onChangeText={(text: string) => {
+                  setNewEntry({ ...newEntry, content: text });
+                  checkForChanges(text, newEntry.title);
+                }}
+                onFocus={() => {
+                  // In edit mode, position cursor at end instead of selecting all
+                  if (isEditing && contentInputRef.current) {
+                    setTimeout(() => {
+                      const textLength = newEntry.content.length;
+                      contentInputRef.current?.setNativeProps({
+                        selection: { start: textLength, end: textLength }
+                      });
+                    }, 10);
+                  }
+                }}
                 underlineColorAndroid="transparent"
                 selectionColor={Colors.hopeWhite}
               />
@@ -607,16 +725,16 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   </View>
                 </View>
               )}
-              {(source === 'playbook') && (devotionalTitle || dayNumber || dayTitle) && (
+              {(source === 'playbook') && (
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
                   <Text style={s.fromText}>
                     FROM PLAYBOOK
                   </Text>
-                  {devotionalTitle && (
+                  {playbookTitle && (
                     <Text style={s.metadataText}>
-                      {devotionalTitle}
+                      {playbookTitle}
                     </Text>
                   )}
                   {dayNumber && dayTitle && (

@@ -100,6 +100,8 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         key="action"
         steps={actionSteps || playbook.actionSteps || []}
         style={[propStyles.docCard, propStyles.actionCard]}
+        playbookTitle={playbook.title}
+        playbookId={playbook.id}
       />
       <View key="affirmation" style={[propStyles.docCard, propStyles.affirmationsCard]}>
         <View style={propStyles.affirmationsHeader}>

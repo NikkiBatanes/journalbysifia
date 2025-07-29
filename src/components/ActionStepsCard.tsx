@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import React, { useMemo, useState, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { NavigationProp } from '@react-navigation/native';
 import { Colors } from '../theme';
@@ -39,6 +39,8 @@ type ActionStepsCardProps = {
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useReflectionBySubtask } from '../services/hooks/useReflectionData';
 
 // Smart Journaling Helper Functions
 const getJournalTypeIcon = (journalType?: string): string => {
@@ -130,11 +132,41 @@ export default function ActionStepsCard({
   playbookId,
 }: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
+  const { user } = useAuth();
 
   // Smart Journaling Modal State
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
   const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
-  const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string } | null>(null);
+  const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
+
+  // Query for existing reflection when a subtask is selected
+  const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
+    user?.id || '',
+    selectedSubtask?.id || ''
+  );
+
+  // Debug: Log reflection query results
+  React.useEffect(() => {
+    if (selectedSubtask) {
+      console.log('[ActionStepsCard] Reflection query debug:', {
+        userId: user?.id,
+        subtaskId: selectedSubtask?.id,
+        existingReflection,
+        isLoading: isReflectionLoading,
+        error: reflectionError,
+      });
+    }
+  }, [selectedSubtask, existingReflection, isReflectionLoading, reflectionError, user?.id]);
+
+  // Animation for subtask completion
+  const animatedValues = useRef<Map<string, Animated.Value>>(new Map()).current;
+  
+  const getAnimatedValue = (subtaskId: string) => {
+    if (!animatedValues.has(subtaskId)) {
+      animatedValues.set(subtaskId, new Animated.Value(0));
+    }
+    return animatedValues.get(subtaskId)!;
+  };
 
   const steps = useMemo(() => {
     const rawSteps = (propSteps && propSteps.length > 0) ? propSteps : contextSteps;
@@ -154,11 +186,35 @@ export default function ActionStepsCard({
 
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
+    
+    // Get the animated value for this subtask
+    const animatedValue = getAnimatedValue(subTaskId);
+    
+    // Animate the completion
+    Animated.sequence([
+      Animated.timing(animatedValue, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(animatedValue, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+    
     handleToggleStep(stepId, subTaskId);
-  }, [handleToggleStep]);
+  }, [handleToggleStep, getAnimatedValue]);
 
-  const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string }) => {
-    console.log('[ActionStepsCard] Journal type pressed:', { journalType, subTask });
+  const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
+    console.log('[ActionStepsCard] Journal type pressed:', { 
+      journalType, 
+      subTask,
+      subtaskId: subTask.id,
+      subtaskIdType: typeof subTask.id,
+      subtaskIdLength: subTask.id?.length,
+    });
 
     if (journalType === 'none') {
       console.log('[ActionStepsCard] No journaling needed for this task');
@@ -167,7 +223,12 @@ export default function ActionStepsCard({
 
     // Handle reflection type with modal
     if (journalType === 'reflection') {
-      console.log('[ActionStepsCard] Opening reflection modal for:', subTask.text);
+      console.log('[ActionStepsCard] Opening reflection modal for:', {
+        subtaskText: subTask.text,
+        subtaskId: subTask.id,
+        subtaskCompleted: subTask.completed,
+        userId: user?.id,
+      });
       setSelectedSubtask(subTask);
       setSelectedActionStep(stepInfo || null);
       setReflectionModalVisible(true);
@@ -353,18 +414,29 @@ export default function ActionStepsCard({
                               onPress={() => onToggleSubTask(step.id, subTask.id)}
                               activeOpacity={0.7}
                             >
-                              <MaterialCommunityIcons
-                                name={
-                                  subTask.completed
-                                    ? 'checkbox-marked-circle'
-                                    : 'checkbox-blank-circle-outline'
-                                }
-                                size={24}
-                                style={[
-                                  styles.checkboxIcon,
-                                  getCheckboxColor(subTask.completed),
-                                ]}
-                              />
+                              <Animated.View
+                                style={{
+                                  transform: [{
+                                    scale: getAnimatedValue(subTask.id).interpolate({
+                                      inputRange: [0, 1],
+                                      outputRange: [1, 1.3],
+                                    })
+                                  }]
+                                }}
+                              >
+                                <MaterialCommunityIcons
+                                  name={
+                                    subTask.completed
+                                      ? 'checkbox-marked-circle'
+                                      : 'checkbox-blank-circle-outline'
+                                  }
+                                  size={24}
+                                  style={[
+                                    styles.checkboxIcon,
+                                    getCheckboxColor(subTask.completed),
+                                  ]}
+                                />
+                              </Animated.View>
                             </TouchableOpacity>
                             <View style={styles.subTaskContent}>
                               <Text
@@ -393,7 +465,7 @@ export default function ActionStepsCard({
                                         styles.journalTypeIndicator,
                                         typeIndex > 0 && styles.journalTypeIndicatorSpaced,
                                       ]}
-                                      onPress={() => onJournalTypePress(journalType, subTask, { stepNumber: index + 1, stepTitle: step.title })}
+                                      onPress={() => onJournalTypePress(journalType, subTask, { stepNumber: index + 1, stepTitle: step.title, stepId: step.id })}
                                       activeOpacity={0.7}
                                     >
                                       <MaterialCommunityIcons
@@ -452,10 +524,12 @@ export default function ActionStepsCard({
         visible={reflectionModalVisible}
         subtaskTitle={selectedSubtask?.text || ''}
         subtaskId={selectedSubtask?.id}
+        stepId={selectedActionStep?.stepId}
         playbookId={playbookId}
         playbookTitle={playbookTitle}
         actionStepNumber={selectedActionStep?.stepNumber}
         actionStepTitle={selectedActionStep?.stepTitle}
+        existingReflection={existingReflection}
         onSave={handleReflectionSave}
         onCancel={handleReflectionCancel}
       />

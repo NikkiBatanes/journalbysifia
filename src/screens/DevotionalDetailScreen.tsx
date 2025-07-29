@@ -448,8 +448,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     <GestureHandlerRootView style={styles.gestureRoot}>
       <SafeAreaView
         style={styles.container}
-        edges={['right', 'top', 'left']}
-        mode="margin"
+        edges={['right', 'left']}
       >
       <StatusBar barStyle="dark-content" />
 

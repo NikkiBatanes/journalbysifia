@@ -190,6 +190,9 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
           solidCardBackground={true}
           checkboxColor={Colors.anchorBlue}
           stepCircleBackground="rgba(26,60,109,0.12)"
+          playbookTitle={playbook?.title}
+          playbookId={playbook?.id}
+          navigation={navigation}
         />;
       case 'affirmation':
         if (Array.isArray(cardData.affirmations)) {

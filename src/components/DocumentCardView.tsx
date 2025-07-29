@@ -35,9 +35,11 @@ interface DocumentCardViewProps {
     lastName?: string;
   };
   navigation?: NavigationProp<any>;
+  playbookTitle?: string;
+  playbookId?: string;
 }
 
-const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation }) => {
+const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation, playbookTitle, playbookId }) => {
   if (card.type === 'truth') {
     return (
       <View style={styles.truthCardContainer}>
@@ -54,7 +56,15 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     );
   }
   if (card.type === 'action') {
-    return <ActionStepsCard steps={card.steps ?? []} style={styles.actionCard} navigation={navigation} />;
+    return (
+      <ActionStepsCard 
+        steps={card.steps ?? []} 
+        style={styles.actionCard} 
+        navigation={navigation}
+        playbookTitle={playbookTitle}
+        playbookId={playbookId}
+      />
+    );
   }
   if (card.type === 'affirmation') {
     return (

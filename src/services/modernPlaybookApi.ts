@@ -5,9 +5,10 @@
  */
 
 import { supabase } from './supabaseClient';
-import { AUTH_ERROR_MESSAGES, API_RETRY_ATTEMPTS, API_RETRY_DELAY } from '../constants/sessionConstants';
 import { Playbook } from '../interfaces/playbook';
-import { ensureValidUUID, generateUUID } from '../utils/uuidUtils';
+import { generateUUID, ensureValidUUID } from '../utils/uuidUtils';
+import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
+import { addJournalTypesToPlaybook } from '../utils/journalTypeDetection';
 
 /**
  * Generate a new playbook using modern Supabase session
@@ -73,8 +74,12 @@ export async function generatePlaybook(
       // Ensure the playbook has a proper UUID
       result.id = ensureValidUUID(result.id, 'generatePlaybook response');
 
+      // Add journal type detection to all subtasks
+      const playbookWithJournalTypes = addJournalTypesToPlaybook(result);
+
       console.log('✅ Playbook generated successfully with ID:', result.id);
-      return result;
+      console.log('✅ Journal types detected and added to subtasks');
+      return playbookWithJournalTypes;
 
     } catch (err: unknown) {
       const error = err as Error;

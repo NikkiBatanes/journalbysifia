@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Text, ActivityIndicator } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useActionSteps } from '../context/ActionStepsContext';
 import { toLocalDateString } from '../utils/date';
 import {
   useCreateReflection,
+  useUpdateReflection,
 } from '../services/hooks/useReflectionData';
 import { analytics } from '../utils/analytics';
 
@@ -15,10 +17,12 @@ interface SmartJournalingReflectionModalProps {
   visible: boolean;
   subtaskTitle: string;
   subtaskId?: string;
+  stepId?: string;
   playbookId?: string;
   playbookTitle?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
+  existingReflection?: any; // For editing existing reflections
   onSave: (entry: any) => void;
   onCancel: () => void;
 }
@@ -27,31 +31,61 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   visible,
   subtaskTitle,
   subtaskId,
+  stepId,
   playbookId,
   playbookTitle,
   actionStepNumber,
   actionStepTitle,
+  existingReflection,
   onSave,
   onCancel,
 }) => {
-  console.log('💭 SmartJournalingReflectionModal: Rendered with props:', {
-    visible,
-    subtaskTitle,
-    playbookTitle,
-    actionStepNumber,
-    actionStepTitle
-  });
+
   const { user } = useAuth();
+  const { handleToggleStep } = useActionSteps();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const dateStr = toLocalDateString(new Date());
 
-  // React Query hooks
-  const createMutation = useCreateReflection();
-  const isLoading = createMutation.isPending;
+  // Debug: Log existing reflection prop
+  React.useEffect(() => {
+    console.log('💭 SmartJournalingReflectionModal: Props debug:', {
+      visible,
+      subtaskTitle,
+      subtaskId,
+      subtaskIdType: typeof subtaskId,
+      stepId,
+      playbookId,
+      playbookTitle,
+      actionStepNumber,
+      actionStepTitle,
+      existingReflection: existingReflection ? {
+        id: existingReflection.id,
+        title: existingReflection.title,
+        content: existingReflection.content?.substring(0, 50) + '...',
+        hasContent: !!existingReflection.content,
+        subtask_id: existingReflection.subtask_id,
+      } : null,
+      isEditMode: !!existingReflection,
+    });
+  }, [visible, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, existingReflection]);
+
+  const { createMutation, updateMutation } = {
+    createMutation: useCreateReflection(),
+    updateMutation: useUpdateReflection(),
+  };
+  const isLoading = createMutation.isPending || updateMutation.isPending;
   // Note: We don't need to refetch data since the modal will close after saving
 
   // Save reflection using React Query system
-  const saveReflection = async (entry: { title: string; content: string; tags?: string[] }) => {
+  const saveReflection = async (entry: { 
+    title: string; 
+    content: string; 
+    tags?: string[];
+    type?: string;
+    source?: string;
+    prompt?: string;
+    [key: string]: any; // Allow additional fields from ReflectionLogEditor
+  }) => {
     try {
       if (!user) {
         throw new Error('User not authenticated');
@@ -62,6 +96,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         subtaskId,
         playbookId,
         entry,
+        entryType: entry.type, // Log the type coming from ReflectionLogEditor
       });
 
       // Track analytics
@@ -72,24 +107,56 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         has_tags: (entry.tags || []).length > 0,
       });
 
+      console.log('💭 SmartJournalingReflectionModal: Type override - entry.type:', entry.type, '-> overriding to: playbook');
+      
       const reflectionData = {
         user_id: user.id,
         title: entry.title,
         content: entry.content,
-        type: 'playbook' as const, // Save as 'playbook' type for smart journaling
+        type: 'playbook' as const, // IMPORTANT: Save as 'playbook' type for smart journaling (NOT entry.type which is UI mode)
         source: 'playbook' as const, // Mark source as playbook for filtering
         selected_date: dateStr,
-        tags: [...(entry.tags || []), 'playbook'], // Add 'playbook' tag to identify source
-        // Add playbook metadata for identification and filtering
-        // Using devotional fields to store playbook metadata for now
-        ...(playbookTitle && { devotional_title: playbookTitle }),
-        ...(actionStepNumber !== undefined && { day_number: actionStepNumber }),
-        ...(actionStepTitle && { day_title: actionStepTitle }),
-        // Store subtask and playbook IDs in content metadata or tags
-        // This helps identify playbook reflections in the daily log
+        tags: [...(entry.tags || []), 'playbook'], // Keep playbook tag for filtering
+        // Add playbook metadata using dedicated columns
+        ...(playbookTitle && { playbook_title: playbookTitle }), // Store in dedicated playbook_title column
+        ...(playbookId && { playbook_id: playbookId }), // Store in dedicated playbook_id column
+        ...(subtaskId && { subtask_id: subtaskId }), // Store in dedicated subtask_id column
+        ...(actionStepNumber !== undefined && { day_number: actionStepNumber }), // Store action step number
+        ...(actionStepTitle && { day_title: actionStepTitle }), // Store action step title
       };
 
-      await createMutation.mutateAsync(reflectionData);
+      console.log('💭 SmartJournalingReflectionModal: Saving reflection data:', {
+        reflectionData,
+        subtaskId,
+        subtaskIdType: typeof subtaskId,
+        hasSubtaskId: !!subtaskId,
+      });
+
+      // Use update if editing existing reflection, otherwise create new one
+      if (existingReflection) {
+        await updateMutation.mutateAsync({ 
+          id: existingReflection.id, 
+          updates: reflectionData 
+        });
+        console.log('💭 SmartJournalingReflectionModal: Reflection updated successfully');
+      } else {
+        await createMutation.mutateAsync(reflectionData);
+        console.log('💭 SmartJournalingReflectionModal: Reflection created successfully');
+        
+        // Auto-complete the subtask when NEW reflection is saved
+        if (stepId && subtaskId) {
+          console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask', {
+            stepId,
+            subtaskId,
+          });
+          handleToggleStep(stepId, subtaskId);
+        } else {
+          console.warn('💭 SmartJournalingReflectionModal: Missing stepId or subtaskId for auto-completion', {
+            stepId,
+            subtaskId,
+          });
+        }
+      }
 
       // Show success modal
       setShowSuccessModal(true);
@@ -155,10 +222,17 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 const todayStringWithYear = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
                 return year === new Date().getFullYear() ? todayString : todayStringWithYear;
               })()}
-              devotionalTitle={playbookTitle}
+              playbookTitle={playbookTitle}
               dayNumber={actionStepNumber}
               dayTitle={actionStepTitle}
               subtaskId={subtaskId}
+              initialEntry={existingReflection ? {
+                title: existingReflection.title || subtaskTitle,
+                content: existingReflection.content || '',
+                tags: existingReflection.tags || [],
+                type: 'free-form',
+                source: 'playbook'
+              } : undefined}
             />
 
           <SuccessModal
