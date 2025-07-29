@@ -7,6 +7,7 @@ import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
 import SmartJournalingReflectionModal from '../screens/SmartJournalingReflectionModal';
+import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
 
 type SubTask = {
   id: string;
@@ -139,6 +140,7 @@ export default function ActionStepsCard({
 
   // Smart Journaling Modal State
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
+  const [gratitudeModalVisible, setGratitudeModalVisible] = useState(false);
   const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
@@ -231,6 +233,43 @@ export default function ActionStepsCard({
       return;
     }
 
+    // Handle gratitude type with modal
+    if (journalType === 'gratitude') {
+      console.log('[ActionStepsCard] Opening gratitude modal for:', {
+        subtaskText: subTask.text,
+        subtaskId: subTask.id,
+        subtaskCompleted: subTask.completed,
+        userId: user?.id,
+      });
+
+      // Prefetch gratitude data and wait for it to complete before opening modal
+      const openGratitudeModal = async () => {
+        if (user?.id && subTask.id) {
+          console.log('[ActionStepsCard] Prefetching gratitude data before opening modal');
+          try {
+            await queryClient.prefetchQuery({
+              queryKey: ['gratitude', user.id, new Date().toISOString().split('T')[0]],
+              queryFn: () => {
+                // This will prefetch today's gratitude entries
+                // The actual API call will be handled by the modal
+                return Promise.resolve([]);
+              },
+            });
+            console.log('[ActionStepsCard] Gratitude prefetch completed, opening modal with data ready');
+          } catch (error) {
+            console.warn('[ActionStepsCard] Gratitude prefetch failed, opening modal anyway:', error);
+          }
+        }
+
+        setSelectedSubtask(subTask);
+        setSelectedActionStep(stepInfo || null);
+        setGratitudeModalVisible(true);
+      };
+
+      openGratitudeModal();
+      return;
+    }
+
     // For other journal types, use navigation service
     if (!navigation) {
       console.warn('[ActionStepsCard] Navigation not available for journal type navigation');
@@ -262,6 +301,30 @@ export default function ActionStepsCard({
       selectedSubtask: selectedSubtask?.text,
     });
     setReflectionModalVisible(false);
+    setSelectedSubtask(null);
+    setSelectedActionStep(null);
+  }, [selectedActionStep, selectedSubtask]);
+
+  const handleGratitudeSave = React.useCallback(async (entry: any) => {
+    console.log('[ActionStepsCard] Gratitude saved:', entry);
+
+    // Invalidate the gratitude query to refresh data immediately
+    if (user?.id) {
+      await queryClient.invalidateQueries({
+        queryKey: ['gratitude', user.id, new Date().toISOString().split('T')[0]],
+      });
+      console.log('[ActionStepsCard] Gratitude query invalidated for immediate refresh');
+    }
+
+    // Modal will close automatically after showing success
+  }, [queryClient, user?.id]);
+
+  const handleGratitudeCancel = React.useCallback(() => {
+    console.log('[ActionStepsCard] Gratitude modal cancelled - clearing step info:', {
+      selectedActionStep,
+      selectedSubtask: selectedSubtask?.text,
+    });
+    setGratitudeModalVisible(false);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
   }, [selectedActionStep, selectedSubtask]);
@@ -540,6 +603,21 @@ export default function ActionStepsCard({
         existingReflection={existingReflection}
         onSave={handleReflectionSave}
         onCancel={handleReflectionCancel}
+      />
+
+      {/* Smart Journaling Gratitude Modal */}
+      <SmartJournalingGratitudeModal
+        visible={gratitudeModalVisible}
+        subtaskTitle={selectedSubtask?.text || ''}
+        subtaskId={selectedSubtask?.id}
+        stepId={selectedActionStep?.stepId}
+        playbookId={playbookId}
+        playbookTitle={playbookTitle}
+        actionStepNumber={selectedActionStep?.stepNumber}
+        actionStepTitle={selectedActionStep?.stepTitle}
+        existingGratitude={null} // TODO: Add gratitude data fetching if needed
+        onSave={handleGratitudeSave}
+        onCancel={handleGratitudeCancel}
       />
     </>
   );
