@@ -448,38 +448,20 @@ export default function ActionStepsCard({
                               </Animated.View>
                             </TouchableOpacity>
                             <View style={styles.subTaskContent}>
-                              <View style={styles.textContainer}>
-                                <Animated.Text
-                                  style={[
-                                    dynamicStyles.subTaskText,
-                                    subTask.completed && styles.completedText,
-                                    {
-                                      opacity: getAnimatedValue(subTask.id).interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: [1, 0.7],
-                                      }),
-                                    },
-                                  ]}
-                                >
-                                  {subTask.text}
-                                </Animated.Text>
-                                {/* Animated strikethrough overlay */}
-                                <Animated.View
-                                  style={[
-                                    styles.strikethroughLine,
-                                    {
-                                      width: getAnimatedValue(subTask.id).interpolate({
-                                        inputRange: [0, 1],
-                                        outputRange: ['0%', '100%'],
-                                      }),
-                                      opacity: getAnimatedValue(subTask.id).interpolate({
-                                        inputRange: [0, 0.5, 1],
-                                        outputRange: [0, 1, 1],
-                                      }),
-                                    },
-                                  ]}
-                                />
-                              </View>
+                              <Animated.Text
+                                style={[
+                                  dynamicStyles.subTaskText,
+                                  subTask.completed && styles.completedText,
+                                  {
+                                    opacity: getAnimatedValue(subTask.id).interpolate({
+                                      inputRange: [0, 1],
+                                      outputRange: [1, 0.7],
+                                    }),
+                                  },
+                                ]}
+                              >
+                                {subTask.text}
+                              </Animated.Text>
                               {subTask.detected_journal_type && subTask.detected_journal_type !== 'none' && (
                               <View style={styles.journalTypesContainer}>
                                 {/* Debug: Log journal types */}
@@ -669,7 +651,8 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   completedText: {
-    // opacity handled by animation, strikethrough handled by animated overlay
+    textDecorationLine: 'line-through',
+    opacity: 0.7,
   },
   subTaskButton: {
     flexDirection: 'row',
@@ -761,18 +744,5 @@ const styles = StyleSheet.create({
   noStepsText: {
     textAlign: 'center',
     opacity: 0.7,
-  },
-  textContainer: {
-    position: 'relative',
-    flex: 1,
-    minWidth: 0, // Allow text to wrap and prevent overflow
-  },
-  strikethroughLine: {
-    position: 'absolute',
-    top: '50%',
-    left: 0,
-    height: 1.5,
-    backgroundColor: Colors.hopeWhite,
-    transform: [{ translateY: -0.75 }],
   },
 });
