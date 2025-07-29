@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator } from 'react-native';
-import { Heart } from 'lucide-react-native';
+import { Edit3, Plus } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 
 interface GratitudeLogEditorProps {
@@ -152,7 +152,7 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   const s = styles || defaultStyles;
 
   // State for gratitude items
-  const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(initialItems);
+  const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(initialItems.length >= 3 ? initialItems : ['', '', '']);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
@@ -216,6 +216,22 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
     setHasUserMadeChanges(true);
   };
 
+  const addMoreItem = () => {
+    setGratitudeItems([...gratitudeItems, '']);
+    setHasUserMadeChanges(true);
+  };
+
+  const getCurrentDate = () => {
+    const today = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    };
+    return today.toLocaleDateString('en-US', options);
+  };
+
   const handleSave = async () => {
     const filledItems = gratitudeItems.filter(item => item.trim());
 
@@ -266,27 +282,93 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <View style={s.header}>
-          <View style={s.headerRow}>
-            <Heart size={24} color={Colors.hopeWhite} style={s.headerIcon} />
-            <Text style={s.title}>Gratitude Journal</Text>
+          {/* Date and Edit Icon Row */}
+          <View style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 24,
+          }}>
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '500',
+              color: Colors.hopeWhite,
+              opacity: 0.9,
+            }}>
+              {getCurrentDate()}
+            </Text>
+            <TouchableOpacity style={{
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}>
+              <Edit3 size={20} color={Colors.hopeWhite} />
+            </TouchableOpacity>
           </View>
 
-          {/* Metadata */}
+          {/* Main Title */}
+          <Text style={{
+            fontSize: 28,
+            fontWeight: 'bold',
+            color: Colors.hopeWhite,
+            marginBottom: 8,
+            lineHeight: 34,
+          }}>
+            What are you grateful for today?
+          </Text>
+
+          {/* Subtitle */}
+          <Text style={{
+            fontSize: 16,
+            color: Colors.hopeWhite,
+            opacity: 0.7,
+            marginBottom: 24,
+          }}>
+            List at least 3 things
+          </Text>
+
+          {/* Metadata - Uniform formatting */}
           {(subtaskTitle || playbookTitle) && (
-            <View style={s.metadataContainer}>
+            <View style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 20,
+              borderLeftWidth: 4,
+              borderLeftColor: Colors.hopeWhite,
+            }}>
+              <Text style={{
+                color: Colors.hopeWhite,
+                fontSize: 12,
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+                marginBottom: 8,
+                opacity: 0.6,
+              }}>
+                FROM PLAYBOOK
+              </Text>
               {playbookTitle && (
-                <Text style={s.metadataText}>
-                  📖 {playbookTitle}
+                <Text style={{
+                  color: Colors.hopeWhite,
+                  fontSize: 16,
+                  fontWeight: '600',
+                  marginBottom: 4,
+                }}>
+                  {playbookTitle}
                 </Text>
               )}
               {actionStepNumber && actionStepTitle && (
-                <Text style={s.metadataText}>
-                  🎯 Step {actionStepNumber}: {actionStepTitle}
-                </Text>
-              )}
-              {subtaskTitle && (
-                <Text style={s.metadataText}>
-                  ✅ {subtaskTitle}
+                <Text style={{
+                  color: Colors.hopeWhite,
+                  fontSize: 14,
+                  opacity: 0.8,
+                  marginBottom: 4,
+                }}>
+                  Step {actionStepNumber}: {actionStepTitle}
                 </Text>
               )}
             </View>
@@ -314,67 +396,128 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
               </View>
             )}
 
-            <Text style={s.instructionText}>
-              What are you grateful for today? List three things below.
-            </Text>
-
             <ScrollView style={s.scrollContent} showsVerticalScrollIndicator={false}>
               {gratitudeItems.map((item, index) => (
-                <View key={index} style={s.gratitudeContainer}>
-                  <Text style={s.gratitudeLabel}>
-                    {index + 1}. I'm grateful for...
-                  </Text>
+                <View key={index} style={{
+                  marginBottom: 20,
+                }}>
                   <TextInput
                     ref={(ref) => { inputRefs.current[index] = ref; }}
-                    style={s.gratitudeInput}
-                    placeholder="Something you appreciate today"
+                    style={{
+                      color: Colors.hopeWhite,
+                      fontSize: 18,
+                      minHeight: 60,
+                      borderWidth: 0,
+                      borderBottomWidth: 1,
+                      borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+                      paddingVertical: 16,
+                      paddingHorizontal: 0,
+                      textAlignVertical: 'top',
+                      backgroundColor: 'transparent',
+                    }}
+                    placeholder={`${index + 1}. I'm grateful for...`}
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     value={item}
                     onChangeText={(text) => handleItemChange(index, text)}
                     multiline
-                    returnKeyType={index < 2 ? 'next' : 'done'}
+                    returnKeyType={index < gratitudeItems.length - 1 ? 'next' : 'done'}
                     onSubmitEditing={() => {
-                      if (index < 2) {
+                      if (index < gratitudeItems.length - 1) {
                         inputRefs.current[index + 1]?.focus();
                       } else {
                         Keyboard.dismiss();
                       }
                     }}
-                    blurOnSubmit={index === 2}
+                    blurOnSubmit={index === gratitudeItems.length - 1}
                   />
                 </View>
               ))}
-            </ScrollView>
 
-            <View style={s.buttonContainer}>
+              {/* Add More Button */}
               <TouchableOpacity
-                style={s.cancelButton}
-                onPress={handleCancel}
-                disabled={isLoading}
+                onPress={addMoreItem}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 16,
+                  paddingHorizontal: 0,
+                  marginBottom: 20,
+                }}
               >
-                <Text style={[s.buttonText, s.cancelButtonText]}>
-                  Cancel
+                <Plus size={20} color={Colors.hopeWhite} style={{ marginRight: 12, opacity: 0.7 }} />
+                <Text style={{
+                  color: Colors.hopeWhite,
+                  fontSize: 16,
+                  opacity: 0.7,
+                }}>
+                  Add more
                 </Text>
               </TouchableOpacity>
+            </ScrollView>
 
-              <TouchableOpacity
-                style={[
-                  s.saveButton,
-                  (!isFormValid || isLoading) && s.disabledButton,
-                ]}
-                onPress={handleSave}
-                disabled={!isFormValid || isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color={Colors.anchorBlue} size="small" />
-                ) : (
-                  <Text style={[s.buttonText, s.saveButtonText]}>
-                    Save Gratitude
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            {/* Bottom spacing for FAB */}
+            <View style={{ height: 100 }} />
           </View>
+        </View>
+
+        {/* Floating Action Button */}
+        <View style={{
+          position: 'absolute',
+          bottom: 30,
+          right: 20,
+          left: 20,
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          {/* Cancel Button */}
+          <TouchableOpacity
+            onPress={handleCancel}
+            disabled={isLoading}
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 25,
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{
+              color: Colors.hopeWhite,
+              fontSize: 24,
+              fontWeight: '300',
+            }}>×</Text>
+          </TouchableOpacity>
+
+          {/* Save FAB */}
+          <TouchableOpacity
+            onPress={handleSave}
+            disabled={!isFormValid || isLoading}
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: 30,
+              backgroundColor: isFormValid && !isLoading ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.3)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              elevation: 8,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+            }}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={Colors.anchorBlue} size="small" />
+            ) : (
+              <Text style={{
+                color: Colors.anchorBlue,
+                fontSize: 24,
+                fontWeight: '500',
+              }}>✓</Text>
+            )}
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </View>

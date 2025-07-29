@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Alert } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import GratitudeLogEditor from '../components/journal/GratitudeLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
@@ -235,32 +235,29 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     return ['', '', ''];
   }, [existingGratitude]);
 
+  if (!visible) {
+    return null;
+  }
+
   return (
     <>
-      <Modal
-        visible={visible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={handleCancel}
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <GratitudeLogEditor
-            onSave={handleSaveGratitude}
-            onCancel={handleCancel}
-            initialItems={initialGratitudeItems}
-            subtaskTitle={subtaskTitle}
-            playbookTitle={playbookTitle}
-            actionStepNumber={actionStepNumber}
-            actionStepTitle={actionStepTitle}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-            styles={reflectionLogStyles}
-          />
-        </KeyboardAvoidingView>
-      </Modal>
+        <GratitudeLogEditor
+          onSave={handleSaveGratitude}
+          onCancel={handleCancel}
+          initialItems={initialGratitudeItems}
+          subtaskTitle={subtaskTitle}
+          playbookTitle={playbookTitle}
+          actionStepNumber={actionStepNumber}
+          actionStepTitle={actionStepTitle}
+          isLoading={createMutation.isPending || updateMutation.isPending}
+          styles={reflectionLogStyles}
+        />
+      </KeyboardAvoidingView>
 
       <SuccessModal
         visible={showSuccessModal}
