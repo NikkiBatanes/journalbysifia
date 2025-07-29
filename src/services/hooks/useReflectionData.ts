@@ -162,6 +162,11 @@ export const useCreateReflection = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type) });
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.stats(variables.user_id, variables.selected_date, variables.selected_date) });
 
+      // Invalidate subtask-specific queries if subtask_id is present
+      if (variables.subtask_id) {
+        queryClient.invalidateQueries({ queryKey: ['reflections', 'subtask', variables.user_id, variables.subtask_id] });
+      }
+
       // Update search results
       queryClient.invalidateQueries({ queryKey: ['reflections', 'search'] });
 
@@ -243,6 +248,11 @@ export const useUpdateReflection = () => {
           (old: ReflectionApiEntry[] = []) =>
             old.map(reflection => reflection.id === data.id ? data : reflection)
         );
+      }
+
+      // Invalidate subtask-specific queries if subtask_id is present
+      if (data.subtask_id) {
+        queryClient.invalidateQueries({ queryKey: ['reflections', 'subtask', data.user_id, data.subtask_id] });
       }
     },
   });

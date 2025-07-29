@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { NavigationProp } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
@@ -133,6 +134,7 @@ export default function ActionStepsCard({
 }: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Smart Journaling Modal State
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
@@ -246,10 +248,19 @@ export default function ActionStepsCard({
   }, [navigation, user?.id]);
 
   // Modal handlers
-  const handleReflectionSave = React.useCallback((entry: any) => {
+  const handleReflectionSave = React.useCallback(async (entry: any) => {
     console.log('[ActionStepsCard] Reflection saved:', entry);
+
+    // Invalidate the reflection query to refresh data immediately
+    if (user?.id && selectedSubtask?.id) {
+      await queryClient.invalidateQueries({
+        queryKey: ['reflections', 'subtask', user.id, selectedSubtask.id],
+      });
+      console.log('[ActionStepsCard] Reflection query invalidated for immediate refresh');
+    }
+
     // Modal will close automatically after showing success
-  }, []);
+  }, [queryClient, user?.id, selectedSubtask?.id]);
 
   const handleReflectionCancel = React.useCallback(() => {
     console.log('[ActionStepsCard] Reflection modal cancelled');
