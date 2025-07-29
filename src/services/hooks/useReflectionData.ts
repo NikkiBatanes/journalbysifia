@@ -265,21 +265,21 @@ export const useDeleteReflection = () => {
   return useMutation({
     mutationFn: async (reflectionId: string) => {
       console.log('🗑️ useDeleteReflection: Starting delete for:', reflectionId);
-      
+
       // Direct database call without complex logic
       const result = await ReflectionApi.deleteReflectionEntry(reflectionId);
-      
+
       console.log('✅ useDeleteReflection: Delete completed successfully');
       return result;
     },
     onSuccess: () => {
       console.log('🔄 useDeleteReflection: Invalidating cache...');
-      
+
       // Simple cache invalidation - no complex optimistic updates
       queryClient.invalidateQueries({
         queryKey: ['reflections'],
       });
-      
+
       console.log('✅ useDeleteReflection: Cache invalidated successfully');
     },
     onError: (error) => {

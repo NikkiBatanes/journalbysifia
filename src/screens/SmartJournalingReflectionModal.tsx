@@ -6,7 +6,6 @@ import { styles as reflectionLogStyles } from '../components/journal/reflectionS
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useActionSteps } from '../context/ActionStepsContext';
-import { toLocalDateString } from '../utils/date';
 import {
   useCreateReflection,
   useUpdateReflection,
@@ -190,48 +189,48 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         savedReflection = await createMutation.mutateAsync(reflectionData);
         console.log('✅ SmartJournalingReflectionModal: Reflection created successfully:', savedReflection?.id);
       }
-      
+
       // Validate that the reflection was actually saved
       if (!savedReflection || !savedReflection.id) {
         throw new Error('Save operation completed but no reflection ID returned - save may have failed');
       }
-      
+
       console.log('✅ SmartJournalingReflectionModal: Save validation passed - reflection has ID:', savedReflection.id);
 
       // IMPORTANT: Manually invalidate reflection cache to ensure UI updates
       console.log('🔄 SmartJournalingReflectionModal: Invalidating reflection cache for UI refresh...');
-      
+
       // Invalidate specific reflection queries to ensure UI updates
       const currentDateStr = new Date().toISOString().split('T')[0]; // Use ISO format to match ReflectionLogReactQuery
-      
+
       // 1. Invalidate Daily UI query (ReflectionLogReactQuery)
-      await queryClient.invalidateQueries({ 
+      await queryClient.invalidateQueries({
         queryKey: ['reflections', 'byDate', user.id, currentDateStr],
-        exact: true 
+        exact: true,
       });
-      
+
       // 2. Invalidate smart journaling subtask query
       if (subtaskId) {
-        await queryClient.invalidateQueries({ 
+        await queryClient.invalidateQueries({
           queryKey: ['reflections', 'subtask', user.id, subtaskId],
-          exact: true 
+          exact: true,
         });
       }
-      
+
       // 3. Broad invalidation as fallback
-      await queryClient.invalidateQueries({ 
-        queryKey: ['reflections'], 
-        exact: false 
+      await queryClient.invalidateQueries({
+        queryKey: ['reflections'],
+        exact: false,
       });
-      
+
       console.log('✅ SmartJournalingReflectionModal: Specific cache invalidation completed', {
         dateQuery: ['reflections', 'byDate', user.id, currentDateStr],
-        subtaskQuery: subtaskId ? ['reflections', 'subtask', user.id, subtaskId] : 'N/A'
+        subtaskQuery: subtaskId ? ['reflections', 'subtask', user.id, subtaskId] : 'N/A',
       });
-      
+
       // Note: React Query mutations should handle this automatically, but we're adding manual invalidation
       // to ensure the Daily UI and Reflection Log show the new reflection immediately
-      
+
       // Only set completion info for new reflections, not for updates
       if (!existingReflection && stepId && subtaskId) {
         console.log('💭 SmartJournalingReflectionModal: Setting completion info for new reflection', {
@@ -253,7 +252,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     } catch (error: any) {
       const errorMessage = error?.message || 'Unknown error';
       const errorStack = error?.stack || 'No stack trace';
-      
+
       console.error('❌ SmartJournalingReflectionModal: SAVE FAILED - Error details:', {
         error: error,
         errorMessage,
@@ -264,7 +263,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         existingReflection: existingReflection?.id,
         isUpdate: !!existingReflection,
       });
-      
+
       // Track save failures for debugging
       analytics.track('smart_journaling_save_failed', {
         error_message: errorMessage,
@@ -272,7 +271,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         playbook_id: playbookId,
         is_update: !!existingReflection,
       });
-      
+
       Alert.alert(
         'Save Failed',
         `Failed to save reflection: ${errorMessage}. This could explain why delete operations hang.`,

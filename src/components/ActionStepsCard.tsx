@@ -230,7 +230,7 @@ export default function ActionStepsCard({
         subtaskCompleted: subTask.completed,
         userId: user?.id,
       });
-      
+
       // Prefetch reflection data and wait for it to complete before opening modal
       const openModal = async () => {
         if (user?.id && subTask.id) {
@@ -245,12 +245,12 @@ export default function ActionStepsCard({
             console.warn('[ActionStepsCard] Prefetch failed, opening modal anyway:', error);
           }
         }
-        
+
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
         setReflectionModalVisible(true);
       };
-      
+
       openModal();
       return;
     }
@@ -263,7 +263,7 @@ export default function ActionStepsCard({
 
     const navService = SmartJournalingNavigation.create(navigation);
     navService.navigateToJournaling(journalType as any, subTask);
-  }, [navigation, user?.id]);
+  }, [navigation, user?.id, queryClient]);
 
   // Modal handlers
   const handleReflectionSave = React.useCallback(async (entry: any) => {
