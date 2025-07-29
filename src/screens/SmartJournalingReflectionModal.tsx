@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Text, ActivityIndicator } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
@@ -45,6 +45,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const { handleToggleStep } = useActionSteps();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [completionInfo, setCompletionInfo] = useState<{ stepId?: string; subtaskId?: string } | null>(null);
+  const isCompletionFlowRef = useRef(false);
   const dateStr = toLocalDateString(new Date());
 
   // Debug: Log existing reflection prop
@@ -74,9 +75,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   useEffect(() => {
     if (visible) {
       console.log('💭 SmartJournalingReflectionModal: Modal opened, clearing any existing completion info');
+      isCompletionFlowRef.current = false;
       setCompletionInfo(null);
+    } else if (!visible && completionInfo) {
+      // Modal is closing and we have completion info - this is a completion flow
+      console.log('💭 SmartJournalingReflectionModal: Modal closing with completion info - entering completion flow');
+      isCompletionFlowRef.current = true;
     }
-  }, [visible]);
+  }, [visible, completionInfo]);
 
   // Handle subtask completion when modal closes after "DONE" is clicked
   useEffect(() => {
@@ -85,12 +91,12 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       hasCompletionInfo: !!completionInfo,
       completionInfo,
     });
-    
+
     // Only complete subtask when modal is closing and we have completion info from successful save
     if (!visible && completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
       const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
       console.log('💭 SmartJournalingReflectionModal: Setting timer for subtask completion');
-      
+
       // Wait for modal slide-down animation to complete (typically 300-500ms)
       const timer = setTimeout(() => {
         console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask after modal slide-down', {
@@ -99,6 +105,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         });
         handleToggleStep(completionStepId, completionSubtaskId);
         setCompletionInfo(null); // Clear completion info
+        isCompletionFlowRef.current = false; // Reset completion flow
       }, 900); // Wait for modal slide animation to complete
 
       return () => {
