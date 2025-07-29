@@ -44,6 +44,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const { user } = useAuth();
   const { handleToggleStep } = useActionSteps();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [completionInfo, setCompletionInfo] = useState<{ stepId?: string; subtaskId?: string } | null>(null);
   const dateStr = toLocalDateString(new Date());
 
   // Debug: Log existing reflection prop
@@ -143,19 +144,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         await createMutation.mutateAsync(reflectionData);
         console.log('💭 SmartJournalingReflectionModal: Reflection created successfully');
 
-        // Auto-complete the subtask when NEW reflection is saved
-        if (stepId && subtaskId) {
-          console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask', {
-            stepId,
-            subtaskId,
-          });
-          handleToggleStep(stepId, subtaskId);
-        } else {
-          console.warn('💭 SmartJournalingReflectionModal: Missing stepId or subtaskId for auto-completion', {
-            stepId,
-            subtaskId,
-          });
-        }
+        // Store completion info for later (when success modal closes)
+        setCompletionInfo({ stepId, subtaskId });
       }
 
       // Show success modal
@@ -177,6 +167,17 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const handleSuccessModalClose = () => {
     console.log('Closing success modal and reflection editor');
+
+    // Auto-complete the subtask when success modal is closed (only for new reflections)
+    if (completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
+      console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask after success modal close', {
+        stepId: completionInfo.stepId,
+        subtaskId: completionInfo.subtaskId,
+      });
+      handleToggleStep(completionInfo.stepId, completionInfo.subtaskId);
+      setCompletionInfo(null); // Clear completion info
+    }
+
     setShowSuccessModal(false);
     onCancel();
   };
