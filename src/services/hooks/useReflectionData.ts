@@ -51,7 +51,7 @@ export const useReflectionBySubtask = (userId: string, subtaskId: string) => {
   return useQuery({
     queryKey: ['reflections', 'subtask', userId, subtaskId],
     queryFn: () => ReflectionApi.getReflectionBySubtask(userId, subtaskId),
-    ...queryOptionsPresets.stable,
+    ...queryOptionsPresets.realtime, // Use realtime preset for fresh reflection data
     enabled: !!userId && !!subtaskId,
   });
 };
@@ -258,57 +258,36 @@ export const useUpdateReflection = () => {
   });
 };
 
-// Hook for deleting a reflection entry
+// Hook for deleting a reflection entry - SIMPLIFIED VERSION
 export const useDeleteReflection = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ReflectionApi.deleteReflectionEntry,
-    onMutate: async (reflectionId: string) => {
-      // Find the reflection in cache to get user_id and selected_date
-      const queries = queryClient.getQueriesData({ queryKey: ['reflections'] });
-      let reflectionToDelete: ReflectionApiEntry | undefined;
-      let queryKey: any;
-
-      for (const [key, data] of queries) {
-        if (Array.isArray(data)) {
-          reflectionToDelete = data.find((reflection: ReflectionApiEntry) => reflection.id === reflectionId);
-          if (reflectionToDelete) {
-            queryKey = key;
-            break;
-          }
-        }
-      }
-
-      if (reflectionToDelete && queryKey) {
-        // Cancel any outgoing refetches
-        await queryClient.cancelQueries({ queryKey });
-
-        // Snapshot the previous value
-        const previousReflections = queryClient.getQueryData(queryKey);
-
-        // Optimistically remove the reflection
-        queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) =>
-          old.filter(reflection => reflection.id !== reflectionId)
-        );
-
-        return { previousReflections, queryKey, reflectionToDelete };
-      }
-
-      return { reflectionId };
+    mutationFn: async (reflectionId: string) => {
+      console.log('🗑️ useDeleteReflection: Starting delete for:', reflectionId);
+      
+      // Direct database call without complex logic
+      const result = await ReflectionApi.deleteReflectionEntry(reflectionId);
+      
+      console.log('✅ useDeleteReflection: Delete completed successfully');
+      return result;
     },
-    onError: (error, _reflectionId, _context) => {
-      console.error('Error deleting reflection:', error);
-      if (_context?.previousReflections && _context?.queryKey) {
-        queryClient.setQueryData(_context.queryKey, _context.previousReflections);
-      }
-    },
-    onSuccess: (_, _reflectionId, _context) => {
-      // Invalidate all reflection queries to ensure consistency
+    onSuccess: () => {
+      console.log('🔄 useDeleteReflection: Invalidating cache...');
+      
+      // Simple cache invalidation - no complex optimistic updates
       queryClient.invalidateQueries({
         queryKey: ['reflections'],
       });
+      
+      console.log('✅ useDeleteReflection: Cache invalidated successfully');
     },
+    onError: (error) => {
+      console.error('❌ useDeleteReflection: Delete failed:', error);
+    },
+    // Simple configuration - no retries to avoid complications
+    retry: false,
+    networkMode: 'online', // Only work when online
   });
 };
 

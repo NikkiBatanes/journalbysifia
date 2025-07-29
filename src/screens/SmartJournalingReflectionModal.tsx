@@ -11,6 +11,7 @@ import {
   useCreateReflection,
   useUpdateReflection,
 } from '../services/hooks/useReflectionData';
+import { useQueryClient } from '@tanstack/react-query';
 import { analytics } from '../utils/analytics';
 
 interface SmartJournalingReflectionModalProps {
@@ -43,9 +44,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const { user } = useAuth();
   const { handleToggleStep } = useActionSteps();
+  const queryClient = useQueryClient();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [completionInfo, setCompletionInfo] = useState<{ stepId?: string; subtaskId?: string } | null>(null);
-  const dateStr = toLocalDateString(new Date());
+  const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
+  const dateStr = new Date().toISOString().split('T')[0]; // Use ISO format to match ReflectionLogReactQuery
 
   // Debug: Log existing reflection prop
   React.useEffect(() => {
@@ -102,7 +104,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         });
         handleToggleStep(completionStepId, completionSubtaskId);
         setCompletionInfo(null); // Clear completion info
-      }, 900); // Wait for modal slide animation to complete
+      }, 1000); // Wait for modal slide animation to complete
 
       return () => {
         console.log('💭 SmartJournalingReflectionModal: Clearing timer');
@@ -175,23 +177,71 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       });
 
       // Use update if editing existing reflection, otherwise create new one
+      let savedReflection;
       if (existingReflection) {
-        await updateMutation.mutateAsync({
+        console.log('💭 SmartJournalingReflectionModal: Updating existing reflection:', existingReflection.id);
+        savedReflection = await updateMutation.mutateAsync({
           id: existingReflection.id,
           updates: reflectionData,
         });
-        console.log('💭 SmartJournalingReflectionModal: Reflection updated successfully');
+        console.log('✅ SmartJournalingReflectionModal: Reflection updated successfully:', savedReflection?.id);
       } else {
-        await createMutation.mutateAsync(reflectionData);
-        console.log('💭 SmartJournalingReflectionModal: Reflection created successfully');
+        console.log('💭 SmartJournalingReflectionModal: Creating new reflection...');
+        savedReflection = await createMutation.mutateAsync(reflectionData);
+        console.log('✅ SmartJournalingReflectionModal: Reflection created successfully:', savedReflection?.id);
       }
+      
+      // Validate that the reflection was actually saved
+      if (!savedReflection || !savedReflection.id) {
+        throw new Error('Save operation completed but no reflection ID returned - save may have failed');
+      }
+      
+      console.log('✅ SmartJournalingReflectionModal: Save validation passed - reflection has ID:', savedReflection.id);
 
-      // Store completion info for later (when "DONE" is clicked) - for both new and updated reflections
-      console.log('💭 SmartJournalingReflectionModal: Setting completion info after successful save', {
-        stepId,
-        subtaskId,
+      // IMPORTANT: Manually invalidate reflection cache to ensure UI updates
+      console.log('🔄 SmartJournalingReflectionModal: Invalidating reflection cache for UI refresh...');
+      
+      // Invalidate specific reflection queries to ensure UI updates
+      const currentDateStr = new Date().toISOString().split('T')[0]; // Use ISO format to match ReflectionLogReactQuery
+      
+      // 1. Invalidate Daily UI query (ReflectionLogReactQuery)
+      await queryClient.invalidateQueries({ 
+        queryKey: ['reflections', 'byDate', user.id, currentDateStr],
+        exact: true 
       });
-      setCompletionInfo({ stepId, subtaskId });
+      
+      // 2. Invalidate smart journaling subtask query
+      if (subtaskId) {
+        await queryClient.invalidateQueries({ 
+          queryKey: ['reflections', 'subtask', user.id, subtaskId],
+          exact: true 
+        });
+      }
+      
+      // 3. Broad invalidation as fallback
+      await queryClient.invalidateQueries({ 
+        queryKey: ['reflections'], 
+        exact: false 
+      });
+      
+      console.log('✅ SmartJournalingReflectionModal: Specific cache invalidation completed', {
+        dateQuery: ['reflections', 'byDate', user.id, currentDateStr],
+        subtaskQuery: subtaskId ? ['reflections', 'subtask', user.id, subtaskId] : 'N/A'
+      });
+      
+      // Note: React Query mutations should handle this automatically, but we're adding manual invalidation
+      // to ensure the Daily UI and Reflection Log show the new reflection immediately
+      
+      // Only set completion info for new reflections, not for updates
+      if (!existingReflection && stepId && subtaskId) {
+        console.log('💭 SmartJournalingReflectionModal: Setting completion info for new reflection', {
+          stepId,
+          subtaskId,
+        });
+        setCompletionInfo({ stepId, subtaskId });
+      } else {
+        console.log('💭 SmartJournalingReflectionModal: Skipping completion info for existing reflection or missing IDs');
+      }
 
       // Show success modal
       setShowSuccessModal(true);
@@ -199,16 +249,40 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       // Call parent onSave callback
       onSave(reflectionData);
 
-      console.log('💭 SmartJournalingReflectionModal: Reflection saved successfully');
-    } catch (error) {
-      console.error('💭 SmartJournalingReflectionModal: Error saving reflection:', error);
+      console.log('✅ SmartJournalingReflectionModal: Reflection saved successfully - should appear in UI now');
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Unknown error';
+      const errorStack = error?.stack || 'No stack trace';
+      
+      console.error('❌ SmartJournalingReflectionModal: SAVE FAILED - Error details:', {
+        error: error,
+        errorMessage,
+        errorStack,
+        userId: user?.id,
+        subtaskId,
+        playbookId,
+        existingReflection: existingReflection?.id,
+        isUpdate: !!existingReflection,
+      });
+      
+      // Track save failures for debugging
+      analytics.track('smart_journaling_save_failed', {
+        error_message: errorMessage,
+        subtask_id: subtaskId,
+        playbook_id: playbookId,
+        is_update: !!existingReflection,
+      });
+      
       Alert.alert(
-        'Error',
-        'Failed to save reflection. Please try again.',
+        'Save Failed',
+        `Failed to save reflection: ${errorMessage}. This could explain why delete operations hang.`,
         [{ text: 'OK' }]
       );
     }
   };
+
+  // Note: Delete functionality intentionally removed from smart journaling modal.
+  // Users can delete reflections through the main Reflection Log interface.
 
   const handleSuccessModalClose = () => {
     console.log('Closing success modal and reflection editor');
@@ -245,6 +319,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
             <ReflectionLogEditor
               onSave={saveReflection}
               onCancel={handleCancel}
+              // Note: onDelete prop intentionally omitted - users delete via Reflection Log
               initialTitle={subtaskTitle}
               lockTitle={true}
               source="playbook"
@@ -281,7 +356,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Loading overlay for save operation */}
+      {/* Loading overlay for operations */}
       {isLoading && (
         <Modal
           visible={isLoading}

@@ -9,15 +9,7 @@ const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 const config = {
   server: {
     port: 8081,
-    enhanceMiddleware: (middleware) => {
-      return (req, res, next) => {
-        // No 'x-forwarded-host' exists for local development
-        if (req.url.startsWith('/assets/') || req.url === '/') {
-          req.headers['x-forwarded-host'] = '192.168.1.7:8081';
-        }
-        return middleware(req, res, next);
-      };
-    },
+    // Disable x-forwarded-host middleware as it's not needed for local development
   },
   transformer: {
     getTransformOptions: async () => ({
@@ -26,6 +18,10 @@ const config = {
         inlineRequires: true,
       },
     }),
+  },
+  // Add asset extensions
+  resolver: {
+    assetExts: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'],
   },
 };
 

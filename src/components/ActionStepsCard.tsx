@@ -42,6 +42,7 @@ type ActionStepsCardProps = {
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useReflectionBySubtask } from '../services/hooks/useReflectionData';
+import { ReflectionApi } from '../services/api/reflectionApi';
 
 // Smart Journaling Helper Functions
 const getJournalTypeIcon = (journalType?: string): string => {
@@ -229,9 +230,28 @@ export default function ActionStepsCard({
         subtaskCompleted: subTask.completed,
         userId: user?.id,
       });
-      setSelectedSubtask(subTask);
-      setSelectedActionStep(stepInfo || null);
-      setReflectionModalVisible(true);
+      
+      // Prefetch reflection data and wait for it to complete before opening modal
+      const openModal = async () => {
+        if (user?.id && subTask.id) {
+          console.log('[ActionStepsCard] Prefetching reflection data before opening modal');
+          try {
+            await queryClient.prefetchQuery({
+              queryKey: ['reflections', 'subtask', user.id, subTask.id],
+              queryFn: () => ReflectionApi.getReflectionBySubtask(user.id, subTask.id),
+            });
+            console.log('[ActionStepsCard] Prefetch completed, opening modal with data ready');
+          } catch (error) {
+            console.warn('[ActionStepsCard] Prefetch failed, opening modal anyway:', error);
+          }
+        }
+        
+        setSelectedSubtask(subTask);
+        setSelectedActionStep(stepInfo || null);
+        setReflectionModalVisible(true);
+      };
+      
+      openModal();
       return;
     }
 

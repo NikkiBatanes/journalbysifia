@@ -770,7 +770,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       } finally {
         setIsSaving(false);
       }
-    }, 2000); // 2 second delay
+    }, 500); // 500ms delay - reduced to prevent toggle overwrites
   }, [playbook?.id, isSaving, saveActionSteps]);
 
   // Call debounced save when actionSteps change

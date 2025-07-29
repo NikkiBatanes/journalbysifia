@@ -249,14 +249,23 @@ export class ReflectionApi {
 
   // Delete a reflection entry
   static async deleteReflectionEntry(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('reflection_entries')
-      .delete()
-      .eq('id', id);
+    console.log('🗑️ ReflectionApi: Starting delete for reflection:', id);
+    
+    try {
+      const { error } = await supabase
+        .from('reflection_entries')
+        .delete()
+        .eq('id', id);
 
-    if (error) {
-      console.error('Error deleting reflection entry:', error);
-      throw new Error(`Failed to delete reflection entry: ${error.message}`);
+      if (error) {
+        console.error('❌ ReflectionApi: Error deleting reflection entry:', error);
+        throw new Error(`Failed to delete reflection entry: ${error.message}`);
+      }
+      
+      console.log('✅ ReflectionApi: Successfully deleted reflection:', id);
+    } catch (err) {
+      console.error('❌ ReflectionApi: Exception during delete:', err);
+      throw err;
     }
   }
 
