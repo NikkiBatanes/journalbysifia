@@ -44,9 +44,9 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   const { refetch } = useReflectionData(user?.id || '', dateStr);
 
   // Save reflection using React Query system
-  const saveReflection = async (entry: { 
-    title: string; 
-    content: string; 
+  const saveReflection = async (entry: {
+    title: string;
+    content: string;
     tags?: string[];
     prompt?: string;
     source?: string;
@@ -60,7 +60,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       console.log('🔍 DevotionalDetailReflectionModal: saveReflection started with:', entry);
       console.log('🔍 DevotionalDetailReflectionModal: User:', user?.id);
       console.log('🔍 DevotionalDetailReflectionModal: Date string:', dateStr);
-      
+
       if (!user) {
         throw new Error('User not authenticated');
       }

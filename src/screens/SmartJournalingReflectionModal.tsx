@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Text, ActivityIndicator } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
@@ -77,9 +77,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   // Note: We don't need to refetch data since the modal will close after saving
 
   // Save reflection using React Query system
-  const saveReflection = async (entry: { 
-    title: string; 
-    content: string; 
+  const saveReflection = async (entry: {
+    title: string;
+    content: string;
     tags?: string[];
     type?: string;
     source?: string;
@@ -108,7 +108,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       });
 
       console.log('💭 SmartJournalingReflectionModal: Type override - entry.type:', entry.type, '-> overriding to: playbook');
-      
+
       const reflectionData = {
         user_id: user.id,
         title: entry.title,
@@ -134,15 +134,15 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
       // Use update if editing existing reflection, otherwise create new one
       if (existingReflection) {
-        await updateMutation.mutateAsync({ 
-          id: existingReflection.id, 
-          updates: reflectionData 
+        await updateMutation.mutateAsync({
+          id: existingReflection.id,
+          updates: reflectionData,
         });
         console.log('💭 SmartJournalingReflectionModal: Reflection updated successfully');
       } else {
         await createMutation.mutateAsync(reflectionData);
         console.log('💭 SmartJournalingReflectionModal: Reflection created successfully');
-        
+
         // Auto-complete the subtask when NEW reflection is saved
         if (stepId && subtaskId) {
           console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask', {
@@ -231,7 +231,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 content: existingReflection.content || '',
                 tags: existingReflection.tags || [],
                 type: 'free-form',
-                source: 'playbook'
+                source: 'playbook',
               } : undefined}
             />
 

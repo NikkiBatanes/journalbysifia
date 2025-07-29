@@ -36,7 +36,7 @@ export class ReflectionApi {
       .eq('user_id', userId)
       .eq('selected_date', date)
       .order('created_at', { ascending: false });
-    
+
     console.log('🔍 ReflectionApi: getReflectionEntries response - data:', data?.length, 'entries');
     console.log('🔍 ReflectionApi: getReflectionEntries response - error:', error);
     console.log('🔍 ReflectionApi: getReflectionEntries response - full data:', data);
@@ -132,7 +132,7 @@ export class ReflectionApi {
       subtaskIdType: typeof subtaskId,
       subtaskIdLength: subtaskId?.length,
     });
-    
+
     const { data, error } = await supabase
       .from('reflection_entries')
       .select('*')
@@ -141,7 +141,7 @@ export class ReflectionApi {
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
-      
+
     console.log('🔍 ReflectionApi: getReflectionBySubtask response:', {
       data,
       error,
@@ -152,7 +152,7 @@ export class ReflectionApi {
       // If no reflection found, return null instead of throwing error
       if (error.code === 'PGRST116') {
         console.log('🔍 ReflectionApi: No reflection found for subtask:', subtaskId);
-        
+
         // Try fallback query by user_id and type to see if there are any playbook reflections
         console.log('🔍 ReflectionApi: Attempting fallback query for debugging...');
         try {
@@ -163,7 +163,7 @@ export class ReflectionApi {
             .eq('type', 'playbook')
             .order('created_at', { ascending: false })
             .limit(5);
-            
+
           console.log('🔍 ReflectionApi: Fallback query results:', {
             count: fallbackData?.length || 0,
             reflections: fallbackData?.map(r => ({
@@ -177,7 +177,7 @@ export class ReflectionApi {
         } catch (fallbackErr) {
           console.log('🔍 ReflectionApi: Fallback query failed:', fallbackErr);
         }
-        
+
         return null;
       }
       console.error('Error fetching reflection by subtask:', error);
@@ -212,7 +212,7 @@ export class ReflectionApi {
       .insert(entryWithTimestamps)
       .select()
       .single();
-    
+
     console.log('🔍 ReflectionApi: Database response - data:', data);
     console.log('🔍 ReflectionApi: Database response - error:', error);
 

@@ -57,9 +57,9 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
   }
   if (card.type === 'action') {
     return (
-      <ActionStepsCard 
-        steps={card.steps ?? []} 
-        style={styles.actionCard} 
+      <ActionStepsCard
+        steps={card.steps ?? []}
+        style={styles.actionCard}
         navigation={navigation}
         playbookTitle={playbookTitle}
         playbookId={playbookId}

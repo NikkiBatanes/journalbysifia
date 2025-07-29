@@ -241,7 +241,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   // Store initial state to compare against
   const [initialState, setInitialState] = React.useState({
     content: initialEntry?.content || '',
-    title: initialEntry?.title || initialTitle || ''
+    title: initialEntry?.title || initialTitle || '',
   });
 
   // Function to check if user has made changes from initial state
@@ -295,11 +295,11 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 content: content || prev.content,
                 title: title || prev.title,
               }));
-              
+
               // Update initial state to the loaded draft so changes are tracked from this point
               setInitialState({
                 content: content || '',
-                title: title || ''
+                title: title || '',
               });
 
               // Set cursor to end of content after a short delay
@@ -309,7 +309,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   // Set selection to end of text
                   const textLength = content.length;
                   contentInputRef.current.setNativeProps({
-                    selection: { start: textLength, end: textLength }
+                    selection: { start: textLength, end: textLength },
                   });
                 }
               }, 100);
@@ -324,7 +324,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   setShowDraftNotification(false);
                 }, 4000);
               }
-              
+
               // Mark that first load is complete
               setIsFirstLoad(false);
 
@@ -341,7 +341,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 
       loadDraft();
     }
-  }, [getDraftKey, isEditing]);
+  }, [getDraftKey, isEditing, isFirstLoad]);
 
   // Helper function to save draft
   const saveDraftHelper = async () => {
@@ -349,7 +349,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       // Only save draft if there's actual meaningful content (not just whitespace)
       const hasContent = newEntry.content.trim().length > 0;
       const hasTitle = newEntry.title.trim().length > 0;
-      
+
       if (hasContent || hasTitle) {
         const draftData = {
           content: newEntry.content,
@@ -660,7 +660,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                       setTimeout(() => {
                         const textLength = newEntry.title.length;
                         titleInputRef.current?.setNativeProps({
-                          selection: { start: textLength, end: textLength }
+                          selection: { start: textLength, end: textLength },
                         });
                       }, 10);
                     }
@@ -687,7 +687,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                     setTimeout(() => {
                       const textLength = newEntry.content.length;
                       contentInputRef.current?.setNativeProps({
-                        selection: { start: textLength, end: textLength }
+                        selection: { start: textLength, end: textLength },
                       });
                     }, 10);
                   }

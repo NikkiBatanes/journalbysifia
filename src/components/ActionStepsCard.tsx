@@ -160,13 +160,13 @@ export default function ActionStepsCard({
 
   // Animation for subtask completion
   const animatedValues = useRef<Map<string, Animated.Value>>(new Map()).current;
-  
-  const getAnimatedValue = (subtaskId: string) => {
+
+  const getAnimatedValue = React.useCallback((subtaskId: string) => {
     if (!animatedValues.has(subtaskId)) {
       animatedValues.set(subtaskId, new Animated.Value(0));
     }
     return animatedValues.get(subtaskId)!;
-  };
+  }, [animatedValues]);
 
   const steps = useMemo(() => {
     const rawSteps = (propSteps && propSteps.length > 0) ? propSteps : contextSteps;
@@ -186,10 +186,10 @@ export default function ActionStepsCard({
 
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
-    
+
     // Get the animated value for this subtask
     const animatedValue = getAnimatedValue(subTaskId);
-    
+
     // Animate the completion
     Animated.sequence([
       Animated.timing(animatedValue, {
@@ -203,13 +203,13 @@ export default function ActionStepsCard({
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     handleToggleStep(stepId, subTaskId);
   }, [handleToggleStep, getAnimatedValue]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
-    console.log('[ActionStepsCard] Journal type pressed:', { 
-      journalType, 
+    console.log('[ActionStepsCard] Journal type pressed:', {
+      journalType,
       subTask,
       subtaskId: subTask.id,
       subtaskIdType: typeof subTask.id,
@@ -243,7 +243,7 @@ export default function ActionStepsCard({
 
     const navService = SmartJournalingNavigation.create(navigation);
     navService.navigateToJournaling(journalType as any, subTask);
-  }, [navigation]);
+  }, [navigation, user?.id]);
 
   // Modal handlers
   const handleReflectionSave = React.useCallback((entry: any) => {
@@ -420,8 +420,8 @@ export default function ActionStepsCard({
                                     scale: getAnimatedValue(subTask.id).interpolate({
                                       inputRange: [0, 1],
                                       outputRange: [1, 1.3],
-                                    })
-                                  }]
+                                    }),
+                                  }],
                                 }}
                               >
                                 <MaterialCommunityIcons
@@ -454,7 +454,7 @@ export default function ActionStepsCard({
                                   console.log('[ActionStepsCard] Rendering journal types for subtask:', {
                                     subtaskText: subTask.text,
                                     detectedType: subTask.detected_journal_type,
-                                    parsedTypes: parseJournalTypes(subTask.detected_journal_type)
+                                    parsedTypes: parseJournalTypes(subTask.detected_journal_type),
                                   });
                                   return null;
                                 })()}

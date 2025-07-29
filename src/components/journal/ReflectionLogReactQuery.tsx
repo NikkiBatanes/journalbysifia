@@ -692,8 +692,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                 await deleteMutation.mutateAsync(id);
                 await refetch();
                 console.log('Reflection deleted successfully');
-              } catch (error) {
-                console.error('Failed to delete reflection:', error);
+              } catch (deleteError) {
+                console.error('Failed to delete reflection:', deleteError);
                 Alert.alert('Error', 'Failed to delete reflection. Please try again.');
               }
             } : undefined}

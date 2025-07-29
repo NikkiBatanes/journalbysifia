@@ -51,14 +51,14 @@ export async function updateExistingPlaybooksWithJournalTypes(userId: string): P
       const updates = [];
 
       for (const subtask of batch) {
-        if (!subtask.text) continue;
+        if (!subtask.text) {continue;}
 
         const detectedType = detectJournalType(subtask.text);
-        
+
         if (detectedType !== 'none') {
           updates.push({
             id: subtask.id,
-            detected_journal_type: detectedType
+            detected_journal_type: detectedType,
           });
         }
       }
@@ -118,14 +118,14 @@ export async function updatePlaybookWithJournalTypes(playbookId: string): Promis
     const updates = [];
 
     for (const subtask of subtasks) {
-      if (!subtask.text) continue;
+      if (!subtask.text) {continue;}
 
       const detectedType = detectJournalType(subtask.text);
-      
+
       if (detectedType !== 'none') {
         updates.push({
           id: subtask.id,
-          detected_journal_type: detectedType
+          detected_journal_type: detectedType,
         });
       }
     }
