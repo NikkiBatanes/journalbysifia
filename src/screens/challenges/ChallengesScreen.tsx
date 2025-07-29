@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
+import LinearGradient from 'react-native-linear-gradient';
 // import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
 import { userApi } from '../../services/userApi';
 import { Challenge } from '../../types/auth';
@@ -128,7 +128,8 @@ const ChallengesScreen: React.FC<Props> = ({ navigation }) => {
 
   const ChallengeCard = ({ challenge }: { challenge: Challenge }) => { // eslint-disable-line react/no-unstable-nested-components
     const daysRemaining = getDaysRemaining(challenge.endDate);
-    const difficultyColors = getDifficultyGradient(challenge.difficulty);
+    // Ensure we have a mutable array for LinearGradient colors
+    const difficultyColors = [...getDifficultyGradient(challenge.difficulty)];
     const joined = isUserJoined(challenge.id);
 
     return (
