@@ -70,9 +70,16 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     });
   }, [visible, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, existingReflection]);
 
-  // Handle subtask completion when modal closes after successful save
+  // Clear completion info when modal opens to prevent accidental triggers
   useEffect(() => {
-    // Only complete subtask when modal is closing and we have completion info
+    if (visible) {
+      setCompletionInfo(null);
+    }
+  }, [visible]);
+
+  // Handle subtask completion when modal closes after "DONE" is clicked
+  useEffect(() => {
+    // Only complete subtask when modal is closing and we have completion info from successful save
     if (!visible && completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
       const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
       // Wait for modal slide-down animation to complete (typically 300-500ms)
@@ -162,10 +169,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       } else {
         await createMutation.mutateAsync(reflectionData);
         console.log('💭 SmartJournalingReflectionModal: Reflection created successfully');
-
-        // Store completion info for later (when success modal closes)
-        setCompletionInfo({ stepId, subtaskId });
       }
+
+      // Store completion info for later (when "DONE" is clicked) - for both new and updated reflections
+      setCompletionInfo({ stepId, subtaskId });
 
       // Show success modal
       setShowSuccessModal(true);
