@@ -669,8 +669,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   completedText: {
-    textDecorationLine: 'line-through',
-    opacity: 0.7,
+    // opacity handled by animation, strikethrough handled by animated overlay
   },
   subTaskButton: {
     flexDirection: 'row',

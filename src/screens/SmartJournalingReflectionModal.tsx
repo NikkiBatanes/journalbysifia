@@ -74,11 +74,16 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   useEffect(() => {
     // Only complete subtask when modal is closing and we have completion info
     if (!visible && completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
-      console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask after modal close', {
-        stepId: completionInfo.stepId,
-        subtaskId: completionInfo.subtaskId,
-      });
-      handleToggleStep(completionInfo.stepId, completionInfo.subtaskId);
+      // Add delay so animation is visible after modal slide-down completes
+      setTimeout(() => {
+        if (completionInfo.stepId && completionInfo.subtaskId) {
+          console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask after modal close', {
+            stepId: completionInfo.stepId,
+            subtaskId: completionInfo.subtaskId,
+          });
+          handleToggleStep(completionInfo.stepId, completionInfo.subtaskId);
+        }
+      }, 500); // Wait for modal slide-down animation to complete
       setCompletionInfo(null); // Clear completion info
     }
   }, [visible, completionInfo, handleToggleStep]);
