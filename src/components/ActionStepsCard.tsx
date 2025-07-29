@@ -200,7 +200,7 @@ export default function ActionStepsCard({
     const targetValue = isCurrentlyCompleted ? 0 : 1;
     Animated.timing(animatedValue, {
       toValue: targetValue,
-      duration: 800, // Slower animation for better visibility
+      duration: 300, // Quick and natural animation
       useNativeDriver: true,
     }).start();
 
