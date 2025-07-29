@@ -314,15 +314,18 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 }
               }, 100);
 
-              // Only show notification on first load (when modal is initially opened)
+              // Only show notification when draft is actually loaded (not in edit mode)
               let timer: NodeJS.Timeout | undefined;
-              if (isFirstLoad) {
-                setShowDraftNotification(true);
+              if (isFirstLoad && !isEditing) {
+                // Delay showing notification until modal is fully open
+                setTimeout(() => {
+                  setShowDraftNotification(true);
+                }, 500);
 
                 // Hide notification after 4 seconds
                 timer = setTimeout(() => {
                   setShowDraftNotification(false);
-                }, 4000);
+                }, 4500); // 500ms delay + 4000ms display
               }
 
               // Mark that first load is complete
