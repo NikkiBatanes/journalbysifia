@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Text, ActivityIndicator } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
@@ -69,6 +69,19 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       isEditMode: !!existingReflection,
     });
   }, [visible, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, existingReflection]);
+
+  // Handle subtask completion when modal closes after successful save
+  useEffect(() => {
+    // Only complete subtask when modal is closing and we have completion info
+    if (!visible && completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
+      console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask after modal close', {
+        stepId: completionInfo.stepId,
+        subtaskId: completionInfo.subtaskId,
+      });
+      handleToggleStep(completionInfo.stepId, completionInfo.subtaskId);
+      setCompletionInfo(null); // Clear completion info
+    }
+  }, [visible, completionInfo, handleToggleStep]);
 
   const { createMutation, updateMutation } = {
     createMutation: useCreateReflection(),
@@ -167,17 +180,6 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const handleSuccessModalClose = () => {
     console.log('Closing success modal and reflection editor');
-
-    // Auto-complete the subtask when success modal is closed (only for new reflections)
-    if (completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
-      console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask after success modal close', {
-        stepId: completionInfo.stepId,
-        subtaskId: completionInfo.subtaskId,
-      });
-      handleToggleStep(completionInfo.stepId, completionInfo.subtaskId);
-      setCompletionInfo(null); // Clear completion info
-    }
-
     setShowSuccessModal(false);
     onCancel();
   };
