@@ -328,9 +328,6 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
               // Mark that first load is complete
               setIsFirstLoad(false);
 
-              // Clear the draft after loading it
-              await AsyncStorage.removeItem(draftKey);
-
               return timer ? () => clearTimeout(timer) : undefined;
             }
           }
