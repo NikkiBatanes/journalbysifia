@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, Animated } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -161,15 +161,7 @@ export default function ActionStepsCard({
     }
   }, [selectedSubtask, existingReflection, isReflectionLoading, reflectionError, user?.id]);
 
-  // Animation for subtask completion
-  const animatedValues = useRef<Map<string, Animated.Value>>(new Map()).current;
 
-  const getAnimatedValue = React.useCallback((subtaskId: string) => {
-    if (!animatedValues.has(subtaskId)) {
-      animatedValues.set(subtaskId, new Animated.Value(0));
-    }
-    return animatedValues.get(subtaskId)!;
-  }, [animatedValues]);
 
   const steps = useMemo(() => {
     const rawSteps = (propSteps && propSteps.length > 0) ? propSteps : contextSteps;
@@ -189,24 +181,8 @@ export default function ActionStepsCard({
 
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
-
-    // Find the current subtask to check its completion state
-    const currentSubtask = steps.find(step => step.id === stepId)?.subTasks?.find(st => st.id === subTaskId);
-    const isCurrentlyCompleted = currentSubtask?.completed || false;
-
-    // Get the animated value for this subtask
-    const animatedValue = getAnimatedValue(subTaskId);
-
-    // Animate based on the new state (opposite of current)
-    const targetValue = isCurrentlyCompleted ? 0 : 1;
-    Animated.timing(animatedValue, {
-      toValue: targetValue,
-      duration: 300, // Quick and natural animation
-      useNativeDriver: true,
-    }).start();
-
     handleToggleStep(stepId, subTaskId);
-  }, [handleToggleStep, getAnimatedValue, steps]);
+  }, [handleToggleStep]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
     console.log('[ActionStepsCard] Journal type pressed:', {
@@ -446,16 +422,7 @@ export default function ActionStepsCard({
                               onPress={() => onToggleSubTask(step.id, subTask.id)}
                               activeOpacity={0.7}
                             >
-                              <Animated.View
-                                style={{
-                                  transform: [{
-                                    scale: getAnimatedValue(subTask.id).interpolate({
-                                      inputRange: [0, 1],
-                                      outputRange: [1, 1.3],
-                                    }),
-                                  }],
-                                }}
-                              >
+                              <View>
                                 <MaterialCommunityIcons
                                   name={
                                     subTask.completed
@@ -468,23 +435,17 @@ export default function ActionStepsCard({
                                     getCheckboxColor(subTask.completed),
                                   ]}
                                 />
-                              </Animated.View>
+                              </View>
                             </TouchableOpacity>
                             <View style={styles.subTaskContent}>
-                              <Animated.Text
+                              <Text
                                 style={[
                                   dynamicStyles.subTaskText,
                                   subTask.completed && styles.completedText,
-                                  {
-                                    opacity: getAnimatedValue(subTask.id).interpolate({
-                                      inputRange: [0, 1],
-                                      outputRange: [1, 0.7],
-                                    }),
-                                  },
                                 ]}
                               >
                                 {subTask.text}
-                              </Animated.Text>
+                              </Text>
                               {subTask.detected_journal_type && subTask.detected_journal_type !== 'none' && (
                               <View style={styles.journalTypesContainer}>
                                 {/* Debug: Log journal types */}
