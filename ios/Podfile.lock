@@ -1889,6 +1889,31 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNLiveMarkdown (0.1.298):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNReanimated/worklets
+    - Yoga
   - RNReanimated (3.19.0):
     - DoubleConversion
     - glog
@@ -2223,6 +2248,7 @@ DEPENDENCIES:
   - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
+  - "RNLiveMarkdown (from `../node_modules/@expensify/react-native-live-markdown`)"
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNSVG (from `../node_modules/react-native-svg`)
@@ -2402,6 +2428,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-gesture-handler"
   RNGoogleSignin:
     :path: "../node_modules/@react-native-google-signin/google-signin"
+  RNLiveMarkdown:
+    :path: "../node_modules/@expensify/react-native-live-markdown"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -2501,6 +2529,7 @@ SPEC CHECKSUMS:
   RNDateTimePicker: 76170c3e1545fa4abe11253758f76ed401541012
   RNGestureHandler: c7986dd1eb909e329882af067c05db0702a659b3
   RNGoogleSignin: 204d0031895b0b350268f29945571d4bed371beb
+  RNLiveMarkdown: ba764bdc4171c18a6e000ce7c5f8e37f11d1376a
   RNReanimated: ac0cfc5da50d769ec1e3c6ccb362c1bf7d08ac87
   RNScreens: 482e9707f9826230810c92e765751af53826d509
   RNSVG: 8a1054afe490b5d63b9792d7ae3c1fde8c05cdd0

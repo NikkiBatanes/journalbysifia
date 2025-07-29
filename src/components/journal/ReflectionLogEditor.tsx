@@ -1,12 +1,10 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { GUIDED_PROMPTS } from './reflectionConstants';
-import Markdown from 'react-native-markdown-display';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 
 type ViewMode = 'free-form' | 'guided';
@@ -325,95 +323,7 @@ const fallbackStyles = {
   // Metadata styles moved to inline styles to prevent override
 };
 
-// Markdown styles for the preview
-const markdownStyles = {
-  body: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  heading1: {
-    color: Colors.hopeWhite,
-    fontSize: 24,
-    fontWeight: 'bold' as const,
-    marginBottom: 8,
-  },
-  heading2: {
-    color: Colors.hopeWhite,
-    fontSize: 20,
-    fontWeight: 'bold' as const,
-    marginBottom: 6,
-  },
-  heading3: {
-    color: Colors.hopeWhite,
-    fontSize: 18,
-    fontWeight: 'bold' as const,
-    marginBottom: 4,
-  },
-  strong: {
-    color: Colors.hopeWhite,
-    fontWeight: 'bold' as const,
-  },
-  em: {
-    color: Colors.hopeWhite,
-    fontStyle: 'italic' as const,
-  },
-  blockquote: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.hopeWhite,
-    paddingLeft: 12,
-    paddingVertical: 8,
-    marginVertical: 8,
-  },
-  list_item: {
-    color: Colors.hopeWhite,
-    marginBottom: 4,
-  },
-  bullet_list: {
-    marginVertical: 8,
-  },
-  ordered_list: {
-    marginVertical: 8,
-  },
-  table: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    marginVertical: 8,
-  },
-  thead: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  th: {
-    color: Colors.hopeWhite,
-    fontWeight: 'bold' as const,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  td: {
-    color: Colors.hopeWhite,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  code_inline: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    color: Colors.hopeWhite,
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-    fontFamily: 'monospace',
-  },
-  code_block: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    color: Colors.hopeWhite,
-    padding: 12,
-    borderRadius: 8,
-    fontFamily: 'monospace',
-    marginVertical: 8,
-  },
-};
+
 
 const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   onSave,
@@ -455,8 +365,8 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
 
   // Helper function to convert markdown to HTML for Quill
   const markdownToHtml = (markdown: string): string => {
-    if (!markdown) return '';
-    
+    if (!markdown) {return '';}
+
     // Simple markdown to HTML conversion for basic formatting
     return markdown
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
@@ -469,22 +379,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       .replace(/\n/g, '<br>'); // Line breaks
   };
 
-  // Helper function to convert HTML to markdown for saving
-  const htmlToMarkdown = (html: string): string => {
-    if (!html) return '';
-    
-    // Simple HTML to markdown conversion
-    return html
-      .replace(/<strong>(.*?)<\/strong>/g, '**$1**') // Bold
-      .replace(/<em>(.*?)<\/em>/g, '*$1*') // Italic
-      .replace(/<h1>(.*?)<\/h1>/g, '# $1') // H1
-      .replace(/<h2>(.*?)<\/h2>/g, '## $1') // H2
-      .replace(/<h3>(.*?)<\/h3>/g, '### $1') // H3
-      .replace(/<li>(.*?)<\/li>/g, '- $1') // List items
-      .replace(/<blockquote>(.*?)<\/blockquote>/g, '> $1') // Blockquotes
-      .replace(/<br\s*\/?>/g, '\n') // Line breaks
-      .replace(/<[^>]*>/g, ''); // Remove any remaining HTML tags
-  };
+
   const [newEntry, setNewEntry] = React.useState<{ title: string; content: string; tags: string[] }>(
     {
       title: initialEntry.title || initialTitle || '',
@@ -497,20 +392,20 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   const isEditing = !!initialEntry.content;
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
   const [showAddMenu, setShowAddMenu] = React.useState(false);
-  const [showFormattingModal, setShowFormattingModal] = React.useState(false);
+  const [showFormattingModal, _setShowFormattingModal] = React.useState(false);
   const [keyboardHeight, setKeyboardHeight] = React.useState(0);
   const slideAnim = useRef(new Animated.Value(300)).current; // Start 300px below screen
 
   // Refs
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
-  
+
   // Mobile WYSIWYG state
 
 
   // State for showing draft notification
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
-  
+
   // No cleanup needed for Apple Notes style
   // Track if this is the first load to control draft notification display
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
@@ -966,7 +861,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   multiline={true}
                 />
               )}
-              
+
               {/* Simple Text Input */}
               <TextInput
                 ref={contentInputRef}
@@ -1114,7 +1009,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 color="rgba(255, 255, 255, 0.6)"
               />
             </TouchableOpacity>
-            
+
 
           </View>
 

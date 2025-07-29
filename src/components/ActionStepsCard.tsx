@@ -281,11 +281,14 @@ export default function ActionStepsCard({
   }, [queryClient, user?.id, selectedSubtask?.id]);
 
   const handleReflectionCancel = React.useCallback(() => {
-    console.log('[ActionStepsCard] Reflection modal cancelled');
+    console.log('[ActionStepsCard] Reflection modal cancelled - clearing step info:', {
+      selectedActionStep,
+      selectedSubtask: selectedSubtask?.text,
+    });
     setReflectionModalVisible(false);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
-  }, []);
+  }, [selectedActionStep, selectedSubtask]);
 
   // Create dynamic styles based on props
   const dynamicStyles = useMemo(() => ({
@@ -562,7 +565,16 @@ export default function ActionStepsCard({
         stepId={selectedActionStep?.stepId}
         playbookId={playbookId}
         playbookTitle={playbookTitle}
-        actionStepNumber={selectedActionStep?.stepNumber}
+        actionStepNumber={(() => {
+          console.log('🔍 ActionStepsCard: Passing step info to modal:', {
+            selectedActionStep,
+            stepNumber: selectedActionStep?.stepNumber,
+            stepTitle: selectedActionStep?.stepTitle,
+            existingReflection_day_number: existingReflection?.day_number,
+            existingReflection_day_title: existingReflection?.day_title,
+          });
+          return selectedActionStep?.stepNumber;
+        })()}
         actionStepTitle={selectedActionStep?.stepTitle}
         existingReflection={existingReflection}
         onSave={handleReflectionSave}

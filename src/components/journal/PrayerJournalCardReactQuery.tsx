@@ -5,6 +5,7 @@ import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
+import Markdown from 'react-native-markdown-display';
 // Using a simple error boundary since the custom one isn't available
 class ComponentErrorBoundary extends React.Component<{ children: React.ReactNode }> {
   state = { hasError: false };
@@ -289,7 +290,9 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
 
         {prayers.map((prayer) => (
           <View key={prayer.id} style={styles.prayerItem}>
-            <Text style={styles.prayerText}>{prayer.content}</Text>
+            <Markdown style={prayerMarkdownStyles}>
+              {prayer.content}
+            </Markdown>
 
             {/* Show status for supplication prayers */}
             {type.key === 'supplication' && (
@@ -807,6 +810,47 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
 });
+
+// Markdown styles for prayer content
+const prayerMarkdownStyles = {
+  body: {
+    color: Colors.anchorBlue,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  heading1: {
+    color: Colors.anchorBlue,
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    marginBottom: 6,
+  },
+  heading2: {
+    color: Colors.anchorBlue,
+    fontSize: 16,
+    fontWeight: 'bold' as const,
+    marginBottom: 4,
+  },
+  strong: {
+    color: Colors.anchorBlue,
+    fontWeight: 'bold' as const,
+  },
+  em: {
+    color: Colors.anchorBlue,
+    fontStyle: 'italic' as const,
+  },
+  blockquote: {
+    backgroundColor: 'rgba(26, 60, 109, 0.1)',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.anchorBlue,
+    paddingLeft: 8,
+    paddingVertical: 4,
+    marginVertical: 4,
+  },
+  list_item: {
+    color: Colors.anchorBlue,
+    marginBottom: 2,
+  },
+};
 
 // Wrap with error boundary for production safety
 const PrayerJournalCardWithErrorBoundary: React.FC<PrayerJournalCardReactQueryProps> = (props) => (

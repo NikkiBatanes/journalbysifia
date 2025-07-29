@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Text, ActivityIndicator } from 'react-native';
+import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
@@ -293,6 +293,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     console.log('Edit button pressed, closing success modal');
     setShowSuccessModal(false);
     // The editor will remain open since we're not calling onCancel
+    // Step information is preserved for continued editing
   };
 
   const handleCancel = () => {
@@ -332,8 +333,17 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 return year === new Date().getFullYear() ? todayString : todayStringWithYear;
               })()}
               playbookTitle={playbookTitle}
-              dayNumber={actionStepNumber}
-              dayTitle={actionStepTitle}
+              dayNumber={(() => {
+                console.log('🔍 SmartJournalingReflectionModal: Step info debug:', {
+                  existingReflection_day_number: existingReflection?.day_number,
+                  existingReflection_day_title: existingReflection?.day_title,
+                  actionStepNumber,
+                  actionStepTitle,
+                  existingReflectionKeys: existingReflection ? Object.keys(existingReflection) : 'no existing reflection',
+                });
+                return existingReflection?.day_number ?? actionStepNumber;
+              })()}
+              dayTitle={existingReflection?.day_title ?? actionStepTitle}
               subtaskId={subtaskId}
               initialEntry={existingReflection ? {
                 title: existingReflection.title || subtaskTitle,
@@ -342,6 +352,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 type: 'free-form',
                 source: 'playbook',
               } : undefined}
+              isLoading={isLoading}
             />
 
           <SuccessModal
@@ -355,22 +366,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Loading overlay for operations */}
-      {isLoading && (
-        <Modal
-          visible={isLoading}
-          transparent={true}
-          animationType="fade"
-          statusBarTranslucent={true}
-        >
-          <View style={styles.loadingOverlay}>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.alertCoral} />
-              <Text style={styles.loadingText}>Saving reflection...</Text>
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/* Loading overlay removed to preserve metadata visibility during save */}
     </>
   );
 };
