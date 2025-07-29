@@ -189,25 +189,23 @@ export default function ActionStepsCard({
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
 
+    // Find the current subtask to check its completion state
+    const currentSubtask = steps.find(step => step.id === stepId)?.subTasks?.find(st => st.id === subTaskId);
+    const isCurrentlyCompleted = currentSubtask?.completed || false;
+
     // Get the animated value for this subtask
     const animatedValue = getAnimatedValue(subTaskId);
 
-    // Animate the completion
-    Animated.sequence([
-      Animated.timing(animatedValue, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(animatedValue, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-    ]).start();
+    // Animate based on the new state (opposite of current)
+    const targetValue = isCurrentlyCompleted ? 0 : 1;
+    Animated.timing(animatedValue, {
+      toValue: targetValue,
+      duration: 800, // Slower animation for better visibility
+      useNativeDriver: true,
+    }).start();
 
     handleToggleStep(stepId, subTaskId);
-  }, [handleToggleStep, getAnimatedValue]);
+  }, [handleToggleStep, getAnimatedValue, steps]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
     console.log('[ActionStepsCard] Journal type pressed:', {
