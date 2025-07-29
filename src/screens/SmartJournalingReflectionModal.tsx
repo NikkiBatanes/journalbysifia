@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Text, ActivityIndicator } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
@@ -45,7 +45,6 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const { handleToggleStep } = useActionSteps();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [completionInfo, setCompletionInfo] = useState<{ stepId?: string; subtaskId?: string } | null>(null);
-  const isCompletionFlowRef = useRef(false);
   const dateStr = toLocalDateString(new Date());
 
   // Debug: Log existing reflection prop
@@ -72,17 +71,15 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   }, [visible, subtaskTitle, subtaskId, stepId, playbookId, playbookTitle, actionStepNumber, actionStepTitle, existingReflection]);
 
   // Clear completion info when modal opens to prevent accidental triggers
+  const [prevVisible, setPrevVisible] = useState(visible);
   useEffect(() => {
-    if (visible) {
-      console.log('💭 SmartJournalingReflectionModal: Modal opened, clearing any existing completion info');
-      isCompletionFlowRef.current = false;
+    if (visible && !prevVisible) {
+      // Modal is opening (transition from false to true)
+      console.log('💭 SmartJournalingReflectionModal: Modal opening, clearing any existing completion info');
       setCompletionInfo(null);
-    } else if (!visible && completionInfo) {
-      // Modal is closing and we have completion info - this is a completion flow
-      console.log('💭 SmartJournalingReflectionModal: Modal closing with completion info - entering completion flow');
-      isCompletionFlowRef.current = true;
     }
-  }, [visible, completionInfo]);
+    setPrevVisible(visible);
+  }, [visible, prevVisible]);
 
   // Handle subtask completion when modal closes after "DONE" is clicked
   useEffect(() => {
@@ -105,7 +102,6 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         });
         handleToggleStep(completionStepId, completionSubtaskId);
         setCompletionInfo(null); // Clear completion info
-        isCompletionFlowRef.current = false; // Reset completion flow
       }, 900); // Wait for modal slide animation to complete
 
       return () => {
