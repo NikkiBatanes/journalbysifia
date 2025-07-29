@@ -1,10 +1,13 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { GUIDED_PROMPTS } from './reflectionConstants';
+import Markdown from 'react-native-markdown-display';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -43,6 +46,7 @@ interface ReflectionLogEditorProps {
   source?: 'freeform' | 'guided' | 'devotional' | 'playbook' | string;
   subtaskId?: string;
   styles?: any;
+  isLoading?: boolean;
 }
 
 // Fallback styles in case styles prop is not provided
@@ -87,8 +91,7 @@ const fallbackStyles = {
   },
   header: { padding: 16 },
   title: { fontSize: 18, fontWeight: 'bold', color: Colors.hopeWhite, marginBottom: 8 },
-  modeToggle: { flexDirection: 'row', marginBottom: 16 },
-  modeButton: { marginRight: 12 },
+
   keyboardAvoidingView: { flex: 1 },
   contentCard: { flex: 1, backgroundColor: 'rgba(26,60,109,0.08)', borderRadius: 12, margin: 16, padding: 16 },
   content: { flex: 1 },
@@ -103,6 +106,29 @@ const fallbackStyles = {
   },
   transparentInput: {},
   entryContentInput: { minHeight: 100, fontSize: 16 },
+  // Split view styles
+  splitViewContainer: {
+    flexDirection: 'row',
+    flex: 1,
+    minHeight: 200,
+  },
+  inputContainer: {
+    flex: 1,
+    marginRight: 4,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.1)',
+    paddingRight: 8,
+  },
+
+  previewLabel: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 8,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   guidedContainer: {},
   promptGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   promptCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, margin: 4, padding: 12, flex: 1, minWidth: 120 },
@@ -120,7 +146,10 @@ const fallbackStyles = {
   },
   fabWrapper: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   fabContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  leftFabContainer: {},
+  leftFabContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   androidFabWithKeyboard: {},
   fabDefaultPosition: {},
   addMenu: { backgroundColor: Colors.anchorBlue, borderRadius: 8, padding: 8, marginBottom: 8 },
@@ -157,6 +186,15 @@ const fallbackStyles = {
   addMenuText: { color: Colors.hopeWhite, marginLeft: 8 },
   fab: { backgroundColor: Colors.alertCoral, borderRadius: 24, padding: 12, margin: 8 },
   addFab: {},
+  formatFab: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    marginLeft: 12,
+  },
+  formatFabText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'rgba(255, 255, 255, 0.8)',
+  },
   fabRow: { flexDirection: 'row' },
   cancelFab: { backgroundColor: Colors.alertCoral },
   saveFab: { backgroundColor: Colors.growthGreen },
@@ -175,7 +213,206 @@ const fallbackStyles = {
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
+  // Text formatting modal styles
+  formattingModalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  formattingModal: {
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+    width: '100%',
+  },
+  formattingCloseButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 8,
+    zIndex: 1,
+  },
+  formattingGrid: {
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  formattingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 15,
+  },
+  formattingButton: {
+    width: 50,
+    height: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  formattingButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.hopeWhite,
+  },
+  previewToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  previewToggleText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+
+
+  editorModeToggle: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 2,
+  },
+  modeToggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  modeToggleButtonActive: {
+    backgroundColor: Colors.hopeWhite,
+  },
+  modeToggleText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+  },
+  modeToggleTextActive: {
+    color: Colors.anchorBlue,
+    opacity: 1,
+  },
+  editModeInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 16,
+    textAlignVertical: 'top',
+  },
+  previewMode: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 16,
+  },
+
+
+
   // Metadata styles moved to inline styles to prevent override
+};
+
+// Markdown styles for the preview
+const markdownStyles = {
+  body: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  heading1: {
+    color: Colors.hopeWhite,
+    fontSize: 24,
+    fontWeight: 'bold' as const,
+    marginBottom: 8,
+  },
+  heading2: {
+    color: Colors.hopeWhite,
+    fontSize: 20,
+    fontWeight: 'bold' as const,
+    marginBottom: 6,
+  },
+  heading3: {
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    fontWeight: 'bold' as const,
+    marginBottom: 4,
+  },
+  strong: {
+    color: Colors.hopeWhite,
+    fontWeight: 'bold' as const,
+  },
+  em: {
+    color: Colors.hopeWhite,
+    fontStyle: 'italic' as const,
+  },
+  blockquote: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.hopeWhite,
+    paddingLeft: 12,
+    paddingVertical: 8,
+    marginVertical: 8,
+  },
+  list_item: {
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  bullet_list: {
+    marginVertical: 8,
+  },
+  ordered_list: {
+    marginVertical: 8,
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginVertical: 8,
+  },
+  thead: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  th: {
+    color: Colors.hopeWhite,
+    fontWeight: 'bold' as const,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  td: {
+    color: Colors.hopeWhite,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  code_inline: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    color: Colors.hopeWhite,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontFamily: 'monospace',
+  },
+  code_block: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    color: Colors.hopeWhite,
+    padding: 12,
+    borderRadius: 8,
+    fontFamily: 'monospace',
+    marginVertical: 8,
+  },
 };
 
 const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
@@ -198,6 +435,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   source = 'freeform',
   subtaskId,
   styles,
+  isLoading = false,
 }) => {
   // Merge styles prop with fallbackStyles
   const s = { ...fallbackStyles, ...styles };
@@ -214,10 +452,43 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
       setViewMode(initialMode || 'free-form');
     }
   }, [initialMode, source, initialPrompt]);
+
+  // Helper function to convert markdown to HTML for Quill
+  const markdownToHtml = (markdown: string): string => {
+    if (!markdown) return '';
+    
+    // Simple markdown to HTML conversion for basic formatting
+    return markdown
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>') // H1
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>') // H2
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>') // H3
+      .replace(/^- (.*$)/gim, '<li>$1</li>') // List items
+      .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>') // Blockquotes
+      .replace(/\n/g, '<br>'); // Line breaks
+  };
+
+  // Helper function to convert HTML to markdown for saving
+  const htmlToMarkdown = (html: string): string => {
+    if (!html) return '';
+    
+    // Simple HTML to markdown conversion
+    return html
+      .replace(/<strong>(.*?)<\/strong>/g, '**$1**') // Bold
+      .replace(/<em>(.*?)<\/em>/g, '*$1*') // Italic
+      .replace(/<h1>(.*?)<\/h1>/g, '# $1') // H1
+      .replace(/<h2>(.*?)<\/h2>/g, '## $1') // H2
+      .replace(/<h3>(.*?)<\/h3>/g, '### $1') // H3
+      .replace(/<li>(.*?)<\/li>/g, '- $1') // List items
+      .replace(/<blockquote>(.*?)<\/blockquote>/g, '> $1') // Blockquotes
+      .replace(/<br\s*\/?>/g, '\n') // Line breaks
+      .replace(/<[^>]*>/g, ''); // Remove any remaining HTML tags
+  };
   const [newEntry, setNewEntry] = React.useState<{ title: string; content: string; tags: string[] }>(
     {
       title: initialEntry.title || initialTitle || '',
-      content: initialEntry.content || '',
+      content: initialEntry.content ? markdownToHtml(initialEntry.content) : '',
       tags: initialEntry.tags || [],
     }
   );
@@ -226,14 +497,21 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   const isEditing = !!initialEntry.content;
   const [selectedPrompt, setSelectedPrompt] = React.useState<string>('');
   const [showAddMenu, setShowAddMenu] = React.useState(false);
+  const [showFormattingModal, setShowFormattingModal] = React.useState(false);
   const [keyboardHeight, setKeyboardHeight] = React.useState(0);
+  const slideAnim = useRef(new Animated.Value(300)).current; // Start 300px below screen
 
   // Refs
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
+  
+  // Mobile WYSIWYG state
+
 
   // State for showing draft notification
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
+  
+  // No cleanup needed for Apple Notes style
   // Track if this is the first load to control draft notification display
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
   // Track if user has made any changes from initial state
@@ -249,6 +527,8 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     const hasChanges = content !== initialState.content || title !== initialState.title;
     setHasUserMadeChanges(hasChanges);
   }, [initialState]);
+
+
 
   // Helper function to get draft key (unique for each devotional question)
   const getDraftKey = React.useCallback(() => {
@@ -302,15 +582,10 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 title: title || '',
               });
 
-              // Set cursor to end of content after a short delay
+              // Focus the content input after a short delay
               setTimeout(() => {
                 if (content && contentInputRef.current) {
                   contentInputRef.current.focus();
-                  // Set selection to end of text
-                  const textLength = content.length;
-                  contentInputRef.current.setNativeProps({
-                    selection: { start: textLength, end: textLength },
-                  });
                 }
               }, 100);
 
@@ -407,6 +682,23 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     };
   }, []);
 
+  // Animation for formatting modal
+  React.useEffect(() => {
+    if (showFormattingModal) {
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: 300,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [showFormattingModal, slideAnim]);
+
   // Save handler
   const handleSave = async () => {
     // Determine the entry type - if there's a selected prompt, it's a guided entry
@@ -488,6 +780,10 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     );
   };
 
+
+
+
+
   return (
     <View style={s.container}>
       {showDraftNotification && (
@@ -496,7 +792,7 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
           <Text style={s.draftText}>Draft Restored</Text>
         </View>
       )}
-    <StatusBar hidden />
+      <StatusBar hidden />
     <View style={s.backgroundContainer} />
     <View style={s.header}>
       <Text style={s.title}>{dateString}</Text>
@@ -570,8 +866,8 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
             strokeWidth={1.5}
           />
         </TouchableOpacity>
-        {/* Delete icon - only visible in edit mode */}
-        {isEditing && (
+        {/* Delete icon - only visible in edit mode and when onDelete is provided */}
+        {isEditing && onDelete && (
           <TouchableOpacity
             style={s.modeButton}
             onPress={handleDelete}
@@ -670,30 +966,21 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                   multiline={true}
                 />
               )}
+              
+              {/* Simple Text Input */}
               <TextInput
                 ref={contentInputRef}
-                style={[s.entryInput, s.entryContentInput, s.transparentInput]}
-                placeholder="Pour out your thoughts..."
-                placeholderTextColor="rgba(255, 255, 255, 0.6)"
-                multiline
+                style={[styles.entryInput, styles.entryContentInput]}
+                placeholder="Write your reflection..."
+                placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 value={newEntry.content}
-                onChangeText={(text: string) => {
+                onChangeText={(text) => {
                   setNewEntry({ ...newEntry, content: text });
                   checkForChanges(text, newEntry.title);
                 }}
-                onFocus={() => {
-                  // In edit mode, position cursor at end instead of selecting all
-                  if (isEditing && contentInputRef.current) {
-                    setTimeout(() => {
-                      const textLength = newEntry.content.length;
-                      contentInputRef.current?.setNativeProps({
-                        selection: { start: textLength, end: textLength },
-                      });
-                    }, 10);
-                  }
-                }}
-                underlineColorAndroid="transparent"
-                selectionColor={Colors.hopeWhite}
+                multiline
+                textAlignVertical="top"
+                autoFocus={!isEditing}
               />
               {(source === 'devotional') && (
                 <View style={s.metadataContainer}>
@@ -827,6 +1114,8 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 color="rgba(255, 255, 255, 0.6)"
               />
             </TouchableOpacity>
+            
+
           </View>
 
           {/* Right Action Buttons */}
@@ -850,12 +1139,16 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
                 style={[
                   s.fab,
                   s.saveFab,
-                  (!newEntry.title.trim() || !newEntry.content.trim()) && s.fabDisabled,
+                  (!newEntry.title.trim() || !newEntry.content.trim() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
                 ]}
-                disabled={!newEntry.title.trim() || !newEntry.content.trim()}
+                disabled={!newEntry.title.trim() || !newEntry.content.trim() || !hasUserMadeChanges || isLoading}
                 onPress={handleSave}
               >
-                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                {isLoading ? (
+                  <ActivityIndicator size={20} color={Colors.hopeWhite} />
+                ) : (
+                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                )}
               </TouchableOpacity>
             </View>
           </View>
