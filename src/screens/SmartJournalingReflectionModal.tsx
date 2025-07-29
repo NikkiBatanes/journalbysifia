@@ -73,15 +73,24 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   // Clear completion info when modal opens to prevent accidental triggers
   useEffect(() => {
     if (visible) {
+      console.log('💭 SmartJournalingReflectionModal: Modal opened, clearing any existing completion info');
       setCompletionInfo(null);
     }
   }, [visible]);
 
   // Handle subtask completion when modal closes after "DONE" is clicked
   useEffect(() => {
+    console.log('💭 SmartJournalingReflectionModal: Completion useEffect triggered', {
+      visible,
+      hasCompletionInfo: !!completionInfo,
+      completionInfo,
+    });
+    
     // Only complete subtask when modal is closing and we have completion info from successful save
     if (!visible && completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
       const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
+      console.log('💭 SmartJournalingReflectionModal: Setting timer for subtask completion');
+      
       // Wait for modal slide-down animation to complete (typically 300-500ms)
       const timer = setTimeout(() => {
         console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask after modal slide-down', {
@@ -90,9 +99,12 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         });
         handleToggleStep(completionStepId, completionSubtaskId);
         setCompletionInfo(null); // Clear completion info
-      }, 500); // Wait for modal slide animation to complete
+      }, 900); // Wait for modal slide animation to complete
 
-      return () => clearTimeout(timer);
+      return () => {
+        console.log('💭 SmartJournalingReflectionModal: Clearing timer');
+        clearTimeout(timer);
+      };
     }
   }, [visible, completionInfo, handleToggleStep]);
 
@@ -172,6 +184,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       }
 
       // Store completion info for later (when "DONE" is clicked) - for both new and updated reflections
+      console.log('💭 SmartJournalingReflectionModal: Setting completion info after successful save', {
+        stepId,
+        subtaskId,
+      });
       setCompletionInfo({ stepId, subtaskId });
 
       // Show success modal
