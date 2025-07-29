@@ -698,13 +698,14 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     paddingRight: 12,
     fontWeight: '400',
-    flex: 1,
+    flexWrap: 'wrap',
   },
   subTaskContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    minWidth: 0, // Prevent flex children from overflowing
   },
   journalTypesContainer: {
     flexDirection: 'row',
@@ -767,6 +768,7 @@ const styles = StyleSheet.create({
   textContainer: {
     position: 'relative',
     flex: 1,
+    minWidth: 0, // Allow text to wrap and prevent overflow
   },
   strikethroughLine: {
     position: 'absolute',
