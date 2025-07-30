@@ -121,7 +121,7 @@ TIMEBLOCK (for scheduling time):
 - Anything with time-based patterns (daily, weekly, monthly)
 - Dedicating time periods for activities
 
-TODOS (for specific actionable tasks):
+NONE (for tasks that do not fit a journaling category, including actionable tasks and daily priorities):
 - Concrete tasks to complete
 - Things with clear completion criteria
 - Action items to check off
@@ -131,8 +131,6 @@ TODOS (for specific actionable tasks):
 - Tasks that produce something tangible
 - Keeping journals, logs, or records
 - Maintaining ongoing practices or habits
-
-FOCUS (for setting daily priorities):
 - Choosing main priorities (max 3)
 - Setting key objectives for the day
 - Determining what's most important
