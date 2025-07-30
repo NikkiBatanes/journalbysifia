@@ -83,7 +83,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   }, [playbookTitle]);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [savedTimeBlockData, setSavedTimeBlockData] = useState<any>(null);
   const [_completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false);
   const [prevVisible, setPrevVisible] = useState(false);
@@ -207,11 +206,11 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         await createTimeBlockMutation.mutateAsync(timeBlockEntry);
       }
 
-      // Store the saved data and show success modal
-      setSavedTimeBlockData(timeBlockEntry);
+      // Show success modal
       setShowSuccessModal(true);
 
-      // Don't call onSave immediately - wait for success modal to be dismissed
+      // Call the parent onSave callback
+      onSave(timeBlockEntry);
 
     } catch (error) {
       console.error('❌ Error in handleSave:', error);
@@ -226,10 +225,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
-    // Call onSave with the saved data when success modal closes
-    if (savedTimeBlockData) {
-      onSave(savedTimeBlockData);
-    }
     onCancel(); // Close the main modal
   };
 
