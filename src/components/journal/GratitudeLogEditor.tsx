@@ -378,8 +378,26 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
 }) => {
   const s = { ...defaultStyles, ...styles };
 
+  // Helper function to ensure items have proper numbering
+  const addNumbersToItems = (items: string[]): string[] => {
+    return items.map((item, index) => {
+      if (!item.trim()) return item; // Keep empty items as is
+      const expectedPrefix = `${index + 1}. `;
+      // If item doesn't start with the expected number, add it
+      if (!item.startsWith(expectedPrefix)) {
+        // Remove any existing number prefix first
+        const cleanItem = item.replace(/^\d+\. /, '');
+        return expectedPrefix + cleanItem;
+      }
+      return item;
+    });
+  };
+
+  // Process initial items to ensure they have numbers
+  const processedInitialItems = initialItems.length > 0 ? addNumbersToItems(initialItems) : ['', '', ''];
+
   // State for gratitude items
-  const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(initialItems.length > 0 ? initialItems : ['', '', '']);
+  const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(processedInitialItems);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
@@ -407,7 +425,9 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
         if (draft && isFirstLoad) {
           const parsedDraft = JSON.parse(draft);
           if (parsedDraft.items && parsedDraft.items.some((item: string) => item.trim())) {
-            setGratitudeItems(parsedDraft.items);
+            // Apply numbering to draft items as well
+            const numberedDraftItems = addNumbersToItems(parsedDraft.items);
+            setGratitudeItems(numberedDraftItems);
             setShowDraftNotification(true);
             setTimeout(() => setShowDraftNotification(false), 3000);
           }
@@ -422,12 +442,26 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
     loadDraft();
   }, [draftKey, isFirstLoad, initialItems]);
 
+  // Update gratitude items when initialItems changes (for React Query data loading)
+  useEffect(() => {
+    if (initialItems && initialItems.length > 0) {
+      const hasExistingData = initialItems.some((item: string) => item.trim());
+      if (hasExistingData && !hasUserMadeChanges) {
+        console.log('🙏 GratitudeLogEditor: Updating items with new initialItems:', initialItems);
+        const numberedItems = addNumbersToItems(initialItems);
+        setGratitudeItems(numberedItems);
+      }
+    }
+  }, [initialItems, hasUserMadeChanges]);
+
   // Auto-save draft when items change
   useEffect(() => {
     if (!isFirstLoad && hasUserMadeChanges) {
       const saveDraft = async () => {
         try {
-          await AsyncStorage.setItem(draftKey, JSON.stringify({ items: gratitudeItems }));
+          // Save clean items without numbers to draft
+          const cleanItems = gratitudeItems.map(item => item.replace(/^\d+\. /, ''));
+          await AsyncStorage.setItem(draftKey, JSON.stringify({ items: cleanItems }));
         } catch (error) {
           console.error('Error saving gratitude draft:', error);
         }
@@ -500,14 +534,17 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
     // Clear draft before saving
     await clearDraft();
 
+    // Remove numbers from items before saving to database
+    const cleanItems = filledItems.map(item => item.replace(/^\d+\. /, ''));
+
     console.log('🙏 GratitudeLogEditor: Calling onSave with data:', {
-      items: gratitudeItems,
+      items: cleanItems,
       date: new Date(),
     });
 
     // Call onSave synchronously like ReflectionLogEditor
     onSave({
-      items: gratitudeItems,
+      items: cleanItems,
       date: new Date(),
     });
 

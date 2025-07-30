@@ -81,12 +81,28 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         }
       });
     },
-    enabled: !!user?.id && !!subtaskId && visible,
+    enabled: !!user?.id && !!subtaskId, // Remove 'visible' dependency to prefetch data
     staleTime: 30000, // 30 seconds
   });
 
   // Get the most recent gratitude entry for this subtask
   const currentGratitudeEntry = existingGratitudeEntries[0] || existingGratitude;
+
+  // Debug: Track when data becomes available
+  useEffect(() => {
+    if (currentGratitudeEntry) {
+      console.log('🙏 SmartJournalingGratitudeModal: Current gratitude entry available:', {
+        id: currentGratitudeEntry.id,
+        hasContent: !!currentGratitudeEntry.content,
+        contentPreview: currentGratitudeEntry.content ? 
+          (typeof currentGratitudeEntry.content === 'string' ? 
+            currentGratitudeEntry.content.substring(0, 50) : 
+            JSON.stringify(currentGratitudeEntry.content).substring(0, 50)) + '...' : null
+      });
+    } else {
+      console.log('🙏 SmartJournalingGratitudeModal: No current gratitude entry available');
+    }
+  }, [currentGratitudeEntry]);
 
   // Debug: Track showSuccessModal state changes
   // useEffect(() => {
