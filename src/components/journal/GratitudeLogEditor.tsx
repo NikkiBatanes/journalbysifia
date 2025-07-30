@@ -597,12 +597,6 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
             <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
               What are you grateful for today?
             </Text>
-
-            {/* Subtitle */}
-            <Text style={s.subtitleText}>
-              Name at least 3 things you're thankful for...
-            </Text>
-
             {/* Gratitude items */}
             {gratitudeItems.map((item, index) => (
               <View key={index} style={s.gratitudeItemContainer}>
