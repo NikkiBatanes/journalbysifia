@@ -7,6 +7,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { TimeBlockApi, TimeBlockApiEntry } from '../services/api/timeBlockApi';
+import { toLocalDateString } from '../utils/date';
 
 interface SmartJournalingTimeBlockModalProps {
   visible: boolean;
@@ -121,7 +122,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     onSuccess: (data) => {
       console.log('✅ Time block created successfully:', data);
       // Invalidate timeblock queries for the current date
-      const currentDateStr = new Date().toISOString().split('T')[0];
+      const currentDateStr = toLocalDateString(new Date());
       queryClient.invalidateQueries({
         queryKey: ['timeBlocks', 'byDate', user?.id, currentDateStr],
       });
@@ -150,7 +151,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     onSuccess: (data) => {
       console.log('✅ Time block updated successfully:', data);
       // Invalidate timeblock queries for the current date
-      const currentDateStr = new Date().toISOString().split('T')[0];
+      const currentDateStr = toLocalDateString(new Date());
       queryClient.invalidateQueries({
         queryKey: ['timeBlocks', 'byDate', user?.id, currentDateStr],
       });

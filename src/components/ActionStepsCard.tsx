@@ -10,6 +10,7 @@ import SmartJournalingReflectionModal from '../screens/SmartJournalingReflection
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
 import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
+import { toLocalDateString } from '../utils/date';
 
 type SubTask = {
   id: string;
@@ -438,7 +439,7 @@ export default function ActionStepsCard({
 
     // Invalidate the timeblock query to refresh data immediately
     if (user?.id) {
-      const currentDateStr = new Date().toISOString().split('T')[0];
+      const currentDateStr = toLocalDateString(new Date());
       await queryClient.invalidateQueries({
         queryKey: ['timeBlocks', 'byDate', user.id, currentDateStr],
       });
