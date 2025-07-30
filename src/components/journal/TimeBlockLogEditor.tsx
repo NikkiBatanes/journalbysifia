@@ -322,34 +322,40 @@ const defaultStyles = {
   },
   fabWrapper: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    pointerEvents: 'box-none',
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  saveFab: {
-    backgroundColor: Colors.anchorBlue,
+  addFab: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   cancelFab: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  saveFab: {
+    backgroundColor: Colors.alertCoral,
+    borderColor: Colors.alertCoral,
   },
   fabDisabled: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    opacity: 0.5,
+    opacity: 0.4,
   },
   categoryButtonRow: {
     flexDirection: 'row',
@@ -364,6 +370,43 @@ const defaultStyles = {
   },
   switchTrackInactive: {
     backgroundColor: '#E0E0E0',
+  },
+  // FAB styles - matching reflection editor
+  fabContainer: {
+    position: 'absolute',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 8, // Add padding around the container
+  },
+  leftFabContainer: {
+    left: 16,
+  },
+  rightFabContainer: {
+    right: 16,
+  },
+  fabDefaultPosition: {
+    bottom: 16,
+  },
+  fabRow: {
+    flexDirection: 'row',
+    gap: 16, // Increased spacing between FABs
+  },
+
+  addMenu: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
+  },
+  addMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  addMenuText: {
+    color: Colors.hopeWhite,
+    marginLeft: 8,
   },
 };
 
@@ -398,6 +441,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   const [isAllDay, setIsAllDay] = React.useState(false);
   const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
+  const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
@@ -745,27 +789,67 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
         />
       )}
 
-      {/* FAB Buttons */}
+      {/* Floating Action Buttons - Standard Layout */}
       <View style={s.fabWrapper}>
-        <TouchableOpacity
-          style={[s.fab, s.cancelFab]}
-          onPress={onCancel}
-          disabled={isLoading}
-        >
-          <Ionicons name="close" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[s.fab, s.saveFab, isLoading && s.fabDisabled]}
-          onPress={handleSave}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color={Colors.hopeWhite} />
-          ) : (
-            <Ionicons name="checkmark" size={24} color={Colors.hopeWhite} />
+        {/* Left Add FAB with Menu */}
+        <View style={[s.fabContainer, s.leftFabContainer, s.fabDefaultPosition]}>
+          {showAddMenu && (
+            <View style={s.addMenu}>
+              <TouchableOpacity style={s.addMenuItem}>
+                <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
+                <Text style={s.addMenuText}>Tags</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.addMenuItem}>
+                <Ionicons name="image" size={20} color={Colors.hopeWhite} />
+                <Text style={s.addMenuText}>Photos</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.addMenuItem}>
+                <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
+                <Text style={s.addMenuText}>Camera</Text>
+              </TouchableOpacity>
+            </View>
           )}
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.fab, s.addFab]}
+            onPress={() => setShowAddMenu(!showAddMenu)}
+          >
+            <Ionicons
+              name={showAddMenu ? 'close' : 'add'}
+              size={24}
+              color="rgba(255, 255, 255, 0.6)"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Right Action Buttons */}
+        <View style={[s.fabContainer, s.fabDefaultPosition, s.rightFabContainer]}>
+          <View style={s.fabRow}>
+            {/* Cancel FAB */}
+            <TouchableOpacity
+              style={[s.fab, s.cancelFab]}
+              onPress={onCancel}
+            >
+              <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+            </TouchableOpacity>
+
+            {/* Save FAB */}
+            <TouchableOpacity
+              style={[
+                s.fab,
+                s.saveFab,
+                (!title.trim() || isLoading) && s.fabDisabled,
+              ]}
+              disabled={!title.trim() || isLoading}
+              onPress={handleSave}
+            >
+              {isLoading ? (
+                <ActivityIndicator size={20} color={Colors.hopeWhite} />
+              ) : (
+                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </View>
   );
