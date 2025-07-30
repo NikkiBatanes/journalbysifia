@@ -26,8 +26,8 @@ import { analytics } from '../../utils/analytics';
 // Define the PrayerApiEntry type locally since it's only used for type checking
 interface PrayerApiEntry {
   id: string;
-  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
-  journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication';
+  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional' | 'freeform';
+  journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
   content: string;
   created_at: string;
   is_answered?: boolean;
@@ -80,6 +80,14 @@ const PRAYER_TYPES = [
     description: 'Making Requests',
     icon: 'hand-right', // Using hand-right instead of hands-praying
   },
+  {
+    key: 'freeform',
+    label: 'FREE-FORM PRAYER',
+    displayName: 'Free-form Prayer',
+    color: Colors.anchorBlue,
+    description: 'Open Prayer',
+    icon: 'create', // Using create/edit icon for free-form
+  },
 ];
 
 interface PrayerJournalCardReactQueryProps {
@@ -111,7 +119,8 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       const loadTime = Date.now() - loadStartTime.current;
       analytics.trackPrayerEvent('prayers_loaded', {
         acts_count: (actsData.adoration?.length || 0) + (actsData.confession?.length || 0) +
-                   (actsData.thanksgiving?.length || 0) + (actsData.supplication?.length || 0),
+                   (actsData.thanksgiving?.length || 0) + (actsData.supplication?.length || 0) +
+                   (actsData.freeform?.length || 0),
         people_count: 0, // This component only handles ACTS prayers
         devotional_count: 0,
         load_time_ms: loadTime,
@@ -196,8 +205,8 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           type: selectedType.key as PrayerApiEntry['type'],
           selected_date: dateStr,
           prayer_type: 'journal',
-          journal_category: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
-          status: selectedType.key === 'supplication' ? 'pending' : 'answered',
+          journal_category: selectedType.key === 'freeform' ? 'personal_prayer' : selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+          status: selectedType.key === 'supplication' ? 'pending' : undefined,
           is_answered: selectedType.key === 'supplication' ? false : undefined,
         });
 
@@ -348,7 +357,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         </View>
         <View style={styles.headerPill}>
           <Text style={styles.headerPillText}>
-            {actsData ? (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length) : 0} {(actsData ? (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length) : 0) === 1 ? 'PRAYER' : 'PRAYERS'}
+            {actsData ? (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length + actsData.freeform.length) : 0} {(actsData ? (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length + actsData.freeform.length) : 0) === 1 ? 'PRAYER' : 'PRAYERS'}
           </Text>
         </View>
       </View>
@@ -452,6 +461,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           {renderPrayerGroup(PRAYER_TYPES[1], actsData.confession)}
           {renderPrayerGroup(PRAYER_TYPES[2], actsData.thanksgiving)}
           {renderPrayerGroup(PRAYER_TYPES[3], actsData.supplication)}
+          {renderPrayerGroup(PRAYER_TYPES[4], actsData.freeform)}
         </>
       )}
 

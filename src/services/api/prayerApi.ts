@@ -6,7 +6,7 @@ export interface PrayerApiEntry {
   id: string;
   user_id: string;
   prayer_type: 'journal' | 'people' | 'devotional';
-  journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication';
+  journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
   content: string;
   selected_date: string;
   created_at: string;
@@ -23,7 +23,7 @@ export interface PrayerApiEntry {
   day_title?: string;
   total_days?: number;
   // Legacy compatibility - computed fields
-  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional';
+  type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional' | 'freeform';
   is_answered?: boolean;
   is_request?: boolean;
   is_prayed?: boolean;
@@ -98,6 +98,7 @@ export class PrayerApi {
     confession: PrayerApiEntry[];
     thanksgiving: PrayerApiEntry[];
     supplication: PrayerApiEntry[];
+    freeform: PrayerApiEntry[];
   }> {
     // Ensure Supabase is authenticated
     await ensureAuthenticated();
@@ -117,7 +118,7 @@ export class PrayerApi {
 
     const prayers = (data || []).map(prayer => ({
       ...prayer,
-      // Add legacy compatibility fields
+      // Add legacy compatibility fields - check if it's a freeform prayer by looking at content pattern or use a custom field
       type: prayer.journal_category || (prayer.prayer_type === 'people' ? 'people' : 'devotional'),
       is_answered: prayer.status === 'answered',
       is_request: prayer.is_prayer_request,
@@ -129,6 +130,7 @@ export class PrayerApi {
       confession: prayers.filter(p => p.journal_category === 'confession'),
       thanksgiving: prayers.filter(p => p.journal_category === 'thanksgiving'),
       supplication: prayers.filter(p => p.journal_category === 'supplication'),
+      freeform: prayers.filter(p => p.journal_category === 'personal_prayer'),
     };
   }
 
