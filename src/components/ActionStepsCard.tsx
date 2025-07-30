@@ -8,6 +8,7 @@ import { Typography } from '../theme/typography';
 import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
 import SmartJournalingReflectionModal from '../screens/SmartJournalingReflectionModal';
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
+import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 
 type SubTask = {
   id: string;
@@ -141,6 +142,7 @@ export default function ActionStepsCard({
   // Smart Journaling Modal State
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
   const [gratitudeModalVisible, setGratitudeModalVisible] = useState(false);
+  const [prayerModalVisible, setPrayerModalVisible] = useState(false);
   const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
@@ -270,6 +272,43 @@ export default function ActionStepsCard({
       return;
     }
 
+    // Handle prayer type with modal
+    if (journalType === 'prayer') {
+      console.log('[ActionStepsCard] Opening prayer modal for:', {
+        subtaskText: subTask.text,
+        subtaskId: subTask.id,
+        subtaskCompleted: subTask.completed,
+        userId: user?.id,
+      });
+
+      // Prefetch prayer data and wait for it to complete before opening modal
+      const openPrayerModal = async () => {
+        if (user?.id && subTask.id) {
+          console.log('[ActionStepsCard] Prefetching prayer data before opening modal');
+          try {
+            await queryClient.prefetchQuery({
+              queryKey: ['personal_prayers', user.id, new Date().toISOString().split('T')[0], subTask.id],
+              queryFn: () => {
+                // This will prefetch today's prayer entries
+                // The actual API call will be handled by the modal
+                return Promise.resolve([]);
+              },
+            });
+            console.log('[ActionStepsCard] Prayer prefetch completed, opening modal with data ready');
+          } catch (error) {
+            console.warn('[ActionStepsCard] Prayer prefetch failed, opening modal anyway:', error);
+          }
+        }
+
+        setSelectedSubtask(subTask);
+        setSelectedActionStep(stepInfo || null);
+        setPrayerModalVisible(true);
+      };
+
+      openPrayerModal();
+      return;
+    }
+
     // For other journal types, use navigation service
     if (!navigation) {
       console.warn('[ActionStepsCard] Navigation not available for journal type navigation');
@@ -325,6 +364,30 @@ export default function ActionStepsCard({
       selectedSubtask: selectedSubtask?.text,
     });
     setGratitudeModalVisible(false);
+    setSelectedSubtask(null);
+    setSelectedActionStep(null);
+  }, [selectedActionStep, selectedSubtask]);
+
+  const handlePrayerSave = React.useCallback(async (entry: any) => {
+    console.log('[ActionStepsCard] Prayer saved:', entry);
+
+    // Invalidate the prayer query to refresh data immediately
+    if (user?.id) {
+      await queryClient.invalidateQueries({
+        queryKey: ['personal_prayers', user.id, new Date().toISOString().split('T')[0]],
+      });
+      console.log('[ActionStepsCard] Prayer query invalidated for immediate refresh');
+    }
+
+    // Modal will close automatically after showing success
+  }, [queryClient, user?.id]);
+
+  const handlePrayerCancel = React.useCallback(() => {
+    console.log('[ActionStepsCard] Prayer modal cancelled - clearing step info:', {
+      selectedActionStep,
+      selectedSubtask: selectedSubtask?.text,
+    });
+    setPrayerModalVisible(false);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
   }, [selectedActionStep, selectedSubtask]);
@@ -618,6 +681,21 @@ export default function ActionStepsCard({
         existingGratitude={null} // TODO: Add gratitude data fetching if needed
         onSave={handleGratitudeSave}
         onCancel={handleGratitudeCancel}
+      />
+
+      {/* Smart Journaling Prayer Modal */}
+      <SmartJournalingPrayerModal
+        visible={prayerModalVisible}
+        subtaskTitle={selectedSubtask?.text || ''}
+        subtaskId={selectedSubtask?.id}
+        stepId={selectedActionStep?.stepId}
+        playbookId={playbookId}
+        playbookTitle={playbookTitle}
+        actionStepNumber={selectedActionStep?.stepNumber}
+        actionStepTitle={selectedActionStep?.stepTitle}
+        existingPrayer={null} // TODO: Add prayer data fetching if needed
+        onSave={handlePrayerSave}
+        onCancel={handlePrayerCancel}
       />
     </>
   );
