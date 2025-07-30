@@ -412,8 +412,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           visible={showSuccessModal}
           onDismiss={handleSuccessModalClose}
           onEdit={handleEdit}
-          title={isEditSession ? "Gratitude Updated!" : "Gratitude Saved!"}
-          message={isEditSession ? "Your gratitude entry has been updated successfully." : "Your gratitude entry has been saved successfully."}
+          title={isEditSession ? 'Gratitude Updated!' : 'Gratitude Saved!'}
+          message={isEditSession ? 'Your gratitude entry has been updated successfully.' : 'Your gratitude entry has been saved successfully.'}
           animationDuration={300}
         />
       </Modal>
