@@ -120,6 +120,12 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     },
     onSuccess: (data) => {
       console.log('✅ Time block created successfully:', data);
+      // Invalidate timeblock queries for the current date
+      const currentDateStr = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({
+        queryKey: ['timeBlocks', 'byDate', user?.id, currentDateStr],
+      });
+      // Also invalidate broader timeblock queries as fallback
       queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
       setHasSaved(true);
 
@@ -143,6 +149,12 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     },
     onSuccess: (data) => {
       console.log('✅ Time block updated successfully:', data);
+      // Invalidate timeblock queries for the current date
+      const currentDateStr = new Date().toISOString().split('T')[0];
+      queryClient.invalidateQueries({
+        queryKey: ['timeBlocks', 'byDate', user?.id, currentDateStr],
+      });
+      // Also invalidate broader timeblock queries as fallback
       queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
       setHasSaved(true);
     },

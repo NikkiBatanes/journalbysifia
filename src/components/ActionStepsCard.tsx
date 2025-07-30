@@ -438,8 +438,13 @@ export default function ActionStepsCard({
 
     // Invalidate the timeblock query to refresh data immediately
     if (user?.id) {
+      const currentDateStr = new Date().toISOString().split('T')[0];
       await queryClient.invalidateQueries({
-        queryKey: ['timeBlocks', user.id, new Date().toISOString().split('T')[0]],
+        queryKey: ['timeBlocks', 'byDate', user.id, currentDateStr],
+      });
+      // Also invalidate broader timeblock queries as fallback
+      await queryClient.invalidateQueries({
+        queryKey: ['timeBlocks'],
       });
       console.log('[ActionStepsCard] TimeBlock query invalidated for immediate refresh');
     }

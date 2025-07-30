@@ -423,7 +423,7 @@ const defaultStyles = {
 const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   onSave,
   onCancel: _onCancel,
-  initialContent = '',
+  initialContent: _initialContent = '',
   subtaskTitle: _subtaskTitle,
   subtaskId,
   stepId,
@@ -472,7 +472,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   const [showCategoryModal, setShowCategoryModal] = useState(false);
 
   // Check if this is an edit session
-  const isEditing = !!(initialContent && initialContent.trim());
+  const isEditing = !!existingTimeBlock;
 
   // Helper function to get unique draft key
   const getDraftKey = React.useCallback(() => {
