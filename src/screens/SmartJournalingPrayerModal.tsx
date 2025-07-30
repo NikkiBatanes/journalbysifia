@@ -272,19 +272,19 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
               return year === new Date().getFullYear() ? todayString : todayStringWithYear;
             })()}
           />
+
+          <SuccessModal
+            visible={showSuccessModal}
+            title={isEditSession ? 'Prayer Updated!' : 'Prayer Saved!'}
+            message={
+              isEditSession
+                ? 'Your prayer has been updated successfully.'
+                : 'Your prayer has been saved successfully.'
+            }
+            onDismiss={handleSuccessModalClose}
+          />
         </KeyboardAvoidingView>
       </Modal>
-
-      <SuccessModal
-        visible={showSuccessModal}
-        title={isEditSession ? 'Prayer Updated!' : 'Prayer Saved!'}
-        message={
-          isEditSession
-            ? 'Your prayer has been updated successfully.'
-            : 'Your prayer has been saved successfully.'
-        }
-        onDismiss={handleSuccessModalClose}
-      />
     </>
   );
 };
