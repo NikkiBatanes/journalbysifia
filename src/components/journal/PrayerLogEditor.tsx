@@ -282,7 +282,7 @@ const defaultStyles = {
     width: 1,
     height: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 8,
+    marginHorizontal: 0,
   },
 
   // Structured prayer styles
@@ -581,34 +581,36 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
         <View style={s.modeToggle}>
           {/* Prayer mode icons */}
           <View style={s.modeIconsContainer}>
-            {/* Free Form Prayer Icon */}
-            <TouchableOpacity
-              style={[s.modeButton, activeTab === 'freeform' && s.activeModeButton]}
-              onPress={() => setActiveTab('freeform')}
-            >
-              <Pencil
-                size={22}
-                color={activeTab === 'freeform' ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
-                fill={activeTab === 'freeform' ? Colors.alertCoral : 'transparent'}
-                strokeWidth={1.5}
-              />
-            </TouchableOpacity>
+  {/* Free Form Prayer Icon */}
+  <TouchableOpacity
+    style={[s.modeButton, activeTab === 'freeform' && s.activeModeButton]}
+    onPress={() => setActiveTab('freeform')}
+    accessibilityLabel="Switch to Free Form Prayer"
+  >
+    <Pencil
+      size={22}
+      color={activeTab === 'freeform' ? Colors.alertCoral : Colors.inactiveIcon}
+      fill={activeTab === 'freeform' ? Colors.alertCoral : Colors.inactiveIcon}
+      strokeWidth={1.5}
+    />
+  </TouchableOpacity>
 
-            {/* Separator */}
-            <View style={s.iconSeparator} />
+  {/* Separator */}
+  <View style={s.iconSeparator} />
 
-            {/* Prayers for People Icon */}
-            <TouchableOpacity
-              style={[s.modeButton, activeTab === 'people' && s.activeModeButton]}
-              onPress={() => setActiveTab('people')}
-            >
-              <Ionicons
-                name="people"
-                size={22}
-                color={activeTab === 'people' ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
-              />
-            </TouchableOpacity>
-          </View>
+  {/* Prayers for People Icon */}
+  <TouchableOpacity
+    style={[s.modeButton, activeTab === 'people' && s.activeModeButton]}
+    onPress={() => setActiveTab('people')}
+    accessibilityLabel="Switch to Prayers for People"
+  >
+    <Ionicons
+      name="people"
+      size={24}
+      color={activeTab === 'people' ? Colors.alertCoral : Colors.inactiveIcon}
+    />
+  </TouchableOpacity>
+</View>
         </View>
       </View>
 
