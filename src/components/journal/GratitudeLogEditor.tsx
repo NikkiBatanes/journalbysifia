@@ -56,13 +56,18 @@ const defaultStyles = {
     zIndex: 10,
     backgroundColor: Colors.hopeWhite,
   },
-  headerRight: {
+  modeToggle: {
     flexDirection: 'row',
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    padding: 4,
     alignItems: 'center',
-    gap: 12,
   },
-  headerButton: {
-    padding: 8,
+  modeButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginHorizontal: 0,
   },
 
   // Title and content styles
@@ -146,13 +151,14 @@ const defaultStyles = {
   },
   contentCard: {
     flex: 1,
-    backgroundColor: 'rgba(26,60,109,0.08)',
-    borderRadius: 12,
-    margin: 16,
-    padding: 16,
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
   },
   content: {
     flex: 1,
+    padding: 24,
   },
   subtitleText: {
     color: Colors.hopeWhite,
@@ -602,8 +608,8 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
       <View style={s.backgroundContainer} />
       <View style={s.header}>
         <Text style={s.title}>{getCurrentDate()}</Text>
-        <View style={s.headerRight}>
-          <TouchableOpacity style={s.headerButton}>
+        <View style={s.modeToggle}>
+          <TouchableOpacity style={s.modeButton}>
             <Pencil
               size={22}
               color={Colors.alertCoral}

@@ -51,9 +51,10 @@ const defaultStyles = {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 50,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 16,
+    paddingBottom: 0,
+    zIndex: 10,
     backgroundColor: Colors.hopeWhite,
   },
   headerLeft: {
@@ -178,13 +179,14 @@ const defaultStyles = {
   },
   contentCard: {
     flex: 1,
-    backgroundColor: 'rgba(26,60,109,0.08)',
-    borderRadius: 12,
-    margin: 16,
-    padding: 16,
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    overflow: 'hidden',
   },
   content: {
     flex: 1,
+    padding: 24,
   },
   metadataContainer: {
     marginTop: 32,
@@ -267,22 +269,22 @@ const defaultStyles = {
     fontWeight: '500',
   },
 
-  // Mode icon styles
-  modeIconsContainer: {
+  // Mode toggle styles (matching reflection editor)
+  modeToggle: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderRadius: 20,
     padding: 4,
+    alignItems: 'center',
+  },
+  modeButton: {
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    borderRadius: 16,
+    marginHorizontal: 0,
   },
   activeModeButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  iconSeparator: {
-    width: 1,
-    height: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 0,
   },
 
   // Structured prayer styles
@@ -570,57 +572,47 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
   // Main render - exactly matching reflection editor layout
   return (
     <View style={s.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
-
-      {/* Background container */}
-      <View style={s.backgroundContainer} />
-
-      {/* Header - matching reflection editor structure */}
-      <View style={s.header}>
-        <Text style={s.title}>{dateString}</Text>
-        <View style={s.modeToggle}>
-          {/* Prayer mode icons */}
-          <View style={s.modeIconsContainer}>
-  {/* Free Form Prayer Icon */}
-  <TouchableOpacity
-    style={[s.modeButton, activeTab === 'freeform' && s.activeModeButton]}
-    onPress={() => setActiveTab('freeform')}
-    accessibilityLabel="Switch to Free Form Prayer"
-  >
-    <Pencil
-      size={22}
-      color={activeTab === 'freeform' ? Colors.alertCoral : Colors.inactiveIcon}
-      fill={activeTab === 'freeform' ? Colors.alertCoral : Colors.inactiveIcon}
-      strokeWidth={1.5}
-    />
-  </TouchableOpacity>
-
-  {/* Separator */}
-  <View style={s.iconSeparator} />
-
-  {/* Prayers for People Icon */}
-  <TouchableOpacity
-    style={[s.modeButton, activeTab === 'people' && s.activeModeButton]}
-    onPress={() => setActiveTab('people')}
-    accessibilityLabel="Switch to Prayers for People"
-  >
-    <Ionicons
-      name="people"
-      size={24}
-      color={activeTab === 'people' ? Colors.alertCoral : Colors.inactiveIcon}
-    />
-  </TouchableOpacity>
-</View>
-        </View>
-      </View>
-
-      {/* Draft notification */}
       {showDraftNotification && (
         <View style={s.draftNotification}>
           <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
           <Text style={s.draftText}>Draft Restored</Text>
         </View>
       )}
+      <StatusBar hidden />
+      <View style={s.backgroundContainer} />
+
+      {/* Header - matching reflection editor structure */}
+      <View style={s.header}>
+        <Text style={s.title}>{dateString}</Text>
+        <View style={s.modeToggle}>
+          {/* Prayer mode icons - compact layout */}
+          <TouchableOpacity
+            style={[s.modeButton, activeTab === 'freeform' && s.activeModeButton]}
+            onPress={() => setActiveTab('freeform')}
+            accessibilityLabel="Switch to Free Form Prayer"
+          >
+            <Pencil
+              size={22}
+              color={activeTab === 'freeform' ? Colors.alertCoral : Colors.inactiveIcon}
+              fill={activeTab === 'freeform' ? Colors.alertCoral : Colors.inactiveIcon}
+              strokeWidth={1.5}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.modeButton, activeTab === 'people' && s.activeModeButton]}
+            onPress={() => setActiveTab('people')}
+            accessibilityLabel="Switch to Prayers for People"
+          >
+            <Ionicons
+              name="people"
+              size={22}
+              color={activeTab === 'people' ? Colors.alertCoral : Colors.inactiveIcon}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+
 
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}

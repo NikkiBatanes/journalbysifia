@@ -115,6 +115,8 @@ export class SmartJournalingNavigation {
    */
   private navigateToTimeBlock(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to TimeBlock for:', subTask.text);
+    // TimeBlock smart journaling is handled via modal in ActionStepsCard
+    // This navigation method is for fallback cases where modal isn't available
     this.navigation.navigate('Journal' as never);
   }
 

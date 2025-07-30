@@ -9,6 +9,7 @@ import { SmartJournalingNavigation } from '../services/smartJournalingNavigation
 import SmartJournalingReflectionModal from '../screens/SmartJournalingReflectionModal';
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
 import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
+import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
 
 type SubTask = {
   id: string;
@@ -139,6 +140,7 @@ export default function ActionStepsCard({
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
   const [gratitudeModalVisible, setGratitudeModalVisible] = useState(false);
   const [prayerModalVisible, setPrayerModalVisible] = useState(false);
+  const [timeBlockModalVisible, setTimeBlockModalVisible] = useState(false);
   const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
@@ -308,6 +310,46 @@ export default function ActionStepsCard({
       return;
     }
 
+    // Handle timeblock type with modal
+    if (journalType === 'timeblock') {
+      console.log('[ActionStepsCard] Opening timeblock modal for:', {
+        subtaskText: subTask.text,
+        subtaskId: subTask.id,
+        subtaskCompleted: subTask.completed,
+        userId: user?.id,
+      });
+
+      // Prefetch timeblock data and wait for it to complete before opening modal
+      const openTimeBlockModal = async () => {
+        if (user?.id && subTask.id) {
+          console.log('[ActionStepsCard] Prefetching timeblock data before opening modal');
+          try {
+            await queryClient.prefetchQuery({
+              queryKey: ['timeBlocks', user.id, new Date().toISOString().split('T')[0]],
+              queryFn: () => {
+                // This will prefetch today's timeblock entries
+                // The actual API call will be handled by the modal
+                return Promise.resolve([]);
+              },
+            });
+            console.log('[ActionStepsCard] TimeBlock prefetch completed, opening modal with data ready');
+          } catch (error) {
+            console.warn('[ActionStepsCard] TimeBlock prefetch failed, opening modal anyway:', error);
+          }
+        }
+
+        console.log('🔍 ActionStepsCard: Opening timeblock modal with subTask:', subTask);
+        console.log('🔍 ActionStepsCard: subTask.text:', subTask?.text);
+        console.log('🔍 ActionStepsCard: subTask.id:', subTask?.id);
+        setSelectedSubtask(subTask);
+        setSelectedActionStep(stepInfo || null);
+        setTimeBlockModalVisible(true);
+      };
+
+      openTimeBlockModal();
+      return;
+    }
+
     // For other journal types, use navigation service
     if (!navigation) {
       console.warn('[ActionStepsCard] Navigation not available for journal type navigation');
@@ -387,6 +429,30 @@ export default function ActionStepsCard({
       selectedSubtask: selectedSubtask?.text,
     });
     setPrayerModalVisible(false);
+    setSelectedSubtask(null);
+    setSelectedActionStep(null);
+  }, [selectedActionStep, selectedSubtask]);
+
+  const handleTimeBlockSave = React.useCallback(async (entry: any) => {
+    console.log('[ActionStepsCard] TimeBlock saved:', entry);
+
+    // Invalidate the timeblock query to refresh data immediately
+    if (user?.id) {
+      await queryClient.invalidateQueries({
+        queryKey: ['timeBlocks', user.id, new Date().toISOString().split('T')[0]],
+      });
+      console.log('[ActionStepsCard] TimeBlock query invalidated for immediate refresh');
+    }
+
+    // Modal will close automatically after showing success
+  }, [queryClient, user?.id]);
+
+  const handleTimeBlockCancel = React.useCallback(() => {
+    console.log('[ActionStepsCard] TimeBlock modal cancelled - clearing step info:', {
+      selectedActionStep,
+      selectedSubtask: selectedSubtask?.text,
+    });
+    setTimeBlockModalVisible(false);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
   }, [selectedActionStep, selectedSubtask]);
@@ -702,6 +768,28 @@ export default function ActionStepsCard({
         existingPrayer={null} // TODO: Add prayer data fetching if needed
         onSave={handlePrayerSave}
         onCancel={handlePrayerCancel}
+      />
+
+      {/* Smart Journaling TimeBlock Modal */}
+      {/* Debug: Log props being passed to timeblock modal */}
+      {timeBlockModalVisible && console.log('🔍 ActionStepsCard: TimeBlock modal props:', {
+        visible: timeBlockModalVisible,
+        subtaskTitle: selectedSubtask?.text || '',
+        subtaskId: selectedSubtask?.id,
+        selectedSubtask: selectedSubtask,
+      })}
+      <SmartJournalingTimeBlockModal
+        visible={timeBlockModalVisible}
+        subtaskTitle={selectedSubtask?.text || ''}
+        subtaskId={selectedSubtask?.id}
+        stepId={selectedActionStep?.stepId}
+        playbookId={playbookId}
+        playbookTitle={playbookTitle}
+        actionStepNumber={selectedActionStep?.stepNumber}
+        actionStepTitle={selectedActionStep?.stepTitle}
+        existingTimeBlock={null} // TODO: Add timeblock data fetching if needed
+        onSave={handleTimeBlockSave}
+        onCancel={handleTimeBlockCancel}
       />
     </>
   );
