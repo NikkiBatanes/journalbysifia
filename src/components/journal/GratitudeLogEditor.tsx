@@ -140,7 +140,7 @@ const defaultStyles = {
     opacity: 0.9,
     includeFontPadding: false,
     textAlignVertical: 'center',
-    marginBottom: 2,
+    marginBottom: 20, // Increased from 2 to 20 for better spacing
   },
   contentCard: {
     flex: 1,
