@@ -125,11 +125,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
+  console.log('🔍 TimeBlockReactQuery: Fetching for date:', dateStr, 'user:', user?.id);
+
   // Performance monitoring
   const loadStartTime = useRef<number>(Date.now());
 
   // React Query hooks
   const { data: timeBlockEntries = [], isLoading, error } = useTimeBlockData(user?.id || '', dateStr);
+  
+  console.log('📊 TimeBlockReactQuery: Received data:', timeBlockEntries.length, 'entries');
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();
   const deleteMutation = useDeleteTimeBlock();

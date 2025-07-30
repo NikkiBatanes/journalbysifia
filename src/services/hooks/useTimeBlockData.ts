@@ -30,11 +30,16 @@ export const useTimeBlockData = (
   date: string,
   options?: Omit<UseQueryOptions<TimeBlockWithVersion[], ApiError>, 'queryKey' | 'queryFn'>
 ) => {
+  console.log('🔍 useTimeBlockData: Query key:', queryKeys.timeBlocks.byDate(userId, date));
+  console.log('🔍 useTimeBlockData: Fetching for userId:', userId, 'date:', date);
+  
   return useQuery<TimeBlockWithVersion[], ApiError>({
     queryKey: queryKeys.timeBlocks.byDate(userId, date),
     queryFn: async () => {
       try {
+        console.log('🚀 useTimeBlockData: Calling API with userId:', userId, 'date:', date);
         const data = await TimeBlockApi.getTimeBlocks(userId, date);
+        console.log('📊 useTimeBlockData: API returned:', data.length, 'time blocks:', data);
         return data.map(block => ({
           ...block,
           version: 1,

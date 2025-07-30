@@ -123,11 +123,13 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       console.log('✅ Time block created successfully:', data);
       // Invalidate timeblock queries for the current date
       const currentDateStr = toLocalDateString(new Date());
+      console.log('🔄 Invalidating query with key:', ['timeBlocks', 'byDate', user?.id, currentDateStr]);
       queryClient.invalidateQueries({
         queryKey: ['timeBlocks', 'byDate', user?.id, currentDateStr],
       });
       // Also invalidate broader timeblock queries as fallback
       queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
+      console.log('🔄 Query invalidation completed');
       setHasSaved(true);
 
       // Mark step as completed if we have the necessary IDs
@@ -181,7 +183,9 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         return;
       }
 
-      console.log('📅 SmartJournalingTimeBlockModal: Saving time block:', timeBlockData);
+      console.log('📝 Preparing to save time block with data:', timeBlockData);
+      console.log('📅 Date being saved:', timeBlockData.date.toISOString().split('T')[0]);
+      console.log('👤 User ID:', user.id);
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
         user_id: user.id,
