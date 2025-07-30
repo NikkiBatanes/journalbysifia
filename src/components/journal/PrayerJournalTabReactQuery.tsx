@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import PrayerJournalCardReactQuery from './PrayerJournalCardReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
 import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
+import PersonalPrayerEditor from './PersonalPrayerEditor';
 
 interface PrayerJournalTabReactQueryProps {
   selectedDate: Date;
@@ -23,6 +24,9 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Personal Prayer Editor */}
+      <PersonalPrayerEditor selectedDate={selectedDate} />
+
       {/* ACTS Prayer Journal Card */}
       <PrayerJournalCardReactQuery selectedDate={selectedDate} />
 
@@ -38,7 +42,8 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 0, // Remove padding since parent ScrollView handles it
+    paddingHorizontal: 0,
+    paddingVertical: 8,
   },
 });
 
