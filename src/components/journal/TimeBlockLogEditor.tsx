@@ -1,10 +1,9 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Clock, CalendarClock, Pencil } from 'lucide-react-native';
+import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -352,6 +351,20 @@ const defaultStyles = {
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
     opacity: 0.5,
   },
+  categoryButtonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  chevronIcon: {
+    marginLeft: 8,
+  },
+  switchTrackActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  switchTrackInactive: {
+    backgroundColor: '#E0E0E0',
+  },
 };
 
 const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
@@ -422,14 +435,14 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
           const draft = await AsyncStorage.getItem(draftKey);
           if (draft) {
             const draftData = JSON.parse(draft);
-            if (draftData.title) setTitle(draftData.title);
-            if (draftData.notes) setNotes(draftData.notes);
-            if (draftData.location) setLocation(draftData.location);
-            if (draftData.category) setCategory(draftData.category);
-            if (draftData.isAllDay !== undefined) setIsAllDay(draftData.isAllDay);
-            if (draftData.startTime) setStartTime(new Date(draftData.startTime));
-            if (draftData.endTime) setEndTime(new Date(draftData.endTime));
-            if (draftData.activeTab) setActiveTab(draftData.activeTab);
+            if (draftData.title) {setTitle(draftData.title);}
+            if (draftData.notes) {setNotes(draftData.notes);}
+            if (draftData.location) {setLocation(draftData.location);}
+            if (draftData.category) {setCategory(draftData.category);}
+            if (draftData.isAllDay !== undefined) {setIsAllDay(draftData.isAllDay);}
+            if (draftData.startTime) {setStartTime(new Date(draftData.startTime));}
+            if (draftData.endTime) {setEndTime(new Date(draftData.endTime));}
+            if (draftData.activeTab) {setActiveTab(draftData.activeTab);}
 
             setShowDraftNotification(true);
             setTimeout(() => setShowDraftNotification(false), 3000);
@@ -593,9 +606,9 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                   >
                     <Text style={s.timeText}>{formatTime(startTime)}</Text>
                   </TouchableOpacity>
-                  
+
                   <Text style={s.timeSeparator}>TO</Text>
-                  
+
                   <TouchableOpacity
                     style={s.timeButton}
                     onPress={() => setShowEndTimePicker(true)}
@@ -614,11 +627,11 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                 >
                   <View style={[
                     s.switchTrack,
-                    { backgroundColor: isAllDay ? Colors.alertCoral : '#E0E0E0' }
+                    isAllDay ? s.switchTrackActive : s.switchTrackInactive,
                   ]}>
                     <View style={[
                       s.switchThumb,
-                      { transform: [{ translateX: isAllDay ? 20 : 0 }] }
+                      { transform: [{ translateX: isAllDay ? 20 : 0 }] },
                     ]} />
                   </View>
                 </TouchableOpacity>
@@ -630,7 +643,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                 style={[
                   s.categoryButton,
                   s.selectedCategoryButton,
-                  { flexDirection: 'row', alignItems: 'center', marginBottom: 12 }
+                  s.categoryButtonRow,
                 ]}
                 onPress={() => setShowCategoryModal(true)}
                 accessibilityLabel="Select Category"
@@ -642,7 +655,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                   style={s.categoryIcon}
                 />
                 <Text style={s.categoryText}>{category}</Text>
-                <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} style={{ marginLeft: 8 }} />
+                <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} style={s.chevronIcon} />
               </TouchableOpacity>
 
               <TimeBlockCategoryModal

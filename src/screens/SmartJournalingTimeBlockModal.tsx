@@ -83,7 +83,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   }, [playbookTitle]);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
+  const [_completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false);
   const [prevVisible, setPrevVisible] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
@@ -105,8 +105,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   // Get today's date for time block queries
   const today = new Date().toISOString().split('T')[0];
 
-  // Query for existing time blocks
-  const { data: timeBlocks = [], isLoading: isLoadingTimeBlocks } = useQuery({
+  // Query for existing time blocks (currently unused but may be needed for future features)
+  useQuery({
     queryKey: ['timeBlocks', user?.id, today],
     queryFn: () => user ? TimeBlockApi.getTimeBlocks(user.id, today) : Promise.resolve([]),
     enabled: !!user && visible,
@@ -115,21 +115,21 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   // Create time block mutation
   const createTimeBlockMutation = useMutation({
     mutationFn: async (timeBlockData: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'>) => {
-      if (!user) throw new Error('User not authenticated');
+      if (!user) {throw new Error('User not authenticated');}
       return TimeBlockApi.createTimeBlock(timeBlockData);
     },
     onSuccess: (data) => {
       console.log('✅ Time block created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
       setHasSaved(true);
-      
+
       // Mark step as completed if we have the necessary IDs
       if (stepId && subtaskId && handleToggleStep) {
         console.log('📅 Marking step as completed:', { stepId, subtaskId });
         setCompletionInfo({ stepId, subtaskId });
         handleToggleStep(stepId, subtaskId, true);
       }
-      
+
       setShowSuccessModal(true);
     },
     onError: (error) => {
@@ -267,10 +267,10 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       <SuccessModal
         visible={showSuccessModal}
         onClose={handleSuccessModalClose}
-        title={isEditSession ? "Time Block Updated!" : "Time Block Created!"}
-        message={isEditSession 
-          ? "Your time block has been successfully updated." 
-          : "Your time block has been successfully created and added to your schedule."
+        title={isEditSession ? 'Time Block Updated!' : 'Time Block Created!'}
+        message={isEditSession
+          ? 'Your time block has been successfully updated.'
+          : 'Your time block has been successfully created and added to your schedule.'
         }
         buttonText="Continue"
       />
