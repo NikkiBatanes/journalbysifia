@@ -182,6 +182,28 @@ const defaultStyles = {
   content: {
     flex: 1,
   },
+  metadataContainer: {
+    marginTop: 32,
+    marginBottom: 24,
+    flexDirection: 'row',
+  },
+  verticalLine: {
+    width: 1,
+    backgroundColor: Colors.hopeWhite,
+    opacity: 0.3,
+    marginRight: 12,
+    borderRadius: 2,
+  },
+  fromText: {
+    fontSize: 8,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+    letterSpacing: 2,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    lineHeight: 12,
+  },
 
   // Compact view styles (for card view)
   compactCard: {
@@ -412,6 +434,26 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
               <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
                 What's on your heart today?
               </Text>
+
+              {/* Metadata section for playbook context */}
+              {playbookTitle && (
+                <View style={s.metadataContainer}>
+                  <View style={s.verticalLine} />
+                  <View>
+                    <Text style={s.fromText}>
+                      FROM PLAYBOOK
+                    </Text>
+                    <Text style={s.metadataText}>
+                      {playbookTitle}
+                    </Text>
+                    {actionStepNumber && actionStepTitle && (
+                      <Text style={s.metadataText}>
+                        Step {actionStepNumber}: {actionStepTitle}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
 
               {/* Prayer content input */}
               <TextInput
