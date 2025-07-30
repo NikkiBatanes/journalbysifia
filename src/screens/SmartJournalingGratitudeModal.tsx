@@ -94,10 +94,12 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       console.log('🙏 SmartJournalingGratitudeModal: Current gratitude entry available:', {
         id: currentGratitudeEntry.id,
         hasContent: !!currentGratitudeEntry.content,
-        contentPreview: currentGratitudeEntry.content ? 
-          (typeof currentGratitudeEntry.content === 'string' ? 
-            currentGratitudeEntry.content.substring(0, 50) : 
-            JSON.stringify(currentGratitudeEntry.content).substring(0, 50)) + '...' : null
+        contentPreview: currentGratitudeEntry.content
+          ? (typeof currentGratitudeEntry.content === 'string'
+              ? currentGratitudeEntry.content.substring(0, 50)
+              : JSON.stringify(currentGratitudeEntry.content).substring(0, 50)
+            ) + '...'
+          : null,
       });
     } else {
       console.log('🙏 SmartJournalingGratitudeModal: No current gratitude entry available');

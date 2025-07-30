@@ -381,7 +381,9 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   // Helper function to ensure items have proper numbering
   const addNumbersToItems = (items: string[]): string[] => {
     return items.map((item, index) => {
-      if (!item.trim()) return item; // Keep empty items as is
+      if (!item.trim()) {
+        return item; // Keep empty items as is
+      }
       const expectedPrefix = `${index + 1}. `;
       // If item doesn't start with the expected number, add it
       if (!item.startsWith(expectedPrefix)) {
