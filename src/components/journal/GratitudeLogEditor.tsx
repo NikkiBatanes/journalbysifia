@@ -553,7 +553,8 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
     console.log('🙏 GratitudeLogEditor: onSave called successfully');
   };
 
-  const isFormValid = gratitudeItems.some(item => item.trim());
+  // Check if form is valid (has content) AND user has made changes
+  const isFormValid = gratitudeItems.some(item => item.trim()) && hasUserMadeChanges;
 
   // Main render - exactly matching reflection editor layout
   return (
