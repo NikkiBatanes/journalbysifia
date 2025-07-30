@@ -190,7 +190,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       }
 
       // Always show success modal on save
+      console.log('🙏 SmartJournalingPrayerModal: Setting showSuccessModal to true');
       setShowSuccessModal(true);
+      console.log('🙏 SmartJournalingPrayerModal: showSuccessModal state should now be true');
 
       // Mark step as complete if stepId is provided
       if (stepId && subtaskId) {
@@ -210,6 +212,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   };
 
   const handleSuccessModalClose = () => {
+    console.log('🙏 SmartJournalingPrayerModal: handleSuccessModalClose called');
     setShowSuccessModal(false);
 
     // Mark step as complete after success modal closes
@@ -241,6 +244,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   };
 
   const isLoading = createPrayerMutation.isPending || updatePrayerMutation.isPending;
+
+  // Debug logging
+  console.log('🙏 SmartJournalingPrayerModal: Render - showSuccessModal:', showSuccessModal, 'isEditSession:', isEditSession);
 
   return (
     <>
