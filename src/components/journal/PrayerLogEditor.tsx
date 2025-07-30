@@ -266,6 +266,48 @@ const defaultStyles = {
     fontSize: 14,
     fontWeight: '500',
   },
+
+  // Mode icon styles
+  modeIconsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  activeModeButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  iconSeparator: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    marginHorizontal: 8,
+  },
+
+  // Structured prayer styles
+  structuredContainer: {
+    padding: 20,
+  },
+  inputLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  structuredInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    minHeight: 50,
+    textAlignVertical: 'top',
+  },
+  multilineInput: {
+    minHeight: 120,
+  },
 };
 
 const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
@@ -328,6 +370,13 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
+
+  // Tab management
+  const [activeTab, setActiveTab] = React.useState<'freeform' | 'people'>('freeform');
+
+  // Structured prayer data for "Prayers for People" tab
+  const [prayerForPerson, setPrayerForPerson] = React.useState('');
+  const [prayerRequest, setPrayerRequest] = React.useState('');
 
   // Check if this is an edit session (has existing content)
   const isEditing = !!(initialContent && initialContent.trim());
@@ -408,17 +457,30 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
   // Helper function to save draft
   const saveDraftHelper = useCallback(async () => {
     try {
-      // Only save draft if there's actual meaningful content (not just whitespace)
-      if (prayerContent && prayerContent.trim()) {
+      let hasContent = false;
+      let contentToSave = '';
+
+      if (activeTab === 'freeform') {
+        hasContent = !!(prayerContent && prayerContent.trim());
+        contentToSave = prayerContent;
+      } else {
+        hasContent = !!((prayerForPerson && prayerForPerson.trim()) || (prayerRequest && prayerRequest.trim()));
+        // Save structured data as JSON for drafts
+        contentToSave = JSON.stringify({ prayerForPerson, prayerRequest });
+      }
+
+      // Only save draft if there's actual meaningful content
+      if (hasContent) {
         const draftData = {
-          content: prayerContent,
+          content: contentToSave,
+          activeTab: activeTab,
           timestamp: new Date().toISOString(),
           subtaskTitle: _subtaskTitle,
           playbookTitle: playbookTitle,
           actionStepNumber: actionStepNumber,
         };
 
-        console.log('[PrayerLogEditor] Saving draft:', draftData.content.substring(0, 50) + '...');
+        console.log('[PrayerLogEditor] Saving draft for tab:', activeTab);
         await AsyncStorage.setItem(
           getDraftKey(),
           JSON.stringify(draftData)
@@ -427,7 +489,7 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
     } catch (error) {
       console.error('Error saving draft:', error);
     }
-  }, [prayerContent, _subtaskTitle, playbookTitle, actionStepNumber, getDraftKey]);
+  }, [prayerContent, prayerForPerson, prayerRequest, activeTab, _subtaskTitle, playbookTitle, actionStepNumber, getDraftKey]);
 
   // Clear draft when component unmounts (cleanup)
   useEffect(() => {
@@ -459,8 +521,28 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
         console.error('Error clearing draft:', error);
       }
 
+      let contentToSave = '';
+
+      if (activeTab === 'freeform') {
+        contentToSave = prayerContent.trim();
+      } else {
+        // Format structured prayer for people
+        if (prayerForPerson.trim() && prayerRequest.trim()) {
+          contentToSave = `🙏 Prayer for ${prayerForPerson.trim()}\n\n${prayerRequest.trim()}`;
+        } else if (prayerForPerson.trim()) {
+          contentToSave = `🙏 Prayer for ${prayerForPerson.trim()}`;
+        } else {
+          contentToSave = prayerRequest.trim();
+        }
+      }
+
+      if (!contentToSave) {
+        Alert.alert('Empty Prayer', 'Please enter some content before saving.');
+        return;
+      }
+
       onSave({
-        content: prayerContent.trim(),
+        content: contentToSave,
         date: new Date(),
       });
     } catch (error) {
@@ -497,15 +579,36 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
       <View style={s.header}>
         <Text style={s.title}>{dateString}</Text>
         <View style={s.modeToggle}>
-          {/* Always show pencil icon for free-form mode */}
-          <TouchableOpacity style={s.modeButton}>
-            <Pencil
-              size={22}
-              color={Colors.alertCoral}
-              fill={Colors.alertCoral}
-              strokeWidth={1.5}
-            />
-          </TouchableOpacity>
+          {/* Prayer mode icons */}
+          <View style={s.modeIconsContainer}>
+            {/* Free Form Prayer Icon */}
+            <TouchableOpacity
+              style={[s.modeButton, activeTab === 'freeform' && s.activeModeButton]}
+              onPress={() => setActiveTab('freeform')}
+            >
+              <Pencil
+                size={22}
+                color={activeTab === 'freeform' ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
+                fill={activeTab === 'freeform' ? Colors.alertCoral : 'transparent'}
+                strokeWidth={1.5}
+              />
+            </TouchableOpacity>
+
+            {/* Separator */}
+            <View style={s.iconSeparator} />
+
+            {/* Prayers for People Icon */}
+            <TouchableOpacity
+              style={[s.modeButton, activeTab === 'people' && s.activeModeButton]}
+              onPress={() => setActiveTab('people')}
+            >
+              <Ionicons
+                name="people"
+                size={22}
+                color={activeTab === 'people' ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -534,17 +637,43 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
                 {_subtaskTitle || ''}
               </Text>
 
-              {/* Prayer content input */}
-              <TextInput
-                ref={inputRef}
-                style={[s.entryInput, s.entryContentInput]}
-                placeholder="Share your thoughts, prayers, and reflections..."
-                placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                value={prayerContent}
-                onChangeText={handleContentChange}
-                multiline
-                textAlignVertical="top"
-              />
+              {/* Conditional content based on active tab */}
+              {activeTab === 'freeform' ? (
+                /* Free Form Prayer Tab */
+                <TextInput
+                  ref={inputRef}
+                  style={[s.entryInput, s.entryContentInput]}
+                  placeholder="Share your thoughts, prayers, and reflections..."
+                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                  value={prayerContent}
+                  onChangeText={handleContentChange}
+                  multiline
+                  textAlignVertical="top"
+                />
+              ) : (
+                /* Prayers for People Tab */
+                <View style={s.structuredContainer}>
+                  <Text style={s.inputLabel}>Who are you praying for?</Text>
+                  <TextInput
+                    style={s.structuredInput}
+                    placeholder="Enter the person's name..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                    value={prayerForPerson}
+                    onChangeText={setPrayerForPerson}
+                  />
+
+                  <Text style={s.inputLabel}>What would you like to pray for this person?</Text>
+                  <TextInput
+                    style={[s.structuredInput, s.multilineInput]}
+                    placeholder="Share your prayer request for this person..."
+                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                    value={prayerRequest}
+                    onChangeText={setPrayerRequest}
+                    multiline
+                    textAlignVertical="top"
+                  />
+                </View>
+              )}
 
               {/* Metadata section for playbook context */}
               {(playbookTitle || _subtaskTitle) && (
