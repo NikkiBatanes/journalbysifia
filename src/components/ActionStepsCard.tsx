@@ -438,16 +438,23 @@ export default function ActionStepsCard({
     console.log('[ActionStepsCard] TimeBlock saved:', entry);
 
     // Invalidate the timeblock query to refresh data immediately
-    if (user?.id) {
-      const currentDateStr = toLocalDateString(new Date());
+    if (user?.id && entry?.selected_date) {
+      const savedDateStr = entry.selected_date; // Use the actual saved date
       await queryClient.invalidateQueries({
-        queryKey: ['timeBlocks', 'byDate', user.id, currentDateStr],
+        queryKey: ['timeBlocks', 'byDate', user.id, savedDateStr],
       });
+      // Also invalidate for today in case they're different
+      const todayStr = toLocalDateString(new Date());
+      if (savedDateStr !== todayStr) {
+        await queryClient.invalidateQueries({
+          queryKey: ['timeBlocks', 'byDate', user.id, todayStr],
+        });
+      }
       // Also invalidate broader timeblock queries as fallback
       await queryClient.invalidateQueries({
         queryKey: ['timeBlocks'],
       });
-      console.log('[ActionStepsCard] TimeBlock query invalidated for immediate refresh');
+      console.log('[ActionStepsCard] TimeBlock query invalidated for date:', savedDateStr);
     }
 
     // Modal will close automatically after showing success

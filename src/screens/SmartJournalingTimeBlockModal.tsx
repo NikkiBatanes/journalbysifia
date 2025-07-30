@@ -121,12 +121,19 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     },
     onSuccess: (data) => {
       console.log('✅ Time block created successfully:', data);
-      // Invalidate timeblock queries for the current date
-      const currentDateStr = toLocalDateString(new Date());
-      console.log('🔄 Invalidating query with key:', ['timeBlocks', 'byDate', user?.id, currentDateStr]);
+      // Invalidate timeblock queries for the saved date
+      const savedDateStr = data.selected_date; // Use the actual saved date from the response
+      console.log('🔄 Invalidating query with key:', ['timeBlocks', 'byDate', user?.id, savedDateStr]);
       queryClient.invalidateQueries({
-        queryKey: ['timeBlocks', 'byDate', user?.id, currentDateStr],
+        queryKey: ['timeBlocks', 'byDate', user?.id, savedDateStr],
       });
+      // Also invalidate for today in case they're the same
+      const todayStr = toLocalDateString(new Date());
+      if (savedDateStr !== todayStr) {
+        queryClient.invalidateQueries({
+          queryKey: ['timeBlocks', 'byDate', user?.id, todayStr],
+        });
+      }
       // Also invalidate broader timeblock queries as fallback
       queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
       console.log('🔄 Query invalidation completed');
@@ -152,11 +159,18 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     },
     onSuccess: (data) => {
       console.log('✅ Time block updated successfully:', data);
-      // Invalidate timeblock queries for the current date
-      const currentDateStr = toLocalDateString(new Date());
+      // Invalidate timeblock queries for the saved date
+      const savedDateStr = data.selected_date; // Use the actual saved date from the response
       queryClient.invalidateQueries({
-        queryKey: ['timeBlocks', 'byDate', user?.id, currentDateStr],
+        queryKey: ['timeBlocks', 'byDate', user?.id, savedDateStr],
       });
+      // Also invalidate for today in case they're the same
+      const todayStr = toLocalDateString(new Date());
+      if (savedDateStr !== todayStr) {
+        queryClient.invalidateQueries({
+          queryKey: ['timeBlocks', 'byDate', user?.id, todayStr],
+        });
+      }
       // Also invalidate broader timeblock queries as fallback
       queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
       setHasSaved(true);

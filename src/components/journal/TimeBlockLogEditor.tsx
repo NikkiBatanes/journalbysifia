@@ -575,7 +575,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
         notes: notes.trim(),
         location: location.trim(),
         isAllDay,
-        date: new Date(new Date().setHours(0, 0, 0, 0)), // Use start of today
+        date: new Date(), // Use current date/time - the modal will format it correctly
       });
     } catch (error) {
       console.error('Error in handleSave:', error);
