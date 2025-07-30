@@ -70,7 +70,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     if (parsedContent.items && Array.isArray(parsedContent.items)) {
       return parsedContent.items.map((item: any, index: number) => ({
         id: `${entry.id}_${index}`,
-        text: item.text || item,
+        text: typeof item === 'string' ? item : (item.text || String(item)),
         date: selectedDate,
       }));
     } else if (parsedContent.text) {
@@ -210,7 +210,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 if (updatedItems.length > 0) {
                   const itemsToSave = updatedItems.map((item: any, index: number) => ({
                     id: Date.now() + Math.random().toString() + index,
-                    text: item.text || item,
+                    text: typeof item === 'string' ? item : (item.text || String(item)),
                     date: selectedDate,
                   }));
 
@@ -351,7 +351,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             <View style={styles.itemNumber}>
               <Text style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</Text>
             </View>
-            <Text style={styles.itemText} accessibilityElementsHidden={true}>{item.text}</Text>
+            <Text style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</Text>
           </SwipeableTodoItem>
         </View>
       ))}

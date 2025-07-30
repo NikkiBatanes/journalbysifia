@@ -1,7 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator } from 'react-native';
-import { Edit3, Plus } from 'lucide-react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Plus, Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 
 interface GratitudeLogEditorProps {
@@ -19,14 +20,97 @@ interface GratitudeLogEditorProps {
   styles?: any;
 }
 
-// Fallback styles in case styles prop is not provided
+// Styles matching reflection log editor pattern
 const defaultStyles = {
+  // Main container styles (matching reflection editor)
   container: {
     flex: 1,
+    backgroundColor: Colors.hopeWhite,
+  },
+  backgroundContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: Colors.anchorBlue,
   },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 80,
+  },
+
+  // Header styles
   header: {
-    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 0,
+    zIndex: 10,
+    backgroundColor: Colors.hopeWhite,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerButton: {
+    padding: 8,
+  },
+
+  // Title and content styles
+  titleContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: Colors.hopeWhite,
+  },
+  mainTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.anchorBlue,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.anchorBlue,
+    opacity: 0.7,
+  },
+
+  // Metadata styles - matching reflection editor exactly
+  metadataContainer: {
+    marginTop: 32,
+    marginBottom: 24,
+    flexDirection: 'row',
+  },
+  verticalLine: {
+    width: 1,
+    height: '100%',
+    backgroundColor: Colors.hopeWhite,
+    opacity: 0.3,
+    marginRight: 12,
+    borderRadius: 2,
+  },
+  fromText: {
+    fontSize: 8,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+    letterSpacing: 2,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    lineHeight: 12,
+  },
+  metadataText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginBottom: 4,
+    lineHeight: 12,
   },
   title: {
     fontSize: 18,
@@ -34,8 +118,29 @@ const defaultStyles = {
     color: Colors.hopeWhite,
     marginBottom: 8,
   },
-  keyboardAvoidingView: {
-    flex: 1,
+  entryInput: {
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    marginBottom: 8,
+  },
+  titleInput: {
+    fontWeight: 'bold',
+    fontSize: 22,
+    paddingVertical: 8,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  transparentInput: {},
+  entryContentInput: {
+    minHeight: 100,
+    fontSize: 16,
+  },
+  lockedTitleText: {
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    marginBottom: 2,
   },
   contentCard: {
     flex: 1,
@@ -47,100 +152,222 @@ const defaultStyles = {
   content: {
     flex: 1,
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  gratitudeInput: {
+  subtitleText: {
     color: Colors.hopeWhite,
     fontSize: 16,
+    opacity: 0.7,
+    marginTop: 0,
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  addMoreContainer: {
+    alignItems: 'flex-end',
+    marginTop: 16,
+    marginBottom: 20,
+  },
+
+
+
+  // Compact view styles (for card view)
+  compactCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 20,
+    margin: 16,
+    marginBottom: 12,
+  },
+  compactHeader: {
+    width: '100%',
+  },
+  compactDateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
-    minHeight: 50,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  compactDate: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  compactTitle: {
+    color: Colors.hopeWhite,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  compactSubtitle: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    opacity: 0.7,
+    marginBottom: 16,
+  },
+  previewContainer: {
+    marginBottom: 16,
+  },
+  previewItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  previewNumber: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
+    marginRight: 8,
+    opacity: 0.8,
+  },
+  previewText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    opacity: 0.6,
+    flex: 1,
+    fontStyle: 'italic',
+  },
+  compactMetadata: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     padding: 12,
-    textAlignVertical: 'top',
+    marginTop: 8,
   },
-  gratitudeLabel: {
+  compactMetadataText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    opacity: 0.7,
+    marginBottom: 2,
+  },
+
+  // Draft notification styles (matching reflection editor)
+  draftNotification: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -100 }, { translateY: -25 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+    width: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  draftIcon: {
+    marginRight: 8,
+  },
+  draftText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+
+  gratitudeItemContainer: {
+    marginBottom: 16,
+  },
+  gratitudeItemLabel: {
     color: Colors.hopeWhite,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
     opacity: 0.9,
   },
-  gratitudeContainer: {
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    marginTop: 16,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginRight: 8,
-    alignItems: 'center',
-  },
-  saveButton: {
-    flex: 1,
-    backgroundColor: Colors.hopeWhite,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginLeft: 8,
-    alignItems: 'center',
-  },
-  buttonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelButtonText: {
+  gratitudeItemInput: {
     color: Colors.hopeWhite,
+    fontSize: 16,
+    minHeight: 60,
+    marginBottom: 8,
+    textAlignVertical: 'top',
   },
-  saveButtonText: {
-    color: Colors.anchorBlue,
+  removeButton: {
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderRadius: 6,
   },
-  disabledButton: {
+  removeButtonText: {
+    color: '#FF6B6B',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  addMoreButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  addMoreText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    marginLeft: 8,
+    opacity: 0.8,
+  },
+  // FAB styles (matching reflection editor)
+  fabWrapper: {
+    position: 'relative',
+    width: '100%',
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    zIndex: 10,
+  },
+  fabRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fab: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  saveFab: {
+    backgroundColor: Colors.alertCoral,
+  },
+  fabDisabled: {
     opacity: 0.5,
   },
-  metadataContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+  leftFabContainer: {
+    left: 16,
+    right: 'auto',
+    alignItems: 'flex-start',
   },
-  metadataText: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
-    opacity: 0.8,
-    marginBottom: 4,
+  fabDefaultPosition: {
+    bottom: 16,
   },
-  instructionText: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 20,
-    textAlign: 'center',
-    fontStyle: 'italic',
+  addFab: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
   },
-  headerIcon: {
-    marginRight: 8,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
+  cancelFab: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
   },
 };
 
 const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   onSave,
-  onCancel,
+  onCancel: _onCancel,
   initialItems = ['', '', ''],
   subtaskTitle,
   playbookTitle,
@@ -149,10 +376,10 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   isLoading = false,
   styles,
 }) => {
-  const s = styles || defaultStyles;
+  const s = { ...defaultStyles, ...styles };
 
   // State for gratitude items
-  const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(initialItems.length >= 3 ? initialItems : ['', '', '']);
+  const [gratitudeItems, setGratitudeItems] = React.useState<string[]>(initialItems.length > 0 ? initialItems : ['', '', '']);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
@@ -216,24 +443,37 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
     setHasUserMadeChanges(true);
   };
 
-  const addMoreItem = () => {
+  const addGratitudeItem = () => {
     setGratitudeItems([...gratitudeItems, '']);
     setHasUserMadeChanges(true);
   };
 
+
+
   const getCurrentDate = () => {
     const today = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    };
-    return today.toLocaleDateString('en-US', options);
+    const currentYear = new Date().getFullYear();
+    const todayYear = today.getFullYear();
+
+    // Don't show year if it's the current year
+    if (todayYear === currentYear) {
+      return today.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      });
+    } else {
+      return today.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
   };
 
   const handleSave = async () => {
-    const filledItems = gratitudeItems.filter(item => item.trim());
+    const filledItems = gratitudeItems.filter((item: string) => item.trim());
 
     if (filledItems.length === 0) {
       Alert.alert(
@@ -251,275 +491,198 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
     });
   };
 
-  const handleCancel = () => {
-    if (hasUserMadeChanges) {
-      Alert.alert(
-        'Discard Changes?',
-        'You have unsaved changes. Are you sure you want to discard them?',
-        [
-          { text: 'Keep Editing', style: 'cancel' },
-          {
-            text: 'Discard',
-            style: 'destructive',
-            onPress: onCancel,
-          },
-        ]
-      );
-    } else {
-      onCancel();
-    }
-  };
-
   const isFormValid = gratitudeItems.some(item => item.trim());
 
+  // Main render - exactly matching reflection editor layout
   return (
     <View style={s.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      {/* Draft notification */}
+      {showDraftNotification && (
+        <View style={s.draftNotification}>
+          <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
+          <Text style={s.draftText}>Draft Restored</Text>
+        </View>
+      )}
+      <StatusBar hidden />
+      <View style={s.backgroundContainer} />
+      <View style={s.header}>
+        <Text style={s.title}>{getCurrentDate()}</Text>
+        <View style={s.headerRight}>
+          <TouchableOpacity style={s.headerButton}>
+            <Pencil
+              size={22}
+              color={Colors.alertCoral}
+              fill={Colors.alertCoral}
+              strokeWidth={1.5}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        enabled={Platform.OS === 'ios'}
       >
-        <View style={s.header}>
-          {/* Date and Edit Icon Row */}
-          <View style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 24,
-          }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: '500',
-              color: Colors.hopeWhite,
-              opacity: 0.9,
-            }}>
-              {getCurrentDate()}
-            </Text>
-            <TouchableOpacity style={{
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}>
-              <Edit3 size={20} color={Colors.hopeWhite} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Main Title */}
-          <Text style={{
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: Colors.hopeWhite,
-            marginBottom: 8,
-            lineHeight: 34,
-          }}>
-            What are you grateful for today?
-          </Text>
-
-          {/* Subtitle */}
-          <Text style={{
-            fontSize: 16,
-            color: Colors.hopeWhite,
-            opacity: 0.7,
-            marginBottom: 24,
-          }}>
-            List at least 3 things
-          </Text>
-
-          {/* Metadata - Uniform formatting */}
-          {(subtaskTitle || playbookTitle) && (
-            <View style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.08)',
-              borderRadius: 12,
-              padding: 16,
-              marginBottom: 20,
-              borderLeftWidth: 4,
-              borderLeftColor: Colors.hopeWhite,
-            }}>
-              <Text style={{
-                color: Colors.hopeWhite,
-                fontSize: 12,
-                fontWeight: '600',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                marginBottom: 8,
-                opacity: 0.6,
-              }}>
-                FROM PLAYBOOK
-              </Text>
-              {playbookTitle && (
-                <Text style={{
-                  color: Colors.hopeWhite,
-                  fontSize: 16,
-                  fontWeight: '600',
-                  marginBottom: 4,
-                }}>
-                  {playbookTitle}
-                </Text>
-              )}
-              {actionStepNumber && actionStepTitle && (
-                <Text style={{
-                  color: Colors.hopeWhite,
-                  fontSize: 14,
-                  opacity: 0.8,
-                  marginBottom: 4,
-                }}>
-                  Step {actionStepNumber}: {actionStepTitle}
-                </Text>
-              )}
-            </View>
-          )}
-        </View>
-
         <View style={s.contentCard}>
-          <View style={s.content}>
-            {showDraftNotification && (
-              <View style={{
-                backgroundColor: 'rgba(74, 144, 226, 0.2)',
-                padding: 12,
-                borderRadius: 8,
-                marginBottom: 16,
-                borderLeftWidth: 4,
-                borderLeftColor: Colors.hopeWhite,
-              }}>
-                <Text style={{
-                  color: Colors.hopeWhite,
-                  fontSize: 14,
-                  fontWeight: '500',
-                }}>
-                  📝 Draft restored
-                </Text>
+          <ScrollView
+            style={s.content}
+            contentContainerStyle={s.scrollContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Title section */}
+            <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
+              What are you grateful for today?
+            </Text>
+
+            {/* Subtitle */}
+            <Text style={s.subtitleText}>
+              Name at least 3 things you're thankful for...
+            </Text>
+
+            {/* Gratitude items */}
+            {gratitudeItems.map((item, index) => (
+              <View key={index} style={s.gratitudeItemContainer}>
+                <TextInput
+                  ref={(ref) => { inputRefs.current[index] = ref; }}
+                  style={[s.entryInput, s.entryContentInput]}
+                  placeholder={`${index + 1}. I'm grateful for...`}
+                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                  value={item}
+                  onChangeText={(text) => {
+                    // Allow complete erasure - if text is empty or just the prefix, keep it empty
+                    if (text.length === 0) {
+                      handleItemChange(index, '');
+                      return;
+                    }
+
+                    const expectedPrefix = `${index + 1}. `;
+
+                    // If user tries to delete the prefix (text is just the number and dot), clear completely
+                    if (text === `${index + 1}.` || text === `${index + 1}`) {
+                      handleItemChange(index, '');
+                      return;
+                    }
+
+                    // Auto-add numbering when user starts typing
+                    let formattedText = text;
+
+                    // If user is typing and doesn't have the number prefix, add it
+                    if (!text.startsWith(expectedPrefix)) {
+                      // Check if text starts with any number pattern (e.g., "1.", "2.", etc.)
+                      const numberPattern = /^\d+\. /;
+                      if (!numberPattern.test(text)) {
+                        formattedText = expectedPrefix + text;
+                      } else {
+                        // Replace existing number with correct one
+                        formattedText = text.replace(/^\d+\. /, expectedPrefix);
+                      }
+                    }
+
+                    handleItemChange(index, formattedText);
+                  }}
+                  multiline
+                  textAlignVertical="top"
+                  returnKeyType={index < gratitudeItems.length - 1 ? 'next' : 'done'}
+                  onSubmitEditing={() => {
+                    if (index < gratitudeItems.length - 1) {
+                      inputRefs.current[index + 1]?.focus();
+                    } else {
+                      Keyboard.dismiss();
+                    }
+                  }}
+                  blurOnSubmit={index === gratitudeItems.length - 1}
+                />
+
+              </View>
+            ))}
+
+            {/* Add more button - positioned to the right - only show if first 3 are filled */}
+            {gratitudeItems.slice(0, 3).every(item => item.trim().length > 0) && (
+              <View style={s.addMoreContainer}>
+                <TouchableOpacity style={s.addMoreButton} onPress={addGratitudeItem}>
+                  <Plus size={20} color={Colors.hopeWhite} />
+                </TouchableOpacity>
               </View>
             )}
 
-            <ScrollView style={s.scrollContent} showsVerticalScrollIndicator={false}>
-              {gratitudeItems.map((item, index) => (
-                <View key={index} style={{
-                  marginBottom: 20,
-                }}>
-                  <TextInput
-                    ref={(ref) => { inputRefs.current[index] = ref; }}
-                    style={{
-                      color: Colors.hopeWhite,
-                      fontSize: 18,
-                      minHeight: 60,
-                      borderWidth: 0,
-                      borderBottomWidth: 1,
-                      borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-                      paddingVertical: 16,
-                      paddingHorizontal: 0,
-                      textAlignVertical: 'top',
-                      backgroundColor: 'transparent',
-                    }}
-                    placeholder={`${index + 1}. I'm grateful for...`}
-                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
-                    value={item}
-                    onChangeText={(text) => handleItemChange(index, text)}
-                    multiline
-                    returnKeyType={index < gratitudeItems.length - 1 ? 'next' : 'done'}
-                    onSubmitEditing={() => {
-                      if (index < gratitudeItems.length - 1) {
-                        inputRefs.current[index + 1]?.focus();
-                      } else {
-                        Keyboard.dismiss();
-                      }
-                    }}
-                    blurOnSubmit={index === gratitudeItems.length - 1}
-                  />
+            {/* Metadata section - matching reflection editor format */}
+            {(subtaskTitle || playbookTitle) && (
+              <View style={s.metadataContainer}>
+                <View style={s.verticalLine} />
+                <View>
+                  <Text style={s.fromText}>
+                    FROM PLAYBOOK
+                  </Text>
+                  {playbookTitle && (
+                    <Text style={s.metadataText}>
+                      {playbookTitle}
+                    </Text>
+                  )}
+                  {actionStepNumber && actionStepTitle && (
+                    <Text style={s.metadataText}>
+                      Step {actionStepNumber}: {actionStepTitle}
+                    </Text>
+                  )}
+                  {subtaskTitle && (
+                    <Text style={s.metadataText}>
+                      {subtaskTitle}
+                    </Text>
+                  )}
                 </View>
-              ))}
-
-              {/* Add More Button */}
-              <TouchableOpacity
-                onPress={addMoreItem}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingVertical: 16,
-                  paddingHorizontal: 0,
-                  marginBottom: 20,
-                }}
-              >
-                <Plus size={20} color={Colors.hopeWhite} style={{ marginRight: 12, opacity: 0.7 }} />
-                <Text style={{
-                  color: Colors.hopeWhite,
-                  fontSize: 16,
-                  opacity: 0.7,
-                }}>
-                  Add more
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-
-            {/* Bottom spacing for FAB */}
-            <View style={{ height: 100 }} />
-          </View>
-        </View>
-
-        {/* Floating Action Button */}
-        <View style={{
-          position: 'absolute',
-          bottom: 30,
-          right: 20,
-          left: 20,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
-          {/* Cancel Button */}
-          <TouchableOpacity
-            onPress={handleCancel}
-            disabled={isLoading}
-            style={{
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Text style={{
-              color: Colors.hopeWhite,
-              fontSize: 24,
-              fontWeight: '300',
-            }}>×</Text>
-          </TouchableOpacity>
-
-          {/* Save FAB */}
-          <TouchableOpacity
-            onPress={handleSave}
-            disabled={!isFormValid || isLoading}
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: 30,
-              backgroundColor: isFormValid && !isLoading ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.3)',
-              justifyContent: 'center',
-              alignItems: 'center',
-              elevation: 8,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.3,
-              shadowRadius: 8,
-            }}
-          >
-            {isLoading ? (
-              <ActivityIndicator color={Colors.anchorBlue} size="small" />
-            ) : (
-              <Text style={{
-                color: Colors.anchorBlue,
-                fontSize: 24,
-                fontWeight: '500',
-              }}>✓</Text>
+              </View>
             )}
-          </TouchableOpacity>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Floating Action Buttons - matching reflection editor */}
+      <View style={s.fabWrapper}>
+        {/* Left Add FAB */}
+        <View style={[s.fabContainer, s.leftFabContainer, s.fabDefaultPosition]}>
+          <TouchableOpacity
+            style={[s.fab, s.addFab]}
+            onPress={addGratitudeItem}
+          >
+            <Ionicons
+              name="add"
+              size={24}
+              color="rgba(255, 255, 255, 0.6)"
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Right Action Buttons */}
+        <View style={[s.fabContainer, s.fabDefaultPosition]}>
+          <View style={s.fabRow}>
+            {/* Cancel FAB */}
+            <TouchableOpacity
+              style={[s.fab, s.cancelFab]}
+              onPress={_onCancel}
+            >
+              <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+            </TouchableOpacity>
+
+            {/* Save FAB */}
+            <TouchableOpacity
+              style={[
+                s.fab,
+                s.saveFab,
+                (!isFormValid || isLoading) && s.fabDisabled,
+              ]}
+              disabled={!isFormValid || isLoading}
+              onPress={handleSave}
+            >
+              {isLoading ? (
+                <ActivityIndicator size={20} color={Colors.hopeWhite} />
+              ) : (
+                <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     </View>
   );
 };

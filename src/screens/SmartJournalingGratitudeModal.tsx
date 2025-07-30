@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Alert } from 'react-native';
+import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, Keyboard } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import GratitudeLogEditor from '../components/journal/GratitudeLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
@@ -130,23 +130,33 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     });
 
     try {
+      // Filter out blank items and remove number prefixes
+      const cleanedItems = gratitudeData.items
+        .filter(item => item.trim().length > 0) // Remove blank items
+        .map(item => {
+          // Remove number prefix (e.g., "1. ", "2. ", etc.)
+          const cleaned = item.replace(/^\d+\. /, '').trim();
+          return cleaned;
+        })
+        .filter(item => item.length > 0); // Remove any items that became empty after cleaning
+
       const gratitudeEntry = {
         user_id: user.id,
-        type: 'gratitude' as const,
-        content: JSON.stringify({ items: gratitudeData.items }),
-        content_type: 'gratitude' as const,
-        date: gratitudeData.date.toISOString().split('T')[0],
         selected_date: gratitudeData.date.toISOString().split('T')[0],
-        subtask_id: subtaskId || null,
-        step_id: stepId || null,
-        playbook_id: playbookId || null,
-        metadata: {
-          subtaskTitle,
-          playbookTitle,
-          actionStepNumber,
-          actionStepTitle,
-          source: 'smart_journaling',
-        },
+        content_type: 'gratitude' as const,
+        content: JSON.stringify({
+          items: cleanedItems,
+          metadata: {
+            subtaskTitle,
+            playbookTitle,
+            actionStepNumber,
+            actionStepTitle,
+            source: 'smart_journaling',
+            subtask_id: subtaskId || null,
+            step_id: stepId || null,
+            playbook_id: playbookId || null,
+          },
+        }),
       };
 
       let result;
@@ -235,29 +245,38 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     return ['', '', ''];
   }, [existingGratitude]);
 
-  if (!visible) {
-    return null;
-  }
-
   return (
     <>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      <Modal
+        visible={visible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          // Small delay to ensure keyboard is fully dismissed before closing
+          setTimeout(() => {
+            handleCancel();
+          }, 10);
+        }}
       >
-        <GratitudeLogEditor
-          onSave={handleSaveGratitude}
-          onCancel={handleCancel}
-          initialItems={initialGratitudeItems}
-          subtaskTitle={subtaskTitle}
-          playbookTitle={playbookTitle}
-          actionStepNumber={actionStepNumber}
-          actionStepTitle={actionStepTitle}
-          isLoading={createMutation.isPending || updateMutation.isPending}
-          styles={reflectionLogStyles}
-        />
-      </KeyboardAvoidingView>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <GratitudeLogEditor
+            onSave={handleSaveGratitude}
+            onCancel={handleCancel}
+            initialItems={initialGratitudeItems}
+            subtaskTitle={subtaskTitle}
+            playbookTitle={playbookTitle}
+            actionStepNumber={actionStepNumber}
+            actionStepTitle={actionStepTitle}
+            isLoading={createMutation.isPending || updateMutation.isPending}
+            styles={reflectionLogStyles}
+          />
+        </KeyboardAvoidingView>
+      </Modal>
 
       <SuccessModal
         visible={showSuccessModal}
