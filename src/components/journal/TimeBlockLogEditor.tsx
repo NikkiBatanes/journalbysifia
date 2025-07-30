@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Modal } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
@@ -75,29 +75,6 @@ const defaultStyles = {
     right: 0,
     bottom: 0,
     backgroundColor: Colors.anchorBlue,
-  },
-  draftNotification: {
-    position: 'absolute',
-    top: 100,
-    left: '50%',
-    transform: [{ translateX: -100 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-    width: 200,
-  },
-  draftIcon: {
-    marginRight: 8,
-  },
-  draftText: {
-    color: Colors.hopeWhite,
-    fontSize: 14,
-    fontWeight: '500',
   },
   modeToggle: {
     flexDirection: 'row',
@@ -209,14 +186,12 @@ const defaultStyles = {
   timeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
     marginBottom: 12,
   },
   timeButton: {
-    flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   timeLabel: {
     color: Colors.hopeWhite,
@@ -228,13 +203,13 @@ const defaultStyles = {
   },
   timeText: {
     color: Colors.hopeWhite,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   timeSeparator: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    marginHorizontal: 16,
+    marginHorizontal: 8,
     opacity: 0.6,
     fontWeight: '500',
   },
@@ -249,14 +224,11 @@ const defaultStyles = {
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 12,
     marginBottom: 8,
   },
   selectedCategoryButton: {
-    backgroundColor: Colors.alertCoral,
+    // No background styling
   },
   categoryIcon: {
     marginRight: 8,
@@ -270,9 +242,6 @@ const defaultStyles = {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
     marginBottom: 12,
   },
   allDayText: {
@@ -373,7 +342,7 @@ const defaultStyles = {
     marginBottom: 12,
   },
   chevronIcon: {
-    marginLeft: 8,
+    marginLeft: 'auto',
   },
   switchTrackActive: {
     backgroundColor: Colors.alertCoral,
@@ -418,6 +387,222 @@ const defaultStyles = {
     color: Colors.hopeWhite,
     marginLeft: 8,
   },
+  sectionLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  timeRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  timeSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    flex: 1,
+  },
+  repeatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  repeatText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  timePickerModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  timePickerContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 20,
+    padding: 20,
+    margin: 20,
+    alignItems: 'center',
+  },
+  timePickerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginBottom: 20,
+  },
+  timePickerButtons: {
+    flexDirection: 'row',
+    marginTop: 20,
+    gap: 10,
+  },
+  timePickerButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  timePickerCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  timePickerConfirmButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  timePickerButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  timePickerCancelText: {
+    color: Colors.hopeWhite,
+  },
+  timePickerConfirmText: {
+    color: Colors.hopeWhite,
+  },
+  repeatModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  repeatModalContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 20,
+    padding: 20,
+    margin: 20,
+    minWidth: 280,
+  },
+
+  allDaySection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  allDayLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  customRepeatContainer: {
+    marginTop: 8,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  repeatModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  repeatModalContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 20,
+    padding: 20,
+    margin: 20,
+    minWidth: 280,
+  },
+  repeatModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  repeatOption: {
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  repeatOptionLast: {
+    borderBottomWidth: 0,
+  },
+  repeatOptionSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  repeatOptionText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  repeatOptionSelectedText: {
+    fontWeight: '600',
+  },
+  customRepeatContainer: {
+    marginTop: 8,
+  },
+  customRepeatLabel: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  frequencySelector: {
+    marginBottom: 16,
+  },
+  frequencyInputs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  frequencyInput: {
+    width: 50,
+    height: 36,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    padding: 8,
+    color: Colors.hopeWhite,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    textAlign: 'center',
+    fontSize: 14,
+    marginRight: 8,
+  },
+  frequencyUnitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  frequencyUnitText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    marginRight: 4,
+  },
+  customModalButtons: {
+    flexDirection: 'row',
+    marginTop: 20,
+    justifyContent: 'space-between',
+  },
+  customModalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  customModalCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  customModalConfirmButton: {
+    backgroundColor: Colors.primary,
+  },
+  customModalButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 };
 
 const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
@@ -439,7 +624,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   const inputRef = useRef<TextInput>(null);
 
   // State management
-  const [title, setTitle] = React.useState(existingTimeBlock?.title || _subtaskTitle || '');
+  const [title, setTitle] = React.useState(existingTimeBlock?.title || '');
   const [startTime, setStartTime] = React.useState(() => {
     if (existingTimeBlock?.start_time) {
       return new Date(existingTimeBlock.start_time);
@@ -460,122 +645,62 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   const [isAllDay, setIsAllDay] = React.useState(existingTimeBlock?.all_day || false);
   const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
+  const [repeatOption, setRepeatOption] = React.useState('Never');
+  const [tempStartTime, setTempStartTime] = React.useState(startTime);
+  const [tempEndTime, setTempEndTime] = React.useState(endTime);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
-  const [showDraftNotification, setShowDraftNotification] = React.useState(false);
+
 
   // Tab management
   const [activeTab, setActiveTab] = React.useState<'quick' | 'detailed'>('quick');
 
   // Category modal state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  
+  // Repeat modal state
+  const [showRepeatModal, setShowRepeatModal] = useState(false);
+  const [showCustomRepeatModal, setShowCustomRepeatModal] = useState(false);
+  const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
 
-  // Helper function to get unique draft key
-  const getDraftKey = React.useCallback(() => {
-    const currentDate = new Date().toISOString().split('T')[0];
-    if (subtaskId && stepId) {
-      return `@timeblock_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
-    }
-    if (_subtaskTitle && playbookTitle) {
-      const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
-      const stepNum = actionStepNumber || 0;
-      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
-      return `@timeblock_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
-    }
-    return `@timeblock_editor_draft_${currentDate}`;
-  }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber]);
-
-  // Load draft when component mounts
+  // Sync temp time values when actual times change
   useEffect(() => {
-    if (isFirstLoad && !isEditing) {
-      const loadDraft = async () => {
-        try {
-          const draftKey = getDraftKey();
-          const draft = await AsyncStorage.getItem(draftKey);
-          if (draft) {
-            const draftData = JSON.parse(draft);
-            if (draftData.title) {setTitle(draftData.title);}
-            if (draftData.notes) {setNotes(draftData.notes);}
-            if (draftData.location) {setLocation(draftData.location);}
-            if (draftData.category) {setCategory(draftData.category);}
-            if (draftData.isAllDay !== undefined) {setIsAllDay(draftData.isAllDay);}
-            if (draftData.startTime) {setStartTime(new Date(draftData.startTime));}
-            if (draftData.endTime) {setEndTime(new Date(draftData.endTime));}
-            if (draftData.activeTab) {setActiveTab(draftData.activeTab);}
+    setTempStartTime(startTime);
+  }, [startTime]);
 
-            setShowDraftNotification(true);
-            setTimeout(() => setShowDraftNotification(false), 3000);
-          }
-        } catch (error) {
-          console.error('Error loading draft:', error);
-        }
-      };
-      loadDraft();
-    }
-    setIsFirstLoad(false);
-  }, [getDraftKey, isEditing, isFirstLoad]);
-
-  // Helper function to save draft
-  const saveDraftHelper = useCallback(async () => {
-    try {
-      const hasContent = !!(title.trim() || notes.trim() || location.trim());
-      if (hasContent) {
-        const draftData = {
-          title,
-          notes,
-          location,
-          category,
-          isAllDay,
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
-          activeTab,
-          timestamp: new Date().toISOString(),
-          subtaskTitle: _subtaskTitle,
-          playbookTitle,
-          actionStepNumber,
-        };
-        await AsyncStorage.setItem(getDraftKey(), JSON.stringify(draftData));
-      }
-    } catch (error) {
-      console.error('Error saving draft:', error);
-    }
-  }, [title, notes, location, category, isAllDay, startTime, endTime, activeTab, _subtaskTitle, playbookTitle, actionStepNumber, getDraftKey]);
-
-  // Auto-save draft when content changes
   useEffect(() => {
-    if (!isFirstLoad && hasUserMadeChanges && !isEditing) {
-      const timeoutId = setTimeout(saveDraftHelper, 1000);
-      return () => clearTimeout(timeoutId);
-    }
-  }, [title, notes, location, category, isAllDay, startTime, endTime, isFirstLoad, hasUserMadeChanges, isEditing, saveDraftHelper]);
+    setTempEndTime(endTime);
+  }, [endTime]);
+
+  // Removed draft functionality
+
+  // Removed draft saving functionality
 
   const handleSave = async () => {
     try {
-      // Clear draft
-      try {
-        await AsyncStorage.removeItem(getDraftKey());
-      } catch (error) {
-        console.error('Error clearing draft:', error);
-      }
-
       if (!title.trim()) {
         Alert.alert('Missing Title', 'Please enter a title for your time block.');
         return;
       }
 
+      const notesWithMetadata = notes.trim() + formatMetadata();
+      
+      // If editing an existing time block, pass a flag to indicate it should be unmarked/deleted
       onSave({
         title: title.trim(),
         startTime,
         endTime,
         category,
-        notes: notes.trim(),
+        notes: notesWithMetadata,
         location: location.trim(),
         isAllDay,
-        date: new Date(), // Use current date/time - the modal will format it correctly
+        date: new Date(),
+        isEditing: isEditing, // Pass editing state to parent
+        existingId: existingTimeBlock?.id, // Pass existing ID for deletion/unmarking
       });
     } catch (error) {
       console.error('Error in handleSave:', error);
@@ -583,20 +708,29 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
     }
   };
 
-  const onCancel = async () => {
-    try {
-      if (hasUserMadeChanges && !isEditing) {
-        await saveDraftHelper();
-      }
-      _onCancel();
-    } catch (error) {
-      console.error('Error saving draft before cancel:', error);
-      _onCancel();
-    }
+  const onCancel = () => {
+    _onCancel();
   };
 
   const formatTime = (date: Date): string => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatMetadata = (): string => {
+    const metadata = [];
+    if (playbookTitle || actionStepTitle || _subtaskTitle) {
+      metadata.push('FROM PLAYBOOK');
+      if (playbookTitle) {
+        metadata.push(playbookTitle);
+      }
+      if (actionStepNumber && actionStepTitle) {
+        metadata.push(`Step ${actionStepNumber}: ${actionStepTitle}`);
+      }
+      if (_subtaskTitle) {
+        metadata.push(_subtaskTitle);
+      }
+    }
+    return metadata.length > 0 ? `\n\n${metadata.join('\n')}` : '';
   };
 
   const handleContentChange = (field: string, value: any) => {
@@ -609,17 +743,13 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
       case 'isAllDay': setIsAllDay(value); break;
       case 'startTime': setStartTime(value); break;
       case 'endTime': setEndTime(value); break;
+      case 'repeat': setRepeatOption(value); break;
     }
   };
 
   return (
     <View style={s.container}>
-      {showDraftNotification && (
-        <View style={s.draftNotification}>
-          <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
-          <Text style={s.draftText}>Draft Restored</Text>
-        </View>
-      )}
+
       <StatusBar hidden />
       <View style={s.backgroundContainer} />
       <View style={s.header}>
@@ -642,7 +772,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
         enabled={Platform.OS === 'ios'}>
 
         <View style={s.contentCard}>
-          <ScrollView style={s.content} contentContainerStyle={s.scrollContent}>
+          <ScrollView style={s.content} contentContainerStyle={s.scrollContent} scrollEnabled={false}>
             {/* Title section */}
             <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
               {_subtaskTitle || 'Time Block Entry'}
@@ -650,58 +780,75 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
 
             {/* Form content based on active tab */}
             <View style={s.formContainer}>
+              {/* Time and All Day Row */}
+              <View style={s.timeRowContainer}>
+                <View style={s.timeSection}>
+                  {!isAllDay && (
+                    <>
+                      <TouchableOpacity
+                        style={s.timeButton}
+                        onPress={() => setShowStartTimePicker(true)}
+                      >
+                        <Text style={s.timeText}>{formatTime(startTime)}</Text>
+                      </TouchableOpacity>
+
+                      <Text style={[s.timeSeparator, { fontSize: 10, color: Colors.hopeWhite }]}>TO</Text>
+
+                      <TouchableOpacity
+                        style={s.timeButton}
+                        onPress={() => setShowEndTimePicker(true)}
+                      >
+                        <Text style={s.timeText}>{formatTime(endTime)}</Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                  {isAllDay && (
+                    <Text style={s.timeText}>All Day</Text>
+                  )}
+                </View>
+                
+                <View style={s.allDaySection}>
+                  {!isAllDay && <Text style={s.allDayLabel}>All Day</Text>}
+                  <TouchableOpacity
+                    onPress={() => handleContentChange('isAllDay', !isAllDay)}
+                    style={s.switchContainer}
+                  >
+                    <View style={[
+                      s.switchTrack,
+                      isAllDay ? s.switchTrackActive : s.switchTrackInactive,
+                    ]}>
+                      <View style={[
+                        s.switchThumb,
+                        { transform: [{ translateX: isAllDay ? 20 : 0 }] },
+                      ]} />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {/* Title Input */}
               <TextInput
                 ref={inputRef}
                 style={s.formInput}
                 placeholder="Title"
-                placeholderTextColor="rgba(46, 82, 149, 0.5)"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={title}
                 onChangeText={(text) => handleContentChange('title', text)}
               />
 
-              {/* Time Selection */}
-              {!isAllDay && (
-                <View style={s.timeContainer}>
-                  <TouchableOpacity
-                    style={s.timeButton}
-                    onPress={() => setShowStartTimePicker(true)}
-                  >
-                    <Text style={s.timeText}>{formatTime(startTime)}</Text>
-                  </TouchableOpacity>
-
-                  <Text style={s.timeSeparator}>TO</Text>
-
-                  <TouchableOpacity
-                    style={s.timeButton}
-                    onPress={() => setShowEndTimePicker(true)}
-                  >
-                    <Text style={s.timeText}>{formatTime(endTime)}</Text>
-                  </TouchableOpacity>
+              {/* Repeat Section */}
+              <TouchableOpacity 
+                style={s.repeatButton}
+                onPress={() => setShowRepeatModal(true)}
+              >
+                <Text style={s.repeatText}>Repeat</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={[s.repeatText, { opacity: 0.7, marginRight: 8 }]}>{repeatOption}</Text>
+                  <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} />
                 </View>
-              )}
-
-              {/* All Day Toggle */}
-              <View style={s.allDayContainer}>
-                <Text style={s.allDayText}>All Day</Text>
-                <TouchableOpacity
-                  onPress={() => handleContentChange('isAllDay', !isAllDay)}
-                  style={s.switchContainer}
-                >
-                  <View style={[
-                    s.switchTrack,
-                    isAllDay ? s.switchTrackActive : s.switchTrackInactive,
-                  ]}>
-                    <View style={[
-                      s.switchThumb,
-                      { transform: [{ translateX: isAllDay ? 20 : 0 }] },
-                    ]} />
-                  </View>
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
 
               {/* Category Selection */}
-              <Text style={s.inputLabel}>Category</Text>
               <TouchableOpacity
                 style={[
                   s.categoryButton,
@@ -731,11 +878,118 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                 onCancel={() => setShowCategoryModal(false)}
               />
 
+              {/* Repeat Modal */}
+              <Modal
+                visible={showRepeatModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowRepeatModal(false)}
+              >
+                <View style={s.repeatModal}>
+                  <View style={s.repeatModalContainer}>
+                    <Text style={s.repeatModalTitle}>Repeat</Text>
+                    {['Never', 'Daily', 'Weekly', 'Monthly', 'Custom'].map((option, index, array) => (
+                      <TouchableOpacity
+                        key={option}
+                        style={[
+                          s.repeatOption,
+                          index === array.length - 1 && s.repeatOptionLast,
+                          repeatOption === option && s.repeatOptionSelected,
+                        ]}
+                        onPress={() => {
+                          if (option === 'Custom') {
+                            setShowRepeatModal(false);
+                            setShowCustomRepeatModal(true);
+                          } else {
+                            handleContentChange('repeat', option);
+                            setShowRepeatModal(false);
+                          }
+                        }}
+                      >
+                        <Text style={[
+                          s.repeatOptionText,
+                          repeatOption === option && s.repeatOptionSelectedText,
+                        ]}>
+                          {option}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </Modal>
+
+              {/* Custom Repeat Modal */}
+              <Modal
+                visible={showCustomRepeatModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowCustomRepeatModal(false)}
+              >
+                <View style={s.repeatModal}>
+                  <View style={s.repeatModalContainer}>
+                    <Text style={s.repeatModalTitle}>Custom Repeat</Text>
+                    
+                    <View style={s.customRepeatContainer}>
+                      <Text style={s.customRepeatLabel}>Repeat every</Text>
+                      
+                      <View style={s.frequencySelector}>
+                        <View style={s.frequencyInputs}>
+                          <TextInput
+                            style={s.frequencyInput}
+                            value={customFrequency.value.toString()}
+                            onChangeText={(text) => {
+                              const num = parseInt(text) || 1;
+                              setCustomFrequency({ ...customFrequency, value: num });
+                            }}
+                            keyboardType="numeric"
+                            maxLength={2}
+                            placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                          />
+                          
+                          <TouchableOpacity 
+                            style={s.frequencyUnitButton}
+                            onPress={() => {
+                              const units = ['day', 'week', 'month', 'year'];
+                              const currentIndex = units.indexOf(customFrequency.unit);
+                              const nextIndex = (currentIndex + 1) % units.length;
+                              setCustomFrequency({ ...customFrequency, unit: units[nextIndex] });
+                            }}
+                          >
+                            <Text style={s.frequencyUnitText}>
+                              {customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1)}{customFrequency.value > 1 ? 's' : ''}
+                            </Text>
+                            <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                    
+                    <View style={s.customModalButtons}>
+                      <TouchableOpacity
+                        style={[s.customModalButton, s.customModalCancelButton]}
+                        onPress={() => setShowCustomRepeatModal(false)}
+                      >
+                        <Text style={s.customModalButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[s.customModalButton, s.customModalConfirmButton]}
+                        onPress={() => {
+                          handleContentChange('repeat', `Every ${customFrequency.value} ${customFrequency.unit}${customFrequency.value > 1 ? 's' : ''}`);
+                          setShowCustomRepeatModal(false);
+                        }}
+                      >
+                        <Text style={s.customModalButtonText}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+
               {/* Location Input */}
               <TextInput
                 style={s.formInput}
                 placeholder="Location"
-                placeholderTextColor="rgba(46, 82, 149, 0.5)"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={location}
                 onChangeText={(text) => handleContentChange('location', text)}
               />
@@ -744,7 +998,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
               <TextInput
                 style={[s.formInput, s.multilineInput]}
                 placeholder="Notes"
-                placeholderTextColor="rgba(46, 82, 149, 0.5)"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={notes}
                 onChangeText={(text) => handleContentChange('notes', text)}
                 multiline
@@ -773,40 +1027,102 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
         </View>
       </KeyboardAvoidingView>
 
-      {/* Time Pickers */}
-      {showStartTimePicker && (
-        <DateTimePicker
-          value={startTime}
-          mode="time"
-          is24Hour={false}
-          display="default"
-          onChange={(event, selectedTime) => {
-            setShowStartTimePicker(false);
-            if (selectedTime) {
-              handleContentChange('startTime', selectedTime);
-              // Auto-adjust end time to be 1 hour later
-              const newEndTime = new Date(selectedTime);
-              newEndTime.setHours(newEndTime.getHours() + 1);
-              handleContentChange('endTime', newEndTime);
-            }
-          }}
-        />
-      )}
+      {/* Start Time Picker Modal */}
+      <Modal
+        visible={showStartTimePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowStartTimePicker(false)}
+      >
+        <View style={s.timePickerModal}>
+          <View style={s.timePickerContainer}>
+            <Text style={s.timePickerTitle}>Select Start Time</Text>
+            <DateTimePicker
+              value={tempStartTime}
+              mode="time"
+              is24Hour={false}
+              display="spinner"
+              onChange={(event, selectedTime) => {
+                if (selectedTime) {
+                  setTempStartTime(selectedTime);
+                }
+              }}
+            />
+            <View style={s.timePickerButtons}>
+              <TouchableOpacity
+                style={[s.timePickerButton, s.timePickerCancelButton]}
+                onPress={() => {
+                  setShowStartTimePicker(false);
+                  setTempStartTime(startTime); // Reset to original
+                }}
+              >
+                <Text style={[s.timePickerButtonText, s.timePickerCancelText]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.timePickerButton, s.timePickerConfirmButton]}
+                onPress={() => {
+                  handleContentChange('startTime', tempStartTime);
+                  // Auto-adjust end time to be 1 hour later
+                  const newEndTime = new Date(tempStartTime);
+                  newEndTime.setHours(newEndTime.getHours() + 1);
+                  handleContentChange('endTime', newEndTime);
+                  setTempEndTime(newEndTime);
+                  setShowStartTimePicker(false);
+                }}
+              >
+                <Text style={[s.timePickerButtonText, s.timePickerConfirmText]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
-      {showEndTimePicker && (
-        <DateTimePicker
-          value={endTime}
-          mode="time"
-          is24Hour={false}
-          display="default"
-          onChange={(event, selectedTime) => {
-            setShowEndTimePicker(false);
-            if (selectedTime) {
-              handleContentChange('endTime', selectedTime);
-            }
-          }}
-        />
-      )}
+      {/* End Time Picker Modal */}
+      <Modal
+        visible={showEndTimePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowEndTimePicker(false)}
+      >
+        <View style={s.timePickerModal}>
+          <View style={s.timePickerContainer}>
+            <Text style={s.timePickerTitle}>Select End Time</Text>
+            <DateTimePicker
+              value={tempEndTime}
+              mode="time"
+              is24Hour={false}
+              display="spinner"
+              onChange={(event, selectedTime) => {
+                if (selectedTime) {
+                  setTempEndTime(selectedTime);
+                }
+              }}
+            />
+            <View style={s.timePickerButtons}>
+              <TouchableOpacity
+                style={[s.timePickerButton, s.timePickerCancelButton]}
+                onPress={() => {
+                  setShowEndTimePicker(false);
+                  setTempEndTime(endTime); // Reset to original
+                }}
+              >
+                <Text style={[s.timePickerButtonText, s.timePickerCancelText]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.timePickerButton, s.timePickerConfirmButton]}
+                onPress={() => {
+                  handleContentChange('endTime', tempEndTime);
+                  setShowEndTimePicker(false);
+                }}
+              >
+                <Text style={[s.timePickerButtonText, s.timePickerConfirmText]}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+
 
       {/* Floating Action Buttons - Standard Layout */}
       <View style={s.fabWrapper}>
