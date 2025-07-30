@@ -90,6 +90,22 @@ export const usePrayersByType = (
 };
 
 /**
+ * Get personal prayers (freeform prayers) for a specific date
+ */
+export const usePersonalPrayerData = (userId: string, dateStr: string) => {
+  return useQuery({
+    queryKey: queryKeys.prayers.personal(userId, dateStr),
+    queryFn: async () => {
+      const actsData = await PrayerApi.getACTSPrayers(userId, dateStr);
+      return actsData.freeform || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: !!userId && !!dateStr,
+    retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
+  });
+};
+
+/**
  * Search prayers by content
  */
 export const useSearchPrayers = (
