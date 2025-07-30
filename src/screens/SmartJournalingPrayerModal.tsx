@@ -264,6 +264,13 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             actionStepTitle={actionStepTitle}
             isLoading={isLoading}
             styles={reflectionLogStyles}
+            dateString={(function() {
+              const now = new Date();
+              const year = now.getFullYear();
+              const todayString = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+              const todayStringWithYear = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+              return year === new Date().getFullYear() ? todayString : todayStringWithYear;
+            })()}
           />
         </KeyboardAvoidingView>
       </Modal>

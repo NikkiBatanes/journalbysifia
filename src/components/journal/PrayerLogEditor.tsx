@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 
 interface PrayerLogEditorProps {
@@ -17,6 +18,7 @@ interface PrayerLogEditorProps {
   actionStepTitle?: string;
   isLoading?: boolean;
   styles?: any;
+  dateString?: string;
 }
 
 // Styles matching reflection log editor pattern
@@ -268,12 +270,13 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
   onSave,
   onCancel: _onCancel,
   initialContent = '',
-  subtaskTitle,
+  subtaskTitle: _subtaskTitle,
   playbookTitle,
   actionStepNumber,
   actionStepTitle,
   isLoading = false,
   styles,
+  dateString,
 }) => {
   const s = { ...defaultStyles, ...styles };
   const inputRef = useRef<TextInput>(null);
@@ -282,6 +285,7 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
   const [prayerContent, setPrayerContent] = React.useState(initialContent);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
+  const [showAddMenu, setShowAddMenu] = React.useState(false);
 
   // Draft key for auto-saving
   const draftKey = 'prayer_log_draft';
@@ -339,28 +343,6 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
     setHasUserMadeChanges(true);
   };
 
-  const getCurrentDate = () => {
-    const today = new Date();
-    const currentYear = new Date().getFullYear();
-    const todayYear = today.getFullYear();
-
-    // Don't show year if it's the current year
-    if (todayYear === currentYear) {
-      return today.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-      });
-    } else {
-      return today.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      });
-    }
-  };
-
   const handleSave = async () => {
     try {
       await clearDraft();
@@ -379,9 +361,6 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
     _onCancel();
   };
 
-  // Check if form is valid (has content) AND user has made changes
-  const isFormValid = prayerContent.trim() && hasUserMadeChanges;
-
   // Main render - exactly matching reflection editor layout
   return (
     <View style={s.container}>
@@ -390,41 +369,29 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
       {/* Background container */}
       <View style={s.backgroundContainer} />
 
+      {/* Header - matching reflection editor structure */}
+      <View style={s.header}>
+        <Text style={s.title}>{dateString}</Text>
+        <View style={s.modeToggle}>
+          {/* Always show pencil icon for free-form mode */}
+          <TouchableOpacity style={s.modeButton}>
+            <Pencil
+              size={22}
+              color={Colors.alertCoral}
+              fill={Colors.alertCoral}
+              strokeWidth={1.5}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-      >
-        {/* Header */}
-        <View style={s.header}>
-          <View style={s.headerLeft} />
-          <View style={s.headerCenter}>
-            <Text style={s.headerTitle}>Prayer Journal</Text>
-            {(subtaskTitle || playbookTitle) && (
-              <Text style={s.headerSubtitle}>
-                {subtaskTitle || playbookTitle}
-              </Text>
-            )}
-          </View>
-          <View style={s.headerRight} />
-        </View>
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        enabled={Platform.OS === 'ios'}>
 
-        {/* Date section */}
-        <View style={s.dateContainer}>
-          <Text style={s.dateText}>{getCurrentDate()}</Text>
-          {actionStepNumber && actionStepTitle && (
-            <Text style={s.metadataText}>
-              Step {actionStepNumber}: {actionStepTitle}
-            </Text>
-          )}
-        </View>
-
-        <ScrollView
-          style={s.content}
-          contentContainerStyle={s.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={s.contentCard}>
+        <View style={s.contentCard}>
             <ScrollView
               style={s.content}
               contentContainerStyle={s.scrollContent}
@@ -432,28 +399,8 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
             >
               {/* Title section */}
               <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
-                What's on your heart today?
+                {_subtaskTitle || "What's on your heart today?"}
               </Text>
-
-              {/* Metadata section for playbook context */}
-              {playbookTitle && (
-                <View style={s.metadataContainer}>
-                  <View style={s.verticalLine} />
-                  <View>
-                    <Text style={s.fromText}>
-                      FROM PLAYBOOK
-                    </Text>
-                    <Text style={s.metadataText}>
-                      {playbookTitle}
-                    </Text>
-                    {actionStepNumber && actionStepTitle && (
-                      <Text style={s.metadataText}>
-                        Step {actionStepNumber}: {actionStepTitle}
-                      </Text>
-                    )}
-                  </View>
-                </View>
-              )}
 
               {/* Prayer content input */}
               <TextInput
@@ -467,9 +414,61 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
                 textAlignVertical="top"
                 autoFocus
               />
+
+              {/* Metadata section for playbook context */}
+              {(playbookTitle || _subtaskTitle) && (
+                <View style={s.metadataContainer}>
+                  <View style={s.verticalLine} />
+                  <View>
+                    <Text style={s.fromText}>
+                      FROM PLAYBOOK
+                    </Text>
+                    {playbookTitle && (
+                      <Text style={s.metadataText}>
+                        {playbookTitle}
+                      </Text>
+                    )}
+                    {actionStepNumber && actionStepTitle && (
+                      <Text style={s.metadataText}>
+                        Step {actionStepNumber}: {actionStepTitle}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              )}
             </ScrollView>
           </View>
-        </ScrollView>
+        </KeyboardAvoidingView>
+
+        {/* Left Add FAB */}
+        <View style={[s.fabContainer, s.leftFabContainer, s.fabDefaultPosition]}>
+          {showAddMenu && (
+            <View style={s.addMenu}>
+              <TouchableOpacity style={s.addMenuItem}>
+                <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
+                <Text style={s.addMenuText}>Tags</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.addMenuItem}>
+                <Ionicons name="image" size={20} color={Colors.hopeWhite} />
+                <Text style={s.addMenuText}>Photos</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.addMenuItem}>
+                <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
+                <Text style={s.addMenuText}>Camera</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <TouchableOpacity
+            style={[s.fab, s.addFab]}
+            onPress={() => setShowAddMenu(!showAddMenu)}
+          >
+            <Ionicons
+              name={showAddMenu ? 'close' : 'add'}
+              size={24}
+              color="rgba(255, 255, 255, 0.6)"
+            />
+          </TouchableOpacity>
+        </View>
 
         {/* Right Action Buttons */}
         <View style={[s.fabContainer, s.fabDefaultPosition]}>
@@ -487,13 +486,10 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
               style={[
                 s.fab,
                 s.saveFab,
-                (!isFormValid || isLoading) && s.fabDisabled,
+                (!prayerContent.trim() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
               ]}
-              disabled={!isFormValid || isLoading}
-              onPress={() => {
-                console.log('🙏 PrayerLogEditor: SAVE BUTTON PRESSED!');
-                handleSave();
-              }}
+              disabled={!prayerContent.trim() || !hasUserMadeChanges || isLoading}
+              onPress={handleSave}
             >
               {isLoading ? (
                 <ActivityIndicator size={20} color={Colors.hopeWhite} />
@@ -503,7 +499,6 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
     </View>
   );
 };
