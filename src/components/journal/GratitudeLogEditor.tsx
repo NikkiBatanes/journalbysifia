@@ -394,6 +394,15 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   useEffect(() => {
     const loadDraft = async () => {
       try {
+        // Don't load draft if we already have meaningful initialItems (existing data)
+        const hasExistingData = initialItems && initialItems.some((item: string) => item.trim());
+        
+        if (hasExistingData) {
+          console.log('🙏 GratitudeLogEditor: Skipping draft load - existing data present');
+          setIsFirstLoad(false);
+          return;
+        }
+        
         const draft = await AsyncStorage.getItem(draftKey);
         if (draft && isFirstLoad) {
           const parsedDraft = JSON.parse(draft);
@@ -411,7 +420,7 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
     };
 
     loadDraft();
-  }, [draftKey, isFirstLoad]);
+  }, [draftKey, isFirstLoad, initialItems]);
 
   // Auto-save draft when items change
   useEffect(() => {
@@ -473,6 +482,8 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   };
 
   const handleSave = async () => {
+    console.log('🙏 GratitudeLogEditor: handleSave called! Stack trace:', new Error().stack);
+    
     const filledItems = gratitudeItems.filter((item: string) => item.trim());
 
     if (filledItems.length === 0) {
@@ -484,11 +495,23 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
       return;
     }
 
+    console.log('🙏 GratitudeLogEditor: About to clear draft and call onSave');
+    
+    // Clear draft before saving
     await clearDraft();
+    
+    console.log('🙏 GratitudeLogEditor: Calling onSave with data:', {
+      items: gratitudeItems,
+      date: new Date(),
+    });
+    
+    // Call onSave synchronously like ReflectionLogEditor
     onSave({
       items: gratitudeItems,
       date: new Date(),
     });
+    
+    console.log('🙏 GratitudeLogEditor: onSave called successfully');
   };
 
   const isFormValid = gratitudeItems.some(item => item.trim());
@@ -672,7 +695,10 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
                 (!isFormValid || isLoading) && s.fabDisabled,
               ]}
               disabled={!isFormValid || isLoading}
-              onPress={handleSave}
+              onPress={() => {
+                console.log('🙏 GratitudeLogEditor: SAVE BUTTON PRESSED!');
+                handleSave();
+              }}
             >
               {isLoading ? (
                 <ActivityIndicator size={20} color={Colors.hopeWhite} />
