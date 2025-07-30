@@ -415,14 +415,14 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   const getDraftKey = React.useCallback(() => {
     // Get current date for uniqueness
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-    
+
     if (subtaskId && stepId) {
       // Use subtaskId and stepId for maximum uniqueness
       const key = `@gratitude_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
       console.log('[GratitudeLogEditor] Unique draft key with IDs:', key);
       return key;
     }
-    
+
     if (subtaskTitle && playbookTitle) {
       // Fallback to title-based key with date
       const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
@@ -432,7 +432,7 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
       console.log('[GratitudeLogEditor] Playbook draft key with date:', key);
       return key;
     }
-    
+
     // Default key with date
     const key = `@gratitude_editor_draft_${currentDate}`;
     console.log('[GratitudeLogEditor] Default draft key with date:', key);

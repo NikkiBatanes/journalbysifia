@@ -692,7 +692,7 @@ export default function ActionStepsCard({
         visible: prayerModalVisible,
         subtaskTitle: selectedSubtask?.text || '',
         subtaskId: selectedSubtask?.id,
-        selectedSubtask: selectedSubtask
+        selectedSubtask: selectedSubtask,
       })}
       <SmartJournalingPrayerModal
         visible={prayerModalVisible}

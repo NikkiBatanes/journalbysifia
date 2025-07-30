@@ -45,7 +45,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const [preservedActionStepNumber, setPreservedActionStepNumber] = React.useState(actionStepNumber);
   const [preservedActionStepTitle, setPreservedActionStepTitle] = React.useState(actionStepTitle);
   const [preservedPlaybookTitle, setPreservedPlaybookTitle] = React.useState(playbookTitle);
-  
+
   // Track when metadata props change and preserve non-empty values
   React.useEffect(() => {
     if (subtaskTitle && subtaskTitle.trim() !== '') {
@@ -53,21 +53,21 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       console.log('💾 SmartJournalingReflectionModal: Preserved subtaskTitle:', subtaskTitle);
     }
   }, [subtaskTitle]);
-  
+
   React.useEffect(() => {
     if (actionStepNumber !== undefined && actionStepNumber !== null) {
       setPreservedActionStepNumber(actionStepNumber);
       console.log('💾 SmartJournalingReflectionModal: Preserved actionStepNumber:', actionStepNumber);
     }
   }, [actionStepNumber]);
-  
+
   React.useEffect(() => {
     if (actionStepTitle && actionStepTitle.trim() !== '') {
       setPreservedActionStepTitle(actionStepTitle);
       console.log('💾 SmartJournalingReflectionModal: Preserved actionStepTitle:', actionStepTitle);
     }
   }, [actionStepTitle]);
-  
+
   React.useEffect(() => {
     if (playbookTitle && playbookTitle.trim() !== '') {
       setPreservedPlaybookTitle(playbookTitle);
@@ -287,7 +287,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     } catch (error: any) {
       // Clear completion info on error to prevent false completion
       setCompletionInfo(null);
-      
+
       const errorMessage = error?.message || 'Unknown error';
       const errorStack = error?.stack || 'No stack trace';
 
