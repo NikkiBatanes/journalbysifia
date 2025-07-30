@@ -6,7 +6,6 @@ export type JournalType =
   | 'gratitude'
   | 'win'
   | 'timeblock'
-
   | 'financial_budgeting'
   | 'financial_tithing'
   | 'financial_debt'
@@ -58,6 +57,7 @@ export class SmartJournalingNavigation {
       case 'timeblock':
         this.navigateToTimeBlock(subTask, context);
         break;
+
 
 
       case 'financial_budgeting':
@@ -118,21 +118,7 @@ export class SmartJournalingNavigation {
     this.navigation.navigate('Journal' as never);
   }
 
-  /**
-   * Navigate to Todos component with context
-   */
-  private navigateToTodos(subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to Todos for:', subTask.text);
-    this.navigation.navigate('Journal' as never);
-  }
 
-  /**
-   * Navigate to Focus component with context
-   */
-  private navigateToFocus(subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to Focus for:', subTask.text);
-    this.navigation.navigate('Journal' as never);
-  }
 
   /**
    * Navigate to Financial journaling (future implementation)

@@ -9,7 +9,6 @@ export type JournalType =
   | 'gratitude'
   | 'win'
   | 'timeblock'
-
   | 'financial_budgeting'
   | 'financial_tithing'
   | 'financial_debt'
@@ -48,7 +47,6 @@ const JOURNAL_TYPE_PATTERNS: JournalTypePattern[] = [
     keywords: ['schedule', 'time', 'calendar', 'block', 'plan', 'allocate', 'dedicate', 'set aside', 'organize', 'structure'],
     phrases: ['schedule time', 'block time', 'set aside time', 'allocate time', 'plan your time', 'organize your schedule', 'time management', 'dedicate time'],
   },
-
   {
     type: 'financial_budgeting',
     keywords: ['budget', 'money', 'financial', 'expense', 'income', 'spending', 'save', 'savings', 'cost', 'price'],

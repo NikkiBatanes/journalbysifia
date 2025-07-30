@@ -54,8 +54,6 @@ const getJournalTypeIcon = (journalType?: string): string => {
     case 'gratitude': return 'heart';
     case 'win': return 'trophy';
     case 'timeblock': return 'clock';
-    case 'todos': return 'checkbox-marked-circle';
-    case 'focus': return 'target';
     case 'financial_budgeting': return 'currency-usd';
     case 'financial_tithing': return 'gift';
     case 'financial_debt': return 'credit-card-minus';
@@ -71,8 +69,6 @@ const getJournalTypeColor = (journalType?: string): string => {
     case 'gratitude': return '#E74C3C'; // Red/Pink
     case 'win': return '#F39C12'; // Orange/Gold
     case 'timeblock': return '#2ECC71'; // Green
-    case 'todos': return '#1ABC9C'; // Teal
-    case 'focus': return '#E67E22'; // Orange
     case 'financial_budgeting': return '#27AE60'; // Green
     case 'financial_tithing': return '#8E44AD'; // Purple
     case 'financial_debt': return '#C0392B'; // Dark Red
