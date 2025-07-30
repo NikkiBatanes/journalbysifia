@@ -29,6 +29,12 @@ interface PrayerApiEntry {
   type?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'people' | 'devotional' | 'freeform';
   journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
   content: string;
+  metadata?: {
+    tags?: string[];
+    answered?: boolean;
+    answeredDate?: string;
+    [key: string]: any;
+  };
   created_at: string;
   is_answered?: boolean;
   answered_date?: string | null;
@@ -201,13 +207,18 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       try {
         await createPrayerMutation.mutateAsync({
           user_id: user.id,
-          content: prayerContent,
+          content: prayerContent, // Only the main text
           type: selectedType.key as PrayerApiEntry['type'],
           selected_date: dateStr,
           prayer_type: 'journal',
           journal_category: selectedType.key === 'freeform' ? 'personal_prayer' : selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
           status: selectedType.key === 'supplication' ? 'pending' : undefined,
           is_answered: selectedType.key === 'supplication' ? false : undefined,
+          metadata: {
+            // Add any extra info here, e.g. tags, answered, etc. For now, just an example:
+            tags: [],
+            answered: selectedType.key === 'supplication' ? false : undefined,
+          },
         });
 
         // Track prayer creation
@@ -300,7 +311,20 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
         {prayers.map((prayer) => (
           <View key={prayer.id} style={styles.prayerItem}>
             <Markdown style={prayerMarkdownStyles}>
-              {prayer.content}
+              {(() => {
+                // Only display the 'text' field if content is JSON with a 'text' property
+                if (typeof prayer.content === 'string') {
+                  try {
+                    const parsed = JSON.parse(prayer.content);
+                    if (parsed && typeof parsed === 'object' && parsed.text) {
+                      return parsed.text;
+                    }
+                  } catch (e) {
+                    // Not JSON, fall through
+                  }
+                }
+                return prayer.content;
+              })()}
             </Markdown>
 
             {/* Show status for supplication prayers */}

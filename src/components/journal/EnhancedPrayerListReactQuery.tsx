@@ -88,9 +88,11 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         prayer_type: 'people',
         person_name: name.trim(),
         content: prayer.trim(),
-        notes: notes.trim() || undefined,
-        is_prayer_request: activeTab === 'requests',
-        requested_by: currentRequestedBy,
+        metadata: {
+          notes: notes.trim() || undefined,
+          is_prayer_request: activeTab === 'requests',
+          requested_by: currentRequestedBy,
+        },
         selected_date: dateStr,
       });
 

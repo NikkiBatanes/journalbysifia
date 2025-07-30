@@ -13,6 +13,8 @@ interface GratitudeLogEditorProps {
   onCancel: () => void;
   initialItems?: string[];
   subtaskTitle?: string;
+  subtaskId?: string;
+  stepId?: string;
   playbookTitle?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
@@ -370,6 +372,8 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   onCancel: _onCancel,
   initialItems = ['', '', ''],
   subtaskTitle,
+  subtaskId,
+  stepId,
   playbookTitle,
   actionStepNumber,
   actionStepTitle,
@@ -407,8 +411,33 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
   // Refs for inputs
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
-  // Draft key for auto-save
-  const draftKey = `gratitude_draft_${new Date().toISOString().split('T')[0]}`;
+  // Helper function to get unique draft key for each gratitude
+  const getDraftKey = React.useCallback(() => {
+    // Get current date for uniqueness
+    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    if (subtaskId && stepId) {
+      // Use subtaskId and stepId for maximum uniqueness
+      const key = `@gratitude_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
+      console.log('[GratitudeLogEditor] Unique draft key with IDs:', key);
+      return key;
+    }
+    
+    if (subtaskTitle && playbookTitle) {
+      // Fallback to title-based key with date
+      const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
+      const stepNum = actionStepNumber || 0;
+      const taskTitle = subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+      const key = `@gratitude_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
+      console.log('[GratitudeLogEditor] Playbook draft key with date:', key);
+      return key;
+    }
+    
+    // Default key with date
+    const key = `@gratitude_editor_draft_${currentDate}`;
+    console.log('[GratitudeLogEditor] Default draft key with date:', key);
+    return key;
+  }, [subtaskId, stepId, subtaskTitle, playbookTitle, actionStepNumber]);
 
   // Load draft on component mount
   useEffect(() => {
@@ -423,6 +452,7 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
           return;
         }
 
+        const draftKey = getDraftKey();
         const draft = await AsyncStorage.getItem(draftKey);
         if (draft && isFirstLoad) {
           const parsedDraft = JSON.parse(draft);
@@ -442,14 +472,14 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
     };
 
     loadDraft();
-  }, [draftKey, isFirstLoad, initialItems]);
+  }, [getDraftKey, isFirstLoad, initialItems]);
 
   // Update gratitude items when initialItems changes (for React Query data loading)
   useEffect(() => {
     if (initialItems && initialItems.length > 0) {
       const hasExistingData = initialItems.some((item: string) => item.trim());
       if (hasExistingData && !hasUserMadeChanges) {
-        console.log('🙏 GratitudeLogEditor: Updating items with new initialItems:', initialItems);
+        console.log(' GratitudeLogEditor: Updating items with new initialItems:', initialItems);
         const numberedItems = addNumbersToItems(initialItems);
         setGratitudeItems(numberedItems);
       }
@@ -463,6 +493,7 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
         try {
           // Save clean items without numbers to draft
           const cleanItems = gratitudeItems.map(item => item.replace(/^\d+\. /, ''));
+          const draftKey = getDraftKey();
           await AsyncStorage.setItem(draftKey, JSON.stringify({ items: cleanItems }));
         } catch (error) {
           console.error('Error saving gratitude draft:', error);
@@ -470,11 +501,12 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
       };
       saveDraft();
     }
-  }, [gratitudeItems, draftKey, isFirstLoad, hasUserMadeChanges]);
+  }, [gratitudeItems, getDraftKey, isFirstLoad, hasUserMadeChanges]);
 
   // Clear draft on successful save
   const clearDraft = async () => {
     try {
+      const draftKey = getDraftKey();
       await AsyncStorage.removeItem(draftKey);
     } catch (error) {
       console.error('Error clearing gratitude draft:', error);

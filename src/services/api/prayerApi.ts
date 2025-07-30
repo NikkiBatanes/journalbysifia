@@ -8,6 +8,7 @@ export interface PrayerApiEntry {
   prayer_type: 'journal' | 'people' | 'devotional';
   journal_category?: 'adoration' | 'confession' | 'thanksgiving' | 'supplication' | 'personal_prayer';
   content: string;
+  metadata?: Record<string, any>;
   selected_date: string;
   created_at: string;
   updated_at: string;
@@ -189,6 +190,7 @@ export class PrayerApi {
     const dbPrayer: any = {
       user_id: prayer.user_id,
       content: prayer.content,
+      metadata: prayer.metadata ?? null,
       selected_date: prayer.selected_date,
       prayer_type: prayer.prayer_type || (prayer.type === 'people' ? 'people' :
                    prayer.type === 'devotional' ? 'devotional' : 'journal'),
@@ -253,6 +255,7 @@ export class PrayerApi {
 
     // Map API fields to database fields
     if (updates.content !== undefined) {dbUpdates.content = updates.content;}
+    if (updates.metadata !== undefined) {dbUpdates.metadata = updates.metadata;}
     if (updates.selected_date !== undefined) {dbUpdates.selected_date = updates.selected_date;}
     if (updates.status !== undefined) {dbUpdates.status = updates.status;}
     if (updates.answered_date !== undefined) {dbUpdates.answered_date = updates.answered_date;}

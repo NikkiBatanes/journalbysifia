@@ -300,6 +300,9 @@ export default function ActionStepsCard({
           }
         }
 
+        console.log('🔍 ActionStepsCard: Opening prayer modal with subTask:', subTask);
+        console.log('🔍 ActionStepsCard: subTask.text:', subTask?.text);
+        console.log('🔍 ActionStepsCard: subTask.id:', subTask?.id);
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
         setPrayerModalVisible(true);
@@ -684,6 +687,13 @@ export default function ActionStepsCard({
       />
 
       {/* Smart Journaling Prayer Modal */}
+      {/* Debug: Log props being passed to prayer modal */}
+      {prayerModalVisible && console.log('🔍 ActionStepsCard: Prayer modal props:', {
+        visible: prayerModalVisible,
+        subtaskTitle: selectedSubtask?.text || '',
+        subtaskId: selectedSubtask?.id,
+        selectedSubtask: selectedSubtask
+      })}
       <SmartJournalingPrayerModal
         visible={prayerModalVisible}
         subtaskTitle={selectedSubtask?.text || ''}

@@ -13,6 +13,8 @@ interface PrayerLogEditorProps {
   onCancel: () => void;
   initialContent?: string;
   subtaskTitle?: string;
+  subtaskId?: string;
+  stepId?: string;
   playbookTitle?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
@@ -271,6 +273,8 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
   onCancel: _onCancel,
   initialContent = '',
   subtaskTitle: _subtaskTitle,
+  subtaskId,
+  stepId,
   playbookTitle,
   actionStepNumber,
   actionStepTitle,
@@ -278,65 +282,168 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
   styles,
   dateString,
 }) => {
-  const s = { ...defaultStyles, ...styles };
+  const s = { 
+    ...defaultStyles, 
+    ...styles,
+    // Draft notification styles
+    draftNotification: {
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: [{ translateX: -100 }, { translateY: -25 }],
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 25,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      width: 200,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
+      elevation: 5,
+    },
+    draftIcon: {
+      marginRight: 8,
+    },
+    draftText: {
+      color: Colors.hopeWhite,
+      fontSize: 14,
+      fontWeight: '500',
+    },
+  };
   const inputRef = useRef<TextInput>(null);
+
+  // Debug logging
+  console.log('🙏 PrayerLogEditor: _subtaskTitle value:', _subtaskTitle);
+  console.log('🙏 PrayerLogEditor: playbookTitle:', playbookTitle);
+  console.log('🙏 PrayerLogEditor: actionStepTitle:', actionStepTitle);
 
   // State management
   const [prayerContent, setPrayerContent] = React.useState(initialContent);
   const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
+  const [showDraftNotification, setShowDraftNotification] = React.useState(false);
 
-  // Draft key for auto-saving
-  const draftKey = 'prayer_log_draft';
+  // Check if this is an edit session (has existing content)
+  const isEditing = !!(initialContent && initialContent.trim());
 
-  // Load draft on component mount
+  // Helper function to get unique draft key for each prayer
+  const getDraftKey = React.useCallback(() => {
+    // Get current date for uniqueness
+    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    if (subtaskId && stepId) {
+      // Use subtaskId and stepId for maximum uniqueness
+      const key = `@prayer_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
+      console.log('[PrayerLogEditor] Unique draft key with IDs:', key);
+      return key;
+    }
+    
+    if (_subtaskTitle && playbookTitle) {
+      // Fallback to title-based key with date
+      const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
+      const stepNum = actionStepNumber || 0;
+      const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+      const key = `@prayer_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
+      console.log('[PrayerLogEditor] Playbook draft key with date:', key);
+      return key;
+    }
+    
+    // Default key with date
+    const key = `@prayer_editor_draft_${currentDate}`;
+    console.log('[PrayerLogEditor] Default draft key with date:', key);
+    return key;
+  }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber]);
+
+  // Load draft when component mounts (only for new entries, not when editing)
   useEffect(() => {
-    const loadDraft = async () => {
-      try {
-        const draft = await AsyncStorage.getItem(draftKey);
-        const hasExistingData = initialContent && initialContent.trim();
-
-        if (draft && !hasExistingData && !hasUserMadeChanges) {
-          setPrayerContent(draft);
-        }
-      } catch (error) {
-        console.error('Error loading prayer draft:', error);
-      } finally {
-        setIsFirstLoad(false);
-      }
-    };
-
-    loadDraft();
-  }, [initialContent, hasUserMadeChanges]);
-
-  // Auto-save draft when content changes
-  useEffect(() => {
-    if (!isFirstLoad && hasUserMadeChanges) {
-      const saveDraft = async () => {
+    // Only load drafts when creating new entries, not when editing existing ones
+    if (isFirstLoad && !isEditing) {
+      const loadDraft = async () => {
         try {
-          if (prayerContent.trim()) {
-            await AsyncStorage.setItem(draftKey, prayerContent);
-          } else {
-            await AsyncStorage.removeItem(draftKey);
+          const draftKey = getDraftKey();
+          const draft = await AsyncStorage.getItem(draftKey);
+          if (draft) {
+            const draftData = JSON.parse(draft);
+            const { content } = draftData;
+            
+            // Only load draft if there's actual meaningful content
+            if (content && content.trim()) {
+              console.log('[PrayerLogEditor] Loading draft:', content.substring(0, 50) + '...');
+              
+              // Set the prayer content to the draft
+              setPrayerContent(content);
+              
+              // Update initial state to the loaded draft so changes are tracked from this point
+              // This prevents the draft from being immediately overwritten
+              
+              // Only show notification when draft is actually loaded (not in edit mode)
+              if (!isEditing) {
+                setTimeout(() => {
+                  setShowDraftNotification(true);
+                  setTimeout(() => {
+                    setShowDraftNotification(false);
+                  }, 3000);
+                }, 100);
+              }
+              
+              console.log('[PrayerLogEditor] Draft loaded and notification shown');
+            }
           }
         } catch (error) {
-          console.error('Error saving prayer draft:', error);
+          console.error('Error loading draft:', error);
         }
       };
-
-      const timeoutId = setTimeout(saveDraft, 500);
-      return () => clearTimeout(timeoutId);
+      
+      loadDraft();
     }
-  }, [prayerContent, draftKey, isFirstLoad, hasUserMadeChanges]);
+    setIsFirstLoad(false);
+  }, [getDraftKey, isEditing, isFirstLoad]);
 
-  const clearDraft = async () => {
+  // Helper function to save draft
+  const saveDraftHelper = async () => {
     try {
-      await AsyncStorage.removeItem(draftKey);
+      // Only save draft if there's actual meaningful content (not just whitespace)
+      if (prayerContent && prayerContent.trim()) {
+        const draftData = {
+          content: prayerContent,
+          timestamp: new Date().toISOString(),
+          subtaskTitle: _subtaskTitle,
+          playbookTitle: playbookTitle,
+          actionStepNumber: actionStepNumber,
+        };
+        
+        console.log('[PrayerLogEditor] Saving draft:', draftData.content.substring(0, 50) + '...');
+        await AsyncStorage.setItem(
+          getDraftKey(),
+          JSON.stringify(draftData)
+        );
+      }
     } catch (error) {
-      console.error('Error clearing prayer draft:', error);
+      console.error('Error saving draft:', error);
     }
   };
+
+  // Clear draft when component unmounts (cleanup)
+  useEffect(() => {
+    return () => {
+      // Only clear draft if the entry was saved (not cancelled)
+      // This is handled in the save/cancel functions
+    };
+  }, []);
+
+  // Auto-save draft when content changes (debounced)
+  useEffect(() => {
+    if (!isFirstLoad && hasUserMadeChanges && !isEditing) {
+      const timeoutId = setTimeout(saveDraftHelper, 1000); // 1 second debounce
+      return () => clearTimeout(timeoutId);
+    }
+  }, [prayerContent, isFirstLoad, hasUserMadeChanges, isEditing]);
 
   const handleContentChange = (text: string) => {
     setPrayerContent(text);
@@ -345,7 +452,13 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
 
   const handleSave = async () => {
     try {
-      await clearDraft();
+      // Clear any existing draft since we're saving the entry
+      try {
+        await AsyncStorage.removeItem(getDraftKey());
+      } catch (error) {
+        console.error('Error clearing draft:', error);
+      }
+      
       onSave({
         content: prayerContent.trim(),
         date: new Date(),
@@ -356,9 +469,20 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
     }
   };
 
-  const onCancel = () => {
-    console.log('🙏 PrayerLogEditor: onCancel called');
-    _onCancel();
+  const onCancel = async () => {
+    try {
+      // Save draft before canceling (only if user made changes)
+      if (hasUserMadeChanges && !isEditing) {
+        await saveDraftHelper();
+      }
+      
+      console.log('🙏 PrayerLogEditor: onCancel called');
+      _onCancel();
+    } catch (error) {
+      console.error('Error saving draft before cancel:', error);
+      // Still proceed with cancel even if draft save fails
+      _onCancel();
+    }
   };
 
   // Main render - exactly matching reflection editor layout
@@ -385,6 +509,14 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
         </View>
       </View>
 
+      {/* Draft notification */}
+      {showDraftNotification && (
+        <View style={s.draftNotification}>
+          <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
+          <Text style={s.draftText}>Draft Restored</Text>
+        </View>
+      )}
+
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -399,7 +531,7 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
             >
               {/* Title section */}
               <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
-                {_subtaskTitle || "What's on your heart today?"}
+                {_subtaskTitle || ""}
               </Text>
 
               {/* Prayer content input */}
@@ -412,7 +544,6 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
                 onChangeText={handleContentChange}
                 multiline
                 textAlignVertical="top"
-                autoFocus
               />
 
               {/* Metadata section for playbook context */}

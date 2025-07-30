@@ -318,9 +318,9 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       // Show success modal for all saves (both new entries and edits)
       setShowSuccessModal(true);
 
-      // Store completion info for later use
+      // Store completion info for later use - only AFTER successful save
       if (stepId && subtaskId) {
-        // console.log('🙏 SmartJournalingGratitudeModal: Setting completion info for step completion');
+        console.log('🙏 SmartJournalingGratitudeModal: Setting completion info for step completion after successful save');
         setCompletionInfo({ stepId, subtaskId });
       }
 
@@ -331,6 +331,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
     } catch (error) {
       console.error('🙏 SmartJournalingGratitudeModal: Error saving gratitude entry:', error);
+      // Clear completion info on error to prevent false completion
+      setCompletionInfo(null);
       Alert.alert(
         'Error',
         'Failed to save gratitude entry. Please try again.',
@@ -399,6 +401,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
               : undefined
             }
             subtaskTitle={subtaskTitle}
+            subtaskId={subtaskId}
+            stepId={stepId}
             playbookTitle={playbookTitle}
             actionStepNumber={actionStepNumber}
             actionStepTitle={actionStepTitle}

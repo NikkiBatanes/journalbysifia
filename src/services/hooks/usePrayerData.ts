@@ -146,7 +146,7 @@ export const useCreatePrayer = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>) =>
+    mutationFn: (prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'> & { metadata?: Record<string, any> }) =>
       PrayerApi.createPrayer(prayer),
     onMutate: async (newPrayer) => {
       // Cancel any outgoing refetches
@@ -256,7 +256,7 @@ export const useUpdatePrayer = () => {
       _dateStr,
     }: {
       id: string;
-      updates: Partial<Omit<PrayerApiEntry, 'id' | 'user_id' | 'created_at'>>;
+      updates: Partial<Omit<PrayerApiEntry, 'id' | 'user_id' | 'created_at'> & { metadata?: Record<string, any> }>;
       _userId: string;
       _dateStr: string;
     }) => PrayerApi.updatePrayer(id, updates),

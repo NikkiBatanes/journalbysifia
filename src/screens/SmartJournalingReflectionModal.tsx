@@ -40,6 +40,40 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   onSave,
   onCancel,
 }) => {
+  // Store the initial metadata to preserve it even if props become empty after save
+  const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
+  const [preservedActionStepNumber, setPreservedActionStepNumber] = React.useState(actionStepNumber);
+  const [preservedActionStepTitle, setPreservedActionStepTitle] = React.useState(actionStepTitle);
+  const [preservedPlaybookTitle, setPreservedPlaybookTitle] = React.useState(playbookTitle);
+  
+  // Track when metadata props change and preserve non-empty values
+  React.useEffect(() => {
+    if (subtaskTitle && subtaskTitle.trim() !== '') {
+      setPreservedSubtaskTitle(subtaskTitle);
+      console.log('💾 SmartJournalingReflectionModal: Preserved subtaskTitle:', subtaskTitle);
+    }
+  }, [subtaskTitle]);
+  
+  React.useEffect(() => {
+    if (actionStepNumber !== undefined && actionStepNumber !== null) {
+      setPreservedActionStepNumber(actionStepNumber);
+      console.log('💾 SmartJournalingReflectionModal: Preserved actionStepNumber:', actionStepNumber);
+    }
+  }, [actionStepNumber]);
+  
+  React.useEffect(() => {
+    if (actionStepTitle && actionStepTitle.trim() !== '') {
+      setPreservedActionStepTitle(actionStepTitle);
+      console.log('💾 SmartJournalingReflectionModal: Preserved actionStepTitle:', actionStepTitle);
+    }
+  }, [actionStepTitle]);
+  
+  React.useEffect(() => {
+    if (playbookTitle && playbookTitle.trim() !== '') {
+      setPreservedPlaybookTitle(playbookTitle);
+      console.log('💾 SmartJournalingReflectionModal: Preserved playbookTitle:', playbookTitle);
+    }
+  }, [playbookTitle]);
 
   const { user } = useAuth();
   const { handleToggleStep } = useActionSteps();
@@ -231,9 +265,13 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       // Note: React Query mutations should handle this automatically, but we're adding manual invalidation
       // to ensure the Daily UI and Reflection Log show the new reflection immediately
 
+      // Show success modal
+      setShowSuccessModal(true);
+
       // Only set completion info for new reflections, not for updates
+      // Only set completion info AFTER successful save
       if (!existingReflection && stepId && subtaskId) {
-        console.log('💭 SmartJournalingReflectionModal: Setting completion info for new reflection', {
+        console.log('💭 SmartJournalingReflectionModal: Setting completion info for new reflection after successful save', {
           stepId,
           subtaskId,
         });
@@ -242,14 +280,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         console.log('💭 SmartJournalingReflectionModal: Skipping completion info for existing reflection or missing IDs');
       }
 
-      // Show success modal
-      setShowSuccessModal(true);
-
       // Call parent onSave callback
       onSave(reflectionData);
 
       console.log('✅ SmartJournalingReflectionModal: Reflection saved successfully - should appear in UI now');
     } catch (error: any) {
+      // Clear completion info on error to prevent false completion
+      setCompletionInfo(null);
+      
       const errorMessage = error?.message || 'Unknown error';
       const errorStack = error?.stack || 'No stack trace';
 
@@ -320,7 +358,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               onSave={saveReflection}
               onCancel={handleCancel}
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log
-              initialTitle={subtaskTitle}
+              initialTitle={preservedSubtaskTitle}
               lockTitle={true}
               source="playbook"
               initialMode="free-form"
@@ -332,21 +370,21 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 const todayStringWithYear = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
                 return year === new Date().getFullYear() ? todayString : todayStringWithYear;
               })()}
-              playbookTitle={playbookTitle}
+              playbookTitle={preservedPlaybookTitle}
               dayNumber={(() => {
                 console.log('🔍 SmartJournalingReflectionModal: Step info debug:', {
                   existingReflection_day_number: existingReflection?.day_number,
                   existingReflection_day_title: existingReflection?.day_title,
-                  actionStepNumber,
-                  actionStepTitle,
+                  preservedActionStepNumber,
+                  preservedActionStepTitle,
                   existingReflectionKeys: existingReflection ? Object.keys(existingReflection) : 'no existing reflection',
                 });
-                return existingReflection?.day_number ?? actionStepNumber;
+                return existingReflection?.day_number ?? preservedActionStepNumber;
               })()}
-              dayTitle={existingReflection?.day_title ?? actionStepTitle}
+              dayTitle={existingReflection?.day_title ?? preservedActionStepTitle}
               subtaskId={subtaskId}
               initialEntry={existingReflection ? {
-                title: existingReflection.title || subtaskTitle,
+                title: existingReflection.title || preservedSubtaskTitle,
                 content: existingReflection.content || '',
                 tags: existingReflection.tags || [],
                 type: 'free-form',
