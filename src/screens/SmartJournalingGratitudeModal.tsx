@@ -315,10 +315,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       });
       // console.log('🙏 SmartJournalingGratitudeModal: Queries invalidated');
 
-      // Show success modal only during edit sessions (when user clicks Edit then Done)
-      if (isEditSession) {
-        setShowSuccessModal(true);
-      }
+      // Show success modal for all saves (both new entries and edits)
+      setShowSuccessModal(true);
 
       // Store completion info for later use
       if (stepId && subtaskId) {
@@ -326,15 +324,10 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         setCompletionInfo({ stepId, subtaskId });
       }
 
-      // Call onSave with delay only for edit sessions to allow success modal to render
-      if (isEditSession) {
-        setTimeout(() => {
-          onSave(result);
-        }, 100);
-      } else {
-        // Call immediately for initial saves
+      // Call onSave with delay to allow success modal to render
+      setTimeout(() => {
         onSave(result);
-      }
+      }, 100);
 
     } catch (error) {
       console.error('🙏 SmartJournalingGratitudeModal: Error saving gratitude entry:', error);
@@ -414,13 +407,13 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           />
         </KeyboardAvoidingView>
 
-        {/* Success Modal - Shows only during edit sessions */}
+        {/* Success Modal - Shows for all saves */}
         <SuccessModal
           visible={showSuccessModal}
           onDismiss={handleSuccessModalClose}
           onEdit={handleEdit}
-          title="Gratitude Updated!"
-          message="Your gratitude entry has been updated successfully."
+          title={isEditSession ? "Gratitude Updated!" : "Gratitude Saved!"}
+          message={isEditSession ? "Your gratitude entry has been updated successfully." : "Your gratitude entry has been saved successfully."}
           animationDuration={300}
         />
       </Modal>
