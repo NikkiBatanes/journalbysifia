@@ -9,8 +9,7 @@ export type JournalType =
   | 'gratitude'
   | 'win'
   | 'timeblock'
-  | 'todos'
-  | 'focus'
+
   | 'financial_budgeting'
   | 'financial_tithing'
   | 'financial_debt'
@@ -49,16 +48,7 @@ const JOURNAL_TYPE_PATTERNS: JournalTypePattern[] = [
     keywords: ['schedule', 'time', 'calendar', 'block', 'plan', 'allocate', 'dedicate', 'set aside', 'organize', 'structure'],
     phrases: ['schedule time', 'block time', 'set aside time', 'allocate time', 'plan your time', 'organize your schedule', 'time management', 'dedicate time'],
   },
-  {
-    type: 'todos',
-    keywords: ['task', 'todo', 'action', 'step', 'complete', 'finish', 'do', 'accomplish', 'execute', 'implement'],
-    phrases: ['create a list', 'make a list', 'list of tasks', 'action items', 'to-do list', 'task list', 'things to do', 'steps to take'],
-  },
-  {
-    type: 'focus',
-    keywords: ['focus', 'concentrate', 'attention', 'priority', 'important', 'essential', 'key', 'main', 'primary', 'central'],
-    phrases: ['focus on', 'concentrate on', 'pay attention to', 'prioritize', 'identify key', 'determine what\'s important', 'focus your attention'],
-  },
+
   {
     type: 'financial_budgeting',
     keywords: ['budget', 'money', 'financial', 'expense', 'income', 'spending', 'save', 'savings', 'cost', 'price'],
