@@ -260,20 +260,19 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
               day: 'numeric',
             })}
           />
+
+          <SuccessModal
+            visible={showSuccessModal}
+            onDismiss={handleSuccessModalClose}
+            title={isEditSession ? 'Time Block Updated!' : 'Time Block Created!'}
+            message={isEditSession
+              ? 'Your time block has been successfully updated.'
+              : 'Your time block has been successfully created and added to your schedule.'
+            }
+            buttonText="Continue"
+          />
         </KeyboardAvoidingView>
       </Modal>
-
-      {/* Success Modal */}
-      <SuccessModal
-        visible={showSuccessModal}
-        onDismiss={handleSuccessModalClose}
-        title={isEditSession ? 'Time Block Updated!' : 'Time Block Created!'}
-        message={isEditSession
-          ? 'Your time block has been successfully updated.'
-          : 'Your time block has been successfully created and added to your schedule.'
-        }
-        buttonText="Continue"
-      />
     </>
   );
 };
