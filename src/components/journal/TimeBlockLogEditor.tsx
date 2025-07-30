@@ -29,6 +29,16 @@ interface TimeBlockLogEditorProps {
   isLoading?: boolean;
   styles?: any;
   dateString?: string;
+  // Existing time block data for editing
+  existingTimeBlock?: {
+    title?: string;
+    start_time?: string;
+    end_time?: string;
+    category?: string;
+    description?: string;
+    location?: string;
+    all_day?: boolean;
+  };
 }
 
 const CATEGORIES = [
@@ -423,22 +433,31 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   isLoading = false,
   styles,
   dateString,
+  existingTimeBlock,
 }) => {
   const s = { ...defaultStyles, ...styles };
   const inputRef = useRef<TextInput>(null);
 
   // State management
-  const [title, setTitle] = React.useState(_subtaskTitle || '');
-  const [startTime, setStartTime] = React.useState(new Date());
+  const [title, setTitle] = React.useState(existingTimeBlock?.title || _subtaskTitle || '');
+  const [startTime, setStartTime] = React.useState(() => {
+    if (existingTimeBlock?.start_time) {
+      return new Date(existingTimeBlock.start_time);
+    }
+    return new Date();
+  });
   const [endTime, setEndTime] = React.useState(() => {
+    if (existingTimeBlock?.end_time) {
+      return new Date(existingTimeBlock.end_time);
+    }
     const end = new Date();
     end.setHours(end.getHours() + 1);
     return end;
   });
-  const [category, setCategory] = React.useState('Others');
-  const [notes, setNotes] = React.useState('');
-  const [location, setLocation] = React.useState('');
-  const [isAllDay, setIsAllDay] = React.useState(false);
+  const [category, setCategory] = React.useState(existingTimeBlock?.category || 'Others');
+  const [notes, setNotes] = React.useState(existingTimeBlock?.description || '');
+  const [location, setLocation] = React.useState(existingTimeBlock?.location || '');
+  const [isAllDay, setIsAllDay] = React.useState(existingTimeBlock?.all_day || false);
   const [showStartTimePicker, setShowStartTimePicker] = React.useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = React.useState(false);
   const [showAddMenu, setShowAddMenu] = React.useState(false);

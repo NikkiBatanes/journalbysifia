@@ -253,6 +253,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             actionStepNumber={preservedActionStepNumber}
             actionStepTitle={preservedActionStepTitle}
             isLoading={isLoading}
+            existingTimeBlock={existingTimeBlock}
             dateString={new Date().toLocaleDateString('en-US', {
               weekday: 'long',
               year: 'numeric',
