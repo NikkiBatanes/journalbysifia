@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, Keyboard, TouchableOpacity, Text } from 'react-native';
+import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert, Keyboard } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
 import GratitudeLogEditor from '../components/journal/GratitudeLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
@@ -55,14 +55,14 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
-  
+
   // Fetch existing gratitude data for this subtask
   const dateStr = new Date().toISOString().split('T')[0];
   const { data: existingGratitudeEntries = [] } = useQuery({
     queryKey: ['gratitude', user?.id, dateStr, subtaskId],
     queryFn: async () => {
-      if (!user?.id || !subtaskId) return [];
-      
+      if (!user?.id || !subtaskId) {return [];}
+
       // Fetch gratitude entries for today that match this subtask
       const entries = await JournalApi.getGratitudeEntries(user.id, dateStr);
       return entries.filter((entry: any) => {
@@ -70,7 +70,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         if (entry.metadata?.subtask_id) {
           return entry.metadata.subtask_id === subtaskId;
         }
-        
+
         // Fallback to checking in content for backward compatibility (old format)
         try {
           const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
@@ -84,10 +84,10 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     enabled: !!user?.id && !!subtaskId && visible,
     staleTime: 30000, // 30 seconds
   });
-  
+
   // Get the most recent gratitude entry for this subtask
   const currentGratitudeEntry = existingGratitudeEntries[0] || existingGratitude;
-  
+
   // Debug: Track showSuccessModal state changes
   // useEffect(() => {
   //   console.log('🙏 SmartJournalingGratitudeModal: showSuccessModal changed to:', showSuccessModal);
@@ -122,19 +122,19 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       // Modal is opening (transition from false to true)
       console.log('🙏 SmartJournalingGratitudeModal: Modal opening, clearing any existing completion info');
       setCompletionInfo(null);
-      
+
       // Determine if this is an edit session (has existing data)
       const hasExistingData = currentGratitudeEntry?.content && (() => {
         try {
-          const parsedContent = typeof currentGratitudeEntry.content === 'string' 
-            ? JSON.parse(currentGratitudeEntry.content) 
+          const parsedContent = typeof currentGratitudeEntry.content === 'string'
+            ? JSON.parse(currentGratitudeEntry.content)
             : currentGratitudeEntry.content;
           return parsedContent.items && parsedContent.items.some((item: string) => item.trim());
         } catch (error) {
           return false;
         }
       })();
-      
+
       setIsEditSession(!!hasExistingData);
       console.log('🙏 SmartJournalingGratitudeModal: Edit session:', !!hasExistingData);
     }
@@ -160,7 +160,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           stepId: completionStepId,
           subtaskId: completionSubtaskId,
         });
-        
+
         // Check if the step/subtask is already completed before toggling
         const step = actionSteps.find(s => s.id === completionStepId);
         if (step) {
@@ -183,7 +183,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             }
           }
         }
-        
+
         setCompletionInfo(null);
       }, 1000);
 
@@ -194,7 +194,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   // React Query mutations
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
-  
+
   // Debug: Track mutation states
   useEffect(() => {
     console.log('🙏 SmartJournalingGratitudeModal: Mutation states changed:', {
@@ -220,7 +220,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     date: Date;
   }) => {
     // console.log('🙏 SmartJournalingGratitudeModal: saveGratitude called! Stack trace:', new Error().stack);
-    
+
     try {
       if (!user?.id) {
         Alert.alert('Error', 'User not authenticated');
@@ -369,15 +369,15 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         >
           {/* TEST BUTTON - Remove after debugging */}
 
-          
+
           <GratitudeLogEditor
             onSave={saveGratitude}
             onCancel={onCancel}
-            initialItems={currentGratitudeEntry?.content ? 
+            initialItems={currentGratitudeEntry?.content ?
               (() => {
                 try {
-                  const parsedContent = typeof currentGratitudeEntry.content === 'string' 
-                    ? JSON.parse(currentGratitudeEntry.content) 
+                  const parsedContent = typeof currentGratitudeEntry.content === 'string'
+                    ? JSON.parse(currentGratitudeEntry.content)
                     : currentGratitudeEntry.content;
                   return parsedContent.items || [];
                 } catch (error) {
@@ -395,7 +395,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
             styles={reflectionLogStyles}
           />
         </KeyboardAvoidingView>
-        
+
         {/* Success Modal - Shows only during edit sessions */}
         <SuccessModal
           visible={showSuccessModal}
