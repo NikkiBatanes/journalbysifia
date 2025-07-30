@@ -12,9 +12,9 @@ export const queryKeys = {
     all: ['journal'] as const,
     entries: (userId: string, date: string) => ['journal', 'entries', userId, date] as const,
     gratitude: (userId: string, date: string) => ['journal', 'gratitude', userId, date] as const,
-    todos: (userId: string, date: string) => ['journal', 'todos', userId, date] as const,
+
     timeBlocks: (userId: string, date: string) => ['journal', 'timeBlocks', userId, date] as const,
-    todaysFocus: (userId: string, date: string) => ['journal', 'focus', userId, date] as const,
+
     reflections: (userId: string, date: string) => ['journal', 'reflections', userId, date] as const,
     todayWin: (userId: string, date: string) => ['journal', 'todayWin', userId, date] as const,
     lookingForward: (userId: string, date: string) => ['journal', 'lookingForward', userId, date] as const,

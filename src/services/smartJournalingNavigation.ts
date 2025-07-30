@@ -6,8 +6,7 @@ export type JournalType =
   | 'gratitude'
   | 'win'
   | 'timeblock'
-  | 'todos'
-  | 'focus'
+
   | 'financial_budgeting'
   | 'financial_tithing'
   | 'financial_debt'
@@ -60,13 +59,6 @@ export class SmartJournalingNavigation {
         this.navigateToTimeBlock(subTask, context);
         break;
 
-      case 'todos':
-        this.navigateToTodos(subTask, context);
-        break;
-
-      case 'focus':
-        this.navigateToFocus(subTask, context);
-        break;
 
       case 'financial_budgeting':
       case 'financial_tithing':
