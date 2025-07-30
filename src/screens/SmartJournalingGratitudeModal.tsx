@@ -56,6 +56,37 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
 
+  // Preserve initial metadata to prevent loss after parent state clears
+  const [preservedSubtaskTitle, setPreservedSubtaskTitle] = useState(subtaskTitle);
+  const [preservedActionStepNumber, setPreservedActionStepNumber] = useState(actionStepNumber);
+  const [preservedActionStepTitle, setPreservedActionStepTitle] = useState(actionStepTitle);
+  const [preservedPlaybookTitle, setPreservedPlaybookTitle] = useState(playbookTitle);
+
+  // Update preserved metadata when receiving non-empty values
+  useEffect(() => {
+    if (subtaskTitle && subtaskTitle.trim() !== '') {
+      setPreservedSubtaskTitle(subtaskTitle);
+    }
+  }, [subtaskTitle]);
+
+  useEffect(() => {
+    if (actionStepNumber !== undefined && actionStepNumber > 0) {
+      setPreservedActionStepNumber(actionStepNumber);
+    }
+  }, [actionStepNumber]);
+
+  useEffect(() => {
+    if (actionStepTitle && actionStepTitle.trim() !== '') {
+      setPreservedActionStepTitle(actionStepTitle);
+    }
+  }, [actionStepTitle]);
+
+  useEffect(() => {
+    if (playbookTitle && playbookTitle.trim() !== '') {
+      setPreservedPlaybookTitle(playbookTitle);
+    }
+  }, [playbookTitle]);
+
   // Fetch existing gratitude data for this subtask
   const dateStr = new Date().toISOString().split('T')[0];
   const { data: existingGratitudeEntries = [] } = useQuery({
@@ -279,8 +310,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           subtask_id: subtaskId || null,
           step_id: stepId || null,
           playbook_id: playbookId || null,
-          step: 1, // Add step metadata like reflection and prayer
-          subtask: subtaskTitle, // Add subtask metadata for consistency
         },
       };
 
@@ -402,12 +431,12 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
               })()
               : undefined
             }
-            subtaskTitle={subtaskTitle}
+            subtaskTitle={preservedSubtaskTitle}
             subtaskId={subtaskId}
             stepId={stepId}
-            playbookTitle={playbookTitle}
-            actionStepNumber={actionStepNumber}
-            actionStepTitle={actionStepTitle}
+            playbookTitle={preservedPlaybookTitle}
+            actionStepNumber={preservedActionStepNumber}
+            actionStepTitle={preservedActionStepTitle}
             isLoading={createMutation.isPending || updateMutation.isPending}
             styles={reflectionLogStyles}
           />
