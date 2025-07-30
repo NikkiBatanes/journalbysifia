@@ -129,8 +129,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         setCompletionInfo({ stepId, subtaskId });
         handleToggleStep(stepId, subtaskId, true);
       }
-
-      setShowSuccessModal(true);
     },
     onError: (error) => {
       console.error('❌ Error creating time block:', error);
@@ -147,7 +145,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       console.log('✅ Time block updated successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
       setHasSaved(true);
-      setShowSuccessModal(true);
     },
     onError: (error) => {
       console.error('❌ Error updating time block:', error);
@@ -208,6 +205,9 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         // Create new time block
         await createTimeBlockMutation.mutateAsync(timeBlockEntry);
       }
+
+      // Show success modal immediately after successful save
+      setShowSuccessModal(true);
 
       // Call the parent onSave callback
       onSave(timeBlockEntry);
