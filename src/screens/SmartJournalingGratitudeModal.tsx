@@ -279,6 +279,8 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           subtask_id: subtaskId || null,
           step_id: stepId || null,
           playbook_id: playbookId || null,
+          step: 1, // Add step metadata like reflection and prayer
+          subtask: subtaskTitle, // Add subtask metadata for consistency
         },
       };
 
