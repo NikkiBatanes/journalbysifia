@@ -381,7 +381,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
 
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
-  const handleSuccessModalClose = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleSuccessModalClose = () => {
     console.log('🙏 PRAYER: Done button pressed, closing modal (data already saved)');
     console.log('🔍 PRAYER: About to hide success modal and close main modal');
     // Handled by success modal hook
@@ -389,7 +390,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   };
 
   // Called when "Edit" is pressed in SuccessModal
-  const handleEdit = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleEdit = () => {
     console.log('🙏 PRAYER: Edit button pressed, closing success modal');
     console.log('🔍 PRAYER: About to hide success modal for editing');
 

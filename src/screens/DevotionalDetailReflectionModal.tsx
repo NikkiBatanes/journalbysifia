@@ -157,7 +157,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       });
       return result;
     } catch (error) {
-      console.error('🔍 Error saving devotional reflection:', error);
+      console.error(' Error saving devotional reflection:', error);
       Alert.alert('Error', 'Failed to save devotional reflection. Please try again.');
       throw error;
     }
@@ -239,6 +239,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
 
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSuccessClose = () => {
     console.log('📝 DEVOTIONAL: Done button pressed, closing modal (data already saved)');
     console.log('🔍 DEVOTIONAL: About to hide success modal and close main modal');
@@ -246,6 +247,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     onCancel(); // Close the modal
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEdit = () => {
     console.log('📝 DEVOTIONAL: Edit button pressed, closing success modal');
     console.log('🔍 DEVOTIONAL: About to hide success modal for editing');

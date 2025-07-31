@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Keyboard } from 'react-native';
+import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, Keyboard } from 'react-native';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import GratitudeLogEditor, { GratitudeLogEditorRef } from '../components/journal/GratitudeLogEditor';
@@ -429,14 +429,16 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     onCancel();
   };
 
-  const handleSuccessModalClose = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleSuccessModalClose = () => {
     console.log('🙏 GRATITUDE: User clicked Done - closing modal (already saved and completed)');
     console.log('🔍 GRATITUDE: About to hide success modal and close main modal');
     // Handled by success modal hook
     onCancel(); // Close the main modal
   };
 
-  const handleEdit = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleEdit = () => {
     console.log('🙏 GRATITUDE: Edit button pressed, closing success modal');
     console.log('🔍 GRATITUDE: About to hide success modal for editing');
 
