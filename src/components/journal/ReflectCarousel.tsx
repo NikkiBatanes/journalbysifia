@@ -126,7 +126,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 4, // Reduced from 16 to 4 to decrease gap
+    marginTop: 0, // Reduced from 16 to 4 to decrease gap
     marginBottom: 16,
   },
   header: {

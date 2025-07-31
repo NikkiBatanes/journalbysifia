@@ -123,8 +123,8 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey = 
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
-    marginBottom: 4, // Reduced from 16 to 4 to decrease gap
+    marginTop: 0,
+    marginBottom: 0, // Reduced from 16 to 4 to decrease gap
   },
   header: {
     paddingHorizontal: 16,
