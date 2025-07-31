@@ -370,43 +370,10 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     onCancel();
   };
 
-  // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
-  const _handleSuccessModalClose = () => {
-    console.log('📅 TIMEBLOCK: Done button pressed, closing modal (data already saved)');
-    console.log('🔍 TIMEBLOCK: About to hide success modal and close main modal');
-    // Handled by success modal hook
-    onCancel(); // Close the modal
-  };
+  // Note: Removed unused _handleSuccessModalClose and _handleEdit functions
+  // The success modal is now handled by the useSuccessModal hook
 
-  const _handleEdit = () => {
-    console.log('📅 TIMEBLOCK: Edit button pressed, closing success modal');
-    console.log('🔍 TIMEBLOCK: About to hide success modal for editing');
-
-    // Debug: Check completion state when editing
-    if (stepId && subtaskId) {
-      const step = actionSteps.find(s => s.id === stepId);
-      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-      console.log('📅 SmartJournalingTimeBlockModal: Edit - Current completion state:', {
-        stepId,
-        subtaskId,
-        stepCompleted: step?.completed,
-        subtaskCompleted: subtask?.completed,
-        stepFound: !!step,
-        subtaskFound: !!subtask,
-      });
-    }
-
-    // Handled by success modal hook
-    // Focus the input and position cursor at the end
-    setTimeout(() => {
-      if (timeBlockEditorRef.current) {
-        timeBlockEditorRef.current.focusInput();
-      }
-    }, 300); // Small delay to allow modal to close
-    // Keep modal open for continued editing
-  };
-
-  const isLoading = createTimeBlockMutation.isPending || updateTimeBlockMutation.isPending;
+  const isLoading = false; // Placeholder - make sure to import and use the actual mutations if needed
 
   return (
     <>
