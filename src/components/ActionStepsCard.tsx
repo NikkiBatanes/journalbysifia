@@ -157,10 +157,8 @@ export default function ActionStepsCard({
   const queryClient = useQueryClient();
 
   // Smart Journaling Modal State
-  const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
-  const [gratitudeModalVisible, setGratitudeModalVisible] = useState(false);
-  const [prayerModalVisible, setPrayerModalVisible] = useState(false);
-  const [timeBlockModalVisible, setTimeBlockModalVisible] = useState(false);
+  type ActiveModalType = 'reflection' | 'gratitude' | 'prayer' | 'timeblock' | null;
+  const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
   const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
@@ -310,7 +308,7 @@ export default function ActionStepsCard({
 
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
-        setReflectionModalVisible(true);
+        setActiveModal('reflection');
 
         // End operation protection after modal opens
         setTimeout(() => {
@@ -344,7 +342,7 @@ export default function ActionStepsCard({
           console.log('[ActionStepsCard] Prefetching gratitude data before opening modal');
           try {
             await queryClient.prefetchQuery({
-              queryKey: ['gratitude', user.id, new Date().toISOString().split('T')[0]],
+              queryKey: ['gratitude', user.id, toLocalDateString(new Date())],
               queryFn: () => {
                 // This will prefetch today's gratitude entries
                 // The actual API call will be handled by the modal
@@ -359,7 +357,7 @@ export default function ActionStepsCard({
 
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
-        setGratitudeModalVisible(true);
+        setActiveModal('gratitude');
 
         // End operation protection after modal opens
         setTimeout(() => {
@@ -393,7 +391,7 @@ export default function ActionStepsCard({
           console.log('[ActionStepsCard] Prefetching prayer data before opening modal');
           try {
             await queryClient.prefetchQuery({
-              queryKey: ['personal_prayers', user.id, new Date().toISOString().split('T')[0], subTask.id],
+              queryKey: ['personal_prayers', user.id, toLocalDateString(new Date()), subTask.id],
               queryFn: () => {
                 // This will prefetch today's prayer entries
                 // The actual API call will be handled by the modal
@@ -411,7 +409,7 @@ export default function ActionStepsCard({
         console.log('🔍 ActionStepsCard: subTask.id:', subTask?.id);
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
-        setPrayerModalVisible(true);
+        setActiveModal('prayer');
 
         // End operation protection after modal opens
         setTimeout(() => {
@@ -445,7 +443,7 @@ export default function ActionStepsCard({
           console.log('[ActionStepsCard] Prefetching timeblock data before opening modal');
           try {
             await queryClient.prefetchQuery({
-              queryKey: ['timeBlocks', user.id, new Date().toISOString().split('T')[0]],
+              queryKey: ['timeBlocks', user.id, toLocalDateString(new Date())],
               queryFn: () => {
                 // This will prefetch today's timeblock entries
                 // The actual API call will be handled by the modal
@@ -463,7 +461,7 @@ export default function ActionStepsCard({
         console.log('🔍 ActionStepsCard: subTask.id:', subTask?.id);
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
-        setTimeBlockModalVisible(true);
+        setActiveModal('timeblock');
 
         // End operation protection after modal opens
         setTimeout(() => {
@@ -527,7 +525,7 @@ export default function ActionStepsCard({
       (global as any).authMonitor.endOperation();
     }
 
-    setReflectionModalVisible(false);
+    setActiveModal(null);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
   }, [selectedActionStep, selectedSubtask]);
@@ -544,7 +542,7 @@ export default function ActionStepsCard({
       // Invalidate the gratitude query to refresh data immediately
       if (user?.id) {
         await queryClient.invalidateQueries({
-          queryKey: ['gratitude', user.id, new Date().toISOString().split('T')[0]],
+          queryKey: ['gratitude', user.id, toLocalDateString(new Date())],
         });
         console.log('[ActionStepsCard] Gratitude query invalidated for immediate refresh');
       }
@@ -571,7 +569,7 @@ export default function ActionStepsCard({
       (global as any).authMonitor.endOperation();
     }
 
-    setGratitudeModalVisible(false);
+    setActiveModal(null);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
   }, [selectedActionStep, selectedSubtask]);
@@ -588,7 +586,7 @@ export default function ActionStepsCard({
       // Invalidate the prayer query to refresh data immediately
       if (user?.id) {
         await queryClient.invalidateQueries({
-          queryKey: ['personal_prayers', user.id, new Date().toISOString().split('T')[0]],
+          queryKey: ['personal_prayers', user.id, toLocalDateString(new Date())],
         });
         console.log('[ActionStepsCard] Prayer query invalidated for immediate refresh');
       }
@@ -615,7 +613,7 @@ export default function ActionStepsCard({
       (global as any).authMonitor.endOperation();
     }
 
-    setPrayerModalVisible(false);
+    setActiveModal(null);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
   }, [selectedActionStep, selectedSubtask]);
@@ -671,7 +669,7 @@ export default function ActionStepsCard({
       (global as any).authMonitor.endOperation();
     }
 
-    setTimeBlockModalVisible(false);
+    setActiveModal(null);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
   }, [selectedActionStep, selectedSubtask]);
@@ -929,87 +927,86 @@ export default function ActionStepsCard({
       </View>
 
       {/* Smart Journaling Reflection Modal */}
-      <SmartJournalingReflectionModal
-        visible={reflectionModalVisible}
-        subtaskTitle={selectedSubtask?.text || ''}
-        subtaskId={selectedSubtask?.id}
-        stepId={selectedActionStep?.stepId}
-        playbookId={playbookId}
-        playbookTitle={playbookTitle}
-        actionStepNumber={(() => {
-          console.log('🔍 ActionStepsCard: Passing step info to modal:', {
-            selectedActionStep,
-            stepNumber: selectedActionStep?.stepNumber,
-            stepTitle: selectedActionStep?.stepTitle,
-            existingReflection_day_number: existingReflection?.day_number,
-            existingReflection_day_title: existingReflection?.day_title,
-          });
-          return selectedActionStep?.stepNumber;
-        })()}
-        actionStepTitle={selectedActionStep?.stepTitle}
-        existingReflection={existingReflection}
-        onSave={handleReflectionSave}
-        onCancel={handleReflectionCancel}
-      />
-
-      {/* Smart Journaling Gratitude Modal */}
-      <SmartJournalingGratitudeModal
-        visible={gratitudeModalVisible}
-        subtaskTitle={selectedSubtask?.text || ''}
-        subtaskId={selectedSubtask?.id}
-        stepId={selectedActionStep?.stepId}
-        playbookId={playbookId}
-        playbookTitle={playbookTitle}
-        actionStepNumber={selectedActionStep?.stepNumber}
-        actionStepTitle={selectedActionStep?.stepTitle}
-        existingGratitude={null} // TODO: Add gratitude data fetching if needed
-        onSave={handleGratitudeSave}
-        onCancel={handleGratitudeCancel}
-      />
-
-      {/* Smart Journaling Prayer Modal */}
-      {/* Debug: Log props being passed to prayer modal */}
-      {prayerModalVisible && console.log('🔍 ActionStepsCard: Prayer modal props:', {
-        visible: prayerModalVisible,
-        subtaskTitle: selectedSubtask?.text || '',
-        subtaskId: selectedSubtask?.id,
-        selectedSubtask: selectedSubtask,
-      })}
-      <SmartJournalingPrayerModal
-        visible={prayerModalVisible}
-        subtaskTitle={selectedSubtask?.text || ''}
-        subtaskId={selectedSubtask?.id}
-        stepId={selectedActionStep?.stepId}
-        playbookId={playbookId}
-        playbookTitle={playbookTitle}
-        actionStepNumber={selectedActionStep?.stepNumber}
-        actionStepTitle={selectedActionStep?.stepTitle}
-        existingPrayer={null} // TODO: Add prayer data fetching if needed
-        onSave={handlePrayerSave}
-        onCancel={handlePrayerCancel}
-      />
-
-      {/* Smart Journaling TimeBlock Modal */}
-      {/* Debug: Log props being passed to timeblock modal */}
-      {timeBlockModalVisible && console.log('🔍 ActionStepsCard: TimeBlock modal props:', {
-        visible: timeBlockModalVisible,
-        subtaskTitle: selectedSubtask?.text || '',
-        subtaskId: selectedSubtask?.id,
-        selectedSubtask: selectedSubtask,
-      })}
-      <SmartJournalingTimeBlockModal
-        visible={timeBlockModalVisible}
-        subtaskTitle={selectedSubtask?.text || ''}
-        subtaskId={selectedSubtask?.id}
-        stepId={selectedActionStep?.stepId}
-        playbookId={playbookId}
-        playbookTitle={playbookTitle}
-        actionStepNumber={selectedActionStep?.stepNumber}
-        actionStepTitle={selectedActionStep?.stepTitle}
-        existingTimeBlock={null} // TODO: Add timeblock data fetching if needed
-        onSave={handleTimeBlockSave}
-        onCancel={handleTimeBlockCancel}
-      />
+      {activeModal === 'reflection' && (
+        <SmartJournalingReflectionModal
+          visible={true}
+          subtaskTitle={selectedSubtask?.text || ''}
+          subtaskId={selectedSubtask?.id}
+          stepId={selectedActionStep?.stepId}
+          playbookId={playbookId}
+          playbookTitle={playbookTitle}
+          actionStepNumber={selectedActionStep?.stepNumber}
+          actionStepTitle={selectedActionStep?.stepTitle}
+          existingReflection={existingReflection}
+          onSave={handleReflectionSave}
+          onCancel={() => {
+            setActiveModal(null);
+            setSelectedSubtask(null);
+            setSelectedActionStep(null);
+            handleReflectionCancel();
+          }}
+        />
+      )}
+      {activeModal === 'gratitude' && (
+        <SmartJournalingGratitudeModal
+          visible={true}
+          subtaskTitle={selectedSubtask?.text || ''}
+          subtaskId={selectedSubtask?.id}
+          stepId={selectedActionStep?.stepId}
+          playbookId={playbookId}
+          playbookTitle={playbookTitle}
+          actionStepNumber={selectedActionStep?.stepNumber}
+          actionStepTitle={selectedActionStep?.stepTitle}
+          existingGratitude={null}
+          onSave={handleGratitudeSave}
+          onCancel={() => {
+            setActiveModal(null);
+            setSelectedSubtask(null);
+            setSelectedActionStep(null);
+            handleGratitudeCancel();
+          }}
+        />
+      )}
+      {activeModal === 'prayer' && (
+        <SmartJournalingPrayerModal
+          visible={true}
+          subtaskTitle={selectedSubtask?.text || ''}
+          subtaskId={selectedSubtask?.id}
+          stepId={selectedActionStep?.stepId}
+          playbookId={playbookId}
+          playbookTitle={playbookTitle}
+          actionStepNumber={selectedActionStep?.stepNumber}
+          actionStepTitle={selectedActionStep?.stepTitle}
+          existingPrayer={null}
+          onSave={handlePrayerSave}
+          onCancel={() => {
+            setActiveModal(null);
+            setSelectedSubtask(null);
+            setSelectedActionStep(null);
+            handlePrayerCancel();
+          }}
+        />
+      )}
+      {activeModal === 'timeblock' && (
+        <SmartJournalingTimeBlockModal
+          visible={true}
+          subtaskTitle={selectedSubtask?.text || ''}
+          subtaskId={selectedSubtask?.id}
+          stepId={selectedActionStep?.stepId}
+          playbookId={playbookId}
+          playbookTitle={playbookTitle}
+          actionStepNumber={selectedActionStep?.stepNumber}
+          actionStepTitle={selectedActionStep?.stepTitle}
+          existingTimeBlock={null}
+          onSave={handleTimeBlockSave}
+          onCancel={() => {
+            setActiveModal(null);
+            setSelectedSubtask(null);
+            setSelectedActionStep(null);
+            handleTimeBlockCancel();
+          }}
+        />
+      )}
     </>
   );
 }

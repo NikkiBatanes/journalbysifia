@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert, Keyboard } from 'react-native';
-import SuccessModal from '../components/SuccessModal';
+import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, Keyboard } from 'react-native';
+import NewSuccessModal from '../components/NewSuccessModal';
+import { useSuccessModal } from '../hooks/useSuccessModal';
 import GratitudeLogEditor, { GratitudeLogEditorRef } from '../components/journal/GratitudeLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
@@ -12,6 +13,7 @@ import {
 } from '../services/hooks/useJournalData';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { JournalApi } from '../services/api/journalApi';
+import { toLocalDateString } from '../utils/date';
 
 interface SmartJournalingGratitudeModalProps {
   visible: boolean;
@@ -52,7 +54,11 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const { user } = useAuth();
   const { handleToggleStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  // New success modal system
+  const successModal = useSuccessModal(
+    () => onCancel(), // onDone: close the modal
+    () => {} // onEdit: keep modal open for editing
+  );
   const gratitudeEditorRef = useRef<GratitudeLogEditorRef>(null);
 
   // Preserve initial metadata to prevent loss after parent state clears
@@ -87,7 +93,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   }, [playbookTitle]);
 
   // Fetch existing gratitude data for this subtask
-  const dateStr = new Date().toISOString().split('T')[0];
+  const dateStr = toLocalDateString(new Date());
   const { data: existingGratitudeEntries = [] } = useQuery({
     queryKey: ['gratitude', user?.id, dateStr, subtaskId],
     queryFn: async () => {
@@ -136,15 +142,6 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     }
   }, [currentGratitudeEntry]);
 
-  // Debug: Track showSuccessModal state changes
-  // useEffect(() => {
-  //   console.log('🙏 SmartJournalingGratitudeModal: showSuccessModal changed to:', showSuccessModal);
-  // }, [showSuccessModal]);
-
-  // Debug: Log existing gratitude prop
-  // React.useEffect(() => {
-  //   console.log('🙏 SmartJournalingGratitudeModal: Props debug:', {
-  //     visible,
   //     subtaskTitle,
   //     subtaskId,
   //     subtaskIdType: typeof subtaskId,
@@ -283,7 +280,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
       const gratitudeEntry = {
         user_id: user?.id || '',
-        selected_date: gratitudeData.date.toISOString().split('T')[0],
+        selected_date: toLocalDateString(gratitudeData.date),
         content_type: 'gratitude' as const,
         content: JSON.stringify({
           items: cleanedItems,
@@ -314,15 +311,17 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         result = await createMutation.mutateAsync(gratitudeEntry);
       }
 
-      // Invalidate and refetch relevant queries
+      // Simple cache invalidation (revert to working approach)
       if (user?.id) {
         await queryClient.invalidateQueries({
-          queryKey: ['gratitude', user.id, dateStr, subtaskId],
+          queryKey: ['journal', 'gratitude', user.id, dateStr],
         });
         await queryClient.invalidateQueries({
-          queryKey: ['gratitude', user.id, dateStr],
+          queryKey: ['journal', 'all'],
         });
       }
+
+      console.log('✅ SmartJournalingGratitudeModal: Cache invalidation completed');
 
       console.log('✅ SmartJournalingGratitudeModal: Database save completed');
 
@@ -387,10 +386,15 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         });
       }
 
-      // Show success modal after save and completion (with small delay to allow UI update)
+      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
       setTimeout(() => {
-        setShowSuccessModal(true);
-      }, 100);
+        const isEditing = !!currentGratitudeEntry?.id;
+        successModal.showSuccess({
+          title: isEditing ? 'Gratitude Updated' : 'Gratitude Saved',
+          message: isEditing ? 'Your gratitude has been updated.' : 'Your gratitude has been saved to your journal.',
+          showEditButton: true,
+        });
+      }, 500);
 
       console.log('✅ SmartJournalingGratitudeModal: Gratitude saved and subtask marked complete');
     } catch (error: any) {
@@ -426,13 +430,15 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   };
 
   const handleSuccessModalClose = () => {
-    console.log('🙏 User clicked Done - closing modal (already saved and completed)');
-    setShowSuccessModal(false);
+    console.log('🙏 GRATITUDE: User clicked Done - closing modal (already saved and completed)');
+    console.log('🔍 GRATITUDE: About to hide success modal and close main modal');
+    // Handled by success modal hook
     onCancel(); // Close the main modal
   };
 
   const handleEdit = () => {
-    console.log('🙏 SmartJournalingGratitudeModal: Edit button pressed, closing success modal');
+    console.log('🙏 GRATITUDE: Edit button pressed, closing success modal');
+    console.log('🔍 GRATITUDE: About to hide success modal for editing');
 
     // Debug: Check completion state when editing
     if (stepId && subtaskId) {
@@ -448,7 +454,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       });
     }
 
-    setShowSuccessModal(false);
+    // Handled by success modal hook
     // Focus the input and position cursor at the end
     setTimeout(() => {
       if (gratitudeEditorRef.current) {
@@ -511,14 +517,12 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           />
         </KeyboardAvoidingView>
 
-        {/* Success Modal - Shows for all saves */}
-        <SuccessModal
-          visible={showSuccessModal}
-          onDismiss={handleSuccessModalClose}
-          onEdit={handleEdit}
-          title={'Gratitude Saved!'}
-          message={'Your gratitude entry has been saved successfully.'}
-          animationDuration={300}
+        {/* New success modal system - completely isolated and robust */}
+        <NewSuccessModal
+          visible={successModal.isVisible}
+          config={successModal.config}
+          onDone={successModal.handleDone}
+          onEdit={successModal.handleEdit}
         />
       </Modal>
     </>

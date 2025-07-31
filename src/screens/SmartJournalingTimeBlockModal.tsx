@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import SuccessModal from '../components/SuccessModal';
+import NewSuccessModal from '../components/NewSuccessModal';
+import { useSuccessModal } from '../hooks/useSuccessModal';
 import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -83,7 +84,11 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     }
   }, [playbookTitle]);
 
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  // New success modal system
+  const successModal = useSuccessModal(
+    () => onCancel(), // onDone: close the modal
+    () => {} // onEdit: keep modal open for editing
+  );
   const [_completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false);
   const [prevVisible, setPrevVisible] = useState(false);
@@ -115,7 +120,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   }, [visible, prevVisible, existingTimeBlock, hasSaved]);
 
   // Get today's date for time block queries
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalDateString(new Date());
 
   // Query for existing time blocks (currently unused but may be needed for future features)
   useQuery({
@@ -147,6 +152,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       }
       // Also invalidate broader timeblock queries as fallback
       queryClient.invalidateQueries({ queryKey: ['timeBlocks'] });
+      queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+
       console.log('🔄 Query invalidation completed');
       setHasSaved(true);
 
@@ -211,7 +218,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       console.log('📅 SmartJournalingTimeBlockModal: Saving time block data to database immediately', {
         title: timeBlockData.title,
-        date: timeBlockData.date.toISOString().split('T')[0],
+        date: toLocalDateString(timeBlockData.date),
         stepId,
         subtaskId,
         actionStepsCount: actionSteps?.length || 0,
@@ -219,7 +226,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
         user_id: user.id,
-        selected_date: timeBlockData.date.toISOString().split('T')[0],
+        selected_date: toLocalDateString(timeBlockData.date),
         start_time: timeBlockData.startTime.toISOString(),
         end_time: timeBlockData.endTime.toISOString(),
         all_day: timeBlockData.isAllDay,
@@ -320,11 +327,15 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         });
       }
 
-      // Show success modal after save and completion (with small delay to allow UI update)
+      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
       setTimeout(() => {
-        setShowSuccessModal(true);
+        successModal.showSuccess({
+          title: isEditSession ? 'Time Block Updated' : 'Time Block Saved',
+          message: isEditSession ? 'Your time block has been updated.' : 'Your time block has been saved to your journal.',
+          showEditButton: true,
+        });
         setHasSaved(true);
-      }, 100);
+      }, 500);
 
       console.log('✅ SmartJournalingTimeBlockModal: Time block saved and subtask marked complete');
     } catch (error: any) {
@@ -361,13 +372,15 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
   const handleSuccessModalClose = () => {
-    console.log('📅 SmartJournalingTimeBlockModal: Done button pressed, closing modal (data already saved)');
-    setShowSuccessModal(false);
+    console.log('📅 TIMEBLOCK: Done button pressed, closing modal (data already saved)');
+    console.log('🔍 TIMEBLOCK: About to hide success modal and close main modal');
+    // Handled by success modal hook
     onCancel(); // Close the modal
   };
 
   const handleEdit = () => {
-    console.log('📅 SmartJournalingTimeBlockModal: Edit button pressed, closing success modal');
+    console.log('📅 TIMEBLOCK: Edit button pressed, closing success modal');
+    console.log('🔍 TIMEBLOCK: About to hide success modal for editing');
 
     // Debug: Check completion state when editing
     if (stepId && subtaskId) {
@@ -383,7 +396,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       });
     }
 
-    setShowSuccessModal(false);
+    // Handled by success modal hook
     // Focus the input and position cursor at the end
     setTimeout(() => {
       if (timeBlockEditorRef.current) {
@@ -428,16 +441,12 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             })}
           />
 
-          <SuccessModal
-            visible={showSuccessModal}
-            onDismiss={handleSuccessModalClose}
-            onEdit={handleEdit}
-            title={isEditSession ? 'Time Block Updated!' : 'Time Block Created!'}
-            message={isEditSession
-              ? 'Your time block has been successfully updated.'
-              : 'Your time block has been successfully created and added to your schedule.'
-            }
-            buttonText="Done"
+          {/* New success modal system - completely isolated and robust */}
+          <NewSuccessModal
+            visible={successModal.isVisible}
+            config={successModal.config}
+            onDone={successModal.handleDone}
+            onEdit={successModal.handleEdit}
           />
         </KeyboardAvoidingView>
       </Modal>

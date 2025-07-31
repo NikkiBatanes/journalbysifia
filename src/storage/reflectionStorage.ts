@@ -49,9 +49,8 @@ const generateUUID = (): string => {
   });
 };
 
-const toLocalDateString = (date: Date): string => {
-  return date.toISOString().split('T')[0];
-};
+import { toLocalDateString } from '../utils/date';
+
 
 const getReflectionKey = (userId: string, date: string | Date): string => {
   let formattedDate: string;
@@ -68,9 +67,9 @@ const getReflectionKey = (userId: string, date: string | Date): string => {
         const parsedDate = new Date(date);
         if (isNaN(parsedDate.getTime())) {
           console.error('Invalid date provided:', date);
-          formattedDate = new Date().toISOString().split('T')[0];
+          formattedDate = toLocalDateString(new Date());
         } else {
-          formattedDate = parsedDate.toISOString().split('T')[0];
+          formattedDate = toLocalDateString(parsedDate);
         }
       }
     } else if (date instanceof Date) {
@@ -78,7 +77,7 @@ const getReflectionKey = (userId: string, date: string | Date): string => {
         console.error('Invalid Date object provided:', date);
         formattedDate = new Date().toISOString().split('T')[0];
       } else {
-        formattedDate = date.toISOString().split('T')[0];
+        formattedDate = toLocalDateString(date);
       }
     } else {
       console.error('Unsupported date type:', typeof date, date);
@@ -136,7 +135,7 @@ export const saveLocalReflectionEntry = async (
     user_id: userId,
     content_type: 'reflection_log',
     content: { entries },
-    selected_date: dateFromKey || new Date().toISOString().split('T')[0],
+    selected_date: dateFromKey || toLocalDateString(new Date()),
     created_at: now,
     updated_at: now,
   };

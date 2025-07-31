@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import SuccessModal from '../components/SuccessModal';
+import NewSuccessModal from '../components/NewSuccessModal';
+import { useSuccessModal } from '../hooks/useSuccessModal';
 import PrayerLogEditor, { PrayerLogEditorRef } from '../components/journal/PrayerLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
@@ -8,6 +9,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { PrayerApi, PrayerApiEntry } from '../services/api/prayerApi';
+import { toLocalDateString } from '../utils/date';
 
 interface SmartJournalingPrayerModalProps {
   visible: boolean;
@@ -93,7 +95,11 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     }
   }, [playbookTitle]);
 
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  // New success modal system
+  const successModal = useSuccessModal(
+    () => onCancel(), // onDone: close the modal
+    () => {} // onEdit: keep modal open for editing
+  );
   const [_completionInfo, _setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
   const [prevVisible, setPrevVisible] = useState(false);
@@ -102,7 +108,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   const prayerEditorRef = useRef<PrayerLogEditorRef>(null);
 
   // Fetch existing prayer data for this subtask
-  const dateStr = new Date().toISOString().split('T')[0];
+  const dateStr = toLocalDateString(new Date());
   const { data: existingPrayerEntries = [] } = useQuery({
     queryKey: ['personal_prayers', user?.id, dateStr, subtaskId],
     queryFn: async () => {
@@ -209,7 +215,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
           action_step_number: actionStepNumber,
           action_step_title: actionStepTitle,
         },
-        selected_date: prayerData.date.toISOString().split('T')[0],
+        selected_date: toLocalDateString(prayerData.date),
         status: undefined, // Personal prayers don't have status
       };
 
@@ -217,9 +223,10 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     },
     onSuccess: (data) => {
       console.log('🙏 Prayer created successfully:', data);
-      // Invalidate and refetch prayer queries
+      // Simple cache invalidation (revert to working approach)
       queryClient.invalidateQueries({ queryKey: ['personal_prayers'] });
       queryClient.invalidateQueries({ queryKey: ['prayers'] });
+      queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
     },
     onError: (error) => {
       console.error('Error creating prayer:', error);
@@ -246,16 +253,17 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
           action_step_number: actionStepNumber,
           action_step_title: actionStepTitle,
         },
-        selected_date: prayerData.date.toISOString().split('T')[0],
+        selected_date: toLocalDateString(prayerData.date),
       };
 
       return await PrayerApi.updatePrayer(currentPrayerEntry.id, updates);
     },
     onSuccess: (data) => {
       console.log('🙏 Prayer updated successfully:', data);
-      // Invalidate and refetch prayer queries
+      // Simple cache invalidation (revert to working approach)
       queryClient.invalidateQueries({ queryKey: ['personal_prayers'] });
       queryClient.invalidateQueries({ queryKey: ['prayers'] });
+      queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
     },
     onError: (error) => {
       console.error('Error updating prayer:', error);
@@ -349,11 +357,15 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         });
       }
 
-      // Show success modal after save and completion (with small delay to allow UI update)
+      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
       setTimeout(() => {
         setHasSaved(true);
-        setShowSuccessModal(true);
-      }, 100);
+        successModal.showSuccess({
+          title: isEditSession ? 'Prayer Updated' : 'Prayer Saved',
+          message: isEditSession ? 'Your prayer has been updated.' : 'Your prayer has been saved to your journal.',
+          showEditButton: true,
+        });
+      }, 500);
 
       console.log('✅ SmartJournalingPrayerModal: Prayer saved and subtask marked complete');
     } catch (error: any) {
@@ -370,14 +382,16 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
   const handleSuccessModalClose = () => {
-    console.log('🙏 SmartJournalingPrayerModal: Done button pressed, closing modal (data already saved)');
-    setShowSuccessModal(false);
+    console.log('🙏 PRAYER: Done button pressed, closing modal (data already saved)');
+    console.log('🔍 PRAYER: About to hide success modal and close main modal');
+    // Handled by success modal hook
     onCancel(); // Close the modal
   };
 
   // Called when "Edit" is pressed in SuccessModal
   const handleEdit = () => {
-    console.log('🙏 SmartJournalingPrayerModal: Edit button pressed, closing success modal');
+    console.log('🙏 PRAYER: Edit button pressed, closing success modal');
+    console.log('🔍 PRAYER: About to hide success modal for editing');
 
     // Debug: Check completion state when editing
     if (stepId && subtaskId) {
@@ -393,7 +407,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       });
     }
 
-    setShowSuccessModal(false);
+    // Handled by success modal hook
     // Focus the input and position cursor at the end
     setTimeout(() => {
       if (prayerEditorRef.current) {
@@ -460,7 +474,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   const isLoading = createPrayerMutation.isPending || updatePrayerMutation.isPending;
 
   // Debug logging
-  console.log('🙏 SmartJournalingPrayerModal: Render - showSuccessModal:', showSuccessModal, 'isEditSession:', isEditSession);
+  console.log('🙏 SmartJournalingPrayerModal: Render - successModal visible:', successModal.isVisible, 'isEditSession:', isEditSession);
 
   return (
     <>
@@ -496,16 +510,12 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             })()}
           />
 
-          <SuccessModal
-            visible={showSuccessModal}
-            title={isEditSession ? 'Prayer Updated!' : 'Prayer Saved!'}
-            message={
-              isEditSession
-                ? 'Your prayer has been updated.'
-                : 'Your prayer has been saved to your journal.'
-            }
-            onDismiss={handleSuccessModalClose}
-            onEdit={handleEdit}
+          {/* New success modal system - completely isolated and robust */}
+          <NewSuccessModal
+            visible={successModal.isVisible}
+            config={successModal.config}
+            onDone={successModal.handleDone}
+            onEdit={successModal.handleEdit}
           />
         </KeyboardAvoidingView>
       </Modal>

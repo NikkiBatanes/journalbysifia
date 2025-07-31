@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { toLocalDateString } from '../utils/date';
 import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View } from 'react-native';
-import SuccessModal from '../components/SuccessModal';
+import NewSuccessModal from '../components/NewSuccessModal';
+import { useSuccessModal } from '../hooks/useSuccessModal';
 import ReflectionLogEditor, { ReflectionLogEditorRef } from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { analytics } from '../utils/analytics';
 
@@ -74,9 +77,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const { user } = useAuth();
   const { handleToggleStep, actionSteps } = useActionSteps();
+  const queryClient = useQueryClient();
 
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const dateStr = new Date().toISOString().split('T')[0]; // Use ISO format to match ReflectionLogReactQuery
+  // New success modal system
+  const successModal = useSuccessModal(
+    () => onCancel(), // onDone: close the modal
+    () => handleEditFocus() // onEdit: focus input for editing
+  );
+  const dateStr = toLocalDateString(new Date()); // Use local date for consistency
   const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
 
   // Debug: Log existing reflection prop
@@ -197,6 +205,21 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         throw new Error('Failed to save reflection - no ID returned');
       }
 
+      // Simple cache invalidation (revert to working approach)
+      if (user?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['reflections', 'byDate', user.id, dateStr],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ['journal', 'reflections', user.id, dateStr],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ['journal', 'all'],
+        });
+      }
+
+      console.log('✅ SmartJournalingReflectionModal: Cache invalidation completed');
+
       // Call parent onSave callback
       onSave(savedReflection);
 
@@ -259,10 +282,15 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         });
       }
 
-      // Show success modal after save and completion (with small delay to allow UI update)
+      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
       setTimeout(() => {
-        setShowSuccessModal(true);
-      }, 100);
+        const isEditing = !!existingReflection;
+        successModal.showSuccess({
+          title: isEditing ? 'Reflection Updated' : 'Reflection Saved',
+          message: isEditing ? 'Your reflection has been updated.' : 'Your reflection has been saved to your journal.',
+          showEditButton: true,
+        });
+      }, 500);
 
       console.log('✅ SmartJournalingReflectionModal: Reflection saved and subtask marked complete');
     } catch (error: any) {
@@ -277,30 +305,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
 
 
-  const handleSuccessModalClose = () => {
-    console.log('📝 User clicked Done - closing modal (already saved and completed)');
-    setShowSuccessModal(false);
-    onCancel(); // Close the main modal
-  };
-
-  const handleEdit = () => {
-    console.log('💭 SmartJournalingReflectionModal: Edit button pressed, closing success modal');
-
-    // Debug: Check completion state when editing
-    if (stepId && subtaskId) {
-      const step = actionSteps.find(s => s.id === stepId);
-      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
-      console.log('💭 SmartJournalingReflectionModal: Edit - Current completion state:', {
-        stepId,
-        subtaskId,
-        stepCompleted: step?.completed,
-        subtaskCompleted: subtask?.completed,
-        stepFound: !!step,
-        subtaskFound: !!subtask,
-      });
-    }
-
-    setShowSuccessModal(false);
+  // Edit handler for focusing input after success modal closes
+  const handleEditFocus = () => {
     // Focus the input and position cursor at the end
     setTimeout(() => {
       if (reflectionEditorRef.current) {
@@ -386,12 +392,12 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               isLoading={isLoading}
             />
 
-          <SuccessModal
-            visible={showSuccessModal}
-            title="Reflection Saved"
-            message="Your reflection has been saved to your journal."
-            onDismiss={handleSuccessModalClose}
-            onEdit={handleEdit}
+          {/* New success modal system - completely isolated and robust */}
+          <NewSuccessModal
+            visible={successModal.isVisible}
+            config={successModal.config}
+            onDone={successModal.handleDone}
+            onEdit={successModal.handleEdit}
           />
           </View>
         </KeyboardAvoidingView>

@@ -17,7 +17,9 @@ import {
   useDeleteReflection,
 } from '../../services/hooks/useReflectionData';
 import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
+import { toLocalDateString } from '../../utils/date';
 import { analytics } from '../../utils/analytics';
+
 
 type ViewMode = 'free' | 'guided' | 'devotional' | 'playbook';
 
@@ -52,7 +54,7 @@ interface ReflectionLogProps {
 
 export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date() }) => {
   const { user } = useAuth();
-  const dateStr = selectedDate.toISOString().split('T')[0];
+  const dateStr = toLocalDateString(selectedDate);
 
   // Generate a meaningful subtitle based on the number of entries
   const getReflectionSubtitle = (count: number): string => {

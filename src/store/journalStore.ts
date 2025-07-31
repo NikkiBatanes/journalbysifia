@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { toLocalDateString } from '../utils/date';
+
 
 /**
  * Journal-specific state store
@@ -86,7 +87,7 @@ type JournalStore = JournalState & JournalActions;
 
 const getTodayString = () => {
   const today = new Date();
-  return today.toISOString().split('T')[0]; // YYYY-MM-DD
+  return toLocalDateString(today); // YYYY-MM-DD
 };
 
 const initialState: JournalState = {

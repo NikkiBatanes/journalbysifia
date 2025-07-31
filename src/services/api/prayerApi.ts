@@ -1,5 +1,6 @@
 // src/services/api/prayerApi.ts
 import { supabase } from '../supabaseClient';
+import { toLocalDateString } from '../../utils/date';
 
 export interface PrayerApiEntry {
   id: string;
@@ -280,7 +281,7 @@ export class PrayerApi {
       user_id: prayer.user_id,
       content: prayer.content,
       metadata: prayer.metadata ?? null,
-      selected_date: prayer.selected_date,
+      selected_date: typeof prayer.selected_date === 'string' ? prayer.selected_date : toLocalDateString(prayer.selected_date),
       prayer_type: prayer.prayer_type || (prayer.type === 'people' ? 'people' :
                    prayer.type === 'devotional' ? 'devotional' : 'journal'),
       journal_category: prayer.journal_category || (

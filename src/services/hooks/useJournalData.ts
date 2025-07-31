@@ -1,5 +1,6 @@
 // src/services/hooks/useJournalData.ts
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toLocalDateString } from '../../utils/date';
 import { JournalApi, JournalApiEntry } from '../api/journalApi';
 import { JournalCache } from '../cache/journalCache';
 import { queryKeys } from '../queryKeys';
@@ -373,10 +374,9 @@ export const useDeleteJournalEntry = () => {
         try {
           queryClient.setQueryData(
             queryKeys.journal.entries(entry.user_id, entry.selected_date),
-            (old: JournalApiEntry[] = []) =>
-              old.filter(e => e.id !== id)
+            (old: JournalApiEntry[] = []) => old.filter(e => e.id !== id)
           );
-
+          
           // Clear cache
           JournalCache.clearCache(entry.user_id, entry.selected_date, entry.content_type);
         } catch (error) {

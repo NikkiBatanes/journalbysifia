@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, View, StyleSheet, Platform, KeyboardAvoidingView, Keyboard, Alert } from 'react-native';
-import SuccessModal from '../components/SuccessModal';
+import NewSuccessModal from '../components/NewSuccessModal';
+import { useSuccessModal } from '../hooks/useSuccessModal';
 import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
@@ -10,6 +11,7 @@ import {
   useCreateReflection,
   useReflectionData,
 } from '../services/hooks/useReflectionData';
+import { useQueryClient } from '@tanstack/react-query';
 import { analytics } from '../utils/analytics';
 
 interface DevotionalDetailReflectionModalProps {
@@ -36,7 +38,12 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   onCancel,
 }) => {
   const { user } = useAuth();
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const queryClient = useQueryClient();
+  // New success modal system
+  const successModal = useSuccessModal(
+    () => onCancel(), // onDone: close the modal
+    () => {} // onEdit: keep modal open for editing
+  );
   const [_pendingReflectionData, _setPendingReflectionData] = useState<{ content: string; date: Date } | null>(null);
   const dateStr = toLocalDateString(new Date());
 
@@ -125,7 +132,29 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
       console.log('🔍 DevotionalDetailReflectionModal: Refetch data:', refetchResult.data);
       console.log('🔍 DevotionalDetailReflectionModal: Refetch error:', refetchResult.error);
 
-      setShowSuccessModal(true);
+      // Invalidate cache to update journal screen
+      if (user?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['reflections', 'byDate', user.id, dateStr],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ['reflections', 'devotional', user.id],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ['journal', 'reflections', user.id, dateStr],
+        });
+
+        // Simple additional cache invalidation
+        await queryClient.invalidateQueries({
+          queryKey: ['journal', 'all'],
+        });
+      }
+
+      successModal.showSuccess({
+        title: 'Ponder Saved',
+        message: 'Your devotional ponder has been saved to your journal.',
+        showEditButton: true,
+      });
       return result;
     } catch (error) {
       console.error('🔍 Error saving devotional reflection:', error);
@@ -174,10 +203,27 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         onSave(savedEntry);
       }
 
-      // Show success modal after save (with small delay to allow UI update)
+      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
       setTimeout(() => {
-        setShowSuccessModal(true);
+        successModal.showSuccess({
+        title: 'Ponder Saved',
+        message: 'Your devotional ponder has been saved to your journal.',
+        showEditButton: true,
+      });
       }, 100);
+
+      // Invalidate cache to update journal screen
+      if (user?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['reflections', 'byDate', user.id, dateStr],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ['reflections', 'devotional', user.id],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ['journal', 'reflections', user.id, dateStr],
+        });
+      }
 
       console.log('✅ DevotionalDetailReflectionModal: Reflection saved successfully');
     } catch (error: any) {
@@ -194,14 +240,16 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
   const handleSuccessClose = () => {
-    console.log('📝 DevotionalDetailReflectionModal: Done button pressed, closing modal (data already saved)');
-    setShowSuccessModal(false);
+    console.log('📝 DEVOTIONAL: Done button pressed, closing modal (data already saved)');
+    console.log('🔍 DEVOTIONAL: About to hide success modal and close main modal');
+    // Handled by success modal hook
     onCancel(); // Close the modal
   };
 
   const handleEdit = () => {
-    console.log('📝 DevotionalDetailReflectionModal: Edit button pressed, closing success modal');
-    setShowSuccessModal(false);
+    console.log('📝 DEVOTIONAL: Edit button pressed, closing success modal');
+    console.log('🔍 DEVOTIONAL: About to hide success modal for editing');
+    // Handled by success modal hook
     // Keep modal open for continued editing
   };
   return (
@@ -214,10 +262,10 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         // Small delay to ensure keyboard is fully dismissed before closing
         setTimeout(() => {
           onCancel();
-          setShowSuccessModal(false);
+          // Handled by success modal hook
         }, 10);
       }}
-      onDismiss={() => setShowSuccessModal(false)}
+      onDismiss={() => {}}
     >
       <KeyboardAvoidingView
         style={styles.centeredView}
@@ -246,12 +294,12 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
             questionNumber={questionNumber}
           />
 
-          <SuccessModal
-            visible={showSuccessModal}
-            title="Ponder Saved"
-            message="Your devotional ponder has been saved to your journal."
-            onDismiss={handleSuccessClose}
-            onEdit={handleEdit}
+          {/* New success modal system - completely isolated and robust */}
+          <NewSuccessModal
+            visible={successModal.isVisible}
+            config={successModal.config}
+            onDone={successModal.handleDone}
+            onEdit={successModal.handleEdit}
           />
         </View>
       </KeyboardAvoidingView>
