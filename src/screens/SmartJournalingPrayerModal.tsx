@@ -198,26 +198,53 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     mutationFn: async (prayerData: {
       content: string;
       date: Date;
+      activeTab: 'freeform' | 'people';
+      prayerForPerson?: string;
+      prayerRequest?: string;
     }) => {
       if (!user?.id) {throw new Error('User not authenticated');}
 
-      const prayerEntry: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'> = {
-        user_id: user.id,
-        prayer_type: 'journal',
-        journal_category: 'personal_prayer',
-        content: prayerData.content, // Only the prayer text
-        metadata: {
-          subtask_id: subtaskId,
-          step_id: stepId,
-          playbook_id: playbookId,
-          playbook_title: playbookTitle,
-          subtask_title: subtaskTitle,
-          action_step_number: actionStepNumber,
-          action_step_title: actionStepTitle,
-        },
-        selected_date: toLocalDateString(prayerData.date),
-        status: undefined, // Personal prayers don't have status
-      };
+      let prayerEntry: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>;
+
+      if (prayerData.activeTab === 'people') {
+        // Save as "people" prayer type (like in journal screen)
+        prayerEntry = {
+          user_id: user.id,
+          prayer_type: 'people',
+          content: prayerData.prayerRequest || '', // The prayer request content
+          person_name: prayerData.prayerForPerson || '',
+          metadata: {
+            subtask_id: subtaskId,
+            step_id: stepId,
+            playbook_id: playbookId,
+            playbook_title: playbookTitle,
+            subtask_title: subtaskTitle,
+            action_step_number: actionStepNumber,
+            action_step_title: actionStepTitle,
+            is_prayer_request: false, // This is a prayer, not a request
+          },
+          selected_date: toLocalDateString(prayerData.date),
+        };
+      } else {
+        // Save as "journal" prayer type (freeform)
+        prayerEntry = {
+          user_id: user.id,
+          prayer_type: 'journal',
+          journal_category: 'personal_prayer',
+          content: prayerData.content, // Only the prayer text
+          metadata: {
+            subtask_id: subtaskId,
+            step_id: stepId,
+            playbook_id: playbookId,
+            playbook_title: playbookTitle,
+            subtask_title: subtaskTitle,
+            action_step_number: actionStepNumber,
+            action_step_title: actionStepTitle,
+          },
+          selected_date: toLocalDateString(prayerData.date),
+          status: undefined, // Personal prayers don't have status
+        };
+      }
 
       return await PrayerApi.createPrayer(prayerEntry);
     },
@@ -225,6 +252,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       console.log('🙏 Prayer created successfully:', data);
       // Simple cache invalidation (revert to working approach)
       queryClient.invalidateQueries({ queryKey: ['personal_prayers'] });
+      queryClient.invalidateQueries({ queryKey: ['people_prayers'] });
       queryClient.invalidateQueries({ queryKey: ['prayers'] });
       queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
     },
@@ -239,22 +267,47 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     mutationFn: async (prayerData: {
       content: string;
       date: Date;
+      activeTab: 'freeform' | 'people';
+      prayerForPerson?: string;
+      prayerRequest?: string;
     }) => {
       if (!currentPrayerEntry?.id) {throw new Error('No prayer entry to update');}
 
-      const updates = {
-        content: prayerData.content, // Only the prayer text
-        metadata: {
-          subtask_id: subtaskId,
-          step_id: stepId,
-          playbook_id: playbookId,
-          playbook_title: playbookTitle,
-          subtask_title: subtaskTitle,
-          action_step_number: actionStepNumber,
-          action_step_title: actionStepTitle,
-        },
-        selected_date: toLocalDateString(prayerData.date),
-      };
+      let updates: any;
+
+      if (prayerData.activeTab === 'people') {
+        // Update as "people" prayer type
+        updates = {
+          content: prayerData.prayerRequest || '',
+          person_name: prayerData.prayerForPerson || '',
+          metadata: {
+            subtask_id: subtaskId,
+            step_id: stepId,
+            playbook_id: playbookId,
+            playbook_title: playbookTitle,
+            subtask_title: subtaskTitle,
+            action_step_number: actionStepNumber,
+            action_step_title: actionStepTitle,
+            is_prayer_request: false,
+          },
+          selected_date: toLocalDateString(prayerData.date),
+        };
+      } else {
+        // Update as "journal" prayer type
+        updates = {
+          content: prayerData.content, // Only the prayer text
+          metadata: {
+            subtask_id: subtaskId,
+            step_id: stepId,
+            playbook_id: playbookId,
+            playbook_title: playbookTitle,
+            subtask_title: subtaskTitle,
+            action_step_number: actionStepNumber,
+            action_step_title: actionStepTitle,
+          },
+          selected_date: toLocalDateString(prayerData.date),
+        };
+      }
 
       return await PrayerApi.updatePrayer(currentPrayerEntry.id, updates);
     },
@@ -262,6 +315,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       console.log('🙏 Prayer updated successfully:', data);
       // Simple cache invalidation (revert to working approach)
       queryClient.invalidateQueries({ queryKey: ['personal_prayers'] });
+      queryClient.invalidateQueries({ queryKey: ['people_prayers'] });
       queryClient.invalidateQueries({ queryKey: ['prayers'] });
       queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
     },
@@ -272,11 +326,19 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   });
 
   // Save prayer data to database immediately and mark subtask complete
-  const savePrayer = async (prayerData: { content: string; date: Date }) => {
+  const savePrayer = async (prayerData: {
+    content: string;
+    date: Date;
+    activeTab: 'freeform' | 'people';
+    prayerForPerson?: string;
+    prayerRequest?: string;
+  }) => {
     try {
       console.log('🙏 SmartJournalingPrayerModal: Saving prayer data to database immediately', {
         hasExistingEntry: !!currentPrayerEntry,
         contentLength: prayerData.content.length,
+        activeTab: prayerData.activeTab,
+        prayerForPerson: prayerData.prayerForPerson,
         stepId,
         subtaskId,
         actionStepsCount: actionSteps?.length || 0,

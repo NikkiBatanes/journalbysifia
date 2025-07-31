@@ -9,6 +9,9 @@ interface PrayerLogEditorProps {
   onSave: (data: {
     content: string;
     date: Date;
+    activeTab: 'freeform' | 'people';
+    prayerForPerson?: string;
+    prayerRequest?: string;
   }) => void;
   onCancel: () => void;
   initialContent?: string;
@@ -534,15 +537,15 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     }
   }, [getDraftKey, isEditing, isFirstLoad]);
 
-  // Focus the appropriate input when switching tabs
+  // Focus the appropriate input when switching tabs (only in edit mode)
   useEffect(() => {
+    if (!isEditing) {return;} // Skip focus if not in edit mode
+
     // Small timeout to ensure the tab animation completes
     const timer = setTimeout(() => {
-      if (activeTab === 'people') {
+      if (activeTab === 'people' && personInputRef.current) {
         // Focus the person input when switching to People tab
-        if (personInputRef.current) {
-          personInputRef.current.focus();
-        }
+        personInputRef.current.focus();
       } else if (activeTab === 'freeform' && inputRef.current) {
         // Focus the main input when switching to Freeform tab
         inputRef.current.focus();
@@ -550,7 +553,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [activeTab]);
+  }, [activeTab, isEditing]);
 
   // Helper function to save draft
   const saveDraftHelper = useCallback(async () => {
@@ -596,6 +599,15 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     }
   };
 
+  // Helper function to check if there's content in the current tab
+  const hasContentInCurrentTab = () => {
+    if (activeTab === 'freeform') {
+      return !!(prayerContent && prayerContent.trim());
+    } else {
+      return !!((prayerForPerson && prayerForPerson.trim()) || (prayerRequest && prayerRequest.trim()));
+    }
+  };
+
   // Auto-save draft when content changes (debounced)
   useEffect(() => {
     if (!isFirstLoad && hasUserMadeChanges && !isEditing) {
@@ -628,14 +640,21 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
         }
       }
 
-      if (!contentToSave) {
-        Alert.alert('Empty Prayer', 'Please enter some content before saving.');
+      if (!hasContentInCurrentTab()) {
+        if (activeTab === 'freeform') {
+          Alert.alert('Empty Prayer', 'Please enter some content before saving.');
+        } else {
+          Alert.alert('Empty Prayer', 'Please enter who you are praying for or what you would like to pray for.');
+        }
         return;
       }
 
       onSave({
         content: contentToSave,
         date: new Date(),
+        activeTab: activeTab,
+        prayerForPerson: activeTab === 'people' ? prayerForPerson : undefined,
+        prayerRequest: activeTab === 'people' ? prayerRequest : undefined,
       });
     } catch (error) {
       console.error('Error in handleSave:', error);
@@ -830,9 +849,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
               style={[
                 s.fab,
                 s.saveFab,
-                (!prayerContent.trim() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
+                (!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading) && s.fabDisabled,
               ]}
-              disabled={!prayerContent.trim() || !hasUserMadeChanges || isLoading}
+              disabled={!hasContentInCurrentTab() || !hasUserMadeChanges || isLoading}
               onPress={handleSave}
             >
               {isLoading ? (
