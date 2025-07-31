@@ -4,6 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingVi
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Plus, Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import SuccessModal from '../SuccessModal';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
@@ -421,6 +422,13 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
 
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = React.useState(false);
+  const [pendingEntry, setPendingEntry] = React.useState<{
+    items: string[];
+    date: Date;
+  } | null>(null);
+
   // Refs for inputs
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -579,41 +587,80 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
     }
   };
 
-  const handleSave = async () => {
-    console.log('🙏 GratitudeLogEditor: handleSave called! Stack trace:', new Error().stack);
+  // Phase 1: Prepare gratitude data and show success modal (NO database save)
+  const prepareGratitude = async () => {
+    try {
+      console.log(' GratitudeLogEditor: prepareGratitude called');
 
-    const filledItems = gratitudeItems.filter((item: string) => item.trim());
+      const filledItems = gratitudeItems.filter((item: string) => item.trim());
 
-    if (filledItems.length === 0) {
-      Alert.alert(
-        'Empty Gratitude',
-        'Please add at least one thing you\'re grateful for.',
-        [{ text: 'OK' }]
-      );
-      return;
+      if (filledItems.length === 0) {
+        Alert.alert(
+          'Empty Gratitude',
+          'Please add at least one thing you\'re grateful for.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Remove numbers from items before saving to database
+      const cleanItems = filledItems.map(item => item.replace(/^\d+\. /, ''));
+
+      // Prepare entry data
+      const entryData = {
+        items: cleanItems,
+        date: new Date(),
+      };
+
+      console.log(' GratitudeLogEditor: Setting pending entry and showing success modal');
+      setPendingEntry(entryData);
+      setShowSuccessModal(true);
+    } catch (error) {
+      console.error(' GratitudeLogEditor: Error in prepareGratitude:', error);
+      Alert.alert('Error', 'Failed to prepare gratitude. Please try again.');
     }
-
-    console.log('🙏 GratitudeLogEditor: About to clear draft and call onSave');
-
-    // Clear draft before saving
-    await clearDraft();
-
-    // Remove numbers from items before saving to database
-    const cleanItems = filledItems.map(item => item.replace(/^\d+\. /, ''));
-
-    console.log('🙏 GratitudeLogEditor: Calling onSave with data:', {
-      items: cleanItems,
-      date: new Date(),
-    });
-
-    // Call onSave synchronously like ReflectionLogEditor
-    onSave({
-      items: cleanItems,
-      date: new Date(),
-    });
-
-    console.log('🙏 GratitudeLogEditor: onSave called successfully');
   };
+
+  // Phase 2: Actually save to database (called only when user clicks "Done")
+  const saveEntry = async () => {
+    try {
+      console.log(' GratitudeLogEditor: saveEntry called with pending entry:', pendingEntry);
+
+      if (!pendingEntry) {
+        console.error(' GratitudeLogEditor: No pending entry to save!');
+        return;
+      }
+
+      // Clear draft before saving
+      await clearDraft();
+      console.log(' GratitudeLogEditor: Draft cleared successfully');
+
+      console.log(' GratitudeLogEditor: Calling onSave with entry data');
+      onSave(pendingEntry);
+
+      // Clear pending entry
+      setPendingEntry(null);
+    } catch (error) {
+      console.error(' GratitudeLogEditor: Error in saveEntry:', error);
+      Alert.alert('Error', 'Failed to save gratitude. Please try again.');
+    }
+  };
+
+  // Success modal handlers
+  const handleSuccessModalDone = () => {
+    console.log(' GratitudeLogEditor: Success modal Done clicked');
+    setShowSuccessModal(false);
+    saveEntry(); // Actually save to database
+  };
+
+  const handleSuccessModalEdit = () => {
+    console.log(' GratitudeLogEditor: Success modal Edit clicked');
+    setShowSuccessModal(false);
+    // Don't save - user wants to continue editing
+  };
+
+  // Legacy handleSave for backward compatibility (now calls prepareGratitude)
+  const handleSave = prepareGratitude;
 
   // Check if form is valid (has content) AND user has made changes
   const isFormValid = gratitudeItems.some(item => item.trim()) && hasUserMadeChanges;
@@ -805,6 +852,16 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
           </View>
         </View>
       </View>
+
+      {/* Success Modal */}
+      <SuccessModal
+        visible={showSuccessModal}
+        title="Gratitude Saved!"
+        message="Your gratitude list has been prepared. What would you like to do?"
+        buttonText="Done"
+        onDismiss={handleSuccessModalDone}
+        onEdit={handleSuccessModalEdit}
+      />
     </View>
   );
 });

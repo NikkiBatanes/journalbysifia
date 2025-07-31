@@ -5,6 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import SuccessModal from '../SuccessModal';
 
 interface TimeBlockLogEditorProps {
   onSave: (data: {
@@ -657,6 +658,21 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
   const [showCustomRepeatModal, setShowCustomRepeatModal] = useState(false);
   const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
 
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = React.useState(false);
+  const [pendingEntry, setPendingEntry] = React.useState<{
+    title: string;
+    startTime: Date;
+    endTime: Date;
+    category: string;
+    notes?: string;
+    location?: string;
+    isAllDay: boolean;
+    date: Date;
+    isEditing?: boolean;
+    existingId?: string;
+  } | null>(null);
+
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
 
@@ -673,8 +689,11 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
 
   // Removed draft saving functionality
 
-  const handleSave = async () => {
+  // Phase 1: Prepare time block data and show success modal (NO database save)
+  const prepareTimeBlock = async () => {
     try {
+      console.log('⏰ TimeBlockLogEditor: prepareTimeBlock called');
+
       if (!title.trim()) {
         Alert.alert('Missing Title', 'Please enter a title for your time block.');
         return;
@@ -682,8 +701,8 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
 
       const notesWithMetadata = notes.trim() + formatMetadata();
 
-      // If editing an existing time block, pass a flag to indicate it should be unmarked/deleted
-      onSave({
+      // Prepare entry data
+      const entryData = {
         title: title.trim(),
         startTime,
         endTime,
@@ -694,12 +713,53 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
         date: new Date(),
         isEditing: isEditing, // Pass editing state to parent
         existingId: existingTimeBlock?.id, // Pass existing ID for deletion/unmarking
-      });
+      };
+
+      console.log('⏰ TimeBlockLogEditor: Setting pending entry and showing success modal');
+      setPendingEntry(entryData);
+      setShowSuccessModal(true);
     } catch (error) {
-      console.error('Error in handleSave:', error);
+      console.error('⏰ TimeBlockLogEditor: Error in prepareTimeBlock:', error);
+      Alert.alert('Error', 'Failed to prepare time block. Please try again.');
+    }
+  };
+
+  // Phase 2: Actually save to database (called only when user clicks "Done")
+  const saveEntry = async () => {
+    try {
+      console.log('⏰ TimeBlockLogEditor: saveEntry called with pending entry:', pendingEntry);
+
+      if (!pendingEntry) {
+        console.error('⏰ TimeBlockLogEditor: No pending entry to save!');
+        return;
+      }
+
+      console.log('⏰ TimeBlockLogEditor: Calling onSave with entry data');
+      onSave(pendingEntry);
+
+      // Clear pending entry
+      setPendingEntry(null);
+    } catch (error) {
+      console.error('⏰ TimeBlockLogEditor: Error in saveEntry:', error);
       Alert.alert('Error', 'Failed to save time block. Please try again.');
     }
   };
+
+  // Success modal handlers
+  const handleSuccessModalDone = () => {
+    console.log('⏰ TimeBlockLogEditor: Success modal Done clicked');
+    setShowSuccessModal(false);
+    saveEntry(); // Actually save to database
+  };
+
+  const handleSuccessModalEdit = () => {
+    console.log('⏰ TimeBlockLogEditor: Success modal Edit clicked');
+    setShowSuccessModal(false);
+    // Don't save - user wants to continue editing
+  };
+
+  // Legacy handleSave for backward compatibility (now calls prepareTimeBlock)
+  const handleSave = prepareTimeBlock;
 
   const onCancel = () => {
     _onCancel();
@@ -1179,6 +1239,16 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
           </View>
         </View>
       </View>
+
+      {/* Success Modal */}
+      <SuccessModal
+        visible={showSuccessModal}
+        title="Time Block Saved!"
+        message="Your time block has been prepared. What would you like to do?"
+        buttonText="Done"
+        onDismiss={handleSuccessModalDone}
+        onEdit={handleSuccessModalEdit}
+      />
     </View>
   );
 });

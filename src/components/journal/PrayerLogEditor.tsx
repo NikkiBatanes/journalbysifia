@@ -4,6 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingVi
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import SuccessModal from '../SuccessModal';
 
 interface PrayerLogEditorProps {
   onSave: (data: {
@@ -414,6 +415,13 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     },
   }));
 
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = React.useState(false);
+  const [pendingEntry, setPendingEntry] = React.useState<{
+    content: string;
+    date: Date;
+  } | null>(null);
+
   // Structured prayer data for "Prayers for People" tab
   const [prayerForPerson, setPrayerForPerson] = React.useState('');
   const [prayerRequest, setPrayerRequest] = React.useState('');
@@ -552,14 +560,10 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     setHasUserMadeChanges(true);
   };
 
-  const handleSave = async () => {
+  // Phase 1: Prepare prayer data and show success modal (NO database save)
+  const preparePrayer = async () => {
     try {
-      // Clear any existing draft since we're saving the entry
-      try {
-        await AsyncStorage.removeItem(getDraftKey());
-      } catch (error) {
-        console.error('Error clearing draft:', error);
-      }
+      console.log('🙏 PrayerLogEditor: preparePrayer called');
 
       let contentToSave = '';
 
@@ -581,15 +585,65 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
         return;
       }
 
-      onSave({
+      // Prepare entry data
+      const entryData = {
         content: contentToSave,
         date: new Date(),
-      });
+      };
+
+      console.log('🙏 PrayerLogEditor: Setting pending entry and showing success modal');
+      setPendingEntry(entryData);
+      setShowSuccessModal(true);
     } catch (error) {
-      console.error('Error in handleSave:', error);
+      console.error('🙏 PrayerLogEditor: Error in preparePrayer:', error);
+      Alert.alert('Error', 'Failed to prepare prayer. Please try again.');
+    }
+  };
+
+  // Phase 2: Actually save to database (called only when user clicks "Done")
+  const saveEntry = async () => {
+    try {
+      console.log('🙏 PrayerLogEditor: saveEntry called with pending entry:', pendingEntry);
+
+      if (!pendingEntry) {
+        console.error('🙏 PrayerLogEditor: No pending entry to save!');
+        return;
+      }
+
+      // Clear any existing draft since we're saving the entry
+      try {
+        await AsyncStorage.removeItem(getDraftKey());
+        console.log('🙏 PrayerLogEditor: Draft cleared successfully');
+      } catch (error) {
+        console.error('🙏 PrayerLogEditor: Error clearing draft:', error);
+      }
+
+      console.log('🙏 PrayerLogEditor: Calling onSave with entry data');
+      onSave(pendingEntry);
+
+      // Clear pending entry
+      setPendingEntry(null);
+    } catch (error) {
+      console.error('🙏 PrayerLogEditor: Error in saveEntry:', error);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
     }
   };
+
+  // Success modal handlers
+  const handleSuccessModalDone = () => {
+    console.log('🙏 PrayerLogEditor: Success modal Done clicked');
+    setShowSuccessModal(false);
+    saveEntry(); // Actually save to database
+  };
+
+  const handleSuccessModalEdit = () => {
+    console.log('🙏 PrayerLogEditor: Success modal Edit clicked');
+    setShowSuccessModal(false);
+    // Don't save - user wants to continue editing
+  };
+
+  // Legacy handleSave for backward compatibility (now calls preparePrayer)
+  const handleSave = preparePrayer;
 
   const onCancel = async () => {
     try {
@@ -793,6 +847,16 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Success Modal */}
+        <SuccessModal
+          visible={showSuccessModal}
+          title="Prayer Saved!"
+          message="Your prayer has been prepared. What would you like to do?"
+          buttonText="Done"
+          onDismiss={handleSuccessModalDone}
+          onEdit={handleSuccessModalEdit}
+        />
     </View>
   );
 });
