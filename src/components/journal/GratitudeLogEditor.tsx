@@ -664,7 +664,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
             {gratitudeItems.map((item, index) => (
               <View key={index} style={s.gratitudeItemContainer}>
                 <TextInput
-                  ref={(ref) => { inputRefs.current[index] = ref; }}
+                  ref={(inputRef) => { inputRefs.current[index] = inputRef; }}
                   style={[s.entryInput, s.entryContentInput]}
                   placeholder={`${index + 1}. I'm grateful for...`}
                   placeholderTextColor="rgba(255, 255, 255, 0.4)"

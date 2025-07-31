@@ -97,7 +97,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       setIsEditSession(!!existingTimeBlock);
       setHasSaved(false);
       console.log('📅 SmartJournalingTimeBlockModal: Modal opened, isEditSession:', !!existingTimeBlock);
-      
+
       // Auto-focus the first input when modal opens for new entries
       if (!existingTimeBlock) {
         setTimeout(() => {
@@ -267,13 +267,13 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   const handleSuccessModalClose = () => {
     console.log('Closing success modal and time block editor');
     setShowSuccessModal(false);
-    
+
     // Mark step as completed when user clicks "Done"
     if (_completionInfo && handleToggleStep) {
       console.log('📅 Marking step as completed on Done click:', _completionInfo);
       handleToggleStep(_completionInfo.stepId, _completionInfo.subtaskId);
     }
-    
+
     onCancel(); // Close the main modal
   };
 

@@ -173,7 +173,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         return currentPrayerEntry.content && String(currentPrayerEntry.content).trim();
       })();
       setIsEditSession(!!hasExistingData);
-      
+
       // Auto-focus the first input when modal opens for new entries
       if (!hasExistingData) {
         setTimeout(() => {

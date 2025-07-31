@@ -187,7 +187,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
       setIsEditSession(!!hasExistingData);
       console.log('🙏 SmartJournalingGratitudeModal: Edit session:', !!hasExistingData);
-      
+
       // Auto-focus the first input when modal opens for new entries
       if (!hasExistingData) {
         setTimeout(() => {
@@ -356,7 +356,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const handleSuccessModalClose = () => {
     console.log('🙏 SmartJournalingGratitudeModal: Success modal closing');
     setShowSuccessModal(false);
-    
+
     // Mark step as completed when user clicks "Done"
     if (completionInfo && handleToggleStep) {
       const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
@@ -364,7 +364,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         stepId: completionStepId,
         subtaskId: completionSubtaskId,
       });
-      
+
       // Check if the step/subtask is already completed before toggling
       const step = actionSteps.find(s => s.id === completionStepId);
       if (step) {
@@ -387,10 +387,10 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
           }
         }
       }
-      
+
       setCompletionInfo(null);
     }
-    
+
     onCancel(); // Close the main modal
   };
 

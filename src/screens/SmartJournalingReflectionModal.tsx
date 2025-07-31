@@ -112,7 +112,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       // Modal is opening (transition from false to true)
       console.log('📝 SmartJournalingReflectionModal: Modal opening, clearing any existing completion info');
       setCompletionInfo(null);
-      
+
       // Auto-focus the first input when modal opens for new entries
       const hasExistingContent = existingReflection?.content && existingReflection.content.trim();
       if (!hasExistingContent) {
@@ -124,7 +124,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       }
     }
     setPrevVisible(visible);
-  }, [visible, prevVisible]);
+  }, [visible, prevVisible, existingReflection?.content]);
 
   // Handle subtask completion when modal closes after "DONE" is clicked
   useEffect(() => {
@@ -319,12 +319,12 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const handleSuccessModalClose = async () => {
     console.log('Closing success modal and reflection editor');
     setShowSuccessModal(false);
-    
+
     // Mark step as completed when user clicks "Done"
     if (completionInfo && handleToggleStep) {
       console.log('📝 Marking step as completed on Done click:', completionInfo);
       handleToggleStep(completionInfo.stepId, completionInfo.subtaskId);
-      
+
       // Save the updated steps to the database
       if (playbookId) {
         try {
@@ -344,10 +344,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           );
         }
       }
-      
+
       setCompletionInfo(null);
     }
-    
+
     onCancel();
   };
 
