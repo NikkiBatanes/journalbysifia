@@ -308,16 +308,12 @@ const defaultStyles = {
     padding: 0,
     paddingBottom: 8,
     color: Colors.hopeWhite,
-    fontSize: 18,
+    fontSize: 16,
     minHeight: 50,
     textAlignVertical: 'top',
   },
   multilineInput: {
     minHeight: 120,
-  },
-  placeholderText: {
-    fontSize: 18,
-    opacity: 0.4,
   },
 };
 
@@ -694,7 +690,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 <View style={s.structuredContainer}>
                   <TextInput
                     ref={personInputRef}
-                    style={[s.structuredInput, { fontSize: 18 }]}
+                    style={s.structuredInput}
                     placeholder="Who are you praying for?"
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     value={prayerForPerson}
@@ -703,7 +699,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                   <View style={{ height: 16 }} />
                   <TextInput
                     ref={requestInputRef}
-                    style={[s.structuredInput, s.multilineInput, { fontSize: 18 }]}
+                    style={[s.structuredInput, s.multilineInput]}
                     placeholder="What would you like to pray for this person?"
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     value={prayerRequest}
