@@ -115,10 +115,15 @@ export async function validateSession(): Promise<{
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
 
+    // Add a 5-minute buffer before considering session expired
+    const EXPIRATION_BUFFER = 5 * 60 * 1000; // 5 minutes
+    const now = Date.now();
+    const expirationTime = session?.expires_at ? (session.expires_at * 1000) - EXPIRATION_BUFFER : 0;
+
     const diagnostics = {
       hasSession: !!session,
       hasToken: !!session?.access_token,
-      isExpired: session?.expires_at ? session.expires_at * 1000 < Date.now() : false,
+      isExpired: session?.expires_at ? expirationTime < now : false,
       expiresAt: session?.expires_at,
       userId: session?.user?.id,
       email: session?.user?.email,

@@ -125,6 +125,14 @@ export class AuthErrorHandler {
       'timeout',
       'no internet',
       'offline',
+      'fetch failed',
+      'connection timeout',
+      'network is unreachable',
+      'dns lookup failed',
+      'connection refused',
+      'socket timeout',
+      'request timeout',
+      'network timeout',
     ];
 
     const errorMessage = (error.message || '').toLowerCase();

@@ -3,6 +3,48 @@ import { Alert, AppState, AppStateStatus } from 'react-native';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { supabase } from '../services/supabaseClient';
 
+// Utility functions for error detection
+const isNetworkError = (error: any): boolean => {
+  if (!error) {return false;}
+  const errorMessage = (error.message || error.error_description || '').toLowerCase();
+  const networkErrorMessages = [
+    'network request failed',
+    'network error',
+    'connection failed',
+    'timeout',
+    'no internet',
+    'offline',
+    'fetch failed',
+    'connection timeout',
+    'network is unreachable',
+  ];
+  return networkErrorMessages.some(msg => errorMessage.includes(msg));
+};
+
+const isAuthenticationError = (error: any): boolean => {
+  if (!error) {return false;}
+  const authErrorCodes = [401, 403];
+  const authErrorMessages = [
+    'invalid_token',
+    'token_expired',
+    'unauthorized',
+    'forbidden',
+    'jwt expired',
+    'invalid jwt',
+    'authentication required',
+    'session expired',
+  ];
+
+  // Check status code
+  if (error.status && authErrorCodes.includes(error.status)) {
+    return true;
+  }
+
+  // Check error message
+  const errorMessage = (error.message || error.error_description || '').toLowerCase();
+  return authErrorMessages.some(msg => errorMessage.includes(msg));
+};
+
 interface AuthStateMonitorProps {
   children: React.ReactNode;
 }
@@ -13,7 +55,7 @@ interface AuthStateMonitorProps {
  */
 export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
-  const [_lastAuthCheck, setLastAuthCheck] = useState<Date>(new Date());
+  const [lastAuthCheck, setLastAuthCheck] = useState<Date | null>(null);
   const [isMonitoring, setIsMonitoring] = useState(true);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const sessionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -65,51 +107,90 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
     );
   }, []);
 
-  // Validate session when app comes to foreground
+  // Validate session when app comes to foreground (with network error tolerance)
   const validateSessionOnAppForeground = useCallback(async () => {
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
         console.error('❌ Session validation error:', error);
-        await handleSessionError('Session validation failed. Please log in again.');
+        // Don't immediately logout on network errors - be more tolerant
+        if (isNetworkError(error)) {
+          console.log('🌐 Network error during session validation, maintaining current state');
+          return;
+        }
+        // Only handle auth errors, not network issues
+        if (isAuthenticationError(error)) {
+          await handleSessionError('Session validation failed. Please log in again.');
+        }
         return;
       }
 
       if (!currentSession && isAuthenticated) {
         console.warn('⚠️ Silent logout detected on app foreground');
-        await handleSilentLogout('Your session has expired. Please log in again.');
+        // Add a small delay and retry once before logging out
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const { data: { session: retrySession } } = await supabase.auth.getSession();
+
+        if (!retrySession) {
+          await handleSilentLogout('Your session has expired. Please log in again.');
+        } else {
+          console.log('✅ Session recovered on retry');
+          setLastAuthCheck(new Date());
+        }
       } else if (currentSession) {
         console.log('✅ Session valid on app foreground');
         setLastAuthCheck(new Date());
       }
     } catch (error) {
       console.error('💥 Session validation failed:', error);
-      await handleSessionError('Unable to verify your session. Please check your connection.');
+      // Don't interrupt user for network errors during foreground validation
+      if (!isNetworkError(error)) {
+        await handleSessionError('Unable to verify your session. Please check your connection.');
+      }
     }
   }, [isAuthenticated, handleSilentLogout, handleSessionError, setLastAuthCheck]);
 
-  // Periodic session validation
+  // Periodic session validation (more tolerant)
   const validateSessionPeriodically = useCallback(async () => {
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
         console.error('❌ Periodic session check error:', error);
-        return; // Don't interrupt user for periodic check errors
+        // Be very tolerant during periodic checks - don't logout on any errors
+        return;
       }
 
       if (!currentSession && isAuthenticated) {
-        console.warn('⚠️ Silent logout detected during periodic check');
-        await handleSilentLogout('Your session has expired. Please log in again to continue.');
+        console.warn('⚠️ Potential silent logout detected during periodic check');
+        // Don't immediately logout - try to refresh session first
+        try {
+          const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+
+          if (refreshedSession && !refreshError) {
+            console.log('✅ Session refreshed successfully during periodic check');
+            setLastAuthCheck(new Date());
+            return;
+          }
+        } catch (refreshError) {
+          console.error('❌ Session refresh failed during periodic check:', refreshError);
+        }
+
+        // Only logout if we're absolutely sure the session is invalid
+        // and it's been more than 10 minutes since last successful check
+        const timeSinceLastCheck = Date.now() - (lastAuthCheck?.getTime() || 0);
+        if (timeSinceLastCheck > 10 * 60 * 1000) { // 10 minutes
+          await handleSilentLogout('Your session has expired. Please log in again to continue.');
+        }
       } else if (currentSession) {
         setLastAuthCheck(new Date());
       }
     } catch (error) {
       console.error('💥 Periodic session check failed:', error);
-      // Don't interrupt user for network errors during periodic checks
+      // Never interrupt user for network errors during periodic checks
     }
-  }, [isAuthenticated, handleSilentLogout, setLastAuthCheck]);
+  }, [isAuthenticated, handleSilentLogout, setLastAuthCheck, lastAuthCheck]);
 
   // Monitor app state changes for session validation
   useEffect(() => {
@@ -128,12 +209,12 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
     return () => subscription?.remove();
   }, [validateSessionOnAppForeground]);
 
-  // Periodic session validation (every 5 minutes when app is active)
+  // Periodic session validation (reduced frequency - every 15 minutes when app is active)
   useEffect(() => {
     if (isAuthenticated && isMonitoring) {
       sessionCheckIntervalRef.current = setInterval(async () => {
         await validateSessionPeriodically();
-      }, 5 * 60 * 1000); // 5 minutes
+      }, 15 * 60 * 1000); // 15 minutes instead of 5 minutes
     }
 
     return () => {
