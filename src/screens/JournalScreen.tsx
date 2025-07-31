@@ -609,8 +609,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   scrollViewContent: {
-    padding: 8,
+    padding: 4, // Reduced from 8
     paddingBottom: 100,
+    gap: 8, // Add gap between carousel items
   },
   tabText: {
     fontSize: 16,

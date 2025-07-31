@@ -123,8 +123,8 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey = 
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 0,
-    marginBottom: 0, // Reduced from 16 to 4 to decrease gap
+    // Margins are now handled by parent ScrollView's gap
+    marginVertical: 0,
   },
   header: {
     paddingHorizontal: 16,
