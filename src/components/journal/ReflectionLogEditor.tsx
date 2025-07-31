@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useImperativeHandle } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -45,6 +45,10 @@ interface ReflectionLogEditorProps {
   subtaskId?: string;
   styles?: any;
   isLoading?: boolean;
+}
+
+export interface ReflectionLogEditorRef {
+  focusInput: () => void;
 }
 
 // Fallback styles in case styles prop is not provided
@@ -325,28 +329,31 @@ const fallbackStyles = {
 
 
 
-const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
-  onSave,
-  onCancel,
-  onDelete,
-  entryId,
-  devotionalTitle,
-  playbookTitle,
-  totalDays,
-  dayNumber,
-  dayTitle,
-  questionNumber,
-  initialEntry = {},
-  initialMode = 'free-form',
-  initialPrompt = '',
-  dateString,
-  initialTitle = '',
-  lockTitle = false,
-  source = 'freeform',
-  subtaskId,
-  styles,
-  isLoading = false,
-}) => {
+const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionLogEditorProps>((
+  {
+    onSave,
+    onCancel,
+    onDelete,
+    entryId,
+    devotionalTitle,
+    playbookTitle,
+    totalDays,
+    dayNumber,
+    dayTitle,
+    questionNumber,
+    initialEntry = {},
+    initialMode = 'free-form',
+    initialPrompt = '',
+    dateString,
+    initialTitle = '',
+    lockTitle = false,
+    source = 'freeform',
+    subtaskId,
+    styles,
+    isLoading = false,
+  },
+  ref
+) => {
   // Merge styles prop with fallbackStyles
   const s = { ...fallbackStyles, ...styles };
   // Internal state - manage view mode
@@ -399,6 +406,21 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
   // Refs
   const titleInputRef = useRef<TextInput>(null);
   const contentInputRef = useRef<TextInput>(null);
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    focusInput: () => {
+      if (contentInputRef.current) {
+        contentInputRef.current.focus();
+        // Position cursor at the end of the text
+        setTimeout(() => {
+          if (contentInputRef.current) {
+            contentInputRef.current.setSelection(newEntry.content.length, newEntry.content.length);
+          }
+        }, 100);
+      }
+    },
+  }));
 
   // Mobile WYSIWYG state
 
@@ -1052,6 +1074,6 @@ const ReflectionLogEditor: React.FC<ReflectionLogEditorProps> = ({
     </KeyboardAvoidingView>
   </View>
   );
-};
+});
 
 export default ReflectionLogEditor;

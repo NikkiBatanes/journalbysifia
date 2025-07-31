@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
-import PrayerLogEditor from '../components/journal/PrayerLogEditor';
+import PrayerLogEditor, { PrayerLogEditorRef } from '../components/journal/PrayerLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -98,6 +98,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
   const [prevVisible, setPrevVisible] = useState(false);
   const [hasSaved, setHasSaved] = useState(false); // Track if a save actually happened
+  const prayerEditorRef = useRef<PrayerLogEditorRef>(null);
 
   // Fetch existing prayer data for this subtask
   const dateStr = new Date().toISOString().split('T')[0];
@@ -172,6 +173,15 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         return currentPrayerEntry.content && String(currentPrayerEntry.content).trim();
       })();
       setIsEditSession(!!hasExistingData);
+      
+      // Auto-focus the first input when modal opens for new entries
+      if (!hasExistingData) {
+        setTimeout(() => {
+          if (prayerEditorRef.current) {
+            prayerEditorRef.current.focusInput();
+          }
+        }, 500); // Delay to allow modal animation to complete
+      }
     }
     setPrevVisible(visible);
   }, [visible, prevVisible, currentPrayerEntry]);
@@ -314,6 +324,12 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   // Called when "Edit" is pressed in SuccessModal
   const handleEdit = () => {
     setShowSuccessModal(false);
+    // Focus the input and position cursor at the end
+    setTimeout(() => {
+      if (prayerEditorRef.current) {
+        prayerEditorRef.current.focusInput();
+      }
+    }, 300); // Small delay to allow modal to close
     // Remain in editor, keep modal open
   };
 
@@ -369,6 +385,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <PrayerLogEditor
+            ref={prayerEditorRef}
             onSave={savePrayer}
             onCancel={onCancel}
             initialContent={getInitialContent()}

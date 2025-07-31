@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useImperativeHandle } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -20,6 +20,10 @@ interface GratitudeLogEditorProps {
   actionStepTitle?: string;
   isLoading?: boolean;
   styles?: any;
+}
+
+export interface GratitudeLogEditorRef {
+  focusInput: () => void;
 }
 
 // Styles matching reflection log editor pattern
@@ -373,19 +377,22 @@ const defaultStyles = {
   },
 };
 
-const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
-  onSave,
-  onCancel: _onCancel,
-  initialItems = ['', '', ''],
-  subtaskTitle,
-  subtaskId,
-  stepId,
-  playbookTitle,
-  actionStepNumber,
-  actionStepTitle,
-  isLoading = false,
-  styles,
-}) => {
+const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogEditorProps>((
+  {
+    onSave,
+    onCancel: _onCancel,
+    initialItems = ['', '', ''],
+    subtaskTitle,
+    subtaskId,
+    stepId,
+    playbookTitle,
+    actionStepNumber,
+    actionStepTitle,
+    isLoading = false,
+    styles,
+  },
+  ref
+) => {
   const s = { ...defaultStyles, ...styles };
 
   // Helper function to ensure items have proper numbering
@@ -416,6 +423,23 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
 
   // Refs for inputs
   const inputRefs = useRef<(TextInput | null)[]>([]);
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    focusInput: () => {
+      // Focus the first input and position cursor at the end
+      if (inputRefs.current[0]) {
+        inputRefs.current[0].focus();
+        // Position cursor at the end of the text
+        setTimeout(() => {
+          if (inputRefs.current[0]) {
+            const text = gratitudeItems[0] || '';
+            inputRefs.current[0].setSelection(text.length, text.length);
+          }
+        }, 100);
+      }
+    },
+  }));
 
   // Helper function to get unique draft key for each gratitude
   const getDraftKey = React.useCallback(() => {
@@ -783,6 +807,6 @@ const GratitudeLogEditor: React.FC<GratitudeLogEditorProps> = ({
       </View>
     </View>
   );
-};
+});
 
 export default GratitudeLogEditor;

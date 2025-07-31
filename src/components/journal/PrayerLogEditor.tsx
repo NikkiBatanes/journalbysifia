@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useImperativeHandle } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -21,6 +21,10 @@ interface PrayerLogEditorProps {
   isLoading?: boolean;
   styles?: any;
   dateString?: string;
+}
+
+export interface PrayerLogEditorRef {
+  focusInput: () => void;
 }
 
 // Styles matching reflection log editor pattern
@@ -312,20 +316,23 @@ const defaultStyles = {
   },
 };
 
-const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
-  onSave,
-  onCancel: _onCancel,
-  initialContent = '',
-  subtaskTitle: _subtaskTitle,
-  subtaskId,
-  stepId,
-  playbookTitle,
-  actionStepNumber,
-  actionStepTitle,
-  isLoading = false,
-  styles,
-  dateString,
-}) => {
+const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProps>((
+  {
+    onSave,
+    onCancel: _onCancel,
+    initialContent = '',
+    subtaskTitle: _subtaskTitle,
+    subtaskId,
+    stepId,
+    playbookTitle,
+    actionStepNumber,
+    actionStepTitle,
+    isLoading = false,
+    styles,
+    dateString,
+  },
+  ref
+) => {
   const s = {
     ...defaultStyles,
     ...styles,
@@ -360,6 +367,8 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
     },
   };
   const inputRef = useRef<TextInput>(null);
+  const personInputRef = useRef<TextInput>(null);
+  const requestInputRef = useRef<TextInput>(null);
 
   // Debug logging
   console.log('🙏 PrayerLogEditor: _subtaskTitle value:', _subtaskTitle);
@@ -375,6 +384,35 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
 
   // Tab management
   const [activeTab, setActiveTab] = React.useState<'freeform' | 'people'>('freeform');
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    focusInput: () => {
+      if (activeTab === 'freeform') {
+        // Focus the main prayer content input for freeform tab
+        if (inputRef.current) {
+          inputRef.current.focus();
+          // Position cursor at the end of the text
+          setTimeout(() => {
+            if (inputRef.current) {
+              inputRef.current.setSelection(prayerContent.length, prayerContent.length);
+            }
+          }, 100);
+        }
+      } else {
+        // Focus the first input (person name) for people tab
+        if (personInputRef.current) {
+          personInputRef.current.focus();
+          // Position cursor at the end of the text
+          setTimeout(() => {
+            if (personInputRef.current) {
+              personInputRef.current.setSelection(prayerForPerson.length, prayerForPerson.length);
+            }
+          }, 100);
+        }
+      }
+    },
+  }));
 
   // Structured prayer data for "Prayers for People" tab
   const [prayerForPerson, setPrayerForPerson] = React.useState('');
@@ -649,6 +687,7 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
                 <View style={s.structuredContainer}>
                   <Text style={s.inputLabel}>Who are you praying for?</Text>
                   <TextInput
+                    ref={personInputRef}
                     style={s.structuredInput}
                     placeholder="Enter the person's name..."
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
@@ -658,6 +697,7 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
 
                   <Text style={s.inputLabel}>What would you like to pray for this person?</Text>
                   <TextInput
+                    ref={requestInputRef}
                     style={[s.structuredInput, s.multilineInput]}
                     placeholder="Share your prayer request for this person..."
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
@@ -755,6 +795,6 @@ const PrayerLogEditor: React.FC<PrayerLogEditorProps> = ({
         </View>
     </View>
   );
-};
+});
 
 export default PrayerLogEditor;

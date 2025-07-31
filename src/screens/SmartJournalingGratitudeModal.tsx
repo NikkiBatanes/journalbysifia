@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert, Keyboard } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
-import GratitudeLogEditor from '../components/journal/GratitudeLogEditor';
+import GratitudeLogEditor, { GratitudeLogEditorRef } from '../components/journal/GratitudeLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -55,6 +55,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
+  const gratitudeEditorRef = useRef<GratitudeLogEditorRef>(null);
 
   // Preserve initial metadata to prevent loss after parent state clears
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = useState(subtaskTitle);
@@ -186,6 +187,15 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
       setIsEditSession(!!hasExistingData);
       console.log('🙏 SmartJournalingGratitudeModal: Edit session:', !!hasExistingData);
+      
+      // Auto-focus the first input when modal opens for new entries
+      if (!hasExistingData) {
+        setTimeout(() => {
+          if (gratitudeEditorRef.current) {
+            gratitudeEditorRef.current.focusInput();
+          }
+        }, 500); // Delay to allow modal animation to complete
+      }
     }
     setPrevVisible(visible);
   }, [visible, prevVisible, currentGratitudeEntry]);
@@ -198,45 +208,10 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
       completionInfo,
     });
 
-    // Only complete subtask when modal is closing and we have completion info from successful save
-    if (!visible && completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
-      const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
-      console.log('🙏 SmartJournalingGratitudeModal: Setting timer for subtask completion');
-
-      // Wait for modal slide-down animation to complete (typically 300-500ms)
-      const timer = setTimeout(() => {
-        console.log('🙏 SmartJournalingGratitudeModal: Auto-completing subtask after modal slide-down', {
-          stepId: completionStepId,
-          subtaskId: completionSubtaskId,
-        });
-
-        // Check if the step/subtask is already completed before toggling
-        const step = actionSteps.find(s => s.id === completionStepId);
-        if (step) {
-          if (completionSubtaskId) {
-            // Check subtask completion
-            const subtask = step.subTasks?.find(st => st.id === completionSubtaskId);
-            if (subtask && !subtask.completed) {
-              console.log('🙏 SmartJournalingGratitudeModal: Marking subtask as completed');
-              handleToggleStep(completionStepId, completionSubtaskId);
-            } else {
-              console.log('🙏 SmartJournalingGratitudeModal: Subtask already completed, skipping toggle');
-            }
-          } else {
-            // Check step completion
-            if (!step.completed) {
-              console.log('🙏 SmartJournalingGratitudeModal: Marking step as completed');
-              handleToggleStep(completionStepId, completionSubtaskId);
-            } else {
-              console.log('🙏 SmartJournalingGratitudeModal: Step already completed, skipping toggle');
-            }
-          }
-        }
-
-        setCompletionInfo(null);
-      }, 1000);
-
-      return () => clearTimeout(timer);
+    // Clear completion info when modal closes without completing
+    // Completion only happens when user clicks "Done" in success modal
+    if (!visible && completionInfo) {
+      console.log('🙏 SmartJournalingGratitudeModal: Modal closed, completion info preserved for Done button');
     }
   }, [visible, completionInfo, handleToggleStep, actionSteps]);
 
@@ -381,12 +356,53 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const handleSuccessModalClose = () => {
     console.log('🙏 SmartJournalingGratitudeModal: Success modal closing');
     setShowSuccessModal(false);
+    
+    // Mark step as completed when user clicks "Done"
+    if (completionInfo && handleToggleStep) {
+      const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
+      console.log('🙏 SmartJournalingGratitudeModal: Marking step as completed on Done click:', {
+        stepId: completionStepId,
+        subtaskId: completionSubtaskId,
+      });
+      
+      // Check if the step/subtask is already completed before toggling
+      const step = actionSteps.find(s => s.id === completionStepId);
+      if (step) {
+        if (completionSubtaskId) {
+          // Check subtask completion
+          const subtask = step.subTasks?.find(st => st.id === completionSubtaskId);
+          if (subtask && !subtask.completed) {
+            console.log('🙏 SmartJournalingGratitudeModal: Marking subtask as completed');
+            handleToggleStep(completionStepId, completionSubtaskId);
+          } else {
+            console.log('🙏 SmartJournalingGratitudeModal: Subtask already completed, skipping toggle');
+          }
+        } else {
+          // Check step completion
+          if (!step.completed) {
+            console.log('🙏 SmartJournalingGratitudeModal: Marking step as completed');
+            handleToggleStep(completionStepId, completionSubtaskId);
+          } else {
+            console.log('🙏 SmartJournalingGratitudeModal: Step already completed, skipping toggle');
+          }
+        }
+      }
+      
+      setCompletionInfo(null);
+    }
+    
     onCancel(); // Close the main modal
   };
 
   const handleEdit = () => {
     console.log('🙏 SmartJournalingGratitudeModal: Edit button pressed, closing success modal');
     setShowSuccessModal(false);
+    // Focus the input and position cursor at the end
+    setTimeout(() => {
+      if (gratitudeEditorRef.current) {
+        gratitudeEditorRef.current.focusInput();
+      }
+    }, 300); // Small delay to allow modal to close
     // Keep modal open for continued editing
   };
 
@@ -415,6 +431,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
 
           <GratitudeLogEditor
+            ref={gratitudeEditorRef}
             onSave={saveGratitude}
             onCancel={onCancel}
             initialItems={currentGratitudeEntry?.content ?

@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
-import ReflectionLogEditor from '../components/journal/ReflectionLogEditor';
+import ReflectionLogEditor, { ReflectionLogEditorRef } from '../components/journal/ReflectionLogEditor';
 import { styles as reflectionLogStyles } from '../components/journal/reflectionStyles';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useActionSteps } from '../context/ActionStepsContext';
-import {
-  useCreateReflection,
-  useUpdateReflection,
-} from '../services/hooks/useReflectionData';
+import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
 import { useQueryClient } from '@tanstack/react-query';
+import { usePlaybookStore } from '../store/usePlaybookStore';
+import { updatePlaybookActionSteps } from '../services/apiIntegration';
 import { analytics } from '../utils/analytics';
 
 interface SmartJournalingReflectionModalProps {
@@ -81,6 +80,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const dateStr = new Date().toISOString().split('T')[0]; // Use ISO format to match ReflectionLogReactQuery
+  const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
 
   // Debug: Log existing reflection prop
   React.useEffect(() => {
@@ -110,8 +110,18 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   useEffect(() => {
     if (visible && !prevVisible) {
       // Modal is opening (transition from false to true)
-      console.log('💭 SmartJournalingReflectionModal: Modal opening, clearing any existing completion info');
+      console.log('📝 SmartJournalingReflectionModal: Modal opening, clearing any existing completion info');
       setCompletionInfo(null);
+      
+      // Auto-focus the first input when modal opens for new entries
+      const hasExistingContent = existingReflection?.content && existingReflection.content.trim();
+      if (!hasExistingContent) {
+        setTimeout(() => {
+          if (reflectionEditorRef.current) {
+            reflectionEditorRef.current.focusInput();
+          }
+        }, 500); // Delay to allow modal animation to complete
+      }
     }
     setPrevVisible(visible);
   }, [visible, prevVisible]);
@@ -124,25 +134,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       completionInfo,
     });
 
-    // Only complete subtask when modal is closing and we have completion info from successful save
-    if (!visible && completionInfo && completionInfo.stepId && completionInfo.subtaskId) {
-      const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
-      console.log('💭 SmartJournalingReflectionModal: Setting timer for subtask completion');
-
-      // Wait for modal slide-down animation to complete (typically 300-500ms)
-      const timer = setTimeout(() => {
-        console.log('💭 SmartJournalingReflectionModal: Auto-completing subtask after modal slide-down', {
-          stepId: completionStepId,
-          subtaskId: completionSubtaskId,
-        });
-        handleToggleStep(completionStepId, completionSubtaskId);
-        setCompletionInfo(null); // Clear completion info
-      }, 1000); // Wait for modal slide animation to complete
-
-      return () => {
-        console.log('💭 SmartJournalingReflectionModal: Clearing timer');
-        clearTimeout(timer);
-      };
+    // Clear completion info when modal closes without completing
+    // Completion only happens when user clicks "Done" in success modal
+    if (!visible && completionInfo) {
+      console.log('📝 SmartJournalingReflectionModal: Modal closed, completion info preserved for Done button');
     }
   }, [visible, completionInfo, handleToggleStep]);
 
@@ -321,15 +316,50 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   // Note: Delete functionality intentionally removed from smart journaling modal.
   // Users can delete reflections through the main Reflection Log interface.
 
-  const handleSuccessModalClose = () => {
+  const handleSuccessModalClose = async () => {
     console.log('Closing success modal and reflection editor');
     setShowSuccessModal(false);
+    
+    // Mark step as completed when user clicks "Done"
+    if (completionInfo && handleToggleStep) {
+      console.log('📝 Marking step as completed on Done click:', completionInfo);
+      handleToggleStep(completionInfo.stepId, completionInfo.subtaskId);
+      
+      // Save the updated steps to the database
+      if (playbookId) {
+        try {
+          // Get the current playbook from the store
+          const currentPlaybook = usePlaybookStore.getState().playbooks.find(p => p.id === playbookId);
+          if (currentPlaybook) {
+            // Save the updated action steps
+            await updatePlaybookActionSteps(playbookId, currentPlaybook.actionSteps || []);
+            console.log('✅ Successfully saved completion status to database');
+          }
+        } catch (error) {
+          console.error('❌ Failed to save completion status:', error);
+          // Optionally show an error message to the user
+          Alert.alert(
+            'Update Failed',
+            'Could not update the completion status. Please try again.'
+          );
+        }
+      }
+      
+      setCompletionInfo(null);
+    }
+    
     onCancel();
   };
 
   const handleEdit = () => {
     console.log('Edit button pressed, closing success modal');
     setShowSuccessModal(false);
+    // Focus the input and position cursor at the end
+    setTimeout(() => {
+      if (reflectionEditorRef.current) {
+        reflectionEditorRef.current.focusInput();
+      }
+    }, 300); // Small delay to allow modal to close
     // The editor will remain open since we're not calling onCancel
     // Step information is preserved for continued editing
   };
@@ -355,6 +385,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         >
           <View style={styles.container}>
             <ReflectionLogEditor
+              ref={reflectionEditorRef}
               onSave={saveReflection}
               onCancel={handleCancel}
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log

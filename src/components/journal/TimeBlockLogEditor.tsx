@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle } from 'react';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Modal } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -41,6 +41,10 @@ interface TimeBlockLogEditorProps {
     location?: string;
     all_day?: boolean;
   };
+}
+
+export interface TimeBlockLogEditorRef {
+  focusInput: () => void;
 }
 
 const CATEGORIES = [
@@ -576,23 +580,41 @@ const defaultStyles = {
   },
 };
 
-const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
-  onSave,
-  onCancel: _onCancel,
-  initialContent: _initialContent = '',
-  subtaskTitle: _subtaskTitle,
-  _subtaskId,
-  _stepId,
-  playbookTitle,
-  actionStepNumber,
-  actionStepTitle,
-  isLoading = false,
-  styles,
-  dateString,
-  existingTimeBlock,
-}) => {
+const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogEditorProps>((
+  {
+    onSave,
+    onCancel: _onCancel,
+    initialContent: _initialContent = '',
+    subtaskTitle: _subtaskTitle,
+    _subtaskId,
+    _stepId,
+    playbookTitle,
+    actionStepNumber,
+    actionStepTitle,
+    isLoading = false,
+    styles,
+    dateString,
+    existingTimeBlock,
+  },
+  ref
+) => {
   const s = { ...defaultStyles, ...styles };
   const inputRef = useRef<TextInput>(null);
+
+  // Expose methods to parent component
+  useImperativeHandle(ref, () => ({
+    focusInput: () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        // Position cursor at the end of the text
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.setSelection(title.length, title.length);
+          }
+        }, 100);
+      }
+    },
+  }));
 
   // State management
   const [title, setTitle] = React.useState(existingTimeBlock?.title || '');
@@ -1159,6 +1181,6 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
       </View>
     </View>
   );
-};
+});
 
 export default TimeBlockLogEditor;

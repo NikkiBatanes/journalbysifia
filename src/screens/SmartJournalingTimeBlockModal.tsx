@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, Modal, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import SuccessModal from '../components/SuccessModal';
-import TimeBlockLogEditor from '../components/journal/TimeBlockLogEditor';
+import TimeBlockLogEditor, { TimeBlockLogEditorRef } from '../components/journal/TimeBlockLogEditor';
 import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -88,6 +88,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   const [isEditSession, setIsEditSession] = useState(false);
   const [prevVisible, setPrevVisible] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
+  const timeBlockEditorRef = useRef<TimeBlockLogEditorRef>(null);
 
   // Track visibility changes to detect when modal opens/closes
   useEffect(() => {
@@ -96,6 +97,15 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       setIsEditSession(!!existingTimeBlock);
       setHasSaved(false);
       console.log('📅 SmartJournalingTimeBlockModal: Modal opened, isEditSession:', !!existingTimeBlock);
+      
+      // Auto-focus the first input when modal opens for new entries
+      if (!existingTimeBlock) {
+        setTimeout(() => {
+          if (timeBlockEditorRef.current) {
+            timeBlockEditorRef.current.focusInput();
+          }
+        }, 500); // Delay to allow modal animation to complete
+      }
     } else if (!visible && prevVisible && hasSaved) {
       // Modal just closed after saving
       console.log('📅 SmartJournalingTimeBlockModal: Modal closed after save');
@@ -139,11 +149,11 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       console.log('🔄 Query invalidation completed');
       setHasSaved(true);
 
-      // Mark step as completed if we have the necessary IDs
-      if (stepId && subtaskId && handleToggleStep) {
-        console.log('📅 Marking step as completed:', { stepId, subtaskId });
+      // Store completion info but don't mark as completed yet
+      // Completion only happens when user clicks "Done" in success modal
+      if (stepId && subtaskId) {
+        console.log('📅 Storing completion info for later:', { stepId, subtaskId });
         setCompletionInfo({ stepId, subtaskId });
-        handleToggleStep(stepId, subtaskId);
       }
     },
     onError: (error) => {
@@ -255,8 +265,29 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   };
 
   const handleSuccessModalClose = () => {
+    console.log('Closing success modal and time block editor');
     setShowSuccessModal(false);
+    
+    // Mark step as completed when user clicks "Done"
+    if (_completionInfo && handleToggleStep) {
+      console.log('📅 Marking step as completed on Done click:', _completionInfo);
+      handleToggleStep(_completionInfo.stepId, _completionInfo.subtaskId);
+    }
+    
     onCancel(); // Close the main modal
+  };
+
+  const handleEdit = () => {
+    console.log('Edit button pressed, closing success modal');
+    setShowSuccessModal(false);
+    // Focus the input and position cursor at the end
+    setTimeout(() => {
+      if (timeBlockEditorRef.current) {
+        timeBlockEditorRef.current.focusInput();
+      }
+    }, 300); // Small delay to allow modal to close
+    // The editor will remain open since we're not calling onCancel
+    // Step information is preserved for continued editing
   };
 
   const isLoading = createTimeBlockMutation.isPending || updateTimeBlockMutation.isPending;
@@ -274,12 +305,13 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <TimeBlockLogEditor
+            ref={timeBlockEditorRef}
             onSave={handleSave}
             onCancel={handleCancel}
             initialContent={existingTimeBlock?.description || ''}
             subtaskTitle={preservedSubtaskTitle}
-            subtaskId={subtaskId}
-            stepId={stepId}
+            _subtaskId={subtaskId}
+            _stepId={stepId}
             playbookTitle={preservedPlaybookTitle}
             actionStepNumber={preservedActionStepNumber}
             actionStepTitle={preservedActionStepTitle}
@@ -296,12 +328,13 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
           <SuccessModal
             visible={showSuccessModal}
             onDismiss={handleSuccessModalClose}
+            onEdit={handleEdit}
             title={isEditSession ? 'Time Block Updated!' : 'Time Block Created!'}
             message={isEditSession
               ? 'Your time block has been successfully updated.'
               : 'Your time block has been successfully created and added to your schedule.'
             }
-            buttonText="Continue"
+            buttonText="Done"
           />
         </KeyboardAvoidingView>
       </Modal>
