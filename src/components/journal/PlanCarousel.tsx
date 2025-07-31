@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   Dimensions,
+  Animated,
   ScrollView,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
@@ -13,9 +14,9 @@ import { TodosReactQuery } from './TodosReactQuery';
 import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from './TimeBlockReactQuery';
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_WIDTH = screenWidth - 80; // Show peek of next/previous cards
-const CARD_SPACING = 16;
-const SIDE_PADDING = 20;
+const CARD_WIDTH = screenWidth * 2 / 3; // Show 1.5 cards in view
+const CARD_SPACING = 8; // Narrower gap between cards
+const SIDE_PADDING = 8; // Less side padding to reveal more of next/prev card
 
 interface PlanCarouselProps {
   selectedDate: Date;
@@ -31,6 +32,7 @@ interface CarouselItem {
 }
 
 const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey = 0 }) => {
+  const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
 
   const carouselItems: CarouselItem[] = [
@@ -67,7 +69,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey = 
     <View style={styles.container}>
       {renderHeader()}
 
-      <ScrollView
+      <Animated.ScrollView
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -83,13 +85,38 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey = 
           paddingRight: SIDE_PADDING,
         }}
         style={styles.scrollView}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: true }
+        )}
       >
-        {carouselItems.map((item) => (
-          <View key={item.id} style={styles.carouselItem}>
-            {item.component}
-          </View>
-        ))}
-      </ScrollView>
+        {carouselItems.map((item, i) => {
+          const inputRange = [
+            (i - 1) * (CARD_WIDTH + CARD_SPACING),
+            i * (CARD_WIDTH + CARD_SPACING),
+            (i + 1) * (CARD_WIDTH + CARD_SPACING),
+          ];
+          const scale = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.92, 1, 0.92],
+            extrapolate: 'clamp',
+          });
+          const opacity = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.7, 1, 0.7],
+            extrapolate: 'clamp',
+          });
+          return (
+            <Animated.View
+              key={item.id}
+              style={[styles.carouselItem, { transform: [{ scale }], opacity }]}
+            >
+              {item.component}
+            </Animated.View>
+          );
+        })}
+      </Animated.ScrollView>
     </View>
   );
 };
@@ -106,7 +133,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     fontFamily: Fonts.semiBold,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   scrollView: {
     height: 400,

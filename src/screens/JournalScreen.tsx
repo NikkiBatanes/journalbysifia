@@ -265,7 +265,8 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                 <Text
                   style={[
                     styles.dayNameText,
-                    (isCurrentDay || isSelected) && styles.dayNameTextHighlighted,
+                    isCurrentDay && !isSelected && styles.currentDayNameText,
+                    (isCurrentDay || isSelected) && isSelected && styles.dayNameTextHighlighted,
                   ]}
                 >
                   {isCurrentDay ? 'TODAY' : dayName}
@@ -738,8 +739,16 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   dayNameTextHighlighted: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.bold,
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  currentDayNameText: {
     color: Colors.anchorBlue,
     fontFamily: Fonts.bold,
+    fontSize: 9,
+    fontWeight: '600',
   },
   dayNumberText: {
     fontFamily: Fonts.medium,
@@ -748,22 +757,25 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   currentDayContainer: {
-    borderWidth: 1,
-    borderColor: Colors.anchorBlue,
+    borderWidth: 0,
     backgroundColor: Colors.hopeWhite,
     zIndex: 1, // Ensure current day appears above other elements
     elevation: 1, // For Android
   },
   selectedDayContainer: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.alertCoral,
   },
   currentDayText: {
     color: Colors.anchorBlue,
     fontFamily: Fonts.bold,
+    fontSize: 14,
+    fontWeight: '600',
   },
   selectedDayText: {
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.bold,
+    fontSize: 14,
+    fontWeight: '600',
   },
   viewModeContainerCompact: {
     flexDirection: 'row',

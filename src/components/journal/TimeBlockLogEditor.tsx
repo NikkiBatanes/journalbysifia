@@ -102,7 +102,7 @@ const defaultStyles = {
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite + 'e6', // hopeWhite with ~90% opacity
   },
   modeIconsContainer: {
     flexDirection: 'row',

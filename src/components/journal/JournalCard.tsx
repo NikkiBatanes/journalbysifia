@@ -106,31 +106,20 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.hopeWhite,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-
-    borderRadius: 16,
-    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Match progress bar empty color
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 30,
     padding: 16,
     marginBottom: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    minHeight: 340, // Minimum height for carousel cards, grows with content
   },
   cardEmpty: {
-    backgroundColor: Colors.hopeWhite,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Match progress bar empty color
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 30,
     padding: 16,
     marginBottom: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    minHeight: 340, // Minimum height for carousel cards, grows with content
   },
   headerEmpty: {
     marginBottom: 0,
@@ -173,7 +162,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: Fonts.bold,
     fontSize: 16,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite + 'e6', // hopeWhite with ~90% opacity
     marginBottom: 2,
     fontWeight: '700',
     letterSpacing: 0.3,
