@@ -1,10 +1,11 @@
-import React, { useRef, useEffect, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { GUIDED_PROMPTS } from './reflectionConstants';
+import SuccessModal from '../SuccessModal';
 
 
 type ViewMode = 'free-form' | 'guided';
@@ -428,6 +429,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   // State for showing draft notification
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
 
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [pendingEntry, setPendingEntry] = useState<any>(null);
+
   // No cleanup needed for Apple Notes style
   // Track if this is the first load to control draft notification display
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
@@ -616,7 +621,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
   }, [showFormattingModal, slideAnim]);
 
-  // Save handler
+  // Save handler - prepare entry and show success modal
   const handleSave = async () => {
     // Determine the entry type - if there's a selected prompt, it's a guided entry
     const entryType = selectedPrompt ? 'guided' : viewMode;
@@ -637,14 +642,67 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       ...(questionNumber !== undefined && { questionNumber }),
     };
 
-    // Clear any existing draft since we're saving the entry
-    try {
-      await AsyncStorage.removeItem(getDraftKey());
-    } catch (error) {
-      console.error('Error clearing draft:', error);
+    console.log('📝 ReflectionLogEditor: Preparing entry for success modal (not saving yet)');
+
+    // Store the prepared entry
+    setPendingEntry(entry);
+
+    // Show success modal immediately (before calling onSave)
+    setShowSuccessModal(true);
+  };
+
+  // Actually save the entry (called when user clicks "Done")
+  const saveEntry = async () => {
+    if (!pendingEntry) {
+      console.error('❌ No pending entry to save');
+      return;
     }
 
-    onSave(entry);
+    try {
+      console.log('✅ ReflectionLogEditor: Saving entry to database');
+
+      // Clear any existing draft since we're saving the entry
+      try {
+        await AsyncStorage.removeItem(getDraftKey());
+      } catch (error) {
+        console.error('Error clearing draft:', error);
+      }
+
+      // Call the parent onSave handler
+      onSave(pendingEntry);
+
+      console.log('✅ ReflectionLogEditor: Entry saved successfully');
+    } catch (error) {
+      console.error('❌ ReflectionLogEditor: Failed to save entry:', error);
+      throw error;
+    }
+  };
+
+  // Success modal handlers
+  const handleSuccessModalClose = async () => {
+    console.log('📝 ReflectionLogEditor: Done button clicked - saving entry');
+
+    try {
+      await saveEntry();
+      setShowSuccessModal(false);
+      setPendingEntry(null);
+      // Note: onCancel is not called here as this component doesn't control modal closure
+    } catch (error) {
+      console.error('❌ Failed to save reflection entry on Done click:', error);
+      // Don't close the modal if save failed - let user try again
+    }
+  };
+
+  const handleEdit = () => {
+    console.log('📝 ReflectionLogEditor: Edit button clicked - keeping entry for editing');
+    setShowSuccessModal(false);
+    // Keep pendingEntry for potential future save
+    // Focus the content input
+    setTimeout(() => {
+      if (contentInputRef.current) {
+        contentInputRef.current.focus();
+      }
+    }, 300);
   };
 
   // Always show free-form editor if we have a prompt or source is devotional
@@ -1072,6 +1130,15 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         </View>
       )}
     </KeyboardAvoidingView>
+
+    {/* Success Modal */}
+    <SuccessModal
+      visible={showSuccessModal}
+      onDismiss={handleSuccessModalClose}
+      onEdit={handleEdit}
+      title="Reflection Saved!"
+      message="Your reflection has been prepared. Click 'Done' to save it or 'Edit' to make changes."
+    />
   </View>
   );
 });

@@ -88,6 +88,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   const [isEditSession, setIsEditSession] = useState(false);
   const [prevVisible, setPrevVisible] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
+  const [pendingTimeBlockData, setPendingTimeBlockData] = useState<any>(null); // Store data before DB save
   const timeBlockEditorRef = useRef<TimeBlockLogEditorRef>(null);
 
   // Track visibility changes to detect when modal opens/closes
@@ -191,7 +192,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     },
   });
 
-  const handleSave = async (timeBlockData: {
+  // Prepare time block data for saving (but don't save to DB yet)
+  const prepareTimeBlock = async (timeBlockData: {
     title: string;
     startTime: Date;
     endTime: Date;
@@ -207,9 +209,11 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         return;
       }
 
-      console.log('📝 Preparing to save time block with data:', timeBlockData);
-      console.log('📅 Date being saved:', timeBlockData.date.toISOString().split('T')[0]);
-      console.log('👤 User ID:', user.id);
+      console.log('📅 SmartJournalingTimeBlockModal: Preparing time block data (not saving to DB yet)', {
+        title: timeBlockData.title,
+        date: timeBlockData.date.toISOString().split('T')[0],
+        isEditSession,
+      });
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
         user_id: user.id,
@@ -236,6 +240,42 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         version: 1,
       };
 
+      // Store the prepared data for later saving
+      setPendingTimeBlockData({ timeBlockData, timeBlockEntry });
+
+      // Show success modal immediately (before DB save)
+      setShowSuccessModal(true);
+      setHasSaved(true);
+
+      // Set completion info for later use
+      if (stepId && subtaskId) {
+        console.log('📅 SmartJournalingTimeBlockModal: Setting completion info for later use');
+        setCompletionInfo({ stepId, subtaskId });
+      }
+
+      console.log('✅ SmartJournalingTimeBlockModal: Time block prepared, showing success modal');
+    } catch (error: any) {
+      console.error('❌ SmartJournalingTimeBlockModal: PREPARE FAILED:', error);
+      Alert.alert(
+        'Error',
+        `Failed to prepare time block: ${error?.message || 'Unknown error'}`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Actually save to database (called only when user clicks "Done")
+  const saveToDatabase = async () => {
+    if (!pendingTimeBlockData) {
+      console.error('❌ No pending time block data to save');
+      return;
+    }
+
+    try {
+      console.log('📅 SmartJournalingTimeBlockModal: Saving to database...', pendingTimeBlockData);
+
+      const { timeBlockEntry } = pendingTimeBlockData;
+
       if (isEditSession && existingTimeBlock?.id) {
         // Update existing time block
         await updateTimeBlockMutation.mutateAsync({
@@ -247,15 +287,25 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         await createTimeBlockMutation.mutateAsync(timeBlockEntry);
       }
 
-      // Show success modal
-      setShowSuccessModal(true);
+      console.log('✅ SmartJournalingTimeBlockModal: Database save completed');
 
       // Call the parent onSave callback
       onSave(timeBlockEntry);
 
-    } catch (error) {
-      console.error('❌ Error in handleSave:', error);
-      Alert.alert('Error', 'Failed to save time block. Please try again.');
+      return timeBlockEntry;
+    } catch (error: any) {
+      console.error('❌ SmartJournalingTimeBlockModal: DATABASE SAVE FAILED:', error);
+      // Clear completion info and pending data on error to prevent false completion
+      setCompletionInfo(null);
+      setHasSaved(false);
+      setPendingTimeBlockData(null);
+
+      Alert.alert(
+        'Save Failed',
+        `Failed to save time block: ${error?.message || 'Unknown error'}. Please try again.`,
+        [{ text: 'OK' }]
+      );
+      throw error;
     }
   };
 
@@ -264,21 +314,34 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     onCancel();
   };
 
-  const handleSuccessModalClose = () => {
-    console.log('Closing success modal and time block editor');
-    setShowSuccessModal(false);
+  const handleSuccessModalClose = async () => {
+    console.log('📅 SmartJournalingTimeBlockModal: Done button clicked - saving to database');
 
-    // Mark step as completed when user clicks "Done"
-    if (_completionInfo && handleToggleStep) {
-      console.log('📅 Marking step as completed on Done click:', _completionInfo);
-      handleToggleStep(_completionInfo.stepId, _completionInfo.subtaskId);
+    try {
+      // Save to database when user clicks "Done"
+      await saveToDatabase();
+
+      setShowSuccessModal(false);
+
+      // Mark step as completed after successful save
+      if (_completionInfo && handleToggleStep) {
+        console.log('📅 SmartJournalingTimeBlockModal: Marking step as completed after DB save:', _completionInfo);
+        handleToggleStep(_completionInfo.stepId, _completionInfo.subtaskId);
+        setCompletionInfo(null);
+      }
+
+      // Clear pending data after successful save
+      setPendingTimeBlockData(null);
+
+      onCancel(); // Close the main modal
+    } catch (error) {
+      console.error('❌ Failed to save time block on Done click:', error);
+      // Don't close the modal if save failed - let user try again
     }
-
-    onCancel(); // Close the main modal
   };
 
   const handleEdit = () => {
-    console.log('Edit button pressed, closing success modal');
+    console.log('📅 SmartJournalingTimeBlockModal: Edit button clicked - keeping data for editing');
     setShowSuccessModal(false);
     // Focus the input and position cursor at the end
     setTimeout(() => {
@@ -287,7 +350,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
       }
     }, 300); // Small delay to allow modal to close
     // The editor will remain open since we're not calling onCancel
-    // Step information is preserved for continued editing
+    // Step information and pending data are preserved for continued editing
   };
 
   const isLoading = createTimeBlockMutation.isPending || updateTimeBlockMutation.isPending;
@@ -306,7 +369,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         >
           <TimeBlockLogEditor
             ref={timeBlockEditorRef}
-            onSave={handleSave}
+            onSave={prepareTimeBlock}
             onCancel={handleCancel}
             initialContent={existingTimeBlock?.description || ''}
             subtaskTitle={preservedSubtaskTitle}

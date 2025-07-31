@@ -37,6 +37,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 }) => {
   const { user } = useAuth();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [pendingReflectionData, setPendingReflectionData] = useState<any>(null);
   const dateStr = toLocalDateString(new Date());
 
   // React Query hooks
@@ -133,7 +134,8 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     }
   };
 
-  const handleSave = async (entry: {
+  // Prepare reflection data for saving (but don't save to DB yet)
+  const prepareReflection = async (entry: {
     title: string;
     content: string;
     tags: string[];
@@ -144,9 +146,12 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     [key: string]: any;
   }) => {
     try {
-      console.log('🔍 DevotionalDetailReflectionModal: handleSave called with entry:', entry);
-      console.log('🔍 DevotionalDetailReflectionModal: About to call saveReflection...');
-      const savedEntry = await saveReflection({
+      console.log('📝 DevotionalDetailReflectionModal: Preparing reflection data (not saving to DB yet)', {
+        title: entry.title,
+        contentLength: entry.content.length,
+      });
+
+      const reflectionData = {
         title: entry.title,
         content: entry.content,
         tags: entry.tags || [],
@@ -158,31 +163,79 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         ...(entry.dayTitle && { dayTitle: entry.dayTitle }),
         ...(entry.totalDays !== undefined && { totalDays: entry.totalDays }),
         ...(entry.questionNumber !== undefined && { questionNumber: entry.questionNumber }),
-      });
-      console.log('🔍 DevotionalDetailReflectionModal: saveReflection completed:', savedEntry);
+      };
 
-      console.log('Reflection saved, calling onSave callback');
+      // Store the prepared data for later saving
+      setPendingReflectionData(reflectionData);
+
+      // Show success modal immediately (before DB save)
+      setShowSuccessModal(true);
+
+      console.log('✅ DevotionalDetailReflectionModal: Reflection prepared, showing success modal');
+    } catch (error: any) {
+      console.error('❌ DevotionalDetailReflectionModal: PREPARE FAILED:', error);
+      Alert.alert(
+        'Error',
+        `Failed to prepare reflection: ${error?.message || 'Unknown error'}`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Actually save to database (called only when user clicks "Done")
+  const saveToDatabase = async () => {
+    if (!pendingReflectionData) {
+      console.error('❌ No pending reflection data to save');
+      return;
+    }
+
+    try {
+      console.log('📝 DevotionalDetailReflectionModal: Saving to database...', pendingReflectionData);
+
+      const savedEntry = await saveReflection(pendingReflectionData);
+      console.log('✅ DevotionalDetailReflectionModal: Database save completed:', savedEntry);
+
       // Call the original onSave with the saved entry data
       if (onSave) {
         onSave(savedEntry);
       }
 
-      console.log('Success modal should be visible now');
-    } catch (error) {
-      console.error('Failed to save reflection:', error);
-      // You might want to show an error message to the user here
+      return savedEntry;
+    } catch (error: any) {
+      console.error('❌ DevotionalDetailReflectionModal: DATABASE SAVE FAILED:', error);
+      // Clear pending data on error to prevent false completion
+      setPendingReflectionData(null);
+
+      Alert.alert(
+        'Save Failed',
+        `Failed to save reflection: ${error?.message || 'Unknown error'}. Please try again.`,
+        [{ text: 'OK' }]
+      );
+      throw error;
     }
   };
 
-  const handleSuccessClose = () => {
-    console.log('Closing success modal and reflection editor');
-    setShowSuccessModal(false);
-    onCancel();
+  const handleSuccessClose = async () => {
+    console.log('📝 DevotionalDetailReflectionModal: Done button clicked - saving to database');
+
+    try {
+      // Save to database when user clicks "Done"
+      await saveToDatabase();
+
+      setShowSuccessModal(false);
+      setPendingReflectionData(null);
+
+      onCancel(); // Close the main modal
+    } catch (error) {
+      console.error('❌ Failed to save devotional reflection on Done click:', error);
+      // Don't close the modal if save failed - let user try again
+    }
   };
 
   const handleEdit = () => {
-    console.log('Edit button pressed, closing success modal');
+    console.log('📝 DevotionalDetailReflectionModal: Edit button clicked - keeping data for editing');
     setShowSuccessModal(false);
+    // Keep pendingReflectionData for potential future save
     // The editor will remain open since we're not calling onCancel
   };
   return (
@@ -208,7 +261,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
           <ReflectionLogEditor
             initialTitle={question}
             lockTitle
-            onSave={handleSave}
+            onSave={prepareReflection}
             onCancel={onCancel}
             source="devotional"
             initialMode="free-form"

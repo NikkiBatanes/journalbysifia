@@ -55,6 +55,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
+  const [pendingGratitudeData, setPendingGratitudeData] = useState<{ items: string[]; date: Date } | null>(null); // Store data before DB save
   const gratitudeEditorRef = useRef<GratitudeLogEditorRef>(null);
 
   // Preserve initial metadata to prevent loss after parent state clears
@@ -238,40 +239,70 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     updateMutation.isError,
   ]);
 
-  // Save gratitude using React Query system - following reflection modal pattern
-  const saveGratitude = async (gratitudeData: {
+  // Prepare gratitude data for saving (but don't save to DB yet)
+  const prepareGratitude = async (gratitudeData: {
     items: string[];
     date: Date;
   }) => {
-    // console.log('🙏 SmartJournalingGratitudeModal: saveGratitude called! Stack trace:', new Error().stack);
-
     try {
       if (!user?.id) {
         Alert.alert('Error', 'User not authenticated');
         return;
       }
 
-      // console.log('🙏 SmartJournalingGratitudeModal: Saving gratitude entry:', {
-      //   items: gratitudeData.items,
-      //   subtaskId,
-      //   stepId,
-      //   playbookId,
-      //   isEditMode: !!currentGratitudeEntry,
-      // });
+      console.log('🙏 SmartJournalingGratitudeModal: Preparing gratitude data (not saving to DB yet)', {
+        items: gratitudeData.items,
+        subtaskId,
+        stepId,
+        playbookId,
+        isEditMode: !!currentGratitudeEntry,
+      });
+
+      // Store the prepared data for later saving
+      setPendingGratitudeData(gratitudeData);
+
+      // Show success modal immediately (before DB save)
+      setShowSuccessModal(true);
+
+      // Set completion info for later use
+      if (stepId && subtaskId) {
+        console.log('🙏 SmartJournalingGratitudeModal: Setting completion info for later use');
+        setCompletionInfo({ stepId, subtaskId });
+      }
+
+      console.log('✅ SmartJournalingGratitudeModal: Gratitude prepared, showing success modal');
+    } catch (error: any) {
+      console.error('❌ SmartJournalingGratitudeModal: PREPARE FAILED:', error);
+      Alert.alert(
+        'Error',
+        `Failed to prepare gratitude: ${error?.message || 'Unknown error'}`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Actually save to database (called only when user clicks "Done")
+  const saveToDatabase = async () => {
+    if (!pendingGratitudeData) {
+      console.error('❌ No pending gratitude data to save');
+      return;
+    }
+
+    try {
+      console.log('🙏 SmartJournalingGratitudeModal: Saving to database...', pendingGratitudeData);
 
       // Filter out blank items and remove number prefixes
-      const cleanedItems = gratitudeData.items
-        .filter(item => item.trim().length > 0) // Remove blank items
+      const cleanedItems = pendingGratitudeData.items
+        .filter(item => item.trim().length > 0)
         .map(item => {
-          // Remove number prefix (e.g., "1. ", "2. ", etc.)
           const cleaned = item.replace(/^\d+\. /, '').trim();
           return cleaned;
         })
-        .filter(item => item.length > 0); // Remove any items that became empty after cleaning
+        .filter(item => item.length > 0);
 
       const gratitudeEntry = {
-        user_id: user.id,
-        selected_date: gratitudeData.date.toISOString().split('T')[0],
+        user_id: user?.id || '',
+        selected_date: pendingGratitudeData.date.toISOString().split('T')[0],
         content_type: 'gratitude' as const,
         content: JSON.stringify({
           items: cleanedItems,
@@ -302,48 +333,34 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         result = await createMutation.mutateAsync(gratitudeEntry);
       }
 
-      // console.log('🙏 SmartJournalingGratitudeModal: Save successful:', result);
-
-      // Track analytics (simplified for now)
-      // console.log('🙏 Gratitude analytics:', {
-      //   action: currentGratitudeEntry ? 'updated' : 'created',
-      //   items_count: gratitudeData.items.filter(item => item.trim()).length,
-      //   source: 'smart_journaling',
-      // });
-
-      // Invalidate and refetch relevant queries more specifically
-      // console.log('🙏 SmartJournalingGratitudeModal: Invalidating queries...');
-      await queryClient.invalidateQueries({
-        queryKey: ['gratitude', user.id, dateStr, subtaskId],
-      });
-      await queryClient.invalidateQueries({
-        queryKey: ['gratitude', user.id, dateStr],
-      });
-      // console.log('🙏 SmartJournalingGratitudeModal: Queries invalidated');
-
-      // Show success modal for all saves (both new entries and edits)
-      setShowSuccessModal(true);
-
-      // Store completion info for later use - only AFTER successful save
-      if (stepId && subtaskId) {
-        console.log('🙏 SmartJournalingGratitudeModal: Setting completion info for step completion after successful save');
-        setCompletionInfo({ stepId, subtaskId });
+      // Invalidate and refetch relevant queries
+      if (user?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['gratitude', user.id, dateStr, subtaskId],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ['gratitude', user.id, dateStr],
+        });
       }
 
-      // Call onSave with delay to allow success modal to render
-      setTimeout(() => {
-        onSave(result);
-      }, 100);
+      console.log('✅ SmartJournalingGratitudeModal: Database save completed');
 
-    } catch (error) {
-      console.error('🙏 SmartJournalingGratitudeModal: Error saving gratitude entry:', error);
-      // Clear completion info on error to prevent false completion
+      // Call parent onSave callback
+      onSave(result);
+
+      return result;
+    } catch (error: any) {
+      console.error('❌ SmartJournalingGratitudeModal: DATABASE SAVE FAILED:', error);
+      // Clear completion info and pending data on error to prevent false completion
       setCompletionInfo(null);
+      setPendingGratitudeData(null);
+
       Alert.alert(
-        'Error',
-        'Failed to save gratitude entry. Please try again.',
+        'Save Failed',
+        `Failed to save gratitude: ${error?.message || 'Unknown error'}. Please try again.`,
         [{ text: 'OK' }]
       );
+      throw error;
     }
   };
 
@@ -353,17 +370,21 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
     onCancel();
   };
 
-  const handleSuccessModalClose = () => {
-    console.log('🙏 SmartJournalingGratitudeModal: Success modal closing');
+  const handleSuccessModalClose = async () => {
+    console.log('🙏 User clicked Done - saving to database and closing modal');
     setShowSuccessModal(false);
 
-    // Mark step as completed when user clicks "Done"
-    if (completionInfo && handleToggleStep) {
-      const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
-      console.log('🙏 SmartJournalingGratitudeModal: Marking step as completed on Done click:', {
-        stepId: completionStepId,
-        subtaskId: completionSubtaskId,
-      });
+    try {
+      // Save to database when user clicks "Done"
+      await saveToDatabase();
+
+      // Mark step as completed when user clicks "Done"
+      if (completionInfo && handleToggleStep) {
+        const { stepId: completionStepId, subtaskId: completionSubtaskId } = completionInfo;
+        console.log('🙏 SmartJournalingGratitudeModal: Marking step as completed on Done click:', {
+          stepId: completionStepId,
+          subtaskId: completionSubtaskId,
+        });
 
       // Check if the step/subtask is already completed before toggling
       const step = actionSteps.find(s => s.id === completionStepId);
@@ -388,10 +409,17 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
         }
       }
 
-      setCompletionInfo(null);
-    }
+        setCompletionInfo(null);
+      }
 
-    onCancel(); // Close the main modal
+      // Clear pending data after successful save
+      setPendingGratitudeData(null);
+
+      onCancel(); // Close the main modal
+    } catch (error) {
+      console.error('❌ Failed to save gratitude on Done click:', error);
+      // Don't close the modal if save failed - let user try again
+    }
   };
 
   const handleEdit = () => {
@@ -432,7 +460,7 @@ const SmartJournalingGratitudeModal: React.FC<SmartJournalingGratitudeModalProps
 
           <GratitudeLogEditor
             ref={gratitudeEditorRef}
-            onSave={saveGratitude}
+            onSave={prepareGratitude}
             onCancel={onCancel}
             initialItems={currentGratitudeEntry?.content ?
               (() => {

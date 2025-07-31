@@ -98,6 +98,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
   const [prevVisible, setPrevVisible] = useState(false);
   const [hasSaved, setHasSaved] = useState(false); // Track if a save actually happened
+  const [pendingPrayerData, setPendingPrayerData] = useState<{ content: string; date: Date } | null>(null); // Store data before DB save
   const prayerEditorRef = useRef<PrayerLogEditorRef>(null);
 
   // Fetch existing prayer data for this subtask
@@ -262,62 +263,104 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     },
   });
 
-  const savePrayer = async (prayerData: { content: string; date: Date }) => {
+  // Prepare prayer data for saving (but don't save to DB yet)
+  const preparePrayer = async (prayerData: { content: string; date: Date }) => {
     try {
-      console.log('🙏 SmartJournalingPrayerModal: Saving prayer...', {
+      console.log('🙏 SmartJournalingPrayerModal: Preparing prayer data (not saving to DB yet)', {
         hasExistingEntry: !!currentPrayerEntry,
         isEditSession,
         contentLength: prayerData.content.length,
       });
 
-      let savedEntry;
-      if (currentPrayerEntry?.id) {
-        // Update existing prayer
-        savedEntry = await updatePrayerMutation.mutateAsync(prayerData);
-      } else {
-        // Create new prayer
-        savedEntry = await createPrayerMutation.mutateAsync(prayerData);
-      }
+      // Store the prepared data for later saving
+      setPendingPrayerData(prayerData);
 
-      // Show success modal and set hasSaved true
+      // Show success modal immediately (before DB save)
       setHasSaved(true);
       setShowSuccessModal(true);
 
-      // Mark step as complete only for NEW prayers (not when editing existing ones)
-      // Only set completion info AFTER successful save
+      // Set completion info for later use (only for new prayers)
       if (stepId && subtaskId && !currentPrayerEntry?.id) {
-        console.log('🙏 SmartJournalingPrayerModal: Setting completion info for NEW prayer after successful save');
+        console.log('🙏 SmartJournalingPrayerModal: Setting completion info for later use');
         setCompletionInfo({ stepId, subtaskId });
-      } else if (currentPrayerEntry?.id) {
-        console.log('🙏 SmartJournalingPrayerModal: Skipping completion toggle for EDITED prayer');
       }
 
-      // Call parent onSave callback immediately (like reflection modal)
+      console.log('✅ SmartJournalingPrayerModal: Prayer prepared, showing success modal');
+    } catch (error: any) {
+      console.error('❌ SmartJournalingPrayerModal: PREPARE FAILED:', error);
+      Alert.alert(
+        'Error',
+        `Failed to prepare prayer: ${error?.message || 'Unknown error'}`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  // Actually save to database (called only when user clicks "Done")
+  const saveToDatabase = async () => {
+    if (!pendingPrayerData) {
+      console.error('❌ No pending prayer data to save');
+      return;
+    }
+
+    try {
+      console.log('🙏 SmartJournalingPrayerModal: Saving to database...', pendingPrayerData);
+
+      let savedEntry;
+      if (currentPrayerEntry?.id) {
+        // Update existing prayer
+        savedEntry = await updatePrayerMutation.mutateAsync(pendingPrayerData);
+      } else {
+        // Create new prayer
+        savedEntry = await createPrayerMutation.mutateAsync(pendingPrayerData);
+      }
+
+      console.log('✅ SmartJournalingPrayerModal: Database save completed');
+
+      // Call parent onSave callback
       onSave(savedEntry);
 
-      console.log('🙏 SmartJournalingPrayerModal: onSave called successfully');
-    } catch (error) {
-      console.error('🙏 SmartJournalingPrayerModal: Error in savePrayer:', error);
+      return savedEntry;
+    } catch (error: any) {
+      console.error('❌ SmartJournalingPrayerModal: DATABASE SAVE FAILED:', error);
       // Clear completion info and hasSaved state on error to prevent false completion
       setCompletionInfo(null);
       setHasSaved(false);
-      // Error handling is done in the mutation's onError
+      setPendingPrayerData(null);
+
+      Alert.alert(
+        'Save Failed',
+        `Failed to save prayer: ${error?.message || 'Unknown error'}. Please try again.`,
+        [{ text: 'OK' }]
+      );
+      throw error;
     }
   };
 
   // Called when "Done" is pressed in SuccessModal
-  const handleSuccessModalClose = () => {
+  const handleSuccessModalClose = async () => {
+    console.log('🙏 User clicked Done - saving to database and closing modal');
     setShowSuccessModal(false);
-    if (hasSaved && completionInfo) {
-      // Only mark as complete if a save actually happened
-      const { stepId: completedStepId, subtaskId: completedSubtaskId } = completionInfo;
-      handleToggleStep(completedStepId, completedSubtaskId);
-      setCompletionInfo(null);
-      setHasSaved(false); // Reset for next open
+
+    try {
+      // Save to database when user clicks "Done"
+      await saveToDatabase();
+
+      if (hasSaved && completionInfo) {
+        // Only mark as complete if a save actually happened
+        const { stepId: completedStepId, subtaskId: completedSubtaskId } = completionInfo;
+        handleToggleStep(completedStepId, completedSubtaskId);
+        setCompletionInfo(null);
+        setHasSaved(false); // Reset for next open
+      }
+
+      // Clear pending data after successful save
+      setPendingPrayerData(null);
+
       onCancel(); // Close the modal
-    } else {
-      // Just close modal if not saved (shouldn't happen from success modal)
-      onCancel();
+    } catch (error) {
+      console.error('❌ Failed to save prayer on Done click:', error);
+      // Don't close the modal if save failed - let user try again
     }
   };
 
@@ -386,7 +429,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         >
           <PrayerLogEditor
             ref={prayerEditorRef}
-            onSave={savePrayer}
+            onSave={preparePrayer}
             onCancel={onCancel}
             initialContent={getInitialContent()}
             subtaskTitle={preservedSubtaskTitle}
