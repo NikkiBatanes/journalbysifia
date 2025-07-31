@@ -215,6 +215,18 @@ const defaultStyles = {
     opacity: 0.6,
     fontWeight: '500',
   },
+  timeSeparatorSmall: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
+  },
+  repeatOptionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  repeatTextWithMargin: {
+    opacity: 0.7,
+    marginRight: 8,
+  },
   categoryContainer: {
     marginTop: 16,
   },
@@ -751,7 +763,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                         <Text style={s.timeText}>{formatTime(startTime)}</Text>
                       </TouchableOpacity>
 
-                      <Text style={[s.timeSeparator, { fontSize: 10, color: Colors.hopeWhite }]}>TO</Text>
+                      <Text style={[s.timeSeparator, s.timeSeparatorSmall]}>TO</Text>
 
                       <TouchableOpacity
                         style={s.timeButton}
@@ -801,8 +813,8 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                 onPress={() => setShowRepeatModal(true)}
               >
                 <Text style={s.repeatText}>Repeat</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={[s.repeatText, { opacity: 0.7, marginRight: 8 }]}>{repeatOption}</Text>
+                <View style={s.repeatOptionContainer}>
+                  <Text style={[s.repeatText, s.repeatTextWithMargin]}>{repeatOption}</Text>
                   <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} />
                 </View>
               </TouchableOpacity>

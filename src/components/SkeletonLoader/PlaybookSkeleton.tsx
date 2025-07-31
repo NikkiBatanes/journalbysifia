@@ -127,10 +127,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   progressBarSkeleton: {
-    height: 4,
+    height: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light color for dark card background
-    borderRadius: 2,
-    width: '100%',
+    borderRadius: 4,
+    width: '97%',
   },
   tasksSkeleton: {
     height: 12,
