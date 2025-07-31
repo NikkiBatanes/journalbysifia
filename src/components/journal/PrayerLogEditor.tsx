@@ -303,16 +303,21 @@ const defaultStyles = {
     marginTop: 16,
   },
   structuredInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    padding: 0,
+    paddingBottom: 8,
     color: Colors.hopeWhite,
-    fontSize: 16,
+    fontSize: 18,
     minHeight: 50,
     textAlignVertical: 'top',
   },
   multilineInput: {
     minHeight: 120,
+  },
+  placeholderText: {
+    fontSize: 18,
+    opacity: 0.4,
   },
 };
 
@@ -687,21 +692,19 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
               ) : (
                 /* Prayers for People Tab */
                 <View style={s.structuredContainer}>
-                  <Text style={s.inputLabel}>Who are you praying for?</Text>
                   <TextInput
                     ref={personInputRef}
-                    style={s.structuredInput}
-                    placeholder="Enter the person's name..."
+                    style={[s.structuredInput, { fontSize: 18 }]}
+                    placeholder="Who are you praying for?"
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     value={prayerForPerson}
                     onChangeText={setPrayerForPerson}
                   />
-
-                  <Text style={s.inputLabel}>What would you like to pray for this person?</Text>
+                  <View style={{ height: 16 }} />
                   <TextInput
                     ref={requestInputRef}
-                    style={[s.structuredInput, s.multilineInput]}
-                    placeholder="Share your prayer request for this person..."
+                    style={[s.structuredInput, s.multilineInput, { fontSize: 18 }]}
+                    placeholder="What would you like to pray for this person?"
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     value={prayerRequest}
                     onChangeText={setPrayerRequest}
