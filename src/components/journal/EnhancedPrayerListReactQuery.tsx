@@ -17,6 +17,7 @@ import ComponentErrorBoundary from '../../components/ErrorBoundary/ComponentErro
 import { usePeoplePrayerData, useCreatePrayer, useUpdatePrayer } from '../../services/hooks/usePrayerData';
 import { PrayerApiEntry } from '../../services/api/prayerApi';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { toLocalDateString } from '../../utils/date';
 
 // Types and Interfaces
 type TabType = 'mine' | 'requests';
@@ -38,7 +39,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   console.log('🙏 EnhancedPrayerList: Component is rendering!', { selectedDate });
 
   const { user } = useAuth();
-  const dateStr = selectedDate.toISOString().split('T')[0];
+  const dateStr = toLocalDateString(selectedDate);
 
   // React Query hooks for data fetching
   const { data: peoplePrayers = [], error } = usePeoplePrayerData(

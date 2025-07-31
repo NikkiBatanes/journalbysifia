@@ -205,7 +205,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       if (!user?.id) {throw new Error('User not authenticated');}
 
       let prayerEntry: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>;
-      const prayerDateStr = prayerData.date.toISOString().split('T')[0];
+      const prayerDateStr = toLocalDateString(prayerData.date);
       console.log('🙏 Creating prayer with date:', prayerDateStr, 'activeTab:', prayerData.activeTab);
 
       if (prayerData.activeTab === 'people') {
@@ -280,7 +280,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     }) => {
       if (!currentPrayerEntry?.id) {throw new Error('No prayer entry to update');}
 
-      const prayerDateStr = prayerData.date.toISOString().split('T')[0];
+      const prayerDateStr = toLocalDateString(prayerData.date);
       console.log('🙏 Updating prayer with date:', prayerDateStr, 'activeTab:', prayerData.activeTab);
       let updates: any;
 

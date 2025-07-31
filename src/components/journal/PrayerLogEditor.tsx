@@ -1,9 +1,10 @@
 import React, { useRef, useEffect, useCallback, useImperativeHandle } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Keyboard } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import { toLocalDateString } from '../../utils/date';
 
 interface PrayerLogEditorProps {
   onSave: (data: {
@@ -447,7 +448,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   // Helper function to get unique draft key for each prayer and tab
   const getDraftKey = React.useCallback(() => {
     // Get current date for uniqueness
-    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    const currentDate = toLocalDateString(new Date()); // Use local date format
     // Include active tab in the key
     const tabSuffix = `_${activeTab}`;
 
@@ -670,10 +671,15 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       }
 
       console.log('🙏 PrayerLogEditor: onCancel called');
-      _onCancel();
+      Keyboard.dismiss();
+      // Small delay to ensure keyboard is fully dismissed before closing
+      setTimeout(() => {
+        _onCancel();
+      }, 10);
     } catch (error) {
       console.error('Error saving draft before cancel:', error);
       // Still proceed with cancel even if draft save fails
+      Keyboard.dismiss();
       _onCancel();
     }
   };
