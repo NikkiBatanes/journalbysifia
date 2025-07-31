@@ -39,7 +39,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   const carouselItems: CarouselItem[] = [
     {
       id: 'reflection',
-      title: 'Reflection',
+      title: 'Heart Journal',
       icon: 'bulb-outline',
       component: <ReflectionLogReactQuery selectedDate={selectedDate} />,
       color: Colors.alertCoral,
@@ -48,7 +48,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
       id: 'gratitude',
       title: 'Gratitude',
       icon: 'heart-outline',
-      component: <GratitudeListReactQuery selectedDate={selectedDate} refreshKey={refreshKey} />,
+      component: <GratitudeListReactQuery key={refreshKey} selectedDate={selectedDate} refreshKey={refreshKey} />,
       color: Colors.hopeWhite,
     },
     {
