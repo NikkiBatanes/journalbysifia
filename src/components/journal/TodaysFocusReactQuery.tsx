@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
     borderWidth: 1,
     borderColor: Colors.lightGray,
-    borderRadius: 8,
+    borderRadius: 16,
     padding: 12,
     backgroundColor: Colors.hopeWhite,
   },
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginBottom: 8,
-    borderRadius: 6,
+    borderRadius: 12,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
   },
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4,
     backgroundColor: '#ebeef2',
-    borderRadius: 6,
+    borderRadius: 12,
     paddingVertical: 8,
   },
   priorityRow: {
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
   priorityBullet: {
     width: 8,
     height: 8,
-    borderRadius: 4,
+    borderRadius: 8,
     backgroundColor: Colors.alertCoral,
     marginRight: 12,
   },
@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     height: 36,
     backgroundColor: Colors.hopeWhite,
-    borderRadius: 6,
+    borderRadius: 12,
     paddingHorizontal: 8,
   },
   buttonRow: {
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
   button: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
   tickBox: {
     width: 16,
     height: 16,
-    borderRadius: 3,
+    borderRadius: 6,
     borderWidth: 1.5,
     borderColor: Colors.trustGrey,
     backgroundColor: 'rgba(176, 184, 193, 0.1)',
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 12,
     alignSelf: 'center',
   },
   retryText: {

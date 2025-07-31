@@ -1196,7 +1196,7 @@ const styles = StyleSheet.create({
     height: '100%', // Match the card height
     marginLeft: -10, // Align with card edge
     overflow: 'hidden', // Ensure rounded corners are respected
-    borderRadius: 6, // Match card border radius
+    borderRadius: 12, // Match card border radius
   },
   editActionBtn: {
     flex: 1, // Fill all space left of delete button
@@ -1282,7 +1282,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.08)',
     backgroundColor: 'rgba(0, 0, 0, 0.02)',
@@ -1332,7 +1332,7 @@ const styles = StyleSheet.create({
   },
   categoryTag: {
     alignSelf: 'flex-start',
-    borderRadius: 12,
+    borderRadius: 20,
     paddingHorizontal: 8,
     paddingVertical: 4,
     marginBottom: 6,
@@ -1413,7 +1413,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.05)',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: 8,
   },
   locationRow: {
     flexDirection: 'row',
@@ -1530,7 +1530,7 @@ const styles = StyleSheet.create({
   toggle: {
     width: 44,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 20,
     backgroundColor: Colors.lightGray,
     justifyContent: 'center',
     paddingHorizontal: 2,
@@ -1541,7 +1541,7 @@ const styles = StyleSheet.create({
   toggleIndicator: {
     width: 20,
     height: 20,
-    borderRadius: 10,
+    borderRadius: 18,
     backgroundColor: Colors.hopeWhite,
     alignSelf: 'flex-end',
   },
@@ -1580,7 +1580,7 @@ const styles = StyleSheet.create({
   button: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1624,7 +1624,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 16,
     height: 16,
-    borderRadius: 3,
+    borderRadius: 6,
     borderWidth: 1.5,
     borderColor: Colors.trustGrey,
     backgroundColor: 'rgba(176, 184, 193, 0.1)',
@@ -1638,7 +1638,7 @@ const styles = StyleSheet.create({
   timePickerContainer: {
     marginTop: 12,
     backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
+    borderRadius: 16,
     padding: 16,
   },
   doneButton: {
@@ -1747,7 +1747,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 20,
     width: '90%',
     maxWidth: 285,
     padding: 16,
@@ -1858,7 +1858,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.lightGray,
     zIndex: 1000,
@@ -1956,7 +1956,7 @@ const styles = StyleSheet.create({
   datePickerContainer: {
     marginTop: 12,
     backgroundColor: Colors.hopeWhite,
-    borderRadius: 8,
+    borderRadius: 16,
     padding: 16,
   },
 });

@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
-import { TodaysFocusReactQuery } from '../components/journal/TodaysFocusReactQuery';
-import { TodosReactQuery } from '../components/journal/TodosReactQuery';
-import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from '../components/journal/TimeBlockReactQuery';
+import PlanCarousel from '../components/journal/PlanCarousel';
 import { GratitudeListReactQuery } from '../components/journal/GratitudeListReactQuery';
 import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReactQuery';
 import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
@@ -370,15 +368,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               />
             }
           >
-            <View style={styles.componentSpacing}>
-              <TodaysFocusReactQuery selectedDate={currentDate} />
-            </View>
-            <View style={styles.componentSpacing}>
-              <TodosReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
-            </View>
-            <View style={styles.componentSpacing}>
-              <TimeBlockReactQuery selectedDate={currentDate} />
-            </View>
+            <PlanCarousel selectedDate={currentDate} refreshKey={refreshKey} />
             <View style={styles.componentSpacing}>
               <GratitudeListReactQuery selectedDate={currentDate} />
             </View>
@@ -516,6 +506,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
       <View style={styles.header}>
         <View style={[styles.monthYearContainer, styles.headerContent, isHeaderCollapsed && styles.collapsedPadding]}>
           <Text style={styles.monthYearText}>
@@ -605,11 +596,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
   },
   tabItem: {
     padding: 8,
@@ -641,11 +632,12 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   header: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
     paddingTop: 60,
     paddingBottom: 12,
   },
   headerContent: {
+    backgroundColor: Colors.hopeWhite,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -686,7 +678,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: Fonts.bold,
     fontWeight: '700',
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
     paddingRight: 12,
   },
   daysHeader: {
@@ -694,7 +686,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
   },
   dayNameContainer: {
     width: 36,
@@ -711,7 +703,7 @@ const styles = StyleSheet.create({
   },
   todayText: {
     fontWeight: 'bold',
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
     fontSize: 9,
     letterSpacing: 0.2,
   },
@@ -741,35 +733,36 @@ const styles = StyleSheet.create({
   dayNameText: {
     fontFamily: Fonts.medium,
     fontSize: 8,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(26, 60, 109, 0.7)',
     marginBottom: 0,  // Removed margin
     letterSpacing: 0.1,
   },
   dayNameTextHighlighted: {
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
     fontFamily: Fonts.bold,
   },
   dayNumberText: {
     fontFamily: Fonts.medium,
     fontSize: 12,
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
     lineHeight: 14,
   },
   currentDayContainer: {
     borderWidth: 1,
-    borderColor: Colors.hopeWhite,
+    borderColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
     zIndex: 1, // Ensure current day appears above other elements
     elevation: 1, // For Android
   },
   selectedDayContainer: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: Colors.hopeWhite,
   },
   currentDayText: {
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
     fontFamily: Fonts.bold,
   },
   selectedDayText: {
-    color: Colors.hopeWhite,
+    color: Colors.anchorBlue,
     fontFamily: Fonts.bold,
   },
   viewModeContainerCompact: {
@@ -797,6 +790,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    backgroundColor: Colors.anchorBlue,
   },
   scrollContainer: {
     width: '100%',

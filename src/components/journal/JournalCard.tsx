@@ -106,41 +106,31 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    // Option 1: Subtle Blue (lightest)
-    backgroundColor: 'rgba(26, 60, 109, 0.03)', // 3% opacity of anchorBlue
-    borderColor: 'rgba(26, 60, 109, 0.1)', // 10% opacity of anchorBlue
+    backgroundColor: Colors.hopeWhite,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
 
-    // Option 2: Medium Blue (balanced)
-    // backgroundColor: 'rgba(26, 60, 109, 0.05)', // 5% opacity of anchorBlue
-    // borderColor: 'rgba(26, 60, 109, 0.15)', // 15% opacity of anchorBlue
-
-    // Option 3: Rich Blue (most visible)
-    // backgroundColor: 'rgba(26, 60, 109, 0.08)', // 8% opacity of anchorBlue
-    // borderColor: 'rgba(26, 60, 109, 0.2)', // 20% opacity of anchorBlue
-
-    borderRadius: 8,
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
     marginBottom: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   cardEmpty: {
-    // Match the selected option from above
-    backgroundColor: 'rgba(26, 60, 109, 0.03)',
-    borderColor: 'rgba(26, 60, 109, 0.1)',
-    borderRadius: 8,
+    backgroundColor: Colors.hopeWhite,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 16,
     borderWidth: 1,
     padding: 16,
     marginBottom: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
   headerEmpty: {
     marginBottom: 0,
@@ -164,7 +154,7 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: 10,
     backgroundColor: 'rgba(255, 107, 107, 0.1)', // 10% opacity of alertCoral
-    borderRadius: 5,
+    borderRadius: 10,
     width: 30,
     height: 30,
     justifyContent: 'center',
