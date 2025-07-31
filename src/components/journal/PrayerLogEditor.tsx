@@ -315,6 +315,9 @@ const defaultStyles = {
   multilineInput: {
     minHeight: 120,
   },
+  gap: {
+    height: 16,
+  },
 };
 
 const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProps>((
@@ -696,7 +699,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     value={prayerForPerson}
                     onChangeText={setPrayerForPerson}
                   />
-                  <View style={{ height: 16 }} />
+                  <View style={s.gap} />
                   <TextInput
                     ref={requestInputRef}
                     style={[s.structuredInput, s.multilineInput]}
