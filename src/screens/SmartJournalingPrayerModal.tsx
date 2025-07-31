@@ -205,6 +205,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       if (!user?.id) {throw new Error('User not authenticated');}
 
       let prayerEntry: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>;
+      const prayerDateStr = prayerData.date.toISOString().split('T')[0];
+      console.log('🙏 Creating prayer with date:', prayerDateStr, 'activeTab:', prayerData.activeTab);
 
       if (prayerData.activeTab === 'people') {
         // Save as "people" prayer type (like in journal screen)
@@ -223,7 +225,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             action_step_title: actionStepTitle,
             is_prayer_request: false, // This is a prayer, not a request
           },
-          selected_date: toLocalDateString(prayerData.date),
+          selected_date: prayerDateStr,
         };
       } else {
         // Save as "journal" prayer type (freeform)
@@ -241,7 +243,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             action_step_number: actionStepNumber,
             action_step_title: actionStepTitle,
           },
-          selected_date: toLocalDateString(prayerData.date),
+          selected_date: prayerDateStr,
           status: undefined, // Personal prayers don't have status
         };
       }
@@ -250,11 +252,16 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     },
     onSuccess: (data) => {
       console.log('🙏 Prayer created successfully:', data);
-      // Simple cache invalidation (revert to working approach)
-      queryClient.invalidateQueries({ queryKey: ['personal_prayers'] });
-      queryClient.invalidateQueries({ queryKey: ['people_prayers'] });
-      queryClient.invalidateQueries({ queryKey: ['prayers'] });
-      queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+      // Proper cache invalidation using correct query keys
+      if (user?.id && data?.selected_date) {
+        const savedDateStr = data.selected_date; // Use the actual date from the saved data
+        console.log('🙏 Invalidating cache for date:', savedDateStr);
+        queryClient.invalidateQueries({ queryKey: ['prayers', 'personal', user.id, savedDateStr] });
+        queryClient.invalidateQueries({ queryKey: ['prayers', 'people', user.id, savedDateStr] });
+        queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] });
+        queryClient.invalidateQueries({ queryKey: ['prayers', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+      }
     },
     onError: (error) => {
       console.error('Error creating prayer:', error);
@@ -273,6 +280,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     }) => {
       if (!currentPrayerEntry?.id) {throw new Error('No prayer entry to update');}
 
+      const prayerDateStr = prayerData.date.toISOString().split('T')[0];
+      console.log('🙏 Updating prayer with date:', prayerDateStr, 'activeTab:', prayerData.activeTab);
       let updates: any;
 
       if (prayerData.activeTab === 'people') {
@@ -290,7 +299,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             action_step_title: actionStepTitle,
             is_prayer_request: false,
           },
-          selected_date: toLocalDateString(prayerData.date),
+          selected_date: prayerDateStr,
         };
       } else {
         // Update as "journal" prayer type
@@ -305,7 +314,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             action_step_number: actionStepNumber,
             action_step_title: actionStepTitle,
           },
-          selected_date: toLocalDateString(prayerData.date),
+          selected_date: prayerDateStr,
         };
       }
 
@@ -313,11 +322,16 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     },
     onSuccess: (data) => {
       console.log('🙏 Prayer updated successfully:', data);
-      // Simple cache invalidation (revert to working approach)
-      queryClient.invalidateQueries({ queryKey: ['personal_prayers'] });
-      queryClient.invalidateQueries({ queryKey: ['people_prayers'] });
-      queryClient.invalidateQueries({ queryKey: ['prayers'] });
-      queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+      // Proper cache invalidation using correct query keys
+      if (user?.id && data?.selected_date) {
+        const savedDateStr = data.selected_date; // Use the actual date from the saved data
+        console.log('🙏 Invalidating cache for date:', savedDateStr);
+        queryClient.invalidateQueries({ queryKey: ['prayers', 'personal', user.id, savedDateStr] });
+        queryClient.invalidateQueries({ queryKey: ['prayers', 'people', user.id, savedDateStr] });
+        queryClient.invalidateQueries({ queryKey: ['prayers', 'entries', user.id, savedDateStr] });
+        queryClient.invalidateQueries({ queryKey: ['prayers', user.id] });
+        queryClient.invalidateQueries({ queryKey: ['journal', 'all'] });
+      }
     },
     onError: (error) => {
       console.error('Error updating prayer:', error);
