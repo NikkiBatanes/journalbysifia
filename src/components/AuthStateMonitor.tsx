@@ -52,13 +52,16 @@ interface AuthStateMonitorProps {
 /**
  * Enterprise-grade authentication state monitor
  * Handles silent logouts, session expiry, and provides user feedback
+ * Enhanced with protection against false positive logouts during legitimate operations
  */
 export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
   const [lastAuthCheck, setLastAuthCheck] = useState<Date | null>(null);
   const [isMonitoring, setIsMonitoring] = useState(true);
+  const [isInActiveOperation, setIsInActiveOperation] = useState(false);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
   const sessionCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const operationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Handle silent logout with user notification
   const handleSilentLogout = useCallback(async (message: string) => {
@@ -107,32 +110,55 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
     );
   }, []);
 
-  // Validate session when app comes to foreground (with network error tolerance)
+  // Enhanced session validation with operation awareness
   const validateSessionOnAppForeground = useCallback(async () => {
+    // Skip validation if user is in the middle of an active operation
+    if (isInActiveOperation) {
+      console.log('🔄 Skipping session validation - user in active operation');
+      return;
+    }
+
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
         console.error('❌ Session validation error:', error);
-        // Don't immediately logout on network errors - be more tolerant
+        // Be very tolerant of network errors during foreground validation
         if (isNetworkError(error)) {
           console.log('🌐 Network error during session validation, maintaining current state');
           return;
         }
-        // Only handle auth errors, not network issues
+        // Only handle clear authentication errors
         if (isAuthenticationError(error)) {
-          await handleSessionError('Session validation failed. Please log in again.');
+          // Add additional delay for auth errors to prevent false positives
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          if (!retrySession) {
+            await handleSessionError('Session validation failed. Please log in again.');
+          }
         }
         return;
       }
 
       if (!currentSession && isAuthenticated) {
-        console.warn('⚠️ Silent logout detected on app foreground');
-        // Add a small delay and retry once before logging out
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.warn('⚠️ Potential silent logout detected on app foreground');
+        // Enhanced retry logic with longer delays
+        await new Promise(resolve => setTimeout(resolve, 5000));
         const { data: { session: retrySession } } = await supabase.auth.getSession();
 
         if (!retrySession) {
+          // Final check - try session refresh before giving up
+          try {
+            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+            if (refreshedSession) {
+              console.log('✅ Session recovered via refresh');
+              setLastAuthCheck(new Date());
+              return;
+            }
+          } catch (refreshError) {
+            console.error('❌ Session refresh failed:', refreshError);
+          }
+
           await handleSilentLogout('Your session has expired. Please log in again.');
         } else {
           console.log('✅ Session recovered on retry');
@@ -144,27 +170,33 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
       }
     } catch (error) {
       console.error('💥 Session validation failed:', error);
-      // Don't interrupt user for network errors during foreground validation
-      if (!isNetworkError(error)) {
+      // Never interrupt user for network errors during foreground validation
+      if (!isNetworkError(error) && !isInActiveOperation) {
         await handleSessionError('Unable to verify your session. Please check your connection.');
       }
     }
-  }, [isAuthenticated, handleSilentLogout, handleSessionError, setLastAuthCheck]);
+  }, [isAuthenticated, isInActiveOperation, handleSilentLogout, handleSessionError, setLastAuthCheck]);
 
-  // Periodic session validation (more tolerant)
+  // Enhanced periodic session validation with operation awareness
   const validateSessionPeriodically = useCallback(async () => {
+    // Skip periodic validation if user is in active operation
+    if (isInActiveOperation) {
+      console.log('🔄 Skipping periodic session validation - user in active operation');
+      return;
+    }
+
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
       if (error) {
         console.error('❌ Periodic session check error:', error);
-        // Be very tolerant during periodic checks - don't logout on any errors
+        // Be extremely tolerant during periodic checks - don't logout on any errors
         return;
       }
 
       if (!currentSession && isAuthenticated) {
         console.warn('⚠️ Potential silent logout detected during periodic check');
-        // Don't immediately logout - try to refresh session first
+        // Enhanced retry logic for periodic checks
         try {
           const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
 
@@ -178,10 +210,12 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
         }
 
         // Only logout if we're absolutely sure the session is invalid
-        // and it's been more than 10 minutes since last successful check
+        // and it's been more than 30 minutes since last successful check (increased from 10)
         const timeSinceLastCheck = Date.now() - (lastAuthCheck?.getTime() || 0);
-        if (timeSinceLastCheck > 10 * 60 * 1000) { // 10 minutes
+        if (timeSinceLastCheck > 30 * 60 * 1000) { // 30 minutes
           await handleSilentLogout('Your session has expired. Please log in again to continue.');
+        } else {
+          console.log('🕐 Session invalid but within grace period, not logging out yet');
         }
       } else if (currentSession) {
         setLastAuthCheck(new Date());
@@ -190,16 +224,23 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
       console.error('💥 Periodic session check failed:', error);
       // Never interrupt user for network errors during periodic checks
     }
-  }, [isAuthenticated, handleSilentLogout, setLastAuthCheck, lastAuthCheck]);
+  }, [isAuthenticated, isInActiveOperation, handleSilentLogout, setLastAuthCheck, lastAuthCheck]);
 
-  // Monitor app state changes for session validation
+  // Enhanced app state monitoring with operation protection
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      console.log('📱 App state changed:', { from: appStateRef.current, to: nextAppState });
+      console.log('📱 App state changed:', { from: appStateRef.current, to: nextAppState, isInActiveOperation });
 
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-        console.log('🔍 App became active, validating session...');
-        await validateSessionOnAppForeground();
+        // Add delay before validation to allow app to settle
+        setTimeout(async () => {
+          if (!isInActiveOperation) {
+            console.log('🔍 App became active, validating session after delay...');
+            await validateSessionOnAppForeground();
+          } else {
+            console.log('🔄 App became active but user in operation, skipping validation');
+          }
+        }, 2000); // 2 second delay to allow app to settle
       }
 
       appStateRef.current = nextAppState;
@@ -207,14 +248,14 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription?.remove();
-  }, [validateSessionOnAppForeground]);
+  }, [validateSessionOnAppForeground, isInActiveOperation]);
 
-  // Periodic session validation (reduced frequency - every 15 minutes when app is active)
+  // Enhanced periodic session validation with longer intervals
   useEffect(() => {
     if (isAuthenticated && isMonitoring) {
       sessionCheckIntervalRef.current = setInterval(async () => {
         await validateSessionPeriodically();
-      }, 15 * 60 * 1000); // 15 minutes instead of 5 minutes
+      }, 30 * 60 * 1000); // 30 minutes instead of 15 minutes
     }
 
     return () => {
@@ -223,6 +264,51 @@ export const AuthStateMonitor: React.FC<AuthStateMonitorProps> = ({ children }) 
       }
     };
   }, [isAuthenticated, isMonitoring, validateSessionPeriodically]);
+
+  // Global operation state management
+  useEffect(() => {
+    // Listen for React Query operations that might trigger network activity
+    const handleOperationStart = () => {
+      setIsInActiveOperation(true);
+      console.log('🔄 User operation started - protecting against false logouts');
+
+      // Clear any existing timeout
+      if (operationTimeoutRef.current) {
+        clearTimeout(operationTimeoutRef.current);
+      }
+
+      // Set timeout to clear operation state after 30 seconds
+      operationTimeoutRef.current = setTimeout(() => {
+        setIsInActiveOperation(false);
+        console.log('⏰ Operation timeout - resuming normal session validation');
+      }, 30000);
+    };
+
+    const handleOperationEnd = () => {
+      // Clear timeout and operation state after a brief delay
+      setTimeout(() => {
+        setIsInActiveOperation(false);
+        console.log('✅ User operation completed - resuming normal session validation');
+
+        if (operationTimeoutRef.current) {
+          clearTimeout(operationTimeoutRef.current);
+        }
+      }, 3000); // 3 second grace period
+    };
+
+    // Expose global operation handlers
+    (global as any).authMonitor = {
+      startOperation: handleOperationStart,
+      endOperation: handleOperationEnd,
+    };
+
+    return () => {
+      if (operationTimeoutRef.current) {
+        clearTimeout(operationTimeoutRef.current);
+      }
+      delete (global as any).authMonitor;
+    };
+  }, []);
 
   // Monitor authentication state changes
   useEffect(() => {

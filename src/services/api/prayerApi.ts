@@ -1,6 +1,5 @@
 // src/services/api/prayerApi.ts
 import { supabase } from '../supabaseClient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface PrayerApiEntry {
   id: string;
@@ -30,24 +29,63 @@ export interface PrayerApiEntry {
   is_prayed?: boolean;
 }
 
-// Helper function to ensure Supabase is authenticated
+/**
+ * Robust session retrieval with retry logic
+ * Handles race conditions during operation protection periods
+ */
+async function getSessionWithRetry(retries = 3): Promise<any> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.warn(`Prayer API session retrieval error (attempt ${i + 1}/${retries}):`, sessionError);
+        if (i === retries - 1) {throw sessionError;}
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+        continue;
+      }
+
+      if (!session) {
+        console.warn(`Prayer API no session found (attempt ${i + 1}/${retries})`);
+        if (i === retries - 1) {
+          // Final attempt - try to refresh session
+          try {
+            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+            if (refreshedSession) {
+              console.log('✅ Prayer API session recovered via refresh');
+              return refreshedSession;
+            }
+          } catch (refreshError) {
+            console.error('❌ Prayer API session refresh failed:', refreshError);
+          }
+          throw new Error('No active session. Please sign in.');
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        continue;
+      }
+
+      return session;
+    } catch (error) {
+      console.error(`Prayer API session retrieval failed (attempt ${i + 1}/${retries}):`, error);
+      if (i === retries - 1) {throw error;}
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
+  }
+
+  throw new Error('No active session. Please sign in.');
+}
+
+// Helper function to ensure Supabase is authenticated with robust session handling
 const ensureAuthenticated = async () => {
   try {
-    const accessToken = await AsyncStorage.getItem('ACCESS_TOKEN');
-    const user = await AsyncStorage.getItem('USER');
+    const session = await getSessionWithRetry();
 
-    if (accessToken && user) {
-      const userData = JSON.parse(user);
-      // Set the session in Supabase client
-      const refreshToken = await AsyncStorage.getItem('REFRESH_TOKEN') || '';
-      await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-      console.log('Supabase session set for user:', userData.id);
-    } else {
-      console.warn('No authentication tokens found');
+    if (!session?.access_token) {
+      throw new Error('Invalid authentication token. Please sign in again.');
     }
+
+    console.log('✅ Prayer API authenticated for user:', session.user.id);
+    return session;
   } catch (error) {
     console.error('Error setting Supabase session:', error);
   }
@@ -77,6 +115,17 @@ export class PrayerApi {
     date: string,
     type: PrayerApiEntry['type']
   ): Promise<PrayerApiEntry[]> {
+    const session = await ensureAuthenticated();
+
+    // Ensure userId matches authenticated user for RLS compliance
+    if (userId !== session.user.id) {
+      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+        provided: userId,
+        authenticated: session.user.id,
+      });
+      userId = session.user.id;
+    }
+
     const { data, error } = await supabase
       .from('prayers')
       .select('*')
@@ -137,7 +186,16 @@ export class PrayerApi {
 
   // Get people prayers
   static async getPeoplePrayers(userId: string, date: string): Promise<PrayerApiEntry[]> {
-    await ensureAuthenticated();
+    const session = await ensureAuthenticated();
+
+    // Ensure userId matches authenticated user for RLS compliance
+    if (userId !== session.user.id) {
+      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+        provided: userId,
+        authenticated: session.user.id,
+      });
+      userId = session.user.id;
+    }
 
     const { data, error } = await supabase
       .from('prayers')
@@ -157,11 +215,33 @@ export class PrayerApi {
 
   // Get devotional prayers
   static async getDevotionalPrayers(userId: string, date: string): Promise<PrayerApiEntry[]> {
+    const session = await ensureAuthenticated();
+
+    // Ensure userId matches authenticated user for RLS compliance
+    if (userId !== session.user.id) {
+      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+        provided: userId,
+        authenticated: session.user.id,
+      });
+      userId = session.user.id;
+    }
+
     return this.getPrayersByType(userId, date, 'devotional');
   }
 
   // Get all devotional prayers for a user (for prayedItems display)
   static async getAllDevotionalPrayers(userId: string): Promise<PrayerApiEntry[]> {
+    const session = await ensureAuthenticated();
+
+    // Ensure userId matches authenticated user for RLS compliance
+    if (userId !== session.user.id) {
+      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+        provided: userId,
+        authenticated: session.user.id,
+      });
+      userId = session.user.id;
+    }
+
     const { data, error } = await supabase
       .from('prayers')
       .select('*')
@@ -181,8 +261,17 @@ export class PrayerApi {
   static async createPrayer(
     prayer: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>
   ): Promise<PrayerApiEntry> {
-    // Ensure Supabase is authenticated
-    await ensureAuthenticated();
+    // Ensure Supabase is authenticated with robust session handling
+    const session = await ensureAuthenticated();
+
+    // Ensure user_id matches the authenticated user for RLS compliance
+    if (prayer.user_id !== session.user.id) {
+      console.warn('Prayer user_id mismatch, correcting for RLS compliance:', {
+        provided: prayer.user_id,
+        authenticated: session.user.id,
+      });
+      prayer.user_id = session.user.id;
+    }
 
     const now = new Date().toISOString();
 
@@ -245,8 +334,10 @@ export class PrayerApi {
     id: string,
     updates: Partial<Omit<PrayerApiEntry, 'id' | 'user_id' | 'created_at'>>
   ): Promise<PrayerApiEntry> {
-    // Ensure Supabase is authenticated
-    await ensureAuthenticated();
+    const session = await ensureAuthenticated();
+
+    // RLS will automatically ensure user can only update their own prayers
+    console.log('✅ Prayer API update authenticated for user:', session.user.id);
 
     // Transform API format to database format
     const dbUpdates: any = {

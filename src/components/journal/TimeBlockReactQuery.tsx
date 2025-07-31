@@ -132,7 +132,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   // React Query hooks
   const { data: timeBlockEntries = [], isLoading, error } = useTimeBlockData(user?.id || '', dateStr);
-  
+
   console.log('📊 TimeBlockReactQuery: Received data:', timeBlockEntries.length, 'entries');
   const createMutation = useCreateTimeBlock();
   const updateMutation = useUpdateTimeBlock();

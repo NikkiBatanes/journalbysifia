@@ -8,6 +8,52 @@ import { supabase } from './supabaseClient';
 import { Playbook } from '../interfaces/playbook';
 import { generateUUID, ensureValidUUID } from '../utils/uuidUtils';
 import { API_RETRY_ATTEMPTS, API_RETRY_DELAY, AUTH_ERROR_MESSAGES } from '../constants/sessionConstants';
+
+/**
+ * Robust session retrieval with retry logic
+ * Handles race conditions during operation protection periods
+ */
+async function getSessionWithRetry(retries = 3): Promise<any> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.warn(`Session retrieval error (attempt ${i + 1}/${retries}):`, sessionError);
+        if (i === retries - 1) {throw sessionError;}
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Exponential backoff
+        continue;
+      }
+
+      if (!session) {
+        console.warn(`No session found (attempt ${i + 1}/${retries})`);
+        if (i === retries - 1) {
+          // Final attempt - try to refresh session
+          try {
+            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession();
+            if (refreshedSession) {
+              console.log('✅ Session recovered via refresh');
+              return refreshedSession;
+            }
+          } catch (refreshError) {
+            console.error('❌ Session refresh failed:', refreshError);
+          }
+          throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        continue;
+      }
+
+      return session;
+    } catch (error) {
+      console.error(`Session retrieval failed (attempt ${i + 1}/${retries}):`, error);
+      if (i === retries - 1) {throw error;}
+      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+    }
+  }
+
+  throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
+}
 import { addJournalTypesToPlaybook } from '../utils/journalTypeDetection';
 
 /**
@@ -19,11 +65,11 @@ export async function generatePlaybook(
   userName: string,
   maxRetries: number = API_RETRY_ATTEMPTS
 ): Promise<Playbook> {
-  // Get fresh session directly from Supabase
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  // Get session with retry logic to handle race conditions
+  const session = await getSessionWithRetry();
 
-  if (sessionError || !session) {
-    throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
+  if (!session?.access_token) {
+    throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
   }
 
   // Validate session token
@@ -113,11 +159,11 @@ export async function generatePlaybook(
  */
 export async function savePlaybook(playbook: Playbook, userId: string): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get fresh session directly from Supabase
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Get session with retry logic to handle race conditions
+    const session = await getSessionWithRetry();
 
-    if (sessionError || !session) {
-      throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
+    if (!session?.access_token) {
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
     }
 
     // Ensure playbook has a proper UUID
@@ -292,11 +338,11 @@ export async function updatePlaybookActionSteps(
       return { success: false, error: 'Playbook ID is required' };
     }
 
-    // Get fresh session directly from Supabase
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Get session with retry logic to handle race conditions
+    const session = await getSessionWithRetry();
 
-    if (sessionError || !session) {
-      throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
+    if (!session?.access_token) {
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
     }
 
     const userId = session.user.id;
@@ -409,11 +455,11 @@ export async function deletePlaybook(
   _userId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Get fresh session directly from Supabase
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Get session with retry logic to handle race conditions
+    const session = await getSessionWithRetry();
 
-    if (sessionError || !session) {
-      throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
+    if (!session?.access_token) {
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
     }
 
     const playbookId = String(id);
@@ -532,11 +578,11 @@ export async function getPlaybook(
   playbookId: string
 ): Promise<Playbook | null> {
   try {
-    // Get fresh session directly from Supabase
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Get session with retry logic to handle race conditions
+    const session = await getSessionWithRetry();
 
-    if (sessionError || !session) {
-      throw new Error(AUTH_ERROR_MESSAGES.NO_SESSION);
+    if (!session?.access_token) {
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_TOKEN);
     }
 
     console.log('📖 Fetching single playbook:', { userId, playbookId });

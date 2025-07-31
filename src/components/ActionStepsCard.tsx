@@ -212,6 +212,11 @@ export default function ActionStepsCard({
 
       // Prefetch reflection data and wait for it to complete before opening modal
       const openModal = async () => {
+        // Protect against logout during operation
+        if ((global as any).authMonitor) {
+          (global as any).authMonitor.startOperation();
+        }
+
         if (user?.id && subTask.id) {
           console.log('[ActionStepsCard] Prefetching reflection data before opening modal');
           try {
@@ -228,6 +233,13 @@ export default function ActionStepsCard({
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
         setReflectionModalVisible(true);
+
+        // End operation protection after modal opens
+        setTimeout(() => {
+          if ((global as any).authMonitor) {
+            (global as any).authMonitor.endOperation();
+          }
+        }, 1000);
       };
 
       openModal();
@@ -245,6 +257,11 @@ export default function ActionStepsCard({
 
       // Prefetch gratitude data and wait for it to complete before opening modal
       const openGratitudeModal = async () => {
+        // Protect against logout during operation
+        if ((global as any).authMonitor) {
+          (global as any).authMonitor.startOperation();
+        }
+
         if (user?.id && subTask.id) {
           console.log('[ActionStepsCard] Prefetching gratitude data before opening modal');
           try {
@@ -265,6 +282,13 @@ export default function ActionStepsCard({
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
         setGratitudeModalVisible(true);
+
+        // End operation protection after modal opens
+        setTimeout(() => {
+          if ((global as any).authMonitor) {
+            (global as any).authMonitor.endOperation();
+          }
+        }, 1000);
       };
 
       openGratitudeModal();
@@ -282,6 +306,11 @@ export default function ActionStepsCard({
 
       // Prefetch prayer data and wait for it to complete before opening modal
       const openPrayerModal = async () => {
+        // Protect against logout during operation
+        if ((global as any).authMonitor) {
+          (global as any).authMonitor.startOperation();
+        }
+
         if (user?.id && subTask.id) {
           console.log('[ActionStepsCard] Prefetching prayer data before opening modal');
           try {
@@ -305,6 +334,13 @@ export default function ActionStepsCard({
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
         setPrayerModalVisible(true);
+
+        // End operation protection after modal opens
+        setTimeout(() => {
+          if ((global as any).authMonitor) {
+            (global as any).authMonitor.endOperation();
+          }
+        }, 1000);
       };
 
       openPrayerModal();
@@ -322,6 +358,11 @@ export default function ActionStepsCard({
 
       // Prefetch timeblock data and wait for it to complete before opening modal
       const openTimeBlockModal = async () => {
+        // Protect against logout during operation
+        if ((global as any).authMonitor) {
+          (global as any).authMonitor.startOperation();
+        }
+
         if (user?.id && subTask.id) {
           console.log('[ActionStepsCard] Prefetching timeblock data before opening modal');
           try {
@@ -345,6 +386,13 @@ export default function ActionStepsCard({
         setSelectedSubtask(subTask);
         setSelectedActionStep(stepInfo || null);
         setTimeBlockModalVisible(true);
+
+        // End operation protection after modal opens
+        setTimeout(() => {
+          if ((global as any).authMonitor) {
+            (global as any).authMonitor.endOperation();
+          }
+        }, 1000);
       };
 
       openTimeBlockModal();
@@ -365,12 +413,26 @@ export default function ActionStepsCard({
   const handleReflectionSave = React.useCallback(async (entry: any) => {
     console.log('[ActionStepsCard] Reflection saved:', entry);
 
-    // Invalidate the reflection query to refresh data immediately
-    if (user?.id && selectedSubtask?.id) {
-      await queryClient.invalidateQueries({
-        queryKey: ['reflections', 'subtask', user.id, selectedSubtask.id],
-      });
-      console.log('[ActionStepsCard] Reflection query invalidated for immediate refresh');
+    // Protect against logout during save operation
+    if ((global as any).authMonitor) {
+      (global as any).authMonitor.startOperation();
+    }
+
+    try {
+      // Invalidate the reflection query to refresh data immediately
+      if (user?.id && selectedSubtask?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['reflections', 'subtask', user.id, selectedSubtask.id],
+        });
+        console.log('[ActionStepsCard] Reflection query invalidated for immediate refresh');
+      }
+    } finally {
+      // End operation protection after save completes
+      setTimeout(() => {
+        if ((global as any).authMonitor) {
+          (global as any).authMonitor.endOperation();
+        }
+      }, 2000); // Give time for modal animations
     }
 
     // Modal will close automatically after showing success
@@ -381,6 +443,12 @@ export default function ActionStepsCard({
       selectedActionStep,
       selectedSubtask: selectedSubtask?.text,
     });
+
+    // End operation protection when modal closes
+    if ((global as any).authMonitor) {
+      (global as any).authMonitor.endOperation();
+    }
+
     setReflectionModalVisible(false);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
@@ -389,12 +457,26 @@ export default function ActionStepsCard({
   const handleGratitudeSave = React.useCallback(async (entry: any) => {
     console.log('[ActionStepsCard] Gratitude saved:', entry);
 
-    // Invalidate the gratitude query to refresh data immediately
-    if (user?.id) {
-      await queryClient.invalidateQueries({
-        queryKey: ['gratitude', user.id, new Date().toISOString().split('T')[0]],
-      });
-      console.log('[ActionStepsCard] Gratitude query invalidated for immediate refresh');
+    // Protect against logout during save operation
+    if ((global as any).authMonitor) {
+      (global as any).authMonitor.startOperation();
+    }
+
+    try {
+      // Invalidate the gratitude query to refresh data immediately
+      if (user?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['gratitude', user.id, new Date().toISOString().split('T')[0]],
+        });
+        console.log('[ActionStepsCard] Gratitude query invalidated for immediate refresh');
+      }
+    } finally {
+      // End operation protection after save completes
+      setTimeout(() => {
+        if ((global as any).authMonitor) {
+          (global as any).authMonitor.endOperation();
+        }
+      }, 2000); // Give time for modal animations
     }
 
     // Modal will close automatically after showing success
@@ -405,6 +487,12 @@ export default function ActionStepsCard({
       selectedActionStep,
       selectedSubtask: selectedSubtask?.text,
     });
+
+    // End operation protection when modal closes
+    if ((global as any).authMonitor) {
+      (global as any).authMonitor.endOperation();
+    }
+
     setGratitudeModalVisible(false);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
@@ -413,12 +501,26 @@ export default function ActionStepsCard({
   const handlePrayerSave = React.useCallback(async (entry: any) => {
     console.log('[ActionStepsCard] Prayer saved:', entry);
 
-    // Invalidate the prayer query to refresh data immediately
-    if (user?.id) {
-      await queryClient.invalidateQueries({
-        queryKey: ['personal_prayers', user.id, new Date().toISOString().split('T')[0]],
-      });
-      console.log('[ActionStepsCard] Prayer query invalidated for immediate refresh');
+    // Protect against logout during save operation
+    if ((global as any).authMonitor) {
+      (global as any).authMonitor.startOperation();
+    }
+
+    try {
+      // Invalidate the prayer query to refresh data immediately
+      if (user?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: ['personal_prayers', user.id, new Date().toISOString().split('T')[0]],
+        });
+        console.log('[ActionStepsCard] Prayer query invalidated for immediate refresh');
+      }
+    } finally {
+      // End operation protection after save completes
+      setTimeout(() => {
+        if ((global as any).authMonitor) {
+          (global as any).authMonitor.endOperation();
+        }
+      }, 2000); // Give time for modal animations
     }
 
     // Modal will close automatically after showing success
@@ -429,6 +531,12 @@ export default function ActionStepsCard({
       selectedActionStep,
       selectedSubtask: selectedSubtask?.text,
     });
+
+    // End operation protection when modal closes
+    if ((global as any).authMonitor) {
+      (global as any).authMonitor.endOperation();
+    }
+
     setPrayerModalVisible(false);
     setSelectedSubtask(null);
     setSelectedActionStep(null);
@@ -437,24 +545,38 @@ export default function ActionStepsCard({
   const handleTimeBlockSave = React.useCallback(async (entry: any) => {
     console.log('[ActionStepsCard] TimeBlock saved:', entry);
 
-    // Invalidate the timeblock query to refresh data immediately
-    if (user?.id && entry?.selected_date) {
-      const savedDateStr = entry.selected_date; // Use the actual saved date
-      await queryClient.invalidateQueries({
-        queryKey: ['timeBlocks', 'byDate', user.id, savedDateStr],
-      });
-      // Also invalidate for today in case they're different
-      const todayStr = toLocalDateString(new Date());
-      if (savedDateStr !== todayStr) {
+    // Protect against logout during save operation
+    if ((global as any).authMonitor) {
+      (global as any).authMonitor.startOperation();
+    }
+
+    try {
+      // Invalidate the timeblock query to refresh data immediately
+      if (user?.id && entry?.selected_date) {
+        const savedDateStr = entry.selected_date; // Use the actual saved date
         await queryClient.invalidateQueries({
-          queryKey: ['timeBlocks', 'byDate', user.id, todayStr],
+          queryKey: ['timeBlocks', 'byDate', user.id, savedDateStr],
         });
+        // Also invalidate for today in case they're different
+        const todayStr = toLocalDateString(new Date());
+        if (savedDateStr !== todayStr) {
+          await queryClient.invalidateQueries({
+            queryKey: ['timeBlocks', 'byDate', user.id, todayStr],
+          });
+        }
+        // Also invalidate broader timeblock queries as fallback
+        await queryClient.invalidateQueries({
+          queryKey: ['timeBlocks'],
+        });
+        console.log('[ActionStepsCard] TimeBlock query invalidated for date:', savedDateStr);
       }
-      // Also invalidate broader timeblock queries as fallback
-      await queryClient.invalidateQueries({
-        queryKey: ['timeBlocks'],
-      });
-      console.log('[ActionStepsCard] TimeBlock query invalidated for date:', savedDateStr);
+    } finally {
+      // End operation protection after save completes
+      setTimeout(() => {
+        if ((global as any).authMonitor) {
+          (global as any).authMonitor.endOperation();
+        }
+      }, 2000); // Give time for modal animations
     }
 
     // Modal will close automatically after showing success
@@ -465,6 +587,12 @@ export default function ActionStepsCard({
       selectedActionStep,
       selectedSubtask: selectedSubtask?.text,
     });
+
+    // End operation protection when modal closes
+    if ((global as any).authMonitor) {
+      (global as any).authMonitor.endOperation();
+    }
+
     setTimeBlockModalVisible(false);
     setSelectedSubtask(null);
     setSelectedActionStep(null);

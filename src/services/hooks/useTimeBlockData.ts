@@ -32,7 +32,7 @@ export const useTimeBlockData = (
 ) => {
   console.log('🔍 useTimeBlockData: Query key:', queryKeys.timeBlocks.byDate(userId, date));
   console.log('🔍 useTimeBlockData: Fetching for userId:', userId, 'date:', date);
-  
+
   return useQuery<TimeBlockWithVersion[], ApiError>({
     queryKey: queryKeys.timeBlocks.byDate(userId, date),
     queryFn: async () => {
