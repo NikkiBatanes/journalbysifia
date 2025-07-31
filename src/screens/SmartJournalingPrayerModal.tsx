@@ -94,11 +94,11 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   }, [playbookTitle]);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
+  const [_completionInfo, _setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
   const [isEditSession, setIsEditSession] = useState(false); // Track if user is in edit mode
   const [prevVisible, setPrevVisible] = useState(false);
-  const [hasSaved, setHasSaved] = useState(false); // Track if a save actually happened
-  const [pendingPrayerData, setPendingPrayerData] = useState<{ content: string; date: Date } | null>(null); // Store data before DB save
+  const [_hasSaved, setHasSaved] = useState(false); // Track if a save actually happened
+  const [_pendingPrayerData, _setPendingPrayerData] = useState<{ content: string; date: Date } | null>(null); // Store data before DB save
   const prayerEditorRef = useRef<PrayerLogEditorRef>(null);
 
   // Fetch existing prayer data for this subtask
@@ -271,7 +271,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         contentLength: prayerData.content.length,
         stepId,
         subtaskId,
-        actionStepsCount: actionSteps?.length || 0
+        actionStepsCount: actionSteps?.length || 0,
       });
 
       let result;
@@ -295,18 +295,18 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         console.log('🙏 SmartJournalingPrayerModal: Marking subtask as completed (data saved)', {
           stepId,
           subtaskId,
-          actionStepsCount: actionSteps?.length || 0
+          actionStepsCount: actionSteps?.length || 0,
         });
-        
+
         // Check if the step/subtask is already completed before toggling
         const step = actionSteps.find(s => s.id === stepId);
         console.log('🙏 SmartJournalingPrayerModal: Found step:', {
           stepFound: !!step,
           stepId: step?.id,
           stepCompleted: step?.completed,
-          subTasksCount: step?.subTasks?.length || 0
+          subTasksCount: step?.subTasks?.length || 0,
         });
-        
+
         if (step) {
           if (subtaskId) {
             // Check subtask completion
@@ -314,9 +314,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             console.log('🙏 SmartJournalingPrayerModal: Found subtask:', {
               subtaskFound: !!subtask,
               subtaskId: subtask?.id,
-              subtaskCompleted: subtask?.completed
+              subtaskCompleted: subtask?.completed,
             });
-            
+
             if (subtask && !subtask.completed) {
               console.log('🙏 SmartJournalingPrayerModal: Calling handleToggleStep to mark subtask as completed');
               handleToggleStep(stepId, subtaskId);
@@ -337,7 +337,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         } else {
           console.warn('🙏 SmartJournalingPrayerModal: Step not found in actionSteps:', {
             stepId,
-            availableStepIds: actionSteps?.map(s => s.id) || []
+            availableStepIds: actionSteps?.map(s => s.id) || [],
           });
         }
       } else {
@@ -345,7 +345,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
           hasStepId: !!stepId,
           hasSubtaskId: !!subtaskId,
           hasHandleToggleStep: !!handleToggleStep,
-          isExistingPrayer: !!currentPrayerEntry?.id
+          isExistingPrayer: !!currentPrayerEntry?.id,
         });
       }
 
@@ -366,46 +366,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     }
   };
 
-  // Actually save to database (called only when user clicks "Done")
-  const saveToDatabase = async () => {
-    if (!pendingPrayerData) {
-      console.error('❌ No pending prayer data to save');
-      return;
-    }
 
-    try {
-      console.log('🙏 SmartJournalingPrayerModal: Saving to database...', pendingPrayerData);
-
-      let savedEntry;
-      if (currentPrayerEntry?.id) {
-        // Update existing prayer
-        savedEntry = await updatePrayerMutation.mutateAsync(pendingPrayerData);
-      } else {
-        // Create new prayer
-        savedEntry = await createPrayerMutation.mutateAsync(pendingPrayerData);
-      }
-
-      console.log('✅ SmartJournalingPrayerModal: Database save completed');
-
-      // Call parent onSave callback
-      onSave(savedEntry);
-
-      return savedEntry;
-    } catch (error: any) {
-      console.error('❌ SmartJournalingPrayerModal: DATABASE SAVE FAILED:', error);
-      // Clear completion info and hasSaved state on error to prevent false completion
-      setCompletionInfo(null);
-      setHasSaved(false);
-      setPendingPrayerData(null);
-
-      Alert.alert(
-        'Save Failed',
-        `Failed to save prayer: ${error?.message || 'Unknown error'}. Please try again.`,
-        [{ text: 'OK' }]
-      );
-      throw error;
-    }
-  };
 
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
   const handleSuccessModalClose = () => {
@@ -417,7 +378,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   // Called when "Edit" is pressed in SuccessModal
   const handleEdit = () => {
     console.log('🙏 SmartJournalingPrayerModal: Edit button pressed, closing success modal');
-    
+
     // Debug: Check completion state when editing
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
@@ -428,10 +389,10 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         stepCompleted: step?.completed,
         subtaskCompleted: subtask?.completed,
         stepFound: !!step,
-        subtaskFound: !!subtask
+        subtaskFound: !!subtask,
       });
     }
-    
+
     setShowSuccessModal(false);
     // Focus the input and position cursor at the end
     setTimeout(() => {
@@ -444,7 +405,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
 
   const handleCancel = () => {
     console.log('🙏 SmartJournalingPrayerModal: Cancel pressed');
-    
+
     // Debug: Check completion state when cancelling
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
@@ -455,10 +416,10 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         stepCompleted: step?.completed,
         subtaskCompleted: subtask?.completed,
         stepFound: !!step,
-        subtaskFound: !!subtask
+        subtaskFound: !!subtask,
       });
     }
-    
+
     onCancel();
   };
 

@@ -88,7 +88,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   const [isEditSession, setIsEditSession] = useState(false);
   const [prevVisible, setPrevVisible] = useState(false);
   const [hasSaved, setHasSaved] = useState(false);
-  const [pendingTimeBlockData, setPendingTimeBlockData] = useState<any>(null); // Store data before DB save
+  const [_pendingTimeBlockData, _setPendingTimeBlockData] = useState<{ timeBlockEntry: any } | null>(null); // Store data before DB save
   const timeBlockEditorRef = useRef<TimeBlockLogEditorRef>(null);
 
   // Track visibility changes to detect when modal opens/closes
@@ -214,7 +214,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         date: timeBlockData.date.toISOString().split('T')[0],
         stepId,
         subtaskId,
-        actionStepsCount: actionSteps?.length || 0
+        actionStepsCount: actionSteps?.length || 0,
       });
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
@@ -266,18 +266,18 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         console.log('📅 SmartJournalingTimeBlockModal: Marking subtask as completed (data saved)', {
           stepId,
           subtaskId,
-          actionStepsCount: actionSteps?.length || 0
+          actionStepsCount: actionSteps?.length || 0,
         });
-        
+
         // Check if the step/subtask is already completed before toggling
         const step = actionSteps.find(s => s.id === stepId);
         console.log('📅 SmartJournalingTimeBlockModal: Found step:', {
           stepFound: !!step,
           stepId: step?.id,
           stepCompleted: step?.completed,
-          subTasksCount: step?.subTasks?.length || 0
+          subTasksCount: step?.subTasks?.length || 0,
         });
-        
+
         if (step) {
           if (subtaskId) {
             // Check subtask completion
@@ -285,9 +285,9 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
             console.log('📅 SmartJournalingTimeBlockModal: Found subtask:', {
               subtaskFound: !!subtask,
               subtaskId: subtask?.id,
-              subtaskCompleted: subtask?.completed
+              subtaskCompleted: subtask?.completed,
             });
-            
+
             if (subtask && !subtask.completed) {
               console.log('📅 SmartJournalingTimeBlockModal: Calling handleToggleStep to mark subtask as completed');
               handleToggleStep(stepId, subtaskId);
@@ -308,7 +308,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         } else {
           console.warn('📅 SmartJournalingTimeBlockModal: Step not found in actionSteps:', {
             stepId,
-            availableStepIds: actionSteps?.map(s => s.id) || []
+            availableStepIds: actionSteps?.map(s => s.id) || [],
           });
         }
       } else {
@@ -316,7 +316,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
           hasStepId: !!stepId,
           hasSubtaskId: !!subtaskId,
           hasHandleToggleStep: !!handleToggleStep,
-          isEditSession
+          isEditSession,
         });
       }
 
@@ -337,54 +337,11 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     }
   };
 
-  // Actually save to database (called only when user clicks "Done")
-  const saveToDatabase = async () => {
-    if (!pendingTimeBlockData) {
-      console.error('❌ No pending time block data to save');
-      return;
-    }
 
-    try {
-      console.log('📅 SmartJournalingTimeBlockModal: Saving to database...', pendingTimeBlockData);
-
-      const { timeBlockEntry } = pendingTimeBlockData;
-
-      if (isEditSession && existingTimeBlock?.id) {
-        // Update existing time block
-        await updateTimeBlockMutation.mutateAsync({
-          id: existingTimeBlock.id,
-          updates: timeBlockEntry,
-        });
-      } else {
-        // Create new time block
-        await createTimeBlockMutation.mutateAsync(timeBlockEntry);
-      }
-
-      console.log('✅ SmartJournalingTimeBlockModal: Database save completed');
-
-      // Call the parent onSave callback
-      onSave(timeBlockEntry);
-
-      return timeBlockEntry;
-    } catch (error: any) {
-      console.error('❌ SmartJournalingTimeBlockModal: DATABASE SAVE FAILED:', error);
-      // Clear completion info and pending data on error to prevent false completion
-      setCompletionInfo(null);
-      setHasSaved(false);
-      setPendingTimeBlockData(null);
-
-      Alert.alert(
-        'Save Failed',
-        `Failed to save time block: ${error?.message || 'Unknown error'}. Please try again.`,
-        [{ text: 'OK' }]
-      );
-      throw error;
-    }
-  };
 
   const handleCancel = () => {
     console.log('📅 SmartJournalingTimeBlockModal: Cancel pressed');
-    
+
     // Debug: Check completion state when cancelling
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
@@ -395,10 +352,10 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         stepCompleted: step?.completed,
         subtaskCompleted: subtask?.completed,
         stepFound: !!step,
-        subtaskFound: !!subtask
+        subtaskFound: !!subtask,
       });
     }
-    
+
     onCancel();
   };
 
@@ -411,7 +368,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
   const handleEdit = () => {
     console.log('📅 SmartJournalingTimeBlockModal: Edit button pressed, closing success modal');
-    
+
     // Debug: Check completion state when editing
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
@@ -422,10 +379,10 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         stepCompleted: step?.completed,
         subtaskCompleted: subtask?.completed,
         stepFound: !!step,
-        subtaskFound: !!subtask
+        subtaskFound: !!subtask,
       });
     }
-    
+
     setShowSuccessModal(false);
     // Focus the input and position cursor at the end
     setTimeout(() => {

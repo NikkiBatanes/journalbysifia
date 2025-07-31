@@ -37,7 +37,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
 }) => {
   const { user } = useAuth();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [pendingReflectionData, setPendingReflectionData] = useState<any>(null);
+  const [_pendingReflectionData, _setPendingReflectionData] = useState<{ content: string; date: Date } | null>(null);
   const dateStr = toLocalDateString(new Date());
 
   // React Query hooks
@@ -190,38 +190,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     }
   };
 
-  // Actually save to database (called only when user clicks "Done")
-  const saveToDatabase = async () => {
-    if (!pendingReflectionData) {
-      console.error('❌ No pending reflection data to save');
-      return;
-    }
 
-    try {
-      console.log('📝 DevotionalDetailReflectionModal: Saving to database...', pendingReflectionData);
-
-      const savedEntry = await saveReflection(pendingReflectionData);
-      console.log('✅ DevotionalDetailReflectionModal: Database save completed:', savedEntry);
-
-      // Call the original onSave with the saved entry data
-      if (onSave) {
-        onSave(savedEntry);
-      }
-
-      return savedEntry;
-    } catch (error: any) {
-      console.error('❌ DevotionalDetailReflectionModal: DATABASE SAVE FAILED:', error);
-      // Clear pending data on error to prevent false completion
-      setPendingReflectionData(null);
-
-      Alert.alert(
-        'Save Failed',
-        `Failed to save reflection: ${error?.message || 'Unknown error'}. Please try again.`,
-        [{ text: 'OK' }]
-      );
-      throw error;
-    }
-  };
 
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
   const handleSuccessClose = () => {

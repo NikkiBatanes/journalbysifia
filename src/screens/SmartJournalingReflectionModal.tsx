@@ -7,9 +7,7 @@ import { Colors } from '../theme';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useActionSteps } from '../context/ActionStepsContext';
 import { useCreateReflection, useUpdateReflection } from '../services/hooks/useReflectionData';
-import { useQueryClient } from '@tanstack/react-query';
-import { usePlaybookStore } from '../store/usePlaybookStore';
-import { updatePlaybookActionSteps } from '../services/apiIntegration';
+
 import { analytics } from '../utils/analytics';
 
 interface SmartJournalingReflectionModalProps {
@@ -76,7 +74,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const { user } = useAuth();
   const { handleToggleStep, actionSteps } = useActionSteps();
-  const queryClient = useQueryClient();
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const dateStr = new Date().toISOString().split('T')[0]; // Use ISO format to match ReflectionLogReactQuery
   const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
@@ -207,18 +205,18 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         console.log('💭 SmartJournalingReflectionModal: Marking subtask as completed (data saved)', {
           stepId,
           subtaskId,
-          actionStepsCount: actionSteps?.length || 0
+          actionStepsCount: actionSteps?.length || 0,
         });
-        
+
         // Check if the step/subtask is already completed before toggling
         const step = actionSteps.find(s => s.id === stepId);
         console.log('💭 SmartJournalingReflectionModal: Found step:', {
           stepFound: !!step,
           stepId: step?.id,
           stepCompleted: step?.completed,
-          subTasksCount: step?.subTasks?.length || 0
+          subTasksCount: step?.subTasks?.length || 0,
         });
-        
+
         if (step) {
           if (subtaskId) {
             // Check subtask completion
@@ -226,9 +224,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
             console.log('💭 SmartJournalingReflectionModal: Found subtask:', {
               subtaskFound: !!subtask,
               subtaskId: subtask?.id,
-              subtaskCompleted: subtask?.completed
+              subtaskCompleted: subtask?.completed,
             });
-            
+
             if (subtask && !subtask.completed) {
               console.log('💭 SmartJournalingReflectionModal: Calling handleToggleStep to mark subtask as completed');
               handleToggleStep(stepId, subtaskId);
@@ -249,7 +247,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         } else {
           console.warn('💭 SmartJournalingReflectionModal: Step not found in actionSteps:', {
             stepId,
-            availableStepIds: actionSteps?.map(s => s.id) || []
+            availableStepIds: actionSteps?.map(s => s.id) || [],
           });
         }
       } else {
@@ -257,7 +255,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           hasExistingReflection: !!existingReflection,
           hasStepId: !!stepId,
           hasSubtaskId: !!subtaskId,
-          hasHandleToggleStep: !!handleToggleStep
+          hasHandleToggleStep: !!handleToggleStep,
         });
       }
 
@@ -287,7 +285,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const handleEdit = () => {
     console.log('💭 SmartJournalingReflectionModal: Edit button pressed, closing success modal');
-    
+
     // Debug: Check completion state when editing
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
@@ -298,10 +296,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         stepCompleted: step?.completed,
         subtaskCompleted: subtask?.completed,
         stepFound: !!step,
-        subtaskFound: !!subtask
+        subtaskFound: !!subtask,
       });
     }
-    
+
     setShowSuccessModal(false);
     // Focus the input and position cursor at the end
     setTimeout(() => {
@@ -314,7 +312,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
 
   const handleCancel = () => {
     console.log('💭 SmartJournalingReflectionModal: Cancel pressed');
-    
+
     // Debug: Check completion state when cancelling
     if (stepId && subtaskId) {
       const step = actionSteps.find(s => s.id === stepId);
@@ -325,10 +323,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         stepCompleted: step?.completed,
         subtaskCompleted: subtask?.completed,
         stepFound: !!step,
-        subtaskFound: !!subtask
+        subtaskFound: !!subtask,
       });
     }
-    
+
     // ReflectionLogEditor handles draft saving automatically
     // No need for discard confirmation as drafts are preserved
     onCancel();
