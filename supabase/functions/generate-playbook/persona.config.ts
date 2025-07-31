@@ -149,37 +149,30 @@ GRATITUDE (for expressing thankfulness):
 - Expressing appreciation
 - Recognizing blessings
 
-WIN (for celebrating achievements):
-- Recording accomplishments
-- Celebrating progress
-- Acknowledging successes or victories
-- Recognizing improvements or wins
-- Celebrating small victories
-
 CORRECT EXAMPLES:
 - "Set small, measurable goals" → reflection (goal setting)
-- "Celebrate achievements" → win (celebrating)
-- "Set goals and celebrate achievements" → reflection,win (both actions)
+- "Celebrate achievements" → none (just celebrating, no journaling)
+- "Set goals and celebrate achievements" → reflection (both actions)
 - "Share goals with friends" → none (just sharing, no journaling)
 - "Attend regular meetings" → none (regular activity)
-- "Read a book on healthy eating" → todos (task to complete)
-- "Keep a food diary" → todos (task to do)
+- "Read a book on healthy eating" → none (regular activity)
+- "Keep a food diary" → none (regular activity)
 - "Reflect on your eating patterns" → reflection (analysis)
 - "Pray for discipline" → prayer (spiritual request)
 - "Allocate time blocks" → timeblock (scheduling)
 - "List things you're grateful for" → gratitude (expressing thanks)
 - "At the end of each week, review your journal" → timeblock (weekly scheduling)
-- "Acknowledge small victories and areas needing improvement" → win (acknowledging victories)
+- "Acknowledge small victories and areas needing improvement" → reflection (self-assessment)
 - "Create a weekly exercise schedule" → timeblock (creating schedule)
 - "Dedicate at least 10 minutes daily for prayer" → timeblock (daily time allocation)
 - "Set specific times for meals and snacks" → timeblock (setting specific times)
-- "Create a list of specific prayers" → todos (creating a list)
-- "Schedule an appointment with healthcare provider" → todos (scheduling task)
+- "Create a list of specific prayers" → none (creating a list)
+- "Schedule an appointment with healthcare provider" → none (scheduling task)
 - "Spend dedicated time in prayer asking God for wisdom" → prayer (spiritual request)
 - "Commit to a weekly 'no spend' day" → none (behavioral commitment)
 - "Identify items to sell that you no longer need" → reflection (identifying/evaluating)
 - "Dedicate time each day for prayer" → timeblock (daily time allocation)
-- "Keep a prayer journal to track how God answers" → todos (maintaining a journal)
+- "Keep a prayer journal to track how God answers" → none (maintaining a journal)
 - "Meditate on Romans 8:1" → reflection (contemplating scripture)
 - "Pray for God to reveal root causes" → prayer (spiritual request)
 - "Prepare specific questions for your session" → reflection (preparing discussion topics)

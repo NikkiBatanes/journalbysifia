@@ -10,16 +10,6 @@ export const JOURNAL_TYPES = {
     gratitude: 'gratitude',
     prayer: 'prayer',
     timeblock: 'timeblock',
-    focus: 'focus',
-    win: 'win',
-    forward: 'forward',
-    todos: 'todos', // NEW: For actionable tasks
-
-    // Financial types (detected but fallback to reflection until components are built)
-    financial_tithing: 'financial_tithing',
-    financial_savings: 'financial_savings',
-    financial_expenses: 'financial_expenses',
-    financial_investment: 'financial_investment',
 } as const;
 
 export type JournalType = typeof JOURNAL_TYPES[keyof typeof JOURNAL_TYPES];
@@ -36,18 +26,7 @@ export interface SmartJournalEntry {
     updated_at: string;
 }
 
-// Financial Entry Interface
-export interface SmartFinancialEntry {
-    id: string;
-    sub_task_id: string;
-    user_id: string;
-    financial_type: 'tithing' | 'savings' | 'expenses' | 'investment';
-    amount: number;
-    description?: string;
-    metadata?: Record<string, any>;
-    created_at: string;
-    updated_at: string;
-}
+
 
 // Expounded Step Interface
 export interface SmartExpoundedStep {
@@ -124,89 +103,9 @@ export const JOURNAL_TYPE_REGISTRY: Record<JournalType, JournalTypeMetadata> = {
         purpose: 'Scheduling specific time periods and calendar management',
         keywords: ['allocate time', 'schedule', 'time block', 'calendar', 'timer', 'specific time', 'when to', 'daily schedule', 'weekly schedule', 'set timer', 'time for', 'end of week', 'end of each week', 'weekly', 'daily', 'monthly', 'dedicate time', 'at least', 'minutes daily', 'specific times', 'establish routine', 'each day', 'every morning', 'every evening', 'time each day'],
     },
-    focus: {
-        type: 'focus',
-        displayName: "Today's Focus",
-        icon: 'target',
-        color: '#10B981',
-        description: 'Daily priorities and focus areas',
-        isImplemented: true,
-        purpose: 'Setting main priorities and key objectives',
-        keywords: ['priority', 'priorities', 'focus', 'main objective', 'key', 'important', 'top 3', 'primary', 'set priorities', 'choose priority'],
-    },
-    win: {
-        type: 'win',
-        displayName: "Today's Win",
-        icon: 'trophy',
-        color: '#F59E0B',
-        description: 'Daily victories and achievements',
-        isImplemented: true,
-        purpose: 'Recording accomplishments and celebrating progress',
-        keywords: ['accomplish', 'achievement', 'success', 'victory', 'celebrate', 'progress', 'completed', 'won', 'record what', 'track progress', 'acknowledge', 'small victories', 'victories', 'improvements', 'wins', 'recognize'],
-    },
-    forward: {
-        type: 'forward',
-        displayName: 'Looking Forward',
-        icon: 'arrow-right',
-        color: '#06B6D4',
-        description: 'Future planning and anticipation',
-        isImplemented: true,
-        purpose: 'Long-term planning and future vision setting',
-        keywords: ['future', 'long-term', 'vision', 'next year', 'upcoming', 'plan ahead', 'looking forward', 'anticipate'],
-    },
-    todos: {
-        type: 'todos',
-        displayName: 'To-Dos',
-        icon: 'check-square',
-        color: '#EF4444',
-        description: 'Actionable tasks and checklist items',
-        isImplemented: true,
-        purpose: 'Specific actionable tasks to complete',
-        keywords: ['task', 'do', 'complete', 'action', 'check off', 'finish', 'specific task', 'actionable', 'choose a task', 'set a timer', 'create', 'make', 'schedule', 'appointment', 'list', 'document', 'call', 'send', 'write down', 'keep', 'maintain', 'keep journal', 'keep log', 'track'],
-    },
-    financial_tithing: {
-        type: 'financial_tithing',
-        displayName: 'Tithing',
-        icon: 'dollar-sign',
-        color: '#059669',
-        description: 'Tithing and giving tracking',
-        isImplemented: false,
-        fallbackType: 'reflection',
-    },
-    financial_savings: {
-        type: 'financial_savings',
-        displayName: 'Savings',
-        icon: 'piggy-bank',
-        color: '#0D9488',
-        description: 'Savings goals and tracking',
-        isImplemented: false,
-        fallbackType: 'reflection',
-    },
-    financial_expenses: {
-        type: 'financial_expenses',
-        displayName: 'Expenses',
-        icon: 'receipt',
-        color: '#DC2626',
-        description: 'Expense tracking and budgeting',
-        isImplemented: false,
-        fallbackType: 'reflection',
-    },
-    financial_investment: {
-        type: 'financial_investment',
-        displayName: 'Investment',
-        icon: 'trending-up',
-        color: '#7C3AED',
-        description: 'Investment tracking and stewardship',
-        isImplemented: false,
-        fallbackType: 'reflection',
-    },
 };
 
 // Helper Functions
-export function isFinancialType(type: string): boolean {
-    return type.startsWith('financial_');
-}
-
 export function getJournalTypeMetadata(type: JournalType): JournalTypeMetadata {
     return JOURNAL_TYPE_REGISTRY[type];
 }
@@ -217,12 +116,6 @@ export function getImplementedJournalTypes(): JournalType[] {
         .map(meta => meta.type);
 }
 
-export function getFinancialJournalTypes(): JournalType[] {
-    return Object.values(JOURNAL_TYPE_REGISTRY)
-        .filter(meta => isFinancialType(meta.type))
-        .map(meta => meta.type);
-}
-
 // Trigger Keywords for Detection (for reference)
 export const JOURNAL_TYPE_KEYWORDS: Record<JournalType, string[]> = {
     none: ['attend', 'read', 'share', 'keep diary', 'track', 'meeting', 'book', 'seminar', 'regular activity'],
@@ -230,12 +123,4 @@ export const JOURNAL_TYPE_KEYWORDS: Record<JournalType, string[]> = {
     gratitude: ['grateful', 'gratitude', 'thankful', 'appreciate', 'blessing', 'blessed'],
     prayer: ['pray', 'prayer', 'worship', 'spiritual', 'God', 'Lord', 'Jesus'],
     timeblock: ['schedule', 'time', 'calendar', 'appointment', 'block', 'dedicate time'],
-    focus: ['priority', 'focus', 'important', 'main', 'key', 'primary'],
-    win: ['win', 'victory', 'achievement', 'success', 'accomplish', 'celebrate'],
-    forward: ['tomorrow', 'future', 'plan', 'next', 'upcoming', 'look forward'],
-    todos: ['task', 'to-do', 'action', 'complete', 'checklist', 'actionable'],
-    financial_tithing: ['tithe', 'tithing', 'giving', 'donate', 'offering', '10%'],
-    financial_savings: ['save', 'savings', 'emergency fund', 'budget', 'financial goal'],
-    financial_expenses: ['expense', 'spending', 'cost', 'budget', 'money', 'purchase'],
-    financial_investment: ['invest', 'investment', 'portfolio', 'stocks', 'financial planning'],
 };

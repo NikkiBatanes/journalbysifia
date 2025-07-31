@@ -4,11 +4,7 @@ export type JournalType =
   | 'prayer'
   | 'reflection'
   | 'gratitude'
-  | 'win'
   | 'timeblock'
-  | 'financial_budgeting'
-  | 'financial_tithing'
-  | 'financial_debt'
   | 'none';
 
 export type SubTask = {
@@ -50,20 +46,8 @@ export class SmartJournalingNavigation {
         this.navigateToGratitude(subTask, context);
         break;
 
-      case 'win':
-        this.navigateToWin(subTask, context);
-        break;
-
       case 'timeblock':
         this.navigateToTimeBlock(subTask, context);
-        break;
-
-
-
-      case 'financial_budgeting':
-      case 'financial_tithing':
-      case 'financial_debt':
-        this.navigateToFinancial(journalType, subTask, context);
         break;
 
       case 'none':
@@ -103,30 +87,12 @@ export class SmartJournalingNavigation {
   }
 
   /**
-   * Navigate to Win component with context
-   */
-  private navigateToWin(subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to Win for:', subTask.text);
-    this.navigation.navigate('Journal' as never);
-  }
-
-  /**
    * Navigate to TimeBlock component with context
    */
   private navigateToTimeBlock(subTask: SubTask, _context?: any) {
     console.log('[SmartJournalingNavigation] Navigating to TimeBlock for:', subTask.text);
     // TimeBlock smart journaling is handled via modal in ActionStepsCard
     // This navigation method is for fallback cases where modal isn't available
-    this.navigation.navigate('Journal' as never);
-  }
-
-
-
-  /**
-   * Navigate to Financial journaling (future implementation)
-   */
-  private navigateToFinancial(journalType: string, subTask: SubTask, _context?: any) {
-    console.log('[SmartJournalingNavigation] Navigating to Financial for:', subTask.text, 'Type:', journalType);
     this.navigation.navigate('Journal' as never);
   }
 

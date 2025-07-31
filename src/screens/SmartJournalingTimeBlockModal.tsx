@@ -371,7 +371,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   };
 
   // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleSuccessModalClose = () => {
     console.log('📅 TIMEBLOCK: Done button pressed, closing modal (data already saved)');
     console.log('🔍 TIMEBLOCK: About to hide success modal and close main modal');
@@ -379,7 +378,6 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     onCancel(); // Close the modal
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const _handleEdit = () => {
     console.log('📅 TIMEBLOCK: Edit button pressed, closing success modal');
     console.log('🔍 TIMEBLOCK: About to hide success modal for editing');
