@@ -134,8 +134,8 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     }
   };
 
-  // Prepare reflection data for saving (but don't save to DB yet)
-  const prepareReflection = async (entry: {
+  // Save reflection data to database immediately
+  const saveReflectionData = async (entry: {
     title: string;
     content: string;
     tags: string[];
@@ -146,7 +146,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     [key: string]: any;
   }) => {
     try {
-      console.log('📝 DevotionalDetailReflectionModal: Preparing reflection data (not saving to DB yet)', {
+      console.log('📝 DevotionalDetailReflectionModal: Saving reflection data to database immediately', {
         title: entry.title,
         contentLength: entry.content.length,
       });
@@ -165,18 +165,26 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         ...(entry.questionNumber !== undefined && { questionNumber: entry.questionNumber }),
       };
 
-      // Store the prepared data for later saving
-      setPendingReflectionData(reflectionData);
+      // Save to database immediately
+      const savedEntry = await saveReflection(reflectionData);
+      console.log('✅ DevotionalDetailReflectionModal: Database save completed:', savedEntry);
 
-      // Show success modal immediately (before DB save)
-      setShowSuccessModal(true);
+      // Call the original onSave with the saved entry data
+      if (onSave) {
+        onSave(savedEntry);
+      }
 
-      console.log('✅ DevotionalDetailReflectionModal: Reflection prepared, showing success modal');
+      // Show success modal after save (with small delay to allow UI update)
+      setTimeout(() => {
+        setShowSuccessModal(true);
+      }, 100);
+
+      console.log('✅ DevotionalDetailReflectionModal: Reflection saved successfully');
     } catch (error: any) {
-      console.error('❌ DevotionalDetailReflectionModal: PREPARE FAILED:', error);
+      console.error('❌ DevotionalDetailReflectionModal: SAVE FAILED:', error);
       Alert.alert(
         'Error',
-        `Failed to prepare reflection: ${error?.message || 'Unknown error'}`,
+        `Failed to save reflection: ${error?.message || 'Unknown error'}`,
         [{ text: 'OK' }]
       );
     }
@@ -215,28 +223,17 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
     }
   };
 
-  const handleSuccessClose = async () => {
-    console.log('📝 DevotionalDetailReflectionModal: Done button clicked - saving to database');
-
-    try {
-      // Save to database when user clicks "Done"
-      await saveToDatabase();
-
-      setShowSuccessModal(false);
-      setPendingReflectionData(null);
-
-      onCancel(); // Close the main modal
-    } catch (error) {
-      console.error('❌ Failed to save devotional reflection on Done click:', error);
-      // Don't close the modal if save failed - let user try again
-    }
+  // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
+  const handleSuccessClose = () => {
+    console.log('📝 DevotionalDetailReflectionModal: Done button pressed, closing modal (data already saved)');
+    setShowSuccessModal(false);
+    onCancel(); // Close the modal
   };
 
   const handleEdit = () => {
-    console.log('📝 DevotionalDetailReflectionModal: Edit button clicked - keeping data for editing');
+    console.log('📝 DevotionalDetailReflectionModal: Edit button pressed, closing success modal');
     setShowSuccessModal(false);
-    // Keep pendingReflectionData for potential future save
-    // The editor will remain open since we're not calling onCancel
+    // Keep modal open for continued editing
   };
   return (
     <Modal
@@ -261,7 +258,7 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
           <ReflectionLogEditor
             initialTitle={question}
             lockTitle
-            onSave={prepareReflection}
+            onSave={saveReflectionData}
             onCancel={onCancel}
             source="devotional"
             initialMode="free-form"

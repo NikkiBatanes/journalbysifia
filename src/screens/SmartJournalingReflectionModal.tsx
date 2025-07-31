@@ -75,11 +75,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   }, [playbookTitle]);
 
   const { user } = useAuth();
-  const { handleToggleStep } = useActionSteps();
+  const { handleToggleStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [completionInfo, setCompletionInfo] = useState<{ stepId: string; subtaskId: string } | null>(null);
-  const [pendingReflectionData, setPendingReflectionData] = useState<any>(null); // Store data before DB save
   const dateStr = new Date().toISOString().split('T')[0]; // Use ISO format to match ReflectionLogReactQuery
   const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
 
@@ -111,8 +109,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   useEffect(() => {
     if (visible && !prevVisible) {
       // Modal is opening (transition from false to true)
-      console.log('📝 SmartJournalingReflectionModal: Modal opening, clearing any existing completion info');
-      setCompletionInfo(null);
+      console.log('📝 SmartJournalingReflectionModal: Modal opening');
 
       // Auto-focus the first input when modal opens for new entries
       const hasExistingContent = existingReflection?.content && existingReflection.content.trim();
@@ -127,20 +124,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     setPrevVisible(visible);
   }, [visible, prevVisible, existingReflection?.content]);
 
-  // Handle subtask completion when modal closes after "DONE" is clicked
-  useEffect(() => {
-    console.log('💭 SmartJournalingReflectionModal: Completion useEffect triggered', {
-      visible,
-      hasCompletionInfo: !!completionInfo,
-      completionInfo,
-    });
 
-    // Clear completion info when modal closes without completing
-    // Completion only happens when user clicks "Done" in success modal
-    if (!visible && completionInfo) {
-      console.log('📝 SmartJournalingReflectionModal: Modal closed, completion info preserved for Done button');
-    }
-  }, [visible, completionInfo, handleToggleStep]);
 
   const { createMutation, updateMutation } = {
     createMutation: useCreateReflection(),
@@ -149,8 +133,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const isLoading = createMutation.isPending || updateMutation.isPending;
   // Note: We don't need to refetch data since the modal will close after saving
 
-  // Prepare reflection data for saving (but don't save to DB yet)
-  const prepareReflection = async (entry: {
+  // Save reflection data to database immediately and mark subtask complete
+  const saveReflection = async (entry: {
     title: string;
     content: string;
     tags?: string[];
@@ -164,7 +148,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         throw new Error('User not authenticated');
       }
 
-      console.log('💭 SmartJournalingReflectionModal: Preparing reflection data (not saving to DB yet)', {
+      console.log('💭 SmartJournalingReflectionModal: Saving reflection data to database immediately', {
         subtaskTitle,
         subtaskId,
         playbookId,
@@ -187,48 +171,12 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         ...(actionStepTitle && { day_title: actionStepTitle }),
       };
 
-      // Store the prepared data for later saving
-      setPendingReflectionData(reflectionData);
-
-      // Show success modal immediately (before DB save)
-      setShowSuccessModal(true);
-
-      // Set completion info for later use
-      if (!existingReflection && stepId && subtaskId) {
-        console.log('💭 SmartJournalingReflectionModal: Setting completion info for later use', {
-          stepId,
-          subtaskId,
-        });
-        setCompletionInfo({ stepId, subtaskId });
-      }
-
-      console.log('✅ SmartJournalingReflectionModal: Reflection prepared, showing success modal');
-    } catch (error: any) {
-      console.error('❌ SmartJournalingReflectionModal: PREPARE FAILED:', error);
-      Alert.alert(
-        'Error',
-        `Failed to prepare reflection: ${error?.message || 'Unknown error'}`,
-        [{ text: 'OK' }]
-      );
-    }
-  };
-
-  // Actually save to database (called only when user clicks "Done")
-  const saveToDatabase = async () => {
-    if (!pendingReflectionData) {
-      console.error('❌ No pending reflection data to save');
-      return;
-    }
-
-    try {
-      console.log('💭 SmartJournalingReflectionModal: Saving to database...', pendingReflectionData);
-
       // Track analytics
       analytics.track('smart_journaling_reflection_saved', {
         subtask_id: subtaskId,
         playbook_id: playbookId,
-        content_length: pendingReflectionData.content.length,
-        has_tags: (pendingReflectionData.tags || []).length > 0,
+        content_length: reflectionData.content.length,
+        has_tags: (reflectionData.tags || []).length > 0,
       });
 
       // Use update if editing existing reflection, otherwise create new one
@@ -237,139 +185,123 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         console.log('💭 SmartJournalingReflectionModal: Updating existing reflection:', existingReflection.id);
         savedReflection = await updateMutation.mutateAsync({
           id: existingReflection.id,
-          updates: pendingReflectionData,
+          updates: reflectionData,
         });
         console.log('✅ SmartJournalingReflectionModal: Reflection updated successfully:', savedReflection?.id);
       } else {
         console.log('💭 SmartJournalingReflectionModal: Creating new reflection...');
-        savedReflection = await createMutation.mutateAsync(pendingReflectionData);
+        savedReflection = await createMutation.mutateAsync(reflectionData);
         console.log('✅ SmartJournalingReflectionModal: Reflection created successfully:', savedReflection?.id);
       }
 
       // Validate that the reflection was actually saved
       if (!savedReflection || !savedReflection.id) {
-        throw new Error('Save operation completed but no reflection ID returned - save may have failed');
+        throw new Error('Failed to save reflection - no ID returned');
       }
-
-      console.log('✅ SmartJournalingReflectionModal: Save validation passed - reflection has ID:', savedReflection.id);
-
-      // Invalidate reflection cache to ensure UI updates
-      console.log('🔄 SmartJournalingReflectionModal: Invalidating reflection cache for UI refresh...');
-
-      const currentDateStr = new Date().toISOString().split('T')[0];
-
-      // 1. Invalidate Daily UI query
-      if (user?.id) {
-        await queryClient.invalidateQueries({
-          queryKey: ['reflections', 'byDate', user.id, currentDateStr],
-          exact: true,
-        });
-      }
-
-      // 2. Invalidate smart journaling subtask query
-      if (subtaskId && user?.id) {
-        await queryClient.invalidateQueries({
-          queryKey: ['reflections', 'subtask', user.id, subtaskId],
-          exact: true,
-        });
-      }
-
-      // 3. Broad invalidation as fallback
-      await queryClient.invalidateQueries({
-        queryKey: ['reflections'],
-        exact: false,
-      });
-
-      console.log('✅ SmartJournalingReflectionModal: Database save and cache invalidation completed');
 
       // Call parent onSave callback
-      onSave(pendingReflectionData);
+      onSave(savedReflection);
 
-      return savedReflection;
+      // Mark subtask as completed immediately since data is saved (only for new reflections)
+      if (!existingReflection && stepId && subtaskId && handleToggleStep) {
+        console.log('💭 SmartJournalingReflectionModal: Marking subtask as completed (data saved)', {
+          stepId,
+          subtaskId,
+          actionStepsCount: actionSteps?.length || 0
+        });
+        
+        // Check if the step/subtask is already completed before toggling
+        const step = actionSteps.find(s => s.id === stepId);
+        console.log('💭 SmartJournalingReflectionModal: Found step:', {
+          stepFound: !!step,
+          stepId: step?.id,
+          stepCompleted: step?.completed,
+          subTasksCount: step?.subTasks?.length || 0
+        });
+        
+        if (step) {
+          if (subtaskId) {
+            // Check subtask completion
+            const subtask = step.subTasks?.find(st => st.id === subtaskId);
+            console.log('💭 SmartJournalingReflectionModal: Found subtask:', {
+              subtaskFound: !!subtask,
+              subtaskId: subtask?.id,
+              subtaskCompleted: subtask?.completed
+            });
+            
+            if (subtask && !subtask.completed) {
+              console.log('💭 SmartJournalingReflectionModal: Calling handleToggleStep to mark subtask as completed');
+              handleToggleStep(stepId, subtaskId);
+              console.log('💭 SmartJournalingReflectionModal: handleToggleStep called successfully');
+            } else {
+              console.log('💭 SmartJournalingReflectionModal: Subtask already completed or not found, skipping toggle');
+            }
+          } else {
+            // Check step completion
+            if (!step.completed) {
+              console.log('💭 SmartJournalingReflectionModal: Calling handleToggleStep to mark step as completed');
+              handleToggleStep(stepId, subtaskId);
+              console.log('💭 SmartJournalingReflectionModal: handleToggleStep called successfully');
+            } else {
+              console.log('💭 SmartJournalingReflectionModal: Step already completed, skipping toggle');
+            }
+          }
+        } else {
+          console.warn('💭 SmartJournalingReflectionModal: Step not found in actionSteps:', {
+            stepId,
+            availableStepIds: actionSteps?.map(s => s.id) || []
+          });
+        }
+      } else {
+        console.log('💭 SmartJournalingReflectionModal: Skipping completion - editing existing reflection or missing data:', {
+          hasExistingReflection: !!existingReflection,
+          hasStepId: !!stepId,
+          hasSubtaskId: !!subtaskId,
+          hasHandleToggleStep: !!handleToggleStep
+        });
+      }
+
+      // Show success modal after save and completion (with small delay to allow UI update)
+      setTimeout(() => {
+        setShowSuccessModal(true);
+      }, 100);
+
+      console.log('✅ SmartJournalingReflectionModal: Reflection saved and subtask marked complete');
     } catch (error: any) {
-      // Clear completion info on error to prevent false completion
-      setCompletionInfo(null);
-      setPendingReflectionData(null);
-
-      const errorMessage = error?.message || 'Unknown error';
-      console.error('❌ SmartJournalingReflectionModal: DATABASE SAVE FAILED:', {
-        error,
-        errorMessage,
-        userId: user?.id,
-        subtaskId,
-        playbookId,
-        existingReflection: existingReflection?.id,
-        isUpdate: !!existingReflection,
-      });
-
-      // Track save failures for debugging
-      analytics.track('smart_journaling_save_failed', {
-        error_message: errorMessage,
-        subtask_id: subtaskId,
-        playbook_id: playbookId,
-        is_update: !!existingReflection,
-      });
-
+      console.error('❌ SmartJournalingReflectionModal: SAVE FAILED:', error);
       Alert.alert(
-        'Save Failed',
-        `Failed to save reflection: ${errorMessage}. Please try again.`,
+        'Error',
+        `Failed to save reflection: ${error?.message || 'Unknown error'}`,
         [{ text: 'OK' }]
       );
-      throw error;
     }
   };
 
-  // Note: Delete functionality intentionally removed from smart journaling modal.
-  // Users can delete reflections through the main Reflection Log interface.
 
-  const handleSuccessModalClose = async () => {
-    console.log('📝 User clicked Done - saving to database and closing modal');
+
+  const handleSuccessModalClose = () => {
+    console.log('📝 User clicked Done - closing modal (already saved and completed)');
     setShowSuccessModal(false);
-
-    try {
-      // Save to database when user clicks "Done"
-      await saveToDatabase();
-
-      // Mark step as completed when user clicks "Done"
-      if (completionInfo && handleToggleStep) {
-        console.log('📝 Marking step as completed on Done click:', completionInfo);
-        handleToggleStep(completionInfo.stepId, completionInfo.subtaskId);
-
-        // Save the updated steps to the database
-        if (playbookId) {
-          try {
-            // Get the current playbook from the store
-            const currentPlaybook = usePlaybookStore.getState().playbooks.find(p => p.id === playbookId);
-            if (currentPlaybook) {
-              // Save the updated action steps
-              await updatePlaybookActionSteps(playbookId, currentPlaybook.actionSteps || []);
-              console.log('✅ Successfully saved completion status to database');
-            }
-          } catch (error) {
-            console.error('❌ Failed to save completion status:', error);
-            // Optionally show an error message to the user
-            Alert.alert(
-              'Update Failed',
-              'Could not update the completion status. Please try again.'
-            );
-          }
-        }
-
-        setCompletionInfo(null);
-      }
-
-      // Clear pending data after successful save
-      setPendingReflectionData(null);
-
-      onCancel();
-    } catch (error) {
-      console.error('❌ Failed to save reflection on Done click:', error);
-      // Don't close the modal if save failed - let user try again
-    }
+    onCancel(); // Close the main modal
   };
 
   const handleEdit = () => {
-    console.log('Edit button pressed, closing success modal');
+    console.log('💭 SmartJournalingReflectionModal: Edit button pressed, closing success modal');
+    
+    // Debug: Check completion state when editing
+    if (stepId && subtaskId) {
+      const step = actionSteps.find(s => s.id === stepId);
+      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
+      console.log('💭 SmartJournalingReflectionModal: Edit - Current completion state:', {
+        stepId,
+        subtaskId,
+        stepCompleted: step?.completed,
+        subtaskCompleted: subtask?.completed,
+        stepFound: !!step,
+        subtaskFound: !!subtask
+      });
+    }
+    
     setShowSuccessModal(false);
     // Focus the input and position cursor at the end
     setTimeout(() => {
@@ -377,11 +309,26 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         reflectionEditorRef.current.focusInput();
       }
     }, 300); // Small delay to allow modal to close
-    // The editor will remain open since we're not calling onCancel
-    // Step information is preserved for continued editing
+    // Keep modal open for continued editing
   };
 
   const handleCancel = () => {
+    console.log('💭 SmartJournalingReflectionModal: Cancel pressed');
+    
+    // Debug: Check completion state when cancelling
+    if (stepId && subtaskId) {
+      const step = actionSteps.find(s => s.id === stepId);
+      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
+      console.log('💭 SmartJournalingReflectionModal: Cancel - Current completion state:', {
+        stepId,
+        subtaskId,
+        stepCompleted: step?.completed,
+        subtaskCompleted: subtask?.completed,
+        stepFound: !!step,
+        subtaskFound: !!subtask
+      });
+    }
+    
     // ReflectionLogEditor handles draft saving automatically
     // No need for discard confirmation as drafts are preserved
     onCancel();
@@ -403,7 +350,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
           <View style={styles.container}>
             <ReflectionLogEditor
               ref={reflectionEditorRef}
-              onSave={prepareReflection}
+              onSave={saveReflection}
               onCancel={handleCancel}
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log
               initialTitle={preservedSubtaskTitle}

@@ -49,7 +49,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     existingPrayer,
   });
   const { user } = useAuth();
-  const { handleToggleStep } = useActionSteps();
+  const { handleToggleStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
 
   // Debug logging
@@ -263,34 +263,104 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     },
   });
 
-  // Prepare prayer data for saving (but don't save to DB yet)
-  const preparePrayer = async (prayerData: { content: string; date: Date }) => {
+  // Save prayer data to database immediately and mark subtask complete
+  const savePrayer = async (prayerData: { content: string; date: Date }) => {
     try {
-      console.log('🙏 SmartJournalingPrayerModal: Preparing prayer data (not saving to DB yet)', {
+      console.log('🙏 SmartJournalingPrayerModal: Saving prayer data to database immediately', {
         hasExistingEntry: !!currentPrayerEntry,
-        isEditSession,
         contentLength: prayerData.content.length,
+        stepId,
+        subtaskId,
+        actionStepsCount: actionSteps?.length || 0
       });
 
-      // Store the prepared data for later saving
-      setPendingPrayerData(prayerData);
-
-      // Show success modal immediately (before DB save)
-      setHasSaved(true);
-      setShowSuccessModal(true);
-
-      // Set completion info for later use (only for new prayers)
-      if (stepId && subtaskId && !currentPrayerEntry?.id) {
-        console.log('🙏 SmartJournalingPrayerModal: Setting completion info for later use');
-        setCompletionInfo({ stepId, subtaskId });
+      let result;
+      if (currentPrayerEntry?.id) {
+        // Update existing prayer
+        console.log('🙏 SmartJournalingPrayerModal: Updating existing prayer');
+        result = await updatePrayerMutation.mutateAsync(prayerData);
+      } else {
+        // Create new prayer
+        console.log('🙏 SmartJournalingPrayerModal: Creating new prayer');
+        result = await createPrayerMutation.mutateAsync(prayerData);
       }
 
-      console.log('✅ SmartJournalingPrayerModal: Prayer prepared, showing success modal');
+      console.log('✅ SmartJournalingPrayerModal: Database save completed');
+
+      // Call parent onSave callback
+      onSave(result);
+
+      // Mark subtask as completed immediately since data is saved (only for new prayers)
+      if (stepId && subtaskId && handleToggleStep && !currentPrayerEntry?.id) {
+        console.log('🙏 SmartJournalingPrayerModal: Marking subtask as completed (data saved)', {
+          stepId,
+          subtaskId,
+          actionStepsCount: actionSteps?.length || 0
+        });
+        
+        // Check if the step/subtask is already completed before toggling
+        const step = actionSteps.find(s => s.id === stepId);
+        console.log('🙏 SmartJournalingPrayerModal: Found step:', {
+          stepFound: !!step,
+          stepId: step?.id,
+          stepCompleted: step?.completed,
+          subTasksCount: step?.subTasks?.length || 0
+        });
+        
+        if (step) {
+          if (subtaskId) {
+            // Check subtask completion
+            const subtask = step.subTasks?.find(st => st.id === subtaskId);
+            console.log('🙏 SmartJournalingPrayerModal: Found subtask:', {
+              subtaskFound: !!subtask,
+              subtaskId: subtask?.id,
+              subtaskCompleted: subtask?.completed
+            });
+            
+            if (subtask && !subtask.completed) {
+              console.log('🙏 SmartJournalingPrayerModal: Calling handleToggleStep to mark subtask as completed');
+              handleToggleStep(stepId, subtaskId);
+              console.log('🙏 SmartJournalingPrayerModal: handleToggleStep called successfully');
+            } else {
+              console.log('🙏 SmartJournalingPrayerModal: Subtask already completed or not found, skipping toggle');
+            }
+          } else {
+            // Check step completion
+            if (!step.completed) {
+              console.log('🙏 SmartJournalingPrayerModal: Calling handleToggleStep to mark step as completed');
+              handleToggleStep(stepId, subtaskId);
+              console.log('🙏 SmartJournalingPrayerModal: handleToggleStep called successfully');
+            } else {
+              console.log('🙏 SmartJournalingPrayerModal: Step already completed, skipping toggle');
+            }
+          }
+        } else {
+          console.warn('🙏 SmartJournalingPrayerModal: Step not found in actionSteps:', {
+            stepId,
+            availableStepIds: actionSteps?.map(s => s.id) || []
+          });
+        }
+      } else {
+        console.log('🙏 SmartJournalingPrayerModal: Skipping completion - editing existing prayer or missing data:', {
+          hasStepId: !!stepId,
+          hasSubtaskId: !!subtaskId,
+          hasHandleToggleStep: !!handleToggleStep,
+          isExistingPrayer: !!currentPrayerEntry?.id
+        });
+      }
+
+      // Show success modal after save and completion (with small delay to allow UI update)
+      setTimeout(() => {
+        setHasSaved(true);
+        setShowSuccessModal(true);
+      }, 100);
+
+      console.log('✅ SmartJournalingPrayerModal: Prayer saved and subtask marked complete');
     } catch (error: any) {
-      console.error('❌ SmartJournalingPrayerModal: PREPARE FAILED:', error);
+      console.error('❌ SmartJournalingPrayerModal: SAVE FAILED:', error);
       Alert.alert(
         'Error',
-        `Failed to prepare prayer: ${error?.message || 'Unknown error'}`,
+        `Failed to save prayer: ${error?.message || 'Unknown error'}`,
         [{ text: 'OK' }]
       );
     }
@@ -337,35 +407,31 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
     }
   };
 
-  // Called when "Done" is pressed in SuccessModal
-  const handleSuccessModalClose = async () => {
-    console.log('🙏 User clicked Done - saving to database and closing modal');
+  // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
+  const handleSuccessModalClose = () => {
+    console.log('🙏 SmartJournalingPrayerModal: Done button pressed, closing modal (data already saved)');
     setShowSuccessModal(false);
-
-    try {
-      // Save to database when user clicks "Done"
-      await saveToDatabase();
-
-      if (hasSaved && completionInfo) {
-        // Only mark as complete if a save actually happened
-        const { stepId: completedStepId, subtaskId: completedSubtaskId } = completionInfo;
-        handleToggleStep(completedStepId, completedSubtaskId);
-        setCompletionInfo(null);
-        setHasSaved(false); // Reset for next open
-      }
-
-      // Clear pending data after successful save
-      setPendingPrayerData(null);
-
-      onCancel(); // Close the modal
-    } catch (error) {
-      console.error('❌ Failed to save prayer on Done click:', error);
-      // Don't close the modal if save failed - let user try again
-    }
+    onCancel(); // Close the modal
   };
 
   // Called when "Edit" is pressed in SuccessModal
   const handleEdit = () => {
+    console.log('🙏 SmartJournalingPrayerModal: Edit button pressed, closing success modal');
+    
+    // Debug: Check completion state when editing
+    if (stepId && subtaskId) {
+      const step = actionSteps.find(s => s.id === stepId);
+      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
+      console.log('🙏 SmartJournalingPrayerModal: Edit - Current completion state:', {
+        stepId,
+        subtaskId,
+        stepCompleted: step?.completed,
+        subtaskCompleted: subtask?.completed,
+        stepFound: !!step,
+        subtaskFound: !!subtask
+      });
+    }
+    
     setShowSuccessModal(false);
     // Focus the input and position cursor at the end
     setTimeout(() => {
@@ -373,7 +439,27 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         prayerEditorRef.current.focusInput();
       }
     }, 300); // Small delay to allow modal to close
-    // Remain in editor, keep modal open
+    // Keep modal open for continued editing
+  };
+
+  const handleCancel = () => {
+    console.log('🙏 SmartJournalingPrayerModal: Cancel pressed');
+    
+    // Debug: Check completion state when cancelling
+    if (stepId && subtaskId) {
+      const step = actionSteps.find(s => s.id === stepId);
+      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
+      console.log('🙏 SmartJournalingPrayerModal: Cancel - Current completion state:', {
+        stepId,
+        subtaskId,
+        stepCompleted: step?.completed,
+        subtaskCompleted: subtask?.completed,
+        stepFound: !!step,
+        subtaskFound: !!subtask
+      });
+    }
+    
+    onCancel();
   };
 
   // Get initial content for the editor
@@ -429,8 +515,8 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
         >
           <PrayerLogEditor
             ref={prayerEditorRef}
-            onSave={preparePrayer}
-            onCancel={onCancel}
+            onSave={savePrayer}
+            onCancel={handleCancel}
             initialContent={getInitialContent()}
             subtaskTitle={preservedSubtaskTitle}
             subtaskId={subtaskId}

@@ -103,7 +103,17 @@ const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTas
   if (!subTasks) {
     return [];
   }
-  return subTasks.map((task, index) => ({
+  
+  // Debug: Log input subtasks before normalization
+  console.log('[normalizeSubTasks] Input subtasks:', subTasks.map((task, index) => ({
+    index,
+    taskType: typeof task,
+    taskId: typeof task === 'object' ? task.id : 'N/A',
+    taskText: (typeof task === 'string' ? task : task.text || task.toString())?.substring(0, 20) + '...',
+    taskCompleted: typeof task === 'object' ? task.completed : 'N/A'
+  })));
+  
+  const normalized = subTasks.map((task, index) => ({
     id: typeof task === 'string'
       ? stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`
       : task.id || (stepId ? `${stepId}-subtask-${index}` : `subtask-${index}`),
@@ -113,6 +123,15 @@ const normalizeSubTasks = (subTasks: any[] | undefined, stepId?: string): SubTas
     is_example: typeof task === 'object' ? task.is_example : false,
     example_interactive: typeof task === 'object' ? task.example_interactive : false,
   }));
+  
+  // Debug: Log normalized subtasks after normalization
+  console.log('[normalizeSubTasks] Normalized subtasks:', normalized.map(task => ({
+    taskId: task.id,
+    taskText: task.text?.substring(0, 20) + '...',
+    taskCompleted: task.completed
+  })));
+  
+  return normalized;
 };
 
 const processSteps = (steps: ActionStep[]): ActionStep[] => {
@@ -167,11 +186,35 @@ export default function ActionStepsCard({
 
 
   const steps = useMemo(() => {
-    const rawSteps = (propSteps && propSteps.length > 0) ? propSteps : contextSteps;
+    // Prioritize context steps over prop steps to ensure UI reflects latest state
+    const rawSteps = (contextSteps && contextSteps.length > 0) ? contextSteps : (propSteps ?? []);
+    
+    console.log('[ActionStepsCard] Steps source debug:', {
+      usingContextSteps: !!(contextSteps && contextSteps.length > 0),
+      contextStepsLength: contextSteps?.length || 0,
+      propStepsLength: propSteps?.length || 0,
+      rawStepsLength: rawSteps?.length || 0
+    });
+    
+    // Debug: Log raw steps completion state before processing
+    if (rawSteps && rawSteps.length > 0) {
+      console.log('[ActionStepsCard] Raw steps completion state:', rawSteps.map(step => ({
+        stepId: step.id,
+        stepTitle: step.title?.substring(0, 30) + '...',
+        stepCompleted: step.completed,
+        subtasks: step.subTasks?.map(st => ({
+          subtaskId: st.id,
+          subtaskText: st.text?.substring(0, 20) + '...',
+          subtaskCompleted: st.completed
+        })) || []
+      })));
+    }
+    
     if (!rawSteps || rawSteps.length === 0) {
       return [];
     }
-    return processSteps(rawSteps).map(step => ({
+    
+    const processedSteps = processSteps(rawSteps).map(step => ({
       ...step,
       title: cleanMarkdown(step.title),
       description: step.description ? cleanMarkdown(step.description) : undefined,
@@ -180,7 +223,42 @@ export default function ActionStepsCard({
         text: cleanMarkdown(subTask.text),
       })),
     }));
+    
+    // Debug: Log processed steps completion state after processing
+    console.log('[ActionStepsCard] Processed steps completion state:', processedSteps.map(step => ({
+      stepId: step.id,
+      stepTitle: step.title?.substring(0, 30) + '...',
+      stepCompleted: step.completed,
+      subtasks: step.subTasks?.map(st => ({
+        subtaskId: st.id,
+        subtaskText: st.text?.substring(0, 20) + '...',
+        subtaskCompleted: st.completed
+      })) || []
+    })));
+    
+    return processedSteps;
   }, [propSteps, contextSteps]);
+
+  // Debug: Track when ActionStepsCard re-renders and what completion states it shows
+  React.useEffect(() => {
+    if (steps && steps.length > 0) {
+      const completionStates = steps.map(step => ({
+        stepId: step.id,
+        stepTitle: step.title.substring(0, 30) + '...',
+        stepCompleted: step.completed,
+        subtasks: step.subTasks?.map(st => ({
+          subtaskId: st.id,
+          subtaskText: st.text.substring(0, 20) + '...',
+          subtaskCompleted: st.completed
+        })) || []
+      }));
+      console.log('[ActionStepsCard] Render - Current completion states:', {
+        timestamp: new Date().toISOString(),
+        stepsCount: steps.length,
+        completionStates
+      });
+    }
+  }, [steps]);
 
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });

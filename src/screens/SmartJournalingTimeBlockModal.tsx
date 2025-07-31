@@ -49,7 +49,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
   });
 
   const { user } = useAuth();
-  const { handleToggleStep } = useActionSteps();
+  const { handleToggleStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
 
   // Store the initial metadata to preserve it
@@ -192,8 +192,8 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
     },
   });
 
-  // Prepare time block data for saving (but don't save to DB yet)
-  const prepareTimeBlock = async (timeBlockData: {
+  // Save time block data to database immediately and mark subtask complete
+  const saveTimeBlock = async (timeBlockData: {
     title: string;
     startTime: Date;
     endTime: Date;
@@ -209,10 +209,12 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         return;
       }
 
-      console.log('📅 SmartJournalingTimeBlockModal: Preparing time block data (not saving to DB yet)', {
+      console.log('📅 SmartJournalingTimeBlockModal: Saving time block data to database immediately', {
         title: timeBlockData.title,
         date: timeBlockData.date.toISOString().split('T')[0],
-        isEditSession,
+        stepId,
+        subtaskId,
+        actionStepsCount: actionSteps?.length || 0
       });
 
       const timeBlockEntry: Omit<TimeBlockApiEntry, 'id' | 'created_at' | 'updated_at'> = {
@@ -240,25 +242,96 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         version: 1,
       };
 
-      // Store the prepared data for later saving
-      setPendingTimeBlockData({ timeBlockData, timeBlockEntry });
-
-      // Show success modal immediately (before DB save)
-      setShowSuccessModal(true);
-      setHasSaved(true);
-
-      // Set completion info for later use
-      if (stepId && subtaskId) {
-        console.log('📅 SmartJournalingTimeBlockModal: Setting completion info for later use');
-        setCompletionInfo({ stepId, subtaskId });
+      let result;
+      if (isEditSession && existingTimeBlock?.id) {
+        // Update existing time block
+        console.log('📅 SmartJournalingTimeBlockModal: Updating existing time block');
+        result = await updateTimeBlockMutation.mutateAsync({
+          id: existingTimeBlock.id,
+          updates: timeBlockEntry,
+        });
+      } else {
+        // Create new time block
+        console.log('📅 SmartJournalingTimeBlockModal: Creating new time block');
+        result = await createTimeBlockMutation.mutateAsync(timeBlockEntry);
       }
 
-      console.log('✅ SmartJournalingTimeBlockModal: Time block prepared, showing success modal');
+      console.log('✅ SmartJournalingTimeBlockModal: Database save completed');
+
+      // Call parent onSave callback
+      onSave(result);
+
+      // Mark subtask as completed immediately since data is saved (only for new time blocks)
+      if (stepId && subtaskId && handleToggleStep && !isEditSession) {
+        console.log('📅 SmartJournalingTimeBlockModal: Marking subtask as completed (data saved)', {
+          stepId,
+          subtaskId,
+          actionStepsCount: actionSteps?.length || 0
+        });
+        
+        // Check if the step/subtask is already completed before toggling
+        const step = actionSteps.find(s => s.id === stepId);
+        console.log('📅 SmartJournalingTimeBlockModal: Found step:', {
+          stepFound: !!step,
+          stepId: step?.id,
+          stepCompleted: step?.completed,
+          subTasksCount: step?.subTasks?.length || 0
+        });
+        
+        if (step) {
+          if (subtaskId) {
+            // Check subtask completion
+            const subtask = step.subTasks?.find(st => st.id === subtaskId);
+            console.log('📅 SmartJournalingTimeBlockModal: Found subtask:', {
+              subtaskFound: !!subtask,
+              subtaskId: subtask?.id,
+              subtaskCompleted: subtask?.completed
+            });
+            
+            if (subtask && !subtask.completed) {
+              console.log('📅 SmartJournalingTimeBlockModal: Calling handleToggleStep to mark subtask as completed');
+              handleToggleStep(stepId, subtaskId);
+              console.log('📅 SmartJournalingTimeBlockModal: handleToggleStep called successfully');
+            } else {
+              console.log('📅 SmartJournalingTimeBlockModal: Subtask already completed or not found, skipping toggle');
+            }
+          } else {
+            // Check step completion
+            if (!step.completed) {
+              console.log('📅 SmartJournalingTimeBlockModal: Calling handleToggleStep to mark step as completed');
+              handleToggleStep(stepId, subtaskId);
+              console.log('📅 SmartJournalingTimeBlockModal: handleToggleStep called successfully');
+            } else {
+              console.log('📅 SmartJournalingTimeBlockModal: Step already completed, skipping toggle');
+            }
+          }
+        } else {
+          console.warn('📅 SmartJournalingTimeBlockModal: Step not found in actionSteps:', {
+            stepId,
+            availableStepIds: actionSteps?.map(s => s.id) || []
+          });
+        }
+      } else {
+        console.log('📅 SmartJournalingTimeBlockModal: Skipping completion - editing existing time block or missing data:', {
+          hasStepId: !!stepId,
+          hasSubtaskId: !!subtaskId,
+          hasHandleToggleStep: !!handleToggleStep,
+          isEditSession
+        });
+      }
+
+      // Show success modal after save and completion (with small delay to allow UI update)
+      setTimeout(() => {
+        setShowSuccessModal(true);
+        setHasSaved(true);
+      }, 100);
+
+      console.log('✅ SmartJournalingTimeBlockModal: Time block saved and subtask marked complete');
     } catch (error: any) {
-      console.error('❌ SmartJournalingTimeBlockModal: PREPARE FAILED:', error);
+      console.error('❌ SmartJournalingTimeBlockModal: SAVE FAILED:', error);
       Alert.alert(
         'Error',
-        `Failed to prepare time block: ${error?.message || 'Unknown error'}`,
+        `Failed to save time block: ${error?.message || 'Unknown error'}`,
         [{ text: 'OK' }]
       );
     }
@@ -311,37 +384,48 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
 
   const handleCancel = () => {
     console.log('📅 SmartJournalingTimeBlockModal: Cancel pressed');
+    
+    // Debug: Check completion state when cancelling
+    if (stepId && subtaskId) {
+      const step = actionSteps.find(s => s.id === stepId);
+      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
+      console.log('📅 SmartJournalingTimeBlockModal: Cancel - Current completion state:', {
+        stepId,
+        subtaskId,
+        stepCompleted: step?.completed,
+        subtaskCompleted: subtask?.completed,
+        stepFound: !!step,
+        subtaskFound: !!subtask
+      });
+    }
+    
     onCancel();
   };
 
-  const handleSuccessModalClose = async () => {
-    console.log('📅 SmartJournalingTimeBlockModal: Done button clicked - saving to database');
-
-    try {
-      // Save to database when user clicks "Done"
-      await saveToDatabase();
-
-      setShowSuccessModal(false);
-
-      // Mark step as completed after successful save
-      if (_completionInfo && handleToggleStep) {
-        console.log('📅 SmartJournalingTimeBlockModal: Marking step as completed after DB save:', _completionInfo);
-        handleToggleStep(_completionInfo.stepId, _completionInfo.subtaskId);
-        setCompletionInfo(null);
-      }
-
-      // Clear pending data after successful save
-      setPendingTimeBlockData(null);
-
-      onCancel(); // Close the main modal
-    } catch (error) {
-      console.error('❌ Failed to save time block on Done click:', error);
-      // Don't close the modal if save failed - let user try again
-    }
+  // Called when "Done" is pressed in SuccessModal (data already saved, just close modal)
+  const handleSuccessModalClose = () => {
+    console.log('📅 SmartJournalingTimeBlockModal: Done button pressed, closing modal (data already saved)');
+    setShowSuccessModal(false);
+    onCancel(); // Close the modal
   };
 
   const handleEdit = () => {
-    console.log('📅 SmartJournalingTimeBlockModal: Edit button clicked - keeping data for editing');
+    console.log('📅 SmartJournalingTimeBlockModal: Edit button pressed, closing success modal');
+    
+    // Debug: Check completion state when editing
+    if (stepId && subtaskId) {
+      const step = actionSteps.find(s => s.id === stepId);
+      const subtask = step?.subTasks?.find(st => st.id === subtaskId);
+      console.log('📅 SmartJournalingTimeBlockModal: Edit - Current completion state:', {
+        stepId,
+        subtaskId,
+        stepCompleted: step?.completed,
+        subtaskCompleted: subtask?.completed,
+        stepFound: !!step,
+        subtaskFound: !!subtask
+      });
+    }
+    
     setShowSuccessModal(false);
     // Focus the input and position cursor at the end
     setTimeout(() => {
@@ -349,8 +433,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         timeBlockEditorRef.current.focusInput();
       }
     }, 300); // Small delay to allow modal to close
-    // The editor will remain open since we're not calling onCancel
-    // Step information and pending data are preserved for continued editing
+    // Keep modal open for continued editing
   };
 
   const isLoading = createTimeBlockMutation.isPending || updateTimeBlockMutation.isPending;
@@ -369,7 +452,7 @@ const SmartJournalingTimeBlockModal: React.FC<SmartJournalingTimeBlockModalProps
         >
           <TimeBlockLogEditor
             ref={timeBlockEditorRef}
-            onSave={prepareTimeBlock}
+            onSave={saveTimeBlock}
             onCancel={handleCancel}
             initialContent={existingTimeBlock?.description || ''}
             subtaskTitle={preservedSubtaskTitle}
