@@ -536,7 +536,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     return (
       <JournalCard
         icon={<LuNotebookPen size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
-        title="Reflection Log"
+        title="Heart Journal"
         subtitle="Loading your reflections..."
         showAddButton={false}
         onAdd={() => {}}
@@ -552,7 +552,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     return (
       <JournalCard
         icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        title="Reflection Log"
+        title="Heart Journal"
         subtitle="Unable to load reflections"
         showAddButton={false}
         onAdd={() => {}}
@@ -585,7 +585,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   return (
     <JournalCard
       icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      title="Reflection Log"
+      title="Heart Journal"
       subtitle={getReflectionSubtitle(entries?.length || 0)}
       showAddButton={true}
       onAdd={() => {
