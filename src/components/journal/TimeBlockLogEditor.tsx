@@ -1,6 +1,5 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Modal } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
@@ -17,12 +16,14 @@ interface TimeBlockLogEditorProps {
     location?: string;
     isAllDay: boolean;
     date: Date;
+    isEditing?: boolean;
+    existingId?: string;
   }) => void;
   onCancel: () => void;
   initialContent?: string;
   subtaskTitle?: string;
-  subtaskId?: string;
-  stepId?: string;
+  _subtaskId?: string;
+  _stepId?: string;
   playbookTitle?: string;
   actionStepNumber?: number;
   actionStepTitle?: string;
@@ -31,6 +32,7 @@ interface TimeBlockLogEditorProps {
   dateString?: string;
   // Existing time block data for editing
   existingTimeBlock?: {
+    id?: string;
     title?: string;
     start_time?: string;
     end_time?: string;
@@ -497,49 +499,6 @@ const defaultStyles = {
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  repeatModal: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  repeatModalContainer: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
-    padding: 20,
-    margin: 20,
-    minWidth: 280,
-  },
-  repeatModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  repeatOption: {
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  repeatOptionLast: {
-    borderBottomWidth: 0,
-  },
-  repeatOptionSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  repeatOptionText: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  repeatOptionSelectedText: {
-    fontWeight: '600',
-  },
-  customRepeatContainer: {
-    marginTop: 8,
-  },
   customRepeatLabel: {
     color: Colors.hopeWhite,
     fontSize: 16,
@@ -610,8 +569,8 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   onCancel: _onCancel,
   initialContent: _initialContent = '',
   subtaskTitle: _subtaskTitle,
-  subtaskId,
-  stepId,
+  _subtaskId,
+  _stepId,
   playbookTitle,
   actionStepNumber,
   actionStepTitle,
@@ -649,16 +608,16 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   const [tempStartTime, setTempStartTime] = React.useState(startTime);
   const [tempEndTime, setTempEndTime] = React.useState(endTime);
   const [showAddMenu, setShowAddMenu] = React.useState(false);
-  const [hasUserMadeChanges, setHasUserMadeChanges] = React.useState(false);
-  const [isFirstLoad, setIsFirstLoad] = React.useState(true);
+  const [_hasUserMadeChanges, _setHasUserMadeChanges] = React.useState(false);
+  const [_isFirstLoad, _setIsFirstLoad] = React.useState(true);
 
 
   // Tab management
-  const [activeTab, setActiveTab] = React.useState<'quick' | 'detailed'>('quick');
+  const [_activeTab, _setActiveTab] = React.useState<'quick' | 'detailed'>('quick');
 
   // Category modal state
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  
+
   // Repeat modal state
   const [showRepeatModal, setShowRepeatModal] = useState(false);
   const [showCustomRepeatModal, setShowCustomRepeatModal] = useState(false);
@@ -688,7 +647,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
       }
 
       const notesWithMetadata = notes.trim() + formatMetadata();
-      
+
       // If editing an existing time block, pass a flag to indicate it should be unmarked/deleted
       onSave({
         title: title.trim(),
@@ -734,7 +693,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
   };
 
   const handleContentChange = (field: string, value: any) => {
-    setHasUserMadeChanges(true);
+    _setHasUserMadeChanges(true);
     switch (field) {
       case 'title': setTitle(value); break;
       case 'notes': setNotes(value); break;
@@ -806,7 +765,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                     <Text style={s.timeText}>All Day</Text>
                   )}
                 </View>
-                
+
                 <View style={s.allDaySection}>
                   {!isAllDay && <Text style={s.allDayLabel}>All Day</Text>}
                   <TouchableOpacity
@@ -837,7 +796,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
               />
 
               {/* Repeat Section */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={s.repeatButton}
                 onPress={() => setShowRepeatModal(true)}
               >
@@ -928,25 +887,25 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                 <View style={s.repeatModal}>
                   <View style={s.repeatModalContainer}>
                     <Text style={s.repeatModalTitle}>Custom Repeat</Text>
-                    
+
                     <View style={s.customRepeatContainer}>
                       <Text style={s.customRepeatLabel}>Repeat every</Text>
-                      
+
                       <View style={s.frequencySelector}>
                         <View style={s.frequencyInputs}>
                           <TextInput
                             style={s.frequencyInput}
                             value={customFrequency.value.toString()}
                             onChangeText={(text) => {
-                              const num = parseInt(text) || 1;
+                              const num = parseInt(text, 10) || 1;
                               setCustomFrequency({ ...customFrequency, value: num });
                             }}
                             keyboardType="numeric"
                             maxLength={2}
                             placeholderTextColor="rgba(255, 255, 255, 0.6)"
                           />
-                          
-                          <TouchableOpacity 
+
+                          <TouchableOpacity
                             style={s.frequencyUnitButton}
                             onPress={() => {
                               const units = ['day', 'week', 'month', 'year'];
@@ -963,7 +922,7 @@ const TimeBlockLogEditor: React.FC<TimeBlockLogEditorProps> = ({
                         </View>
                       </View>
                     </View>
-                    
+
                     <View style={s.customModalButtons}>
                       <TouchableOpacity
                         style={[s.customModalButton, s.customModalCancelButton]}
