@@ -424,17 +424,33 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   const [prayerForPerson, setPrayerForPerson] = React.useState('');
   const [prayerRequest, setPrayerRequest] = React.useState('');
 
+  const handlePersonChange = (text: string) => {
+    setPrayerForPerson(text);
+    if (!hasUserMadeChanges) {
+      setHasUserMadeChanges(true);
+    }
+  };
+
+  const handleRequestChange = (text: string) => {
+    setPrayerRequest(text);
+    if (!hasUserMadeChanges) {
+      setHasUserMadeChanges(true);
+    }
+  };
+
   // Check if this is an edit session (has existing content)
   const isEditing = !!(initialContent && initialContent.trim());
 
-  // Helper function to get unique draft key for each prayer
+  // Helper function to get unique draft key for each prayer and tab
   const getDraftKey = React.useCallback(() => {
     // Get current date for uniqueness
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    // Include active tab in the key
+    const tabSuffix = `_${activeTab}`;
 
     if (subtaskId && stepId) {
       // Use subtaskId and stepId for maximum uniqueness
-      const key = `@prayer_editor_draft_${stepId}_${subtaskId}_${currentDate}`;
+      const key = `@prayer_editor_draft_${stepId}_${subtaskId}_${currentDate}${tabSuffix}`;
       console.log('[PrayerLogEditor] Unique draft key with IDs:', key);
       return key;
     }
@@ -444,61 +460,97 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       const playbookName = playbookTitle.replace(/[^a-zA-Z0-9]/g, '_');
       const stepNum = actionStepNumber || 0;
       const taskTitle = _subtaskTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
-      const key = `@prayer_editor_draft_playbook_${playbookName}_step${stepNum}_${taskTitle}_${currentDate}`;
-      console.log('[PrayerLogEditor] Playbook draft key with date:', key);
+      const key = `@prayer_editor_draft_${playbookName}_${stepNum}_${taskTitle}_${currentDate}${tabSuffix}`;
+      console.log('[PrayerLogEditor] Title-based draft key:', key);
       return key;
     }
 
-    // Default key with date
-    const key = `@prayer_editor_draft_${currentDate}`;
-    console.log('[PrayerLogEditor] Default draft key with date:', key);
+    // Default key with date and tab
+    const key = `@prayer_editor_draft_${currentDate}${tabSuffix}`;
+    console.log('[PrayerLogEditor] Default draft key with date and tab:', key);
     return key;
-  }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber]);
+  }, [subtaskId, stepId, _subtaskTitle, playbookTitle, actionStepNumber, activeTab]);
 
-  // Load draft when component mounts (only for new entries, not when editing)
+  // Load draft when component mounts or when active tab changes (only for new entries, not when editing)
   useEffect(() => {
     // Only load drafts when creating new entries, not when editing existing ones
-    if (isFirstLoad && !isEditing) {
+    if (!isEditing) {
       const loadDraft = async () => {
         try {
           const draftKey = getDraftKey();
           const draft = await AsyncStorage.getItem(draftKey);
           if (draft) {
             const draftData = JSON.parse(draft);
-            const { content } = draftData;
+            const { content, activeTab: savedTab } = draftData;
 
             // Only load draft if there's actual meaningful content
             if (content && content.trim()) {
-              console.log('[PrayerLogEditor] Loading draft:', content.substring(0, 50) + '...');
+              console.log('[PrayerLogEditor] Loading draft for tab:', savedTab, 'content:', content.substring(0, 50) + '...');
 
-              // Set the prayer content to the draft
-              setPrayerContent(content);
-
-              // Update initial state to the loaded draft so changes are tracked from this point
-              // This prevents the draft from being immediately overwritten
-
-              // Only show notification when draft is actually loaded (not in edit mode)
-              if (!isEditing) {
-                setTimeout(() => {
-                  setShowDraftNotification(true);
-                  setTimeout(() => {
-                    setShowDraftNotification(false);
-                  }, 3000);
-                }, 100);
+              // Set the active tab first
+              if (savedTab && (savedTab === 'freeform' || savedTab === 'people')) {
+                setActiveTab(savedTab);
               }
+
+              // Set the appropriate content based on the tab
+              if (savedTab === 'freeform') {
+                setPrayerContent(content);
+              } else if (savedTab === 'people') {
+                try {
+                  const structuredData = JSON.parse(content);
+                  setPrayerForPerson(structuredData.prayerForPerson || '');
+                  setPrayerRequest(structuredData.prayerRequest || '');
+                } catch (e) {
+                  console.error('Error parsing structured prayer data:', e);
+                }
+              } else {
+                // Fallback for old drafts without tab info
+                setPrayerContent(content);
+              }
+
+              // Show notification when draft is loaded
+              setTimeout(() => {
+                setShowDraftNotification(true);
+                setTimeout(() => {
+                  setShowDraftNotification(false);
+                }, 3000);
+              }, 100);
 
               console.log('[PrayerLogEditor] Draft loaded and notification shown');
             }
           }
         } catch (error) {
           console.error('Error loading draft:', error);
+        } finally {
+          if (isFirstLoad) {
+            setIsFirstLoad(false);
+          }
         }
       };
 
       loadDraft();
+    } else if (isFirstLoad) {
+      setIsFirstLoad(false);
     }
-    setIsFirstLoad(false);
   }, [getDraftKey, isEditing, isFirstLoad]);
+
+  // Focus the appropriate input when switching tabs
+  useEffect(() => {
+    // Small timeout to ensure the tab animation completes
+    const timer = setTimeout(() => {
+      if (activeTab === 'people') {
+        // Focus the person input when switching to People tab
+        if (personInputRef.current) {
+          personInputRef.current.focus();
+        }
+      } else if (activeTab === 'freeform' && inputRef.current) {
+        // Focus the main input when switching to Freeform tab
+        inputRef.current.focus();
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [activeTab]);
 
   // Helper function to save draft
   const saveDraftHelper = useCallback(async () => {
@@ -537,13 +589,12 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     }
   }, [prayerContent, prayerForPerson, prayerRequest, activeTab, _subtaskTitle, playbookTitle, actionStepNumber, getDraftKey]);
 
-  // Clear draft when component unmounts (cleanup)
-  useEffect(() => {
-    return () => {
-      // Only clear draft if the entry was saved (not cancelled)
-      // This is handled in the save/cancel functions
-    };
-  }, []);
+  const handleContentChange = (text: string) => {
+    setPrayerContent(text);
+    if (!hasUserMadeChanges) {
+      setHasUserMadeChanges(true);
+    }
+  };
 
   // Auto-save draft when content changes (debounced)
   useEffect(() => {
@@ -551,12 +602,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       const timeoutId = setTimeout(saveDraftHelper, 1000); // 1 second debounce
       return () => clearTimeout(timeoutId);
     }
-  }, [prayerContent, isFirstLoad, hasUserMadeChanges, isEditing, saveDraftHelper]);
-
-  const handleContentChange = (text: string) => {
-    setPrayerContent(text);
-    setHasUserMadeChanges(true);
-  };
+  }, [prayerContent, prayerForPerson, prayerRequest, isFirstLoad, hasUserMadeChanges, isEditing, saveDraftHelper]);
 
   const handleSave = async () => {
     try {
@@ -697,7 +743,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     placeholder="Who are you praying for?"
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     value={prayerForPerson}
-                    onChangeText={setPrayerForPerson}
+                    onChangeText={handlePersonChange}
                   />
                   <View style={s.gap} />
                   <TextInput
@@ -706,7 +752,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                     placeholder="What would you like to pray for this person?"
                     placeholderTextColor="rgba(255, 255, 255, 0.4)"
                     value={prayerRequest}
-                    onChangeText={setPrayerRequest}
+                    onChangeText={handleRequestChange}
                     multiline
                     textAlignVertical="top"
                   />
