@@ -7,6 +7,7 @@ import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import PlanCarousel from '../components/journal/PlanCarousel';
+import ReflectCarousel from '../components/journal/ReflectCarousel';
 import { GratitudeListReactQuery } from '../components/journal/GratitudeListReactQuery';
 import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReactQuery';
 import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
@@ -370,24 +371,9 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             }
           >
             <PlanCarousel selectedDate={currentDate} refreshKey={refreshKey} />
-            <View style={styles.componentSpacing}>
-              <GratitudeListReactQuery selectedDate={currentDate} />
-            </View>
-            {/* Only show these components for today or past dates */}
+            {/* Only show ReflectCarousel for today or past dates */}
             {!isFutureDate && (
-              <>
-                <View style={styles.componentSpacing}>
-                  <ReflectionLogReactQuery
-                    selectedDate={currentDate}
-                  />
-                </View>
-                <View style={styles.componentSpacing}>
-                  <TodayWinReactQuery selectedDate={currentDate} />
-                </View>
-                <View style={styles.componentSpacing}>
-                  <LookingForwardReactQuery selectedDate={currentDate} />
-                </View>
-              </>
+              <ReflectCarousel selectedDate={currentDate} refreshKey={refreshKey} />
             )}
           </ScrollView>
         );
