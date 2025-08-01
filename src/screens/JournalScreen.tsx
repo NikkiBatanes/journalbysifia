@@ -558,8 +558,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   dayNameText: {
-    fontFamily: Fonts.medium,
-    fontSize: 8,
+    fontFamily: Fonts.semiBold,
+    fontSize: 9,
+    fontWeight: '600',
     color: 'rgba(26, 60, 109, 0.7)',
     marginBottom: 0,  // Removed margin
     letterSpacing: 0.1,
@@ -577,7 +578,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dayNumberText: {
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.bold,
+    fontWeight: '600',
     fontSize: 12,
     color: Colors.anchorBlue,
     lineHeight: 14,
