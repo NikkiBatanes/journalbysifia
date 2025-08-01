@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
@@ -21,6 +22,7 @@ const SIDE_PADDING = 8;
 
 interface PrayCarouselProps {
   selectedDate: Date;
+  onComponentTap?: (componentId: string) => void;
 }
 
 interface CarouselItem {
@@ -31,7 +33,7 @@ interface CarouselItem {
   color: string;
 }
 
-const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate }) => {
+const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTap }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
@@ -134,7 +136,13 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate }) => {
               key={item.id}
               style={[styles.carouselItem, { transform: [{ scale }], opacity }]}
             >
-              {item.component}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => onComponentTap?.(item.id)}
+                style={styles.touchableComponent}
+              >
+                {item.component}
+              </TouchableOpacity>
             </Animated.View>
           );
         })}
@@ -165,6 +173,9 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: CARD_WIDTH,
     marginRight: CARD_SPACING,
+  },
+  touchableComponent: {
+    flex: 1,
   },
 });
 

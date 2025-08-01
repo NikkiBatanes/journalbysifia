@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from 'react';
-import { View, Text, Animated, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { View, Text, Animated, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Fonts } from '../../theme/fonts';
 import { Colors } from '../../theme/colors';
@@ -15,10 +15,11 @@ const SIDE_PADDING = 8; // Less side padding to reveal more of next/prev card
 interface PlanCarouselProps {
   selectedDate: Date;
   refreshKey?: number;
+  onComponentTap?: (componentId: string) => void;
 }
 
 
-const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey }) => {
+const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, onComponentTap }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
@@ -122,7 +123,13 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey })
               key={item.id}
               style={[styles.carouselItem, { transform: [{ scale }], opacity }]}
             >
-              {item.component}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => onComponentTap?.(item.id)}
+                style={styles.touchableComponent}
+              >
+                {item.component}
+              </TouchableOpacity>
             </Animated.View>
           );
         })}
@@ -154,6 +161,9 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: CARD_WIDTH,
     marginRight: CARD_SPACING,
+  },
+  touchableComponent: {
+    flex: 1,
   },
 });
 

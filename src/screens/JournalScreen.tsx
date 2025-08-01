@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { useScroll } from '../context/ScrollContext';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
@@ -8,6 +9,18 @@ import { Fonts } from '../theme/fonts';
 import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';
 import PrayCarousel from '../components/journal/PrayCarousel';
+
+// Individual components for inline view
+import { TodaysFocusReactQuery } from '../components/journal/TodaysFocusReactQuery';
+import { TodosReactQuery } from '../components/journal/TodosReactQuery';
+import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from '../components/journal/TimeBlockReactQuery';
+import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReactQuery';
+import { GratitudeListReactQuery } from '../components/journal/GratitudeListReactQuery';
+import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
+import { LookingForwardReactQuery } from '../components/journal/LookingForwardReactQuery';
+import PrayerJournalCardReactQuery from '../components/journal/PrayerJournalCardReactQuery';
+import DevotionalPrayerListReactQuery from '../components/journal/DevotionalPrayerListReactQuery';
+import EnhancedPrayerListReactQuery from '../components/journal/EnhancedPrayerListReactQuery';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
@@ -26,7 +39,12 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [viewMode, setViewMode] = useState<'carousel' | 'inline'>('carousel');
+  const [currentPage, setCurrentPage] = useState(0);
+  const [targetComponentId, setTargetComponentId] = useState<string | null>(null);
   const lastSelectedDate = useRef<Date | null>(null);
+  const pageScrollRefs = useRef<{ [key: string]: ScrollView | null }>({});
+  const horizontalScrollRef = useRef<ScrollView>(null);
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -277,6 +295,115 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
 
   const { setShowTabBar } = useScroll();
 
+  // Pagination data
+  const pages = useMemo(() => [
+    { title: 'Plan', key: 'plan' },
+    { title: 'Reflect', key: 'reflect' },
+    { title: 'Pray', key: 'pray' },
+  ], []);
+
+  // Handle component tap to switch to inline view and scroll to specific component
+  const handleComponentTap = useCallback((pageKey: string, componentId?: string) => {
+    const pageIndex = pages.findIndex(page => page.key === pageKey);
+    if (pageIndex !== -1) {
+      setCurrentPage(pageIndex);
+      setViewMode('inline');
+
+      // Store the component to scroll to
+      if (componentId) {
+        setTargetComponentId(componentId);
+      }
+
+      // Scroll horizontal ScrollView to the correct page after a delay
+      setTimeout(() => {
+        if (horizontalScrollRef.current) {
+          const currentScreenWidth = Dimensions.get('window').width;
+          horizontalScrollRef.current.scrollTo({
+            x: pageIndex * currentScreenWidth,
+            animated: true,
+          });
+        }
+      }, 100);
+    }
+  }, [pages]);
+
+  // Removed unused handleBackToCarousel function
+
+  // Component mapping for scroll-to functionality
+  const componentMapping = useMemo(() => ({
+    'focus': { page: 'plan', index: 0 },
+    'todos': { page: 'plan', index: 1 },
+    'timeblocks': { page: 'plan', index: 2 },
+    'reflection': { page: 'reflect', index: 0 },
+    'gratitude': { page: 'reflect', index: 1 },
+    'todayswin': { page: 'reflect', index: 2 },
+    'lookingforward': { page: 'reflect', index: 3 },
+    'prayerjournal': { page: 'pray', index: 0 },
+    'devotionalprayers': { page: 'pray', index: 1 },
+    'peopleprayers': { page: 'pray', index: 2 },
+  }), []);
+
+  // Scroll to specific component
+  const scrollToComponent = useCallback((componentId: string) => {
+    const mapping = componentMapping[componentId as keyof typeof componentMapping];
+    if (mapping) {
+      const scrollView = pageScrollRefs.current[mapping.page];
+      if (scrollView) {
+        // Calculate approximate scroll position (each component wrapper is ~200px)
+        const scrollPosition = mapping.index * 200;
+        scrollView.scrollTo({ y: scrollPosition, animated: true });
+      }
+    }
+  }, [componentMapping]);
+
+  // Effect to handle scroll-to when target component changes
+  useEffect(() => {
+    if (targetComponentId && viewMode === 'inline') {
+      // Delay scroll to ensure view has rendered
+      setTimeout(() => {
+        scrollToComponent(targetComponentId);
+        setTargetComponentId(null);
+      }, 300);
+    }
+  }, [targetComponentId, viewMode, scrollToComponent]);
+
+  // Temporary function for testing component navigation
+  // This can be called from console or added as onPress handlers
+  const navigateToComponent = useCallback((componentId: string) => {
+    const mapping = componentMapping[componentId as keyof typeof componentMapping];
+    if (mapping) {
+      handleComponentTap(mapping.page, componentId);
+    }
+  }, [componentMapping, handleComponentTap]);
+
+  // Expose navigation function for testing
+  useEffect(() => {
+    // @ts-ignore - for testing purposes
+    window.navigateToComponent = navigateToComponent;
+  }, [navigateToComponent]);
+
+  // Handle swipe to change pages
+  const handlePageScroll = (event: any) => {
+    const { contentOffset, layoutMeasurement } = event.nativeEvent;
+    const pageIndex = Math.round(contentOffset.x / layoutMeasurement.width);
+    if (pageIndex !== currentPage && pageIndex >= 0 && pageIndex < pages.length) {
+      setCurrentPage(pageIndex);
+    }
+  };
+
+  // Handle swipe down gesture to close inline view
+  const handleSwipeDown = (event: any) => {
+    if (event.nativeEvent.state === State.END) {
+      const { velocityY, translationY } = event.nativeEvent;
+      // Check for fast downward swipe (velocity > 500 and translation > 50)
+      if (velocityY > 500 && translationY > 50) {
+        setViewMode('carousel');
+      }
+    }
+  };
+
+
+
   const handleContentScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
     const y = event.nativeEvent.contentOffset.y;
     const isScrollingUp = y < (lastScrollY.current || 0);
@@ -380,30 +507,172 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
           </ScrollView>
         </Animated.View>
       </View>
+
       <View style={styles.content}>
-        <ScrollView
-          style={styles.tabContent}
-          contentContainerStyle={styles.scrollViewContent}
-          onScroll={handleContentScroll}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={handleRefresh}
-              tintColor={Colors.alertCoral}
-              colors={[Colors.alertCoral]}
+        {viewMode === 'carousel' ? (
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoidingView}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <ScrollView
+              style={styles.tabContent}
+              contentContainerStyle={styles.scrollViewContent}
+              onScroll={handleContentScroll}
+              scrollEventThrottle={16}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={Colors.alertCoral}
+                colors={[Colors.alertCoral]}
+              />
+            }
+          >
+            <PlanCarousel
+              selectedDate={currentDate}
+              refreshKey={refreshKey}
+              onComponentTap={(componentId) => {
+                const mapping = componentMapping[componentId as keyof typeof componentMapping];
+                if (mapping) {
+                  handleComponentTap(mapping.page, componentId);
+                }
+              }}
             />
-          }
-        >
-          <PlanCarousel selectedDate={currentDate} refreshKey={refreshKey} />
-          {/* Only show ReflectCarousel for today or past dates */}
-          {currentDate <= new Date() && (
-            <>
-              <ReflectCarousel selectedDate={currentDate} refreshKey={refreshKey} />
-              <PrayCarousel selectedDate={currentDate} />
-            </>
-          )}
-        </ScrollView>
+            {/* Only show ReflectCarousel for today or past dates */}
+            {currentDate <= new Date() && (
+              <>
+                <ReflectCarousel
+                  selectedDate={currentDate}
+                  refreshKey={refreshKey}
+                  onComponentTap={(componentId) => {
+                    const mapping = componentMapping[componentId as keyof typeof componentMapping];
+                    if (mapping) {
+                      handleComponentTap(mapping.page, componentId);
+                    }
+                  }}
+                />
+                <PrayCarousel
+                  selectedDate={currentDate}
+                  onComponentTap={(componentId) => {
+                    const mapping = componentMapping[componentId as keyof typeof componentMapping];
+                    if (mapping) {
+                      handleComponentTap(mapping.page, componentId);
+                    }
+                  }}
+                />
+              </>
+            )}
+          </ScrollView>
+          </KeyboardAvoidingView>
+        ) : (
+          <PanGestureHandler onHandlerStateChange={handleSwipeDown}>
+            <View style={styles.inlineViewContainer}>
+              <KeyboardAvoidingView
+                style={styles.keyboardAvoidingView}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+              >
+                <ScrollView
+                ref={horizontalScrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onMomentumScrollEnd={handlePageScroll}
+                scrollEventThrottle={16}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                style={styles.tabContent}
+              >
+              {pages.map((page, _index) => (
+                <ScrollView
+                  key={page.key}
+                  ref={(scrollRef) => { pageScrollRefs.current[page.key] = scrollRef; }}
+                  style={[styles.pageContainer, { width: Dimensions.get('window').width }]}
+                  contentContainerStyle={styles.scrollViewContent}
+                  keyboardShouldPersistTaps="handled"
+                  keyboardDismissMode="on-drag"
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={isRefreshing}
+                      onRefresh={handleRefresh}
+                      tintColor={Colors.alertCoral}
+                      colors={[Colors.alertCoral]}
+                    />
+                  }
+                  onScroll={handleContentScroll}
+                  scrollEventThrottle={16}
+                >
+                  <View style={styles.inlinePageContainer}>
+                    <Text style={styles.inlinePageTitle}>{page.title}</Text>
+                    <View style={styles.inlineComponentsContainer}>
+                      {page.key === 'plan' && (
+                        <>
+                          <View style={styles.componentWrapper}>
+                            <TodaysFocusReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
+                          </View>
+                          <View style={styles.componentWrapper}>
+                            <TodosReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
+                          </View>
+                          <View style={styles.componentWrapper}>
+                            <TimeBlockReactQuery selectedDate={currentDate} />
+                          </View>
+                        </>
+                      )}
+                      {page.key === 'reflect' && currentDate <= new Date() && (
+                        <>
+                          <View style={styles.componentWrapper}>
+                            <ReflectionLogReactQuery selectedDate={currentDate} />
+                          </View>
+                          <View style={styles.componentWrapper}>
+                            <GratitudeListReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
+                          </View>
+                          <View style={styles.componentWrapper}>
+                            <TodayWinReactQuery selectedDate={currentDate} />
+                          </View>
+                          <View style={styles.componentWrapper}>
+                            <LookingForwardReactQuery selectedDate={currentDate} />
+                          </View>
+                        </>
+                      )}
+                      {page.key === 'pray' && currentDate <= new Date() && (
+                        <>
+                          <View style={styles.componentWrapper}>
+                            <PrayerJournalCardReactQuery selectedDate={currentDate} />
+                          </View>
+                          <View style={styles.componentWrapper}>
+                            <DevotionalPrayerListReactQuery selectedDate={currentDate} />
+                          </View>
+                          <View style={styles.componentWrapper}>
+                            <EnhancedPrayerListReactQuery selectedDate={currentDate} />
+                          </View>
+                        </>
+                      )}
+                    </View>
+                  </View>
+                </ScrollView>
+              ))}
+              </ScrollView>
+              </KeyboardAvoidingView>
+              {/* Pagination Overlay */}
+              <View style={styles.paginationOverlay}>
+                <View style={styles.paginationContainer}>
+                  {pages.map((page, index) => (
+                    <View
+                      key={page.key}
+                      style={[
+                        styles.paginationDot,
+                        currentPage === index && styles.paginationDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+            </View>
+          </PanGestureHandler>
+        )}
       </View>
     </View>
   );
@@ -416,6 +685,9 @@ const styles = StyleSheet.create({
   },
   componentSpacing: {
     marginBottom: 8,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   tabBar: {
     flexDirection: 'row',
@@ -577,7 +849,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   dayNumberText: {
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.bold,
     fontSize: 12,
     color: Colors.anchorBlue,
     lineHeight: 14,
@@ -644,6 +916,60 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: Colors.anchorBlue,
     marginBottom: 16,
+  },
+  // Swipable pagination styles
+  pageContainer: {
+    flex: 1,
+  },
+  // Inline view styles
+  inlineViewContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  inlinePageContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  inlinePageTitle: {
+    fontSize: 24,
+    fontFamily: Fonts.bold,
+    color: Colors.anchorBlue,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  inlineComponentsContainer: {
+    flex: 1,
+  },
+  componentWrapper: {
+    marginBottom: 16,
+  },
+  // Pagination overlay styles
+  paginationOverlay: {
+    position: 'absolute',
+    top: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  paginationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginHorizontal: 3,
+  },
+  paginationDotActive: {
+    backgroundColor: Colors.hopeWhite,
+    width: 20,
   },
 });
 

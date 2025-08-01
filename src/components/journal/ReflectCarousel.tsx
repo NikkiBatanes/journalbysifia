@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
@@ -23,6 +24,7 @@ const SIDE_PADDING = 8; // Less side padding to reveal more of next/prev card
 interface ReflectCarouselProps {
   selectedDate: Date;
   refreshKey?: number;
+  onComponentTap?: (componentId: string) => void;
 }
 
 interface CarouselItem {
@@ -33,7 +35,7 @@ interface CarouselItem {
   color: string;
 }
 
-const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0 }) => {
+const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0, onComponentTap }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
@@ -140,7 +142,13 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
               key={item.id}
               style={[styles.carouselItem, { transform: [{ scale }], opacity }]}
             >
-              {item.component}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => onComponentTap?.(item.id)}
+                style={styles.touchableComponent}
+              >
+                {item.component}
+              </TouchableOpacity>
             </Animated.View>
           );
         })}
@@ -172,6 +180,9 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: CARD_WIDTH,
     marginRight: CARD_SPACING,
+  },
+  touchableComponent: {
+    flex: 1,
   },
 });
 
