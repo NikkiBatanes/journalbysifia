@@ -472,18 +472,20 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 14,
-    padding: 16,
+    padding: 20,
     marginBottom: 16,
   },
   guidedEntry: {
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 14,
+    padding: 20,
   },
   freeFormEntry: {
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 14,
+    padding: 20,
   },
   entryHeader: {
     flexDirection: 'row',

@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   componentWrapper: {
-    marginBottom: 16,
+    marginBottom: 0, // Reduced from 16 to 6 for tighter spacing between components
   },
 });

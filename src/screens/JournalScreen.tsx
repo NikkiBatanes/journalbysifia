@@ -957,20 +957,20 @@ const styles = StyleSheet.create({
   inlinePageContainer: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 10,
   },
   inlinePageTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
     color: Colors.anchorBlue,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   inlineComponentsContainer: {
     flex: 1,
   },
   componentWrapper: {
-    marginBottom: 16,
+    marginBottom: 0, // Reduced from 16 to 6 for tighter spacing
   },
   journalSystemContainer: {
     flex: 1,

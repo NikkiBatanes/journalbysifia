@@ -191,8 +191,8 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 16,
     height: 16,
-    borderRadius: 3,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     borderColor: Colors.trustGrey,
     backgroundColor: 'rgba(176, 184, 193, 0.1)',
     justifyContent: 'center',

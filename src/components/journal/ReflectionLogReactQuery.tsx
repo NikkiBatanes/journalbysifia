@@ -1131,12 +1131,18 @@ const styles = StyleSheet.create({
   // Original layout styles
   devotionalEntry: {
     borderRadius: 14,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   guidedEntry: {
     borderRadius: 14,
+    padding: 20,
   },
   freeFormEntry: {
     borderRadius: 14,
+    padding: 20,
   },
   guidedPromptRow: {
     flexDirection: 'row',
