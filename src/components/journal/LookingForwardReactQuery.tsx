@@ -370,6 +370,11 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     setEntryText('');
   };
 
+  // Hide empty component in inline view
+  if (viewMode === 'inline' && !isLoading && !error && (!lookingForward || !lookingForward.text.trim())) {
+    return null;
+  }
+
   return (
     <JournalCard
       title="Looking Forward To"

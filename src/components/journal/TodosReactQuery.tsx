@@ -402,6 +402,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     );
   }
 
+  // Hide empty component in inline view
+  if (viewMode === 'inline' && !isLoading && !error && todos.length === 0) {
+    return null;
+  }
+
   return (
     <JournalCard
       icon={

@@ -416,6 +416,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
     console.log('🏆 TodayWin: Edit mode set', { isAdding: true, isEditing: true, editingEntryId: displayWin.id });
   };
 
+  // Hide empty component in inline view
+  if (viewMode === 'inline' && !isLoading && !error && (!win || !win.text.trim())) {
+    return null;
+  }
+
   return (
     <JournalCard
       title="Today's Win"

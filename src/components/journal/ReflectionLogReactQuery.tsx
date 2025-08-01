@@ -583,6 +583,11 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }
 
+  // Hide empty component in inline view
+  if (viewMode === 'inline' && !isLoading && !error && entries.length === 0) {
+    return null;
+  }
+
   return (
     <JournalCard
       icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}

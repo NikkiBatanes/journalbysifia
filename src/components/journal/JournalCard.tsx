@@ -42,30 +42,38 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
   // Only render header when empty (no content and not editing/adding)
   if (!showContent) {
+    // In inline view, don't show empty components at all
+    if (viewMode === 'inline') {
+      return null;
+    }
+
     return (
       <View style={[styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline, cardStyleOverrides]}>
         <View style={[styles.header, styles.headerEmpty]}>
           <View style={styles.headerContent}>
-            {typeof icon === 'string' ? (
-              <View style={styles.icon}>
-                <Ionicons
-                  name={icon as any}
-                  size={16}
-                  color={Colors.alertCoral}
-                />
-              </View>
-            ) : (
-              <View style={styles.icon}>
-                {icon}
-              </View>
+            {(viewMode as ViewMode) !== 'inline' && (
+              typeof icon === 'string' ? (
+                <View style={styles.icon}>
+                  <Ionicons
+                    name={icon as any}
+                    size={16}
+                    color={Colors.alertCoral}
+                  />
+                </View>
+              ) : (
+                <View style={styles.icon}>
+                  {icon}
+                </View>
+              )
             )}
             <View style={styles.titleContainer}>
               <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
               {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
             </View>
           </View>
+          {/* Floating edit button for empty card */}
           {showAddButton && onAdd && !isAdding && (
-            <TouchableOpacity onPress={onAdd} style={styles.addButton}>
+            <TouchableOpacity onPress={onAdd} style={styles.addButtonFloating}>
               <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
             </TouchableOpacity>
           )}
@@ -79,33 +87,37 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     <View style={[styles.card, variant === 'inline' && styles.cardInline, cardStyleOverrides]}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          {typeof icon === 'string' ? (
-            <View style={styles.icon}>
-              <Ionicons
-                name={icon as any}
-                size={20}
-                color={Colors.alertCoral}
-              />
-            </View>
-          ) : (
-            <View style={styles.icon}>
-              {icon}
-            </View>
+          {viewMode !== 'inline' && (
+            typeof icon === 'string' ? (
+              <View style={styles.icon}>
+                <Ionicons
+                  name={icon as any}
+                  size={20}
+                  color={Colors.alertCoral}
+                />
+              </View>
+            ) : (
+              <View style={styles.icon}>
+                {icon}
+              </View>
+            )
           )}
           <View style={styles.titleContainer}>
             <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           </View>
         </View>
-        <View style={styles.headerActions}>
-          {headerRight}
-          {showAddButton && onAdd && !isAdding && (
-            <TouchableOpacity onPress={onAdd} style={styles.addButton}>
-              <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
-            </TouchableOpacity>
-          )}
-        </View>
-        {/* Cancel button removed as per design */}
+        {/* Floating edit button */}
+        {showAddButton && onAdd && !isAdding && (
+          <TouchableOpacity onPress={onAdd} style={styles.addButtonFloating}>
+            <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
+          </TouchableOpacity>
+        )}
+        {headerRight && (
+          <View style={styles.headerActionsFloating}>
+            {headerRight}
+          </View>
+        )}
       </View>
       <View style={styles.content}>
         {children}
@@ -197,6 +209,21 @@ const styles = StyleSheet.create({
   addButton: {
     padding: 6,
     marginLeft: 8,
+  },
+  addButtonFloating: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 6,
+    zIndex: 10,
+  },
+  headerActionsFloating: {
+    position: 'absolute',
+    top: 12,
+    right: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
   },
   cancelButton: {
     padding: 4,

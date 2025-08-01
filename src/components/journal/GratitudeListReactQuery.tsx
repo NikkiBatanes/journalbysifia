@@ -85,7 +85,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     return [];
   }).flat();
 
-
   // Track loading performance
   React.useEffect(() => {
     if (!isLoading && gratitudeEntries.length >= 0) {
@@ -424,6 +423,11 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         </JournalCard>
       </ErrorBoundary>
     );
+  }
+
+  // Hide empty component in inline view
+  if (viewMode === 'inline' && !isLoading && !error && gratitudeItems.length === 0) {
+    return null;
   }
 
   return (
