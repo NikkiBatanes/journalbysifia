@@ -530,7 +530,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               />
             }
           >
-            <View style={{ marginBottom: 34 }}>
+            <View style={styles.carouselContainer}>
               <PlanCarousel
                 selectedDate={currentDate}
                 refreshKey={refreshKey}
@@ -545,7 +545,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             {/* Only show ReflectCarousel for today or past dates */}
             {currentDate <= new Date() && (
               <>
-                <View style={{ marginBottom: 34 }}>
+                <View style={styles.carouselContainer}>
                   <ReflectCarousel
                     selectedDate={currentDate}
                     refreshKey={refreshKey}
@@ -557,7 +557,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                     }}
                   />
                 </View>
-                <View style={{ marginBottom: 34 }}>
+                <View style={styles.carouselContainer}>
                   <PrayCarousel
                     selectedDate={currentDate}
                     onComponentTap={(componentId) => {
@@ -804,6 +804,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.anchorBlue,
     paddingRight: 12,
+  },
+  carouselContainer: {
+    marginBottom: 34,
   },
   daysHeader: {
     flexDirection: 'row',

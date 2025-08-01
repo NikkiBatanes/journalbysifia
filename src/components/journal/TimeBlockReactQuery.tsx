@@ -335,6 +335,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         description: newBlock.notes.trim() || undefined,
         location: newBlock.location.trim() || undefined,
         all_day: newBlock.isAllDay,
+        // Repeat fields
+        repeat_rule: newBlock.repeat.frequency !== 'never' ? {
+          frequency: newBlock.repeat.frequency,
+          customDays: newBlock.repeat.customDays,
+          customFrequency: newBlock.repeat.customFrequency,
+        } : undefined,
+        repeat_until: newBlock.repeat.frequency !== 'never' && newBlock.repeat.endDate ? newBlock.repeat.endDate.toISOString() : undefined,
       };
 
       // Calculate duration for analytics
@@ -588,7 +595,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 <View style={styles.metaInfoContainer}>
                   {block.location && (
                     <View style={styles.metaInfoRow}>
-                      <Ionicons name="location-outline" size={12} color={Colors.mediumGray} style={styles.metaIcon} />
+                      <Ionicons name="location-outline" size={12} color={Colors.hopeWhite} style={styles.metaIcon} />
                       <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
                         {block.location}
                       </Text>
@@ -596,7 +603,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   )}
                   {block.repeat.frequency !== 'never' && (
                     <View style={styles.metaInfoRow}>
-                      <Ionicons name="repeat-outline" size={12} color={Colors.mediumGray} style={styles.metaIcon} />
+                      <Ionicons name="repeat-outline" size={12} color={Colors.hopeWhite} style={styles.metaIcon} />
                       <Text style={styles.metaText}>
                         {formatRepeatText(block.repeat.frequency, block.repeat.customDays, block.repeat.customFrequency)}
                         {block.repeat.endDate ? ` until ${block.repeat.endDate.toLocaleDateString()}` : ''}
@@ -612,7 +619,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   onPress={() => toggleNotes(block.id)}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="document-text-outline" size={12} color={Colors.mediumGray} style={styles.notesIcon} />
+                  <Ionicons name="document-text-outline" size={12} color={Colors.hopeWhite} style={styles.notesIcon} />
                   <Text
                     style={styles.notesText}
                     numberOfLines={isExpanded ? undefined : 2}
@@ -1313,8 +1320,8 @@ const styles = StyleSheet.create({
   timeBlockCardInline: {
     borderRadius: 16,
     backgroundColor: Colors.anchorBlue,
-    borderWidth: 0.5,
-    borderColor: Colors.hopeWhite,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   timeBlocksContainer: {
     marginBottom: 8,
@@ -1332,7 +1339,9 @@ const styles = StyleSheet.create({
     minHeight: 1, // Match the minimum height of the card
   },
   timeColumnInline: {
-    borderRightColor: Colors.hopeWhite,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 1,
   },
   timeRangeStacked: {
     flexDirection: 'column',
@@ -1342,7 +1351,7 @@ const styles = StyleSheet.create({
   },
   timeSeparatorText: {
     fontFamily: Fonts.regular,
-    fontSize: 10,
+    fontSize: 8,
     color: Colors.mediumGray,
     marginVertical: 2,
     letterSpacing: 0.5,
@@ -1449,7 +1458,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontFamily: Fonts.regular,
     fontSize: 11,
-    color: Colors.mediumGray,
+    color: Colors.hopeWhite,
     flex: 1,
   },
   notesContainer: {
@@ -1518,8 +1527,8 @@ const styles = StyleSheet.create({
   },
   notesText: {
     fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.mediumGray,
+    fontSize: 11,
+    color: Colors.hopeWhite,
     flex: 1,
     marginLeft: 4,
     marginRight: 4,
@@ -1796,10 +1805,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   repeatText: {
+    color: Colors.hopeWhite,
     flex: 1,
     fontFamily: Fonts.regular,
     fontSize: 14,
-    color: Colors.darkGray,
   },
   repeatOptions: {
     marginTop: 8,
