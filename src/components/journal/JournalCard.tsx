@@ -128,16 +128,16 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Match progress bar empty color
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match filter container background
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 30,
     padding: 16,
     marginBottom: 2,
     minHeight: 340, // Minimum height for carousel cards, grows with content
   },
   cardEmpty: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)', // Match progress bar empty color
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match filter container background
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 30,
     padding: 16,
     marginBottom: 2,

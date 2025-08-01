@@ -239,7 +239,7 @@ export const styles = StyleSheet.create({
   },
   promptCard: {
     width: '48%',
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 14,
     padding: 18,
     marginBottom: 16,
@@ -469,20 +469,16 @@ export const styles = StyleSheet.create({
     width: '100%',
   },
   entryCard: {
-    backgroundColor: 'rgba(26, 60, 109, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.1)',
   },
   guidedEntry: {
-    backgroundColor: 'rgba(255, 107, 107, 0.05)',
-    borderColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   freeFormEntry: {
-    backgroundColor: 'rgba(76, 184, 144, 0.05)',
-    borderColor: 'rgba(76, 184, 144, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   entryHeader: {
     flexDirection: 'row',
@@ -516,7 +512,7 @@ export const styles = StyleSheet.create({
     marginBottom: 6,
   },
   guidedPromptContainer: {
-    backgroundColor: 'rgba(255, 81, 90, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -536,7 +532,7 @@ export const styles = StyleSheet.create({
     marginBottom: 6,
   },
   freeFormPromptContainer: {
-    backgroundColor: 'rgba(76, 184, 144, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,

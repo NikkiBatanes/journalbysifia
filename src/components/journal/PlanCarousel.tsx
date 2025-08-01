@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     marginVertical: 0,
   },
   filterContainer: {
-    backgroundColor: '#e8edf6',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,

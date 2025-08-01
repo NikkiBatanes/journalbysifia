@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   headerPill: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,

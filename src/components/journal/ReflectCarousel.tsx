@@ -35,7 +35,7 @@ interface CarouselItem {
   color: string;
 }
 
-const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0, onComponentTap: _onComponentTap }) => {
+const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0, onComponentTap }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
@@ -146,7 +146,13 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
             >
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setExpandedIndex(expandedIndex === i ? null : i)}
+                onPress={() => {
+                  setExpandedIndex(expandedIndex === i ? null : i);
+                  // Call onComponentTap if provided to navigate to inline view
+                  if (onComponentTap) {
+                    onComponentTap(item.id);
+                  }
+                }}
                 style={styles.touchableComponent}
               >
                 {React.cloneElement(item.component as React.ReactElement<any>, {
@@ -168,7 +174,7 @@ const styles = StyleSheet.create({
     marginVertical: 0,
   },
   filterContainer: {
-    backgroundColor: '#e8edf6',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,

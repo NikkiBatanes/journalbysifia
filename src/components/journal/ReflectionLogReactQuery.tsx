@@ -441,21 +441,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               })}
             </Text>
           </View>
-          {/* Devotional Metadata */}
-          {(entry.devotional_title || entry.day_number || entry.day_title) && (
-            <View style={styles.devotionalMetadata}>
-              {entry.devotional_title && (
-                <Text style={styles.devotionalTitle}>{entry.devotional_title}</Text>
-              )}
-              {(entry.day_number || entry.day_title) && (
-                <Text style={styles.devotionalDayInfo}>
-                  {entry.day_number && `Day ${entry.day_number}`}
-                  {entry.day_number && entry.day_title && ' • '}
-                  {entry.day_title}
-                </Text>
-              )}
-            </View>
-          )}
+          {/* Devotional Metadata - Removed as per design */}
           {/* Playbook Metadata */}
           {(entry.playbook_title || entry.day_number || entry.day_title) && entry.source === 'playbook' && (
             <View style={styles.devotionalMetadata}>
@@ -834,17 +820,11 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
   },
   entryCard: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.alertCoral,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+
   },
   entryHeader: {
     flexDirection: 'row',
@@ -868,15 +848,14 @@ const styles = StyleSheet.create({
   },
   entryContent: {
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontSize: 12,
     lineHeight: 20,
     marginBottom: 8,
-    marginLeft: 16,
     paddingLeft: 16,
+    marginLeft: 16,
     borderLeftWidth: 2,
-    borderLeftColor: 'rgba(26, 60, 109, 0.1)',
-    borderTopLeftRadius: 2,
+    borderLeftColor: 'rgba(136, 158, 187, 0.2)',
   },
   entryMeta: {
     flexDirection: 'row',
@@ -1151,17 +1130,13 @@ const styles = StyleSheet.create({
   },
   // Original layout styles
   devotionalEntry: {
-    backgroundColor: 'rgba(245, 166, 35, 0.05)',
-    borderColor: 'rgba(245, 166, 35, 0.15)',
-    borderWidth: 0.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   guidedEntry: {
-    backgroundColor: 'rgba(255, 107, 107, 0.05)',
-    borderColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   freeFormEntry: {
-    backgroundColor: 'rgba(76, 184, 144, 0.05)',
-    borderColor: 'rgba(76, 184, 144, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   guidedPromptRow: {
     flexDirection: 'row',
@@ -1169,7 +1144,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   devotionalPromptContainer: {
-    backgroundColor: 'rgba(245, 166, 35, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,

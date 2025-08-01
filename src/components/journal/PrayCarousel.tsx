@@ -33,7 +33,7 @@ interface CarouselItem {
   color: string;
 }
 
-const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTap: _onComponentTap }) => {
+const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTap }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
@@ -140,7 +140,13 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
             >
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => setExpandedIndex(expandedIndex === i ? null : i)}
+                onPress={() => {
+                  if (onComponentTap) {
+                    onComponentTap(item.id);
+                  } else {
+                    setExpandedIndex(expandedIndex === i ? null : i);
+                  }
+                }}
                 style={styles.touchableComponent}
               >
                 {React.cloneElement(item.component as React.ReactElement<any>, {
@@ -161,7 +167,7 @@ const styles = StyleSheet.create({
     marginVertical: 0,
   },
   filterContainer: {
-    backgroundColor: '#e8edf6',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,

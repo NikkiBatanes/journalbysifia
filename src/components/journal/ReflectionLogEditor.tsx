@@ -190,7 +190,7 @@ const fallbackStyles = {
   fab: { backgroundColor: Colors.alertCoral, borderRadius: 24, padding: 12, margin: 8 },
   addFab: {},
   formatFab: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     marginLeft: 12,
   },
   formatFabText: {
@@ -255,7 +255,7 @@ const fallbackStyles = {
   formattingButton: {
     width: 50,
     height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 25,
     justifyContent: 'center',
     alignItems: 'center',
