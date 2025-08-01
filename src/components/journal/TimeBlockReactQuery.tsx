@@ -120,10 +120,10 @@ const getCategoryColor = (categoryName: string): string => {
 interface TimeBlockProps {
   selectedDate?: Date;
   variant?: 'carousel' | 'inline';
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = new Date(), variant = 'carousel' }) => {
+export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
@@ -614,6 +614,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         showAddButton={false}
         onAdd={() => {}}
         isAdding={false}
+        variant={variant}
+        viewMode={viewMode}
       >
         <TimeBlockSkeleton count={3} />
       </JournalCard>
@@ -628,6 +630,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       showAddButton={!isAdding}
       onAdd={startAdding}
       isAdding={isAdding}
+      variant={variant}
+      viewMode={viewMode}
     >
       {isAdding ? (
         <View style={styles.addBlockContainer}>

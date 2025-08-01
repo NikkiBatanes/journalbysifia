@@ -18,6 +18,8 @@ export interface JournalPlugin {
 export interface ViewConfiguration {
   containerStyle: Record<string, any>;
   componentStyle: Record<string, any>;
+  titleStyle?: Record<string, any>;
+  cardStyle?: Record<string, any>;
   spacing: number;
   layout: 'horizontal' | 'vertical' | 'timeline';
 }

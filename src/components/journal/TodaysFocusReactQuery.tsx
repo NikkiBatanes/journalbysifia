@@ -31,9 +31,10 @@ interface TodaysFocusProps {
   selectedDate?: Date;
   refreshKey?: number;
   variant?: 'carousel' | 'inline';
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
-export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel' }) => {
+export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
@@ -271,6 +272,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           showAddButton={true}
           onAdd={() => {}} // Disabled during loading
           variant={variant}
+          viewMode={viewMode}
         >
           <View
             accessibilityRole="progressbar"
@@ -300,6 +302,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           subtitle="Your daily focus and priorities"
           showAddButton={false}
           variant={variant}
+          viewMode={viewMode}
         >
           <View
             style={styles.errorContainer}
@@ -344,6 +347,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         onAdd={toggleEditing}
         isAdding={isEditing}
         variant={variant}
+        viewMode={viewMode}
       >
         {isEditing
           ? (

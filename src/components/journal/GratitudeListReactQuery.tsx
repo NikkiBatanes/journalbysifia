@@ -28,9 +28,10 @@ interface GratitudeItem {
 interface GratitudeListProps {
   selectedDate?: Date;
   refreshKey?: number;
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
-export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date() }) => {
+export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newItems, setNewItems] = useState(['', '', '']); // Three input fields
@@ -440,7 +441,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       showAddButton={!isAdding && !isEditing}
       onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
       isAdding={isAdding || isEditing}
-
+      viewMode={viewMode}
     >
       <View
         accessibilityRole="list"

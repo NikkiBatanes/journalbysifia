@@ -27,6 +27,7 @@ type PersonPrayer = PrayerApiEntry;
 
 interface EnhancedPrayerListReactQueryProps {
   selectedDate: Date;
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
 
@@ -35,6 +36,7 @@ interface EnhancedPrayerListReactQueryProps {
 
 const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> = ({
   selectedDate,
+  viewMode: _viewMode,
 }) => {
   console.log('🙏 EnhancedPrayerList: Component is rendering!', { selectedDate });
 

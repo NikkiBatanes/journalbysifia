@@ -4,6 +4,8 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { ViewConfigurationManager } from '../../systems/journal/ViewConfigurationManager';
+import { ViewMode } from '../../systems/journal/types';
 
 interface JournalCardProps {
   icon: string | React.ReactNode;
@@ -16,6 +18,7 @@ interface JournalCardProps {
   onCancelAdd?: () => void;
   headerRight?: React.ReactNode;
   variant?: 'carousel' | 'inline';
+  viewMode?: ViewMode;
 }
 
 export const JournalCard: React.FC<JournalCardProps> = ({
@@ -28,14 +31,19 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   isAdding = false,
   headerRight,
   variant = 'carousel',
+  viewMode,
 }) => {
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
 
+  // Get view-specific styling if viewMode is provided
+  const titleStyleOverrides = viewMode ? ViewConfigurationManager.getTitleStyle(viewMode) : {};
+  const cardStyleOverrides = viewMode ? ViewConfigurationManager.getCardStyle(viewMode) : {};
+
   // Only render header when empty (no content and not editing/adding)
   if (!showContent) {
     return (
-      <View style={[styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline]}>
+      <View style={[styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline, cardStyleOverrides]}>
         <View style={[styles.header, styles.headerEmpty]}>
           <View style={styles.headerContent}>
             {typeof icon === 'string' ? (
@@ -52,7 +60,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
               </View>
             )}
             <View style={styles.titleContainer}>
-              <Text style={styles.title}>{title}</Text>
+              <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
               {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
             </View>
           </View>
@@ -68,7 +76,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
   // Render normal card with content
   return (
-    <View style={[styles.card, variant === 'inline' && styles.cardInline]}>
+    <View style={[styles.card, variant === 'inline' && styles.cardInline, cardStyleOverrides]}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
           {typeof icon === 'string' ? (
@@ -85,7 +93,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             </View>
           )}
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
             {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
           </View>
         </View>

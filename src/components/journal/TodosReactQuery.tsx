@@ -32,9 +32,10 @@ interface TodosProps {
   selectedDate?: Date;
   refreshKey?: number;
   variant?: 'carousel' | 'inline';
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
-const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel' }) => {
+const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel', viewMode }) => {
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -345,12 +346,13 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   if (isLoading) {
     return (
       <JournalCard
-        title="Todos"
+        title="To-Dos"
         subtitle="Track your daily tasks"
         icon={<LuListTodo size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
         showAddButton={true}
         onAdd={() => {}} // Disabled during loading
         variant={variant}
+        viewMode={viewMode}
       >
         <View
           style={styles.todosContainer}
@@ -368,7 +370,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   if (error) {
     return (
       <JournalCard
-        title="Todos"
+        title="To-Dos"
         subtitle="Track your daily tasks"
         icon={<LuListTodo size={16} color={Colors.hopeWhite} strokeWidth={2.5} />}
         showAddButton={true}
@@ -409,7 +411,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           strokeWidth={2.5}
         />
       }
-      title="Todos"
+      title="To-Dos"
       subtitle="Track your daily tasks"
       showAddButton={!isAdding}
       onAdd={startAdding}
@@ -467,6 +469,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           )}
         </View>
       }
+      variant={variant}
+      viewMode={viewMode}
     >
       <View
         style={styles.todosContainer}

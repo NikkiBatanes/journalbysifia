@@ -26,6 +26,17 @@ export const VIEW_CONFIGURATIONS: Record<ViewMode, ViewConfiguration> = {
       // Individual inline component styles
       marginBottom: 16,
     },
+    titleStyle: {
+      // Inline view title customizations
+      fontSize: 14, // Smaller size
+      textTransform: 'uppercase', // Capitalized
+      letterSpacing: 1.2, // Added letter spacing
+      fontWeight: '600',
+    },
+    cardStyle: {
+      // Fully transparent background for inline view
+      backgroundColor: 'transparent',
+    },
     spacing: 16,
     layout: 'vertical',
   },
@@ -66,5 +77,13 @@ export class ViewConfigurationManager {
 
   static getLayout(viewMode: ViewMode) {
     return this.getConfiguration(viewMode).layout;
+  }
+
+  static getTitleStyle(viewMode: ViewMode) {
+    return this.getConfiguration(viewMode).titleStyle || {};
+  }
+
+  static getCardStyle(viewMode: ViewMode) {
+    return this.getConfiguration(viewMode).cardStyle || {};
   }
 }

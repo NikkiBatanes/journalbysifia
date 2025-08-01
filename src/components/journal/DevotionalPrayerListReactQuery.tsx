@@ -31,10 +31,12 @@ const formatPrayerDate = (prayerDate: Date): string => {
 
 interface DevotionalPrayerListReactQueryProps {
   selectedDate: Date;
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
 const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryProps> = ({
   selectedDate,
+  viewMode: _viewMode,
 }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);

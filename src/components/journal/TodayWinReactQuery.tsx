@@ -19,9 +19,10 @@ import { analytics } from '../../utils/analytics';
 
 interface TodayWinProps {
   selectedDate: Date;
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
-const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
+const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) => {
   const { user } = useAuth();
   const [winText, setWinText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -433,6 +434,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate }) => {
           </View>
         ) : null
       }
+      viewMode={viewMode}
     >
       {displayWin && !isAdding && (
         <Swipeable

@@ -98,10 +98,12 @@ const PRAYER_TYPES = [
 
 interface PrayerJournalCardReactQueryProps {
   selectedDate: Date;
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
 const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = ({
   selectedDate,
+  viewMode: _viewMode,
 }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);

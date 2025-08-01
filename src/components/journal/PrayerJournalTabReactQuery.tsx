@@ -7,11 +7,13 @@ import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 interface PrayerJournalTabReactQueryProps {
   selectedDate: Date;
   refreshKey?: number;
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
 const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
   selectedDate,
   refreshKey,
+  viewMode,
 }) => {
   // Reset any local state when refresh key changes
   React.useEffect(() => {
@@ -24,13 +26,13 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
   return (
     <View style={styles.container}>
       {/* ACTS Prayer Journal Card */}
-      <PrayerJournalCardReactQuery selectedDate={selectedDate} />
+      <PrayerJournalCardReactQuery selectedDate={selectedDate} viewMode={viewMode} />
 
       {/* Devotional Prayers List */}
-      <DevotionalPrayerListReactQuery selectedDate={selectedDate} />
+      <DevotionalPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} />
 
       {/* People Prayers List */}
-      <EnhancedPrayerListReactQuery selectedDate={selectedDate} />
+      <EnhancedPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} />
     </View>
   );
 };

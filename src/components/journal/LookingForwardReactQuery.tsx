@@ -19,9 +19,10 @@ import { analytics } from '../../utils/analytics';
 
 interface LookingForwardProps {
   selectedDate: Date;
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
-const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }) => {
+const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode }) => {
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
   const [displayEntry, setDisplayEntry] = useState<any>(null);
@@ -387,6 +388,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate }
           </View>
         ) : null
       }
+      viewMode={viewMode}
     >
       {displayEntry && !isAdding ? (
         <Swipeable

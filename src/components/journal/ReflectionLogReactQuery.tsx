@@ -50,9 +50,10 @@ interface ReflectionLogEntry {
 interface ReflectionLogProps {
   selectedDate?: Date;
   refreshKey?: number;
+  viewMode?: 'carousel' | 'inline' | 'moments';
 }
 
-export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date() }) => {
+export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
@@ -603,6 +604,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         setEditingId(null);
         setSelectedEntry(null);
       }}
+      viewMode={viewMode}
     >
       {/* Entries List */}
       {renderEntries()}
