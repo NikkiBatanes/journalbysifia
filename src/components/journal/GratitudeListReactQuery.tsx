@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
   },
   itemRowTopAligned: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   itemNumber: {
     width: 24,

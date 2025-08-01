@@ -384,9 +384,9 @@ export const styles = StyleSheet.create({
     marginBottom: 16,
   },
   devotionalEntry: {
-    backgroundColor: 'rgba(245, 166, 35, 0.05)',
-    borderColor: 'rgba(245, 166, 35, 0.15)',
-    borderWidth: 0.5,
+    backgroundColor: 'transparent',
+    borderColor: 'transparent',
+    borderWidth: 0,
   },
   devotionalPromptContainer: {
     backgroundColor: 'rgba(245, 166, 35, 0.1)',
@@ -469,16 +469,21 @@ export const styles = StyleSheet.create({
     width: '100%',
   },
   entryCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 14,
     padding: 16,
     marginBottom: 16,
   },
   guidedEntry: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 14,
   },
   freeFormEntry: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 14,
   },
   entryHeader: {
     flexDirection: 'row',

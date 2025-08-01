@@ -530,38 +530,44 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               />
             }
           >
-            <PlanCarousel
-              selectedDate={currentDate}
-              refreshKey={refreshKey}
-              onComponentTap={(componentId) => {
-                const mapping = componentMapping[componentId as keyof typeof componentMapping];
-                if (mapping) {
-                  handleComponentTap(mapping.page, componentId);
-                }
-              }}
-            />
+            <View style={{ marginBottom: 34 }}>
+              <PlanCarousel
+                selectedDate={currentDate}
+                refreshKey={refreshKey}
+                onComponentTap={(componentId) => {
+                  const mapping = componentMapping[componentId as keyof typeof componentMapping];
+                  if (mapping) {
+                    handleComponentTap(mapping.page, componentId);
+                  }
+                }}
+              />
+            </View>
             {/* Only show ReflectCarousel for today or past dates */}
             {currentDate <= new Date() && (
               <>
-                <ReflectCarousel
-                  selectedDate={currentDate}
-                  refreshKey={refreshKey}
-                  onComponentTap={(componentId) => {
-                    const mapping = componentMapping[componentId as keyof typeof componentMapping];
-                    if (mapping) {
-                      handleComponentTap(mapping.page, componentId);
-                    }
-                  }}
-                />
-                <PrayCarousel
-                  selectedDate={currentDate}
-                  onComponentTap={(componentId) => {
-                    const mapping = componentMapping[componentId as keyof typeof componentMapping];
-                    if (mapping) {
-                      handleComponentTap(mapping.page, componentId);
-                    }
-                  }}
-                />
+                <View style={{ marginBottom: 34 }}>
+                  <ReflectCarousel
+                    selectedDate={currentDate}
+                    refreshKey={refreshKey}
+                    onComponentTap={(componentId) => {
+                      const mapping = componentMapping[componentId as keyof typeof componentMapping];
+                      if (mapping) {
+                        handleComponentTap(mapping.page, componentId);
+                      }
+                    }}
+                  />
+                </View>
+                <View style={{ marginBottom: 34 }}>
+                  <PrayCarousel
+                    selectedDate={currentDate}
+                    onComponentTap={(componentId) => {
+                      const mapping = componentMapping[componentId as keyof typeof componentMapping];
+                      if (mapping) {
+                        handleComponentTap(mapping.page, componentId);
+                      }
+                    }}
+                  />
+                </View>
               </>
             )}
           </ScrollView>

@@ -17,7 +17,7 @@ import { TodayWinReactQuery } from './TodayWinReactQuery';
 import { LookingForwardReactQuery } from './LookingForwardReactQuery';
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_WIDTH = screenWidth * 2 / 3; // Show 1.5 cards in view
+const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
 const CARD_SPACING = 8; // Narrower gap between cards
 const SIDE_PADDING = 8; // Less side padding to reveal more of next/prev card
 
