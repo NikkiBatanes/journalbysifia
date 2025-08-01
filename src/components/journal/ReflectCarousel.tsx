@@ -2,13 +2,12 @@ import React, { useRef, useCallback } from 'react';
 import {
   View,
   Text,
+  Animated,
   StyleSheet,
   Dimensions,
-  Animated,
   ScrollView,
 } from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-av';
+import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { ReflectionLogReactQuery } from './ReflectionLogReactQuery';
@@ -38,40 +37,14 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
-  const soundObject = useRef<Audio.Sound | null>(null);
 
-  // Initialize sound
-  React.useEffect(() => {
-    const initializeSound = async () => {
-      try {
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav' },
-          { shouldPlay: false, volume: 0.2 }
-        );
-        soundObject.current = sound;
-      } catch (error) {
-        console.log('Sound initialization failed:', error);
-      }
-    };
-    initializeSound();
-    
-    return () => {
-      soundObject.current?.unloadAsync();
-    };
-  }, []);
-
-  // Handle scroll feedback
-  const handleScrollFeedback = useCallback(async () => {
+  // Handle scroll feedback with sound
+  const handleScrollFeedback = useCallback(() => {
     try {
-      // Medium haptic feedback for reflection (slightly stronger)
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      
-      // Play subtle sound
-      if (soundObject.current) {
-        await soundObject.current.replayAsync();
-      }
+      // Play sound effect
+      playSound();
     } catch (error) {
-      console.log('Feedback error:', error);
+      console.log('Error with sound feedback:', error);
     }
   }, []);
 
@@ -79,8 +52,8 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   const handleScroll = useCallback((event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const newCardIndex = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
-    
-    if (newCardIndex !== currentCardIndex.current && newCardIndex >= 0 && newCardIndex < carouselItems.length) {
+
+    if (newCardIndex !== currentCardIndex.current && newCardIndex >= 0 && newCardIndex < 4) {
       currentCardIndex.current = newCardIndex;
       handleScrollFeedback();
     }
@@ -130,19 +103,18 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
         snapToAlignment="start"
         decelerationRate="fast"
         contentInset={{
-          left: SIDE_PADDING,
-          right: SIDE_PADDING,
+          left: SIDE_PADDING / 2,
+          right: SIDE_PADDING / 2,
         }}
         contentContainerStyle={{
-          paddingLeft: SIDE_PADDING,
-          paddingRight: SIDE_PADDING,
+          paddingHorizontal: SIDE_PADDING,
         }}
         style={styles.scrollView}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { 
+          {
             useNativeDriver: true,
-            listener: handleScroll
+            listener: handleScroll,
           }
         )}
         scrollEventThrottle={16}

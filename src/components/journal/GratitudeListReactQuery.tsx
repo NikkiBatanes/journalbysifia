@@ -30,7 +30,7 @@ interface GratitudeListProps {
   refreshKey?: number;
 }
 
-export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
+export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date() }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newItems, setNewItems] = useState(['', '', '']); // Three input fields

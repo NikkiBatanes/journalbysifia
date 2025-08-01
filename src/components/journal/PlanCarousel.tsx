@@ -1,16 +1,8 @@
 import React, { useRef, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  Animated,
-  ScrollView,
-} from 'react-native';
-import * as Haptics from 'expo-haptics';
-import { Audio } from 'expo-av';
-import { Colors } from '../../theme/colors';
+import { View, Text, Animated, StyleSheet, Dimensions, ScrollView } from 'react-native';
+import { playSound } from '../../utils/soundUtils';
 import { Fonts } from '../../theme/fonts';
+import { Colors } from '../../theme/colors';
 import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
 import { TodosReactQuery } from './TodosReactQuery';
 import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from './TimeBlockReactQuery';
@@ -25,77 +17,25 @@ interface PlanCarouselProps {
   refreshKey?: number;
 }
 
-interface CarouselItem {
-  id: string;
-  title: string;
-  icon: string;
-  component: React.ReactNode;
-  color: string;
-}
 
-const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey = 0 }) => {
+const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey }) => {
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
-  const soundObject = useRef<Audio.Sound | null>(null);
 
-  // Initialize sound
-  React.useEffect(() => {
-    const initializeSound = async () => {
-      try {
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav' },
-          { shouldPlay: false, volume: 0.3 }
-        );
-        soundObject.current = sound;
-      } catch (error) {
-        console.log('Sound initialization failed:', error);
-      }
-    };
-    initializeSound();
-    
-    return () => {
-      soundObject.current?.unloadAsync();
-    };
-  }, []);
 
-  // Handle scroll feedback
-  const handleScrollFeedback = useCallback(async () => {
-    try {
-      // Light haptic feedback
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
-      // Play subtle sound
-      if (soundObject.current) {
-        await soundObject.current.replayAsync();
-      }
-    } catch (error) {
-      console.log('Feedback error:', error);
-    }
-  }, []);
 
-  // Track scroll position for feedback
-  const handleScroll = useCallback((event: any) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const newCardIndex = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
-    
-    if (newCardIndex !== currentCardIndex.current && newCardIndex >= 0 && newCardIndex < carouselItems.length) {
-      currentCardIndex.current = newCardIndex;
-      handleScrollFeedback();
-    }
-  }, [handleScrollFeedback]);
-
-  const carouselItems: CarouselItem[] = [
+  const carouselItems = [
     {
       id: 'focus',
-      title: "Today's Focus",
+      title: 'FOCUS',
       icon: 'target-outline',
-      component: <TodaysFocusReactQuery selectedDate={selectedDate} />,
+      component: <TodaysFocusReactQuery selectedDate={selectedDate} refreshKey={refreshKey} />,
       color: Colors.alertCoral,
     },
     {
       id: 'todos',
-      title: 'Todos',
+      title: 'TODOS',
       icon: 'checkmark-circle-outline',
       component: <TodosReactQuery selectedDate={selectedDate} refreshKey={refreshKey} />,
       color: Colors.anchorBlue,
@@ -109,40 +49,57 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey = 
     },
   ];
 
-  const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={styles.title}>PLAN</Text>
-    </View>
-  );
+  // Handle scroll feedback with sound
+  const handleScrollFeedback = useCallback(() => {
+    try {
+      // Play sound effect
+      playSound();
+    } catch (error) {
+      console.log('Error with sound feedback:', error);
+    }
+  }, []);
+
+  // Track scroll position for feedback
+  const handleScroll = useCallback((event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const newCardIndex = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
+
+    if (newCardIndex !== currentCardIndex.current && newCardIndex >= 0 && newCardIndex < 3) {
+      currentCardIndex.current = newCardIndex;
+      handleScrollFeedback();
+    }
+  }, [handleScrollFeedback]);
+
+  // Removed unused renderHeader
 
   return (
     <View style={styles.container}>
-      {renderHeader()}
-
+      <View style={styles.header}>
+        <Text style={styles.title}>PLAN</Text>
+      </View>
       <Animated.ScrollView
         ref={scrollViewRef}
         horizontal
         showsHorizontalScrollIndicator={false}
-        decelerationRate="fast"
         snapToInterval={CARD_WIDTH + CARD_SPACING}
         snapToAlignment="start"
+        decelerationRate="fast"
         contentInset={{
-          left: SIDE_PADDING,
-          right: SIDE_PADDING,
+          left: SIDE_PADDING / 2,
+          right: SIDE_PADDING / 2,
         }}
         contentContainerStyle={{
-          paddingLeft: SIDE_PADDING,
-          paddingRight: SIDE_PADDING,
+          paddingHorizontal: SIDE_PADDING,
         }}
         style={styles.scrollView}
-        scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { 
+          {
             useNativeDriver: true,
-            listener: handleScroll
+            listener: handleScroll,
           }
         )}
+        scrollEventThrottle={16}
       >
         {carouselItems.map((item, i) => {
           const inputRange = [

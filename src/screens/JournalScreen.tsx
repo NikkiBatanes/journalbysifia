@@ -8,10 +8,7 @@ import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';
-import { GratitudeListReactQuery } from '../components/journal/GratitudeListReactQuery';
-import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReactQuery';
-import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
-import { LookingForwardReactQuery } from '../components/journal/LookingForwardReactQuery';
+
 import { ScheduleContent } from '../components/journal/ScheduleContent';
 import PrayerJournalTabReactQuery from '../components/journal/PrayerJournalTabReactQuery';
 import { useAuth } from '../context/IndustryStandardAuthContext';
