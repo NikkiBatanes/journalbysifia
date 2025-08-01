@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
   },
   itemsContainer: {
     width: '100%',
-    marginTop: 10,
+    marginTop: 0, // Reduced from 10 to 4 to match Today's Win component
   },
   paginationContainer: {
     width: '100%',

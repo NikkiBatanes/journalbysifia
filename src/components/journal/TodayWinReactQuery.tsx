@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -98,6 +99,24 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
 
   // Get the first entry (TodayWin typically has one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
+
+  // Handler for swipe-to-delete
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Delete Today\'s Win?',
+      'Are you sure you want to delete your Today\'s Win entry?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteMutation.mutate(id);
+          },
+        },
+      ]
+    );
+  };
 
   // Memoize the win object to prevent infinite re-renders - moved before early returns
   const win = React.useMemo(() => {
@@ -461,17 +480,17 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
       viewMode={viewMode}
     >
       {displayWin && !shouldShowAddingMode && (
-        <Swipeable
-          ref={swipeableRef}
-          renderRightActions={renderRightActions}
-          rightThreshold={40}
+        <SwipeableTodoItem
+          item={{ id: displayWin.id, text: displayWin.text, completed: false }}
+          onToggle={() => {}}
+          onDelete={handleDelete}
+          hideCheckbox
+          variant="gratitude"
         >
-          <View style={styles.swipeableContainer}>
-            <View style={styles.winContainer}>
-              <Text style={styles.winText}>{displayWin.text}</Text>
-            </View>
+          <View style={styles.winContainer}>
+            <Text style={styles.winText}>{displayWin.text}</Text>
           </View>
-        </Swipeable>
+        </SwipeableTodoItem>
       )}
       {shouldShowAddingMode && (
         <View style={styles.formContainer}>
@@ -530,14 +549,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f87171',
   },
   winContainer: {
-    backgroundColor: '#ebeef2',
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
     minHeight: 40,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
+    borderWidth: 0,
     justifyContent: 'center',
+    width: '100%',
+    alignSelf: 'stretch',
   },
   deleteButton: {
     width: 80,
@@ -560,11 +580,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   winText: {
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
-    fontSize: 14,
-    lineHeight: 20,
+    fontFamily: Fonts.bold, // This should map to weight 800 in your Fonts configuration
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    lineHeight: 28,
     flex: 1,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+    fontWeight: '700', // Explicitly set font weight to 800
   },
   editButton: {
     padding: 4,

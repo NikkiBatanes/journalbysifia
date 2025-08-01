@@ -204,14 +204,14 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     width: '100%',
-    height: '100%',
     backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'stretch', // Ensures it fills the height of the content container
+    height: 'auto', // Prevents it from being taller than the content
   },
   deleteButtonContent: {
     width: 60, // Fixed width to center the icon
-    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },

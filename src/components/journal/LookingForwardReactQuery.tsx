@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert, Vibration } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
+import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -53,6 +54,24 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   // Get the first entry (LookingForward typically has only one entry) - moved before early returns
   const entry = entries.length > 0 ? entries[0] : null;
+
+  // Handler for swipe-to-delete
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      'Delete Looking Forward?',
+      'Are you sure you want to delete your Looking Forward entry?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteMutation.mutate(id);
+          },
+        },
+      ]
+    );
+  };
 
   // Memoize the looking forward object to prevent infinite re-renders - moved before early returns
   const lookingForward = React.useMemo(() => {
@@ -414,26 +433,20 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       }
       viewMode={viewMode}
     >
-      {displayEntry && !shouldShowAddingMode ? (
-        <Swipeable
-          ref={swipeableRef}
-          renderRightActions={renderRightActions}
-          rightThreshold={20}
-          containerStyle={styles.swipeableContainer}
-          overshootRight={false}
-          friction={3}
-          enableTrackpadTwoFingerGesture
-          onSwipeableWillOpen={() => {
-            Vibration.vibrate(10);
-          }}
+      {displayEntry && !shouldShowAddingMode && (
+        <SwipeableTodoItem
+          item={{ id: displayEntry.id, text: displayEntry.text, completed: false }}
+          onToggle={() => {}}
+          onDelete={handleDelete}
+          hideCheckbox
+          variant="gratitude"
         >
           <View style={styles.entryContainer}>
-            <Text style={styles.entryText}>
-              {displayEntry.text}
-            </Text>
+            <Text style={styles.entryText}>{displayEntry.text}</Text>
           </View>
-        </Swipeable>
-      ) : shouldShowAddingMode ? (
+        </SwipeableTodoItem>
+      )}
+      {shouldShowAddingMode && (
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}
@@ -468,7 +481,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
             </View>
           </View>
         </View>
-      ) : null}
+      )}
     </JournalCard>
   );
 };
@@ -481,14 +494,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f87171',
   },
   entryContainer: {
-    backgroundColor: '#ebeef2',
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    minHeight: 40,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
+    alignItems: 'center',
     justifyContent: 'center',
+    flexDirection: 'column',
+    minHeight: 40,
+    borderWidth: 0,
+    width: '100%',
+    alignSelf: 'stretch',
   },
   deleteButton: {
     width: 80,
@@ -513,10 +529,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   entryText: {
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
-    fontSize: 14,
-    lineHeight: 20,
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    lineHeight: 24,
+    textAlign: 'center',
+    alignSelf: 'center',
+    width: '100%',
+    marginVertical: 2,
   },
   headerActions: {
     flexDirection: 'row',
