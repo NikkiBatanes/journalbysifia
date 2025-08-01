@@ -2,14 +2,27 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { BaseRendererProps } from './BaseRenderer';
 import { PluginRenderer } from '../PluginRenderer';
+import { EditModeProvider, useEditMode } from '../context/EditModeContext';
 
-export const InlineRenderer: React.FC<BaseRendererProps> = ({
+const InlineContent: React.FC<BaseRendererProps> = ({
   plugins,
   selectedDate,
   refreshKey,
   viewMode,
   style,
+  triggerGlobalEdit,
+  onGlobalEditTriggered,
 }) => {
+  const { isGlobalEditMode, toggleGlobalEditMode } = useEditMode();
+
+  // Handle global edit mode trigger from external source
+  React.useEffect(() => {
+    if (triggerGlobalEdit && !isGlobalEditMode) {
+      toggleGlobalEditMode();
+      onGlobalEditTriggered?.();
+    }
+  }, [triggerGlobalEdit, isGlobalEditMode, toggleGlobalEditMode, onGlobalEditTriggered]);
+
   return (
     <View style={[styles.container, style]}>
       {plugins.map((plugin) => (
@@ -23,6 +36,14 @@ export const InlineRenderer: React.FC<BaseRendererProps> = ({
         </View>
       ))}
     </View>
+  );
+};
+
+export const InlineRenderer: React.FC<BaseRendererProps> = (props) => {
+  return (
+    <EditModeProvider>
+      <InlineContent {...props} />
+    </EditModeProvider>
   );
 };
 

@@ -19,6 +19,7 @@ interface SwipeableTodoItemProps {
   onLongPress?: (id: string) => void;
   children: React.ReactNode;
   hideCheckbox?: boolean;
+  variant?: 'todo' | 'gratitude';
 }
 
 interface SwipeableRef {
@@ -31,6 +32,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   onDelete,
   children,
   hideCheckbox = false,
+  variant = 'todo',
 }, ref) => {
   const swipeableRef = useRef<Swipeable>(null);
 
@@ -98,7 +100,10 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
       }}
     >
       <TouchableOpacity
-        style={styles.todoItem}
+        style={[
+          styles.todoItem,
+          variant === 'gratitude' && styles.gratitudeItem
+        ]}
         activeOpacity={1}
         onPress={() => {
           onToggle(item.id, false); // Explicitly pass false for regular toggle
@@ -158,6 +163,10 @@ const styles = StyleSheet.create({
     zIndex: 1,
     opacity: 1,
   },
+  gratitudeItem: {
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
   textContainer: {
     flex: 1,
     flexDirection: 'row',
@@ -174,7 +183,7 @@ const styles = StyleSheet.create({
   todoText: {
     flex: 1,
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontSize: 13,
     lineHeight: 18,
     opacity: 0.9,

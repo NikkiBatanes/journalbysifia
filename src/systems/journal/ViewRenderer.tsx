@@ -16,6 +16,9 @@ interface ViewRendererProps {
   onComponentTap?: (componentId: string) => void;
   // Moments-specific props
   showDateHeader?: boolean;
+  // Global edit mode props
+  triggerGlobalEdit?: boolean;
+  onGlobalEditTriggered?: () => void;
 }
 
 export const ViewRenderer: React.FC<ViewRendererProps> = ({
@@ -27,6 +30,8 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({
   carouselTitle,
   onComponentTap,
   showDateHeader,
+  triggerGlobalEdit,
+  onGlobalEditTriggered,
 }) => {
   const commonProps = {
     plugins,
@@ -47,7 +52,13 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({
       );
 
     case 'inline':
-      return <InlineRenderer {...commonProps} />;
+      return (
+        <InlineRenderer
+          {...commonProps}
+          triggerGlobalEdit={triggerGlobalEdit}
+          onGlobalEditTriggered={onGlobalEditTriggered}
+        />
+      );
 
     case 'moments':
       return (

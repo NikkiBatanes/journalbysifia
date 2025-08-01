@@ -2,6 +2,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, us
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { Pencil } from 'lucide-react-native';
 import { useScroll } from '../context/ScrollContext';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
@@ -32,6 +33,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [viewMode, setViewMode] = useState<'carousel' | 'inline'>('carousel');
   const [currentPage, setCurrentPage] = useState(0);
+  const [triggerGlobalEdit, setTriggerGlobalEdit] = useState(false);
   const [targetComponentId, setTargetComponentId] = useState<string | null>(null);
   const lastSelectedDate = useRef<Date | null>(null);
   const pageScrollRefs = useRef<{ [key: string]: ScrollView | null }>({});
@@ -605,6 +607,8 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                           viewMode="inline"
                           categories={['plan']}
                           refreshKey={refreshKey}
+                          triggerGlobalEdit={triggerGlobalEdit}
+                          onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
                           style={styles.journalSystemContainer}
                         />
                       )}
@@ -614,6 +618,8 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                           viewMode="inline"
                           categories={['reflect']}
                           refreshKey={refreshKey}
+                          triggerGlobalEdit={triggerGlobalEdit}
+                          onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
                           style={styles.journalSystemContainer}
                         />
                       )}
@@ -623,6 +629,8 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                           viewMode="inline"
                           categories={['pray']}
                           refreshKey={refreshKey}
+                          triggerGlobalEdit={triggerGlobalEdit}
+                          onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
                           style={styles.journalSystemContainer}
                         />
                       )}
@@ -645,6 +653,28 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                     />
                   ))}
                 </View>
+                {/* Global Edit Button positioned beside pagination */}
+                <TouchableOpacity
+                  style={styles.editButton}
+                  onPress={() => {
+                    // Switch to inline view and trigger global edit mode
+                    if (viewMode !== 'inline') {
+                      setViewMode('inline');
+                      // Trigger global edit mode after switching to inline view
+                      setTimeout(() => {
+                        setTriggerGlobalEdit(true);
+                      }, 100);
+                    } else {
+                      // Toggle global edit mode if already in inline view
+                      setTriggerGlobalEdit(!triggerGlobalEdit);
+                    }
+                  }}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel="Toggle global edit mode"
+                >
+                  <Pencil size={12} color={Colors.hopeWhite} strokeWidth={2.5} />
+                </TouchableOpacity>
               </View>
             </View>
           </PanGestureHandler>
@@ -931,6 +961,17 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     zIndex: 10,
+  },
+  editButton: {
+    position: 'absolute',
+    left: '50%',
+    marginLeft: 50, // Half of pagination width + gap
+    width: 24,
+    height: 24,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Same as pagination background
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   paginationContainer: {
     flexDirection: 'row',

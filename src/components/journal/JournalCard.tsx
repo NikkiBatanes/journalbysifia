@@ -68,11 +68,11 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             )}
             <View style={styles.titleContainer}>
               <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
-              {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+              {subtitle && (viewMode as string) !== 'inline' && <Text style={styles.subtitle}>{subtitle}</Text>}
             </View>
           </View>
           {/* Floating edit button for empty card */}
-          {showAddButton && onAdd && !isAdding && (
+          {showAddButton && onAdd && !isAdding && (viewMode as string) !== 'inline' && (
             <TouchableOpacity onPress={onAdd} style={styles.addButtonFloating}>
               <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
             </TouchableOpacity>
@@ -104,11 +104,11 @@ export const JournalCard: React.FC<JournalCardProps> = ({
           )}
           <View style={styles.titleContainer}>
             <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
-            {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+            {subtitle && (viewMode as string) !== 'inline' && <Text style={styles.subtitle}>{subtitle}</Text>}
           </View>
         </View>
         {/* Floating edit button */}
-        {showAddButton && onAdd && !isAdding && (
+        {showAddButton && onAdd && !isAdding && (viewMode as string) !== 'inline' && (
           <TouchableOpacity onPress={onAdd} style={styles.addButtonFloating}>
             <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
           </TouchableOpacity>

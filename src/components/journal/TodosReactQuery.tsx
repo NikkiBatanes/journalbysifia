@@ -11,6 +11,7 @@ import { toLocalDateString } from '../../utils/date';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodoSkeleton } from '../SkeletonLoader/TodoSkeleton';
 import { analytics } from '../../utils/analytics';
+import { useEditMode } from '../../systems/journal/context/EditModeContext';
 
 // React Query hooks
 import {
@@ -36,6 +37,16 @@ interface TodosProps {
 }
 
 const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel', viewMode }) => {
+  // Global edit mode context (only for inline view)
+  let globalEditMode = null;
+  try {
+    if (viewMode === 'inline') {
+      globalEditMode = useEditMode();
+    }
+  } catch {
+    // useEditMode not available, continue without global edit mode
+  }
+
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -44,6 +55,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const [showOnlyPriorities, setShowOnlyPriorities] = useState(false);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
   const inputRef = useRef<TextInput>(null);
+
+  // Determine if we should be in adding mode
+  const shouldShowAddingMode = isAdding || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
 
   // Auth and date context
   const { user } = useAuth();
@@ -151,6 +165,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     setNewTodo('');
     setIsAdding(false);
     setVisibleCount(5);
+
+    // Close global edit mode if active
+    if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+      globalEditMode.setGlobalEditMode(false);
+    }
 
     try {
       await createTodoMutation.mutateAsync({
@@ -418,9 +437,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       }
       title="To-Dos"
       subtitle="Track your daily tasks"
-      showAddButton={!isAdding}
+      showAddButton={!shouldShowAddingMode}
       onAdd={startAdding}
-      isAdding={isAdding}
+      isAdding={shouldShowAddingMode}
 
       headerRight={
         <View style={styles.headerRightContainer}>
@@ -522,7 +541,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           </View>
         ))}
 
-        {!isAdding && todos.length > 0 && (
+        {!shouldShowAddingMode && todos.length > 0 && (
           <View style={styles.paginationContainer}>
             <View style={styles.paginationButtonGroup}>
               {hasMore && (
@@ -536,7 +555,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
                   <Text style={[styles.paginationButtonText, styles.showMoreText]}>
-                    Show more ({filteredTodos.length - visibleCount})
+                    Show more
                   </Text>
                 </TouchableOpacity>
               )}
@@ -560,7 +579,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         )}
 
       </View>
-      {isAdding && (
+      {shouldShowAddingMode && (
         <>
           <View style={styles.inputContainer}>
             <TextInput
@@ -696,7 +715,7 @@ const styles = StyleSheet.create({
     color: Colors.mediumGray,
   },
   sortButton: {
-    marginLeft: 4,
+    marginLeft: 8,
     padding: 2,
   },
 
@@ -720,7 +739,7 @@ const styles = StyleSheet.create({
   todoText: {
     flex: 1,
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontSize: 13,
     lineHeight: 18,
     opacity: 0.9,

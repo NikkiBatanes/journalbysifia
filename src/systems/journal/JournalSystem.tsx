@@ -9,6 +9,9 @@ interface EnhancedJournalSystemProps extends JournalSystemProps {
   onComponentTap?: (componentId: string) => void;
   // Moments-specific props
   showDateHeader?: boolean;
+  // Global edit mode props
+  triggerGlobalEdit?: boolean;
+  onGlobalEditTriggered?: () => void;
   style?: any;
 }
 
@@ -20,6 +23,8 @@ export const JournalSystem: React.FC<EnhancedJournalSystemProps> = ({
   carouselTitle,
   onComponentTap,
   showDateHeader = true,
+  triggerGlobalEdit,
+  onGlobalEditTriggered,
   style,
 }) => {
   // Get plugins for specified categories and view mode
@@ -44,6 +49,8 @@ export const JournalSystem: React.FC<EnhancedJournalSystemProps> = ({
       carouselTitle={carouselTitle}
       onComponentTap={onComponentTap}
       showDateHeader={showDateHeader}
+      triggerGlobalEdit={triggerGlobalEdit}
+      onGlobalEditTriggered={onGlobalEditTriggered}
     />
   );
 };

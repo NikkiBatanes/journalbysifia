@@ -14,6 +14,7 @@ import {
   useUpdateJournalEntry,
   useDeleteJournalEntry,
 } from '../../services/hooks/useJournalData';
+import { useEditMode } from '../../systems/journal/context/EditModeContext';
 
 import { ErrorBoundary } from '../ErrorBoundary';
 import { GratitudeSkeleton } from '../SkeletonLoader/GratitudeSkeleton';
@@ -32,11 +33,24 @@ interface GratitudeListProps {
 }
 
 export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode }) => {
+  // Global edit mode context (only for inline view)
+  let globalEditMode = null;
+  try {
+    if (viewMode === 'inline') {
+      globalEditMode = useEditMode();
+    }
+  } catch {
+    // useEditMode not available, continue without global edit mode
+  }
+
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newItems, setNewItems] = useState(['', '', '']); // Three input fields
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
+
+  // Determine if we should be in adding mode
+  const shouldShowAddingMode = isAdding || isEditing || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
 
   // Auth and date context
   const { user } = useAuth();
@@ -299,6 +313,11 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         setIsAdding(false);
         setIsEditing(false);
         closeAllSwipeables();
+
+        // Close global edit mode if active
+        if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+          globalEditMode.setGlobalEditMode(false);
+        }
       } catch (saveError) {
         console.error('Error saving gratitude items:', saveError);
         Alert.alert('Error', 'Failed to save gratitude items. Please try again.');
@@ -348,6 +367,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             onToggle={() => {}}
             onDelete={() => handleDeleteGratitudeItem(item.id)}
             hideCheckbox={true}
+            variant="gratitude"
           >
             <View style={styles.itemNumber}>
               <Text style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</Text>
@@ -442,9 +462,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       }
       title="Gratitude List"
       subtitle="Reflect on what you're thankful for"
-      showAddButton={!isAdding && !isEditing}
+      showAddButton={!shouldShowAddingMode}
       onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
-      isAdding={isAdding || isEditing}
+      isAdding={shouldShowAddingMode}
       viewMode={viewMode}
     >
       <View
@@ -453,7 +473,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       >
         {displayGratitudeList()}
       </View>
-      {(isAdding || isEditing) ? (
+      {shouldShowAddingMode ? (
         <View style={styles.inputContainer}>
           {isEditing ? (
             newItems.map((item, index) => (
@@ -608,7 +628,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   itemText: {
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.regular,
     fontSize: 14,
     flex: 1,

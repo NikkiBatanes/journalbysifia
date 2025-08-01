@@ -13,6 +13,7 @@ import {
   useUpdateLookingForwardEntry,
   useDeleteLookingForwardEntry,
 } from '../../services/hooks/useJournalData';
+import { useEditMode } from '../../systems/journal/context/EditModeContext';
 import { LookingForwardSkeleton } from '../SkeletonLoader/LookingForwardSkeleton';
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary';
 import { analytics } from '../../utils/analytics';
@@ -23,6 +24,16 @@ interface LookingForwardProps {
 }
 
 const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode }) => {
+  // Global edit mode context (only for inline view)
+  let globalEditMode = null;
+  try {
+    if (viewMode === 'inline') {
+      globalEditMode = useEditMode();
+    }
+  } catch {
+    // useEditMode not available, continue without global edit mode
+  }
+
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
   const [displayEntry, setDisplayEntry] = useState<any>(null);
@@ -34,6 +45,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   const dateStr = toLocalDateString(selectedDate);
   const userId = user?.id || '';
+
+  // Determine if we should be in adding mode
+  const shouldShowAddingMode = isAdding || isEditing || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
 
   // Get looking forward entries with performance tracking
   const { data: entries = [], isLoading, error, refetch } = useLookingForwardData(userId, dateStr);
@@ -280,6 +294,11 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         setIsEditing(false);
         setEntryText('');
 
+        // Close global edit mode if active
+        if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+          globalEditMode.setGlobalEditMode(false);
+        }
+
         // Track analytics
         analytics.trackLookingForwardEvent('looking_forward_updated', {
           text_length: trimmedText.length,
@@ -314,6 +333,11 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         setDisplayEntry(optimisticEntry);
         setIsAdding(false);
         setEntryText('');
+
+        // Close global edit mode if active
+        if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+          globalEditMode.setGlobalEditMode(false);
+        }
 
         // Track analytics
         analytics.trackLookingForwardEvent('looking_forward_created', {
@@ -380,12 +404,12 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       title="Looking Forward To"
       subtitle="What are you looking forward to tomorrow?"
       icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      showAddButton={!displayEntry && !isAdding}
+      showAddButton={!displayEntry && !shouldShowAddingMode}
       onAdd={startAdding}
-      isAdding={isAdding}
+      isAdding={shouldShowAddingMode}
       onCancelAdd={cancelAdding}
       headerRight={
-        displayEntry && !isAdding ? (
+        displayEntry && !shouldShowAddingMode && viewMode !== 'inline' ? (
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={editEntry} style={styles.headerButton}>
               <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
@@ -395,7 +419,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       }
       viewMode={viewMode}
     >
-      {displayEntry && !isAdding ? (
+      {displayEntry && !shouldShowAddingMode ? (
         <Swipeable
           ref={swipeableRef}
           renderRightActions={renderRightActions}
@@ -414,7 +438,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
             </Text>
           </View>
         </Swipeable>
-      ) : isAdding ? (
+      ) : shouldShowAddingMode ? (
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}

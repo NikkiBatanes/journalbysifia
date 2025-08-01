@@ -5,6 +5,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { NotebookPen as LuNotebookPen, X } from 'lucide-react-native';
+import { useEditMode } from '../../systems/journal/context/EditModeContext';
 
 import ReflectionLogEditor from './ReflectionLogEditor';
 import { styles as reflectionLogStyles } from './reflectionStyles';
@@ -54,6 +55,16 @@ interface ReflectionLogProps {
 }
 
 export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode }) => {
+  // Global edit mode context (only for inline view)
+  let globalEditMode = null;
+  try {
+    if (viewMode === 'inline') {
+      globalEditMode = useEditMode();
+    }
+  } catch {
+    // useEditMode not available, continue without global edit mode
+  }
+
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
@@ -136,6 +147,29 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     location: '',
     source: undefined as string | undefined,
   });
+
+  // Determine if we should be in adding mode
+  const shouldShowAddingMode = isAdding || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
+
+  // Auto-open modal when global edit mode is activated
+  React.useEffect(() => {
+    if (globalEditMode?.isGlobalEditMode && viewMode === 'inline' && !isAdding && !editingId) {
+      setNewEntry({
+        title: '',
+        content: '',
+        type: 'free',
+        prompt: '',
+        tags: [],
+        location: '',
+        source: undefined,
+      });
+      setSelectedPrompt('');
+      setIsAdding(true);
+      setEditingId(null);
+      setSelectedEntry(null);
+    }
+  }, [globalEditMode?.isGlobalEditMode, viewMode, isAdding, editingId]);
+
 
   const resetForm = useCallback(() => {
     setNewEntry({
@@ -381,7 +415,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                 >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
                   <Text style={[styles.paginationButtonText, styles.showMoreText]}>
-                    Show more ({entriesToShow.length - visibleCount})
+                    Show more
                   </Text>
                 </TouchableOpacity>
               )}
@@ -609,6 +643,34 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         setEditingId(null);
         setSelectedEntry(null);
       }}
+      headerRight={globalEditMode?.isGlobalEditMode ? (
+        <TouchableOpacity
+          onPress={() => {
+            setNewEntry({
+              title: '',
+              content: '',
+              type: 'free',
+              prompt: '',
+              tags: [],
+              location: '',
+              source: undefined,
+            });
+            setSelectedPrompt('');
+            setIsAdding(true);
+            setEditingId(null);
+            setSelectedEntry(null);
+          }}
+          style={styles.editButton}
+          accessibilityRole="button"
+          accessibilityLabel="Add new reflection"
+        >
+          <Ionicons
+            name="pencil"
+            size={16}
+            color={Colors.mediumGray}
+          />
+        </TouchableOpacity>
+      ) : undefined}
       viewMode={viewMode}
     >
       {/* Entries List */}
@@ -691,6 +753,11 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               // Reset form and close modal on successful save
               resetForm();
               setIsAdding(false);
+              
+              // Close global edit mode if active
+              if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+                globalEditMode.setGlobalEditMode(false);
+              }
             }}
             onCancel={() => {
               resetForm();
@@ -745,6 +812,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 };
 
 const styles = StyleSheet.create({
+  editButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
   loadingText: {
     fontFamily: Fonts.regular,
     color: Colors.mediumGray,

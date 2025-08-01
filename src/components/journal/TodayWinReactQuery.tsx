@@ -16,6 +16,7 @@ import {
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodayWinSkeleton } from '../SkeletonLoader/TodayWinSkeleton';
 import { analytics } from '../../utils/analytics';
+import { useEditMode } from '../../systems/journal/context/EditModeContext';
 
 interface TodayWinProps {
   selectedDate: Date;
@@ -23,6 +24,16 @@ interface TodayWinProps {
 }
 
 const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) => {
+  // Global edit mode context (only for inline view)
+  let globalEditMode = null;
+  try {
+    if (viewMode === 'inline') {
+      globalEditMode = useEditMode();
+    }
+  } catch {
+    // useEditMode not available, continue without global edit mode
+  }
+
   const { user } = useAuth();
   const [winText, setWinText] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -34,6 +45,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
   const swipeableRef = useRef<Swipeable>(null);
 
   const dateStr = toLocalDateString(selectedDate);
+
+  // Determine if we should show adding mode based on global edit mode
+  const shouldShowAddingMode = isAdding || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
 
   // Reset state when date changes (prevents stale data)
   React.useEffect(() => {
@@ -313,6 +327,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
       setPreviousWin(null);
       setEditingEntryId(null);
 
+      // Close global edit mode if active
+      if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+        globalEditMode.setGlobalEditMode(false);
+      }
+
       updateMutation.mutate({
         id: editingEntryId,
         updates: {
@@ -374,6 +393,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
       setPreviousWin(null);
       setEditingEntryId(null);
 
+      // Close global edit mode if active
+      if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+        globalEditMode.setGlobalEditMode(false);
+      }
+
       createMutation.mutate({
         user_id: userId,
         selected_date: dateStr,
@@ -426,22 +450,22 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
       title="Today's Win"
       subtitle="What's your biggest win today?"
       icon={<LuTrophy size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      showAddButton={!displayWin && !isAdding}
+      showAddButton={!displayWin && !shouldShowAddingMode}
       onAdd={startAdding}
-      isAdding={isAdding}
+      isAdding={shouldShowAddingMode}
       onCancelAdd={cancelAdding}
       headerRight={
-        displayWin && !isAdding ? (
+        displayWin && !shouldShowAddingMode && viewMode !== 'inline' ? (
           <View style={styles.headerActions}>
             <TouchableOpacity onPress={editWin} style={styles.headerButton}>
               <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
             </TouchableOpacity>
           </View>
-        ) : null
+        ) : undefined
       }
       viewMode={viewMode}
     >
-      {displayWin && !isAdding && (
+      {displayWin && !shouldShowAddingMode && (
         <Swipeable
           ref={swipeableRef}
           renderRightActions={renderRightActions}
@@ -454,7 +478,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
           </View>
         </Swipeable>
       )}
-      {isAdding && (
+      {shouldShowAddingMode && (
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}

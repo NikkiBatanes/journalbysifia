@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -15,6 +16,7 @@ import {
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
 import { analytics } from '../../utils/analytics';
+import { useEditMode } from '../../systems/journal/context/EditModeContext';
 
 interface PriorityItem {
   id: string;
@@ -35,6 +37,16 @@ interface TodaysFocusProps {
 }
 
 export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode }) => {
+  // Global edit mode context (only for inline view)
+  let globalEditMode = null;
+  try {
+    if (viewMode === 'inline') {
+      globalEditMode = useEditMode();
+    }
+  } catch {
+    // useEditMode not available, continue without global edit mode
+  }
+
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
@@ -54,13 +66,18 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     const result = existingEntry ? (() => {
       try {
         const parsedContent = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
+        const existingPriorities = parsedContent.priorities || [];
+        
+        // Ensure we always have exactly 3 priorities
+        const priorities = [
+          existingPriorities[0] || { id: '1', text: '', completed: false },
+          existingPriorities[1] || { id: '2', text: '', completed: false },
+          existingPriorities[2] || { id: '3', text: '', completed: false },
+        ];
+        
         return {
           focus: parsedContent.focus || '',
-          priorities: parsedContent.priorities || [
-            { id: '1', text: '', completed: false },
-            { id: '2', text: '', completed: false },
-            { id: '3', text: '', completed: false },
-          ],
+          priorities,
         };
       } catch (parseError) {
         return {
@@ -88,6 +105,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const [isEditing, setIsEditing] = useState(false);
   const swipeableRefs = useRef<{[key: string]: any}>({});
   const originalData = useRef<TodayFocusData>({ ...data });
+
+  // Determine if we should be in editing mode
+  const shouldShowEditingMode = isEditing || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
 
   // Reset state when date changes or data loads
   React.useEffect(() => {
@@ -173,11 +193,19 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       if (hasContent) {
         saveFocus(data).then(() => {
           setIsEditing(false);
+          // Close global edit mode if active
+          if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+            globalEditMode.setGlobalEditMode(false);
+          }
         }).catch(() => {
           // Error already handled in saveFocus
         });
       } else {
         setIsEditing(false);
+        // Close global edit mode if active
+        if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+          globalEditMode.setGlobalEditMode(false);
+        }
       }
     } else {
       // Enter edit mode
@@ -343,13 +371,27 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         }
         title="Today's Focus"
         subtitle="Your daily focus and priorities"
-        showAddButton={!isEditing}
+        showAddButton={!shouldShowEditingMode}
         onAdd={toggleEditing}
-        isAdding={isEditing}
+        isAdding={shouldShowEditingMode}
+        headerRight={viewMode !== 'inline' ? (
+          <TouchableOpacity
+            onPress={toggleEditing}
+            style={styles.editButton}
+            accessibilityRole="button"
+            accessibilityLabel={shouldShowEditingMode ? "Cancel editing" : "Edit focus and priorities"}
+          >
+            <Ionicons
+              name={shouldShowEditingMode ? "close" : "pencil"}
+              size={16}
+              color={Colors.mediumGray}
+            />
+          </TouchableOpacity>
+        ) : undefined}
         variant={variant}
         viewMode={viewMode}
       >
-        {isEditing
+        {shouldShowEditingMode
           ? (
             <View style={styles.editContainer}>
               <Text style={styles.sectionHeaderWithBottomMargin}>Today's Focus</Text>
@@ -363,7 +405,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 accessibilityLabel="Today's focus input"
                 accessibilityHint="Enter your main focus for today"
               />
-              <Text style={styles.sectionHeaderWithTopMargin}>TOP PRIORITIES</Text>
+              <Text style={styles.sectionHeaderWithTopMargin}>TOP 3 PRIORITIES</Text>
               {data.priorities.map((priority, index) => (
                 <View key={priority.id} style={styles.priorityRow}>
                   <Text style={styles.priorityNumber}>{index + 1}.</Text>
@@ -470,6 +512,10 @@ const styles = StyleSheet.create({
   editContainer: {
     padding: 0,
   },
+  editButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
   viewContainer: {
     padding: 0,
   },
@@ -521,7 +567,7 @@ const styles = StyleSheet.create({
   sectionHeaderWithTopMargin: {
     fontFamily: Fonts.semiBold,
     fontSize: 12,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginTop: 12,
     marginBottom: 8,
     letterSpacing: 0.8,

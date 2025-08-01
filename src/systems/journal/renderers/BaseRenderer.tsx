@@ -10,6 +10,9 @@ export interface BaseRendererProps {
   refreshKey?: number;
   viewMode: ViewMode;
   style?: any;
+  // Global edit mode props
+  triggerGlobalEdit?: boolean;
+  onGlobalEditTriggered?: () => void;
 }
 
 export const BaseRenderer: React.FC<BaseRendererProps> = ({

@@ -28,7 +28,7 @@ export const VIEW_CONFIGURATIONS: Record<ViewMode, ViewConfiguration> = {
     },
     titleStyle: {
       // Inline view title customizations
-      fontSize: 14, // Smaller size
+      fontSize: 10, // Smaller size
       textTransform: 'uppercase', // Capitalized
       letterSpacing: 1.2, // Added letter spacing
       fontWeight: '600',
@@ -36,6 +36,8 @@ export const VIEW_CONFIGURATIONS: Record<ViewMode, ViewConfiguration> = {
     cardStyle: {
       // Fully transparent background for inline view
       backgroundColor: 'transparent',
+      minHeight: 0,
+      flex: undefined,
     },
     spacing: 16,
     layout: 'vertical',

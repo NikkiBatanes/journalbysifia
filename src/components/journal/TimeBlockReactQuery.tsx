@@ -18,6 +18,7 @@ import {
   useUpdateTimeBlock,
   useDeleteTimeBlock,
 } from '../../services/hooks/useTimeBlockData';
+import { useEditMode } from '../../systems/journal/context/EditModeContext';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -124,6 +125,16 @@ interface TimeBlockProps {
 }
 
 export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode }) => {
+  // Global edit mode context (only for inline view)
+  let globalEditMode = null;
+  try {
+    if (viewMode === 'inline') {
+      globalEditMode = useEditMode();
+    }
+  } catch {
+    // useEditMode not available, continue without global edit mode
+  }
+
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
@@ -172,6 +183,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const [showCategoryError, setShowCategoryError] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<{start: boolean, end: boolean, id: string | null}>({ start: false, end: false, id: null });
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+
+  // Determine if we should be in adding mode
+  const shouldShowAddingMode = isAdding;
   const [showRepeatOptions, setShowRepeatOptions] = useState(false);
   const [_showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [_showFrequencySelector, setShowFrequencySelector] = useState(false);
@@ -304,6 +318,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
           throw new Error('Invalid date/time values');
         }
+
+        // Validate that start time is before end time
+        if (startDateTime >= endDateTime) {
+          Alert.alert('Invalid Time Range', 'Start time must be before end time. Please adjust your time selection.');
+          return;
+        }
       } catch (dateError) {
         console.error('Error creating date objects:', dateError);
         Alert.alert('Error', 'Invalid date or time values. Please check your input.');
@@ -379,6 +399,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       setIsAdding(false);
       setEditId(null);
 
+      // Close global edit mode if active
+      if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+        globalEditMode.setGlobalEditMode(false);
+      }
+
     } catch (saveError) {
       console.error('Time block save error:', saveError);
 
@@ -443,9 +468,23 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     }
     if (selectedTime) {
       if (showTimePicker.start) {
-        setNewBlock(prev => ({ ...prev, startTime: selectedTime }));
+        setNewBlock(prev => {
+          const newStartTime = selectedTime;
+          // If new start time is after current end time, adjust end time
+          const newEndTime = newStartTime >= prev.endTime 
+            ? new Date(newStartTime.getTime() + 60 * 60 * 1000) // Add 1 hour
+            : prev.endTime;
+          return { ...prev, startTime: newStartTime, endTime: newEndTime };
+        });
       } else if (showTimePicker.end) {
-        setNewBlock(prev => ({ ...prev, endTime: selectedTime }));
+        setNewBlock(prev => {
+          const newEndTime = selectedTime;
+          // If new end time is before current start time, adjust start time
+          const newStartTime = newEndTime <= prev.startTime 
+            ? new Date(newEndTime.getTime() - 60 * 60 * 1000) // Subtract 1 hour
+            : prev.startTime;
+          return { ...prev, startTime: newStartTime, endTime: newEndTime };
+        });
       }
     }
     setShowTimePicker({ start: false, end: false, id: null });
@@ -627,13 +666,49 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       icon={<LuCalendarClock size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
       title="Time Blocks"
       subtitle="Schedule and organize your day"
-      showAddButton={!isAdding}
+      showAddButton={!shouldShowAddingMode}
       onAdd={startAdding}
-      isAdding={isAdding}
+      isAdding={shouldShowAddingMode}
       variant={variant}
       viewMode={viewMode}
+      headerRight={
+        globalEditMode?.isGlobalEditMode && viewMode === 'inline' ? (
+          <TouchableOpacity
+            onPress={startAdding}
+            style={{ padding: 4, marginLeft: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Add time block"
+          >
+            <Ionicons name="add" size={16} color={Colors.trustGrey} />
+          </TouchableOpacity>
+        ) : null
+      }
     >
-      {isAdding ? (
+      {/* Always show time blocks first */}
+      {timeBlocks.length > 0 ? (
+        <View
+          style={styles.timeBlocksContainer}
+          accessibilityRole="list"
+          accessibilityLabel={`Time blocks for ${dateStr}`}
+          accessibilityHint={`${timeBlocks.length} time block${timeBlocks.length === 1 ? '' : 's'} scheduled for this day`}
+        >
+          {timeBlocks.slice(0, visibleCount).map(renderTimeBlock)}
+          {timeBlocks.length > visibleCount && (
+            <TouchableOpacity
+              style={styles.showMoreButton}
+              onPress={() => setVisibleCount(prev => prev + 5)}
+              accessibilityRole="button"
+              accessibilityLabel={`Show ${Math.min(5, timeBlocks.length - visibleCount)} more time blocks`}
+              accessibilityHint={`Reveals ${Math.min(5, timeBlocks.length - visibleCount)} additional time blocks from your ${timeBlocks.length} total blocks`}
+            >
+              <Text style={styles.showMoreText}>Show more</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : null}
+      
+      {/* Show add form at bottom when adding */}
+      {shouldShowAddingMode && (
         <View style={styles.addBlockContainer}>
           {/* 1. Time Range / All Day */}
           <View style={styles.editTimeContainer}>
@@ -1156,27 +1231,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             </View>
           </View>
         </View>
-      ) : timeBlocks.length > 0 ? (
-        <View
-          style={styles.timeBlocksContainer}
-          accessibilityRole="list"
-          accessibilityLabel={`Time blocks for ${dateStr}`}
-          accessibilityHint={`${timeBlocks.length} time block${timeBlocks.length === 1 ? '' : 's'} scheduled for this day`}
-        >
-          {timeBlocks.slice(0, visibleCount).map(renderTimeBlock)}
-          {timeBlocks.length > visibleCount && (
-            <TouchableOpacity
-              style={styles.showMoreButton}
-              onPress={() => setVisibleCount(prev => prev + 5)}
-              accessibilityRole="button"
-              accessibilityLabel={`Show ${Math.min(5, timeBlocks.length - visibleCount)} more time blocks`}
-              accessibilityHint={`Reveals ${Math.min(5, timeBlocks.length - visibleCount)} additional time blocks from your ${timeBlocks.length} total blocks`}
-            >
-              <Text style={styles.showMoreText}>Show {Math.min(5, timeBlocks.length - visibleCount)} more</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ) : null}
+      )}
     </JournalCard>
   );
 };
