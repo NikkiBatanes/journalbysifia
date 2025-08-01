@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert, Vibration } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+// SwipeableTodoItem handles the gesture handler imports
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -36,7 +36,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const swipeableRef = useRef<Swipeable>(null);
   const loadStartTime = useRef<number>(Date.now());
 
   const dateStr = toLocalDateString(selectedDate);
@@ -56,7 +55,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   const entry = entries.length > 0 ? entries[0] : null;
 
   // Handler for swipe-to-delete
-  const handleDelete = (id: string) => {
+  const handleEntryDelete = (id: string) => {
     Alert.alert(
       'Delete Looking Forward?',
       'Are you sure you want to delete your Looking Forward entry?',
@@ -121,10 +120,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       });
     }
   }, [lookingForward, isEditing, isSaving]);
-
-  const closeSwipeable = useCallback(() => {
-    swipeableRef.current?.close();
-  }, []);
 
   // Reset state when date changes (prevents stale data)
   React.useEffect(() => {
@@ -199,81 +194,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       </JournalCard>
     );
   }
-
-  const renderRightActions = (progress: any, dragX: any) => {
-    const scale = dragX.interpolate({
-      inputRange: [-100, 0],
-      outputRange: [1, 0.8],
-      extrapolate: 'clamp',
-    });
-
-    const opacity = dragX.interpolate({
-      inputRange: [-100, -50, 0],
-      outputRange: [1, 0.8, 0],
-      extrapolate: 'clamp',
-    });
-
-    const handleDelete = () => {
-      if (!displayEntry) {return;}
-
-      Alert.alert(
-        'Delete Entry',
-        'Are you sure you want to delete this looking forward entry?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                // Track analytics
-                analytics.trackLookingForwardEvent('looking_forward_deleted', {
-                  entry_id: displayEntry.id,
-                  text_length: displayEntry.text.length,
-                  date: dateStr,
-                }, user?.id);
-
-                // Optimistic update: immediately remove from UI
-                setDisplayEntry(null);
-                closeSwipeable();
-
-                // Perform actual deletion
-                await deleteMutation.mutateAsync(displayEntry.id);
-              } catch (deleteError) {
-                console.error('🌅 LookingForward: Delete failed:', deleteError);
-
-                // Revert optimistic update on error
-                setDisplayEntry(lookingForward);
-
-                // Track error
-                analytics.trackLookingForwardEvent('looking_forward_error', {
-                  error_type: deleteError instanceof Error ? deleteError.message : 'unknown',
-                  operation: 'delete',
-                  date: dateStr,
-                }, user?.id);
-
-                Alert.alert('Error', 'Failed to delete entry. Please try again.');
-              }
-            },
-          },
-        ]
-      );
-    };
-
-    return (
-      <Animated.View style={[styles.deleteButton, { opacity }]}>
-        <TouchableOpacity
-          style={styles.deleteButtonContent}
-          onPress={handleDelete}
-          activeOpacity={0.8}
-        >
-          <Animated.View style={{ transform: [{ scale }] }}>
-            <Text style={styles.deleteButtonText}>Delete</Text>
-          </Animated.View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
 
   const startAdding = () => {
     setIsAdding(true);
@@ -437,7 +357,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         <SwipeableTodoItem
           item={{ id: displayEntry.id, text: displayEntry.text, completed: false }}
           onToggle={() => {}}
-          onDelete={handleDelete}
+          onDelete={handleEntryDelete}
           hideCheckbox
           variant="gratitude"
         >

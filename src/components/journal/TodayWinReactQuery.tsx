@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Animated, Alert } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+// SwipeableTodoItem handles the gesture handler imports
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
@@ -38,7 +38,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
   const [displayWin, setDisplayWin] = useState<{ id: string; text: string } | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const swipeableRef = useRef<Swipeable>(null);
 
   const dateStr = toLocalDateString(selectedDate);
 
@@ -171,10 +170,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
     }
   }, [win, isEditing, isSaving]);
 
-  const closeSwipeable = useCallback(() => {
-    swipeableRef.current?.close();
-  }, []);
-
   // Handle loading state
   if (isLoading) {
     return <TodayWinSkeleton />;
@@ -207,54 +202,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
       </JournalCard>
     );
   }
-
-  const renderRightActions = (progress: any, dragX: any) => {
-    const scale = dragX.interpolate({
-      inputRange: [-100, 0],
-      outputRange: [1, 0.8],
-      extrapolate: 'clamp',
-    });
-
-    const opacity = dragX.interpolate({
-      inputRange: [-100, -50, 0],
-      outputRange: [1, 0.8, 0],
-      extrapolate: 'clamp',
-    });
-
-    const handleDelete = () => {
-      if (!entry) {return;}
-
-      Alert.alert(
-        'Delete Win',
-        'Are you sure you want to delete this win?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: () => {
-              deleteMutation.mutate(entry.id);
-              closeSwipeable();
-            },
-          },
-        ]
-      );
-    };
-
-    return (
-      <Animated.View style={[styles.deleteButton, { opacity }]}>
-        <TouchableOpacity
-          style={styles.deleteButtonContent}
-          onPress={handleDelete}
-          activeOpacity={0.8}
-        >
-          <Animated.View style={{ transform: [{ scale }] }}>
-            <X size={20} color={Colors.hopeWhite} strokeWidth={2.5} />
-          </Animated.View>
-        </TouchableOpacity>
-      </Animated.View>
-    );
-  };
 
   const startAdding = () => {
     setIsAdding(true);
