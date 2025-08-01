@@ -31,9 +31,10 @@ interface TodoItem {
 interface TodosProps {
   selectedDate?: Date;
   refreshKey?: number;
+  variant?: 'carousel' | 'inline';
 }
 
-const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0 }) => {
+const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel' }) => {
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -349,6 +350,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         icon={<LuListTodo size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
         showAddButton={true}
         onAdd={() => {}} // Disabled during loading
+        variant={variant}
       >
         <View
           style={styles.todosContainer}

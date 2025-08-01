@@ -15,6 +15,7 @@ interface JournalCardProps {
   isAdding?: boolean;
   onCancelAdd?: () => void;
   headerRight?: React.ReactNode;
+  variant?: 'carousel' | 'inline';
 }
 
 export const JournalCard: React.FC<JournalCardProps> = ({
@@ -26,6 +27,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   onAdd,
   isAdding = false,
   headerRight,
+  variant = 'carousel',
 }) => {
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
@@ -33,7 +35,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   // Only render header when empty (no content and not editing/adding)
   if (!showContent) {
     return (
-      <View style={[styles.card, styles.cardEmpty]}>
+      <View style={[styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline]}>
         <View style={[styles.header, styles.headerEmpty]}>
           <View style={styles.headerContent}>
             {typeof icon === 'string' ? (
@@ -66,7 +68,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 
   // Render normal card with content
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, variant === 'inline' && styles.cardInline]}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
           {typeof icon === 'string' ? (
@@ -121,6 +123,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     minHeight: 340, // Minimum height for carousel cards, grows with content
   },
+  cardInline: {
+    backgroundColor: 'transparent', // Transparent background for inline view
+    borderColor: 'transparent',
+  },
   headerEmpty: {
     marginBottom: 0,
   },
@@ -158,6 +164,8 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   title: {
     fontFamily: Fonts.bold,
@@ -166,11 +174,13 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     fontWeight: '700',
     letterSpacing: 0.3,
+    textAlign: 'center',
   },
   subtitle: {
     fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.mediumGray,
+    textAlign: 'center',
   },
   content: {
     // Content is always visible

@@ -47,6 +47,7 @@
     "react-is": "^19.1.0",
     "react-native": "0.79.2",
     "react-native-calendar-events": "^2.2.0",
+    "react-native-calendars": "^1.1313.0",
     "react-native-fetch-api": "^3.0.0",
     "react-native-gesture-handler": "^2.26.0",
     "react-native-get-random-values": "^1.11.0",

@@ -24,4 +24,8 @@ export const TabBarIcons = {
     name: 'calendar-outline',
     focused: 'calendar',
   },
+  Moments: {
+    name: 'time-outline',
+    focused: 'time',
+  },
 } as const;

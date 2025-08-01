@@ -14,6 +14,7 @@ import UserProfileScreen from '../screens/UserProfileScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 import DevotionalsScreen from '../screens/DevotionalsScreen';
 import JournalScreen from '../screens/JournalScreen';
+import { MomentsScreen } from '../screens/MomentsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -213,6 +214,15 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
       >
         {() => <JournalScreen ref={journalScreenRef} />}
       </Tab.Screen>
+      <Tab.Screen
+        name="Moments"
+        component={MomentsScreen}
+        options={{
+          tabBarLabel: 'Moments',
+          title: 'Moments',
+          headerShown: false,
+        }}
+      />
       <Tab.Screen
         name="Profile"
         component={UserProfileScreen}

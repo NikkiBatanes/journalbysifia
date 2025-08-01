@@ -119,9 +119,11 @@ const getCategoryColor = (categoryName: string): string => {
 
 interface TimeBlockProps {
   selectedDate?: Date;
+  variant?: 'carousel' | 'inline';
 }
 
-export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = new Date() }) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = new Date(), variant = 'carousel' }) => {
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 

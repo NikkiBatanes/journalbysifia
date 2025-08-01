@@ -10,17 +10,8 @@ import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';
 import PrayCarousel from '../components/journal/PrayCarousel';
 
-// Individual components for inline view
-import { TodaysFocusReactQuery } from '../components/journal/TodaysFocusReactQuery';
-import { TodosReactQuery } from '../components/journal/TodosReactQuery';
-import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from '../components/journal/TimeBlockReactQuery';
-import { ReflectionLogReactQuery } from '../components/journal/ReflectionLogReactQuery';
-import { GratitudeListReactQuery } from '../components/journal/GratitudeListReactQuery';
-import { TodayWinReactQuery } from '../components/journal/TodayWinReactQuery';
-import { LookingForwardReactQuery } from '../components/journal/LookingForwardReactQuery';
-import PrayerJournalCardReactQuery from '../components/journal/PrayerJournalCardReactQuery';
-import DevotionalPrayerListReactQuery from '../components/journal/DevotionalPrayerListReactQuery';
-import EnhancedPrayerListReactQuery from '../components/journal/EnhancedPrayerListReactQuery';
+// New Plugin Architecture System
+import { JournalSystem } from '../systems/journal';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
@@ -609,46 +600,31 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                     <Text style={styles.inlinePageTitle}>{page.title}</Text>
                     <View style={styles.inlineComponentsContainer}>
                       {page.key === 'plan' && (
-                        <>
-                          <View style={styles.componentWrapper}>
-                            <TodaysFocusReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
-                          </View>
-                          <View style={styles.componentWrapper}>
-                            <TodosReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
-                          </View>
-                          <View style={styles.componentWrapper}>
-                            <TimeBlockReactQuery selectedDate={currentDate} />
-                          </View>
-                        </>
+                        <JournalSystem
+                          selectedDate={currentDate}
+                          viewMode="inline"
+                          categories={['plan']}
+                          refreshKey={refreshKey}
+                          style={styles.journalSystemContainer}
+                        />
                       )}
                       {page.key === 'reflect' && currentDate <= new Date() && (
-                        <>
-                          <View style={styles.componentWrapper}>
-                            <ReflectionLogReactQuery selectedDate={currentDate} />
-                          </View>
-                          <View style={styles.componentWrapper}>
-                            <GratitudeListReactQuery selectedDate={currentDate} refreshKey={refreshKey} />
-                          </View>
-                          <View style={styles.componentWrapper}>
-                            <TodayWinReactQuery selectedDate={currentDate} />
-                          </View>
-                          <View style={styles.componentWrapper}>
-                            <LookingForwardReactQuery selectedDate={currentDate} />
-                          </View>
-                        </>
+                        <JournalSystem
+                          selectedDate={currentDate}
+                          viewMode="inline"
+                          categories={['reflect']}
+                          refreshKey={refreshKey}
+                          style={styles.journalSystemContainer}
+                        />
                       )}
                       {page.key === 'pray' && currentDate <= new Date() && (
-                        <>
-                          <View style={styles.componentWrapper}>
-                            <PrayerJournalCardReactQuery selectedDate={currentDate} />
-                          </View>
-                          <View style={styles.componentWrapper}>
-                            <DevotionalPrayerListReactQuery selectedDate={currentDate} />
-                          </View>
-                          <View style={styles.componentWrapper}>
-                            <EnhancedPrayerListReactQuery selectedDate={currentDate} />
-                          </View>
-                        </>
+                        <JournalSystem
+                          selectedDate={currentDate}
+                          viewMode="inline"
+                          categories={['pray']}
+                          refreshKey={refreshKey}
+                          style={styles.journalSystemContainer}
+                        />
                       )}
                     </View>
                   </View>
@@ -943,6 +919,9 @@ const styles = StyleSheet.create({
   },
   componentWrapper: {
     marginBottom: 16,
+  },
+  journalSystemContainer: {
+    flex: 1,
   },
   // Pagination overlay styles
   paginationOverlay: {
