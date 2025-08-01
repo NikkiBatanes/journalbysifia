@@ -364,10 +364,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             hideCheckbox={true}
             variant="gratitude"
           >
-            <View style={styles.itemNumber}>
-              <Text style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</Text>
+            <View style={styles.itemRowTopAligned}>
+              <View style={styles.itemNumber}>
+                <Text style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</Text>
+              </View>
+              <Text style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</Text>
             </View>
-            <Text style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</Text>
           </SwipeableTodoItem>
         </View>
       ))}
@@ -612,6 +614,10 @@ const styles = StyleSheet.create({
   showLessText: {
     color: Colors.mediumGray,
   },
+  itemRowTopAligned: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
   itemNumber: {
     width: 24,
     height: 24,
@@ -621,6 +627,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
     marginLeft: 4,
+    marginTop: 2, // Small adjustment to align with first line of text
   },
   itemText: {
     color: Colors.hopeWhite,
@@ -633,7 +640,10 @@ const styles = StyleSheet.create({
   numberText: {
     color: Colors.alertCoral,
     fontFamily: Fonts.bold,
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 16, // Ensure vertical centering in the circle
   },
   inputContainer: {
     marginTop: 8,
