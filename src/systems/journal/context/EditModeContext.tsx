@@ -43,3 +43,9 @@ export const useEditMode = (): EditModeContextType => {
   }
   return context;
 };
+
+// Safe version that returns null when provider is not available
+export const useEditModeSafe = (): EditModeContextType | null => {
+  const context = useContext(EditModeContext);
+  return context || null;
+};

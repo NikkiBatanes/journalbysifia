@@ -13,6 +13,7 @@ export interface BaseRendererProps {
   // Global edit mode props
   triggerGlobalEdit?: boolean;
   onGlobalEditTriggered?: () => void;
+  onGlobalEditModeChange?: (isGlobalEditMode: boolean) => void;
 }
 
 export const BaseRenderer: React.FC<BaseRendererProps> = ({

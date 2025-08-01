@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -33,7 +33,8 @@ interface CarouselItem {
   color: string;
 }
 
-const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTap }) => {
+const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTap: _onComponentTap }) => {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
@@ -57,6 +58,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
       ) {
         currentCardIndex.current = newCardIndex;
         handleScrollFeedback();
+        setExpandedIndex(null); // Collapse any expanded card on swipe
       }
     },
     [handleScrollFeedback]
@@ -138,10 +140,13 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
             >
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => onComponentTap?.(item.id)}
+                onPress={() => setExpandedIndex(expandedIndex === i ? null : i)}
                 style={styles.touchableComponent}
               >
-                {item.component}
+                {React.cloneElement(item.component as React.ReactElement<any>, {
+                  expanded: expandedIndex === i,
+                  onExpand: () => setExpandedIndex(expandedIndex === i ? null : i),
+                })}
               </TouchableOpacity>
             </Animated.View>
           );
@@ -154,6 +159,13 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
 const styles = StyleSheet.create({
   container: {
     marginVertical: 0,
+  },
+  filterContainer: {
+    backgroundColor: '#e8edf6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 12,
   },
   header: {
     paddingHorizontal: 20,
@@ -168,7 +180,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   scrollView: {
-    height: 400,
+    // Removed fixed height for dynamic expansion
   },
   carouselItem: {
     width: CARD_WIDTH,

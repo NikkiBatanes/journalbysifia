@@ -102,7 +102,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
       <TouchableOpacity
         style={[
           styles.todoItem,
-          variant === 'gratitude' && styles.gratitudeItem
+          variant === 'gratitude' && styles.gratitudeItem,
         ]}
         activeOpacity={1}
         onPress={() => {
@@ -203,15 +203,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.growthGreen,
   },
   deleteButton: {
-    width: 80, // Slightly wider for better touch target
-    backgroundColor: '#f87171',
+    width: '100%',
+    height: '100%',
+    backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
-    height: '100%',
-    paddingLeft: 10, // Push content to the right to center in visible area
-    borderTopRightRadius: 6,
-    borderBottomRightRadius: 6,
-    marginLeft: -10, // Pull the button to the left to maintain alignment
   },
   deleteButtonContent: {
     width: 60, // Fixed width to center the icon

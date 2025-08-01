@@ -11,7 +11,7 @@ import { toLocalDateString } from '../../utils/date';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodoSkeleton } from '../SkeletonLoader/TodoSkeleton';
 import { analytics } from '../../utils/analytics';
-import { useEditMode } from '../../systems/journal/context/EditModeContext';
+import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 // React Query hooks
 import {
@@ -38,14 +38,9 @@ interface TodosProps {
 
 const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel', viewMode }) => {
   // Global edit mode context (only for inline view)
-  let globalEditMode = null;
-  try {
-    if (viewMode === 'inline') {
-      globalEditMode = useEditMode();
-    }
-  } catch {
-    // useEditMode not available, continue without global edit mode
-  }
+  // Global edit mode context - safe version that handles missing provider
+  const globalEditMode = useEditModeSafe();
+
 
   // Local UI state
   const [newTodo, setNewTodo] = useState('');

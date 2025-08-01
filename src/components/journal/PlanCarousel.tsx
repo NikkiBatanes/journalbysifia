@@ -143,6 +143,13 @@ const styles = StyleSheet.create({
     // Margins are now handled by parent ScrollView's gap
     marginVertical: 0,
   },
+  filterContainer: {
+    backgroundColor: '#e8edf6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 12,
+  },
   header: {
     paddingHorizontal: 20,
     marginBottom: 12,
@@ -156,7 +163,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   scrollView: {
-    height: 400,
+    // Removed fixed height for dynamic expansion
   },
   carouselItem: {
     width: CARD_WIDTH,

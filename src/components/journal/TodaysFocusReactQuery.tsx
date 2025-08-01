@@ -16,7 +16,7 @@ import {
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
 import { analytics } from '../../utils/analytics';
-import { useEditMode } from '../../systems/journal/context/EditModeContext';
+import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 interface PriorityItem {
   id: string;
@@ -38,14 +38,9 @@ interface TodaysFocusProps {
 
 export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode }) => {
   // Global edit mode context (only for inline view)
-  let globalEditMode = null;
-  try {
-    if (viewMode === 'inline') {
-      globalEditMode = useEditMode();
-    }
-  } catch {
-    // useEditMode not available, continue without global edit mode
-  }
+  // Global edit mode context - safe version that handles missing provider
+  const globalEditMode = useEditModeSafe();
+
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
@@ -67,14 +62,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       try {
         const parsedContent = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
         const existingPriorities = parsedContent.priorities || [];
-        
+
         // Ensure we always have exactly 3 priorities
         const priorities = [
           existingPriorities[0] || { id: '1', text: '', completed: false },
           existingPriorities[1] || { id: '2', text: '', completed: false },
           existingPriorities[2] || { id: '3', text: '', completed: false },
         ];
-        
+
         return {
           focus: parsedContent.focus || '',
           priorities,
@@ -208,8 +203,21 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         }
       }
     } else {
-      // Enter edit mode
-      originalData.current = { ...data };
+      // Enter edit mode - ensure we have exactly 3 priorities
+      const currentPriorities = data.priorities;
+      const ensuredPriorities = [
+        currentPriorities[0] || { id: '1', text: '', completed: false },
+        currentPriorities[1] || { id: '2', text: '', completed: false },
+        currentPriorities[2] || { id: '3', text: '', completed: false },
+      ];
+
+      const editData = {
+        ...data,
+        priorities: ensuredPriorities,
+      };
+
+      originalData.current = { ...editData };
+      setData(editData);
       setIsEditing(true);
     }
   };
@@ -379,10 +387,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             onPress={toggleEditing}
             style={styles.editButton}
             accessibilityRole="button"
-            accessibilityLabel={shouldShowEditingMode ? "Cancel editing" : "Edit focus and priorities"}
+            accessibilityLabel={shouldShowEditingMode ? 'Cancel editing' : 'Edit focus and priorities'}
           >
             <Ionicons
-              name={shouldShowEditingMode ? "close" : "pencil"}
+              name={shouldShowEditingMode ? 'close' : 'pencil'}
               size={16}
               color={Colors.mediumGray}
             />
@@ -413,7 +421,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                     style={[styles.input, styles.priorityInput]}
                     value={priority.text}
                     onChangeText={(text) => updatePriority(index, text)}
-                    placeholder={`Priority ${index + 1}`}
+                    placeholder={`Priority ${index + 1}...`}
                     placeholderTextColor={Colors.mediumGray}
                     onSubmitEditing={toggleEditing}
                     accessibilityLabel={`Priority ${index + 1} input`}
@@ -457,9 +465,11 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 <View style={styles.viewContainer}>
                   {data.focus && <Text style={styles.focusText}>{data.focus}</Text>}
                   <View style={styles.prioritiesList}>
-                    {data.priorities.some(p => p.text.trim() !== '') && (
-                      <Text style={styles.prioritiesTitle}>TOP PRIORITIES</Text>
-                    )}
+                    {data.priorities.some(p => p.text.trim() !== '') && (() => {
+                      const priorityCount = data.priorities.filter(p => p.text.trim() !== '').length;
+                      const priorityText = priorityCount === 1 ? 'TOP PRIORITY' : `TOP ${priorityCount} PRIORITIES`;
+                      return <Text style={styles.prioritiesTitle}>{priorityText}</Text>;
+                    })()}
                     {data.priorities
                       .filter(p => p.text.trim() !== '')
                       .map((priority, index) => (
@@ -674,7 +684,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: 12,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -723,14 +733,15 @@ const styles = StyleSheet.create({
     borderColor: Colors.growthGreen,
   },
   prioritiesTitle: {
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.medium,
     fontSize: 11,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginTop: 0,
-    marginBottom: 4,
-    fontWeight: '600',
+    marginTop: 4,
+    marginBottom: 8,
+    lineHeight: 16,
+    textAlign: 'left',
   },
   loadingText: {
     fontFamily: Fonts.regular,

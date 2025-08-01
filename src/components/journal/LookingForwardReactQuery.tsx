@@ -13,7 +13,7 @@ import {
   useUpdateLookingForwardEntry,
   useDeleteLookingForwardEntry,
 } from '../../services/hooks/useJournalData';
-import { useEditMode } from '../../systems/journal/context/EditModeContext';
+import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { LookingForwardSkeleton } from '../SkeletonLoader/LookingForwardSkeleton';
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary';
 import { analytics } from '../../utils/analytics';
@@ -25,14 +25,9 @@ interface LookingForwardProps {
 
 const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode }) => {
   // Global edit mode context (only for inline view)
-  let globalEditMode = null;
-  try {
-    if (viewMode === 'inline') {
-      globalEditMode = useEditMode();
-    }
-  } catch {
-    // useEditMode not available, continue without global edit mode
-  }
+  // Global edit mode context - safe version that handles missing provider
+  const globalEditMode = useEditModeSafe();
+
 
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
@@ -47,7 +42,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   const userId = user?.id || '';
 
   // Determine if we should be in adding mode
-  const shouldShowAddingMode = isAdding || isEditing || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
+  const shouldShowAddingMode = isAdding || isEditing || (viewMode === 'inline' && globalEditMode?.isGlobalEditMode);
 
   // Get looking forward entries with performance tracking
   const { data: entries = [], isLoading, error, refetch } = useLookingForwardData(userId, dateStr);

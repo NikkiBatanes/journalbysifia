@@ -19,6 +19,7 @@ interface ViewRendererProps {
   // Global edit mode props
   triggerGlobalEdit?: boolean;
   onGlobalEditTriggered?: () => void;
+  onGlobalEditModeChange?: (isGlobalEditMode: boolean) => void;
 }
 
 export const ViewRenderer: React.FC<ViewRendererProps> = ({
@@ -32,6 +33,7 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({
   showDateHeader,
   triggerGlobalEdit,
   onGlobalEditTriggered,
+  onGlobalEditModeChange,
 }) => {
   const commonProps = {
     plugins,
@@ -57,6 +59,7 @@ export const ViewRenderer: React.FC<ViewRendererProps> = ({
           {...commonProps}
           triggerGlobalEdit={triggerGlobalEdit}
           onGlobalEditTriggered={onGlobalEditTriggered}
+          onGlobalEditModeChange={onGlobalEditModeChange}
         />
       );
 

@@ -14,7 +14,7 @@ import {
   useUpdateJournalEntry,
   useDeleteJournalEntry,
 } from '../../services/hooks/useJournalData';
-import { useEditMode } from '../../systems/journal/context/EditModeContext';
+import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 import { ErrorBoundary } from '../ErrorBoundary';
 import { GratitudeSkeleton } from '../SkeletonLoader/GratitudeSkeleton';
@@ -34,14 +34,9 @@ interface GratitudeListProps {
 
 export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode }) => {
   // Global edit mode context (only for inline view)
-  let globalEditMode = null;
-  try {
-    if (viewMode === 'inline') {
-      globalEditMode = useEditMode();
-    }
-  } catch {
-    // useEditMode not available, continue without global edit mode
-  }
+  // Global edit mode context - safe version that handles missing provider
+  const globalEditMode = useEditModeSafe();
+
 
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -50,7 +45,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
 
   // Determine if we should be in adding mode
-  const shouldShowAddingMode = isAdding || isEditing || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
+  const shouldShowAddingMode = isAdding || isEditing || (viewMode === 'inline' && globalEditMode?.isGlobalEditMode);
 
   // Auth and date context
   const { user } = useAuth();
@@ -315,7 +310,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         closeAllSwipeables();
 
         // Close global edit mode if active
-        if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+        if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode) {
           globalEditMode.setGlobalEditMode(false);
         }
       } catch (saveError) {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, us
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
-import { Pencil } from 'lucide-react-native';
+import { Pencil, Check } from 'lucide-react-native';
 import { useScroll } from '../context/ScrollContext';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
@@ -34,10 +34,16 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const [viewMode, setViewMode] = useState<'carousel' | 'inline'>('carousel');
   const [currentPage, setCurrentPage] = useState(0);
   const [triggerGlobalEdit, setTriggerGlobalEdit] = useState(false);
+  const [isGlobalEditMode, setIsGlobalEditMode] = useState(false);
   const [targetComponentId, setTargetComponentId] = useState<string | null>(null);
   const lastSelectedDate = useRef<Date | null>(null);
   const pageScrollRefs = useRef<{ [key: string]: ScrollView | null }>({});
   const horizontalScrollRef = useRef<ScrollView>(null);
+
+  // Handle global edit mode changes from components
+  const handleGlobalEditModeChange = useCallback((isEditMode: boolean) => {
+    setIsGlobalEditMode(isEditMode);
+  }, []);
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -601,39 +607,42 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                   <View style={styles.inlinePageContainer}>
                     <Text style={styles.inlinePageTitle}>{page.title}</Text>
                     <View style={styles.inlineComponentsContainer}>
-                      {page.key === 'plan' && (
-                        <JournalSystem
-                          selectedDate={currentDate}
-                          viewMode="inline"
-                          categories={['plan']}
-                          refreshKey={refreshKey}
-                          triggerGlobalEdit={triggerGlobalEdit}
-                          onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
-                          style={styles.journalSystemContainer}
-                        />
-                      )}
-                      {page.key === 'reflect' && currentDate <= new Date() && (
-                        <JournalSystem
-                          selectedDate={currentDate}
-                          viewMode="inline"
-                          categories={['reflect']}
-                          refreshKey={refreshKey}
-                          triggerGlobalEdit={triggerGlobalEdit}
-                          onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
-                          style={styles.journalSystemContainer}
-                        />
-                      )}
-                      {page.key === 'pray' && currentDate <= new Date() && (
-                        <JournalSystem
-                          selectedDate={currentDate}
-                          viewMode="inline"
-                          categories={['pray']}
-                          refreshKey={refreshKey}
-                          triggerGlobalEdit={triggerGlobalEdit}
-                          onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
-                          style={styles.journalSystemContainer}
-                        />
-                      )}
+                       {page.key === 'plan' && (
+                         <JournalSystem
+                           selectedDate={currentDate}
+                           viewMode="inline"
+                           categories={['plan']}
+                           refreshKey={refreshKey}
+                           triggerGlobalEdit={triggerGlobalEdit}
+                           onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
+                           onGlobalEditModeChange={handleGlobalEditModeChange}
+                           style={styles.journalSystemContainer}
+                         />
+                       )}
+                       {page.key === 'reflect' && currentDate <= new Date() && (
+                         <JournalSystem
+                           selectedDate={currentDate}
+                           viewMode="inline"
+                           categories={['reflect']}
+                           refreshKey={refreshKey}
+                           triggerGlobalEdit={triggerGlobalEdit}
+                           onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
+                           onGlobalEditModeChange={handleGlobalEditModeChange}
+                           style={styles.journalSystemContainer}
+                         />
+                       )}
+                       {page.key === 'pray' && currentDate <= new Date() && (
+                         <JournalSystem
+                           selectedDate={currentDate}
+                           viewMode="inline"
+                           categories={['pray']}
+                           refreshKey={refreshKey}
+                           triggerGlobalEdit={triggerGlobalEdit}
+                           onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
+                           onGlobalEditModeChange={handleGlobalEditModeChange}
+                           style={styles.journalSystemContainer}
+                         />
+                       )}
                     </View>
                   </View>
                 </ScrollView>
@@ -655,7 +664,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                 </View>
                 {/* Global Edit Button positioned beside pagination */}
                 <TouchableOpacity
-                  style={styles.editButton}
+                  style={[styles.editButton, isGlobalEditMode && styles.editButtonActive]}
                   onPress={() => {
                     // Switch to inline view and trigger global edit mode
                     if (viewMode !== 'inline') {
@@ -666,14 +675,18 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                       }, 100);
                     } else {
                       // Toggle global edit mode if already in inline view
-                      setTriggerGlobalEdit(!triggerGlobalEdit);
+                      setTriggerGlobalEdit(true);
                     }
                   }}
                   activeOpacity={0.7}
                   accessibilityRole="button"
-                  accessibilityLabel="Toggle global edit mode"
+                  accessibilityLabel={isGlobalEditMode ? 'Save and exit edit mode' : 'Enter global edit mode'}
                 >
-                  <Pencil size={12} color={Colors.hopeWhite} strokeWidth={2.5} />
+                  {isGlobalEditMode ? (
+                    <Check size={12} color={Colors.hopeWhite} strokeWidth={2.5} />
+                  ) : (
+                    <Pencil size={12} color={Colors.hopeWhite} strokeWidth={2.5} />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -972,6 +985,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.3)', // Same as pagination background
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  editButtonActive: {
+    backgroundColor: Colors.alertCoral, // Active state with coral background
   },
   paginationContainer: {
     flexDirection: 'row',

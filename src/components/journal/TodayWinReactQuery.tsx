@@ -16,7 +16,7 @@ import {
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TodayWinSkeleton } from '../SkeletonLoader/TodayWinSkeleton';
 import { analytics } from '../../utils/analytics';
-import { useEditMode } from '../../systems/journal/context/EditModeContext';
+import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 interface TodayWinProps {
   selectedDate: Date;
@@ -25,14 +25,9 @@ interface TodayWinProps {
 
 const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) => {
   // Global edit mode context (only for inline view)
-  let globalEditMode = null;
-  try {
-    if (viewMode === 'inline') {
-      globalEditMode = useEditMode();
-    }
-  } catch {
-    // useEditMode not available, continue without global edit mode
-  }
+  // Global edit mode context - safe version that handles missing provider
+  const globalEditMode = useEditModeSafe();
+
 
   const { user } = useAuth();
   const [winText, setWinText] = useState('');

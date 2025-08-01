@@ -12,6 +12,7 @@ interface EnhancedJournalSystemProps extends JournalSystemProps {
   // Global edit mode props
   triggerGlobalEdit?: boolean;
   onGlobalEditTriggered?: () => void;
+  onGlobalEditModeChange?: (isGlobalEditMode: boolean) => void;
   style?: any;
 }
 
@@ -25,6 +26,7 @@ export const JournalSystem: React.FC<EnhancedJournalSystemProps> = ({
   showDateHeader = true,
   triggerGlobalEdit,
   onGlobalEditTriggered,
+  onGlobalEditModeChange,
   style,
 }) => {
   // Get plugins for specified categories and view mode
@@ -51,6 +53,7 @@ export const JournalSystem: React.FC<EnhancedJournalSystemProps> = ({
       showDateHeader={showDateHeader}
       triggerGlobalEdit={triggerGlobalEdit}
       onGlobalEditTriggered={onGlobalEditTriggered}
+      onGlobalEditModeChange={onGlobalEditModeChange}
     />
   );
 };
