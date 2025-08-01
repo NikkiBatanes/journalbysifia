@@ -2,22 +2,19 @@ import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, us
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';
-
-import { ScheduleContent } from '../components/journal/ScheduleContent';
-import PrayerJournalTabReactQuery from '../components/journal/PrayerJournalTabReactQuery';
+import PrayCarousel from '../components/journal/PrayCarousel';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
 
-type TabType = 'journal' | 'schedule' | 'prayer' | 'finance';
 
-type ViewMode = 'daily' | 'weekly' | 'monthly';
+
+
 
 export type JournalScreenRef = {
   resetToCurrentDate: () => void;
@@ -50,18 +47,16 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
       });
     },
   }));
-  const [viewMode, setViewMode] = useState<ViewMode>('daily');
+
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(new Date().getDay());
-  const [activeTab, setActiveTab] = useState<TabType>('journal');
+
 
   // Track if we've handled the initial scroll
   const hasInitializedScroll = useRef(false);
 
-  // Reset to Journal tab when screen comes into focus
+  // Reset scroll position when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      setActiveTab(prevTab => prevTab === 'journal' ? prevTab : 'journal');
-      // Only reset scroll position if we haven't initialized yet
       if (!hasInitializedScroll.current) {
         const today = new Date();
         setCurrentDate(today);
@@ -176,13 +171,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     setSelectedDayOfWeek(currentDate.getDay());
   }, [currentDate]);
 
-  // Switch away from prayer tab when future date is selected
-  useEffect(() => {
-    const isFutureDate = currentDate > new Date();
-    if (isFutureDate && activeTab === 'prayer') {
-      setActiveTab('journal');
-    }
-  }, [currentDate, activeTab]);
+
 
   // Track scroll position and update current date based on visible week
   const handleScroll = (event: any) => {
@@ -347,146 +336,9 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     }
   }, [user, currentDate, isRefreshing]);
 
-  const renderTabContent = () => {
-    const isFutureDate = currentDate > new Date();
 
-    switch (activeTab) {
-      case 'journal':
-        return (
-          <ScrollView
-            style={styles.tabContent}
-            contentContainerStyle={styles.scrollViewContent}
-            onScroll={handleContentScroll}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                tintColor={Colors.alertCoral}
-                colors={[Colors.alertCoral]}
-              />
-            }
-          >
-            <PlanCarousel selectedDate={currentDate} refreshKey={refreshKey} />
-            {/* Only show ReflectCarousel for today or past dates */}
-            {!isFutureDate && (
-              <ReflectCarousel selectedDate={currentDate} refreshKey={refreshKey} />
-            )}
-          </ScrollView>
-        );
-      case 'schedule':
-        return (
-          <ScrollView
-            style={styles.tabContent}
-            contentContainerStyle={styles.scrollViewContent}
-            onScroll={handleContentScroll}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                tintColor={Colors.alertCoral}
-                colors={[Colors.alertCoral]}
-              />
-            }
-          >
-            <ScheduleContent selectedDate={currentDate} />
-          </ScrollView>
-        );
-      case 'prayer':
-        return (
-          <ScrollView
-            style={styles.tabContent}
-            contentContainerStyle={styles.scrollViewContent}
-            onScroll={handleContentScroll}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                tintColor={Colors.alertCoral}
-                colors={[Colors.alertCoral]}
-              />
-            }
-          >
-            <PrayerJournalTabReactQuery selectedDate={currentDate} />
-          </ScrollView>
-        );
-      case 'finance':
-        return (
-          <ScrollView
-            style={styles.tabContent}
-            contentContainerStyle={styles.scrollViewContent}
-            onScroll={handleContentScroll}
-            scrollEventThrottle={16}
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                tintColor={Colors.alertCoral}
-                colors={[Colors.alertCoral]}
-              />
-            }
-          >
-            <Text style={styles.tabText}>Finance Content</Text>
-          </ScrollView>
-        );
-      default:
-        return null;
-    }
-  };
 
-  const renderTabBar = () => {
-    const isFutureDate = currentDate > new Date();
 
-    return (
-      <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'journal' && styles.activeTab]}
-          onPress={() => setActiveTab('journal')}
-        >
-          <Ionicons
-            name="journal-outline"
-            size={20}
-            color={activeTab === 'journal' ? Colors.alertCoral : Colors.mediumGray}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'schedule' && styles.activeTab]}
-          onPress={() => setActiveTab('schedule')}
-        >
-          <Ionicons
-            name="calendar-outline"
-            size={20}
-            color={activeTab === 'schedule' ? Colors.alertCoral : Colors.mediumGray}
-          />
-        </TouchableOpacity>
-        {/* Hide prayer tab for future dates */}
-        {!isFutureDate && (
-          <TouchableOpacity
-            style={[styles.tabItem, activeTab === 'prayer' && styles.activeTab]}
-            onPress={() => setActiveTab('prayer')}
-          >
-            <Ionicons
-              name="heart-outline"
-              size={20}
-              color={activeTab === 'prayer' ? Colors.alertCoral : Colors.mediumGray}
-            />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'finance' && styles.activeTab]}
-          onPress={() => setActiveTab('finance')}
-        >
-          <Ionicons
-            name="wallet-outline"
-            size={20}
-            color={activeTab === 'finance' ? Colors.alertCoral : Colors.mediumGray}
-          />
-        </TouchableOpacity>
-      </View>
-    );
-  };
 
   return (
     <View style={styles.container}>
@@ -495,45 +347,13 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
         <View style={[styles.monthYearContainer, styles.headerContent, isHeaderCollapsed && styles.collapsedPadding]}>
           <Text style={styles.monthYearText}>
             {isHeaderCollapsed
-              ? currentDate.getFullYear() === new Date().getFullYear()
+              ? (currentDate.getFullYear() === new Date().getFullYear()
                 ? format(currentDate, 'EEEE, MMMM d')
-                : format(currentDate, 'EEEE, MMMM d, yyyy')
-              : currentDate.getFullYear() === new Date().getFullYear()
+                : format(currentDate, 'EEEE, MMMM d, yyyy'))
+              : (currentDate.getFullYear() === new Date().getFullYear()
                 ? format(currentDate, 'MMMM')
-                : format(currentDate, 'MMMM yyyy')}
+                : format(currentDate, 'MMMM yyyy'))}
           </Text>
-          <View style={styles.viewModeContainer}>
-            <TouchableOpacity
-              style={[styles.viewModeButton, viewMode === 'daily' && styles.activeViewMode]}
-              onPress={() => setViewMode('daily')}
-            >
-              <Ionicons
-                name="calendar"
-                size={20}
-                color={viewMode === 'daily' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.viewModeButton, viewMode === 'weekly' && styles.activeViewMode]}
-              onPress={() => setViewMode('weekly')}
-            >
-              <Ionicons
-                name="calendar-outline"
-                size={20}
-                color={viewMode === 'weekly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.viewModeButton, viewMode === 'monthly' && styles.activeViewMode]}
-              onPress={() => setViewMode('monthly')}
-            >
-              <Ionicons
-                name="calendar-sharp"
-                size={20}
-                color={viewMode === 'monthly' ? Colors.hopeWhite : 'rgba(255,255,255,0.7)'}
-              />
-            </TouchableOpacity>
-          </View>
         </View>
         <Animated.View
           style={[
@@ -560,9 +380,30 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
           </ScrollView>
         </Animated.View>
       </View>
-      {renderTabBar()}
       <View style={styles.content}>
-        {renderTabContent()}
+        <ScrollView
+          style={styles.tabContent}
+          contentContainerStyle={styles.scrollViewContent}
+          onScroll={handleContentScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              tintColor={Colors.alertCoral}
+              colors={[Colors.alertCoral]}
+            />
+          }
+        >
+          <PlanCarousel selectedDate={currentDate} refreshKey={refreshKey} />
+          {/* Only show ReflectCarousel for today or past dates */}
+          {currentDate <= new Date() && (
+            <>
+              <ReflectCarousel selectedDate={currentDate} refreshKey={refreshKey} />
+              <PrayCarousel selectedDate={currentDate} />
+            </>
+          )}
+        </ScrollView>
       </View>
     </View>
   );
@@ -596,6 +437,7 @@ const styles = StyleSheet.create({
   },
   tabContent: {
     flex: 1,
+    gap: 24,
   },
   tabContentNoPadding: {
     flex: 1,
@@ -608,7 +450,7 @@ const styles = StyleSheet.create({
   scrollViewContent: {
     padding: 4, // Reduced from 8
     paddingBottom: 100,
-    gap: 8, // Add gap between carousel items
+    gap: 0, // Add gap between carousel items
   },
   tabText: {
     fontSize: 16,
@@ -787,6 +629,8 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
+    borderRadius: 24,
+
   },
   scrollContainer: {
     width: '100%',
