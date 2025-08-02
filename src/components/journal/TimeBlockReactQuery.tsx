@@ -797,7 +797,8 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   mode="time"
                   display="spinner"
                   onChange={onTimeChange}
-                  themeVariant="light"
+                  themeVariant="dark"
+                  textColor={Colors.hopeWhite}
                   minuteInterval={5}
                 />
                 <TouchableOpacity
@@ -835,7 +836,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             <Ionicons
               name="location-outline"
               size={18}
-              color={Colors.darkGray}
+              color={Colors.hopeWhite}
               style={styles.locationIcon}
             />
             <TextInput
@@ -866,7 +867,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <Ionicons
                 name={newBlock.category ? CATEGORIES.find(cat => cat.name === newBlock.category)?.icon || 'square-outline' : 'add-circle-outline'}
                 size={16}
-                color={newBlock.category ? Colors.anchorBlue : Colors.darkGray}
+                color={newBlock.category ? Colors.hopeWhite : Colors.hopeWhite}
               />
               <Text style={[
                 styles.categorySelectorText,
@@ -878,7 +879,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <Ionicons
                 name="chevron-down"
                 size={16}
-                color={(!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.darkGray}
+                color={(!newBlock.category && showCategoryError) ? Colors.alertCoral : Colors.hopeWhite}
               />
             </TouchableOpacity>
             {showCategoryError && !newBlock.category && (
@@ -895,7 +896,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <Ionicons
                 name="repeat-outline"
                 size={18}
-                color={Colors.darkGray}
+                color={Colors.hopeWhite}
                 style={styles.repeatIcon}
               />
               <Text style={styles.repeatText}>
@@ -904,7 +905,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <Ionicons
                 name={showRepeatOptions ? 'chevron-up' : 'chevron-down'}
                 size={16}
-                color={Colors.darkGray}
+                color={Colors.hopeWhite}
               />
             </TouchableOpacity>
 
@@ -1124,62 +1125,86 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
                   )}
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.endRepeatOption,
-                    newBlock.repeat.endDate && styles.selectedEndRepeatOption,
-                  ]}
-                  onPress={() => {
-                    setShowEndDatePicker(true);
-                  }}
-                >
-                  <Text style={styles.endRepeatOptionText}>
-                    {newBlock.repeat.endDate
-                      ? newBlock.repeat.endDate.toLocaleDateString()
-                      : 'Select Date'}
-                  </Text>
-                  {newBlock.repeat.endDate && (
-                    <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
-                  )}
-                </TouchableOpacity>
-              </View>
-              {_showEndDatePicker && (
-                <View style={styles.datePickerContainer}>
-                  <DateTimePicker
-                    value={newBlock.repeat.endDate || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={(event, pickedDate) => {
-                      setShowEndDatePicker(false);
-                      if (event.type === 'set' && pickedDate) {
-                        setNewBlock({
-                          ...newBlock,
-                          repeat: {
-                            ...newBlock.repeat,
-                            endDate: pickedDate,
-                          },
-                        });
-                      }
+                <View style={styles.dateDropdownContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.endRepeatOption,
+                      newBlock.repeat.endDate && styles.selectedEndRepeatOption,
+                    ]}
+                    onPress={() => {
+                      setShowEndDatePicker(!_showEndDatePicker);
                     }}
-                  />
+                  >
+                    <Text style={styles.endRepeatOptionText}>
+                      {newBlock.repeat.endDate
+                        ? newBlock.repeat.endDate.toLocaleDateString()
+                        : 'Select End Date'}
+                    </Text>
+                    <View style={styles.dropdownIconContainer}>
+                      {newBlock.repeat.endDate && (
+                        <Ionicons name="checkmark" size={16} color={Colors.alertCoral} style={styles.checkmarkIcon} />
+                      )}
+                      <Ionicons 
+                        name={_showEndDatePicker ? "chevron-up" : "chevron-down"} 
+                        size={16} 
+                        color={Colors.hopeWhite} 
+                      />
+                    </View>
+                  </TouchableOpacity>
+
                 </View>
-              )}
+              </View>
+
             </View>
           )}
 
+          {/* End Date Picker Modal */}
+          {_showEndDatePicker && (
+            <Modal
+              visible={_showEndDatePicker}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowEndDatePicker(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <View style={styles.datePickerModalContent}>
+                  <Text style={styles.datePickerTitle}>Select End Date</Text>
+                  <DateTimePicker
+                    value={newBlock.repeat.endDate || new Date()}
+                    mode="date"
+                    display="spinner"
+                    onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
+                      if (event.type === 'set' && selectedDate) {
+                        setNewBlock(prev => ({
+                          ...prev,
+                          repeat: {
+                            ...prev.repeat,
+                            endDate: selectedDate,
+                          },
+                        }));
+                      }
+                      setShowEndDatePicker(false);
+                    }}
+                    minimumDate={new Date()}
+                    themeVariant="dark"
+                    textColor={Colors.hopeWhite}
+                  />
+                </View>
+              </View>
+            </Modal>
+          )}
+
           {/* 6. Notes */}
-          <View style={styles.notesContainer}>
-            <TextInput
-              style={[styles.input, styles.notesInput]}
-              value={newBlock.notes}
-              onChangeText={(text) => setNewBlock({...newBlock, notes: text})}
-              placeholder="Add notes (optional)"
-              placeholderTextColor={Colors.mediumGray}
-              multiline
-              numberOfLines={2}
-              textAlignVertical="top"
-            />
-          </View>
+          <TextInput
+            style={[styles.input, styles.notesInput]}
+            value={newBlock.notes}
+            onChangeText={(text) => setNewBlock({...newBlock, notes: text})}
+            placeholder="Add notes (optional)"
+            placeholderTextColor={Colors.mediumGray}
+            multiline
+            numberOfLines={2}
+            textAlignVertical="top"
+          />
 
           {/* Category Picker Modal */}
           <Modal
@@ -1436,8 +1461,8 @@ const styles = StyleSheet.create({
   timeColumn: {
     width: 90,
     paddingRight: 12,
-    borderRightWidth: 0.5,
-    borderRightColor: 'rgba(26, 60, 109, 0.1)',
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingLeft: 4,
@@ -1458,7 +1483,7 @@ const styles = StyleSheet.create({
   timeSeparatorText: {
     fontFamily: Fonts.regular,
     fontSize: 8,
-    color: Colors.mediumGray,
+    color: Colors.hopeWhite,
     marginVertical: 2,
     letterSpacing: 0.5,
   },
@@ -1605,11 +1630,12 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   timeText: {
-    fontFamily: Fonts.medium,
-    color: Colors.darkGray,
+    fontFamily: Fonts.semiBold,
+    color: Colors.hopeWhite,
     fontSize: 13,
     minWidth: 40,
     lineHeight: 18,
+    fontWeight: '600',
   },
   timeTextInline: {
     color: Colors.hopeWhite,
@@ -1678,13 +1704,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     padding: 10,
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     minHeight: 40,
     fontSize: 14,
   },
@@ -1700,20 +1726,22 @@ const styles = StyleSheet.create({
   categorySelector: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     minHeight: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'transparent',
     width: '100%',
   },
   categorySelectorText: {
     fontFamily: Fonts.regular,
     fontSize: 14,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
+    marginLeft: 8,
+    flex: 1,
   },
   placeholderText: {
     color: Colors.mediumGray,
@@ -1748,7 +1776,7 @@ const styles = StyleSheet.create({
   allDayLabel: {
     fontFamily: Fonts.medium,
     fontSize: 14,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
   },
   toggle: {
     width: 44,
@@ -1780,19 +1808,22 @@ const styles = StyleSheet.create({
   timeLabel: {
     fontFamily: Fonts.medium,
     fontSize: 14,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
   },
   notesInput: {
     minHeight: 60,
     textAlignVertical: 'top',
     marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     width: '100%',
     alignSelf: 'stretch',
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     padding: 8,
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.regular,
+    fontSize: 14,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -1860,9 +1891,12 @@ const styles = StyleSheet.create({
   },
   timePickerContainer: {
     marginTop: 12,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: 'transparent',
+    borderRadius: 24,
+    padding: 12,
+    // overflow: 'hidden', // allow highlight to show round corners
+    maxWidth: '130%',
+    alignSelf: 'center',
   },
   doneButton: {
     backgroundColor: Colors.alertCoral,
@@ -1887,10 +1921,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: 10,
     minHeight: 40,
   },
@@ -1902,7 +1936,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 0,
     padding: 0,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.regular,
     fontSize: 14,
     height: '100%',
@@ -1925,10 +1959,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   repeatIcon: {
     marginRight: 8,
@@ -1941,18 +1975,18 @@ const styles = StyleSheet.create({
   },
   repeatOptions: {
     marginTop: 8,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 6,
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   repeatOption: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
   },
   selectedRepeatOption: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
@@ -1960,7 +1994,7 @@ const styles = StyleSheet.create({
   repeatOptionText: {
     fontFamily: Fonts.regular,
     fontSize: 14,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
   },
   modalOverlay: {
     flex: 1,
@@ -2017,10 +2051,10 @@ const styles = StyleSheet.create({
   customRepeatContainer: {
     marginTop: 8,
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 6,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   customRepeatLabel: {
     fontFamily: Fonts.regular,
@@ -2033,7 +2067,7 @@ const styles = StyleSheet.create({
   },
   frequencyLabel: {
     fontSize: 14,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.medium,
     marginBottom: 8,
   },
@@ -2047,12 +2081,12 @@ const styles = StyleSheet.create({
     width: 50,
     height: 36,
     backgroundColor: 'transparent',
-    borderRadius: 6,
+    borderRadius: 12,
     padding: 8,
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     textAlign: 'center',
     fontSize: 14,
   },
@@ -2061,9 +2095,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: 'transparent',
-    borderRadius: 6,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: 10,
     height: 36,
     minWidth: 100,
@@ -2071,7 +2105,7 @@ const styles = StyleSheet.create({
   frequencyUnitText: {
     flex: 1,
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -2080,10 +2114,10 @@ const styles = StyleSheet.create({
     top: 70,
     left: 0,
     right: 0,
-    backgroundColor: 'white',
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.lightGray,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     zIndex: 1000,
     elevation: 5,
   },
@@ -2091,13 +2125,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
   },
   frequencyOptionText: {
     flex: 1,
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontSize: 14,
   },
   customDaysContainer: {
@@ -2108,7 +2142,7 @@ const styles = StyleSheet.create({
   },
   customDaysLabel: {
     fontSize: 14,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.medium,
     marginBottom: 8,
   },
@@ -2119,23 +2153,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   dayButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 6,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
-    margin: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    margin: 1,
   },
   dayButtonSelected: {
     backgroundColor: Colors.alertCoral,
     borderColor: Colors.alertCoral,
   },
   dayButtonText: {
-    fontSize: 14,
-    color: Colors.darkGray,
+    fontSize: 12,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.medium,
   },
   dayButtonTextSelected: {
@@ -2147,13 +2181,16 @@ const styles = StyleSheet.create({
   },
   endRepeatLabel: {
     fontSize: 14,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     fontFamily: Fonts.medium,
     marginBottom: 8,
   },
   endRepeatOptions: {
     flexDirection: 'row',
     gap: 8,
+    flex: 1,
+    minWidth: '50%',
+    maxWidth: '100%',
   },
   endRepeatOption: {
     flex: 1,
@@ -2161,10 +2198,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   selectedEndRepeatOption: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
@@ -2173,7 +2210,7 @@ const styles = StyleSheet.create({
   endRepeatOptionText: {
     fontFamily: Fonts.regular,
     fontSize: 14,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     flex: 1,
   },
   datePickerContainer: {
@@ -2181,5 +2218,51 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
     borderRadius: 16,
     padding: 16,
+  },
+  datePickerModalContent: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    margin: 0,
+    alignItems: 'center',
+    // Removed border for compact modal
+  },
+  datePickerTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.semiBold,
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  repeatOptionsModal: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 16,
+    padding: 20,
+    margin: 20,
+    maxHeight: '70%',
+  },
+  repeatModalTitle: {
+    fontSize: 18,
+    fontFamily: Fonts.semiBold,
+    color: Colors.hopeWhite,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  datePickerCompact: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  dateDropdownContainer: {
+    position: 'relative',
+    flex: 1,
+  },
+  dropdownIconContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  checkmarkIcon: {
+    marginRight: 4,
   },
 });

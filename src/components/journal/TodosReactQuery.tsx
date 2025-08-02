@@ -485,8 +485,13 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
-      headerRight={
-        <View style={styles.headerRightContainer}>
+      variant={variant}
+      viewMode={viewMode}
+      expanded={expanded}
+      onExpand={onExpand}
+    >
+      {hasContent && (
+        <View style={styles.filtersContainer}>
           {todos.some(t => t.priority && !t.completed) && (
             <TouchableOpacity
               onPress={() => {
@@ -536,12 +541,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             </TouchableOpacity>
           )}
         </View>
-      }
-      variant={variant}
-      viewMode={viewMode}
-      expanded={expanded}
-      onExpand={onExpand}
-    >
+      )}
       <View
         style={styles.todosContainer}
         accessibilityRole="list"
@@ -780,6 +780,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  filtersContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 0,
+    paddingHorizontal: 4,
+    paddingBottom: 8,
+    marginTop: -4,
   },
   activeFilterButton: {
     // No background, just color change for active state

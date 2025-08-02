@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontFamily: Fonts.semiBold,
     fontSize: 12,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginBottom: 8,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
@@ -595,7 +595,7 @@ const styles = StyleSheet.create({
   sectionHeaderWithBottomMargin: {
     fontFamily: Fonts.semiBold,
     fontSize: 12,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginBottom: 8,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
