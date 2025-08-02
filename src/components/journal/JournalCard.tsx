@@ -21,6 +21,7 @@ interface JournalCardProps {
   viewMode?: ViewMode;
   expanded?: boolean;
   onExpand?: () => void;
+  showSubtitleInInlineView?: boolean;
 }
 
 export const JournalCard: React.FC<JournalCardProps> = ({
@@ -91,7 +92,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             )}
             <View style={styles.titleContainer}>
               <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
-              {subtitle && (viewMode as string) !== 'inline' && <Text style={styles.subtitle}>{subtitle}</Text>}
+              {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
             </View>
           </View>
           {/* Floating edit button for empty card */}
@@ -125,6 +126,9 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     return baseStyle;
   };
 
+  // Only show subtitle for Todos component in both carousel and inline views
+  const shouldShowSubtitle = title === 'TO-DOS' && (variant === 'carousel' || variant === 'inline');
+
   return (
     <View style={getCardStyle()}>
       <View style={styles.header}>
@@ -146,7 +150,11 @@ export const JournalCard: React.FC<JournalCardProps> = ({
           )}
           <View style={styles.titleContainer}>
             <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
-            {subtitle && (viewMode as string) !== 'inline' && <Text style={styles.subtitle}>{subtitle}</Text>}
+            {shouldShowSubtitle && subtitle && (
+              <Text style={styles.subtitle}>
+                {subtitle}
+              </Text>
+            )}
           </View>
         </View>
         {/* Floating edit button */}

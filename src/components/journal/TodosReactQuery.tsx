@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, Modal, Platform } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -51,8 +52,25 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const [showCompletedAtBottom, setShowCompletedAtBottom] = useState(false);
   const [showOnlyPriorities, setShowOnlyPriorities] = useState(false);
+  const [showCopyModal, setShowCopyModal] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [copyTargetDate, setCopyTargetDate] = useState<Date>(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  });
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
   const inputRef = useRef<TextInput>(null);
+
+  const toggleCalendar = () => {
+    setShowCalendar(!showCalendar);
+  };
+
+  const handleDayPress = (day: any) => {
+    const selectedDate = new Date(day.timestamp);
+    setCopyTargetDate(selectedDate);
+    setShowCalendar(false);
+  };
 
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
@@ -328,6 +346,86 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     setVisibleCount(5);
   };
 
+  // Format selected date for display
+  const formatSelectedDate = (date: Date) => {
+    const currentYear = new Date().getFullYear();
+    const dateYear = date.getFullYear();
+    
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    };
+    
+    // Only include year if it's different from current year
+    if (dateYear !== currentYear) {
+      options.year = 'numeric';
+    }
+    
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  // Copy incomplete todos to another date
+  const copyIncompleteTodos = async (targetDate: Date) => {
+    if (!user) return;
+    
+    const incompleteTodos = todos.filter(t => !t.completed);
+    if (incompleteTodos.length === 0) {
+      Alert.alert('No Incomplete Todos', 'There are no incomplete todos to copy.');
+      return;
+    }
+
+    try {
+      const targetDateStr = toLocalDateString(targetDate);
+      let successCount = 0;
+      
+      for (const todo of incompleteTodos) {
+        try {
+          await createTodoMutation.mutateAsync({
+            user_id: user.id,
+            selected_date: targetDateStr,
+            content_type: 'todo',
+            content: JSON.stringify({
+              text: todo.text,
+              completed: false,
+              priority: todo.priority || false,
+            }),
+            completed: false,
+          });
+          successCount++;
+        } catch (error) {
+          console.error('Failed to copy todo:', todo.text, error);
+        }
+      }
+      
+      if (successCount > 0) {
+        Alert.alert(
+          'Todos Copied',
+          `Successfully copied ${successCount} incomplete todo${successCount === 1 ? '' : 's'} to ${targetDate.toLocaleDateString()}.`
+        );
+        analytics.trackTodoEvent('todo_created', {
+          text_length: incompleteTodos.reduce((sum, t) => sum + t.text.length, 0),
+          has_priority: incompleteTodos.some(t => t.priority),
+          date: targetDateStr,
+        }, user.id);
+      } else {
+        Alert.alert('Copy Failed', 'Failed to copy todos. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to copy todos:', error);
+      Alert.alert('Error', 'Failed to copy todos. Please try again.');
+    }
+  };
+
+  const handleCopyTodos = () => {
+    const incompleteTodos = todos.filter(t => !t.completed);
+    if (incompleteTodos.length === 0) {
+      Alert.alert('No Incomplete Todos', 'There are no incomplete todos to copy.');
+      return;
+    }
+    setShowCopyModal(true);
+  };
+
   // Sort todos: incomplete first, then completed
   const sortedTodos = [...todos].sort((a, b) => {
     if (showCompletedAtBottom) {
@@ -476,27 +574,37 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   }
 
   const hasContent = todos.length > 0;
+  const showHeader = variant === 'carousel' || variant === 'inline' || hasContent || shouldShowAddingMode; // Always show header in carousel and inline views
   
   // Calculate todo stats for carousel view
   const completedCount = todos.filter(t => t.completed).length;
   const uncompletedCount = todos.length - completedCount;
   const getSubtitle = () => {
-    if (!hasContent) return undefined;
-    if (variant === 'carousel') {
+    console.log('getSubtitle called', { variant, showHeader, todosLength: todos.length });
+    if (!showHeader) return undefined;
+    if (variant === 'carousel' || variant === 'inline') {
       if (todos.length === 0) return 'Track your daily tasks';
-      if (completedCount === 0) return `${todos.length} todo${todos.length === 1 ? '' : 's'}`;
-      if (uncompletedCount === 0) return `${completedCount} completed`;
+      if (completedCount === 0) {
+        // Only incomplete todos
+        return `${todos.length} to-do${todos.length === 1 ? '' : 's'}`;
+      }
+      if (uncompletedCount === 0) {
+        // All completed
+        return `${completedCount} completed`;
+      }
+      // Both pending and done exist
       return `${uncompletedCount} pending • ${completedCount} done`;
     }
     return 'Track your daily tasks';
   };
 
   return (
+    <>
     <JournalCard
-      icon={hasContent ? (
+      icon={showHeader ? (
         <Entypo name="list" size={24} color={Colors.alertCoral} />
       ) : undefined}
-      title={hasContent ? 'TO-DOS' : undefined}
+      title={showHeader ? 'TO-DOS' : undefined}
       subtitle={getSubtitle()}
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={startAdding}
@@ -553,6 +661,23 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 name="filter"
                 size={16}
                 color={showCompletedAtBottom ? Colors.alertCoral : Colors.mediumGray}
+              />
+            </TouchableOpacity>
+          )}
+          {/* Copy incomplete todos button */}
+          {todos.some(t => !t.completed) && (
+            <TouchableOpacity
+              onPress={handleCopyTodos}
+              style={styles.sortButton}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Copy incomplete todos to another date"
+              accessibilityHint="Opens date picker to copy all incomplete todos"
+            >
+              <Ionicons
+                name="copy-outline"
+                size={16}
+                color={Colors.mediumGray}
               />
             </TouchableOpacity>
           )}
@@ -706,6 +831,119 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         </>
       )}
     </JournalCard>
+    
+    {/* Copy Todos Modal */}
+    <Modal
+      visible={showCopyModal}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowCopyModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Copy Incomplete To-Dos</Text>
+          <Text style={styles.modalSubtitle}>
+            Copy {todos.filter(t => !t.completed).length} incomplete to-do{todos.filter(t => !t.completed).length === 1 ? '' : 's'} to a new date. Original to-dos will remain.
+          </Text>
+          
+          <Text style={styles.chooseDateLabel}>Choose a date</Text>
+          <View style={styles.datePickerContainer}>
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => {
+                // Simple date picker - tomorrow
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                setCopyTargetDate(tomorrow);
+              }}
+            >
+              <Text style={styles.datePickerText}>Tomorrow</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.datePickerButton}
+              onPress={() => {
+                // Simple date picker - next week
+                const nextWeek = new Date();
+                nextWeek.setDate(nextWeek.getDate() + 7);
+                setCopyTargetDate(nextWeek);
+              }}
+            >
+              <Text style={styles.datePickerText}>Next Week</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.calendarContainer}>
+            <TouchableOpacity 
+              style={styles.selectedDateContainer}
+              onPress={toggleCalendar}
+            >
+              <Text style={styles.selectedDateText}>
+                {formatSelectedDate(copyTargetDate)}
+              </Text>
+              <Text style={styles.tapToChangeText}>
+                {showCalendar ? 'Hide calendar' : 'Tap to change'}
+              </Text>
+            </TouchableOpacity>
+
+            {showCalendar && (
+              <View style={styles.calendarWrapper}>
+                <Calendar
+                  current={copyTargetDate.toISOString().split('T')[0]}
+                  minDate={new Date().toISOString().split('T')[0]}
+                  onDayPress={handleDayPress}
+                  monthFormat="MMMM yyyy"
+                  hideArrows={false}
+                  firstDay={1}
+                  onPressArrowLeft={subtractMonth => subtractMonth()}
+                  onPressArrowRight={addMonth => addMonth()}
+                  theme={{
+                    backgroundColor: Colors.anchorBlue,
+                    calendarBackground: Colors.anchorBlue,
+                    textSectionTitleColor: Colors.hopeWhite,
+                    selectedDayBackgroundColor: Colors.alertCoral,
+                    selectedDayTextColor: Colors.hopeWhite,
+                    todayTextColor: Colors.alertCoral,
+                    dayTextColor: Colors.hopeWhite,
+                    textDisabledColor: 'rgba(255, 255, 255, 0.3)',
+                    dotColor: Colors.alertCoral,
+                    selectedDotColor: Colors.hopeWhite,
+                    arrowColor: Colors.hopeWhite,
+                    monthTextColor: Colors.hopeWhite,
+                    textDayFontFamily: Fonts.regular,
+                    textMonthFontFamily: Fonts.semiBold,
+                    textDayHeaderFontFamily: Fonts.medium,
+                    textDayFontSize: 14,
+                    textMonthFontSize: 16,
+                    textDayHeaderFontSize: 13,
+                  }}
+                />
+              </View>
+            )}
+          </View>
+          
+          <View style={styles.modalButtons}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowCopyModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.modalButton, styles.copyButton]}
+              onPress={async () => {
+                setShowCopyModal(false);
+                await copyIncompleteTodos(copyTargetDate);
+              }}
+            >
+              <Text style={styles.copyButtonText}>Add to Date</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+    </>
   );
 };
 
@@ -928,9 +1166,6 @@ const styles = StyleSheet.create({
   saveButton: {
     backgroundColor: Colors.alertCoral,
   },
-  cancelButton: {
-    backgroundColor: Colors.mediumGray,
-  },
   disabledButton: {
     opacity: 0.5,
   },
@@ -969,8 +1204,166 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   retryText: {
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     fontSize: 12,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 16,
+    padding: 28,
+    width: '100%',
+    maxWidth: 340,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+    marginBottom: 12,
+  },
+  modalSubtitle: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 24,
+    opacity: 0.9,
+    paddingHorizontal: 4,
+  },
+  chooseDateLabel: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'left',
+    marginBottom: 12,
+    opacity: 0.8,
+  },
+  datePickerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  datePickerButton: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    marginHorizontal: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  datePickerText: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  calendarContainer: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  selectedDateContainer: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    marginBottom: 12,
+  },
+  calendarWrapper: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginTop: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
+  },
+  selectedDateText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 4,
+    opacity: 0.9,
+  },
+  tapToChangeText: {
+    fontFamily: Fonts.regular,
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.6,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  copyButton: {
+    backgroundColor: Colors.alertCoral,
+  },
+  cancelButtonText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+  },
+  copyButtonText: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    letterSpacing: 0.2,
   },
 });
