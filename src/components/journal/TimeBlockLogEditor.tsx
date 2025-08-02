@@ -5,6 +5,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { getCategoryIcon } from './TimeBlockCategories';
 
 interface TimeBlockLogEditorProps {
   onSave: (data: {
@@ -47,26 +48,7 @@ export interface TimeBlockLogEditorRef {
   focusInput: () => void;
 }
 
-const CATEGORIES = [
-  { name: 'Appointments', icon: 'calendar' },
-  { name: 'Break Time', icon: 'cafe' },
-  { name: 'Career Growth', icon: 'rocket' },
-  { name: 'Church Activities', icon: 'people' },
-  { name: 'Deep Work', icon: 'code-working' },
-  { name: 'Events', icon: 'calendar-number' },
-  { name: 'Family Time', icon: 'people-circle' },
-  { name: 'Life Admin', icon: 'document-text' },
-  { name: 'Mental Health', icon: 'heart' },
-  { name: 'Ministry', icon: 'hand-left' },
-  { name: 'Personal Growth', icon: 'person' },
-  { name: 'Physical Health', icon: 'barbell' },
-  { name: 'Projects', icon: 'folder' },
-  { name: 'Quiet Time', icon: 'book' },
-  { name: 'Recreation', icon: 'airplane' },
-  { name: 'Sleep & Recovery', icon: 'moon' },
-  { name: 'Work Meetings', icon: 'briefcase' },
-  { name: 'Others', icon: 'ellipsis-horizontal' },
-];
+
 
 // Styles matching other log editors
 const defaultStyles = {
@@ -857,7 +839,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                 accessibilityLabel="Select Category"
               >
                 <Ionicons
-                  name={CATEGORIES.find((cat) => cat.name === category)?.icon as any}
+                  name={getCategoryIcon(category) as any}
                   size={16}
                   color={Colors.hopeWhite}
                   style={s.categoryIcon}

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Swipeable } from 'react-native-gesture-handler';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, FlatList } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -20,6 +20,8 @@ import {
   useDeleteTimeBlock,
 } from '../../services/hooks/useTimeBlockData';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import { getCategoryColor, getCategoryIcon } from './TimeBlockCategories';
+import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -43,26 +45,7 @@ interface TimeBlockItem {
   };
 }
 
-const CATEGORIES = [
-  { name: 'Appointments', icon: 'calendar' },
-  { name: 'Break Time', icon: 'cafe' },
-  { name: 'Career Growth', icon: 'rocket' },
-  { name: 'Church Activities', icon: 'people' },
-  { name: 'Deep Work', icon: 'code-working' },
-  { name: 'Events', icon: 'calendar-number' },
-  { name: 'Family Time', icon: 'people-circle' },
-  { name: 'Life Admin', icon: 'document-text' },
-  { name: 'Mental Health', icon: 'heart' },
-  { name: 'Ministry', icon: 'hand-left' },
-  { name: 'Personal Growth', icon: 'person' },
-  { name: 'Physical Health', icon: 'barbell' },
-  { name: 'Projects', icon: 'folder' },
-  { name: 'Quiet Time', icon: 'book' },
-  { name: 'Recreation', icon: 'airplane' },
-  { name: 'Sleep & Recovery', icon: 'moon' },
-  { name: 'Work Meetings', icon: 'briefcase' },
-  { name: 'Others', icon: 'ellipsis-horizontal' },
-];
+
 
 const formatDuration = (start: Date, end: Date): string => {
   const diffInMs = end.getTime() - start.getTime();
@@ -110,14 +93,7 @@ const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[], cus
   }
 };
 
-const getCategoryColor = (categoryName: string): string => {
-  const colors = [Colors.alertCoral, Colors.anchorBlue, Colors.growthGreen, '#FF6B6B', '#4ECDC4', '#45B7D1'];
-  let hash = 0;
-  for (let i = 0; i < categoryName.length; i++) {
-    hash = categoryName.charCodeAt(i) + ((hash * 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-};
+
 
 interface TimeBlockProps {
   selectedDate?: Date;
@@ -623,7 +599,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(block.category) }]}>
                 <View style={styles.categoryContent}>
                   <Ionicons
-                    name={CATEGORIES.find(cat => cat.name === block.category)?.icon || 'square-outline'}
+                    name={getCategoryIcon(block.category)}
                     size={12}
                     color={Colors.anchorBlue}
                     style={styles.categoryIcon}
@@ -895,7 +871,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               accessibilityHint="Tap to open category selection menu. This field is required."
             >
               <Ionicons
-                name={newBlock.category ? CATEGORIES.find(cat => cat.name === newBlock.category)?.icon || 'square-outline' : 'add-circle-outline'}
+                name={newBlock.category ? getCategoryIcon(newBlock.category) : 'add-circle-outline'}
                 size={16}
                 color={newBlock.category ? Colors.hopeWhite : Colors.hopeWhite}
               />
@@ -1247,59 +1223,21 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           />
 
           {/* Category Picker Modal */}
-          <Modal
+          <TimeBlockCategoryModal
             visible={showCategoryPicker}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowCategoryPicker(false)}
-          >
-            <TouchableWithoutFeedback onPress={() => setShowCategoryPicker(false)}>
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContent}>
-                  <FlatList
-                    data={CATEGORIES}
-                    numColumns={2}
-                    keyExtractor={(item) => item.name}
-                    contentContainerStyle={styles.gridContainer}
-                    columnWrapperStyle={styles.columnWrapper}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={[
-                          styles.gridItem,
-                          { backgroundColor: getCategoryColor(item.name) },
-                          newBlock.category === item.name && styles.selectedPickerItem,
-                        ]}
-                        onPress={() => {
-                          setNewBlock({...newBlock, category: item.name});
-                          setShowCategoryPicker(false);
+            selectedCategory={newBlock.category}
+            onSelect={(category) => {
+              setNewBlock({...newBlock, category: category.name});
+              setShowCategoryPicker(false);
 
-                          // Track category selection analytics
-                          analytics.trackTimeBlockEvent('timeblock_category_selected', {
-                            category: item.name,
-                            date: dateStr,
-                          }, user?.id);
-                        }}
-                      >
-                        <Ionicons
-                          name={item.icon}
-                          size={18}
-                          color={Colors.anchorBlue}
-                          style={styles.categoryIcon}
-                        />
-                        <Text
-                          style={styles.gridItemText}
-                          numberOfLines={1}
-                          ellipsizeMode="tail"
-                        >
-                          {item.name}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                  />
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
+              // Track category selection analytics
+              analytics.trackTimeBlockEvent('timeblock_category_selected', {
+                category: category.name,
+                date: dateStr,
+              }, user?.id);
+            }}
+            onCancel={() => setShowCategoryPicker(false)}
+          />
 
           <View style={styles.buttonRow}>
             <View style={styles.buttonGroup}>
