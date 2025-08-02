@@ -54,12 +54,16 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     const getEmptyCardStyle = () => {
       const baseStyle = [styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline, cardStyleOverrides];
 
-      // Only apply height restrictions for carousel view
+      // Only apply height restrictions for carousel view when not in inline/moments view
       if (variant === 'carousel') {
-        if (expanded) {
-          baseStyle.push(styles.cardExpanded);
-        } else {
-          baseStyle.push(styles.cardCollapsed);
+        // Use type assertion to handle the viewMode check
+        const currentViewMode = viewMode as any;
+        if (currentViewMode !== 'inline' && currentViewMode !== 'moments') {
+          if (expanded) {
+            baseStyle.push(styles.cardExpanded);
+          } else {
+            baseStyle.push(styles.cardCollapsed);
+          }
         }
       }
 
@@ -105,12 +109,16 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   const getCardStyle = () => {
     const baseStyle = [styles.card, variant === 'inline' && styles.cardInline, cardStyleOverrides];
 
-    // Only apply height restrictions for carousel view
+    // Only apply height restrictions for carousel view when not in inline/moments view
     if (variant === 'carousel') {
-      if (expanded) {
-        baseStyle.push(styles.cardExpanded);
-      } else {
-        baseStyle.push(styles.cardCollapsed);
+      // Use type assertion to handle the viewMode check
+      const currentViewMode = viewMode as any;
+      if (currentViewMode !== 'inline' && currentViewMode !== 'moments') {
+        if (expanded) {
+          baseStyle.push(styles.cardExpanded);
+        } else {
+          baseStyle.push(styles.cardCollapsed);
+        }
       }
     }
 
