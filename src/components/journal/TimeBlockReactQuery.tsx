@@ -1144,10 +1144,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       {newBlock.repeat.endDate && (
                         <Ionicons name="checkmark" size={16} color={Colors.alertCoral} style={styles.checkmarkIcon} />
                       )}
-                      <Ionicons 
-                        name={_showEndDatePicker ? "chevron-up" : "chevron-down"} 
-                        size={16} 
-                        color={Colors.hopeWhite} 
+                      <Ionicons
+                        name={_showEndDatePicker ? 'chevron-up' : 'chevron-down'}
+                        size={16}
+                        color={Colors.hopeWhite}
                       />
                     </View>
                   </TouchableOpacity>
@@ -1173,13 +1173,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     value={newBlock.repeat.endDate || new Date()}
                     mode="date"
                     display="spinner"
-                    onChange={(event: DateTimePickerEvent, selectedDate?: Date) => {
-                      if (event.type === 'set' && selectedDate) {
+                    onChange={(event: DateTimePickerEvent, newSelectedDate?: Date) => {
+                      if (event.type === 'set' && newSelectedDate) {
                         setNewBlock(prev => ({
                           ...prev,
                           repeat: {
                             ...prev.repeat,
-                            endDate: selectedDate,
+                            endDate: newSelectedDate,
                           },
                         }));
                       }
@@ -1502,7 +1502,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   allDayText: {
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
     fontSize: 10,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
