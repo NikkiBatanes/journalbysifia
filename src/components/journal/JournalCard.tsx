@@ -19,6 +19,8 @@ interface JournalCardProps {
   headerRight?: React.ReactNode;
   variant?: 'carousel' | 'inline';
   viewMode?: ViewMode;
+  expanded?: boolean;
+  onExpand?: () => void;
 }
 
 export const JournalCard: React.FC<JournalCardProps> = ({
@@ -32,6 +34,8 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   headerRight,
   variant = 'carousel',
   viewMode,
+  expanded = false,
+  onExpand: _onExpand,
 }) => {
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
@@ -47,8 +51,23 @@ export const JournalCard: React.FC<JournalCardProps> = ({
       return null;
     }
 
+    const getEmptyCardStyle = () => {
+      const baseStyle = [styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline, cardStyleOverrides];
+
+      // Only apply height restrictions for carousel view
+      if (variant === 'carousel') {
+        if (expanded) {
+          baseStyle.push(styles.cardExpanded);
+        } else {
+          baseStyle.push(styles.cardCollapsed);
+        }
+      }
+
+      return baseStyle;
+    };
+
     return (
-      <View style={[styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline, cardStyleOverrides]}>
+      <View style={getEmptyCardStyle()}>
         <View style={[styles.header, styles.headerEmpty]}>
           <View style={styles.headerContent}>
             {(viewMode as ViewMode) !== 'inline' && (
@@ -83,8 +102,23 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   }
 
   // Render normal card with content
+  const getCardStyle = () => {
+    const baseStyle = [styles.card, variant === 'inline' && styles.cardInline, cardStyleOverrides];
+
+    // Only apply height restrictions for carousel view
+    if (variant === 'carousel') {
+      if (expanded) {
+        baseStyle.push(styles.cardExpanded);
+      } else {
+        baseStyle.push(styles.cardCollapsed);
+      }
+    }
+
+    return baseStyle;
+  };
+
   return (
-    <View style={[styles.card, variant === 'inline' && styles.cardInline, cardStyleOverrides]}>
+    <View style={getCardStyle()}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
           {viewMode !== 'inline' && (
@@ -147,15 +181,24 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent', // Transparent background for inline view
     borderColor: 'transparent',
   },
+  cardCollapsed: {
+    height: 280, // Fixed height for collapsed carousel cards
+    overflow: 'hidden',
+  },
+  cardExpanded: {
+    minHeight: 340, // Allow expansion for carousel cards
+    height: 'auto',
+  },
   headerEmpty: {
     marginBottom: 0,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     padding: 12,
     paddingBottom: 8,
+    position: 'relative',
   },
   headerActions: {
     flexDirection: 'row',
@@ -164,10 +207,13 @@ const styles = StyleSheet.create({
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
+    position: 'relative',
   },
   icon: {
-    marginRight: 10,
+    position: 'absolute',
+    left: 0,
     backgroundColor: 'rgba(255, 107, 107, 0.1)', // 10% opacity of alertCoral
     borderRadius: 10,
     width: 30,
@@ -183,24 +229,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   titleContainer: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    textAlign: 'center',
   },
   title: {
     fontFamily: Fonts.bold,
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite + 'e6', // hopeWhite with ~90% opacity
     marginBottom: 2,
     fontWeight: '700',
     letterSpacing: 0.3,
     textAlign: 'center',
+    width: '100%',
   },
   subtitle: {
     fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.mediumGray,
     textAlign: 'center',
+    width: '100%',
   },
   content: {
     // Content is always visible

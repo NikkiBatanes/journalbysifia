@@ -30,9 +30,11 @@ interface GratitudeListProps {
   selectedDate?: Date;
   refreshKey?: number;
   viewMode?: 'carousel' | 'inline' | 'moments';
+  expanded?: boolean;
+  onExpand?: () => void;
 }
 
-export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode }) => {
+export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -363,6 +365,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             onDelete={() => handleDeleteGratitudeItem(item.id)}
             hideCheckbox={true}
             variant="gratitude"
+            disableSwipe={viewMode === 'carousel' && !expanded}
           >
             <View style={styles.itemRowTopAligned}>
               <View style={styles.itemNumber}>
@@ -425,7 +428,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               strokeWidth={2.5}
             />
           }
-          title="Gratitude List"
+          title="GRATITUDE LIST"
           subtitle="Reflect on what you're thankful for"
           showAddButton={true}
           onAdd={() => {}} // Disabled during loading
@@ -457,12 +460,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           strokeWidth={2.5}
         />
       }
-      title="Gratitude List"
+      title="GRATITUDE LIST"
       subtitle="Reflect on what you're thankful for"
       showAddButton={!shouldShowAddingMode}
       onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
       isAdding={shouldShowAddingMode}
       viewMode={viewMode}
+      expanded={expanded}
+      onExpand={onExpand}
     >
       <View
         accessibilityRole="list"

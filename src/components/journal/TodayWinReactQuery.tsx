@@ -22,9 +22,11 @@ import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 interface TodayWinProps {
   selectedDate: Date;
   viewMode?: 'carousel' | 'inline' | 'moments';
+  expanded?: boolean;
+  onExpand?: () => void;
 }
 
-const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) => {
+const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -179,7 +181,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
   if (error) {
     return (
       <JournalCard
-        title="Today's Win"
+        title="TODAY'S WIN"
         subtitle="What's your biggest win today?"
         icon={<LuTrophy size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
         showAddButton={false}
@@ -408,7 +410,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
 
   return (
     <JournalCard
-      title="Today's Win"
+      title="TODAY'S WIN"
       subtitle="What's your biggest win today?"
       icon={<LuTrophy size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
       showAddButton={!displayWin && !shouldShowAddingMode}
@@ -425,6 +427,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
         ) : undefined
       }
       viewMode={viewMode}
+      expanded={expanded}
+      onExpand={onExpand}
     >
       {displayWin && !shouldShowAddingMode && (
         <SwipeableTodoItem
@@ -433,6 +437,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode }) 
           onDelete={handleDelete}
           hideCheckbox
           variant="gratitude"
+          disableSwipe={viewMode === 'carousel' && !expanded}
         >
           <View style={styles.winContainer}>
             <Text style={styles.winText}>{displayWin.text}</Text>

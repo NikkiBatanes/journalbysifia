@@ -379,7 +379,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       <View style={styles.headerRow}>
         <View style={styles.headerTitleContainer}>
           <Ionicons name="heart" size={20} color={Colors.hopeWhite} style={styles.headerIcon} />
-          <Text style={styles.headerTitle}>Prayer Journal</Text>
+          <Text style={styles.headerTitle}>PRAYER JOURNAL</Text>
         </View>
         <View style={styles.headerPill}>
           <Text style={styles.headerPillText}>

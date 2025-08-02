@@ -34,7 +34,7 @@ interface CarouselItem {
 }
 
 const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTap }) => {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(0); // Start with first card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
@@ -57,8 +57,9 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
         newCardIndex < 3
       ) {
         currentCardIndex.current = newCardIndex;
+        // Auto-expand the currently focused card
+        setExpandedIndex(newCardIndex);
         handleScrollFeedback();
-        setExpandedIndex(null); // Collapse any expanded card on swipe
       }
     },
     [handleScrollFeedback]
@@ -67,21 +68,21 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
   const carouselItems: CarouselItem[] = [
     {
       id: 'prayerjournal',
-      title: 'Prayer Journal',
+      title: 'PRAYER JOURNAL',
       icon: 'book-outline',
       component: <PrayerJournalCardReactQuery selectedDate={selectedDate} />,
       color: Colors.anchorBlue,
     },
     {
       id: 'devotionalprayers',
-      title: 'Prayed Devotionals',
+      title: 'PRAYED DEVOTIONALS',
       icon: 'leaf-outline',
       component: <DevotionalPrayerListReactQuery selectedDate={selectedDate} />,
       color: Colors.hopeWhite,
     },
     {
       id: 'peopleprayers',
-      title: 'Prayer List (People)',
+      title: 'PRAYER LIST (PEOPLE)',
       icon: 'people-outline',
       component: <EnhancedPrayerListReactQuery selectedDate={selectedDate} />,
       color: Colors.alertCoral,
@@ -100,6 +101,10 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
         snapToInterval={CARD_WIDTH + CARD_SPACING}
         snapToAlignment="start"
         decelerationRate="fast"
+        pagingEnabled={false}
+        directionalLockEnabled={true}
+        bounces={true}
+        bouncesZoom={false}
         contentInset={{
           left: SIDE_PADDING / 2,
           right: SIDE_PADDING / 2,
@@ -141,10 +146,9 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
+                  // Only handle component tap navigation, expansion is handled by scroll
                   if (onComponentTap) {
                     onComponentTap(item.id);
-                  } else {
-                    setExpandedIndex(expandedIndex === i ? null : i);
                   }
                 }}
                 style={styles.touchableComponent}
@@ -191,9 +195,22 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: CARD_WIDTH,
     marginRight: CARD_SPACING,
+    // Add padding to expand touch area
+    paddingHorizontal: 4,
   },
   touchableComponent: {
     flex: 1,
+    // Expand touch area beyond card content
+    marginHorizontal: -4,
+  },
+  // Add invisible swipe area between cards
+  swipeArea: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: CARD_SPACING,
+    right: -CARD_SPACING,
+    zIndex: -1,
   },
 });
 

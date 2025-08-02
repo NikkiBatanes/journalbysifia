@@ -34,9 +34,11 @@ interface TodosProps {
   refreshKey?: number;
   variant?: 'carousel' | 'inline';
   viewMode?: 'carousel' | 'inline' | 'moments';
+  expanded?: boolean;
+  onExpand?: () => void;
 }
 
-const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel', viewMode }) => {
+const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel', viewMode, expanded, onExpand }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -360,7 +362,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   if (isLoading) {
     return (
       <JournalCard
-        title="To-Dos"
+        title="TO-DOS"
         subtitle="Track your daily tasks"
         icon={<LuListTodo size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
         showAddButton={true}
@@ -384,7 +386,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   if (error) {
     return (
       <JournalCard
-        title="To-Dos"
+        title="TO-DOS"
         subtitle="Track your daily tasks"
         icon={<LuListTodo size={16} color={Colors.hopeWhite} strokeWidth={2.5} />}
         showAddButton={true}
@@ -430,7 +432,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           strokeWidth={2.5}
         />
       }
-      title="To-Dos"
+      title="TO-DOS"
       subtitle="Track your daily tasks"
       showAddButton={!shouldShowAddingMode}
       onAdd={startAdding}
@@ -490,6 +492,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       }
       variant={variant}
       viewMode={viewMode}
+      expanded={expanded}
+      onExpand={onExpand}
     >
       <View
         style={styles.todosContainer}
@@ -515,6 +519,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               }}
               onLongPress={(id) => toggleTodo(id, true)}
               onDelete={removeTodo}
+              disableSwipe={viewMode === 'carousel' && !expanded}
               ref={ref => {
                 if (ref) {
                   swipeableRefs.current[item.id] = ref;

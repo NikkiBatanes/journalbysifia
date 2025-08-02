@@ -22,9 +22,11 @@ import { analytics } from '../../utils/analytics';
 interface LookingForwardProps {
   selectedDate: Date;
   viewMode?: 'carousel' | 'inline' | 'moments';
+  expanded?: boolean;
+  onExpand?: () => void;
 }
 
-const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode }) => {
+const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, viewMode, expanded, onExpand }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -171,7 +173,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   if (error) {
     return (
       <JournalCard
-        title="Looking Forward To"
+        title="LOOKING FORWARD TO"
         subtitle="What are you looking forward to tomorrow?"
         icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
         showAddButton={false}
@@ -335,7 +337,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   return (
     <JournalCard
-      title="Looking Forward To"
+      title="LOOKING FORWARD TO"
       subtitle="What are you looking forward to tomorrow?"
       icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
       showAddButton={!displayEntry && !shouldShowAddingMode}
@@ -352,6 +354,8 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         ) : null
       }
       viewMode={viewMode}
+      expanded={expanded}
+      onExpand={onExpand}
     >
       {displayEntry && !shouldShowAddingMode && (
         <SwipeableTodoItem
@@ -360,6 +364,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           onDelete={handleEntryDelete}
           hideCheckbox
           variant="gratitude"
+          disableSwipe={viewMode === 'carousel' && !expanded}
         >
           <View style={styles.entryContainer}>
             <Text style={styles.entryText}>{displayEntry.text}</Text>

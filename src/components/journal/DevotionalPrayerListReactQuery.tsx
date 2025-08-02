@@ -80,7 +80,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
         <View key={date}>
           <View style={styles.headerContainer}>
             <Ionicons name="bookmark" size={20} color={Colors.hopeWhite} style={styles.icon} />
-            <Text style={styles.header}>Prayed Devotionals {formatPrayerDate(new Date(date))}</Text>
+            <Text style={styles.header}>PRAYED DEVOTIONALS {formatPrayerDate(new Date(date))}</Text>
           </View>
           {groupedPrayers[date].map((prayer) => (
             <View style={styles.prayerItem} key={prayer.id}>

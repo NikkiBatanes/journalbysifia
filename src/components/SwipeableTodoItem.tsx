@@ -20,6 +20,7 @@ interface SwipeableTodoItemProps {
   children: React.ReactNode;
   hideCheckbox?: boolean;
   variant?: 'todo' | 'gratitude';
+  disableSwipe?: boolean;
 }
 
 interface SwipeableRef {
@@ -33,6 +34,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   children,
   hideCheckbox = false,
   variant = 'todo',
+  disableSwipe = false,
 }, ref) => {
   const swipeableRef = useRef<Swipeable>(null);
 
@@ -88,8 +90,9 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   return (
     <Swipeable
       ref={swipeableRef}
-      renderRightActions={renderRightActions}
-      rightThreshold={20}
+      renderRightActions={disableSwipe ? undefined : renderRightActions}
+      rightThreshold={disableSwipe ? 0 : 20}
+      enabled={!disableSwipe}
       containerStyle={styles.swipeableContainer}
       overshootRight={false}
       friction={3}

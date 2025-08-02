@@ -180,7 +180,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         <View style={styles.headerRow}>
           <View style={styles.headerTitleContainer}>
             <Ionicons name="people" size={20} color={Colors.hopeWhite} style={styles.headerIcon} />
-            <Text style={styles.headerTitle}>Prayer List for People</Text>
+            <Text style={styles.headerTitle}>PRAYER LIST FOR PEOPLE</Text>
           </View>
           {peoplePrayers.length > 0 && (
             <View style={styles.headerPill}>

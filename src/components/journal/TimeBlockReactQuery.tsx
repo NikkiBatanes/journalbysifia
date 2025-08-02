@@ -122,9 +122,13 @@ interface TimeBlockProps {
   selectedDate?: Date;
   variant?: 'carousel' | 'inline';
   viewMode?: 'carousel' | 'inline' | 'moments';
+  expanded?: boolean;
+  onExpand?: () => void;
 }
 
-export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode }) => {
+export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode: providedViewMode, expanded, onExpand }) => {
+  // Use provided viewMode or fall back to variant for backward compatibility
+  const viewMode = providedViewMode || variant;
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -523,7 +527,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     const isExpanded = expandedNotes[block.id];
 
     return (
-      <View key={block.id} style={[styles.swipeableContainer, viewMode === 'inline' && styles.swipeableContainerInline]}>
+      <View key={block.id} style={[styles.swipeableContainer, styles.swipeableContainerInline]}>
         <Swipeable
           ref={(ref: any) => {
             if (ref) {
@@ -532,7 +536,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               delete swipeableRefs.current[block.id];
             }
           }}
-          renderRightActions={() => (
+          renderRightActions={viewMode === 'carousel' && !expanded ? undefined : () => (
             <View style={styles.timeblockSwipeActions}>
               <TouchableOpacity
                 style={styles.editActionBtn}
@@ -550,23 +554,24 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               </TouchableOpacity>
             </View>
           )}
-          rightThreshold={40}
+          rightThreshold={viewMode === 'carousel' && !expanded ? 0 : 40}
           friction={2}
           overshootRight={false}
+          enabled={!(viewMode === 'carousel' && !expanded)}
       >
-        <View style={[styles.timeBlockCard, viewMode === 'inline' && styles.timeBlockCardInline]}>
-          <View style={[styles.timeColumn, viewMode === 'inline' && styles.timeColumnInline]}>
+        <View style={[styles.timeBlockCard, styles.timeBlockCardInline]}>
+          <View style={[styles.timeColumn, styles.timeColumnInline]}>
             {block.isAllDay ? (
               <View style={styles.allDayBadge}>
                 <Text style={styles.allDayText}>ALL DAY</Text>
               </View>
             ) : (
               <View style={styles.timeRangeStacked}>
-                <Text style={[styles.timeText, viewMode === 'inline' && styles.timeTextInline]}>{formatTime(block.startTime)}</Text>
-                <Text style={[styles.timeSeparatorText, viewMode === 'inline' && styles.timeSeparatorTextInline]}>TO</Text>
-                <Text style={[styles.timeText, viewMode === 'inline' && styles.timeTextInline]}>{formatTime(block.endTime)}</Text>
-                <View style={[styles.durationContainer, viewMode === 'inline' && styles.durationContainerInline]}>
-                  <Text style={[styles.durationText, viewMode === 'inline' && styles.durationTextInline]}>
+                <Text style={[styles.timeText, styles.timeTextInline]}>{formatTime(block.startTime)}</Text>
+                <Text style={[styles.timeSeparatorText, styles.timeSeparatorTextInline]}>TO</Text>
+                <Text style={[styles.timeText, styles.timeTextInline]}>{formatTime(block.endTime)}</Text>
+                <View style={[styles.durationContainer, styles.durationContainerInline]}>
+                  <Text style={[styles.durationText, styles.durationTextInline]}>
                     {formatDuration(block.startTime, block.endTime)}
                   </Text>
                 </View>
@@ -575,7 +580,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           </View>
           <View style={styles.detailsColumn}>
             <View style={styles.detailsRow}>
-              <Text style={[styles.blockTitle, viewMode === 'inline' && styles.blockTitleInline]}>{block.title}</Text>
+              <Text style={[styles.blockTitle, styles.blockTitleInline]}>{block.title}</Text>
             </View>
             <View style={styles.detailsContent}>
               <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(block.category) }]}>
@@ -647,7 +652,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     return (
       <JournalCard
         icon={<LuCalendarClock size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
-        title={timeBlocks.length === 1 ? 'Time Block' : 'Time Blocks'}
+        title={timeBlocks.length === 1 ? 'TIME BLOCK' : 'TIME BLOCKS'}
         subtitle="Schedule and organize your day"
         showAddButton={false}
         onAdd={() => {}}
@@ -663,15 +668,17 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   return (
     <JournalCard
       icon={<LuCalendarClock size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      title={timeBlocks.length === 0 ? '' : (timeBlocks.length === 1 ? 'Time Block' : 'Time Blocks')}
+      title={timeBlocks.length === 0 ? '' : (timeBlocks.length === 1 ? 'TIME BLOCK' : 'TIME BLOCKS')}
       subtitle={timeBlocks.length === 0 ? '' : 'Schedule and organize your day'}
       showAddButton={timeBlocks.length > 0 && !shouldShowAddingMode}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
       variant={variant}
       viewMode={viewMode}
+      expanded={expanded}
+      onExpand={onExpand}
       headerRight={
-        globalEditMode?.isGlobalEditMode && viewMode === 'inline' && timeBlocks.length > 0 ? (
+        globalEditMode?.isGlobalEditMode && timeBlocks.length > 0 ? (
           <TouchableOpacity
             onPress={startAdding}
             style={styles.addButton}
@@ -1253,6 +1260,9 @@ const styles = StyleSheet.create({
   swipeableContainerInline: {
     borderRadius: 16, // Match the inline card border radius
   },
+  swipeableContainerMoments: {
+    borderRadius: 16, // Match the moments card border radius
+  },
   timeblockSwipeActions: {
     flexDirection: 'row',
     width: 160, // Make the total swipe area smaller
@@ -1323,6 +1333,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
+  timeBlockCardMoments: {
+    borderRadius: 16,
+    backgroundColor: Colors.anchorBlue,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
   timeBlocksContainer: {
     marginBottom: 8,
     padding: 0,
@@ -1357,6 +1373,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   timeSeparatorTextInline: {
+    color: Colors.hopeWhite,
+  },
+  timeSeparatorTextMoments: {
     color: Colors.hopeWhite,
   },
   allDayBadge: {
@@ -1395,6 +1414,9 @@ const styles = StyleSheet.create({
   durationTextInline: {
     color: Colors.hopeWhite,
   },
+  durationTextMoments: {
+    color: Colors.hopeWhite,
+  },
   detailsColumn: {
     flex: 1,
     paddingLeft: 10,
@@ -1424,6 +1446,9 @@ const styles = StyleSheet.create({
     marginBottom: 1,
   },
   blockTitleInline: {
+    color: Colors.hopeWhite,
+  },
+  blockTitleMoments: {
     color: Colors.hopeWhite,
   },
   categoryTag: {

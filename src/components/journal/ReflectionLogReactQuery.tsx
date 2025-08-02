@@ -52,9 +52,11 @@ interface ReflectionLogProps {
   selectedDate?: Date;
   refreshKey?: number;
   viewMode?: 'carousel' | 'inline' | 'moments';
+  expanded?: boolean;
+  onExpand?: () => void;
 }
 
-export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode }) => {
+export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selectedDate = new Date(), viewMode, expanded, onExpand }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -529,7 +531,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     return (
       <JournalCard
         icon={<LuNotebookPen size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
-        title="Heart Journal"
+        title="HEART JOURNAL"
         subtitle="Loading your reflections..."
         showAddButton={false}
         onAdd={() => {}}
@@ -545,7 +547,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     return (
       <JournalCard
         icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-        title="Heart Journal"
+        title="HEART JOURNAL"
         subtitle="Unable to load reflections"
         showAddButton={false}
         onAdd={() => {}}
@@ -583,7 +585,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   return (
     <JournalCard
       icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      title="Heart Journal"
+      title="HEART JOURNAL"
       subtitle={getReflectionSubtitle(entries?.length || 0)}
       showAddButton={true}
       onAdd={() => {
@@ -630,6 +632,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         </TouchableOpacity>
       ) : undefined}
       viewMode={viewMode}
+      expanded={expanded}
+      onExpand={onExpand}
     >
       {/* Entries List */}
       {renderEntries()}

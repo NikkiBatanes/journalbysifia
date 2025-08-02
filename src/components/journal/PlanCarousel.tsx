@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { View, Text, Animated, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Fonts } from '../../theme/fonts';
@@ -20,6 +20,7 @@ interface PlanCarouselProps {
 
 
 const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, onComponentTap }) => {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(0); // Start with first card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
@@ -31,21 +32,21 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
       id: 'focus',
       title: 'FOCUS',
       icon: 'target-outline',
-      component: <TodaysFocusReactQuery selectedDate={selectedDate} refreshKey={refreshKey} />,
+      component: <TodaysFocusReactQuery selectedDate={selectedDate} refreshKey={refreshKey} variant="carousel" />,
       color: Colors.alertCoral,
     },
     {
       id: 'todos',
       title: 'TODOS',
       icon: 'checkmark-circle-outline',
-      component: <TodosReactQuery selectedDate={selectedDate} refreshKey={refreshKey} />,
+      component: <TodosReactQuery selectedDate={selectedDate} refreshKey={refreshKey} variant="carousel" />,
       color: Colors.anchorBlue,
     },
     {
       id: 'timeblocks',
       title: 'Time Blocks',
       icon: 'time-outline',
-      component: <TimeBlockReactQuery selectedDate={selectedDate} />,
+      component: <TimeBlockReactQuery selectedDate={selectedDate} viewMode="carousel" variant="carousel" />,
       color: Colors.growthGreen,
     },
   ];
@@ -60,13 +61,15 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
     }
   }, []);
 
-  // Track scroll position for feedback
+  // Track scroll position for feedback and auto-expansion
   const handleScroll = useCallback((event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const newCardIndex = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
 
     if (newCardIndex !== currentCardIndex.current && newCardIndex >= 0 && newCardIndex < 3) {
       currentCardIndex.current = newCardIndex;
+      // Auto-expand the currently focused card
+      setExpandedIndex(newCardIndex);
       handleScrollFeedback();
     }
   }, [handleScrollFeedback]);
@@ -85,6 +88,10 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
         snapToInterval={CARD_WIDTH + CARD_SPACING}
         snapToAlignment="start"
         decelerationRate="fast"
+        pagingEnabled={false}
+        directionalLockEnabled={true}
+        bounces={true}
+        bouncesZoom={false}
         contentInset={{
           left: SIDE_PADDING / 2,
           right: SIDE_PADDING / 2,
@@ -125,10 +132,18 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
             >
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => onComponentTap?.(item.id)}
+                onPress={() => {
+                  // Only handle component tap navigation, expansion is handled by scroll
+                  if (onComponentTap) {
+                    onComponentTap(item.id);
+                  }
+                }}
                 style={styles.touchableComponent}
               >
-                {item.component}
+                {React.cloneElement(item.component as React.ReactElement<any>, {
+                  expanded: expandedIndex === i,
+                  onExpand: () => setExpandedIndex(expandedIndex === i ? null : i),
+                })}
               </TouchableOpacity>
             </Animated.View>
           );
@@ -168,9 +183,22 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: CARD_WIDTH,
     marginRight: CARD_SPACING,
+    // Add padding to expand touch area
+    paddingHorizontal: 4,
   },
   touchableComponent: {
     flex: 1,
+    // Expand touch area beyond card content
+    marginHorizontal: -4,
+  },
+  // Add invisible swipe area between cards
+  swipeArea: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: CARD_SPACING,
+    right: -CARD_SPACING,
+    zIndex: -1,
   },
 });
 

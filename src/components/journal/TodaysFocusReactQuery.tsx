@@ -34,9 +34,11 @@ interface TodaysFocusProps {
   refreshKey?: number;
   variant?: 'carousel' | 'inline';
   viewMode?: 'carousel' | 'inline' | 'moments';
+  expanded?: boolean;
+  onExpand?: () => void;
 }
 
-export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode }) => {
+export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode, expanded, onExpand }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -303,7 +305,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               strokeWidth={2.5}
             />
           }
-          title="Today's Focus"
+          title="TODAY'S FOCUS"
           subtitle="Your daily focus and priorities"
           showAddButton={true}
           onAdd={() => {}} // Disabled during loading
@@ -334,7 +336,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               strokeWidth={2.5}
             />
           }
-          title="Today's Focus"
+          title="TODAY'S FOCUS"
           subtitle="Your daily focus and priorities"
           showAddButton={false}
           variant={variant}
@@ -377,7 +379,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             strokeWidth={2.5}
           />
         }
-        title="Today's Focus"
+        title="TODAY'S FOCUS"
         subtitle="Your daily focus and priorities"
         showAddButton={!shouldShowEditingMode}
         onAdd={toggleEditing}
@@ -398,11 +400,13 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         ) : undefined}
         variant={variant}
         viewMode={viewMode}
+        expanded={expanded}
+        onExpand={onExpand}
       >
         {shouldShowEditingMode
           ? (
             <View style={styles.editContainer}>
-              <Text style={styles.sectionHeaderWithBottomMargin}>Today's Focus</Text>
+              <Text style={styles.sectionHeaderWithBottomMargin}>TODAY'S FOCUS</Text>
               <TextInput
                 style={[styles.input, styles.focusInput]}
                 value={data.focus}
@@ -483,6 +487,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                           onToggle={() => togglePriority(index)}
                           onDelete={() => removePriority(priority.id)}
                           hideCheckbox={true}
+                          disableSwipe={viewMode === 'carousel' && !expanded}
                           ref={ref => {
                             if (ref) {
                               swipeableRefs.current[priority.id] = ref;

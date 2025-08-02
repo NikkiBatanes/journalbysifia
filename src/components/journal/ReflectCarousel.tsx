@@ -36,7 +36,7 @@ interface CarouselItem {
 }
 
 const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0, onComponentTap }) => {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(0); // Start with first card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
@@ -51,43 +51,44 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
     }
   }, []);
 
-  // Track scroll position for feedback
+  // Track scroll position for feedback and auto-expansion
   const handleScroll = useCallback((event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const newCardIndex = Math.round(offsetX / (CARD_WIDTH + CARD_SPACING));
 
     if (newCardIndex !== currentCardIndex.current && newCardIndex >= 0 && newCardIndex < 4) {
       currentCardIndex.current = newCardIndex;
+      // Auto-expand the currently focused card
+      setExpandedIndex(newCardIndex);
       handleScrollFeedback();
-      setExpandedIndex(null); // Collapse any expanded card on swipe
     }
   }, [handleScrollFeedback]);
 
   const carouselItems: CarouselItem[] = [
     {
       id: 'reflection',
-      title: 'Heart Journal',
+      title: 'HEART JOURNAL',
       icon: 'bulb-outline',
       component: <ReflectionLogReactQuery selectedDate={selectedDate} />,
       color: Colors.alertCoral,
     },
     {
       id: 'gratitude',
-      title: 'Gratitude',
+      title: 'GRATITUDE',
       icon: 'heart-outline',
       component: <GratitudeListReactQuery key={refreshKey} selectedDate={selectedDate} refreshKey={refreshKey} />,
       color: Colors.hopeWhite,
     },
     {
       id: 'todayswin',
-      title: "Today's Win",
+      title: "TODAY'S WIN",
       icon: 'trophy-outline',
       component: <TodayWinReactQuery selectedDate={selectedDate} />,
       color: Colors.anchorBlue,
     },
     {
       id: 'lookingforward',
-      title: 'Looking Forward',
+      title: 'LOOKING FORWARD',
       icon: 'telescope-outline',
       component: <LookingForwardReactQuery selectedDate={selectedDate} />,
       color: Colors.mediumGray,
@@ -106,6 +107,10 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
         snapToInterval={CARD_WIDTH + CARD_SPACING}
         snapToAlignment="start"
         decelerationRate="fast"
+        pagingEnabled={false}
+        directionalLockEnabled={true}
+        bounces={true}
+        bouncesZoom={false}
         contentInset={{
           left: SIDE_PADDING / 2,
           right: SIDE_PADDING / 2,
@@ -147,8 +152,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
-                  setExpandedIndex(expandedIndex === i ? null : i);
-                  // Call onComponentTap if provided to navigate to inline view
+                  // Only handle component tap navigation, expansion is handled by scroll
                   if (onComponentTap) {
                     onComponentTap(item.id);
                   }
@@ -198,9 +202,22 @@ const styles = StyleSheet.create({
   carouselItem: {
     width: CARD_WIDTH,
     marginRight: CARD_SPACING,
+    // Add padding to expand touch area
+    paddingHorizontal: 4,
   },
   touchableComponent: {
     flex: 1,
+    // Expand touch area beyond card content
+    marginHorizontal: -4,
+  },
+  // Add invisible swipe area between cards
+  swipeArea: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: CARD_SPACING,
+    right: -CARD_SPACING,
+    zIndex: -1,
   },
 });
 
