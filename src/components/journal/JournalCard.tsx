@@ -12,6 +12,7 @@ interface JournalCardProps {
   title?: string;
   subtitle?: string;
   children: React.ReactNode;
+  componentType?: string; // Add componentType prop to identify the component
   showAddButton?: boolean;
   onAdd?: () => void;
   isAdding?: boolean;
@@ -21,7 +22,6 @@ interface JournalCardProps {
   viewMode?: ViewMode;
   expanded?: boolean;
   onExpand?: () => void;
-  showSubtitleInInlineView?: boolean;
 }
 
 export const JournalCard: React.FC<JournalCardProps> = ({
@@ -37,9 +37,17 @@ export const JournalCard: React.FC<JournalCardProps> = ({
   viewMode,
   expanded = false,
   onExpand: _onExpand,
+  componentType,
 }) => {
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
+  
+  // Helper function to check if we should show the subtitle
+  const shouldShowSubtitle = (): boolean => {
+    if (!subtitle) return false;
+    if (componentType === 'Todos') return true;
+    return viewMode !== 'inline';
+  };
 
   // Get view-specific styling if viewMode is provided
   const titleStyleOverrides = viewMode ? ViewConfigurationManager.getTitleStyle(viewMode) : {};
@@ -92,7 +100,9 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             )}
             <View style={styles.titleContainer}>
               <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
-              {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+              {shouldShowSubtitle() && (
+                <Text style={styles.subtitle}>{subtitle}</Text>
+              )}
             </View>
           </View>
           {/* Floating edit button for empty card */}
@@ -126,9 +136,6 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     return baseStyle;
   };
 
-  // Only show subtitle for Todos component in both carousel and inline views
-  const shouldShowSubtitle = title === 'TO-DOS' && (variant === 'carousel' || variant === 'inline');
-
   return (
     <View style={getCardStyle()}>
       <View style={styles.header}>
@@ -150,10 +157,8 @@ export const JournalCard: React.FC<JournalCardProps> = ({
           )}
           <View style={styles.titleContainer}>
             <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
-            {shouldShowSubtitle && subtitle && (
-              <Text style={styles.subtitle}>
-                {subtitle}
-              </Text>
+            {shouldShowSubtitle() && (
+              <Text style={styles.subtitle}>{subtitle}</Text>
             )}
           </View>
         </View>

@@ -606,6 +606,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       ) : undefined}
       title={showHeader ? 'TO-DOS' : undefined}
       subtitle={getSubtitle()}
+      componentType="Todos"
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
