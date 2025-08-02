@@ -1020,7 +1020,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       <Text style={styles.frequencyUnitText}>
                         {customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1)}{customFrequency.value > 1 ? 's' : ''}
                       </Text>
-                      <Ionicons name="chevron-down" size={14} color={Colors.darkGray} />
+                      <Ionicons name="chevron-down" size={14} color={Colors.hopeWhite} />
                     </TouchableOpacity>
                   </View>
 
@@ -1432,9 +1432,9 @@ const styles = StyleSheet.create({
   },
   timeBlockCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    marginBottom: 0, // Remove margin from card as it's now on the container
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 6,
     backgroundColor: '#ebeef2',
     borderWidth: 0.5,
@@ -1447,12 +1447,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    paddingVertical: 12,
   },
   timeBlockCardMoments: {
     borderRadius: 16,
     backgroundColor: Colors.anchorBlue,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    paddingVertical: 12,
   },
   timeBlocksContainer: {
     marginBottom: 8,
@@ -1463,11 +1465,12 @@ const styles = StyleSheet.create({
     paddingRight: 12,
     borderRightWidth: 1,
     borderRightColor: 'rgba(255, 255, 255, 0.3)',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: 4,
-    paddingVertical: 8,
-    minHeight: 1, // Match the minimum height of the card
+    paddingVertical: 0,
+    alignSelf: 'stretch',
+    minHeight: 0,
   },
   timeColumnInline: {
     borderRightWidth: 1,
@@ -1535,12 +1538,10 @@ const styles = StyleSheet.create({
   },
   detailsColumn: {
     flex: 1,
-    paddingLeft: 10,
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingRight: 6,
-    justifyContent: 'flex-start',
-    minHeight: 52, // Reduced from 60
+    paddingLeft: 12,
+    paddingVertical: 0,
+    justifyContent: 'center',
+    minHeight: 0,
   },
   detailsRow: {
     flexDirection: 'row',
@@ -1591,7 +1592,7 @@ const styles = StyleSheet.create({
     maxWidth: 100,
   },
   metaInfoContainer: {
-    marginTop: 1,
+    marginTop: 6,
     gap: 2,
   },
   metaInfoRow: {
@@ -1879,16 +1880,17 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 16,
     height: 16,
-    borderRadius: 6,
-    borderWidth: 1.5,
+    borderRadius: 4,
+    borderWidth: 1,
     borderColor: Colors.trustGrey,
     backgroundColor: 'rgba(176, 184, 193, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 8,
   },
   checkboxActive: {
-    backgroundColor: Colors.alertCoral,
-    borderColor: Colors.alertCoral,
+    backgroundColor: Colors.trustBlue,
+    borderColor: Colors.trustBlue,
   },
   timePickerContainer: {
     marginTop: 12,
