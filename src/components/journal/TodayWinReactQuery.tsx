@@ -391,8 +391,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     // State clearing is now handled above in each branch
   };
 
-  // Hide empty component in inline view
-  if (viewMode === 'inline' && !isLoading && !error && (!win || !win.text.trim())) {
+  // Hide empty component in inline and moments view
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && (!win || !win.text.trim())) {
     return null;
   }
 

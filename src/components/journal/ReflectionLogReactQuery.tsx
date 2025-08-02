@@ -629,8 +629,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Determine if there's content
   const hasContent = entries.length > 0;
 
-  // Hide empty component in inline view
-  if (viewMode === 'inline' && !isLoading && !error && entries.length === 0) {
+  // Hide empty component in inline and moments view
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && entries.length === 0) {
     return null;
   }
 

@@ -487,8 +487,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Determine if there's content
   const hasContent = gratitudeItems.length > 0;
 
-  // Hide empty component in inline view
-  if (viewMode === 'inline' && !isLoading && !error && gratitudeItems.length === 0) {
+  // Hide empty component in inline and moments view
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && gratitudeItems.length === 0) {
     return null;
   }
 

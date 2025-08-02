@@ -334,8 +334,8 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   // Determine if there's content
   const hasContent = lookingForward && lookingForward.text.trim();
 
-  // Hide empty component in inline view
-  if (viewMode === 'inline' && !isLoading && !error && (!lookingForward || !lookingForward.text.trim())) {
+  // Hide empty component in inline and moments view
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && (!lookingForward || !lookingForward.text.trim())) {
     return null;
   }
 

@@ -419,8 +419,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     );
   }
 
-  // Hide empty component in inline view
-  if (viewMode === 'inline' && !isLoading && !error && todos.length === 0) {
+  // Hide empty component in inline and moments view
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && todos.length === 0) {
     return null;
   }
 
