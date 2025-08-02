@@ -41,11 +41,11 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 }) => {
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
-  
+
   // Helper function to check if we should show the subtitle
   const shouldShowSubtitle = (): boolean => {
-    if (!subtitle) return false;
-    if (componentType === 'Todos') return true;
+    if (!subtitle) {return false;}
+    if (componentType === 'Todos') {return true;}
     return viewMode !== 'inline';
   };
 
@@ -207,8 +207,9 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   cardCollapsed: {
-    height: 280, // Fixed height for collapsed carousel cards
-    overflow: 'hidden',
+    minHeight: 300, // Minimum height for collapsed carousel cards
+    maxHeight: 380, // Allow some expansion but still constrained
+    overflow: 'visible', // Allow content to be visible
   },
   cardExpanded: {
     minHeight: 340, // Allow expansion for carousel cards

@@ -67,8 +67,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   };
 
   const handleDayPress = (day: any) => {
-    const selectedDate = new Date(day.timestamp);
-    setCopyTargetDate(selectedDate);
+    const targetDate = new Date(day.timestamp);
+    setCopyTargetDate(targetDate);
     setShowCalendar(false);
   };
 
@@ -350,25 +350,25 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const formatSelectedDate = (date: Date) => {
     const currentYear = new Date().getFullYear();
     const dateYear = date.getFullYear();
-    
+
     const options: Intl.DateTimeFormatOptions = {
       weekday: 'long',
       month: 'long',
       day: 'numeric',
     };
-    
+
     // Only include year if it's different from current year
     if (dateYear !== currentYear) {
       options.year = 'numeric';
     }
-    
+
     return date.toLocaleDateString('en-US', options);
   };
 
   // Copy incomplete todos to another date
   const copyIncompleteTodos = async (targetDate: Date) => {
-    if (!user) return;
-    
+    if (!user) {return;}
+
     const incompleteTodos = todos.filter(t => !t.completed);
     if (incompleteTodos.length === 0) {
       Alert.alert('No Incomplete Todos', 'There are no incomplete todos to copy.');
@@ -378,7 +378,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     try {
       const targetDateStr = toLocalDateString(targetDate);
       let successCount = 0;
-      
+
       for (const todo of incompleteTodos) {
         try {
           await createTodoMutation.mutateAsync({
@@ -393,11 +393,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             completed: false,
           });
           successCount++;
-        } catch (error) {
-          console.error('Failed to copy todo:', todo.text, error);
+        } catch (copyError) {
+          console.error('Failed to copy todo:', todo.text, copyError);
         }
       }
-      
+
       if (successCount > 0) {
         Alert.alert(
           'Todos Copied',
@@ -411,8 +411,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       } else {
         Alert.alert('Copy Failed', 'Failed to copy todos. Please try again.');
       }
-    } catch (error) {
-      console.error('Failed to copy todos:', error);
+    } catch (copyError) {
+      console.error('Failed to copy todos:', copyError);
       Alert.alert('Error', 'Failed to copy todos. Please try again.');
     }
   };
@@ -575,15 +575,15 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   const hasContent = todos.length > 0;
   const showHeader = variant === 'carousel' || variant === 'inline' || hasContent || shouldShowAddingMode; // Always show header in carousel and inline views
-  
+
   // Calculate todo stats for carousel view
   const completedCount = todos.filter(t => t.completed).length;
   const uncompletedCount = todos.length - completedCount;
   const getSubtitle = () => {
     console.log('getSubtitle called', { variant, showHeader, todosLength: todos.length });
-    if (!showHeader) return undefined;
+    if (!showHeader) {return undefined;}
     if (variant === 'carousel' || variant === 'inline') {
-      if (todos.length === 0) return 'Track your daily tasks';
+      if (todos.length === 0) {return 'Track your daily tasks';}
       if (completedCount === 0) {
         // Only incomplete todos
         return `${todos.length} to-do${todos.length === 1 ? '' : 's'}`;
@@ -832,7 +832,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         </>
       )}
     </JournalCard>
-    
+
     {/* Copy Todos Modal */}
     <Modal
       visible={showCopyModal}
@@ -846,7 +846,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           <Text style={styles.modalSubtitle}>
             Copy {todos.filter(t => !t.completed).length} incomplete to-do{todos.filter(t => !t.completed).length === 1 ? '' : 's'} to a new date. Original to-dos will remain.
           </Text>
-          
+
           <Text style={styles.chooseDateLabel}>Choose a date</Text>
           <View style={styles.datePickerContainer}>
             <TouchableOpacity
@@ -860,7 +860,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             >
               <Text style={styles.datePickerText}>Tomorrow</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.datePickerButton}
               onPress={() => {
@@ -873,9 +873,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               <Text style={styles.datePickerText}>Next Week</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.calendarContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.selectedDateContainer}
               onPress={toggleCalendar}
             >
@@ -922,7 +922,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               </View>
             )}
           </View>
-          
+
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.cancelButton]}
@@ -930,7 +930,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={[styles.modalButton, styles.copyButton]}
               onPress={async () => {
@@ -1246,10 +1246,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: Colors.hopeWhite,
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 24,
     opacity: 0.9,
     paddingHorizontal: 4,
+    alignSelf: 'flex-start',
   },
   chooseDateLabel: {
     fontFamily: Fonts.medium,

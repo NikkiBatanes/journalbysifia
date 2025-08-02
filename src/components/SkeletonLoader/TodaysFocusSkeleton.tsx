@@ -53,7 +53,10 @@ export const TodaysFocusSkeleton: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingBottom: 24,
+    minHeight: 140,
+    marginBottom: 8,
   },
   section: {
     marginBottom: 24,

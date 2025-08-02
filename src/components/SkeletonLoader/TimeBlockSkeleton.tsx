@@ -65,6 +65,7 @@ export const TimeBlockSkeleton: React.FC<TimeBlockSkeletonProps> = ({ count = 3 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    paddingBottom: 16,
   },
   skeletonItem: {
     flexDirection: 'row',

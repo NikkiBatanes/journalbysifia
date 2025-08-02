@@ -134,7 +134,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
 
-
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
@@ -227,11 +226,44 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   const swipeableRefs = useRef<{[key: string]: any}>({});
 
+  // Auto-cancel edit mode when date changes (carousel swipe to different date)
+  useEffect(() => {
+    // Cancel any active editing when date changes
+    if (isAdding) {
+      setIsAdding(false);
+      setEditId(null);
+    }
+    if (globalEditMode?.isGlobalEditMode && globalEditMode?.setGlobalEditMode) {
+      globalEditMode.setGlobalEditMode(false);
+    }
+  }, [dateStr, globalEditMode, isAdding]);
+
+  // Auto-cancel edit mode when component unmounts
+  useEffect(() => {
+    return () => {
+      // Cleanup when component unmounts
+      if (isAdding) {
+        setIsAdding(false);
+        setEditId(null);
+      }
+    };
+  }, [isAdding]);
+
+  const closeAllSwipeActions = () => {
+    Object.values(swipeableRefs.current).forEach(ref => {
+      if (ref && ref.close) {
+        ref.close();
+      }
+    });
+  };
+
   const toggleNotes = (id: string) => {
+    closeAllSwipeActions();
     setExpandedNotes(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleEditBlock = (block: TimeBlockItem) => {
+    closeAllSwipeActions();
     setIsAdding(true);
     setEditId(block.id);
     setNewBlock({
@@ -491,7 +523,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         });
       }
     }
-    setShowTimePicker({ start: false, end: false, id: null });
+    // Don't auto-close the picker - let user manually close with Done button
   };
 
   const toggleAllDay = () => {
@@ -525,7 +557,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   }, [error, dateStr, user?.id]);
 
   const renderTimeBlock = (block: TimeBlockItem) => {
-    const isExpanded = expandedNotes[block.id];
+    const isExpanded = expandedNotes[block.id] || false; // Collapsed by default, expandable on tap
 
     return (
       <View key={block.id} style={[styles.swipeableContainer, styles.swipeableContainerInline]}>
@@ -620,27 +652,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               )}
 
               {block.notes && (
-                <TouchableOpacity
-                  style={styles.notesContainer}
-                  onPress={() => toggleNotes(block.id)}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="document-text-outline" size={12} color={Colors.hopeWhite} style={styles.notesIcon} />
-                  <Text
-                    style={styles.notesText}
-                    numberOfLines={isExpanded ? undefined : 2}
-                    ellipsizeMode="tail"
-                  >
-                    {block.notes}
-                  </Text>
-                  <Ionicons
-                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                    size={12}
-                    color={Colors.mediumGray}
-                    style={styles.notesChevron}
-                  />
-                </TouchableOpacity>
-              )}
+  <NotesWithChevron
+    notes={block.notes}
+    isExpanded={isExpanded}
+    onToggle={() => toggleNotes(block.id)}
+  />
+)}
             </View>
           </View>
         </View>
@@ -1179,6 +1196,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     mode="date"
                     display="spinner"
                     onChange={(event: DateTimePickerEvent, newSelectedDate?: Date) => {
+                      if (event.type === 'dismissed') {
+                        setShowEndDatePicker(false);
+                        return;
+                      }
                       if (event.type === 'set' && newSelectedDate) {
                         setNewBlock(prev => ({
                           ...prev,
@@ -1188,12 +1209,18 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                           },
                         }));
                       }
-                      setShowEndDatePicker(false);
+                      // Don't auto-close - let user manually close
                     }}
                     minimumDate={new Date()}
                     themeVariant="dark"
                     textColor={Colors.hopeWhite}
                   />
+                  <TouchableOpacity
+                    style={styles.doneButton}
+                    onPress={() => setShowEndDatePicker(false)}
+                  >
+                    <Text style={styles.doneButtonText}>Done</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </Modal>
@@ -1304,6 +1331,35 @@ export const TimeBlockReactQueryWithErrorBoundary: React.FC<TimeBlockProps> = (p
 );
 
 // Export both versions for flexibility
+// --- Helper: NotesWithChevron ---
+const NotesWithChevron = ({ notes, isExpanded, onToggle }: { notes: string; isExpanded: boolean; onToggle: () => void }) => {
+  const showChevron = !isExpanded;
+  return (
+    <TouchableOpacity style={styles.notesContainer} onPress={onToggle} activeOpacity={0.7}>
+      <Ionicons name="document-text-outline" size={12} color={Colors.hopeWhite} style={styles.notesIcon} />
+      <Text
+        style={styles.notesText}
+        numberOfLines={isExpanded ? undefined : 2}
+        ellipsizeMode="tail"
+      >
+        {notes}
+      </Text>
+      {showChevron && (
+        <Ionicons
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={12}
+          color={Colors.mediumGray}
+          style={styles.notesChevron}
+        />
+      )}
+    </TouchableOpacity>
+  );
+};
+// --- END Helper ---
+
+// Update Playbook label
+// Replace all occurrences of 'FROM PLAYBOOK' with 'From Playbook'
+
 export { TimeBlockReactQuery as TimeBlockReactQueryComponent };
 
 const styles = StyleSheet.create({
@@ -1469,7 +1525,7 @@ const styles = StyleSheet.create({
     width: 90,
     paddingRight: 12,
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255, 255, 255, 0.3)',
+    borderRightColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingLeft: 4,
@@ -1479,8 +1535,8 @@ const styles = StyleSheet.create({
   },
   timeColumnInline: {
     borderRightWidth: 1,
-    borderRightColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 1,
+    borderRightColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 0,
   },
   timeRangeStacked: {
     flexDirection: 'column',
@@ -1559,12 +1615,14 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   blockTitle: {
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.bold,
+    fontWeight: '400',
     fontSize: 14,
     color: Colors.hopeWhite,
     flex: 1,
     marginRight: 6,
     lineHeight: 18,
+    letterSpacing: 0.2,
     marginBottom: 1,
   },
   blockTitleInline: {
@@ -1592,6 +1650,7 @@ const styles = StyleSheet.create({
   },
   categoryLabel: {
     fontFamily: Fonts.medium,
+    fontWeight: '600',
     fontSize: 11,
     color: Colors.anchorBlue,
     maxWidth: 100,
@@ -1625,7 +1684,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 5,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center', // Center vertically
+    minHeight: 24, // Ensure enough height for icon, text, chevron
   },
   notesIcon: {
     marginRight: 4,
@@ -1635,6 +1695,7 @@ const styles = StyleSheet.create({
   notesChevron: {
     marginLeft: 4,
     marginTop: 1,
+    flexShrink: 0,
   },
   timeText: {
     fontFamily: Fonts.semiBold,
@@ -2197,8 +2258,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     flex: 1,
-    minWidth: '50%',
-    maxWidth: '100%',
+    alignItems: 'stretch',
   },
   endRepeatOption: {
     flex: 1,
@@ -2210,10 +2270,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  selectedEndRepeatOption: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    borderColor: Colors.alertCoral,
+    minHeight: 48,
   },
   endRepeatOptionText: {
     fontFamily: Fonts.regular,
@@ -2221,11 +2278,9 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     flex: 1,
   },
-  datePickerContainer: {
-    marginTop: 12,
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 16,
-    padding: 16,
+  selectedEndRepeatOption: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderColor: Colors.alertCoral,
   },
   datePickerModalContent: {
     backgroundColor: Colors.anchorBlue,
@@ -2238,7 +2293,8 @@ const styles = StyleSheet.create({
   },
   datePickerTitle: {
     fontSize: 18,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.bold,
+    fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 16,
     textAlign: 'center',

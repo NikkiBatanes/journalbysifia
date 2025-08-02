@@ -682,7 +682,10 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
         return;
       }
 
-      const notesWithMetadata = notes.trim() + formatMetadata();
+      const metadata = formatMetadata();
+      const notesWithMetadata = notes.trim() ?
+        (metadata ? `${notes.trim()}\n\n${metadata}` : notes.trim()) :
+        metadata;
 
       // If editing an existing time block, pass a flag to indicate it should be unmarked/deleted
       onSave({
@@ -714,7 +717,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
   const formatMetadata = (): string => {
     const metadata = [];
     if (playbookTitle || actionStepTitle || _subtaskTitle) {
-      metadata.push('FROM PLAYBOOK');
+      metadata.push('From Playbook');
       if (playbookTitle) {
         metadata.push(playbookTitle);
       }
@@ -725,7 +728,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
         metadata.push(_subtaskTitle);
       }
     }
-    return metadata.length > 0 ? `\n\n${metadata.join('\n')}` : '';
+    return metadata.length > 0 ? metadata.join('\n') : '';
   };
 
   const handleContentChange = (field: string, value: any) => {
@@ -1005,7 +1008,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
-                    <Text style={s.fromText}>FROM PLAYBOOK</Text>
+                    <Text style={s.fromText}>From Playbook</Text>
                     {playbookTitle && (
                       <Text style={s.metadataText}>{playbookTitle}</Text>
                     )}

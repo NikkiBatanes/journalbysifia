@@ -48,6 +48,7 @@ export const GratitudeSkeleton: React.FC<GratitudeSkeletonProps> = ({ count = 3 
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 8,
+    paddingBottom: 16,
     marginTop: 10,
   },
   skeletonItem: {

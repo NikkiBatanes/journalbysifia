@@ -5,7 +5,7 @@ import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
-import { Check, Goal as LuGoal, X, Pencil } from 'lucide-react-native';
+import { Check, X, Pencil } from 'lucide-react-native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -292,7 +292,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
   const canSave = hasContent && (createMutation.isPending || updateMutation.isPending) === false;
 
-  // Hide empty component in inline and moments view
+  // Hide empty component in inline and moments view, but always show in carousel
   if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !hasContent) {
     return null;
   }
@@ -304,10 +304,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       <ErrorBoundary name="TodaysFocusReactQuery">
         <JournalCard
           icon={
-            <LuGoal
+            <MaterialIcons
+              name="filter-center-focus"
               size={24}
               color={Colors.alertCoral}
-              strokeWidth={2.5}
             />
           }
           title="TODAY'S FOCUS"
@@ -335,10 +335,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
       <ErrorBoundary name="TodaysFocusReactQuery">
         <JournalCard
           icon={
-            <LuGoal
+            <MaterialIcons
+              name="filter-center-focus"
               size={24}
               color={Colors.alertCoral}
-              strokeWidth={2.5}
             />
           }
           title="TODAY'S FOCUS"
@@ -377,16 +377,16 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   return (
     <ErrorBoundary name="TodaysFocusReactQuery">
       <JournalCard
-        icon={hasContent ? (
+        icon={hasContent || shouldShowEditingMode ? (
           <MaterialIcons
             name="filter-center-focus"
             size={24}
             color={Colors.alertCoral}
           />
         ) : undefined}
-        title={hasContent ? "TODAY'S FOCUS" : undefined}
-        subtitle={hasContent ? 'Your daily focus and priorities' : undefined}
-        showAddButton={hasContent ? !shouldShowEditingMode : false}
+        title={hasContent || shouldShowEditingMode ? "TODAY'S FOCUS" : undefined}
+        subtitle={hasContent || shouldShowEditingMode ? 'Your daily focus and priorities' : undefined}
+        showAddButton={(hasContent || shouldShowEditingMode) ? !shouldShowEditingMode : false}
         onAdd={toggleEditing}
         isAdding={shouldShowEditingMode}
         headerRight={undefined}

@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   scrollView: {
-    height: 400,
+    // Removed fixed height for dynamic expansion to prevent content cutoff
   },
   scrollContent: {
     paddingLeft: 8,
