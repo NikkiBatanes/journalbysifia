@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   headerActionsFloating: {
     position: 'absolute',
     top: 12,
-    right: 50,
+    right: 12, // Move to far right like todos filter system
     flexDirection: 'row',
     alignItems: 'center',
     zIndex: 10,

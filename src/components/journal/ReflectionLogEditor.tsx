@@ -617,6 +617,19 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
   }, [showFormattingModal, slideAnim]);
 
+  // Auto-focus title input for free form reflections
+  useEffect(() => {
+    // Only auto-focus for free form mode and when not editing existing entry
+    if (!isEditing && source === 'freeform' && !lockTitle && titleInputRef.current) {
+      // Add a small delay to ensure the component is fully rendered
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 300);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isEditing, source, lockTitle]);
+
   // Save handler - directly call onSave
   const handleSave = async () => {
     // Clear any existing draft since we're saving the entry

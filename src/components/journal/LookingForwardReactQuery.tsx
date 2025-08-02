@@ -133,6 +133,40 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     console.log('🌅 LookingForward: Resetting state for date:', dateStr);
   }, [dateStr]);
 
+  // Handle global edit mode activation
+  React.useEffect(() => {
+    if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode) {
+      // Check if there's existing looking forward content
+      const hasExistingEntry = entries.length > 0 && entries[0]?.content;
+
+      if (hasExistingEntry) {
+        // Start editing existing entry
+        const currentEntry = entries[0];
+        const existingText = (() => {
+          try {
+            const parsed = typeof currentEntry.content === 'string' ? JSON.parse(currentEntry.content) : currentEntry.content;
+            return parsed.entry?.text || '';
+          } catch {
+            return '';
+          }
+        })();
+
+        if (existingText && !isEditing) {
+          setIsEditing(true);
+          setIsAdding(false); // Make sure adding is false
+          setEntryText(existingText);
+        } else if (!existingText && !isAdding) {
+          setIsAdding(true);
+          setIsEditing(false); // Make sure editing is false
+        }
+      } else if (!isAdding) {
+        // Start adding new entry
+        setIsAdding(true);
+        setIsEditing(false); // Make sure editing is false
+      }
+    }
+  }, [globalEditMode?.isGlobalEditMode, entries.length, viewMode, entries, isAdding, isEditing]);
+
   // Track loading performance
   React.useEffect(() => {
     if (!isLoading && entries.length >= 0) {
@@ -160,10 +194,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     }
   }, [error, dateStr, user?.id]);
 
-  // Debug: Log when entries change
-  React.useEffect(() => {
-    console.log('🌅 LookingForward: Entries changed:', entries);
-  }, [entries]);
+
 
   // Handle loading state
   if (isLoading) {
@@ -341,9 +372,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   return (
     <JournalCard
-      title={hasContent ? 'LOOKING FORWARD TO' : undefined}
-      subtitle={hasContent ? 'What are you looking forward to tomorrow?' : undefined}
-      icon={hasContent ? <MaterialCommunityIcons name="white-balance-sunny" size={24} color={Colors.alertCoral} /> : undefined}
+      title={hasContent || shouldShowAddingMode ? 'LOOKING FORWARD TO' : undefined}
+      subtitle={hasContent || shouldShowAddingMode ? 'What are you looking forward to tomorrow?' : undefined}
+      icon={hasContent || shouldShowAddingMode ? <MaterialCommunityIcons name="white-balance-sunny" size={24} color={Colors.alertCoral} /> : undefined}
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={displayEntry ? editEntry : startAdding}
       isAdding={shouldShowAddingMode}
@@ -370,16 +401,21 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         </SwipeableTodoItem>
       )}
       {shouldShowAddingMode && (
-        <View style={styles.formContainer}>
-          <TextInput
-            style={styles.input}
-            value={entryText}
-            onChangeText={setEntryText}
-            placeholder="What are you looking forward to tomorrow?"
-            placeholderTextColor={Colors.mediumGray}
-            multiline
-            autoFocus
-          />
+        <>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              value={entryText}
+              onChangeText={setEntryText}
+              placeholder="What are you looking forward to tomorrow?"
+              placeholderTextColor={Colors.mediumGray}
+              multiline
+              textAlignVertical="top"
+              autoFocus
+              returnKeyType="done"
+              blurOnSubmit={false}
+            />
+          </View>
           <View style={styles.buttonRow}>
             <View style={styles.buttonGroup}>
               <TouchableOpacity
@@ -403,7 +439,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </>
       )}
       {!displayEntry && !shouldShowAddingMode && (
         <View style={styles.emptyStateContainer}>
@@ -490,16 +526,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   entryText: {
+    fontFamily: Fonts.bold, // This should map to weight 800 in your Fonts configuration
     color: Colors.hopeWhite,
     fontSize: 18,
-    fontFamily: Fonts.bold,
-    fontWeight: '700',
-    letterSpacing: 0.5,
     lineHeight: 24,
+    flex: 1,
     textAlign: 'center',
-    alignSelf: 'center',
-    width: '100%',
-    marginVertical: 2,
+    letterSpacing: 1,
+    fontWeight: '600',
   },
   headerActions: {
     flexDirection: 'row',
@@ -512,19 +546,23 @@ const styles = StyleSheet.create({
   formContainer: {
     marginTop: 8,
   },
+  inputContainer: {
+    marginBottom: 8,
+    width: '100%',
+  },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    padding: 12,
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    width: '100%',
+    alignSelf: 'stretch',
     minHeight: 80,
     textAlignVertical: 'top',
-    marginBottom: 12,
-    fontSize: 13,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -535,7 +573,7 @@ const styles = StyleSheet.create({
   button: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -545,7 +583,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cancelButton: {
-    backgroundColor: Colors.mediumGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,

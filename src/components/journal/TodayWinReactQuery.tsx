@@ -44,8 +44,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
   const dateStr = toLocalDateString(selectedDate);
 
-  // Determine if we should show adding mode based on global edit mode
-  const shouldShowAddingMode = isAdding || (globalEditMode?.isGlobalEditMode && viewMode === 'inline');
+  // Determine if we should show adding mode
+  const shouldShowAddingMode = isAdding || isEditing;
 
   // Reset state when date changes (prevents stale data)
   React.useEffect(() => {
@@ -58,16 +58,50 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     setIsSaving(false);
     console.log('🏆 TodayWin: Resetting state for date:', dateStr);
   }, [dateStr]);
+
   const userId = user?.id || '';
 
   // Get today's win entry with performance tracking
   const loadStartTime = useRef<number>(Date.now());
   const { data: entries = [], isLoading, error, refetch } = useTodayWinData(userId, dateStr);
 
-  // Debug: Log when entries change
+  // Handle global edit mode activation
   React.useEffect(() => {
-    console.log('🏆 TodayWin: Entries changed:', entries);
-  }, [entries]);
+    if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode) {
+      // Check if there's existing win content
+      const hasExistingWin = entries.length > 0 && entries[0]?.content;
+
+      if (hasExistingWin) {
+        // Start editing existing win
+        const currentEntry = entries[0];
+        const existingWin = (() => {
+          try {
+            const parsed = typeof currentEntry.content === 'string' ? JSON.parse(currentEntry.content) : currentEntry.content;
+            return parsed.win || '';
+          } catch {
+            return '';
+          }
+        })();
+
+        if (existingWin && !isEditing) {
+          setIsEditing(true);
+          setIsAdding(false); // Make sure adding is false
+          setWinText(existingWin);
+          setEditingEntryId(currentEntry.id);
+          setPreviousWin({ id: currentEntry.id, text: existingWin });
+        } else if (!existingWin && !isAdding) {
+          setIsAdding(true);
+          setIsEditing(false); // Make sure editing is false
+        }
+      } else if (!isAdding) {
+        // Start adding new win
+        setIsAdding(true);
+        setIsEditing(false); // Make sure editing is false
+      }
+    }
+  }, [globalEditMode?.isGlobalEditMode, entries.length, viewMode, entries, isAdding, isEditing]);
+
+
 
   // Track loading performance
   React.useEffect(() => {
@@ -398,9 +432,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
   return (
     <JournalCard
-      title={displayWin ? "TODAY'S WIN" : undefined}
-      subtitle={displayWin ? "What's your biggest win today?" : undefined}
-      icon={displayWin ? <Ionicons name="trophy" size={24} color={Colors.alertCoral} /> : undefined}
+      title={displayWin || shouldShowAddingMode ? "TODAY'S WIN" : undefined}
+      subtitle={displayWin || shouldShowAddingMode ? "What's your biggest win today?" : undefined}
+      icon={displayWin || shouldShowAddingMode ? <Ionicons name="trophy" size={24} color={Colors.alertCoral} /> : undefined}
       showAddButton={false}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
@@ -409,92 +443,104 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       expanded={expanded}
       onExpand={onExpand}
     >
-      {displayWin ? (
-        <SwipeableTodoItem
-          item={{ id: displayWin.id, text: displayWin.text, completed: false }}
-          onToggle={() => {}}
-          onDelete={handleDelete}
-          hideCheckbox
-          variant="gratitude"
-          disableSwipe={viewMode === 'carousel' && !expanded}
-        >
-          <View style={[
-            styles.winContainer,
-            viewMode === 'inline' && styles.winContainerInline,
-          ]}>
-            <Text style={styles.winText}>{displayWin.text}</Text>
-          </View>
-        </SwipeableTodoItem>
-      ) : shouldShowAddingMode ? (
-        <View style={styles.formContainer}>
-          <TextInput
-            style={styles.input}
-            value={winText}
-            onChangeText={setWinText}
-            placeholder="What's your win for today?"
-            placeholderTextColor={Colors.mediumGray}
-            multiline
-            autoFocus
-          />
-          <View style={styles.buttonRow}>
-            <View style={styles.buttonGroup}>
+      {(() => {
+        if (shouldShowAddingMode) {
+          return (
+            <>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  value={winText}
+                  onChangeText={setWinText}
+                  placeholder="What's your win for today?"
+                  placeholderTextColor={Colors.mediumGray}
+                  multiline
+                  textAlignVertical="top"
+                  autoFocus
+                  returnKeyType="done"
+                  blurOnSubmit={false}
+                />
+              </View>
+              <View style={styles.buttonRow}>
+                <View style={styles.buttonGroup}>
+                  <TouchableOpacity
+                    onPress={cancelAdding}
+                    style={[styles.button, styles.cancelButton]}
+                    activeOpacity={0.8}
+                  >
+                    <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={saveWin}
+                    style={[
+                      styles.button,
+                      styles.saveButton,
+                      !winText.trim() && styles.disabledButton,
+                    ]}
+                    disabled={!winText.trim()}
+                    activeOpacity={0.8}
+                  >
+                    <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </>
+          );
+        } else if (displayWin) {
+          return (
+            <SwipeableTodoItem
+              item={{ id: displayWin.id, text: displayWin.text, completed: false }}
+              onToggle={() => {}}
+              onDelete={handleDelete}
+              hideCheckbox
+              variant="gratitude"
+              disableSwipe={viewMode === 'carousel' && !expanded}
+            >
+              <View style={[
+                styles.winContainer,
+                viewMode === 'inline' && styles.winContainerInline,
+              ]}>
+                <Text style={styles.winText}>{displayWin.text}</Text>
+              </View>
+            </SwipeableTodoItem>
+          );
+        } else {
+          return (
+            <View style={styles.emptyStateContainer}>
+              <View style={styles.iconContainer}>
+                <Ionicons
+                  name="trophy"
+                  size={32}
+                  color={Colors.mediumGray}
+                />
+                <Text style={styles.sectionLabel} accessibilityRole="text">TODAY'S WIN</Text>
+              </View>
+              <View style={styles.titleContainer}>
+                <Text
+                  style={styles.emptyStateTitle}
+                  accessibilityRole="header"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  Celebrate God's Victories
+                </Text>
+              </View>
+              <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+                Share a moment where faith led to triumph today.
+              </Text>
               <TouchableOpacity
-                onPress={cancelAdding}
-                style={[styles.button, styles.cancelButton]}
-                activeOpacity={0.8}
+                style={styles.emptyStateButton}
+                onPress={startAdding}
+                accessibilityRole="button"
+                accessibilityLabel="Begin today's win"
               >
-                <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={saveWin}
-                style={[
-                  styles.button,
-                  styles.saveButton,
-                  !winText.trim() && styles.disabledButton,
-                ]}
-                disabled={!winText.trim()}
-                activeOpacity={0.8}
-              >
-                <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
+                <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                <Text style={styles.emptyStateButtonText}>Begin</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      ) : (
-        <View style={styles.emptyStateContainer}>
-          <View style={styles.iconContainer}>
-            <Ionicons
-              name="trophy"
-              size={32}
-              color={Colors.mediumGray}
-              style={styles.emptyStateIcon}
-            />
-            <Text style={styles.sectionLabel} accessibilityRole="text">TODAY'S WIN</Text>
-          </View>
-          <View style={styles.titleContainer}>
-            <Text
-              style={styles.emptyStateTitle}
-              accessibilityRole="header"
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              Celebrate God's Victories
-            </Text>
-          </View>
-          <Text style={styles.emptyStateSubtext} accessibilityRole="text">
-            Share a moment where faith led to triumph today.
-          </Text>
-          <TouchableOpacity
-            style={styles.emptyStateButton}
-            onPress={startAdding}
-            accessibilityRole="button"
-            accessibilityLabel="Begin today's win"
-          >
-            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>Begin</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          );
+        }
+      })()}
     </JournalCard>
   );
 };
@@ -553,11 +599,11 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold, // This should map to weight 800 in your Fonts configuration
     color: Colors.hopeWhite,
     fontSize: 18,
-    lineHeight: 28,
+    lineHeight: 24,
     flex: 1,
     textAlign: 'center',
-    letterSpacing: 0.5,
-    fontWeight: '700', // Explicitly set font weight to 800
+    letterSpacing: 1,
+    fontWeight: '600', // Explicitly set font weight to 800
   },
   editButton: {
     padding: 4,
@@ -579,24 +625,28 @@ const styles = StyleSheet.create({
   formContainer: {
     marginTop: 8,
   },
+  inputContainer: {
+    marginBottom: 8,
+    width: '100%',
+  },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    padding: 12,
     fontFamily: Fonts.regular,
-    color: Colors.darkGray,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    width: '100%',
+    alignSelf: 'stretch',
     minHeight: 80,
     textAlignVertical: 'top',
-    marginBottom: 12,
-    fontSize: 13,
   },
   button: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -606,7 +656,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cancelButton: {
-    backgroundColor: Colors.mediumGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   saveButton: {
     backgroundColor: Colors.alertCoral,

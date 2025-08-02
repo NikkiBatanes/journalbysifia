@@ -43,7 +43,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [newItems, setNewItems] = useState(['', '', '']); // Three input fields
+  const [newItems, setNewItems] = useState(['', '', '']); // Start with three input fields
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
 
@@ -136,7 +136,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     setIsEditing(false);
   };
 
-  const startEditing = () => {
+  const startEditing = useCallback(() => {
     setIsEditing(true);
     setIsAdding(false);
 
@@ -149,7 +149,20 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     }
 
     setNewItems(editFields);
-  };
+  }, [gratitudeItems, setIsEditing, setIsAdding, setNewItems]);
+
+  // Handle global edit mode activation
+  React.useEffect(() => {
+    if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode && !isAdding && !isEditing) {
+      // If there are existing gratitude items, start editing them
+      if (gratitudeItems.length > 0) {
+        startEditing();
+      } else {
+        // If no existing items, start adding new ones
+        startAdding();
+      }
+    }
+  }, [globalEditMode?.isGlobalEditMode, gratitudeItems.length, viewMode, isAdding, isEditing, startEditing]);
 
   const cancelAdding = () => {
     setIsAdding(false);
@@ -262,11 +275,34 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     if (validItems.length > 0) {
       try {
         // Prepare the items to save
-        const itemsToSave = validItems.map((text, index) => ({
-          id: `gratitude_${Date.now()}_${index}`,
-          text: text.trim(),
-          date: selectedDate,
-        }));
+        let itemsToSave;
+
+        if (isEditing && gratitudeEntries.length > 0) {
+          // When editing, we want to keep existing items and add only new ones
+          const existingItems = gratitudeItems.map(item => ({
+            id: item.id,
+            text: item.text,
+            date: selectedDate,
+          }));
+
+          // Add only the new items that weren't part of the original items
+          const newItemsToAdd = validItems
+            .filter(text => !existingItems.some(existing => existing.text === text.trim()))
+            .map((text, index) => ({
+              id: `gratitude_${Date.now()}_${index}`,
+              text: text.trim(),
+              date: selectedDate,
+            }));
+
+          itemsToSave = [...existingItems, ...newItemsToAdd];
+        } else {
+          // When adding new (not editing), create fresh items
+          itemsToSave = validItems.map((text, index) => ({
+            id: `gratitude_${Date.now()}_${index}`,
+            text: text.trim(),
+            date: selectedDate,
+          }));
+        }
 
         const contentToSave = JSON.stringify({ items: itemsToSave });
 
@@ -495,15 +531,15 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   return (
     <ErrorBoundary name="GratitudeListReactQuery">
       <JournalCard
-      icon={hasContent ? (
+      icon={(hasContent || shouldShowAddingMode) ? (
         <MaterialCommunityIcons
           name="heart-circle-outline"
           size={24}
           color={Colors.alertCoral}
         />
       ) : undefined}
-      title={hasContent ? 'GRATITUDE LIST' : undefined}
-      subtitle={hasContent ? "Reflect on what you're thankful for" : undefined}
+      title={(hasContent || shouldShowAddingMode) ? 'GRATITUDE LIST' : undefined}
+      subtitle={(hasContent || shouldShowAddingMode) ? "Reflect on what you're thankful for" : undefined}
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
       isAdding={shouldShowAddingMode}
@@ -564,8 +600,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               accessibilityLabel="Add another gratitude field"
               accessibilityHint="Adds another input field for gratitude items"
             >
-              <View style={styles.plusIcon}>
-                <Ionicons name="add" size={16} color={Colors.alertCoral} />
+              <View style={[styles.plusIcon, { transform: [{ rotate: '45deg' }] }]}>
+                <Ionicons name="close" size={13} color={Colors.alertCoral} style={styles.closeIcon} />
               </View>
             </TouchableOpacity>
             <View style={styles.buttonGroup}>
@@ -693,24 +729,23 @@ const styles = StyleSheet.create({
     lineHeight: 16, // Ensure vertical centering in the circle
   },
   inputContainer: {
-    marginTop: 8,
-    gap: 4,
+    marginBottom: 8,
+    width: '100%',
   },
   input: {
-    flex: 1,
-    height: 40,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    padding: 12,
     fontFamily: Fonts.regular,
-    fontSize: 13,
-    color: Colors.darkGray,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
-    padding: 10,
-    marginBottom: 0,
+    fontSize: 14,
+    color: Colors.hopeWhite,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    width: '100%',
+    alignSelf: 'stretch',
   },
   inputWithTopMargin: {
-    // No longer needed as gap handles the spacing
+    marginTop: 4, // Reduced gap to better match todos spacing
   },
   buttonRow: {
     flexDirection: 'row',
@@ -725,7 +760,7 @@ const styles = StyleSheet.create({
   button: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -733,23 +768,29 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
   },
   addAnotherButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'transparent',
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   plusIcon: {
     width: '100%',
     height: '100%',
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  closeIcon: {
+    fontWeight: 'bold',
+  },
   cancelButton: {
-    backgroundColor: Colors.mediumGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   disabledButton: {
     opacity: 0.5,

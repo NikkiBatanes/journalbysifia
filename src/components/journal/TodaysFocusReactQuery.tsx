@@ -65,12 +65,26 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         const parsedContent = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content) : existingEntry.content;
         const existingPriorities = parsedContent.priorities || [];
 
-        // Ensure we always have exactly 3 priorities
-        const priorities = [
-          existingPriorities[0] || { id: '1', text: '', completed: false },
-          existingPriorities[1] || { id: '2', text: '', completed: false },
-          existingPriorities[2] || { id: '3', text: '', completed: false },
-        ];
+        // Ensure we always have exactly 3 priorities with unique IDs
+        const priorities: PriorityItem[] = [];
+
+        // Add existing priorities first
+        for (let i = 0; i < 3; i++) {
+          if (existingPriorities[i]) {
+            priorities.push(existingPriorities[i]);
+          } else {
+            // Generate unique ID that doesn't conflict with existing ones
+            const existingIds = existingPriorities.map((p: PriorityItem) => p.id);
+            const allCurrentIds = priorities.map((p: PriorityItem) => p.id);
+            let newId = `priority_${i + 1}_${Date.now()}`;
+            let counter = 1;
+            while (existingIds.includes(newId) || allCurrentIds.includes(newId)) {
+              newId = `priority_${i + 1}_${Date.now()}_${counter}`;
+              counter++;
+            }
+            priorities.push({ id: newId, text: '', completed: false });
+          }
+        }
 
         return {
           focus: parsedContent.focus || '',
@@ -80,18 +94,18 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         return {
           focus: '',
           priorities: [
-            { id: '1', text: '', completed: false },
-            { id: '2', text: '', completed: false },
-            { id: '3', text: '', completed: false },
+            { id: 'fallback_1', text: '', completed: false },
+            { id: 'fallback_2', text: '', completed: false },
+            { id: 'fallback_3', text: '', completed: false },
           ],
         };
       }
     })() : {
       focus: '',
       priorities: [
-        { id: '1', text: '', completed: false },
-        { id: '2', text: '', completed: false },
-        { id: '3', text: '', completed: false },
+        { id: 'default_1', text: '', completed: false },
+        { id: 'default_2', text: '', completed: false },
+        { id: 'default_3', text: '', completed: false },
       ],
     };
 
@@ -112,6 +126,33 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     originalData.current = { ...initialData };
     setIsEditing(false);
   }, [dateStr, initialData]);
+
+  // Handle global edit mode activation
+  React.useEffect(() => {
+    if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode && !isEditing) {
+      // Check if there's existing focus content
+      const hasExistingContent = existingEntry && existingEntry.content && (() => {
+        try {
+          if (typeof existingEntry.content === 'string') {
+            return existingEntry.content !== '{}';
+          } else {
+            const content = existingEntry.content as any;
+            return content.focus || content.priorities?.some((p: any) => p.text);
+          }
+        } catch {
+          return false;
+        }
+      })();
+
+      if (hasExistingContent) {
+        // Start editing existing content
+        setIsEditing(true);
+      } else {
+        // Start adding new content
+        setIsEditing(true);
+      }
+    }
+  }, [globalEditMode?.isGlobalEditMode, existingEntry, viewMode, isEditing]);
 
   // Track loading performance
   React.useEffect(() => {
@@ -398,7 +439,9 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         {shouldShowEditingMode
           ? (
             <View style={styles.editContainer}>
-              <Text style={styles.sectionHeaderWithBottomMargin}>TODAY'S FOCUS</Text>
+              {!globalEditMode?.isGlobalEditMode && (
+                <Text style={styles.sectionHeaderWithBottomMargin}>TODAY'S FOCUS</Text>
+              )}
               <TextInput
                 style={[styles.input, styles.focusInput]}
                 value={data.focus}
@@ -411,7 +454,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               />
               <Text style={styles.sectionHeaderWithTopMargin}>TOP 3 PRIORITIES</Text>
               {data.priorities.map((priority, index) => (
-                <View key={priority.id} style={styles.priorityRow}>
+                <View key={`priority-${index}`} style={styles.priorityRow}>
                   <Text style={styles.priorityNumber}>{index + 1}.</Text>
                   <TextInput
                     style={[styles.input, styles.priorityInput]}
@@ -471,7 +514,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                       .filter(p => p.text.trim() !== '')
                       .map((priority, index) => (
                         <SwipeableTodoItem
-                          key={priority.id}
+                          key={`swipeable-priority-${index}`}
                           item={{
                             id: priority.id,
                             text: priority.text,
@@ -649,7 +692,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     paddingVertical: 10,
     paddingHorizontal: 12,
-    marginBottom: 8,
+    marginBottom: 0,
     borderRadius: 12,
     borderWidth: 0.5,
     borderColor: 'rgba(26, 60, 109, 0.15)',
@@ -714,7 +757,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 16,
     marginLeft: 6,
-    marginBottom: 4,
+    marginBottom: 0,
     height: 40,
     backgroundColor: 'transparent',
     borderRadius: 12,
@@ -741,7 +784,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
   },
   cancelButton: {
-    backgroundColor: Colors.mediumGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   disabledButton: {
     opacity: 0.5,

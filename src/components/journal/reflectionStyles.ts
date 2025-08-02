@@ -383,10 +383,16 @@ export const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 16,
   },
+  // Ensures no background or border for devotional entries
   devotionalEntry: {
     backgroundColor: 'transparent',
     borderColor: 'transparent',
     borderWidth: 0,
+    elevation: 0, // Android shadow
+    shadowColor: 'transparent', // iOS shadow
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
   },
   devotionalPromptContainer: {
     backgroundColor: 'rgba(245, 166, 35, 0.1)',
@@ -483,9 +489,10 @@ export const styles = StyleSheet.create({
   },
   freeFormEntry: {
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 14,
     padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // Subtle white background
   },
   entryHeader: {
     flexDirection: 'row',

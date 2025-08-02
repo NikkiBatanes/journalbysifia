@@ -511,8 +511,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         </View>
       ) : entry.source === 'playbook' || entry.type === 'playbook' ? (
         <View style={styles.guidedPromptRow}>
-          <View style={styles.devotionalPromptContainer}>
-            <Text style={styles.devotionalPromptText}>PLAYBOOK</Text>
+          <View style={styles.playbookPromptContainer}>
+            <Text style={styles.playbookPromptText}>PLAYBOOK</Text>
           </View>
           <Text style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
@@ -676,10 +676,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           accessibilityRole="button"
           accessibilityLabel="Add new reflection"
         >
-          <Ionicons
-            name="pencil"
+          <Pencil
             size={16}
             color={Colors.mediumGray}
+            strokeWidth={2}
           />
         </TouchableOpacity>
       ) : undefined}
@@ -1188,9 +1188,7 @@ const styles = StyleSheet.create({
   devotionalEntry: {
     borderRadius: 14,
     padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   guidedEntry: {
     borderRadius: 14,
@@ -1241,13 +1239,28 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   freeFormPromptContainer: {
-    backgroundColor: 'rgba(76, 184, 144, 0.1)',
+    backgroundColor: 'rgba(242, 245, 247, 0.15)', // Reduced from 0.2 to 0.15 opacity
     borderRadius: 8,
     paddingHorizontal: 6,
     paddingVertical: 2,
     marginRight: 8,
   },
   freeFormPromptText: {
+    fontSize: 8,
+    color: 'rgba(242, 245, 247, 0.8)', // Added 80% opacity to the text
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  playbookPromptContainer: {
+    backgroundColor: 'rgba(76, 184, 144, 0.15)', // Growth green with 15% opacity
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  playbookPromptText: {
     fontSize: 8,
     color: Colors.growthGreen,
     fontFamily: Fonts.medium,

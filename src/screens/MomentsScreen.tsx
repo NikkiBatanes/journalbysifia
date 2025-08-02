@@ -89,9 +89,36 @@ export const MomentsScreen: React.FC = () => {
         </Text>
       </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+      {/* Enhanced Moments Renderer - now handles its own scrolling */}
+      <EnhancedMomentsRenderer
+        plugins={plugins}
+        dateRange={getCurrentDateRange()}
+        groupBy={groupBy}
+        sortBy={sortBy}
+        searchQuery={searchQuery}
+        style={styles.momentsRenderer}
+        headerComponents={[
+          <DateFilterBar
+            key="date-filter"
+            selectedDate={selectedDate}
+            onDateChange={handleDateChange}
+            onDateRangeChange={handleDateRangeChange}
+            filterType={filterType}
+            onFilterTypeChange={handleFilterTypeChange}
+            selectedRange={selectedRange}
+          />,
+          <GroupingControls
+            key="grouping-controls"
+            groupBy={groupBy}
+            onGroupByChange={setGroupBy}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            showSearch={showSearch}
+            onToggleSearch={() => setShowSearch(!showSearch)}
+          />,
+        ]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -100,41 +127,7 @@ export const MomentsScreen: React.FC = () => {
             colors={[Colors.alertCoral]}
           />
         }
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[0, 1]}
-      >
-        {/* Date Filter Bar */}
-        <DateFilterBar
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-          onDateRangeChange={handleDateRangeChange}
-          filterType={filterType}
-          onFilterTypeChange={handleFilterTypeChange}
-          selectedRange={selectedRange}
-        />
-
-        {/* Grouping Controls */}
-        <GroupingControls
-          groupBy={groupBy}
-          onGroupByChange={setGroupBy}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          showSearch={showSearch}
-          onToggleSearch={() => setShowSearch(!showSearch)}
-        />
-
-        {/* Enhanced Moments Renderer */}
-        <EnhancedMomentsRenderer
-          plugins={plugins}
-          dateRange={getCurrentDateRange()}
-          groupBy={groupBy}
-          sortBy={sortBy}
-          searchQuery={searchQuery}
-          style={styles.momentsRenderer}
-        />
-      </ScrollView>
+      />
     </SafeAreaView>
   );
 };

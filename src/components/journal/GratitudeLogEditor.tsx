@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useImperativeHandle } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Plus, Pencil } from 'lucide-react-native';
+import { Pencil, X } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 
 interface GratitudeLogEditorProps {
@@ -145,6 +145,11 @@ const defaultStyles = {
   entryContentInput: {
     minHeight: 100,
     fontSize: 16,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   lockedTitleText: {
     color: Colors.hopeWhite,
@@ -281,7 +286,8 @@ const defaultStyles = {
   },
 
   gratitudeItemContainer: {
-    marginBottom: 16,
+    marginBottom: 4,
+    width: '100%',
   },
   gratitudeItemLabel: {
     color: Colors.hopeWhite,
@@ -311,12 +317,14 @@ const defaultStyles = {
     fontWeight: '500',
   },
   addMoreButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 24,
+    height: 24,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   addMoreText: {
     color: Colors.hopeWhite,
@@ -340,16 +348,11 @@ const defaultStyles = {
     gap: 12,
   },
   fab: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 24,
+    height: 24,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   saveFab: {
     backgroundColor: Colors.alertCoral,
@@ -371,9 +374,21 @@ const defaultStyles = {
     borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   cancelFab: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  itemMarginBottom: {
+    marginBottom: 8,
+  },
+  lastItemMarginBottom: {
+    marginBottom: 0,
+  },
+  rotateIcon: {
+    transform: [{ rotate: '45deg' }],
+  },
+  boldIcon: {
+    fontWeight: 'bold',
   },
 };
 
@@ -664,7 +679,14 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
             </Text>
             {/* Gratitude items */}
             {gratitudeItems.map((item, index) => (
-              <View key={index} style={s.gratitudeItemContainer}>
+              <View
+                key={index}
+                style={[
+                  s.gratitudeItemContainer,
+                  index !== gratitudeItems.length - 1 && s.itemMarginBottom,
+                  index === gratitudeItems.length - 1 && s.lastItemMarginBottom,
+                ]}
+              >
                 <TextInput
                   ref={(inputRef) => { inputRefs.current[index] = inputRef; }}
                   style={[s.entryInput, s.entryContentInput]}
@@ -723,7 +745,9 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
             {gratitudeItems.slice(0, 3).every(item => item.trim().length > 0) && (
               <View style={s.addMoreContainer}>
                 <TouchableOpacity style={s.addMoreButton} onPress={addGratitudeItem}>
-                  <Plus size={20} color={Colors.hopeWhite} />
+                  <View style={s.rotateIcon}>
+                    <Ionicons name="close" size={13} color={Colors.alertCoral} style={s.boldIcon} />
+                  </View>
                 </TouchableOpacity>
               </View>
             )}
@@ -782,7 +806,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
               style={[s.fab, s.cancelFab]}
               onPress={_onCancel}
             >
-              <Ionicons name="close" size={20} color="rgba(255, 255, 255, 0.6)" />
+              <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
             </TouchableOpacity>
 
             {/* Save FAB */}

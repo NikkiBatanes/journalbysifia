@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SectionList } from 'react-native';
+import { View, Text, StyleSheet, SectionList, RefreshControl, RefreshControlProps } from 'react-native';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
@@ -16,6 +16,8 @@ interface EnhancedMomentsRendererProps {
   sortBy: SortType;
   searchQuery: string;
   style?: any;
+  headerComponents?: React.ReactElement[];
+  refreshControl?: React.ReactElement<RefreshControlProps>;
 }
 
 interface MomentEntry {
@@ -39,6 +41,8 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   sortBy,
   searchQuery,
   style,
+  headerComponents = [],
+  refreshControl,
 }) => {
   // Generate moment entries for date range
   const generateMomentEntries = React.useMemo(() => {
@@ -243,6 +247,16 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
         stickySectionHeadersEnabled={true}
+        ListHeaderComponent={
+          headerComponents.length > 0 ? (
+            <View>
+              {headerComponents.map((component, index) => (
+                <View key={index}>{component}</View>
+              ))}
+            </View>
+          ) : undefined
+        }
+        refreshControl={refreshControl}
       />
     </View>
   );

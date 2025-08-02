@@ -229,7 +229,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Auto-cancel edit mode when date changes (carousel swipe to different date)
   // Track previous date to detect changes
   const prevDateRef = useRef(dateStr);
-  
+
   useEffect(() => {
     // Cancel any active editing when date changes
     if (prevDateRef.current !== dateStr && isAdding) {
@@ -240,7 +240,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       globalEditMode.setGlobalEditMode(false);
     }
     prevDateRef.current = dateStr;
-  }, [dateStr, globalEditMode]);
+  }, [dateStr, globalEditMode, isAdding]);
 
   // Auto-cancel edit mode when component unmounts
   useEffect(() => {
@@ -1918,7 +1918,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
   },
   cancelButton: {
-    backgroundColor: Colors.mediumGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   disabledButton: {
     opacity: 0.5,
