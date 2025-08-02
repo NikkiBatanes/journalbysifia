@@ -5,8 +5,9 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Check, CalendarClock as LuCalendarClock, X } from 'lucide-react-native';
+import { Check, X, Pencil } from 'lucide-react-native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -651,7 +652,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   if (isLoading) {
     return (
       <JournalCard
-        icon={<LuCalendarClock size={24} color={Colors.anchorBlue} strokeWidth={2.5} />}
+        icon={<MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.anchorBlue} />}
         title={timeBlocks.length === 1 ? 'TIME BLOCK' : 'TIME BLOCKS'}
         subtitle="Schedule and organize your day"
         showAddButton={false}
@@ -667,9 +668,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   return (
     <JournalCard
-      icon={<LuCalendarClock size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      title={timeBlocks.length === 0 ? '' : (timeBlocks.length === 1 ? 'TIME BLOCK' : 'TIME BLOCKS')}
-      subtitle={timeBlocks.length === 0 ? '' : 'Schedule and organize your day'}
+      icon={timeBlocks.length > 0 ? <MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} /> : undefined}
+      title={timeBlocks.length > 0 ? (timeBlocks.length === 1 ? 'TIME BLOCK' : 'TIME BLOCKS') : undefined}
+      subtitle={timeBlocks.length > 0 ? 'Schedule and organize your day' : undefined}
       showAddButton={timeBlocks.length > 0 && !shouldShowAddingMode}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
@@ -690,8 +691,31 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
         ) : null
       }
     >
-      {/* Always show time blocks first */}
-      {timeBlocks.length > 0 ? (
+      {/* Show empty state or time blocks */}
+      {timeBlocks.length === 0 ? (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="timeline-text-outline"
+              size={32}
+              color={Colors.mediumGray}
+              style={styles.emptyStateIcon}
+            />
+            <Text style={styles.sectionLabel}>TIME BLOCKS</Text>
+          </View>
+          <Text style={styles.emptyStateTitle}>Plan Your Day with Purpose</Text>
+          <Text style={styles.emptyStateText}>Schedule timeblocks to align your time with God's calling</Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={startAdding}
+            accessibilityRole="button"
+            accessibilityLabel="Begin planning your day"
+          >
+            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Text style={styles.emptyStateButtonText}>Begin</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
         <View
           style={styles.timeBlocksContainer}
           accessibilityRole="list"
@@ -711,7 +735,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             </TouchableOpacity>
           )}
         </View>
-      ) : null}
+      )}
 
       {/* Show add form at bottom when adding */}
       {shouldShowAddingMode && (
@@ -1300,6 +1324,72 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     padding: 16,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+  },
+  emptyStateIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  emptyStateTitle: {
+    marginTop: 2,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    letterSpacing: 0.2,
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  emptyStateText: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  emptyStateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
   },
   addButton: {
     padding: 4,

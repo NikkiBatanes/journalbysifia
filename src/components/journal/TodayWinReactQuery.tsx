@@ -6,6 +6,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Check, X, Trophy as LuTrophy, Pencil } from 'lucide-react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -390,19 +391,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     // State clearing is now handled above in each branch
   };
 
-  const editWin = () => {
-    if (!displayWin) {return;}
-
-    console.log('🏆 TodayWin: Starting edit mode', { displayWin, isAdding, isEditing });
-    setPreviousWin(displayWin);
-    setWinText(displayWin.text);
-    setEditingEntryId(displayWin.id); // Store the entry ID for updating
-    setDisplayWin(null); // Clear the win state to show the edit form
-    setIsEditing(true);
-    setIsAdding(true);
-    console.log('🏆 TodayWin: Edit mode set', { isAdding: true, isEditing: true, editingEntryId: displayWin.id });
-  };
-
   // Hide empty component in inline view
   if (viewMode === 'inline' && !isLoading && !error && (!win || !win.text.trim())) {
     return null;
@@ -410,27 +398,18 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
   return (
     <JournalCard
-      title="TODAY'S WIN"
-      subtitle="What's your biggest win today?"
-      icon={<LuTrophy size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      showAddButton={!displayWin && !shouldShowAddingMode}
+      title={displayWin ? "TODAY'S WIN" : undefined}
+      subtitle={displayWin ? "What's your biggest win today?" : undefined}
+      icon={displayWin ? <Ionicons name="trophy" size={24} color={Colors.alertCoral} /> : undefined}
+      showAddButton={false}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
       onCancelAdd={cancelAdding}
-      headerRight={
-        displayWin && !shouldShowAddingMode && viewMode !== 'inline' ? (
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={editWin} style={styles.headerButton}>
-              <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
-        ) : undefined
-      }
       viewMode={viewMode}
       expanded={expanded}
       onExpand={onExpand}
     >
-      {displayWin && !shouldShowAddingMode && (
+      {displayWin ? (
         <SwipeableTodoItem
           item={{ id: displayWin.id, text: displayWin.text, completed: false }}
           onToggle={() => {}}
@@ -439,12 +418,14 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           variant="gratitude"
           disableSwipe={viewMode === 'carousel' && !expanded}
         >
-          <View style={styles.winContainer}>
+          <View style={[
+            styles.winContainer,
+            viewMode === 'inline' && styles.winContainerInline,
+          ]}>
             <Text style={styles.winText}>{displayWin.text}</Text>
           </View>
         </SwipeableTodoItem>
-      )}
-      {shouldShowAddingMode && (
+      ) : shouldShowAddingMode ? (
         <View style={styles.formContainer}>
           <TextInput
             style={styles.input}
@@ -479,6 +460,40 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
             </View>
           </View>
         </View>
+      ) : (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.iconContainer}>
+            <Ionicons
+              name="trophy"
+              size={32}
+              color={Colors.mediumGray}
+              style={styles.emptyStateIcon}
+            />
+            <Text style={styles.sectionLabel} accessibilityRole="text">TODAY'S WIN</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text
+              style={styles.emptyStateTitle}
+              accessibilityRole="header"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Celebrate God's Victories
+            </Text>
+          </View>
+          <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+            Share a moment where faith led to triumph today.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={startAdding}
+            accessibilityRole="button"
+            accessibilityLabel="Begin today's win"
+          >
+            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Text style={styles.emptyStateButtonText}>Begin</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </JournalCard>
   );
@@ -501,7 +516,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f87171',
   },
   winContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: '#274673',
     borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -510,6 +525,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: '100%',
     alignSelf: 'stretch',
+  },
+  winContainerInline: {
+    backgroundColor: Colors.anchorBlue,
   },
   deleteButton: {
     width: 80,
@@ -622,5 +640,96 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     color: Colors.hopeWhite,
     fontSize: 12,
+  },
+  // Empty state styles
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 12,
+    width: '100%',
+  },
+  emptyStateTitle: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  emptyStateSubtext: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  beginButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 25,
+    minWidth: 140,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  beginButtonText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.semiBold,
+    fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  // New empty state styles
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  emptyStateIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  titleContainer: {
+    width: '100%',
+    paddingHorizontal: 0,
+    marginBottom: 8,
+  },
+  emptyStateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
   },
 });

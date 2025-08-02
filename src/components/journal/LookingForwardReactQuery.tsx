@@ -6,6 +6,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -330,6 +331,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     setEntryText('');
   };
 
+  // Determine if there's content
+  const hasContent = lookingForward && lookingForward.text.trim();
+
   // Hide empty component in inline view
   if (viewMode === 'inline' && !isLoading && !error && (!lookingForward || !lookingForward.text.trim())) {
     return null;
@@ -337,22 +341,13 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   return (
     <JournalCard
-      title="LOOKING FORWARD TO"
-      subtitle="What are you looking forward to tomorrow?"
-      icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      showAddButton={!displayEntry && !shouldShowAddingMode}
-      onAdd={startAdding}
+      title={hasContent ? 'LOOKING FORWARD TO' : undefined}
+      subtitle={hasContent ? 'What are you looking forward to tomorrow?' : undefined}
+      icon={hasContent ? <MaterialCommunityIcons name="white-balance-sunny" size={24} color={Colors.alertCoral} /> : undefined}
+      showAddButton={hasContent ? !shouldShowAddingMode : false}
+      onAdd={displayEntry ? editEntry : startAdding}
       isAdding={shouldShowAddingMode}
       onCancelAdd={cancelAdding}
-      headerRight={
-        displayEntry && !shouldShowAddingMode && viewMode !== 'inline' ? (
-          <View style={styles.headerActions}>
-            <TouchableOpacity onPress={editEntry} style={styles.headerButton}>
-              <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
-            </TouchableOpacity>
-          </View>
-        ) : null
-      }
       viewMode={viewMode}
       expanded={expanded}
       onExpand={onExpand}
@@ -366,7 +361,10 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           variant="gratitude"
           disableSwipe={viewMode === 'carousel' && !expanded}
         >
-          <View style={styles.entryContainer}>
+          <View style={[
+            styles.entryContainer,
+            viewMode === 'inline' && styles.entryContainerInline,
+          ]}>
             <Text style={styles.entryText}>{displayEntry.text}</Text>
           </View>
         </SwipeableTodoItem>
@@ -407,6 +405,41 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           </View>
         </View>
       )}
+      {!displayEntry && !shouldShowAddingMode && (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="white-balance-sunny"
+              size={32}
+              color={Colors.mediumGray}
+              style={styles.emptyStateIcon}
+            />
+            <Text style={styles.sectionLabel} accessibilityRole="text">LOOKING FORWARD TO</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text
+              style={styles.emptyStateTitle}
+              accessibilityRole="header"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Hope for Tomorrow
+            </Text>
+          </View>
+          <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+            Write what you're excited for, trusting in God's plan.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={startAdding}
+            accessibilityRole="button"
+            accessibilityLabel="Begin looking forward"
+          >
+            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Text style={styles.emptyStateButtonText}>Begin</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </JournalCard>
   );
 };
@@ -419,7 +452,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f87171',
   },
   entryContainer: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: '#274673',
     borderRadius: 6,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -430,6 +463,9 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     width: '100%',
     alignSelf: 'stretch',
+  },
+  entryContainerInline: {
+    backgroundColor: Colors.anchorBlue,
   },
   deleteButton: {
     width: 80,
@@ -546,6 +582,76 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontFamily: Fonts.medium,
     fontSize: 12,
+  },
+  // Empty state styles
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 12,
+    width: '100%',
+  },
+  emptyStateIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  titleContainer: {
+    width: '100%',
+    paddingHorizontal: 0,
+    marginBottom: 8,
+  },
+  emptyStateTitle: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  emptyStateSubtext: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  emptyStateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
   },
 });
 

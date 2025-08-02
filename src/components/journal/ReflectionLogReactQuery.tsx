@@ -4,7 +4,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { NotebookPen as LuNotebookPen, X } from 'lucide-react-native';
+import { NotebookPen as LuNotebookPen, X, Pencil } from 'lucide-react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 import ReflectionLogEditor from './ReflectionLogEditor';
@@ -361,9 +362,57 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     const entriesToShow = filteredEntries.length > 0 ? filteredEntries : entries;
     console.log('🔍 Entries to show:', entriesToShow.length);
 
-    // Return null when there are no entries to show
+    // Return empty state when there are no entries to show
     if (entriesToShow.length === 0) {
-      return null;
+      return (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="head-dots-horizontal-outline"
+              size={32}
+              color={Colors.mediumGray}
+              style={styles.emptyStateIcon}
+            />
+            <Text style={styles.sectionLabel} accessibilityRole="text">REFLECTION</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text
+              style={styles.emptyStateTitle}
+              accessibilityRole="header"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Open Your Heart
+            </Text>
+          </View>
+          <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+            Reflect on your emotions and faith to grow closer to God.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={() => {
+              setNewEntry({
+                title: '',
+                content: '',
+                type: 'free',
+                prompt: '',
+                tags: [],
+                location: '',
+                source: undefined,
+              });
+              setSelectedPrompt('');
+              setIsAdding(true);
+              setEditingId(null);
+              setSelectedEntry(null);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Begin reflection"
+          >
+            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Text style={styles.emptyStateButtonText}>Begin</Text>
+          </TouchableOpacity>
+        </View>
+      );
     }
 
     return (
@@ -577,6 +626,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }
 
+  // Determine if there's content
+  const hasContent = entries.length > 0;
+
   // Hide empty component in inline view
   if (viewMode === 'inline' && !isLoading && !error && entries.length === 0) {
     return null;
@@ -584,10 +636,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   return (
     <JournalCard
-      icon={<LuNotebookPen size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
-      title="HEART JOURNAL"
-      subtitle={getReflectionSubtitle(entries?.length || 0)}
-      showAddButton={true}
+      icon={hasContent ? <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={Colors.alertCoral} /> : undefined}
+      title={hasContent ? 'HEART JOURNAL' : undefined}
+      subtitle={hasContent ? getReflectionSubtitle(entries?.length || 0) : undefined}
+      showAddButton={hasContent}
       onAdd={() => {
         setNewEntry({
           title: '',
@@ -1301,6 +1353,76 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     color: Colors.mediumGray,
     fontStyle: 'italic',
+  },
+  // Empty state styles
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 12,
+    width: '100%',
+  },
+  emptyStateIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  titleContainer: {
+    width: '100%',
+    paddingHorizontal: 0,
+    marginBottom: 8,
+  },
+  emptyStateTitle: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  emptyStateSubtext: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  emptyStateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
   },
 });
 

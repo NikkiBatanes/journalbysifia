@@ -4,7 +4,8 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check, ListTodo as LuListTodo, X } from 'lucide-react-native';
+import Entypo from 'react-native-vector-icons/Entypo';
+import { Check, ListTodo as LuListTodo, X, Pencil } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -423,21 +424,67 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     return null;
   }
 
+  // Custom empty state for Todos
+  if (!isLoading && !error && todos.length === 0) {
+    return (
+      <JournalCard
+        // Hide header icon/title/subtitle in empty state
+        icon={null}
+        title={undefined}
+        subtitle={undefined}
+        showAddButton={false}
+        variant={variant}
+        viewMode={viewMode}
+        expanded={expanded}
+        onExpand={onExpand}
+      >
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.iconContainer}>
+            <Entypo
+              name="list"
+              size={32}
+              color={Colors.mediumGray}
+              style={styles.emptyStateIcon}
+            />
+            <Text style={styles.sectionLabel} accessibilityRole="text">TO-DOS</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text
+              style={styles.emptyStateTitle}
+              accessibilityRole="header"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Live Your Faith Through Action
+            </Text>
+          </View>
+          <Text style={styles.emptyStateSubtext} accessibilityRole="text">Add tasks to organize your day and walk in purpose.</Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={startAdding}
+            accessibilityRole="button"
+            accessibilityLabel="Begin adding todos"
+          >
+            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Text style={styles.emptyStateButtonText}>Begin</Text>
+          </TouchableOpacity>
+        </View>
+      </JournalCard>
+    );
+  }
+
+  const hasContent = todos.length > 0;
+
   return (
     <JournalCard
-      icon={
-        <LuListTodo
-          size={24}
-          color={Colors.alertCoral}
-          strokeWidth={2.5}
-        />
-      }
-      title="TO-DOS"
-      subtitle="Track your daily tasks"
-      showAddButton={!shouldShowAddingMode}
+      icon={hasContent ? (
+        <Entypo name="list" size={24} color={Colors.alertCoral} />
+      ) : undefined}
+      title={hasContent ? 'TO-DOS' : undefined}
+      subtitle={hasContent ? 'Track your daily tasks' : undefined}
+      showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
-
       headerRight={
         <View style={styles.headerRightContainer}>
           {todos.some(t => t.priority && !t.completed) && (
@@ -654,6 +701,75 @@ export const TodosReactQuery: React.FC<TodosProps> = (props) => (
 );
 
 const styles = StyleSheet.create({
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 12,
+    width: '100%',
+  },
+  emptyStateIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  titleContainer: {
+    width: '100%',
+    paddingHorizontal: 0,
+    marginBottom: 8,
+  },
+  emptyStateTitle: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  emptyStateSubtext: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  emptyStateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+  },
   // Container styles
   todosContainer: {
     width: '100%',

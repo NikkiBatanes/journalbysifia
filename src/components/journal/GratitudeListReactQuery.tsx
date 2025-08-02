@@ -4,7 +4,8 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Check, HandHeart as LuHandHeart, X } from 'lucide-react-native';
+import { Check, HandHeart as LuHandHeart, X, Pencil } from 'lucide-react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -333,7 +334,45 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   }, [closeAllSwipeables]);
 
   const displayGratitudeList = () => {
-    if (isAdding || isEditing || gratitudeItems.length === 0) {return null;}
+    if (isAdding || isEditing) {return null;}
+
+    if (gratitudeItems.length === 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.iconContainer}>
+            <MaterialCommunityIcons
+              name="heart-circle-outline"
+              size={32}
+              color={Colors.mediumGray}
+              style={styles.emptyStateIcon}
+            />
+            <Text style={styles.sectionLabel} accessibilityRole="text">GRATITUDE LIST</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text
+              style={styles.emptyStateTitle}
+              accessibilityRole="header"
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
+              Give Thanks Today
+            </Text>
+          </View>
+          <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+            Note blessings to cultivate a heart of gratitude.
+          </Text>
+          <TouchableOpacity
+            style={styles.emptyStateButton}
+            onPress={startAdding}
+            accessibilityRole="button"
+            accessibilityLabel="Begin gratitude list"
+          >
+            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+            <Text style={styles.emptyStateButtonText}>Begin</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
     const visibleItems = gratitudeItems.slice(0, visibleCount);
     const hasMore = !isAdding && gratitudeItems.length > visibleCount;
@@ -445,6 +484,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     );
   }
 
+  // Determine if there's content
+  const hasContent = gratitudeItems.length > 0;
+
   // Hide empty component in inline view
   if (viewMode === 'inline' && !isLoading && !error && gratitudeItems.length === 0) {
     return null;
@@ -453,16 +495,16 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   return (
     <ErrorBoundary name="GratitudeListReactQuery">
       <JournalCard
-      icon={
-        <LuHandHeart
+      icon={hasContent ? (
+        <MaterialCommunityIcons
+          name="heart-circle-outline"
           size={24}
           color={Colors.alertCoral}
-          strokeWidth={2.5}
         />
-      }
-      title="GRATITUDE LIST"
-      subtitle="Reflect on what you're thankful for"
-      showAddButton={!shouldShowAddingMode}
+      ) : undefined}
+      title={hasContent ? 'GRATITUDE LIST' : undefined}
+      subtitle={hasContent ? "Reflect on what you're thankful for" : undefined}
+      showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
       isAdding={shouldShowAddingMode}
       viewMode={viewMode}
@@ -718,5 +760,75 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     padding: 16,
+  },
+  // Empty state styles
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 12,
+    width: '100%',
+  },
+  emptyStateIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  titleContainer: {
+    width: '100%',
+    paddingHorizontal: 0,
+    marginBottom: 8,
+  },
+  emptyStateTitle: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  emptyStateSubtext: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  emptyStateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
   },
 });

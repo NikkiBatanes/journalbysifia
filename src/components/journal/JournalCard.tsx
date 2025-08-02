@@ -8,8 +8,8 @@ import { ViewConfigurationManager } from '../../systems/journal/ViewConfiguratio
 import { ViewMode } from '../../systems/journal/types';
 
 interface JournalCardProps {
-  icon: string | React.ReactNode;
-  title: string;
+  icon?: string | React.ReactNode;
+  title?: string;
   subtitle?: string;
   children: React.ReactNode;
   showAddButton?: boolean;
@@ -176,6 +176,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 2,
     minHeight: 340, // Minimum height for carousel cards, grows with content
+    display: 'flex',
+    flexDirection: 'column',
   },
   cardEmpty: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match filter container background
@@ -184,6 +186,8 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 2,
     minHeight: 340, // Minimum height for carousel cards, grows with content
+    display: 'flex',
+    flexDirection: 'column',
   },
   cardInline: {
     backgroundColor: 'transparent', // Transparent background for inline view
@@ -222,10 +226,7 @@ const styles = StyleSheet.create({
   icon: {
     position: 'absolute',
     left: 0,
-    backgroundColor: 'rgba(255, 107, 107, 0.1)', // 10% opacity of alertCoral
-    borderRadius: 10,
-    width: 30,
-    height: 30,
+    // Removed backgroundColor, borderRadius, width, height for no background
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -256,7 +257,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.mediumGray,
     textAlign: 'center',
-    width: '100%',
+    maxWidth: '95%', // Limit width to prevent overlap
+    alignSelf: 'center', // Center the subtitle
+    marginLeft: 10, // Add some space from the icon
   },
   content: {
     // Content is always visible

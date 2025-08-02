@@ -1,11 +1,11 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
-import { Check, Goal as LuGoal, X } from 'lucide-react-native';
+import { Check, Goal as LuGoal, X, Pencil } from 'lucide-react-native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -372,32 +372,19 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   return (
     <ErrorBoundary name="TodaysFocusReactQuery">
       <JournalCard
-        icon={
-          <LuGoal
+        icon={hasContent ? (
+          <MaterialIcons
+            name="filter-center-focus"
             size={24}
             color={Colors.alertCoral}
-            strokeWidth={2.5}
           />
-        }
-        title="TODAY'S FOCUS"
-        subtitle="Your daily focus and priorities"
-        showAddButton={!shouldShowEditingMode}
+        ) : undefined}
+        title={hasContent ? "TODAY'S FOCUS" : undefined}
+        subtitle={hasContent ? 'Your daily focus and priorities' : undefined}
+        showAddButton={hasContent ? !shouldShowEditingMode : false}
         onAdd={toggleEditing}
         isAdding={shouldShowEditingMode}
-        headerRight={viewMode !== 'inline' ? (
-          <TouchableOpacity
-            onPress={toggleEditing}
-            style={styles.editButton}
-            accessibilityRole="button"
-            accessibilityLabel={shouldShowEditingMode ? 'Cancel editing' : 'Edit focus and priorities'}
-          >
-            <Ionicons
-              name={shouldShowEditingMode ? 'close' : 'pencil'}
-              size={16}
-              color={Colors.mediumGray}
-            />
-          </TouchableOpacity>
-        ) : undefined}
+        headerRight={undefined}
         variant={variant}
         viewMode={viewMode}
         expanded={expanded}
@@ -475,6 +462,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                       return <Text style={styles.prioritiesTitle}>{priorityText}</Text>;
                     })()}
                     {data.priorities
+// ...
                       .filter(p => p.text.trim() !== '')
                       .map((priority, index) => (
                         <SwipeableTodoItem
@@ -514,7 +502,41 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   </View>
                 </View>
               )
-              : null
+              : (
+                <View style={styles.emptyStateContainer}>
+                  <View style={styles.iconContainer}>
+                    <MaterialIcons
+                      name="filter-center-focus"
+                      size={32}
+                      color={Colors.mediumGray}
+                      style={styles.emptyStateIcon}
+                    />
+                    <Text style={styles.sectionLabel} accessibilityRole="text">TODAY'S FOCUS</Text>
+                  </View>
+                  <View style={styles.titleContainer}>
+                    <Text
+                      style={styles.emptyStateTitle}
+                      accessibilityRole="header"
+                      numberOfLines={1}
+                      ellipsizeMode="tail"
+                    >
+                      Get Ready for a Great Day
+                    </Text>
+                  </View>
+                  <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+                    Set your focus and priorities to make today count in faith and action.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.emptyStateButton}
+                    onPress={toggleEditing}
+                    accessibilityRole="button"
+                    accessibilityLabel="Begin setting today's focus"
+                  >
+                    <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                    <Text style={styles.emptyStateButtonText}>Begin</Text>
+                  </TouchableOpacity>
+                </View>
+              )
           )
         }
     </JournalCard>
@@ -774,6 +796,76 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
     marginBottom: 12,
+  },
+  // Empty state styles
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 12,
+    width: '100%',
+  },
+  emptyStateIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  titleContainer: {
+    width: '100%',
+    paddingHorizontal: 0,
+    marginBottom: 8,
+  },
+  emptyStateTitle: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  emptyStateSubtext: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  emptyStateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
   },
   retryButton: {
     backgroundColor: Colors.alertCoral,

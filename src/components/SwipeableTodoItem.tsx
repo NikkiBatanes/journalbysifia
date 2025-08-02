@@ -212,6 +212,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'stretch', // Ensures it fills the height of the content container
     height: 'auto', // Prevents it from being taller than the content
+    borderRadius: 12, // Add rounded corners
+    marginLeft: 4, // Add some margin to separate from the item
   },
   deleteButtonContent: {
     width: 60, // Fixed width to center the icon
