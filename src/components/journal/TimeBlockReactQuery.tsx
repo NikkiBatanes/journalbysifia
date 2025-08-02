@@ -666,6 +666,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     );
   }
 
+  // Hide empty component in inline and moments view
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && timeBlocks.length === 0) {
+    return null;
+  }
+
   return (
     <JournalCard
       icon={timeBlocks.length > 0 ? <MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} /> : undefined}
@@ -1889,8 +1894,8 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   checkboxActive: {
-    backgroundColor: Colors.trustBlue,
-    borderColor: Colors.trustBlue,
+    backgroundColor: Colors.growthGreen,
+    borderColor: Colors.growthGreen,
   },
   timePickerContainer: {
     marginTop: 12,

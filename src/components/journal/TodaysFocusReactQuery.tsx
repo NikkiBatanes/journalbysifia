@@ -292,6 +292,11 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
   const canSave = hasContent && (createMutation.isPending || updateMutation.isPending) === false;
 
+  // Hide empty component in inline and moments view
+  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !hasContent) {
+    return null;
+  }
+
   // Handle loading state with skeleton loader
   // Handle loading state
   if (isLoading) {
