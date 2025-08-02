@@ -207,9 +207,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   cardCollapsed: {
-    minHeight: 300, // Minimum height for collapsed carousel cards
-    maxHeight: 380, // Allow some expansion but still constrained
-    overflow: 'visible', // Allow content to be visible
+    height: 320, // Fixed height for clean collapse (increased from 280 to prevent cutoff)
+    overflow: 'hidden', // Hide overflow for clean collapse
   },
   cardExpanded: {
     minHeight: 340, // Allow expansion for carousel cards
