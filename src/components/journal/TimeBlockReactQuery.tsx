@@ -227,16 +227,20 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const swipeableRefs = useRef<{[key: string]: any}>({});
 
   // Auto-cancel edit mode when date changes (carousel swipe to different date)
+  // Track previous date to detect changes
+  const prevDateRef = useRef(dateStr);
+  
   useEffect(() => {
     // Cancel any active editing when date changes
-    if (isAdding) {
+    if (prevDateRef.current !== dateStr && isAdding) {
       setIsAdding(false);
       setEditId(null);
     }
-    if (globalEditMode?.isGlobalEditMode && globalEditMode?.setGlobalEditMode) {
+    if (prevDateRef.current !== dateStr && globalEditMode?.isGlobalEditMode && globalEditMode?.setGlobalEditMode) {
       globalEditMode.setGlobalEditMode(false);
     }
-  }, [dateStr, globalEditMode, isAdding]);
+    prevDateRef.current = dateStr;
+  }, [dateStr, globalEditMode]);
 
   // Auto-cancel edit mode when component unmounts
   useEffect(() => {
@@ -744,7 +748,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           accessibilityLabel={`Time blocks for ${dateStr}`}
           accessibilityHint={`${timeBlocks.length} time block${timeBlocks.length === 1 ? '' : 's'} scheduled for this day`}
         >
-          {timeBlocks.slice(0, visibleCount).map(renderTimeBlock)}
+          {timeBlocks.slice(0, visibleCount).map((block, index) => (
+            <React.Fragment key={`${block.id}-${index}`}>
+              {renderTimeBlock(block)}
+            </React.Fragment>
+          ))}
           {timeBlocks.length > visibleCount && (
             <TouchableOpacity
               style={styles.showMoreButton}
