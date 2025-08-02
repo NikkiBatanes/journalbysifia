@@ -350,9 +350,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     ? sortedTodos.filter(todo => todo.priority)
     : sortedTodos;
 
-  const visibleTodos = filteredTodos.slice(0, visibleCount);
-  const hasMore = filteredTodos.length > visibleCount;
-  const canShowLess = visibleCount > 5 && filteredTodos.length > 5;
+  // In edit mode, show all todos so user can see what they've added
+  const effectiveVisibleCount = shouldShowAddingMode ? filteredTodos.length : visibleCount;
+  const visibleTodos = filteredTodos.slice(0, effectiveVisibleCount);
+  const hasMore = filteredTodos.length > visibleCount && !shouldShowAddingMode;
+  const canShowLess = visibleCount > 5 && filteredTodos.length > 5 && !shouldShowAddingMode;
 
   // Count stats (for potential future use)
   // const totalTodos = todos.length;
@@ -424,8 +426,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     return null;
   }
 
-  // Custom empty state for Todos
-  if (!isLoading && !error && todos.length === 0) {
+  // Custom empty state for Todos - show header and input when empty and not adding
+  if (!isLoading && !error && todos.length === 0 && !shouldShowAddingMode) {
     return (
       <JournalCard
         // Hide header icon/title/subtitle in empty state
@@ -474,6 +476,20 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   }
 
   const hasContent = todos.length > 0;
+  
+  // Calculate todo stats for carousel view
+  const completedCount = todos.filter(t => t.completed).length;
+  const uncompletedCount = todos.length - completedCount;
+  const getSubtitle = () => {
+    if (!hasContent) return undefined;
+    if (variant === 'carousel') {
+      if (todos.length === 0) return 'Track your daily tasks';
+      if (completedCount === 0) return `${todos.length} todo${todos.length === 1 ? '' : 's'}`;
+      if (uncompletedCount === 0) return `${completedCount} completed`;
+      return `${uncompletedCount} pending • ${completedCount} done`;
+    }
+    return 'Track your daily tasks';
+  };
 
   return (
     <JournalCard
@@ -481,7 +497,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         <Entypo name="list" size={24} color={Colors.alertCoral} />
       ) : undefined}
       title={hasContent ? 'TO-DOS' : undefined}
-      subtitle={hasContent ? 'Track your daily tasks' : undefined}
+      subtitle={getSubtitle()}
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
