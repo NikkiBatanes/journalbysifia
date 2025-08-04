@@ -605,7 +605,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     style={styles.categoryIcon}
                   />
                   <Text style={styles.categoryLabel} numberOfLines={1} ellipsizeMode="tail">
-                    {block.category}
+                    {block.category || 'Others'}
                   </Text>
                 </View>
               </View>
@@ -649,7 +649,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   if (isLoading) {
     return (
       <JournalCard
-        icon={<MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.anchorBlue} />}
+        icon={<MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} />}
         title={timeBlocks.length === 1 ? 'TIME BLOCK' : 'TIME BLOCKS'}
         subtitle="Schedule and organize your day"
         showAddButton={false}

@@ -81,41 +81,38 @@ const PrayerSkeleton: React.FC<PrayerSkeletonProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 16,
     marginHorizontal: 16,
     marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   dropdownSection: {
     marginBottom: 16,
   },
   dropdownSkeleton: {
     height: 48,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.mediumGray,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   inputSection: {
     marginBottom: 20,
   },
   inputSkeleton: {
     height: 80,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 8,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: Colors.mediumGray,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   buttonSkeleton: {
     height: 44,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
     width: 100,
     alignSelf: 'flex-end',
@@ -124,11 +121,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   prayerGroupCard: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: Colors.mediumGray,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   prayerGroupHeader: {
     marginBottom: 8,
@@ -136,7 +133,7 @@ const styles = StyleSheet.create({
   badgeSkeleton: {
     height: 24,
     width: 120,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 12,
   },
   prayerItem: {
@@ -145,19 +142,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+    borderBottomColor: 'rgba(255, 255, 255, 0.15)',
   },
   prayerTextSkeleton: {
     height: 16,
     flex: 1,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 4,
     marginRight: 12,
   },
   statusPillSkeleton: {
     height: 24,
     width: 80,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 12,
   },
 });

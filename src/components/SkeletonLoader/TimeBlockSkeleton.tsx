@@ -70,30 +70,29 @@ const styles = StyleSheet.create({
   skeletonItem: {
     flexDirection: 'row',
     marginBottom: 16,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.lightGray,
   },
   timeColumn: {
     width: 90,
     alignItems: 'center',
     paddingRight: 16,
     borderRightWidth: 1,
-    borderRightColor: Colors.lightGray,
+    borderRightColor: 'rgba(255, 255, 255, 0.15)',
+
   },
   timeBlock: {
     width: 60,
     height: 16,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
     marginBottom: 4,
   },
   durationBlock: {
     width: 40,
     height: 12,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 6,
   },
   detailsColumn: {
@@ -103,7 +102,7 @@ const styles = StyleSheet.create({
   titleBlock: {
     width: '80%',
     height: 18,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
     marginBottom: 8,
   },
@@ -115,19 +114,19 @@ const styles = StyleSheet.create({
   categoryBlock: {
     width: 80,
     height: 14,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 7,
   },
   locationBlock: {
     width: 60,
     height: 14,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 7,
   },
   notesBlock: {
     width: '60%',
     height: 12,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 4,
   },
 });

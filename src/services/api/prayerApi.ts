@@ -309,11 +309,13 @@ export class PrayerApi {
       dbPrayer.notes = prayer.notes;
     }
 
+    console.log('[PrayerApi.createPrayer] Inserting dbPrayer:', JSON.stringify(dbPrayer));
     const { data, error } = await supabase
       .from('prayers')
       .insert(dbPrayer)
       .select()
       .single();
+    console.log('[PrayerApi.createPrayer] Insert result data:', JSON.stringify(data));
 
     if (error) {
       console.error('Error creating prayer:', error);

@@ -57,15 +57,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   skeletonCard: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -75,7 +72,7 @@ const styles = StyleSheet.create({
   },
   titleSkeleton: {
     height: 20,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
     flex: 1,
     marginRight: 12,
@@ -83,12 +80,12 @@ const styles = StyleSheet.create({
   typeBadge: {
     height: 20,
     width: 60,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 10,
   },
   contentSkeleton: {
     height: 60,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 6,
     marginBottom: 12,
   },
@@ -100,13 +97,13 @@ const styles = StyleSheet.create({
   dateSkeleton: {
     height: 14,
     width: 80,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 3,
   },
   tagsSkeleton: {
     height: 14,
     width: 100,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 3,
   },
 });
