@@ -11,7 +11,7 @@ import {
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import PrayerJournalCardReactQuery from './PrayerJournalCardReactQuery';
+import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
 import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
 
@@ -69,8 +69,8 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
     {
       id: 'prayerjournal',
       title: 'PRAYER JOURNAL',
-      icon: 'book-outline',
-      component: <PrayerJournalCardReactQuery selectedDate={selectedDate} />,
+      icon: 'hand-left-outline',
+      component: <PrayerJournalReactQuery selectedDate={selectedDate} variant="carousel" />,
       color: Colors.anchorBlue,
     },
     {

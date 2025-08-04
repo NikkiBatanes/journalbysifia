@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import PrayerJournalCardReactQuery from './PrayerJournalCardReactQuery';
+import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
 import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 
@@ -26,7 +26,7 @@ const PrayerJournalTabReactQuery: React.FC<PrayerJournalTabReactQueryProps> = ({
   return (
     <View style={styles.container}>
       {/* ACTS Prayer Journal Card */}
-      <PrayerJournalCardReactQuery selectedDate={selectedDate} viewMode={viewMode} />
+      <PrayerJournalReactQuery selectedDate={selectedDate} viewMode={viewMode} />
 
       {/* Devotional Prayers List */}
       <DevotionalPrayerListReactQuery selectedDate={selectedDate} viewMode={viewMode} />

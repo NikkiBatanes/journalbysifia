@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SectionList, RefreshControl, RefreshControlProps } from 'react-native';
+import { View, Text, StyleSheet, SectionList, RefreshControlProps } from 'react-native';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';

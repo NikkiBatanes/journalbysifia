@@ -8,7 +8,7 @@ import { ReflectionLogReactQuery } from '../../../components/journal/ReflectionL
 import { GratitudeListReactQuery } from '../../../components/journal/GratitudeListReactQuery';
 import { TodayWinReactQuery } from '../../../components/journal/TodayWinReactQuery';
 import { LookingForwardReactQuery } from '../../../components/journal/LookingForwardReactQuery';
-import PrayerJournalCardReactQuery from '../../../components/journal/PrayerJournalCardReactQuery';
+import { PrayerJournalReactQuery } from '../../../components/journal/PrayerJournalReactQuery';
 import DevotionalPrayerListReactQuery from '../../../components/journal/DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from '../../../components/journal/EnhancedPrayerListReactQuery';
 
@@ -85,11 +85,11 @@ export const JOURNAL_PLUGINS: JournalPlugin[] = [
   {
     id: 'prayerjournal',
     category: 'pray',
-    component: PrayerJournalCardReactQuery,
+    component: PrayerJournalReactQuery,
     priority: 1,
     viewModes: ['carousel', 'inline', 'moments'],
     title: 'Prayer Journal',
-    subtitle: 'ACTS prayer framework',
+    subtitle: 'ACTS & Open Prayer',
   },
   {
     id: 'devotionalprayers',

@@ -399,6 +399,7 @@ export const useMarkSupplicationAnswered = () => {
                 ...prayer,
                 is_answered: isAnswered,
                 answered_date: isAnswered ? new Date().toISOString() : null,
+                status: isAnswered ? 'answered' : 'pending',
                 updated_at: new Date().toISOString(),
               }
             : prayer
@@ -410,18 +411,22 @@ export const useMarkSupplicationAnswered = () => {
         queryKeys.prayers.acts(_userId, _dateStr),
         (old: any) => {
           if (!old) {return old;}
+
+          const updatePrayer = (prayer: any) =>
+            prayer.id === id
+              ? {
+                  ...prayer,
+                  is_answered: isAnswered,
+                  answered_date: isAnswered ? new Date().toISOString() : null,
+                  status: isAnswered ? 'answered' : 'pending',
+                  updated_at: new Date().toISOString(),
+                }
+              : prayer;
+
           return {
             ...old,
-            supplication: old.supplication?.map((prayer: any) =>
-              prayer.id === id
-                ? {
-                    ...prayer,
-                    is_answered: isAnswered,
-                    answered_date: isAnswered ? new Date().toISOString() : null,
-                    updated_at: new Date().toISOString(),
-                  }
-                : prayer
-            ) || [],
+            supplication: old.supplication?.map(updatePrayer) || [],
+            freeform: old.freeform?.map(updatePrayer) || [],
           };
         }
       );
