@@ -268,6 +268,7 @@ const styles = StyleSheet.create({
     padding: 12,
     paddingBottom: 8,
     position: 'relative',
+    width: '100%',
   },
   headerActions: {
     flexDirection: 'row',
@@ -279,13 +280,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flex: 1,
     position: 'relative',
+    width: '100%',
   },
   icon: {
     position: 'absolute',
     left: 0,
-    // Removed backgroundColor, borderRadius, width, height for no background
     justifyContent: 'center',
     alignItems: 'center',
+    width: 24, // Fixed width for consistent spacing
   },
   // For Ionicons that are passed as strings
   iconWrapper: {
@@ -297,7 +299,9 @@ const styles = StyleSheet.create({
   titleContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    textAlign: 'center',
+    width: '100%',
+    marginLeft: 24, // Offset for the icon to center the text
+    marginRight: 24, // Match the icon width for balance
   },
   title: {
     fontFamily: Fonts.bold,
@@ -308,15 +312,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     textAlign: 'center',
     width: '100%',
+    paddingHorizontal: 4, // Add some padding
   },
   subtitle: {
     fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.mediumGray,
     textAlign: 'center',
-    maxWidth: '95%', // Limit width to prevent overlap
-    alignSelf: 'center', // Center the subtitle
-    marginLeft: 10, // Add some space from the icon
+    width: '100%', // Take full width of container
+    paddingHorizontal: 4, // Match title padding
   },
   content: {
     // Content is always visible

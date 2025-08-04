@@ -166,9 +166,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     marginBottom: 12,
-    paddingLeft: 16,
+    alignItems: 'center',
   },
   title: {
     fontSize: 12,
@@ -176,6 +176,8 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     letterSpacing: 2,
+    textAlign: 'center',
+    width: '100%',
   },
   scrollView: {
     // Removed fixed height for dynamic expansion
