@@ -179,16 +179,16 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 16,
-    marginBottom: 12,
-    alignItems: 'center',
+    marginBottom: 16,
+    alignItems: 'flex-start',
   },
   title: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     letterSpacing: 2,
-    textAlign: 'center',
+    textAlign: 'left',
     width: '100%',
   },
   scrollView: {
