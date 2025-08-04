@@ -252,7 +252,19 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   }, [groupedSections, refreshKey]);
 
   if (sectionsWithContent.length === 0) {
-    return renderEmptyState();
+    return (
+      <View style={[styles.container, style]}>
+        {/* Always show header components (filters) even in empty state */}
+        {headerComponents.length > 0 && (
+          <View>
+            {headerComponents.map((component, index) => (
+              <View key={index}>{component}</View>
+            ))}
+          </View>
+        )}
+        {renderEmptyState()}
+      </View>
+    );
   }
 
   return (
