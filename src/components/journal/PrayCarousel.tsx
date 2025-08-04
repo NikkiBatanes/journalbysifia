@@ -76,8 +76,8 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
     {
       id: 'devotionalprayers',
       title: 'PRAYED DEVOTIONALS',
-      icon: 'leaf-outline',
-      component: <DevotionalPrayerListReactQuery selectedDate={selectedDate} />,
+      icon: 'book-heart',
+      component: <DevotionalPrayerListReactQuery selectedDate={selectedDate} viewMode="carousel" />,
       color: Colors.hopeWhite,
     },
     {

@@ -729,6 +729,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     lineHeight: 24,
     letterSpacing: 0.1,
+    fontStyle: 'italic',
   },
   markAnsweredButton: {
     flexDirection: 'row',
