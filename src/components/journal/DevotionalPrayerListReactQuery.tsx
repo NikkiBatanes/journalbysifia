@@ -238,7 +238,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
       >
         {hasContent ? (
           renderDevotionalPrayers()
-        ) : viewMode === 'inline' ? null : (
+        ) : (viewMode === 'inline' || viewMode === 'moments') ? null : (
           <View style={styles.emptyStateContainer}>
             <View style={styles.iconContainer}>
               <Ionicons

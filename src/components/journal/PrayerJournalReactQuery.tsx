@@ -504,7 +504,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
           </View>
         ) : hasContent ? (
           renderExistingPrayers()
-        ) : viewMode === 'inline' ? null : (
+        ) : (viewMode === 'inline' || viewMode === 'moments') ? null : (
           <View style={styles.emptyStateContainer}>
             <View style={styles.iconContainer}>
               <Ionicons

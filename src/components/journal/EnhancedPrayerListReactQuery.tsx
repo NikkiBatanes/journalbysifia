@@ -530,7 +530,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           renderEditForm()
         ) : hasContent ? (
           renderExistingPrayers()
-        ) : viewMode === 'inline' ? null : (
+        ) : (viewMode === 'inline' || viewMode === 'moments') ? null : (
           <View style={styles.emptyStateContainer}>
             <View style={styles.emptyIconContainer}>
               <View style={styles.iconContainer}>
