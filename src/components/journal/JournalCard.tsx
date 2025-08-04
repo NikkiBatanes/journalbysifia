@@ -64,11 +64,31 @@ export const JournalCard: React.FC<JournalCardProps> = ({
       const baseStyle = [styles.card, styles.cardEmpty, variant === 'inline' && styles.cardInline, cardStyleOverrides];
 
       // Only apply height restrictions for carousel view when not in inline/moments view
+      // and when not in loading state (to prevent card cutting during loading)
       if (variant === 'carousel') {
         // Use type assertion to handle the viewMode check
         const currentViewMode = viewMode as any;
         if (currentViewMode !== 'inline' && currentViewMode !== 'moments') {
-          if (expanded) {
+          // Check if we're in a loading state by looking for skeleton content
+          // Be more precise to avoid false positives
+          const hasSkeletonContent = React.Children.toArray(children).some(child => {
+            if (!React.isValidElement(child)) {return false;}
+
+            const childType = child.type as any;
+            const typeName = childType?.displayName || childType?.name || (typeof childType === 'function' ? childType.name : '');
+
+            // Only consider it a skeleton if it explicitly contains 'Skeleton' and is likely a skeleton component
+            return typeName && typeName.includes('Skeleton') && (
+              typeName.endsWith('Skeleton') ||
+              typeName.startsWith('Skeleton') ||
+              typeName.includes('SkeletonLoader')
+            );
+          });
+
+          if (hasSkeletonContent) {
+            // During loading, use minHeight instead of fixed height to prevent cutting
+            baseStyle.push(styles.cardLoading);
+          } else if (expanded) {
             baseStyle.push(styles.cardExpanded);
           } else {
             baseStyle.push(styles.cardCollapsed);
@@ -121,11 +141,31 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     const baseStyle = [styles.card, variant === 'inline' && styles.cardInline, cardStyleOverrides];
 
     // Only apply height restrictions for carousel view when not in inline/moments view
+    // and when not in loading state (to prevent card cutting during loading)
     if (variant === 'carousel') {
       // Use type assertion to handle the viewMode check
       const currentViewMode = viewMode as any;
       if (currentViewMode !== 'inline' && currentViewMode !== 'moments') {
-        if (expanded) {
+        // Check if we're in a loading state by looking for skeleton content
+        // Be more precise to avoid false positives
+        const hasSkeletonContent = React.Children.toArray(children).some(child => {
+          if (!React.isValidElement(child)) {return false;}
+
+          const childType = child.type as any;
+          const typeName = childType?.displayName || childType?.name || (typeof childType === 'function' ? childType.name : '');
+
+          // Only consider it a skeleton if it explicitly contains 'Skeleton' and is likely a skeleton component
+          return typeName && typeName.includes('Skeleton') && (
+            typeName.endsWith('Skeleton') ||
+            typeName.startsWith('Skeleton') ||
+            typeName.includes('SkeletonLoader')
+          );
+        });
+
+        if (hasSkeletonContent) {
+          // During loading, use minHeight instead of fixed height to prevent cutting
+          baseStyle.push(styles.cardLoading);
+        } else if (expanded) {
           baseStyle.push(styles.cardExpanded);
         } else {
           baseStyle.push(styles.cardCollapsed);
@@ -213,6 +253,10 @@ const styles = StyleSheet.create({
   cardExpanded: {
     minHeight: 340, // Allow expansion for carousel cards
     height: 'auto',
+  },
+  cardLoading: {
+    minHeight: 340, // Use minHeight during loading to prevent cutting
+    height: 'auto', // Allow dynamic height during loading
   },
   headerEmpty: {
     marginBottom: 0,
