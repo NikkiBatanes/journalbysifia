@@ -49,6 +49,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState('');
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const [showCompletedAtBottom, setShowCompletedAtBottom] = useState(false);
   const [showOnlyPriorities, setShowOnlyPriorities] = useState(false);
@@ -234,6 +236,57 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       console.error('Failed to delete todo:', deleteError);
       Alert.alert('Error', 'Failed to delete todo. Please try again.');
     }
+  };
+
+  // Edit a todo
+  const editTodo = (id: string) => {
+    const todo = todos.find(t => t.id === id);
+    if (!todo) {return;}
+
+    setEditingId(id);
+    setEditingText(todo.text);
+    closeAllSwipeables();
+  };
+
+  // Save edited todo
+  const saveEditedTodo = async () => {
+    if (!editingId || !editingText.trim()) {return;}
+
+    const todo = todos.find(t => t.id === editingId);
+    if (!todo) {return;}
+
+    try {
+      await updateTodoMutation.mutateAsync({
+        id: editingId,
+        updates: {
+          content: JSON.stringify({
+            text: editingText.trim(),
+            completed: todo.completed,
+            priority: todo.priority || false,
+          }),
+        },
+      });
+
+      // Track analytics
+      analytics.trackTodoEvent('todo_created', {
+        text_length: editingText.trim().length,
+        has_priority: todo.priority || false,
+        date: dateStr,
+      }, user?.id);
+
+      // Reset edit state
+      setEditingId(null);
+      setEditingText('');
+    } catch (editError) {
+      console.error('Failed to update todo:', editError);
+      Alert.alert('Error', 'Failed to update todo. Please try again.');
+    }
+  };
+
+  // Cancel editing
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditingText('');
   };
 
   // Add a todo
@@ -708,6 +761,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               }}
               onLongPress={(id) => toggleTodo(id, true)}
               onDelete={removeTodo}
+              onEdit={editTodo}
               disableSwipe={viewMode === 'carousel' && !expanded}
               ref={ref => {
                 if (ref) {
@@ -717,15 +771,45 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 }
               }}
             >
-              <Text
-                style={[
-                  styles.todoText,
-                  item.completed && styles.completedText,
-                ]}
-                accessibilityElementsHidden={true}
-              >
-                {item.text}
-              </Text>
+              {editingId === item.id ? (
+                <View style={styles.editContainer}>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editingText}
+                    onChangeText={setEditingText}
+                    autoFocus
+                    multiline
+                    onSubmitEditing={saveEditedTodo}
+                    returnKeyType="done"
+                    blurOnSubmit={false}
+                  />
+                  <View style={styles.editButtons}>
+                    <TouchableOpacity
+                      onPress={cancelEdit}
+                      style={[styles.editActionButton, styles.editCancelButton]}
+                    >
+                      <Ionicons name="close" size={16} color={Colors.hopeWhite} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={saveEditedTodo}
+                      style={[styles.editActionButton, styles.editSaveButton]}
+                      disabled={!editingText.trim()}
+                    >
+                      <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <Text
+                  style={[
+                    styles.todoText,
+                    item.completed && styles.completedText,
+                  ]}
+                  accessibilityElementsHidden={true}
+                >
+                  {item.text}
+                </Text>
+              )}
             </SwipeableTodoItem>
           </View>
         ))}
@@ -1128,6 +1212,44 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     color: Colors.mediumGray,
     opacity: 0.7,
+  },
+
+  // Edit styles
+  editContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editInput: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+    fontSize: 13,
+    lineHeight: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  editButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  editActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editSaveButton: {
+    backgroundColor: Colors.growthGreen,
   },
 
   // Input styles

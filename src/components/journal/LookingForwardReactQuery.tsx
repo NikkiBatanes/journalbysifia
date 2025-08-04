@@ -7,6 +7,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -38,6 +39,8 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   const [displayEntry, setDisplayEntry] = useState<any>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingItemText, setEditingItemText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const loadStartTime = useRef<number>(Date.now());
 
@@ -73,6 +76,53 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         },
       ]
     );
+  };
+
+  // Individual item edit handlers
+  const editLookingForwardEntry = (id: string) => {
+    const entryItem = displayEntry || lookingForward;
+    if (!entryItem) {return;}
+
+    setEditingItemId(id);
+    setEditingItemText(entryItem.text);
+  };
+
+  const saveEditedEntry = async () => {
+    if (!editingItemId || !editingItemText.trim()) {return;}
+
+    try {
+      setIsSaving(true);
+      const entryToUpdate = entries.find(e => e.id === editingItemId);
+      if (!entryToUpdate) {return;}
+
+      await updateMutation.mutateAsync({
+        id: entryToUpdate.id,
+        updates: {
+          content: JSON.stringify({ lookingForward: editingItemText.trim() }),
+        },
+      });
+
+      // Reset edit state
+      setEditingItemId(null);
+      setEditingItemText('');
+
+      // Track analytics
+      analytics.trackLookingForwardEvent('looking_forward_updated', {
+        text_length: editingItemText.trim().length,
+        previous_text_length: 0,
+        date: dateStr,
+      }, user?.id);
+    } catch (updateError) {
+      console.error('Failed to update looking forward:', updateError);
+      Alert.alert('Error', 'Failed to update looking forward. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelEditEntry = () => {
+    setEditingItemId(null);
+    setEditingItemText('');
   };
 
   // Memoize the looking forward object to prevent infinite re-renders - moved before early returns
@@ -206,7 +256,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     return (
       <JournalCard
         title="LOOKING FORWARD TO"
-        subtitle="What are you looking forward to tomorrow?"
+        subtitle="Tomorrow's hope and anticipation"
         icon={<LuSunrise size={24} color={Colors.alertCoral} strokeWidth={2.5} />}
         showAddButton={false}
       >
@@ -373,7 +423,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   return (
     <JournalCard
       title={hasContent || shouldShowAddingMode ? 'LOOKING FORWARD TO' : undefined}
-      subtitle={hasContent || shouldShowAddingMode ? 'What are you looking forward to tomorrow?' : undefined}
+      subtitle={hasContent || shouldShowAddingMode ? 'Tomorrow\'s hope and anticipation' : undefined}
       icon={hasContent || shouldShowAddingMode ? <MaterialCommunityIcons name="white-balance-sunny" size={24} color={Colors.alertCoral} /> : undefined}
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={displayEntry ? editEntry : startAdding}
@@ -388,16 +438,47 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           item={{ id: displayEntry.id, text: displayEntry.text, completed: false }}
           onToggle={() => {}}
           onDelete={handleEntryDelete}
+          onEdit={() => editLookingForwardEntry(displayEntry.id)}
           hideCheckbox
           variant="gratitude"
           disableSwipe={viewMode === 'carousel' && !expanded}
         >
-          <View style={[
-            styles.entryContainer,
-            viewMode === 'inline' && styles.entryContainerInline,
-          ]}>
-            <Text style={styles.entryText}>{displayEntry.text}</Text>
-          </View>
+          {editingItemId === displayEntry.id ? (
+            <View style={styles.editEntryContainer}>
+              <TextInput
+                style={styles.editEntryInput}
+                value={editingItemText}
+                onChangeText={setEditingItemText}
+                autoFocus
+                multiline
+                onSubmitEditing={saveEditedEntry}
+                returnKeyType="done"
+                blurOnSubmit={false}
+              />
+              <View style={styles.editEntryButtons}>
+                <TouchableOpacity
+                  onPress={cancelEditEntry}
+                  style={[styles.editEntryActionButton, styles.editEntryCancelButton]}
+                >
+                  <Ionicons name="close" size={16} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={saveEditedEntry}
+                  style={[styles.editEntryActionButton, styles.editEntrySaveButton]}
+                  disabled={!editingItemText.trim() || isSaving}
+                >
+                  <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={[
+              styles.entryContainer,
+              viewMode === 'inline' && styles.entryContainerInline,
+            ]}>
+              <Text style={styles.entryText}>{displayEntry.text}</Text>
+            </View>
+          )}
         </SwipeableTodoItem>
       )}
       {shouldShowAddingMode && (
@@ -490,12 +571,11 @@ const styles = StyleSheet.create({
   entryContainer: {
     backgroundColor: '#274673',
     borderRadius: 6,
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'column',
-    minHeight: 40,
     borderWidth: 0,
     width: '100%',
     alignSelf: 'stretch',
@@ -530,11 +610,55 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 18,
     lineHeight: 24,
-    flex: 1,
     textAlign: 'center',
     letterSpacing: 1,
     fontWeight: '600',
+    flexWrap: 'wrap',
   },
+
+  // Edit entry styles
+  editEntryContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  editEntryInput: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 22,
+    backgroundColor: 'transparent',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  editEntryButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  editEntryActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editEntryCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editEntrySaveButton: {
+    backgroundColor: Colors.growthGreen,
+  },
+
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',

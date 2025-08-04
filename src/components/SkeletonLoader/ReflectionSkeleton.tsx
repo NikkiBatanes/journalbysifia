@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Colors } from '../../theme/colors';
 
 interface ReflectionSkeletonProps {
   count?: number;

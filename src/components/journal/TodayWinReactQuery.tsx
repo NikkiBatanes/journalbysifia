@@ -40,6 +40,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   const [previousWin, setPreviousWin] = useState<{ id: string; text: string } | null>(null);
   const [displayWin, setDisplayWin] = useState<{ id: string; text: string } | null>(null);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingItemText, setEditingItemText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const dateStr = toLocalDateString(selectedDate);
@@ -152,6 +154,53 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         },
       ]
     );
+  };
+
+  // Individual item edit handlers
+  const editWin = (id: string) => {
+    const winItem = displayWin || win;
+    if (!winItem) {return;}
+
+    setEditingItemId(id);
+    setEditingItemText(winItem.text);
+  };
+
+  const saveEditedWin = async () => {
+    if (!editingItemId || !editingItemText.trim()) {return;}
+
+    try {
+      setIsSaving(true);
+      const entryToUpdate = entries.find(e => e.id === editingItemId);
+      if (!entryToUpdate) {return;}
+
+      await updateMutation.mutateAsync({
+        id: entryToUpdate.id,
+        updates: {
+          content: JSON.stringify({ win: editingItemText.trim() }),
+        },
+      });
+
+      // Reset edit state
+      setEditingItemId(null);
+      setEditingItemText('');
+
+      // Track analytics
+      analytics.trackWinEvent('win_updated', {
+        text_length: editingItemText.trim().length,
+        previous_text_length: 0,
+        date: dateStr,
+      }, user?.id);
+    } catch (updateError) {
+      console.error('Failed to update win:', updateError);
+      Alert.alert('Error', 'Failed to update win. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const cancelEditWin = () => {
+    setEditingItemId(null);
+    setEditingItemText('');
   };
 
   // Memoize the win object to prevent infinite re-renders - moved before early returns
@@ -492,16 +541,47 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
               item={{ id: displayWin.id, text: displayWin.text, completed: false }}
               onToggle={() => {}}
               onDelete={handleDelete}
+              onEdit={() => editWin(displayWin.id)}
               hideCheckbox
               variant="gratitude"
               disableSwipe={viewMode === 'carousel' && !expanded}
             >
-              <View style={[
-                styles.winContainer,
-                viewMode === 'inline' && styles.winContainerInline,
-              ]}>
-                <Text style={styles.winText}>{displayWin.text}</Text>
-              </View>
+              {editingItemId === displayWin.id ? (
+                <View style={styles.editWinContainer}>
+                  <TextInput
+                    style={styles.editWinInput}
+                    value={editingItemText}
+                    onChangeText={setEditingItemText}
+                    autoFocus
+                    multiline
+                    onSubmitEditing={saveEditedWin}
+                    returnKeyType="done"
+                    blurOnSubmit={false}
+                  />
+                  <View style={styles.editWinButtons}>
+                    <TouchableOpacity
+                      onPress={cancelEditWin}
+                      style={[styles.editWinActionButton, styles.editWinCancelButton]}
+                    >
+                      <Ionicons name="close" size={16} color={Colors.hopeWhite} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={saveEditedWin}
+                      style={[styles.editWinActionButton, styles.editWinSaveButton]}
+                      disabled={!editingItemText.trim() || isSaving}
+                    >
+                      <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View style={[
+                  styles.winContainer,
+                  viewMode === 'inline' && styles.winContainerInline,
+                ]}>
+                  <Text style={styles.winText}>{displayWin.text}</Text>
+                </View>
+              )}
             </SwipeableTodoItem>
           );
         } else {
@@ -564,9 +644,8 @@ const styles = StyleSheet.create({
   winContainer: {
     backgroundColor: '#274673',
     borderRadius: 6,
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 12,
-    minHeight: 40,
     borderWidth: 0,
     justifyContent: 'center',
     width: '100%',
@@ -600,10 +679,10 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 18,
     lineHeight: 24,
-    flex: 1,
     textAlign: 'center',
     letterSpacing: 1,
     fontWeight: '600', // Explicitly set font weight to 800
+    flexWrap: 'wrap',
   },
   editButton: {
     padding: 4,
@@ -665,6 +744,49 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+
+  // Edit win styles
+  editWinContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  editWinInput: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    lineHeight: 20,
+    backgroundColor: 'transparent',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  editWinButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  editWinActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editWinCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editWinSaveButton: {
+    backgroundColor: Colors.growthGreen,
   },
 
   // Error state styles

@@ -87,7 +87,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const hasContent = peoplePrayers.length > 0;
   const prayerRequests = peoplePrayers.filter(p => p.is_prayer_request === true);
   const personalPrayers = peoplePrayers.filter(p => p.is_prayer_request !== true);
-  const currentPrayers = activeTab === 'requests' ? prayerRequests : personalPrayers;
 
   // Get dynamic subtitle based on context
   const getSubtitle = () => {
@@ -191,7 +190,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
     // Switch to 'Prayers for People' tab
     setActiveTab('mine');
-    
+
     // Enable editing mode to show the form
     setIsEditing(true);
 
@@ -263,7 +262,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             style={[styles.tab, activeTab === 'mine' && styles.activeTab]}
             onPress={() => {
               console.log('🔄 Switching to "Prayers for People" tab');
-              setActiveTab(prev => {
+              setActiveTab(_prev => {
                 console.log('🔄 Tab state updated to:', 'mine');
                 return 'mine';
               });
@@ -279,7 +278,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             style={[styles.tab, activeTab === 'requests' && styles.activeTab]}
             onPress={() => {
               console.log('🔄 Switching to "Prayer Requests" tab');
-              setActiveTab(prev => {
+              setActiveTab(_prev => {
                 console.log('🔄 Tab state updated to:', 'requests');
                 return 'requests';
               });
@@ -383,7 +382,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   // Render existing prayers
   const renderExistingPrayers = () => {
     // Split prayers into categories
-    const prayerRequests = peoplePrayers.filter(item => item.is_prayer_request === true);
+    const localPrayerRequests = peoplePrayers.filter(item => item.is_prayer_request === true);
     const prayedForPrayers = peoplePrayers.filter(item => item.is_prayer_request !== true);
 
     const renderPrayerItem = (item: PersonPrayer) => (
@@ -456,19 +455,19 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
     return (
       <ScrollView
-        style={[styles.prayerList, { flex: 1 }]}
-        contentContainerStyle={{ flexGrow: 1 }}
+        style={[styles.prayerList, styles.scrollViewFlex]}
+        contentContainerStyle={styles.scrollViewContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Prayer Requests Section */}
         <View>
-          {prayerRequests.length > 0 && (
+          {localPrayerRequests.length > 0 && (
             <>
               <View style={styles.categoryHeader}>
                 <Text style={styles.categoryTitle}>PRAYER REQUESTS</Text>
               </View>
-              <View style={{ marginBottom: 12 }} />
-              {prayerRequests.map(renderPrayerItem)}
+              <View style={styles.sectionSpacing} />
+              {localPrayerRequests.map(renderPrayerItem)}
             </>
           )}
         </View>
@@ -479,7 +478,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               <View style={styles.categoryHeader}>
                 <Text style={styles.categoryTitle}>PRAYED FOR</Text>
               </View>
-              <View style={{ marginBottom: 12 }} />
+              <View style={styles.sectionSpacing} />
               {prayedForPrayers.map(renderPrayerItem)}
             </>
           )}
@@ -820,7 +819,7 @@ const styles = StyleSheet.create({
   notesSection: {
     borderTopWidth: 1,
     borderTopColor: 'rgba(255, 255, 255, 0.1)',
-    paddingTop: 12,
+    padding: 12,
     marginTop: 8,
   },
   notesLabel: {
@@ -1084,6 +1083,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textAlign: 'left',
     flex: 1,
+  },
+  scrollViewFlex: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+  },
+  sectionSpacing: {
+    marginBottom: 12,
   },
 });
 

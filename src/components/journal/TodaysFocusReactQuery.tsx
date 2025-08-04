@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -114,6 +115,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   const [data, setData] = useState<TodayFocusData>(initialData);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingPriorityId, setEditingPriorityId] = useState<string | null>(null);
+  const [editingPriorityText, setEditingPriorityText] = useState('');
   const swipeableRefs = useRef<{[key: string]: any}>({});
   const originalData = useRef<TodayFocusData>({ ...data });
 
@@ -328,7 +331,54 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     );
   };
 
+  // Individual priority edit handlers
+  const editPriority = (priorityId: string) => {
+    const priority = data.priorities.find(p => p.id === priorityId);
+    if (!priority) {return;}
 
+    setEditingPriorityId(priorityId);
+    setEditingPriorityText(priority.text);
+    // Close all swipeables
+    Object.values(swipeableRefs.current).forEach(ref => {
+      if (ref?.close) {ref.close();}
+    });
+  };
+
+  const saveEditedPriority = async () => {
+    if (!editingPriorityId || !editingPriorityText.trim()) {return;}
+
+    // Update local state
+    setData(prev => ({
+      ...prev,
+      priorities: prev.priorities.map(p =>
+        p.id === editingPriorityId ? { ...p, text: editingPriorityText.trim() } : p
+      ),
+    }));
+
+    // Save to backend
+    const updatedData = {
+      ...data,
+      priorities: data.priorities.map(p =>
+        p.id === editingPriorityId ? { ...p, text: editingPriorityText.trim() } : p
+      ),
+    };
+
+    try {
+      await saveFocus(updatedData);
+
+      // Reset edit state
+      setEditingPriorityId(null);
+      setEditingPriorityText('');
+    } catch (saveError) {
+      console.error('Failed to save edited priority:', saveError);
+      Alert.alert('Error', 'Failed to save priority. Please try again.');
+    }
+  };
+
+  const cancelEditPriority = () => {
+    setEditingPriorityId(null);
+    setEditingPriorityText('');
+  };
 
   const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
   const canSave = hasContent && (createMutation.isPending || updateMutation.isPending) === false;
@@ -522,6 +572,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                           }}
                           onToggle={() => togglePriority(index)}
                           onDelete={() => removePriority(priority.id)}
+                          onEdit={() => editPriority(priority.id)}
                           hideCheckbox={true}
                           disableSwipe={viewMode === 'carousel' && !expanded}
                           ref={ref => {
@@ -532,18 +583,50 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                             }
                           }}
                         >
-                          <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
-                            {priority.completed && (
-                              <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
-                            )}
-                          </View>
-                          <Text
-                            style={[
-                              styles.priorityText,
-                              priority.completed && styles.completedText,
-                            ]}>
-                            {priority.text}
-                          </Text>
+                          {editingPriorityId === priority.id ? (
+                            <View style={styles.editPriorityContainer}>
+                              <TextInput
+                                style={styles.editPriorityInput}
+                                value={editingPriorityText}
+                                onChangeText={setEditingPriorityText}
+                                autoFocus
+                                multiline
+                                onSubmitEditing={saveEditedPriority}
+                                returnKeyType="done"
+                                blurOnSubmit={false}
+                              />
+                              <View style={styles.editPriorityButtons}>
+                                <TouchableOpacity
+                                  onPress={cancelEditPriority}
+                                  style={[styles.editPriorityActionButton, styles.editPriorityCancelButton]}
+                                >
+                                  <Ionicons name="close" size={16} color={Colors.hopeWhite} />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  onPress={saveEditedPriority}
+                                  style={[styles.editPriorityActionButton, styles.editPrioritySaveButton]}
+                                  disabled={!editingPriorityText.trim()}
+                                >
+                                  <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
+                          ) : (
+                            <>
+                              <View style={[styles.tickBox, priority.completed && styles.tickBoxCompleted]}>
+                                {priority.completed && (
+                                  <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
+                                )}
+                              </View>
+                              <Text
+                                style={[
+                                  styles.priorityText,
+                                  priority.completed && styles.completedText,
+                                ]}>
+                                {priority.text}
+                              </Text>
+                            </>
+                          )}
                         </SwipeableTodoItem>
                       ))
                     }
@@ -745,6 +828,45 @@ const styles = StyleSheet.create({
     opacity: 1,
     textAlign: 'left',
   },
+
+  // Edit priority styles
+  editPriorityContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editPriorityInput: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  editPriorityButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  editPriorityActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editPriorityCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editPrioritySaveButton: {
+    backgroundColor: Colors.growthGreen,
+  },
+
   priorityNumber: {
     fontFamily: Fonts.medium,
     fontSize: 16,

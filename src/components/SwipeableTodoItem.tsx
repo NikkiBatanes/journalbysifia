@@ -16,6 +16,7 @@ interface SwipeableTodoItemProps {
   };
   onToggle: (id: string, isPriority?: boolean) => void;
   onDelete: (id: string) => void;
+  onEdit?: (id: string) => void;
   onLongPress?: (id: string) => void;
   children: React.ReactNode;
   hideCheckbox?: boolean;
@@ -31,6 +32,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   item,
   onToggle,
   onDelete,
+  onEdit,
   children,
   hideCheckbox = false,
   variant = 'todo',
@@ -44,13 +46,13 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
 
   const renderRightActions = (progress: any, dragX: any) => {
     const scale = dragX.interpolate({
-      inputRange: [-100, 0],
+      inputRange: [-160, 0],
       outputRange: [1, 0.8],
       extrapolate: 'clamp',
     });
 
     const opacity = dragX.interpolate({
-      inputRange: [-100, -20, 0],
+      inputRange: [-160, -20, 0],
       outputRange: [1, 0.9, 0],
       extrapolate: 'clamp',
     });
@@ -61,10 +63,47 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
       setTimeout(() => onDelete(item.id), 200);
     };
 
+    const handleEdit = () => {
+      closeSwipeable();
+      // Small delay to allow the swipeable to close before editing
+      setTimeout(() => onEdit?.(item.id), 200);
+    };
+
+    // If onEdit is provided, show both edit and delete buttons like TimeBlocks
+    if (onEdit) {
+      return (
+        <Animated.View
+          style={[
+            styles.swipeActions,
+            {
+              opacity,
+              transform: [{ scale }],
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={handleEdit}
+            style={styles.editButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="create-outline" size={22} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={styles.deleteButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="trash-outline" size={22} color="white" />
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    }
+
+    // Original delete-only behavior
     return (
       <Animated.View
         style={[
-          styles.deleteButton,
+          styles.deleteButtonSingle,
           {
             opacity,
             transform: [{ scale }],
@@ -91,7 +130,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
     <Swipeable
       ref={swipeableRef}
       renderRightActions={disableSwipe ? undefined : renderRightActions}
-      rightThreshold={disableSwipe ? 0 : 20}
+      rightThreshold={disableSwipe ? 0 : (onEdit ? 40 : 20)}
       enabled={!disableSwipe}
       containerStyle={styles.swipeableContainer}
       overshootRight={false}
@@ -154,7 +193,7 @@ const styles = StyleSheet.create({
   },
   todoItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     backgroundColor: 'transparent',
     borderRadius: 12,
     paddingVertical: 10,
@@ -173,12 +212,14 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    minHeight: 20,
   },
   checkboxContainer: {
     position: 'relative',
     marginRight: 10,
+    marginTop: 2,
   },
   priorityIndicator: {
     marginLeft: 8,
@@ -205,18 +246,43 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.growthGreen,
     borderColor: Colors.growthGreen,
   },
+  // Swipe actions container for edit + delete
+  swipeActions: {
+    flexDirection: 'row',
+    width: 160,
+    height: '100%',
+    marginLeft: -10,
+    overflow: 'hidden',
+    borderRadius: 12,
+  },
+  editButton: {
+    flex: 1,
+    height: '100%',
+    backgroundColor: Colors.anchorBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 12,
+  },
   deleteButton: {
+    width: 75,
+    height: '100%',
+    backgroundColor: '#f87171',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Single delete button (original behavior)
+  deleteButtonSingle: {
     width: '100%',
     backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'stretch', // Ensures it fills the height of the content container
-    height: 'auto', // Prevents it from being taller than the content
-    borderRadius: 12, // Add rounded corners
-    marginLeft: 4, // Add some margin to separate from the item
+    alignSelf: 'stretch',
+    height: 'auto',
+    borderRadius: 12,
+    marginLeft: 4,
   },
   deleteButtonContent: {
-    width: 60, // Fixed width to center the icon
+    width: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },

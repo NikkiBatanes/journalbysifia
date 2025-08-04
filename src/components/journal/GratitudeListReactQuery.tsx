@@ -43,6 +43,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingItemText, setEditingItemText] = useState('');
   const [newItems, setNewItems] = useState(['', '', '']); // Start with three input fields
   const [visibleCount, setVisibleCount] = useState<number>(5);
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
@@ -264,6 +266,62 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     );
   }, [gratitudeItems, gratitudeEntries, deleteMutation, createMutation, visibleCount, user, selectedDate, dateStr]);
 
+  // Individual item edit handlers
+  const editGratitudeItem = useCallback((id: string) => {
+    const item = gratitudeItems.find(gratitudeItem => gratitudeItem.id === id);
+    if (!item) {return;}
+
+    setEditingItemId(id);
+    setEditingItemText(item.text);
+    closeAllSwipeables();
+  }, [gratitudeItems, closeAllSwipeables]);
+
+  const saveEditedGratitudeItem = useCallback(async () => {
+    if (!editingItemId || !editingItemText.trim() || !user) {return;}
+
+    try {
+      // Find the entry that contains this item
+      const entryWithItem = gratitudeEntries.find(entry => {
+        const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+        return parsedContent.items?.some((item: any) => item.id === editingItemId);
+      });
+
+      if (!entryWithItem) {return;}
+
+      const parsedContent = typeof entryWithItem.content === 'string' ? JSON.parse(entryWithItem.content) : entryWithItem.content;
+      const updatedItems = parsedContent.items?.map((item: any) =>
+        item.id === editingItemId ? { ...item, text: editingItemText.trim() } : item
+      ) || [];
+
+      await updateMutation.mutateAsync({
+        id: entryWithItem.id,
+        updates: {
+          content: JSON.stringify({ items: updatedItems }),
+        },
+      });
+
+      // Reset edit state
+      setEditingItemId(null);
+      setEditingItemText('');
+
+      // Track analytics
+      analytics.trackGratitudeEvent('gratitude_items_saved', {
+        items_count: 1,
+        total_text_length: editingItemText.trim().length,
+        is_editing: true,
+        date: dateStr,
+      }, user.id);
+    } catch (updateError) {
+      console.error('Failed to update gratitude item:', updateError);
+      Alert.alert('Error', 'Failed to update gratitude item. Please try again.');
+    }
+  }, [editingItemId, editingItemText, user, gratitudeEntries, updateMutation, dateStr]);
+
+  const cancelEditGratitudeItem = useCallback(() => {
+    setEditingItemId(null);
+    setEditingItemText('');
+  }, []);
+
   const saveGratitudeItems = async () => {
     if (!user) {
       Alert.alert('Error', 'You must be logged in to save gratitude items.');
@@ -438,16 +496,50 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             }}
             onToggle={() => {}}
             onDelete={() => handleDeleteGratitudeItem(item.id)}
+            onEdit={() => editGratitudeItem(item.id)}
             hideCheckbox={true}
             variant="gratitude"
             disableSwipe={viewMode === 'carousel' && !expanded}
           >
-            <View style={styles.itemRowTopAligned}>
-              <View style={styles.itemNumber}>
-                <Text style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</Text>
+            {editingItemId === item.id ? (
+              <View style={styles.editContainer}>
+                <View style={styles.itemNumber}>
+                  <Text style={styles.numberText}>{index + 1}</Text>
+                </View>
+                <TextInput
+                  style={styles.editInput}
+                  value={editingItemText}
+                  onChangeText={setEditingItemText}
+                  autoFocus
+                  multiline
+                  onSubmitEditing={saveEditedGratitudeItem}
+                  returnKeyType="done"
+                  blurOnSubmit={false}
+                />
+                <View style={styles.editButtons}>
+                  <TouchableOpacity
+                    onPress={cancelEditGratitudeItem}
+                    style={[styles.editActionButton, styles.editCancelButton]}
+                  >
+                    <Ionicons name="close" size={16} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={saveEditedGratitudeItem}
+                    style={[styles.editActionButton, styles.editSaveButton]}
+                    disabled={!editingItemText.trim()}
+                  >
+                    <Ionicons name="checkmark" size={16} color={Colors.hopeWhite} />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <Text style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</Text>
-            </View>
+            ) : (
+              <View style={styles.itemRowTopAligned}>
+                <View style={styles.itemNumber}>
+                  <Text style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</Text>
+                </View>
+                <Text style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</Text>
+              </View>
+            )}
           </SwipeableTodoItem>
         </View>
       ))}
@@ -728,6 +820,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16, // Ensure vertical centering in the circle
   },
+
+  // Edit styles
+  editContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  editInput: {
+    flex: 1,
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    lineHeight: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  editButtons: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  editActionButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editCancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  editSaveButton: {
+    backgroundColor: Colors.growthGreen,
+  },
+
   inputContainer: {
     marginBottom: 8,
     width: '100%',
