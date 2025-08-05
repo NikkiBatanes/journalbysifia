@@ -79,7 +79,21 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   // =============================================
 
   const initializeOnboarding = useCallback(async () => {
+    console.log('🔄 Initializing onboarding...', { userId: user?.id, isAuthenticated });
+    
     if (!user?.id || !isAuthenticated) {
+      // In development, allow onboarding for unauthenticated users for testing
+      if (__DEV__ && !isAuthenticated) {
+        console.log('🧪 DEV MODE: Setting up onboarding for unauthenticated user');
+        setIsOnboardingRequired(true);
+        setIsOnboardingCompleted(false);
+        setCurrentStep(1);
+        setProgress(null);
+        setFaithJourney(null);
+        setPersonalization(null);
+        return;
+      }
+      
       setIsOnboardingRequired(false);
       setIsOnboardingCompleted(false);
       setProgress(null);

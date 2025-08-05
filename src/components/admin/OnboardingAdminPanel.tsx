@@ -23,7 +23,9 @@ interface OnboardingAdminPanelProps {
   isVisible?: boolean;
 }
 
-export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onClose: _onClose, isVisible = true }) => {
+export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onClose, isVisible = true }) => {
+  console.log('🔍 OnboardingAdminPanel render:', { isVisible, hasOnClose: !!onClose });
+  
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<string>('');
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -49,6 +51,12 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const directNavigateToOnboarding = () => {
+    console.log('🚀 Direct navigation to onboarding...');
+    setResults('🚀 Navigating directly to onboarding screen...');
+    navigation.navigate('ModernOnboarding' as any);
   };
 
   const resetOnboardingState = async () => {
@@ -96,12 +104,22 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
     }
   };
 
-  if (!isVisible) {return null;}
+  if (!isVisible) {
+    console.log('❌ OnboardingAdminPanel not visible, returning null');
+    return null;
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Onboarding Admin Panel</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.title}>Onboarding Admin Panel</Text>
+          {onClose && (
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>×</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         <View style={styles.tabContainer}>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'testing' && styles.activeTab]}
@@ -138,6 +156,10 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
               Test and debug the onboarding flow with these tools:
             </Text>
 
+            <TouchableOpacity style={styles.button} onPress={directNavigateToOnboarding}>
+              <Text style={styles.buttonText}>🎯 Direct Navigate to Onboarding</Text>
+            </TouchableOpacity>
+            
             <TouchableOpacity style={styles.button} onPress={triggerOnboardingFlow}>
               <Text style={styles.buttonText}>🚀 Trigger Onboarding Now</Text>
             </TouchableOpacity>
@@ -196,11 +218,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#2c3e50',
     padding: 20,
   },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 15,
+    flex: 1,
+  },
+  closeButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   tabContainer: {
     flexDirection: 'row',

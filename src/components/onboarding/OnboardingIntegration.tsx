@@ -32,7 +32,8 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
   const hasJustLoggedOut = useRef(false);
 
   const isIntegrationReady = isAuthenticated !== undefined && !onboardingLoading;
-  const shouldShowOnboarding = isAuthenticated && (isOnboardingRequired || !isOnboardingCompleted || hasJustLoggedOut.current);
+  // Allow onboarding for both authenticated and unauthenticated users for testing
+  const shouldShowOnboarding = (isAuthenticated && (isOnboardingRequired || !isOnboardingCompleted)) || hasJustLoggedOut.current || (__DEV__ && !isAuthenticated);
 
   /**
    * Logout Detection Effect
@@ -60,7 +61,18 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
    * Handles onboarding navigation with improved testing support
    */
   useEffect(() => {
+    console.log('🔍 OnboardingIntegration Effect Check:', {
+      isIntegrationReady,
+      onboardingLoading,
+      shouldShowOnboarding,
+      isAuthenticated,
+      hasJustLoggedOut: hasJustLoggedOut.current,
+      isOnboardingRequired,
+      isOnboardingCompleted,
+    });
+
     if (!isIntegrationReady || onboardingLoading) {
+      console.log('⏳ Integration not ready or loading...');
       return;
     }
 
@@ -70,11 +82,15 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
         isOnboardingCompleted,
         currentStep,
         userHasAccount: !!user,
+        isAuthenticated,
       });
 
       // Navigate to the new modern onboarding flow
       // This replaces the old multi-screen approach with a unified, engaging experience
-      navigation.navigate('ModernOnboarding' as any);
+      setTimeout(() => {
+        console.log('🚀 Navigating to ModernOnboarding...');
+        navigation.navigate('ModernOnboarding' as any);
+      }, 100);
     }
   }, [
     isIntegrationReady,
@@ -85,6 +101,7 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
     isOnboardingRequired,
     isOnboardingCompleted,
     user,
+    isAuthenticated,
   ]);
 
   /**

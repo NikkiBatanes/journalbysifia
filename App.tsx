@@ -79,6 +79,16 @@ function App(): React.JSX.Element {
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
   const [adminPanelVisible, setAdminPanelVisible] = useState(false);
+  
+  const handleOpenAdminPanel = () => {
+    console.log('🟢 Opening admin panel...');
+    setAdminPanelVisible(true);
+  };
+  
+  const handleCloseAdminPanel = () => {
+    console.log('🔴 Closing admin panel...');
+    setAdminPanelVisible(false);
+  };
 
   if (!fontsLoaded) {
     return (
@@ -93,7 +103,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
       <GestureHandlerRootView style={styles.gestureHandler}>
         {/* DEV-ONLY: Floating button */}
         {__DEV__ && (
-          <DevAdminFloatingButton onPress={() => setAdminPanelVisible(true)} />
+          <DevAdminFloatingButton onPress={handleOpenAdminPanel} />
         )}
 
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
@@ -116,7 +126,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
 
                         {/* DEV-ONLY: Admin panel modal inside OnboardingProvider context */}
                         {__DEV__ && (
-                          <DevAdminPanelModal visible={adminPanelVisible} onClose={() => setAdminPanelVisible(false)} />
+                          <DevAdminPanelModal visible={adminPanelVisible} onClose={handleCloseAdminPanel} />
                         )}
                       </OnboardingIntegration>
                     </AuthGuard>
