@@ -25,7 +25,7 @@ interface OnboardingAdminPanelProps {
 
 export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onClose, isVisible = true }) => {
   console.log('🔍 OnboardingAdminPanel render:', { isVisible, hasOnClose: !!onClose });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<string>('');
   const [adminError, setAdminError] = useState<string | null>(null);
@@ -41,10 +41,10 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
 
     try {
       await startOnboarding();
-      setResults('✅ Onboarding flow triggered successfully!\n\nThe ModernOnboarding screen should now be displayed.');
+      setResults('✅ Onboarding flow triggered successfully!\n\nThe new onboarding flow should now be displayed.');
 
       setTimeout(() => {
-        navigation.navigate('ModernOnboarding' as any);
+        navigation.navigate('OnboardingSplash' as any);
       }, 1000);
     } catch (error) {
       setAdminError(`Failed to trigger onboarding: ${error}`);
@@ -52,11 +52,11 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
       setIsLoading(false);
     }
   };
-  
+
   const directNavigateToOnboarding = () => {
     console.log('🚀 Direct navigation to onboarding...');
     setResults('🚀 Navigating directly to onboarding screen...');
-    navigation.navigate('ModernOnboarding' as any);
+    navigation.navigate('OnboardingSplash' as any);
   };
 
   const resetOnboardingState = async () => {
@@ -69,7 +69,7 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
       setResults('✅ Onboarding state reset successfully!\n\nNavigating to onboarding...');
 
       setTimeout(() => {
-        navigation.navigate('ModernOnboarding' as any);
+        navigation.navigate('OnboardingSplash' as any);
       }, 1000);
     } catch (error) {
       setAdminError(`Failed to reset onboarding: ${error}`);
@@ -159,7 +159,7 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
             <TouchableOpacity style={styles.button} onPress={directNavigateToOnboarding}>
               <Text style={styles.buttonText}>🎯 Direct Navigate to Onboarding</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity style={styles.button} onPress={triggerOnboardingFlow}>
               <Text style={styles.buttonText}>🚀 Trigger Onboarding Now</Text>
             </TouchableOpacity>

@@ -16,8 +16,20 @@ import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 
-// Onboarding screens
-import ModernOnboardingScreen from '../screens/onboarding/ModernOnboardingScreen';
+// New Onboarding screens
+import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
+import OnboardingNotificationPermissionScreen from '../screens/onboarding/OnboardingNotificationPermissionScreen';
+import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
+import OnboardingAccountCreationScreen from '../screens/onboarding/OnboardingAccountCreationScreen';
+import OnboardingFaithJourneyScreen from '../screens/onboarding/OnboardingFaithJourneyScreen';
+import OnboardingValuePropositionScreen from '../screens/onboarding/OnboardingValuePropositionScreen';
+import OnboardingChallengeSelectionScreen from '../screens/onboarding/OnboardingChallengeSelectionScreen';
+import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
+import OnboardingFeatureShowcaseScreen from '../screens/onboarding/OnboardingFeatureShowcaseScreen';
+import OnboardingPlaybookNavigationScreen from '../screens/onboarding/OnboardingPlaybookNavigationScreen';
+import OnboardingTrialSetupScreen from '../screens/onboarding/OnboardingTrialSetupScreen';
+import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
+import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
 
 
 // Header Components
@@ -254,10 +266,70 @@ export default function RootStackNavigator({
             component={JournalScreen as React.ComponentType}
             options={{ headerShown: false }}
           />
-          {/* Onboarding screens */}
+          {/* New Onboarding screens */}
           <Stack.Screen
-            name="ModernOnboarding"
-            component={ModernOnboardingScreen as React.ComponentType}
+            name="OnboardingSplash"
+            component={OnboardingSplashScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingNotificationPermission"
+            component={OnboardingNotificationPermissionScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingWelcome"
+            component={OnboardingWelcomeScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingAccountCreation"
+            component={OnboardingAccountCreationScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingFaithJourney"
+            component={OnboardingFaithJourneyScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingValueProposition"
+            component={OnboardingValuePropositionScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingChallengeSelection"
+            component={OnboardingChallengeSelectionScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingPlaybookGeneration"
+            component={OnboardingPlaybookGenerationScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingFeatureShowcase"
+            component={OnboardingFeatureShowcaseScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingPlaybookNavigation"
+            component={OnboardingPlaybookNavigationScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingTrialSetup"
+            component={OnboardingTrialSetupScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingPersonalization"
+            component={OnboardingPersonalizationScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingComplete"
+            component={OnboardingCompleteScreen as React.ComponentType}
             options={{ headerShown: false }}
           />
         </>

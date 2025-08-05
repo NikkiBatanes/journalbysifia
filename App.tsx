@@ -79,12 +79,12 @@ function App(): React.JSX.Element {
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
   const [adminPanelVisible, setAdminPanelVisible] = useState(false);
-  
+
   const handleOpenAdminPanel = () => {
     console.log('🟢 Opening admin panel...');
     setAdminPanelVisible(true);
   };
-  
+
   const handleCloseAdminPanel = () => {
     console.log('🔴 Closing admin panel...');
     setAdminPanelVisible(false);

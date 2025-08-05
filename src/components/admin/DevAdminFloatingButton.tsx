@@ -9,12 +9,12 @@ interface DevAdminFloatingButtonProps {
 
 const DevAdminFloatingButton: React.FC<DevAdminFloatingButtonProps> = ({ onPress, visible = true }) => {
   if (!visible) {return null;}
-  
+
   const handlePress = () => {
     console.log('🔴 DevAdminFloatingButton pressed!');
     onPress();
   };
-  
+
   return (
     <View pointerEvents="box-none" style={styles.container}>
       <TouchableOpacity

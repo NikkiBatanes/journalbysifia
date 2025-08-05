@@ -9,7 +9,7 @@ interface DevAdminPanelModalProps {
 
 const DevAdminPanelModal: React.FC<DevAdminPanelModalProps> = ({ visible, onClose }) => {
   console.log('🔍 DevAdminPanelModal render:', { visible });
-  
+
   return (
     <Modal
       visible={visible}

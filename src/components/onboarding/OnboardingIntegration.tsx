@@ -88,8 +88,8 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
       // Navigate to the new modern onboarding flow
       // This replaces the old multi-screen approach with a unified, engaging experience
       setTimeout(() => {
-        console.log('🚀 Navigating to ModernOnboarding...');
-        navigation.navigate('ModernOnboarding' as any);
+        console.log('🚀 Navigating to new onboarding flow...');
+        navigation.navigate('OnboardingSplash' as any);
       }, 100);
     }
   }, [
