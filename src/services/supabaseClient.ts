@@ -8,14 +8,17 @@ import { createClient } from '@supabase/supabase-js';
 import 'react-native-get-random-values';
 
 // Import environment variables
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from '@env';
+import { getEnvironmentConfig, validateEnvironment } from '../config/environment';
 
-// Fallback values for development
-const DEFAULT_SUPABASE_URL = 'https://aesmrjinczhknchlrsmt.supabase.co';
-const DEFAULT_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg3NjYxOTMsImV4cCI6MjA2NDM0MjE5M30.x7XMjrm9WWlvEdc5eaK7Z5Fy-V_85qMJQ7pInsrKIyM';
+// Get environment configuration
+const env = getEnvironmentConfig();
+const supabaseUrl = env.SUPABASE_URL;
+const supabaseAnonKey = env.SUPABASE_ANON_KEY;
 
-const supabaseUrl = SUPABASE_URL || DEFAULT_SUPABASE_URL;
-const supabaseAnonKey = SUPABASE_ANON_KEY || DEFAULT_ANON_KEY;
+// Validate environment on startup
+if (!validateEnvironment()) {
+  console.warn('⚠️ Some environment variables are missing. Please check your .env file.');
+}
 
 // Create Supabase client with proper session persistence
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
