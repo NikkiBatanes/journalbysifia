@@ -1,0 +1,580 @@
+/**
+ * Onboarding Service
+ * Handles modern onboarding flow with faith journey tracking
+ * Enterprise-grade implementation with analytics and personalization
+ */
+
+import { supabase } from './supabaseClient';
+
+// =============================================
+// TYPES AND INTERFACES
+// =============================================
+
+export type OnboardingStepStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'completed'
+  | 'skipped'
+  | 'abandoned';
+
+export type SpiritualMaturityLevel =
+  | 'new_believer'
+  | 'growing'
+  | 'mature'
+  | 'leader'
+  | 'unsure';
+
+export type ChurchAttendanceFrequency =
+  | 'never'
+  | 'rarely'
+  | 'monthly'
+  | 'weekly'
+  | 'multiple_weekly';
+
+export type BibleReadingFrequency =
+  | 'never'
+  | 'rarely'
+  | 'weekly'
+  | 'daily'
+  | 'multiple_daily';
+
+export type PrayerFrequency =
+  | 'never'
+  | 'rarely'
+  | 'weekly'
+  | 'daily'
+  | 'multiple_daily';
+
+export type AcceptanceContext =
+  | 'childhood'
+  | 'teenager'
+  | 'adult'
+  | 'recent'
+  | 'unsure'
+  | 'not_yet';
+
+export type BaptismStatus =
+  | 'yes'
+  | 'no'
+  | 'planning'
+  | 'not_applicable';
+
+export type PersonalityType =
+  | 'contemplative'
+  | 'active'
+  | 'social'
+  | 'studious';
+
+export type LearningStyle =
+  | 'visual'
+  | 'auditory'
+  | 'kinesthetic'
+  | 'reading';
+
+export type ContentLengthPreference =
+  | 'short'
+  | 'medium'
+  | 'long';
+
+export interface OnboardingProgress {
+  id: string;
+  user_id: string;
+  current_step: number;
+  total_steps: number;
+  completed_steps: string[];
+  skipped_steps: string[];
+  started_at: string;
+  completed_at?: string;
+  abandoned_at?: string;
+  last_activity_at: string;
+  completion_rate: number;
+  time_spent_seconds: number;
+  session_id: string;
+  device_info: Record<string, any>;
+  is_completed: boolean;
+  is_abandoned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FaithJourneyProfile {
+  id: string;
+  user_id: string;
+  has_accepted_christ?: boolean;
+  acceptance_date?: string;
+  acceptance_context?: AcceptanceContext;
+  spiritual_maturity: SpiritualMaturityLevel;
+  years_as_believer?: number;
+  church_attendance: ChurchAttendanceFrequency;
+  current_church_name?: string;
+  church_denomination?: string;
+  baptism_status: BaptismStatus;
+  baptism_date?: string;
+  bible_reading_frequency: BibleReadingFrequency;
+  prayer_frequency: PrayerFrequency;
+  preferred_bible_version: string;
+  areas_of_growth: string[];
+  life_challenges: string[];
+  spiritual_gifts: string[];
+  ministry_interests: string[];
+  current_doubts: string[];
+  growth_desires: string[];
+  spiritual_influences: string[];
+  needs_pastoral_care: boolean;
+  church_connection_requested: boolean;
+  prayer_request_text?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PersonalizationProfile {
+  id: string;
+  user_id: string;
+  personality_type?: PersonalityType;
+  learning_style?: LearningStyle;
+  preferred_content_length: ContentLengthPreference;
+  preferred_topics: string[];
+  avoided_topics: string[];
+  optimal_notification_times: string[];
+  preferred_study_days: string[];
+  daily_commitment_minutes: number;
+  prefers_gentle_encouragement: boolean;
+  prefers_direct_challenges: boolean;
+  likes_community_features: boolean;
+  prefers_audio_content: boolean;
+  prefers_video_content: boolean;
+  accessibility_needs: string[];
+  engagement_patterns: Record<string, any>;
+  personalization_score: number;
+  confidence_level: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OnboardingStepData {
+  step_name: string;
+  step_number: number;
+  data: Record<string, any>;
+  time_spent_seconds?: number;
+  interactions_count?: number;
+  completion_method: OnboardingStepStatus;
+}
+
+export interface ChristAcceptanceData {
+  acceptance_context: AcceptanceContext;
+  influenced_by?: string;
+  specific_content_id?: string;
+  prayer_text?: string;
+  baptism_interest?: boolean;
+  church_connection_interest?: boolean;
+  discipleship_interest?: boolean;
+}
+
+export interface OnboardingMetrics {
+  step_name: string;
+  completion_rate: number;
+  average_time_spent: number;
+  skip_rate: number;
+  total_users: number;
+}
+
+// =============================================
+// ONBOARDING SERVICE CLASS
+// =============================================
+
+export class OnboardingService {
+  private supabase = supabase;
+
+  /**
+   * Initialize onboarding for a new user
+   */
+  async initializeOnboarding(userId: string): Promise<string> {
+    try {
+      const { data, error } = await this.supabase.rpc('initialize_onboarding', {
+        p_user_id: userId,
+      });
+
+      if (error) {
+        console.error('[OnboardingService] Error initializing onboarding:', error);
+        throw error;
+      }
+
+      console.log(`[OnboardingService] Initialized onboarding for user ${userId}`);
+      return data;
+    } catch (error) {
+      console.error('[OnboardingService] Error in initializeOnboarding:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's onboarding progress
+   */
+  async getOnboardingProgress(userId: string): Promise<OnboardingProgress | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('onboarding_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[OnboardingService] Error getting onboarding progress:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[OnboardingService] Error in getOnboardingProgress:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update onboarding step progress
+   */
+  async updateStepProgress(
+    userId: string,
+    stepData: OnboardingStepData
+  ): Promise<void> {
+    try {
+      // Update progress using the database function
+      const { error: progressError } = await this.supabase.rpc('update_onboarding_progress', {
+        p_user_id: userId,
+        p_step_name: stepData.step_name,
+        p_step_number: stepData.step_number,
+        p_completion_method: stepData.completion_method,
+        p_time_spent: stepData.time_spent_seconds || 0,
+      });
+
+      if (progressError) {
+        console.error('[OnboardingService] Error updating progress:', progressError);
+        throw progressError;
+      }
+
+      // Record analytics
+      await this.recordStepAnalytics(userId, stepData);
+
+      console.log(`[OnboardingService] Updated step ${stepData.step_name} for user ${userId}`);
+    } catch (error) {
+      console.error('[OnboardingService] Error in updateStepProgress:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Record step analytics
+   */
+  private async recordStepAnalytics(
+    userId: string,
+    stepData: OnboardingStepData
+  ): Promise<void> {
+    try {
+      const progress = await this.getOnboardingProgress(userId);
+
+      const { error } = await this.supabase
+        .from('onboarding_step_analytics')
+        .insert({
+          user_id: userId,
+          session_id: progress?.session_id,
+          step_name: stepData.step_name,
+          step_number: stepData.step_number,
+          time_spent_seconds: stepData.time_spent_seconds || 0,
+          interactions_count: stepData.interactions_count || 0,
+          completion_method: stepData.completion_method,
+          input_field_count: Object.keys(stepData.data).length,
+          device_info: progress?.device_info || {},
+        });
+
+      if (error) {
+        console.error('[OnboardingService] Error recording analytics:', error);
+        // Don't throw - analytics shouldn't block the main flow
+      }
+    } catch (error) {
+      console.error('[OnboardingService] Error in recordStepAnalytics:', error);
+      // Don't throw - analytics shouldn't block the main flow
+    }
+  }
+
+  /**
+   * Update faith journey profile
+   */
+  async updateFaithJourneyProfile(
+    userId: string,
+    profileData: Partial<FaithJourneyProfile>
+  ): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('faith_journey_profiles')
+        .upsert({
+          user_id: userId,
+          ...profileData,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.error('[OnboardingService] Error updating faith journey:', error);
+        throw error;
+      }
+
+      console.log(`[OnboardingService] Updated faith journey for user ${userId}`);
+    } catch (error) {
+      console.error('[OnboardingService] Error in updateFaithJourneyProfile:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get faith journey profile
+   */
+  async getFaithJourneyProfile(userId: string): Promise<FaithJourneyProfile | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('faith_journey_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[OnboardingService] Error getting faith journey:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[OnboardingService] Error in getFaithJourneyProfile:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Record Christ acceptance event
+   */
+  async recordChristAcceptance(
+    userId: string,
+    acceptanceData: ChristAcceptanceData
+  ): Promise<string> {
+    try {
+      const { data, error } = await this.supabase.rpc('record_christ_acceptance', {
+        p_user_id: userId,
+        p_acceptance_context: acceptanceData.acceptance_context,
+        p_influenced_by: acceptanceData.influenced_by,
+        p_content_id: acceptanceData.specific_content_id,
+        p_prayer_text: acceptanceData.prayer_text,
+      });
+
+      if (error) {
+        console.error('[OnboardingService] Error recording Christ acceptance:', error);
+        throw error;
+      }
+
+      console.log(`[OnboardingService] Recorded Christ acceptance for user ${userId}`);
+      return data;
+    } catch (error) {
+      console.error('[OnboardingService] Error in recordChristAcceptance:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update personalization profile
+   */
+  async updatePersonalizationProfile(
+    userId: string,
+    profileData: Partial<PersonalizationProfile>
+  ): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('onboarding_personalization_profiles')
+        .upsert({
+          user_id: userId,
+          ...profileData,
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        console.error('[OnboardingService] Error updating personalization:', error);
+        throw error;
+      }
+
+      console.log(`[OnboardingService] Updated personalization for user ${userId}`);
+    } catch (error) {
+      console.error('[OnboardingService] Error in updatePersonalizationProfile:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get personalization profile
+   */
+  async getPersonalizationProfile(userId: string): Promise<PersonalizationProfile | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('onboarding_personalization_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[OnboardingService] Error getting personalization:', error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[OnboardingService] Error in getPersonalizationProfile:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete onboarding process
+   */
+  async completeOnboarding(userId: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('onboarding_progress')
+        .update({
+          is_completed: true,
+          completed_at: new Date().toISOString(),
+          completion_rate: 1.0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('[OnboardingService] Error completing onboarding:', error);
+        throw error;
+      }
+
+      console.log(`[OnboardingService] Completed onboarding for user ${userId}`);
+    } catch (error) {
+      console.error('[OnboardingService] Error in completeOnboarding:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user has completed onboarding
+   */
+  async hasCompletedOnboarding(userId: string): Promise<boolean> {
+    try {
+      const progress = await this.getOnboardingProgress(userId);
+      return progress?.is_completed || false;
+    } catch (error) {
+      console.error('[OnboardingService] Error checking onboarding completion:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get onboarding metrics for analytics
+   */
+  async getOnboardingMetrics(): Promise<OnboardingMetrics[]> {
+    try {
+      const { data, error } = await this.supabase.rpc('calculate_onboarding_metrics');
+
+      if (error) {
+        console.error('[OnboardingService] Error getting metrics:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('[OnboardingService] Error in getOnboardingMetrics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Abandon onboarding (user exits without completing)
+   */
+  async abandonOnboarding(userId: string, currentStep: string): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('onboarding_progress')
+        .update({
+          is_abandoned: true,
+          abandoned_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('[OnboardingService] Error abandoning onboarding:', error);
+        throw error;
+      }
+
+      // Record abandonment analytics
+      await this.recordStepAnalytics(userId, {
+        step_name: currentStep,
+        step_number: 0,
+        data: {},
+        completion_method: 'abandoned',
+      });
+
+      console.log(`[OnboardingService] Marked onboarding as abandoned for user ${userId}`);
+    } catch (error) {
+      console.error('[OnboardingService] Error in abandonOnboarding:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get users who need pastoral care follow-up
+   */
+  async getUsersNeedingPastoralCare(): Promise<FaithJourneyProfile[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('faith_journey_profiles')
+        .select('*')
+        .eq('needs_pastoral_care', true);
+
+      if (error) {
+        console.error('[OnboardingService] Error getting pastoral care users:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('[OnboardingService] Error in getUsersNeedingPastoralCare:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get recent Christ acceptance events for follow-up
+   */
+  async getRecentChristAcceptanceEvents(days: number = 7): Promise<any[]> {
+    try {
+      const { data, error } = await this.supabase
+        .from('christ_acceptance_events')
+        .select(`
+          *,
+          faith_journey_profiles (
+            user_id,
+            spiritual_maturity,
+            church_attendance,
+            needs_pastoral_care
+          )
+        `)
+        .gte('created_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
+        .eq('needs_follow_up', true)
+        .eq('follow_up_completed', false)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[OnboardingService] Error getting acceptance events:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('[OnboardingService] Error in getRecentChristAcceptanceEvents:', error);
+      throw error;
+    }
+  }
+}
+
+// Export singleton instance
+export const onboardingService = new OnboardingService();
