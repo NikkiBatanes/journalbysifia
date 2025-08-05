@@ -16,6 +16,9 @@ import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 
+// Onboarding screens
+import ModernOnboardingScreen from '../screens/onboarding/ModernOnboardingScreen';
+
 
 // Header Components
 interface BackButtonProps {
@@ -249,6 +252,12 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="Journal"
             component={JournalScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          {/* Onboarding screens */}
+          <Stack.Screen
+            name="ModernOnboarding"
+            component={ModernOnboardingScreen as React.ComponentType}
             options={{ headerShown: false }}
           />
         </>

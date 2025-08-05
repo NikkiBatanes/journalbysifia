@@ -17,8 +17,11 @@ export const Colors = {
   error: '#FF3B30', // Maps to dangerRed
 
   // Grayscale
+  white: '#FFFFFF',
+  black: '#000000',
   hopeWhite: '#F2F5F7',
   lightGray: '#E0E0E0',
+  lightBlue: '#E8F4FD',
   mediumGray: '#9E9E9E',
   darkGray: '#424242',
   darkerGray: '#1A1A1A', // For better text contrast

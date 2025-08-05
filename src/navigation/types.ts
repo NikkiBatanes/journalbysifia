@@ -6,6 +6,14 @@ export type RootStackParamList = {
   Login: { onLogin: () => void } | undefined;
   Register: { onRegister: () => void } | undefined;
 
+  // Onboarding Stack
+  OnboardingWelcome: undefined;
+  OnboardingFaithJourney: undefined;
+  OnboardingPersonalProfile: undefined;
+  OnboardingGoalsScreen: undefined;
+  OnboardingPreferences: undefined;
+  OnboardingTrialSetup: undefined;
+
   // Main App
   MainTabs: undefined;
   PlaybookDetail: { playbook: Playbook };

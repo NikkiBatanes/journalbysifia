@@ -9,6 +9,8 @@ import 'react-native-url-polyfill/auto';
 import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, StatusBar, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
+import DevAdminFloatingButton from './src/components/admin/DevAdminFloatingButton';
+import DevAdminPanelModal from './src/components/admin/DevAdminPanelModal';
 import { NavigationContainer } from '@react-navigation/native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -29,6 +31,8 @@ import AuthGuard from './src/components/AuthGuard';
 import { QueryProvider } from './src/providers/QueryProvider';
 import { NetworkStatus } from './src/components/NetworkStatus';
 import AuthStateMonitor from './src/components/AuthStateMonitor';
+import { OnboardingProvider } from './src/context/OnboardingContext';
+import { OnboardingIntegration } from './src/components/onboarding/OnboardingIntegration';
 
 // Stack navigator removed as it's not currently used
 
@@ -74,6 +78,8 @@ function App(): React.JSX.Element {
 }
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
+  const [adminPanelVisible, setAdminPanelVisible] = useState(false);
+
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
@@ -85,24 +91,38 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
   return (
     <NavigationContainer>
       <GestureHandlerRootView style={styles.gestureHandler}>
+        {/* DEV-ONLY: Floating button */}
+        {__DEV__ && (
+          <DevAdminFloatingButton onPress={() => setAdminPanelVisible(true)} />
+        )}
+
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <ScrollProvider>
           <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
             <UserProvider>
-              <LogoutContext.Provider value={{ onLogout: async () => {} }}>
-                <AuthStateMonitor>
-                  <AuthGuard>
-                    <RootStackNavigator
-                      isAuthenticated={true} // Will be managed by AuthGuard
-                      handleLogin={async () => {}}
-                      handleLogout={async () => {}}
-                      onLogin={async () => {}}
-                      AuthStack={AuthStackNavigator}
-                    />
-                    <NetworkStatus />
-                  </AuthGuard>
-                </AuthStateMonitor>
-              </LogoutContext.Provider>
+              <OnboardingProvider>
+                <LogoutContext.Provider value={{ onLogout: async () => {} }}>
+                  <AuthStateMonitor>
+                    <AuthGuard>
+                      <OnboardingIntegration>
+                        <RootStackNavigator
+                          isAuthenticated={true} // Will be managed by AuthGuard
+                          handleLogin={async () => {}}
+                          handleLogout={async () => {}}
+                          onLogin={async () => {}}
+                          AuthStack={AuthStackNavigator}
+                        />
+                        <NetworkStatus />
+
+                        {/* DEV-ONLY: Admin panel modal inside OnboardingProvider context */}
+                        {__DEV__ && (
+                          <DevAdminPanelModal visible={adminPanelVisible} onClose={() => setAdminPanelVisible(false)} />
+                        )}
+                      </OnboardingIntegration>
+                    </AuthGuard>
+                  </AuthStateMonitor>
+                </LogoutContext.Provider>
+              </OnboardingProvider>
             </UserProvider>
           </ActionStepsProviderWrapper>
         </ScrollProvider>
