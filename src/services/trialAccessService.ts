@@ -40,15 +40,15 @@ class TrialAccessService {
           daysRemaining: 0,
           expiresAt: new Date(),
           hasExpired: true,
-          fullAccessEnabled: false
+          fullAccessEnabled: false,
         };
       }
 
       const now = new Date();
-      const trialEndsAt = subscription.trial_ends_at 
+      const trialEndsAt = subscription.trial_ends_at
         ? new Date(subscription.trial_ends_at)
         : new Date(subscription.created_at);
-      
+
       // Add trial duration if not explicitly set
       if (!subscription.trial_ends_at) {
         trialEndsAt.setDate(trialEndsAt.getDate() + this.TRIAL_DURATION_DAYS);
@@ -63,7 +63,7 @@ class TrialAccessService {
         daysRemaining,
         expiresAt: trialEndsAt,
         hasExpired,
-        fullAccessEnabled: isActive // Full access only during active trial
+        fullAccessEnabled: isActive, // Full access only during active trial
       };
     } catch (error) {
       console.error('Error getting trial status:', error);
@@ -72,7 +72,7 @@ class TrialAccessService {
         daysRemaining: 0,
         expiresAt: new Date(),
         hasExpired: true,
-        fullAccessEnabled: false
+        fullAccessEnabled: false,
       };
     }
   }
@@ -84,7 +84,7 @@ class TrialAccessService {
     try {
       const trialStatus = await this.getTrialStatus(userId);
       const subscription = await subscriptionService.getUserSubscription(userId);
-      
+
       if (!subscription) {
         return this.getDefaultFeatureAccess();
       }
@@ -98,7 +98,7 @@ class TrialAccessService {
           devotionalsRemaining: 999, // Unlimited during trial
           intelligenceEnabled: true,
           advancedAnalytics: true,
-          prioritySupport: true
+          prioritySupport: true,
         };
       }
 
@@ -113,7 +113,7 @@ class TrialAccessService {
         devotionalsRemaining: Math.max(0, limits.devotionals - usage.devotionals),
         intelligenceEnabled: limits.intelligenceEnabled || false,
         advancedAnalytics: limits.advancedAnalytics || false,
-        prioritySupport: limits.prioritySupport || false
+        prioritySupport: limits.prioritySupport || false,
       };
     } catch (error) {
       console.error('Error getting feature access:', error);
@@ -138,31 +138,31 @@ class TrialAccessService {
     remainingCount?: number;
   }> {
     const access = await this.getFeatureAccess(userId);
-    const remaining = contentType === 'playbook' 
-      ? access.playbooksRemaining 
+    const remaining = contentType === 'playbook'
+      ? access.playbooksRemaining
       : access.devotionalsRemaining;
 
     if (remaining > 0) {
       return {
         canGenerate: true,
-        remainingCount: remaining
+        remainingCount: remaining,
       };
     }
 
     const trialStatus = await this.getTrialStatus(userId);
-    
+
     if (trialStatus.hasExpired && !trialStatus.isActive) {
       return {
         canGenerate: false,
         reason: 'trial_expired',
-        remainingCount: 0
+        remainingCount: 0,
       };
     }
 
     return {
       canGenerate: false,
       reason: 'limit_reached',
-      remainingCount: 0
+      remainingCount: 0,
     };
   }
 
@@ -182,7 +182,7 @@ class TrialAccessService {
           status: 'active',
           trial_ends_at: trialEndsAt.toISOString(),
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
 
       console.log(`Trial started for user ${userId}, expires at ${trialEndsAt}`);
@@ -198,7 +198,7 @@ class TrialAccessService {
   async handleTrialExpiration(userId: string): Promise<void> {
     try {
       const trialStatus = await this.getTrialStatus(userId);
-      
+
       if (trialStatus.hasExpired && trialStatus.isActive) {
         // Update subscription to expired trial state
         await supabase
@@ -206,13 +206,13 @@ class TrialAccessService {
           .update({
             tier: 'free_trial', // Keep as trial but expired
             status: 'trial_expired',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId);
 
         // Log trial expiration for analytics
         await this.logTrialEvent(userId, 'trial_expired');
-        
+
         console.log(`Trial expired for user ${userId}`);
       }
     } catch (error) {
@@ -232,34 +232,34 @@ class TrialAccessService {
       smartJournaling: {
         title: 'Unlock Smart Journaling',
         message: 'Get AI-powered insights and personalized prompts to deepen your spiritual journey.',
-        recommendedTier: 'starter'
+        recommendedTier: 'starter',
       },
       journalTemplates: {
         title: 'Access All Journal Templates',
         message: 'Explore 20+ guided templates for prayer, gratitude, Bible study, and spiritual growth.',
-        recommendedTier: 'starter'
+        recommendedTier: 'starter',
       },
       playbooks: {
         title: 'Generate More Playbooks',
         message: 'Create unlimited personalized spiritual growth plans tailored to your journey.',
-        recommendedTier: 'growth'
+        recommendedTier: 'growth',
       },
       devotionals: {
         title: 'Unlimited Devotionals',
         message: 'Access daily AI-generated devotionals personalized to your spiritual needs.',
-        recommendedTier: 'growth'
+        recommendedTier: 'growth',
       },
       intelligence: {
         title: 'Advanced AI Guidance',
         message: 'Unlock enhanced personalization and deeper spiritual insights.',
-        recommendedTier: 'transformation'
-      }
+        recommendedTier: 'transformation',
+      },
     };
 
     return prompts[blockedFeature] || {
       title: 'Upgrade Your Plan',
       message: 'Unlock premium features to enhance your spiritual growth journey.',
-      recommendedTier: 'starter'
+      recommendedTier: 'starter',
     };
   }
 
@@ -275,7 +275,7 @@ class TrialAccessService {
           event_type: 'trial',
           event_name: event,
           metadata: { timestamp: new Date().toISOString() },
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
     } catch (error) {
       console.error('Error logging trial event:', error);
@@ -293,7 +293,7 @@ class TrialAccessService {
       devotionalsRemaining: 0,
       intelligenceEnabled: false,
       advancedAnalytics: false,
-      prioritySupport: false
+      prioritySupport: false,
     };
   }
 }

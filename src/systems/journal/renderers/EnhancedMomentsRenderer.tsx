@@ -34,8 +34,8 @@ interface GroupedSection {
 }
 
 export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = ({
-  plugins,
-  dateRange,
+  plugins: _plugins,
+  dateRange: _dateRange,
   refreshKey,
   groupBy,
   sortBy,
@@ -50,18 +50,18 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     // The problem with the previous approach was creating entries for ALL dates for ALL plugins
     // Instead, we should return an empty array and let the empty state show
     // This forces users to actually create content before it appears in Moments
-    
+
     // TODO: Implement proper content detection by checking actual data sources
     // For now, return empty array to show empty state until we implement proper data fetching
     const entries: MomentEntry[] = [];
-    
+
     // The correct approach would be:
     // 1. Query each plugin's data source for the date range
     // 2. Only create entries for dates where data exists
     // 3. This requires access to the actual data stores (Supabase queries, etc.)
-    
+
     return entries;
-  }, [plugins, dateRange, searchQuery]);
+  }, []);
 
   // Sort entries
   const sortedEntries = React.useMemo(() => {
@@ -232,24 +232,24 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         // For moments view, we want to filter out components that would return null
         // Since we can't easily test-render components, we'll use a heuristic approach
         // based on the plugin ID and known empty state patterns
-        
+
         // Known plugins that have proper empty state handling for moments view:
         const pluginsWithEmptyStateHandling = [
-          'focus', 'todos', 'timeblocks', 'reflection', 'gratitude', 
-          'win', 'looking-forward', 'prayer-journal', 'prayer-list', 'devotional-prayers'
+          'focus', 'todos', 'timeblocks', 'reflection', 'gratitude',
+          'win', 'looking-forward', 'prayer-journal', 'prayer-list', 'devotional-prayers',
         ];
-        
+
         // If this is a plugin we know handles empty states properly,
         // we'll include it and let the component decide whether to render
         if (pluginsWithEmptyStateHandling.includes(item.plugin.id)) {
           return true;
         }
-        
+
         // For unknown plugins, include them by default
         return true;
-      })
+      }),
     })).filter(section => section.data.length > 0);
-  }, [groupedSections, refreshKey]);
+  }, [groupedSections]);
 
   if (sectionsWithContent.length === 0) {
     return (

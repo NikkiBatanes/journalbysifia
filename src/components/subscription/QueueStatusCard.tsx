@@ -4,14 +4,14 @@
  * Provides simple, user-friendly feedback during generation
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Animated,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,14 +34,14 @@ export const QueueStatusCard: React.FC<QueueStatusCardProps> = ({
   onComplete,
   onCancel,
   onError,
-  intelligenceEnabled = false
+  intelligenceEnabled = false,
 }) => {
   const [status, setStatus] = useState<QueueStatus>('pending');
   const [message, setMessage] = useState('');
   const [estimatedWaitTime, setEstimatedWaitTime] = useState<number>(0);
   const [processingTime, setProcessingTime] = useState<number>(0);
   const [resultId, setResultId] = useState<string>('');
-  
+
   // Animation values
   const [pulseAnim] = useState(new Animated.Value(1));
   const [progressAnim] = useState(new Animated.Value(0));
@@ -49,26 +49,27 @@ export const QueueStatusCard: React.FC<QueueStatusCardProps> = ({
   useEffect(() => {
     // Start polling for status updates
     const pollInterval = setInterval(checkStatus, 2000); // Check every 2 seconds
-    
+
     // Start pulse animation
     startPulseAnimation();
-    
+
     return () => {
       clearInterval(pollInterval);
       pulseAnim.stopAnimation();
       progressAnim.stopAnimation();
     };
-  }, [queueId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueId, progressAnim, pulseAnim]);
 
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     try {
       const statusData = await enhancedGenerationService.checkGenerationStatus(queueId);
-      
+
       setStatus(statusData.status);
       setMessage(statusData.message);
       setEstimatedWaitTime(statusData.estimatedWaitTime || 0);
       setProcessingTime(statusData.processingTimeSeconds || 0);
-      
+
       if (statusData.status === 'completed' && statusData.resultId) {
         setResultId(statusData.resultId);
         onComplete?.(statusData.resultId);
@@ -85,9 +86,10 @@ export const QueueStatusCard: React.FC<QueueStatusCardProps> = ({
       setMessage('Error checking status');
       onError?.('Error checking generation status');
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueId, onComplete, onError]);
 
-  const startPulseAnimation = () => {
+  const startPulseAnimation = useCallback(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -102,7 +104,7 @@ export const QueueStatusCard: React.FC<QueueStatusCardProps> = ({
         }),
       ])
     ).start();
-  };
+  }, [pulseAnim]);
 
   const startProgressAnimation = () => {
     Animated.loop(
@@ -161,7 +163,7 @@ export const QueueStatusCard: React.FC<QueueStatusCardProps> = ({
   };
 
   const formatWaitTime = (seconds: number): string => {
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) {return `${seconds}s`;}
     const minutes = Math.ceil(seconds / 60);
     return `${minutes}m`;
   };
@@ -195,7 +197,7 @@ export const QueueStatusCard: React.FC<QueueStatusCardProps> = ({
               )}
             </View>
           </View>
-          
+
           {(status === 'pending' || status === 'processing') && (
             <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
               <Ionicons name="close" size={20} color="white" />
@@ -464,9 +466,9 @@ export const CompactQueueStatus: React.FC<{
   queueId: string;
   type: 'playbook' | 'devotional';
   onComplete?: (resultId: string) => void;
-}> = ({ queueId, type, onComplete }) => {
+}> = ({ queueId, type: _type, onComplete }) => {
   const [status, setStatus] = useState<QueueStatus>('pending');
-  const [message, setMessage] = useState('');
+  const [_message, setMessage] = useState('');
 
   useEffect(() => {
     const pollInterval = setInterval(async () => {
@@ -474,7 +476,7 @@ export const CompactQueueStatus: React.FC<{
         const statusData = await enhancedGenerationService.checkGenerationStatus(queueId);
         setStatus(statusData.status);
         setMessage(statusData.message);
-        
+
         if (statusData.status === 'completed' && statusData.resultId) {
           onComplete?.(statusData.resultId);
           clearInterval(pollInterval);
@@ -485,7 +487,7 @@ export const CompactQueueStatus: React.FC<{
     }, 3000);
 
     return () => clearInterval(pollInterval);
-  }, [queueId]);
+  }, [queueId, onComplete]);
 
   const getStatusColor = () => {
     switch (status) {
@@ -502,7 +504,7 @@ export const CompactQueueStatus: React.FC<{
       <View style={compactStyles.content}>
         <ActivityIndicator size="small" color={getStatusColor()} />
         <Text style={[compactStyles.text, { color: getStatusColor() }]}>
-          {status === 'pending' ? 'Queued' : 
+          {status === 'pending' ? 'Queued' :
            status === 'processing' ? 'Generating' :
            status === 'completed' ? 'Done' : 'Failed'}
         </Text>

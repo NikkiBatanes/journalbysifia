@@ -73,11 +73,11 @@ export class QueueService {
       const subscription = await subscriptionService.getUserSubscription(request.userId);
       const priority = subscriptionService.getQueuePriority(subscription.tier);
       const intelligenceLevel = this.getIntelligenceLevel(subscription.tier);
-      
+
       // Get user profile data if intelligence is enabled
       let userProfileData = {};
       let personalizationEnabled = false;
-      
+
       if (intelligenceLevel !== 'basic') {
         try {
           const profileData = await intelligenceService.generatePersonalizedPromptData(request.userId);
@@ -85,7 +85,7 @@ export class QueueService {
             userProfileData = profileData;
             personalizationEnabled = true;
           }
-        } catch (error) {
+        } catch (fetchError) {
           console.warn('[QueueService] Could not get personalization data, proceeding with basic generation');
         }
       }
@@ -105,7 +105,7 @@ export class QueueService {
         retry_count: 0,
         max_retries: 3,
         tokens_used: 0,
-        cost_cents: 0
+        cost_cents: 0,
       };
 
       const { data, error } = await this.supabase
@@ -166,7 +166,7 @@ export class QueueService {
         processing,
         estimatedWaitTime,
         position: this.getUserQueuePosition(allPending || [], userId),
-        intelligenceEnabled: limits.intelligenceEnabled
+        intelligenceEnabled: limits.intelligenceEnabled,
       };
     } catch (error) {
       console.error('[QueueService] Error getting queue status:', error);
@@ -174,7 +174,7 @@ export class QueueService {
         pending: 0,
         processing: 0,
         estimatedWaitTime: 0,
-        intelligenceEnabled: false
+        intelligenceEnabled: false,
       };
     }
   }
@@ -223,7 +223,7 @@ export class QueueService {
    * Start queue processing (runs continuously)
    */
   private startProcessing(): void {
-    if (this.isProcessing) return;
+    if (this.isProcessing) {return;}
 
     this.isProcessing = true;
     console.log('[QueueService] Starting queue processing');
@@ -270,7 +270,7 @@ export class QueueService {
       console.log(`[QueueService] Processing ${pendingItems.length} queue items`);
 
       // Process items concurrently (respecting OpenAI rate limits)
-      const processingPromises = pendingItems.map(item => 
+      const processingPromises = pendingItems.map(item =>
         this.processQueueItem(item).catch(error => {
           console.error(`[QueueService] Error processing item ${item.id}:`, error);
         })
@@ -291,7 +291,7 @@ export class QueueService {
     try {
       // Mark as processing
       await this.updateQueueStatus(item.id, 'processing', {
-        started_at: new Date().toISOString()
+        started_at: new Date().toISOString(),
       });
 
       console.log(`[QueueService] Processing ${item.type} generation for user ${item.user_id}`);
@@ -313,7 +313,7 @@ export class QueueService {
         result_id: result.id,
         processing_time_seconds: processingTime,
         tokens_used: result.tokensUsed || 0,
-        cost_cents: result.costCents || 0
+        cost_cents: result.costCents || 0,
       });
 
       // Track usage in subscription service
@@ -332,25 +332,26 @@ export class QueueService {
           event_data: {
             intelligence_level: item.intelligence_level,
             processing_time_seconds: processingTime,
-            tokens_used: result.tokensUsed
+            tokens_used: result.tokensUsed,
           },
           success_indicator: true,
-          duration_seconds: processingTime
+          duration_seconds: processingTime,
         });
       }
 
       console.log(`[QueueService] Completed ${item.type} generation for user ${item.user_id} in ${processingTime}s`);
 
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`[QueueService] Error processing queue item ${item.id}:`, error);
 
       // Handle retry logic
       if (item.retry_count < item.max_retries) {
         await this.retryQueueItem(item.id);
       } else {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         await this.updateQueueStatus(item.id, 'failed', {
           failed_at: new Date().toISOString(),
-          error_message: error.message || 'Unknown error'
+          error_message: errorMessage,
         });
       }
     }
@@ -362,14 +363,14 @@ export class QueueService {
   private async generatePlaybookDirect(item: QueueItem): Promise<any> {
     // This would call your existing playbook generation function
     // For now, we'll simulate the call structure
-    
+
     const functionUrl = `${process.env.SUPABASE_URL}/functions/v1/generate-playbook`;
-    
+
     // Build request body with intelligence data
     const requestBody: any = {
       userInput: item.user_input,
       userName: item.user_name,
-      ...item.additional_params
+      ...item.additional_params,
     };
 
     // Add personalization data if available
@@ -382,9 +383,9 @@ export class QueueService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`
+        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -392,11 +393,11 @@ export class QueueService {
     }
 
     const result = await response.json();
-    
+
     return {
       id: result.id,
       tokensUsed: result.tokensUsed || 2000, // Estimate if not provided
-      costCents: result.costCents || 300 // Estimate if not provided
+      costCents: result.costCents || 300, // Estimate if not provided
     };
   }
 
@@ -405,10 +406,10 @@ export class QueueService {
    */
   private async generateDevotionalDirect(item: QueueItem): Promise<any> {
     const functionUrl = `${process.env.SUPABASE_URL}/functions/v1/generate-devotional`;
-    
+
     const requestBody: any = {
       userName: item.user_name,
-      ...item.additional_params
+      ...item.additional_params,
     };
 
     // Add personalization data if available
@@ -421,9 +422,9 @@ export class QueueService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`
+        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -431,11 +432,11 @@ export class QueueService {
     }
 
     const result = await response.json();
-    
+
     return {
       id: result.id,
       tokensUsed: result.tokensUsed || 2300,
-      costCents: result.costCents || 350
+      costCents: result.costCents || 350,
     };
   }
 
@@ -443,11 +444,18 @@ export class QueueService {
    * Update queue item status
    */
   private async updateQueueStatus(itemId: string, status: string, updates: any = {}): Promise<void> {
-    const updateData = {
+    // Create update data in a way that's compatible with older browsers
+    const updateData: Record<string, any> = {
       status,
       updated_at: new Date().toISOString(),
-      ...updates
     };
+
+    // Manually copy properties from updates to ensure IE compatibility
+    if (updates) {
+      Object.keys(updates).forEach(key => {
+        updateData[key] = updates[key];
+      });
+    }
 
     await this.supabase
       .from('generation_queue')
@@ -459,12 +467,24 @@ export class QueueService {
    * Retry failed queue item
    */
   private async retryQueueItem(itemId: string): Promise<void> {
+    // First get the current retry count
+    const { data: item } = await this.supabase
+      .from('generation_queue')
+      .select('retry_count')
+      .eq('id', itemId)
+      .single();
+
+    if (!item) {
+      throw new Error(`Queue item ${itemId} not found`);
+    }
+
+    // Then update with the incremented value
     await this.supabase
       .from('generation_queue')
       .update({
         status: 'pending',
-        retry_count: this.supabase.raw('retry_count + 1'),
-        updated_at: new Date().toISOString()
+        retry_count: (item.retry_count || 0) + 1,
+        updated_at: new Date().toISOString(),
       })
       .eq('id', itemId);
 
@@ -481,7 +501,7 @@ export class QueueService {
       'lite': 'enhanced',
       'pro': 'advanced',
       'family': 'advanced',
-      'enterprise': 'advanced'
+      'enterprise': 'advanced',
     };
 
     return intelligenceLevels[tier] || 'basic';
@@ -493,7 +513,7 @@ export class QueueService {
   private calculateWaitTime(queue: any[], userId: string): number {
     // Find user's earliest item in queue
     const userItemIndex = queue.findIndex(item => item.user_id === userId);
-    if (userItemIndex === -1) return 0;
+    if (userItemIndex === -1) {return 0;}
 
     // Estimate 30 seconds per generation on average
     const averageProcessingTime = 30;
@@ -515,11 +535,11 @@ export class QueueService {
    */
   async cancelQueueItem(queueId: string, userId: string): Promise<boolean> {
     try {
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from('generation_queue')
         .update({
           status: 'cancelled',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', queueId)
         .eq('user_id', userId)
@@ -566,7 +586,7 @@ export class QueueService {
         .filter(s => s.started_at && s.completed_at)
         .map(s => new Date(s.completed_at).getTime() - new Date(s.started_at).getTime());
 
-      const averageWaitTime = processingTimes.length > 0 
+      const averageWaitTime = processingTimes.length > 0
         ? processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length / 1000
         : 30; // Default 30 seconds
 
@@ -577,7 +597,7 @@ export class QueueService {
         totalPending: pending,
         totalProcessing: processing,
         averageWaitTime,
-        processingRate
+        processingRate,
       };
     } catch (error) {
       console.error('[QueueService] Error getting queue statistics:', error);

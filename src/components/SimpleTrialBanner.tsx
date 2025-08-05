@@ -25,8 +25,8 @@ export const SimpleTrialBanner: React.FC<SimpleTrialBannerProps> = ({
   }
 
   const getUrgencyLevel = () => {
-    if (daysRemaining <= 1) return 'high';
-    if (daysRemaining <= 2) return 'medium';
+    if (daysRemaining <= 1) {return 'high';}
+    if (daysRemaining <= 2) {return 'medium';}
     return 'low';
   };
 

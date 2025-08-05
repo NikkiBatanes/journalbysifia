@@ -18,13 +18,13 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 export const PlaybookScreen = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   // Trial access hooks
   const { hasActiveAccess, daysRemaining, hasExpired } = useTrialAccess();
-  const { 
-    playbooksRemaining, 
-    checkCanGenerate, 
-    hasUnlimitedAccess 
+  const {
+    playbooksRemaining,
+    checkCanGenerate,
+    hasUnlimitedAccess,
   } = useContentGeneration();
 
   // Mock existing playbooks - replace with your actual data
@@ -37,7 +37,7 @@ export const PlaybookScreen = () => {
     try {
       // Check if user can generate content
       const result = await checkCanGenerate('playbook');
-      
+
       if (!result.canGenerate) {
         if (result.reason === 'trial_expired') {
           setShowUpgradeModal(true);
@@ -48,7 +48,7 @@ export const PlaybookScreen = () => {
             'You\'ve reached your monthly playbook limit. Upgrade to generate more!',
             [
               { text: 'Maybe Later', style: 'cancel' },
-              { text: 'Upgrade Now', onPress: () => setShowUpgradeModal(true) }
+              { text: 'Upgrade Now', onPress: () => setShowUpgradeModal(true) },
             ]
           );
           return;
@@ -57,10 +57,10 @@ export const PlaybookScreen = () => {
 
       // Proceed with generation
       setIsGenerating(true);
-      
+
       // Your existing playbook generation logic here
       await generatePlaybook();
-      
+
       setIsGenerating(false);
     } catch (error) {
       setIsGenerating(false);
@@ -76,7 +76,7 @@ export const PlaybookScreen = () => {
           id: Date.now(),
           title: 'New Spiritual Growth Plan',
           category: 'Growth',
-          createdAt: new Date()
+          createdAt: new Date(),
         };
         setPlaybooks(prev => [newPlaybook, ...prev]);
         resolve(newPlaybook);
@@ -92,8 +92,8 @@ export const PlaybookScreen = () => {
   };
 
   const getGenerateButtonText = () => {
-    if (isGenerating) return 'Generating...';
-    if (hasExpired && playbooksRemaining === 0) return 'Upgrade to Generate';
+    if (isGenerating) {return 'Generating...';}
+    if (hasExpired && playbooksRemaining === 0) {return 'Upgrade to Generate';}
     return 'Generate New Playbook';
   };
 
@@ -124,7 +124,7 @@ export const PlaybookScreen = () => {
         <TouchableOpacity
           style={[
             styles.generateButton,
-            (isGenerating || (hasExpired && playbooksRemaining === 0)) && styles.disabledButton
+            (isGenerating || (hasExpired && playbooksRemaining === 0)) && styles.disabledButton,
           ]}
           onPress={handleGeneratePlaybook}
           disabled={isGenerating}
@@ -144,7 +144,7 @@ export const PlaybookScreen = () => {
           <View style={styles.warningBanner}>
             <Ionicons name="warning" size={20} color="#F59E0B" />
             <Text style={styles.warningText}>
-              {playbooksRemaining === 0 
+              {playbooksRemaining === 0
                 ? 'You\'ve reached your monthly limit. Upgrade for unlimited generation!'
                 : 'Only 1 playbook remaining this month. Consider upgrading for unlimited access.'
               }
@@ -158,8 +158,8 @@ export const PlaybookScreen = () => {
         <Text style={styles.sectionTitle}>Your Playbooks</Text>
         {playbooks.length > 0 ? (
           playbooks.map(playbook => (
-            <PlaybookCard 
-              key={playbook.id} 
+            <PlaybookCard
+              key={playbook.id}
               playbook={playbook}
               onPress={() => console.log('Open playbook:', playbook.title)}
             />

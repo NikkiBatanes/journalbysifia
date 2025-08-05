@@ -18,7 +18,7 @@ import { TemplateCard } from '../components/TemplateCard';
 export const JournalingScreen = () => {
   const [showSmartJournalingLock, setShowSmartJournalingLock] = useState(false);
   const [showTemplateLock, setShowTemplateLock] = useState(false);
-  
+
   // Trial access hooks
   const { hasActiveAccess, daysRemaining, hasExpired } = useTrialAccess();
   const { hasAccess: hasSmartJournaling } = useFeatureAccess('smartJournalingEnabled');
@@ -42,7 +42,7 @@ export const JournalingScreen = () => {
       setShowSmartJournalingLock(true);
       return;
     }
-    
+
     // Navigate to smart journaling
     console.log('Navigate to smart journaling');
   };
@@ -52,7 +52,7 @@ export const JournalingScreen = () => {
       setShowTemplateLock(true);
       return;
     }
-    
+
     // Navigate to template
     console.log('Navigate to template:', template.name);
   };
@@ -71,15 +71,15 @@ export const JournalingScreen = () => {
       {/* Smart Journaling Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Smart Journaling</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.featureCard, !hasSmartJournaling && styles.lockedCard]}
           onPress={handleSmartJournalingPress}
         >
           <View style={styles.featureHeader}>
-            <Ionicons 
-              name="bulb" 
-              size={24} 
-              color={hasSmartJournaling ? "#6366F1" : "#9CA3AF"} 
+            <Ionicons
+              name="bulb"
+              size={24}
+              color={hasSmartJournaling ? '#6366F1' : '#9CA3AF'}
             />
             <Text style={[styles.featureTitle, !hasSmartJournaling && styles.lockedText]}>
               AI-Powered Journaling
@@ -101,8 +101,8 @@ export const JournalingScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Free Templates</Text>
         {basicTemplates.map(template => (
-          <TemplateCard 
-            key={template.id} 
+          <TemplateCard
+            key={template.id}
             template={template}
             onPress={() => console.log('Navigate to template:', template.name)}
           />
@@ -117,8 +117,8 @@ export const JournalingScreen = () => {
           isLocked={hasAllTemplates !== 'all'}
         >
           {premiumTemplates.map(template => (
-            <TemplateCard 
-              key={template.id} 
+            <TemplateCard
+              key={template.id}
               template={template}
               onPress={() => handlePremiumTemplatePress(template)}
             />

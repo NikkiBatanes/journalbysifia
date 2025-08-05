@@ -6,7 +6,7 @@
 
 import { supabase } from './supabaseClient';
 import { logger } from './enterpriseLoggingService';
-import { enterpriseSecurityService } from './enterpriseSecurityService';
+// Security service import removed as it's not being used
 
 export interface HealthCheck {
   name: string;
@@ -110,7 +110,7 @@ class EnterpriseHealthMonitoringService {
       checks,
       uptime,
       version: '1.0.0', // Should come from package.json
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
     };
   }
 
@@ -127,7 +127,7 @@ class EnterpriseHealthMonitoringService {
         activeConnections,
         queueSize,
         errorRate,
-        responseTime
+        responseTime,
       ] = await Promise.all([
         this.getCpuUsage(),
         this.getMemoryUsage(),
@@ -136,7 +136,7 @@ class EnterpriseHealthMonitoringService {
         this.getActiveConnections(),
         this.getQueueSize(),
         this.getErrorRate(),
-        this.getAverageResponseTime()
+        this.getAverageResponseTime(),
       ]);
 
       const metrics: PerformanceMetrics = {
@@ -147,7 +147,7 @@ class EnterpriseHealthMonitoringService {
         activeConnections,
         queueSize,
         errorRate,
-        responseTime
+        responseTime,
       };
 
       // Store metrics in database
@@ -185,16 +185,16 @@ class EnterpriseHealthMonitoringService {
       service,
       timestamp: new Date().toISOString(),
       resolved: false,
-      metadata
+      metadata,
     };
 
     this.alerts.push(alert);
 
     // Log the alert
-    const logLevel = level === 'critical' || level === 'error' ? 'error' : 
+    const logLevel = level === 'critical' || level === 'error' ? 'error' :
                     level === 'warning' ? 'warn' : 'info';
-    
-    logger[logLevel](`Alert: ${title}`, undefined, { alert });
+
+    logger[logLevel](`Alert: ${title} - ${JSON.stringify(alert)}`);
 
     // Store in database
     await this.storeAlert(alert);
@@ -220,7 +220,7 @@ class EnterpriseHealthMonitoringService {
     alert.metadata = {
       ...alert.metadata,
       resolvedAt: new Date().toISOString(),
-      resolution
+      resolution,
     };
 
     logger.info('Alert resolved', { alertId, resolution });
@@ -266,7 +266,7 @@ class EnterpriseHealthMonitoringService {
           status: 'unhealthy',
           responseTime: 0,
           message: error instanceof Error ? error.message : 'Health check failed',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
         checks.push(failedCheck);
 
@@ -291,7 +291,7 @@ class EnterpriseHealthMonitoringService {
     this.registerHealthCheck('database', async () => {
       const startTime = Date.now();
       try {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from('user_profiles')
           .select('count')
           .limit(1);
@@ -304,7 +304,7 @@ class EnterpriseHealthMonitoringService {
             status: 'unhealthy',
             responseTime,
             message: `Database error: ${error.message}`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
         }
 
@@ -314,7 +314,7 @@ class EnterpriseHealthMonitoringService {
           status,
           responseTime,
           message: status === 'healthy' ? 'Database is responsive' : 'Database response is slow',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
       } catch (error) {
         return {
@@ -322,7 +322,7 @@ class EnterpriseHealthMonitoringService {
           status: 'unhealthy',
           responseTime: Date.now() - startTime,
           message: error instanceof Error ? error.message : 'Database connection failed',
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
       }
     });
@@ -331,14 +331,14 @@ class EnterpriseHealthMonitoringService {
     this.registerHealthCheck('memory', async () => {
       const memoryUsage = await this.getMemoryUsage();
       const status = memoryUsage > 90 ? 'unhealthy' : memoryUsage > 75 ? 'degraded' : 'healthy';
-      
+
       return {
         name: 'memory',
         status,
         responseTime: 0,
         message: `Memory usage: ${memoryUsage.toFixed(1)}%`,
         metadata: { usage: memoryUsage },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     });
 
@@ -346,14 +346,14 @@ class EnterpriseHealthMonitoringService {
     this.registerHealthCheck('queue', async () => {
       const queueSize = await this.getQueueSize();
       const status = queueSize > 1000 ? 'unhealthy' : queueSize > 500 ? 'degraded' : 'healthy';
-      
+
       return {
         name: 'queue',
         status,
         responseTime: 0,
         message: `Queue size: ${queueSize}`,
         metadata: { queueSize },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     });
 
@@ -361,14 +361,14 @@ class EnterpriseHealthMonitoringService {
     this.registerHealthCheck('error_rate', async () => {
       const errorRate = await this.getErrorRate();
       const status = errorRate > 10 ? 'unhealthy' : errorRate > 5 ? 'degraded' : 'healthy';
-      
+
       return {
         name: 'error_rate',
         status,
         responseTime: 0,
         message: `Error rate: ${errorRate.toFixed(2)}%`,
         metadata: { errorRate },
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     });
   }
@@ -422,7 +422,7 @@ class EnterpriseHealthMonitoringService {
         .select('count')
         .eq('is_online', true);
 
-      if (error) throw error;
+      if (error) {throw error;}
       return Array.isArray(data) ? data.length : 0;
     } catch (error) {
       return 0;
@@ -436,7 +436,7 @@ class EnterpriseHealthMonitoringService {
         .select('count')
         .eq('status', 'pending');
 
-      if (error) throw error;
+      if (error) {throw error;}
       return Array.isArray(data) ? data.length : 0;
     } catch (error) {
       return 0;
@@ -446,7 +446,7 @@ class EnterpriseHealthMonitoringService {
   private async getErrorRate(): Promise<number> {
     try {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      
+
       const { data: totalLogs, error: totalError } = await supabase
         .from('application_logs')
         .select('count')
@@ -458,7 +458,7 @@ class EnterpriseHealthMonitoringService {
         .gte('timestamp', oneHourAgo)
         .in('level', ['error', 'fatal']);
 
-      if (totalError || errorError) throw new Error('Failed to get error rate');
+      if (totalError || errorError) {throw new Error('Failed to get error rate');}
 
       const total = Array.isArray(totalLogs) ? totalLogs.length : 0;
       const errors = Array.isArray(errorLogs) ? errorLogs.length : 0;
@@ -472,15 +472,15 @@ class EnterpriseHealthMonitoringService {
   private async getAverageResponseTime(): Promise<number> {
     try {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-      
+
       const { data, error } = await supabase
         .from('performance_metrics')
         .select('duration_ms')
         .gte('timestamp', oneHourAgo);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
-      if (!data || data.length === 0) return 0;
+      if (!data || data.length === 0) {return 0;}
 
       const total = data.reduce((sum, metric) => sum + metric.duration_ms, 0);
       return total / data.length;
@@ -502,7 +502,7 @@ class EnterpriseHealthMonitoringService {
         { metric_type: 'application', metric_name: 'active_connections', value: metrics.activeConnections, unit: 'count' },
         { metric_type: 'application', metric_name: 'queue_size', value: metrics.queueSize, unit: 'count' },
         { metric_type: 'application', metric_name: 'error_rate', value: metrics.errorRate, unit: 'percent' },
-        { metric_type: 'application', metric_name: 'response_time', value: metrics.responseTime, unit: 'milliseconds' }
+        { metric_type: 'application', metric_name: 'response_time', value: metrics.responseTime, unit: 'milliseconds' },
       ];
 
       const { error } = await supabase
@@ -529,8 +529,8 @@ class EnterpriseHealthMonitoringService {
           metadata: {
             service: alert.service,
             alert_type: 'health_monitoring',
-            ...alert.metadata
-          }
+            ...alert.metadata,
+          },
         });
 
       if (error) {
@@ -550,8 +550,8 @@ class EnterpriseHealthMonitoringService {
             service: alert.service,
             alert_type: 'health_monitoring',
             resolved: alert.resolved,
-            ...alert.metadata
-          }
+            ...alert.metadata,
+          },
         })
         .eq('id', alert.id);
 
@@ -569,18 +569,17 @@ class EnterpriseHealthMonitoringService {
     // - SMS (Twilio)
     // - Slack/Teams webhooks
     // - PagerDuty
-    
+
     logger.fatal(`CRITICAL ALERT: ${alert.title}`, undefined, {
       alert,
-      action: 'immediate_attention_required'
+      action: 'immediate_attention_required',
     });
 
     // Log security event for critical system issues
-    await enterpriseSecurityService.logSecurityEvent({
+    logger.fatal(`SECURITY ALERT: Critical system alert - ${alert.title}`, undefined, {
       eventType: 'security_violation',
       severity: 'critical',
-      description: `Critical system alert: ${alert.title}`,
-      metadata: { alert }
+      alert: JSON.stringify(alert),
     });
   }
 }

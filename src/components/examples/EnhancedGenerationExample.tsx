@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 // Import our new components and services
 import { UsageIndicator, CompactUsageIndicator } from '../subscription/UsageIndicator';
 import { UpgradeModal } from '../subscription/UpgradeModal';
-import { QueueStatusCard, CompactQueueStatus } from '../subscription/QueueStatusCard';
+import { QueueStatusCard } from '../subscription/QueueStatusCard';
 import { useSubscription, useGeneration, useBehaviorTracking } from '../../hooks/useSubscription';
 import { enhancedGenerationService } from '../../services/enhancedGenerationService';
 
@@ -32,7 +32,7 @@ export const EnhancedGenerationExample: React.FC = () => {
 
   // Hooks for subscription and generation management
   const { subscription, loading, hasIntelligence } = useSubscription();
-  const { canGenerate, suggestions } = useGeneration();
+  const { suggestions } = useGeneration();
   const { trackBehavior } = useBehaviorTracking();
 
   const handleGeneration = async () => {
@@ -41,7 +41,7 @@ export const EnhancedGenerationExample: React.FC = () => {
       await trackBehavior('generation_initiated', 'generation', {
         type: generationType,
         input_length: userInput.length,
-        has_suggestions: !!suggestions
+        has_suggestions: !!suggestions,
       });
 
       let result;
@@ -49,23 +49,23 @@ export const EnhancedGenerationExample: React.FC = () => {
         result = await enhancedGenerationService.generatePlaybook({
           userId: 'current-user-id', // Get from auth context
           userInput,
-          userName: 'User Name' // Get from auth context
+          userName: 'User Name', // Get from auth context
         });
       } else {
         result = await enhancedGenerationService.generateDevotional({
           userId: 'current-user-id',
           userName: 'User Name',
-          userInput
+          userInput,
         });
       }
 
       if (result.success && result.queueId) {
         // Add to active generations for tracking
         setActiveGenerations(prev => [...prev, result.queueId!]);
-        
+
         // Clear input
         setUserInput('');
-        
+
         // Show success message
         Alert.alert(
           'Generation Started! 🚀',
@@ -88,21 +88,21 @@ export const EnhancedGenerationExample: React.FC = () => {
   const handleGenerationComplete = (queueId: string, resultId: string) => {
     // Remove from active generations
     setActiveGenerations(prev => prev.filter(id => id !== queueId));
-    
+
     // Track completion
     trackBehavior('generation_completed', 'completion', {
       queue_id: queueId,
       result_id: resultId,
-      type: generationType
+      type: generationType,
     });
-    
+
     // Navigate to result (you'd implement this)
     Alert.alert(
       'Generation Complete! ✨',
       `Your ${generationType} is ready to view.`,
       [
         { text: 'View Now', onPress: () => console.log('Navigate to result:', resultId) },
-        { text: 'Later', style: 'cancel' }
+        { text: 'Later', style: 'cancel' },
       ]
     );
   };
@@ -114,11 +114,11 @@ export const EnhancedGenerationExample: React.FC = () => {
 
   const handleGenerationError = (queueId: string, error: string) => {
     setActiveGenerations(prev => prev.filter(id => id !== queueId));
-    trackBehavior('generation_failed', 'completion', { 
-      queue_id: queueId, 
-      error_message: error 
+    trackBehavior('generation_failed', 'completion', {
+      queue_id: queueId,
+      error_message: error,
     }, { success: false });
-    
+
     Alert.alert('Generation Failed', error);
   };
 
@@ -130,8 +130,7 @@ export const EnhancedGenerationExample: React.FC = () => {
     );
   }
 
-  const playbookGeneration = canGenerate('playbook');
-  const devotionalGeneration = canGenerate('devotional');
+  // Generation capabilities checked inline
 
   return (
     <ScrollView style={styles.container}>
@@ -141,29 +140,29 @@ export const EnhancedGenerationExample: React.FC = () => {
         <Text style={styles.headerSubtitle}>
           {subscription?.tier_display_name || 'Free Trial'} Plan
         </Text>
-        
+
         {/* Compact usage indicators */}
         <View style={styles.compactUsageContainer}>
-          <CompactUsageIndicator 
-            type="playbook" 
-            onUpgradePress={() => setShowUpgradeModal(true)} 
+          <CompactUsageIndicator
+            type="playbook"
+            onUpgradePress={() => setShowUpgradeModal(true)}
           />
-          <CompactUsageIndicator 
-            type="devotional" 
-            onUpgradePress={() => setShowUpgradeModal(true)} 
+          <CompactUsageIndicator
+            type="devotional"
+            onUpgradePress={() => setShowUpgradeModal(true)}
           />
         </View>
       </View>
 
       {/* Usage Indicators */}
-      <UsageIndicator 
-        type="playbook" 
+      <UsageIndicator
+        type="playbook"
         onUpgradePress={() => setShowUpgradeModal(true)}
         showIntelligenceBadge={true}
       />
-      
-      <UsageIndicator 
-        type="devotional" 
+
+      <UsageIndicator
+        type="devotional"
         onUpgradePress={() => setShowUpgradeModal(true)}
         showIntelligenceBadge={true}
       />
@@ -175,7 +174,7 @@ export const EnhancedGenerationExample: React.FC = () => {
             <Ionicons name="sparkles" size={20} color="#7C3AED" />
             <Text style={styles.suggestionsTitle}>AI Suggestions for You</Text>
           </View>
-          
+
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {suggestions.suggestedTopics?.map((topic: string, index: number) => (
               <TouchableOpacity
@@ -187,9 +186,9 @@ export const EnhancedGenerationExample: React.FC = () => {
               </TouchableOpacity>
             ))}
           </ScrollView>
-          
+
           <Text style={styles.suggestionsFooter}>
-            Optimal time: {suggestions.optimalTiming} • 
+            Optimal time: {suggestions.optimalTiming} •
             Challenge level: {suggestions.challengeLevel}
           </Text>
         </View>
@@ -200,38 +199,38 @@ export const EnhancedGenerationExample: React.FC = () => {
         <TouchableOpacity
           style={[
             styles.typeButton,
-            generationType === 'playbook' && styles.typeButtonActive
+            generationType === 'playbook' && styles.typeButtonActive,
           ]}
           onPress={() => setGenerationType('playbook')}
         >
-          <Ionicons 
-            name="book" 
-            size={20} 
-            color={generationType === 'playbook' ? 'white' : '#6B7280'} 
+          <Ionicons
+            name="book"
+            size={20}
+            color={generationType === 'playbook' ? 'white' : '#6B7280'}
           />
           <Text style={[
             styles.typeButtonText,
-            generationType === 'playbook' && styles.typeButtonTextActive
+            generationType === 'playbook' && styles.typeButtonTextActive,
           ]}>
             Playbook
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[
             styles.typeButton,
-            generationType === 'devotional' && styles.typeButtonActive
+            generationType === 'devotional' && styles.typeButtonActive,
           ]}
           onPress={() => setGenerationType('devotional')}
         >
-          <Ionicons 
-            name="heart" 
-            size={20} 
-            color={generationType === 'devotional' ? 'white' : '#6B7280'} 
+          <Ionicons
+            name="heart"
+            size={20}
+            color={generationType === 'devotional' ? 'white' : '#6B7280'}
           />
           <Text style={[
             styles.typeButtonText,
-            generationType === 'devotional' && styles.typeButtonTextActive
+            generationType === 'devotional' && styles.typeButtonTextActive,
           ]}>
             Devotional
           </Text>
@@ -248,15 +247,15 @@ export const EnhancedGenerationExample: React.FC = () => {
           value={userInput}
           onChangeText={setUserInput}
           placeholder={
-            generationType === 'playbook' 
+            generationType === 'playbook'
               ? "e.g., I'm struggling with comparison and jealousy..."
-              : "e.g., Help me grow in patience and understanding..."
+              : 'e.g., Help me grow in patience and understanding...'
           }
           multiline
           numberOfLines={4}
           textAlignVertical="top"
         />
-        
+
         {/* Character count */}
         <Text style={styles.characterCount}>
           {userInput.length}/500 characters
@@ -267,7 +266,7 @@ export const EnhancedGenerationExample: React.FC = () => {
       <TouchableOpacity
         style={[
           styles.generateButton,
-          (!userInput.trim() || userInput.length < 10) && styles.generateButtonDisabled
+          (!userInput.trim() || userInput.length < 10) && styles.generateButtonDisabled,
         ]}
         onPress={handleGeneration}
         disabled={!userInput.trim() || userInput.length < 10}
@@ -280,10 +279,10 @@ export const EnhancedGenerationExample: React.FC = () => {
           }
           style={styles.generateGradient}
         >
-          <Ionicons 
-            name={generationType === 'playbook' ? 'book' : 'heart'} 
-            size={20} 
-            color="white" 
+          <Ionicons
+            name={generationType === 'playbook' ? 'book' : 'heart'}
+            size={20}
+            color="white"
           />
           <Text style={styles.generateButtonText}>
             Generate {generationType === 'playbook' ? 'Playbook' : 'Devotional'}

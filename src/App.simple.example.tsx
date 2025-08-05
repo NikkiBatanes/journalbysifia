@@ -4,7 +4,7 @@
 // Copy this pattern into your existing App.tsx
 
 import React from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import { View, StyleSheet, SafeAreaView, Text, TouchableOpacity } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Your existing imports
@@ -38,10 +38,10 @@ export default function App() {
       {/* Your existing providers */}
       {/* <AuthProvider> */}
         <SafeAreaView style={styles.container}>
-          
+
           {/* Add trial banner at the top */}
           {isAuthenticated && (
-            <SimpleTrialBanner 
+            <SimpleTrialBanner
               userId={user?.id}
               onUpgradePress={() => {
                 // Navigate to your subscription/pricing screen
@@ -50,17 +50,17 @@ export default function App() {
               }}
             />
           )}
-          
+
           {/* Your existing app content */}
           <View style={styles.content}>
             {/* <YourMainNavigator /> */}
-            
+
             {/* Placeholder for your existing app */}
             <View style={styles.placeholder}>
               {/* Your existing app components go here */}
             </View>
           </View>
-          
+
         </SafeAreaView>
       {/* </AuthProvider> */}
     </QueryClientProvider>
@@ -99,30 +99,30 @@ export const ExampleJournalingScreen = () => {
       setShowUpgradeModal(true);
       return;
     }
-    
+
     // Proceed with smart journaling
     console.log('Starting smart journaling...');
   };
 
   const handleGeneratePlaybook = async () => {
-    const { canGenerate, reason } = await checkCanGenerate('playbook');
-    
+    const { canGenerate } = await checkCanGenerate('playbook');
+
     if (!canGenerate) {
       setShowUpgradeModal(true);
       return;
     }
-    
+
     // Proceed with playbook generation
     console.log('Generating playbook...');
   };
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      
+    <View style={screenStyles.container}>
+
       {/* Free feature - always available */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Basic Journaling</Text>
-        <TouchableOpacity style={styles.button}>
+      <View style={screenStyles.section}>
+        <Text style={screenStyles.sectionTitle}>Basic Journaling</Text>
+        <TouchableOpacity style={screenStyles.button}>
           <Text>Start Free Journal Entry</Text>
         </TouchableOpacity>
       </View>
@@ -133,10 +133,10 @@ export const ExampleJournalingScreen = () => {
         feature="smartJournaling"
         onUpgradePress={() => setShowUpgradeModal(true)}
       >
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Smart Journaling (Premium)</Text>
-          <TouchableOpacity 
-            style={styles.premiumButton}
+        <View style={screenStyles.section}>
+          <Text style={screenStyles.sectionTitle}>Smart Journaling (Premium)</Text>
+          <TouchableOpacity
+            style={screenStyles.premiumButton}
             onPress={handleSmartJournaling}
           >
             <Text>Start AI-Guided Journal</Text>
@@ -145,13 +145,13 @@ export const ExampleJournalingScreen = () => {
       </SimpleFeatureLock>
 
       {/* Content generation with limits */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Generate Playbook</Text>
-        <Text style={styles.limitText}>
+      <View style={screenStyles.section}>
+        <Text style={screenStyles.sectionTitle}>Generate Playbook</Text>
+        <Text style={screenStyles.limitText}>
           Remaining: {featureAccess.playbooksRemaining}
         </Text>
-        <TouchableOpacity 
-          style={styles.button}
+        <TouchableOpacity
+          style={screenStyles.button}
           onPress={handleGeneratePlaybook}
         >
           <Text>Generate Spiritual Playbook</Text>
@@ -169,12 +169,16 @@ export const ExampleJournalingScreen = () => {
           console.log('Navigate to subscription');
         }}
       />
-      
+
     </View>
   );
 };
 
 const screenStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 16,
+  },
   section: {
     marginBottom: 24,
     padding: 16,

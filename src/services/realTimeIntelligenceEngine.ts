@@ -5,9 +5,9 @@
  */
 
 import { supabase } from './supabaseClient';
-import { userContextEngine } from './userContextEngine';
+// userContextEngine import removed as unused
 import { performanceMonitoringService } from './performanceMonitoringService';
-import { faithPointsService } from './faithPointsService';
+// faithPointsService import removed as unused
 
 export interface RealTimeContext {
   userId: string;
@@ -49,7 +49,7 @@ export interface AdaptiveRecommendation {
 }
 
 export class RealTimeIntelligenceEngine {
-  
+
   private activeContexts = new Map<string, RealTimeContext>();
   private updateQueue: IntelligenceUpdate[] = [];
   private readonly UPDATE_INTERVAL_MS = 5000; // 5 seconds
@@ -62,19 +62,19 @@ export class RealTimeIntelligenceEngine {
     spiritualMomentum: {
       high: 0.8,
       medium: 0.6,
-      low: 0.4
+      low: 0.4,
     },
     engagementLevel: {
       high: 0.85,
       medium: 0.65,
-      low: 0.45
+      low: 0.45,
     },
     responseSpeed: {
       immediate: 1000,
       fast: 3000,
       normal: 8000,
-      slow: 15000
-    }
+      slow: 15000,
+    },
   };
 
   constructor() {
@@ -88,10 +88,10 @@ export class RealTimeIntelligenceEngine {
   async initializeUserContext(userId: string, userName: string): Promise<RealTimeContext> {
     try {
       console.log(`[RealTimeIntelligence] Initializing context for user ${userId}`);
-      
+
       // Get existing context or create new
       let context = this.activeContexts.get(userId);
-      
+
       if (!context) {
         context = await this.createNewContext(userId, userName);
         this.activeContexts.set(userId, context);
@@ -100,15 +100,15 @@ export class RealTimeIntelligenceEngine {
         context.currentSession.lastActivity = new Date().toISOString();
         context.currentSession.activityCount += 1;
       }
-      
+
       // Update live insights
       await this.updateLiveInsights(context);
-      
+
       // Record activity
       await this.recordUserActivity(userId, 'context_initialized');
-      
+
       return context;
-      
+
     } catch (error) {
       console.error('[RealTimeIntelligence] Error initializing context:', error);
       return this.getDefaultContext(userId);
@@ -130,19 +130,19 @@ export class RealTimeIntelligenceEngine {
         data: {
           activityType,
           activityData,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
         confidence: this.calculateActivityConfidence(activityType, activityData),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
+
       this.updateQueue.push(update);
-      
+
       // Update active context immediately for high-priority activities
       if (this.isHighPriorityActivity(activityType)) {
         await this.processUpdateImmediately(update);
       }
-      
+
     } catch (error) {
       console.error('[RealTimeIntelligence] Error processing activity:', error);
     }
@@ -157,35 +157,35 @@ export class RealTimeIntelligenceEngine {
       if (!context) {
         return [];
       }
-      
+
       const recommendations: AdaptiveRecommendation[] = [];
-      
+
       // Content recommendations
       const contentRecs = await this.generateContentRecommendations(context);
       recommendations.push(...contentRecs);
-      
+
       // Timing recommendations
       const timingRecs = await this.generateTimingRecommendations(context);
       recommendations.push(...timingRecs);
-      
+
       // Engagement recommendations
       const engagementRecs = await this.generateEngagementRecommendations(context);
       recommendations.push(...engagementRecs);
-      
+
       // Spiritual growth recommendations
       const spiritualRecs = await this.generateSpiritualRecommendations(context);
       recommendations.push(...spiritualRecs);
-      
+
       // Sort by priority and expected impact
       return recommendations
         .sort((a, b) => {
           const priorityOrder = { high: 3, medium: 2, low: 1 };
           const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
-          if (priorityDiff !== 0) return priorityDiff;
+          if (priorityDiff !== 0) {return priorityDiff;}
           return b.expectedImpact - a.expectedImpact;
         })
         .slice(0, 5); // Top 5 recommendations
-      
+
     } catch (error) {
       console.error('[RealTimeIntelligence] Error getting recommendations:', error);
       return [];
@@ -201,26 +201,26 @@ export class RealTimeIntelligenceEngine {
       if (!context) {
         return null;
       }
-      
+
       const recommendations = await this.getAdaptiveRecommendations(userId);
       const performanceMetrics = await this.getUserPerformanceMetrics(userId);
       const spiritualInsights = await this.getSpiritualInsights(context);
-      
+
       return {
         context: {
           spiritualMomentum: context.liveInsights.spiritualMomentum,
           engagementLevel: context.liveInsights.engagementLevel,
           growthTrajectory: context.liveInsights.growthTrajectory,
           sessionDuration: this.calculateSessionDuration(context),
-          activityCount: context.currentSession.activityCount
+          activityCount: context.currentSession.activityCount,
         },
         recommendations,
         performanceMetrics,
         spiritualInsights,
         adaptiveSettings: context.adaptiveFeatures,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       };
-      
+
     } catch (error) {
       console.error('[RealTimeIntelligence] Error getting insights:', error);
       return null;
@@ -240,25 +240,25 @@ export class RealTimeIntelligenceEngine {
       if (!context) {
         return { contentComplexity: 0.5, responseSpeed: 0.5, personalizationLevel: 0.5 };
       }
-      
+
       // Adapt content complexity based on engagement and momentum
       const contentComplexity = this.calculateAdaptiveComplexity(context);
-      
+
       // Adapt response speed based on user behavior patterns
       const responseSpeed = this.calculateAdaptiveSpeed(context);
-      
+
       // Adapt personalization level based on context confidence
       const personalizationLevel = this.calculateAdaptivePersonalization(context);
-      
+
       // Update context with new adaptive features
       context.adaptiveFeatures = {
         contentComplexity,
         responseSpeed,
-        personalizationLevel
+        personalizationLevel,
       };
-      
+
       return context.adaptiveFeatures;
-      
+
     } catch (error) {
       console.error('[RealTimeIntelligence] Error adapting system:', error);
       return { contentComplexity: 0.5, responseSpeed: 0.5, personalizationLevel: 0.5 };
@@ -268,12 +268,12 @@ export class RealTimeIntelligenceEngine {
   /**
    * Private helper methods
    */
-  private async createNewContext(userId: string, userName: string): Promise<RealTimeContext> {
+  private async createNewContext(userId: string, _userName: string): Promise<RealTimeContext> {
     const now = new Date().toISOString();
-    
+
     // Get user's historical data for initial insights
     const historicalData = await this.getUserHistoricalData(userId);
-    
+
     return {
       userId,
       currentSession: {
@@ -281,19 +281,19 @@ export class RealTimeIntelligenceEngine {
         lastActivity: now,
         activityCount: 1,
         focusAreas: this.extractFocusAreas(historicalData),
-        emotionalState: this.detectEmotionalState(historicalData)
+        emotionalState: this.detectEmotionalState(historicalData),
       },
       liveInsights: {
         spiritualMomentum: this.calculateInitialMomentum(historicalData),
         engagementLevel: this.calculateInitialEngagement(historicalData),
         growthTrajectory: this.determineGrowthTrajectory(historicalData),
-        recommendedActions: []
+        recommendedActions: [],
       },
       adaptiveFeatures: {
         contentComplexity: 0.6,
         responseSpeed: 0.7,
-        personalizationLevel: 0.5
-      }
+        personalizationLevel: 0.5,
+      },
     };
   }
 
@@ -301,16 +301,16 @@ export class RealTimeIntelligenceEngine {
     try {
       // Update spiritual momentum based on recent activities
       context.liveInsights.spiritualMomentum = await this.calculateSpiritualMomentum(context);
-      
+
       // Update engagement level based on session activity
       context.liveInsights.engagementLevel = this.calculateEngagementLevel(context);
-      
+
       // Update growth trajectory
       context.liveInsights.growthTrajectory = await this.updateGrowthTrajectory(context);
-      
+
       // Generate recommended actions
       context.liveInsights.recommendedActions = await this.generateRecommendedActions(context);
-      
+
     } catch (error) {
       console.error('[RealTimeIntelligence] Error updating insights:', error);
     }
@@ -320,28 +320,28 @@ export class RealTimeIntelligenceEngine {
     try {
       // Get recent spiritual activities
       const recentActivities = await this.getRecentSpiritualActivities(context.userId);
-      
+
       let momentum = 0.5; // Base momentum
-      
+
       // Boost for prayer activities
       const prayerActivities = recentActivities.filter(a => a.includes('prayer'));
       momentum += prayerActivities.length * 0.1;
-      
+
       // Boost for scripture activities
       const scriptureActivities = recentActivities.filter(a => a.includes('scripture'));
       momentum += scriptureActivities.length * 0.08;
-      
+
       // Boost for journal activities
       const journalActivities = recentActivities.filter(a => a.includes('journal'));
       momentum += journalActivities.length * 0.06;
-      
+
       // Boost for consistency (session activity count)
       if (context.currentSession.activityCount > 5) {
         momentum += 0.15;
       }
-      
+
       return Math.min(momentum, 1.0);
-      
+
     } catch (error) {
       console.error('[RealTimeIntelligence] Error calculating momentum:', error);
       return 0.5;
@@ -351,31 +351,31 @@ export class RealTimeIntelligenceEngine {
   private calculateEngagementLevel(context: RealTimeContext): number {
     const sessionDuration = this.calculateSessionDuration(context);
     const activityRate = context.currentSession.activityCount / Math.max(sessionDuration / 60000, 1); // activities per minute
-    
+
     let engagement = 0.5; // Base engagement
-    
+
     // Boost for longer sessions
     if (sessionDuration > 300000) { // 5 minutes
       engagement += 0.2;
     }
-    
+
     // Boost for high activity rate
     if (activityRate > 0.5) {
       engagement += 0.3;
     }
-    
+
     // Boost for diverse focus areas
     if (context.currentSession.focusAreas.length > 2) {
       engagement += 0.1;
     }
-    
+
     return Math.min(engagement, 1.0);
   }
 
   private async updateGrowthTrajectory(context: RealTimeContext): Promise<string> {
     const momentum = context.liveInsights.spiritualMomentum;
     const engagement = context.liveInsights.engagementLevel;
-    
+
     if (momentum > 0.8 && engagement > 0.8) {
       return 'accelerating';
     } else if (momentum > 0.6 && engagement > 0.6) {
@@ -389,34 +389,34 @@ export class RealTimeIntelligenceEngine {
 
   private async generateRecommendedActions(context: RealTimeContext): Promise<string[]> {
     const actions: string[] = [];
-    
+
     // Based on spiritual momentum
     if (context.liveInsights.spiritualMomentum < 0.5) {
       actions.push('Consider starting with a short prayer or devotional');
     }
-    
+
     // Based on engagement level
     if (context.liveInsights.engagementLevel < 0.5) {
       actions.push('Try exploring a new spiritual growth area');
     }
-    
+
     // Based on focus areas
     if (!context.currentSession.focusAreas.includes('prayer')) {
       actions.push('Add prayer to your spiritual practice today');
     }
-    
+
     // Based on session activity
     if (context.currentSession.activityCount < 3) {
       actions.push('Continue exploring - you\'re building great momentum');
     }
-    
+
     return actions.slice(0, 3); // Top 3 actions
   }
 
   private calculateAdaptiveComplexity(context: RealTimeContext): number {
     const momentum = context.liveInsights.spiritualMomentum;
     const engagement = context.liveInsights.engagementLevel;
-    
+
     // Higher complexity for users with high momentum and engagement
     return (momentum * 0.6 + engagement * 0.4);
   }
@@ -424,7 +424,7 @@ export class RealTimeIntelligenceEngine {
   private calculateAdaptiveSpeed(context: RealTimeContext): number {
     const engagement = context.liveInsights.engagementLevel;
     const activityRate = context.currentSession.activityCount / Math.max(this.calculateSessionDuration(context) / 60000, 1);
-    
+
     // Faster responses for highly engaged users
     return Math.min(engagement * 0.7 + Math.min(activityRate, 1) * 0.3, 1.0);
   }
@@ -432,24 +432,24 @@ export class RealTimeIntelligenceEngine {
   private calculateAdaptivePersonalization(context: RealTimeContext): number {
     const momentum = context.liveInsights.spiritualMomentum;
     const sessionLength = this.calculateSessionDuration(context);
-    
+
     // Higher personalization for users with momentum and longer sessions
     let personalization = momentum * 0.6;
-    
+
     if (sessionLength > 600000) { // 10 minutes
       personalization += 0.2;
     }
-    
+
     if (context.currentSession.focusAreas.length > 1) {
       personalization += 0.2;
     }
-    
+
     return Math.min(personalization, 1.0);
   }
 
   private async generateContentRecommendations(context: RealTimeContext): Promise<AdaptiveRecommendation[]> {
     const recommendations: AdaptiveRecommendation[] = [];
-    
+
     if (context.liveInsights.spiritualMomentum < 0.5) {
       recommendations.push({
         type: 'content',
@@ -457,16 +457,16 @@ export class RealTimeIntelligenceEngine {
         recommendation: 'Offer simpler, more encouraging content',
         reasoning: 'User has low spiritual momentum',
         expectedImpact: 0.7,
-        validUntil: new Date(Date.now() + 3600000).toISOString()
+        validUntil: new Date(Date.now() + 3600000).toISOString(),
       });
     }
-    
+
     return recommendations;
   }
 
   private async generateTimingRecommendations(context: RealTimeContext): Promise<AdaptiveRecommendation[]> {
     const recommendations: AdaptiveRecommendation[] = [];
-    
+
     if (context.liveInsights.engagementLevel > 0.8) {
       recommendations.push({
         type: 'timing',
@@ -474,16 +474,16 @@ export class RealTimeIntelligenceEngine {
         recommendation: 'Provide immediate responses',
         reasoning: 'User is highly engaged',
         expectedImpact: 0.6,
-        validUntil: new Date(Date.now() + 1800000).toISOString()
+        validUntil: new Date(Date.now() + 1800000).toISOString(),
       });
     }
-    
+
     return recommendations;
   }
 
   private async generateEngagementRecommendations(context: RealTimeContext): Promise<AdaptiveRecommendation[]> {
     const recommendations: AdaptiveRecommendation[] = [];
-    
+
     if (context.currentSession.activityCount > 10) {
       recommendations.push({
         type: 'engagement',
@@ -491,16 +491,16 @@ export class RealTimeIntelligenceEngine {
         recommendation: 'Suggest taking a reflection break',
         reasoning: 'High activity count may indicate need for processing time',
         expectedImpact: 0.5,
-        validUntil: new Date(Date.now() + 900000).toISOString()
+        validUntil: new Date(Date.now() + 900000).toISOString(),
       });
     }
-    
+
     return recommendations;
   }
 
   private async generateSpiritualRecommendations(context: RealTimeContext): Promise<AdaptiveRecommendation[]> {
     const recommendations: AdaptiveRecommendation[] = [];
-    
+
     if (!context.currentSession.focusAreas.includes('prayer')) {
       recommendations.push({
         type: 'spiritual',
@@ -508,10 +508,10 @@ export class RealTimeIntelligenceEngine {
         recommendation: 'Encourage prayer activity',
         reasoning: 'Prayer not yet included in current session',
         expectedImpact: 0.8,
-        validUntil: new Date(Date.now() + 7200000).toISOString()
+        validUntil: new Date(Date.now() + 7200000).toISOString(),
       });
     }
-    
+
     return recommendations;
   }
 
@@ -527,7 +527,7 @@ export class RealTimeIntelligenceEngine {
         .gte('created_at', new Date(Date.now() - 604800000).toISOString()) // Last week
         .order('created_at', { ascending: false })
         .limit(100);
-      
+
       return data || [];
     } catch (error) {
       console.error('[RealTimeIntelligence] Error getting historical data:', error);
@@ -543,7 +543,7 @@ export class RealTimeIntelligenceEngine {
         .eq('user_id', userId)
         .gte('created_at', new Date(Date.now() - 86400000).toISOString()) // Last 24 hours
         .order('created_at', { ascending: false });
-      
+
       return data?.map(event => event.event_type) || [];
     } catch (error) {
       console.error('[RealTimeIntelligence] Error getting recent activities:', error);
@@ -553,27 +553,27 @@ export class RealTimeIntelligenceEngine {
 
   private extractFocusAreas(historicalData: any[]): string[] {
     const areas = new Set<string>();
-    
+
     historicalData.forEach(event => {
-      if (event.event_type.includes('prayer')) areas.add('prayer');
-      if (event.event_type.includes('scripture')) areas.add('scripture');
-      if (event.event_type.includes('journal')) areas.add('journal');
-      if (event.event_type.includes('devotional')) areas.add('devotional');
-      if (event.event_type.includes('playbook')) areas.add('growth');
+      if (event.event_type.includes('prayer')) {areas.add('prayer');}
+      if (event.event_type.includes('scripture')) {areas.add('scripture');}
+      if (event.event_type.includes('journal')) {areas.add('journal');}
+      if (event.event_type.includes('devotional')) {areas.add('devotional');}
+      if (event.event_type.includes('playbook')) {areas.add('growth');}
     });
-    
+
     return Array.from(areas);
   }
 
   private detectEmotionalState(historicalData: any[]): string {
     // Simplified emotional state detection
     const recentEvents = historicalData.slice(0, 10);
-    const positiveEvents = recentEvents.filter(e => 
-      e.event_type.includes('completed') || 
+    const positiveEvents = recentEvents.filter(e =>
+      e.event_type.includes('completed') ||
       e.event_type.includes('achieved') ||
       e.event_type.includes('gratitude')
     );
-    
+
     if (positiveEvents.length > recentEvents.length * 0.6) {
       return 'positive';
     } else if (positiveEvents.length > recentEvents.length * 0.3) {
@@ -595,14 +595,14 @@ export class RealTimeIntelligenceEngine {
   }
 
   private determineGrowthTrajectory(historicalData: any[]): string {
-    const recentWeek = historicalData.filter(e => 
+    const recentWeek = historicalData.filter(e =>
       new Date(e.created_at).getTime() > Date.now() - 604800000
     );
     const previousWeek = historicalData.filter(e => {
       const eventTime = new Date(e.created_at).getTime();
       return eventTime > Date.now() - 1209600000 && eventTime <= Date.now() - 604800000;
     });
-    
+
     if (recentWeek.length > previousWeek.length * 1.2) {
       return 'accelerating';
     } else if (recentWeek.length > previousWeek.length * 0.8) {
@@ -619,15 +619,15 @@ export class RealTimeIntelligenceEngine {
   private calculateActivityConfidence(activityType: string, activityData: any): number {
     // Calculate confidence based on activity type and data completeness
     let confidence = 0.7; // Base confidence
-    
+
     if (activityData && Object.keys(activityData).length > 3) {
       confidence += 0.2;
     }
-    
+
     if (['prayer', 'scripture', 'journal'].some(type => activityType.includes(type))) {
       confidence += 0.1;
     }
-    
+
     return Math.min(confidence, 1.0);
   }
 
@@ -637,25 +637,25 @@ export class RealTimeIntelligenceEngine {
       'playbook_generated',
       'devotional_completed',
       'faith_points_earned',
-      'achievement_unlocked'
+      'achievement_unlocked',
     ];
-    
+
     return highPriorityTypes.some(type => activityType.includes(type));
   }
 
   private async processUpdateImmediately(update: IntelligenceUpdate): Promise<void> {
     try {
       const context = this.activeContexts.get(update.userId);
-      if (!context) return;
-      
+      if (!context) {return;}
+
       // Update context based on the update type
       if (update.updateType === 'behavior') {
         await this.updateLiveInsights(context);
       }
-      
+
       // Record the update
       await this.recordUserActivity(update.userId, 'intelligence_update', update);
-      
+
     } catch (error) {
       console.error('[RealTimeIntelligence] Error processing immediate update:', error);
     }
@@ -669,20 +669,20 @@ export class RealTimeIntelligenceEngine {
         operation: `intelligence_${activityType}`,
         duration: 0,
         success: true,
-        metadata: data
+        metadata: data,
       });
     } catch (error) {
       console.error('[RealTimeIntelligence] Error recording activity:', error);
     }
   }
 
-  private async getUserPerformanceMetrics(userId: string): Promise<any> {
+  private async getUserPerformanceMetrics(_userId: string): Promise<any> {
     // Get user-specific performance metrics
     return {
       averageResponseTime: 2500,
       successRate: 0.95,
       engagementScore: 0.8,
-      growthRate: 0.15
+      growthRate: 0.15,
     };
   }
 
@@ -691,7 +691,7 @@ export class RealTimeIntelligenceEngine {
       currentFocus: context.currentSession.focusAreas[0] || 'general',
       recommendedNextStep: context.liveInsights.recommendedActions[0] || 'Continue your spiritual journey',
       spiritualStrength: context.liveInsights.spiritualMomentum > 0.7 ? 'strong' : 'developing',
-      growthOpportunity: context.currentSession.focusAreas.length < 3 ? 'explore_new_areas' : 'deepen_current_practice'
+      growthOpportunity: context.currentSession.focusAreas.length < 3 ? 'explore_new_areas' : 'deepen_current_practice',
     };
   }
 
@@ -704,19 +704,19 @@ export class RealTimeIntelligenceEngine {
         lastActivity: now,
         activityCount: 0,
         focusAreas: [],
-        emotionalState: 'neutral'
+        emotionalState: 'neutral',
       },
       liveInsights: {
         spiritualMomentum: 0.5,
         engagementLevel: 0.5,
         growthTrajectory: 'starting',
-        recommendedActions: ['Begin your spiritual journey']
+        recommendedActions: ['Begin your spiritual journey'],
       },
       adaptiveFeatures: {
         contentComplexity: 0.5,
         responseSpeed: 0.5,
-        personalizationLevel: 0.5
-      }
+        personalizationLevel: 0.5,
+      },
     };
   }
 
@@ -736,11 +736,11 @@ export class RealTimeIntelligenceEngine {
   }
 
   private async processUpdateQueue(): Promise<void> {
-    if (this.updateQueue.length === 0) return;
-    
+    if (this.updateQueue.length === 0) {return;}
+
     const updates = [...this.updateQueue];
     this.updateQueue = [];
-    
+
     for (const update of updates) {
       try {
         await this.processUpdateImmediately(update);
@@ -752,10 +752,10 @@ export class RealTimeIntelligenceEngine {
 
   private cleanupExpiredContexts(): void {
     const now = Date.now();
-    
+
     for (const [userId, context] of this.activeContexts.entries()) {
       const lastActivity = new Date(context.currentSession.lastActivity).getTime();
-      
+
       if (now - lastActivity > this.CONTEXT_EXPIRY_MS) {
         this.activeContexts.delete(userId);
         console.log(`[RealTimeIntelligence] Cleaned up expired context for user ${userId}`);

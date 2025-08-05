@@ -64,7 +64,7 @@ export interface LevelInfo {
 }
 
 export class FaithPointsService {
-  
+
   // Level progression system
   private readonly LEVELS: LevelInfo[] = [
     { level: 1, name: 'Seeker', description: 'Beginning your faith journey', pointsRequired: 0, benefits: ['Basic features'] },
@@ -76,9 +76,9 @@ export class FaithPointsService {
     { level: 7, name: 'Mentor', description: 'Guiding others', pointsRequired: 2500, benefits: ['Mentorship tools'] },
     { level: 8, name: 'Elder', description: 'Wise in faith', pointsRequired: 4000, benefits: ['Elder privileges'] },
     { level: 9, name: 'Saint', description: 'Exemplary faith', pointsRequired: 6000, benefits: ['Saint status'] },
-    { level: 10, name: 'Apostle', description: 'Spreading the word', pointsRequired: 10000, benefits: ['Apostle recognition'] }
+    { level: 10, name: 'Apostle', description: 'Spreading the word', pointsRequired: 10000, benefits: ['Apostle recognition'] },
   ];
-  
+
   // Points awarded for different activities
   private readonly POINTS_SYSTEM = {
     playbook_generated: 10,
@@ -89,9 +89,9 @@ export class FaithPointsService {
     weekly_goal_met: 25,
     content_shared: 15,
     feedback_given: 8,
-    achievement_unlocked: 50
+    achievement_unlocked: 50,
   };
-  
+
   /**
    * Get user's faith points profile
    */
@@ -102,53 +102,53 @@ export class FaithPointsService {
         .select('*')
         .eq('user_id', userId)
         .single();
-      
+
       if (!profile) {
         // Create new profile for first-time user
         return await this.createUserProfile(userId);
       }
-      
+
       // Update streak and level if needed
       const updatedProfile = await this.updateProfileMetrics(profile);
       return updatedProfile;
-      
+
     } catch (error) {
       console.error('[FaithPointsService] Error getting user profile:', error);
       return await this.createUserProfile(userId);
     }
   }
-  
+
   /**
    * Award points for user activity
    */
   async awardPoints(
-    userId: string, 
-    activity: keyof typeof this.POINTS_SYSTEM, 
-    metadata?: any
+    userId: string,
+    activity: keyof typeof this.POINTS_SYSTEM,
+    _metadata?: any
   ): Promise<{ pointsAwarded: number; newLevel?: number; newBadges?: Badge[] }> {
-    
+
     try {
       const pointsAwarded = this.POINTS_SYSTEM[activity];
       console.log(`[FaithPointsService] Awarding ${pointsAwarded} points for ${activity} to user ${userId}`);
-      
+
       // Record the transaction
-      await this.recordTransaction(userId, pointsAwarded, activity, metadata);
-      
+      await this.recordTransaction(userId, pointsAwarded, activity, _metadata);
+
       // Update user profile
       const profile = await this.getUserProfile(userId);
       const newTotalPoints = profile.totalPoints + pointsAwarded;
-      
+
       // Check for level up
       const currentLevel = this.calculateLevel(profile.totalPoints);
       const newLevel = this.calculateLevel(newTotalPoints);
       const leveledUp = newLevel > currentLevel;
-      
+
       // Check for new badges
       const newBadges = await this.checkForNewBadges(userId, newTotalPoints, activity);
-      
+
       // Update streak if daily activity
       const updatedStreak = await this.updateStreak(userId, activity);
-      
+
       // Update profile in database
       await supabase
         .from('faith_points_profiles')
@@ -158,27 +158,27 @@ export class FaithPointsService {
           points_to_next_level: this.getPointsToNextLevel(newTotalPoints),
           current_streak: updatedStreak,
           last_activity_date: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
-      
+
       // Award bonus points for level up
       if (leveledUp) {
         await this.recordTransaction(userId, 50, 'achievement', { type: 'level_up', level: newLevel });
       }
-      
+
       return {
         pointsAwarded,
         newLevel: leveledUp ? newLevel : undefined,
-        newBadges
+        newBadges,
       };
-      
+
     } catch (error) {
       console.error('[FaithPointsService] Error awarding points:', error);
       return { pointsAwarded: 0 };
     }
   }
-  
+
   /**
    * Get user's recent transactions
    */
@@ -190,14 +190,14 @@ export class FaithPointsService {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(limit);
-      
+
       return transactions || [];
     } catch (error) {
       console.error('[FaithPointsService] Error getting transactions:', error);
       return [];
     }
   }
-  
+
   /**
    * Get available badges
    */
@@ -209,7 +209,7 @@ export class FaithPointsService {
         description: 'Generated your first playbook',
         icon: '👶',
         rarity: 'common',
-        pointsRequired: 10
+        pointsRequired: 10,
       },
       {
         id: 'consistent_week',
@@ -217,7 +217,7 @@ export class FaithPointsService {
         description: 'Used the app 7 days in a row',
         icon: '🔥',
         rarity: 'common',
-        pointsRequired: 35
+        pointsRequired: 35,
       },
       {
         id: 'prayer_warrior',
@@ -225,7 +225,7 @@ export class FaithPointsService {
         description: 'Generated 10 devotionals',
         icon: '🙏',
         rarity: 'rare',
-        pointsRequired: 80
+        pointsRequired: 80,
       },
       {
         id: 'growth_seeker',
@@ -233,7 +233,7 @@ export class FaithPointsService {
         description: 'Generated 25 playbooks',
         icon: '🌱',
         rarity: 'rare',
-        pointsRequired: 250
+        pointsRequired: 250,
       },
       {
         id: 'journal_keeper',
@@ -241,7 +241,7 @@ export class FaithPointsService {
         description: 'Made 50 journal entries',
         icon: '📖',
         rarity: 'epic',
-        pointsRequired: 250
+        pointsRequired: 250,
       },
       {
         id: 'streak_master',
@@ -249,7 +249,7 @@ export class FaithPointsService {
         description: '30-day streak',
         icon: '⚡',
         rarity: 'epic',
-        pointsRequired: 150
+        pointsRequired: 150,
       },
       {
         id: 'faith_champion',
@@ -257,11 +257,11 @@ export class FaithPointsService {
         description: 'Reached level 5',
         icon: '👑',
         rarity: 'legendary',
-        pointsRequired: 1000
-      }
+        pointsRequired: 1000,
+      },
     ];
   }
-  
+
   /**
    * Get user's achievements
    */
@@ -271,14 +271,14 @@ export class FaithPointsService {
         .from('user_achievements')
         .select('*')
         .eq('user_id', userId);
-      
+
       return achievements || [];
     } catch (error) {
       console.error('[FaithPointsService] Error getting achievements:', error);
       return [];
     }
   }
-  
+
   /**
    * Create new user profile
    */
@@ -296,9 +296,9 @@ export class FaithPointsService {
       weeklyProgress: 0,
       lastActivityDate: new Date().toISOString(),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    
+
     try {
       await supabase
         .from('faith_points_profiles')
@@ -313,25 +313,25 @@ export class FaithPointsService {
           weekly_progress: 0,
           last_activity_date: new Date().toISOString(),
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
-      
+
       console.log(`[FaithPointsService] Created new profile for user ${userId}`);
       return newProfile;
-      
+
     } catch (error) {
       console.error('[FaithPointsService] Error creating profile:', error);
       return newProfile;
     }
   }
-  
+
   /**
    * Record points transaction
    */
   private async recordTransaction(
-    userId: string, 
-    points: number, 
-    reason: string, 
+    userId: string,
+    points: number,
+    reason: string,
     metadata?: any
   ): Promise<void> {
     try {
@@ -343,13 +343,13 @@ export class FaithPointsService {
           reason,
           category: this.getCategoryFromReason(reason),
           metadata,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
     } catch (error) {
       console.error('[FaithPointsService] Error recording transaction:', error);
     }
   }
-  
+
   /**
    * Calculate user level from total points
    */
@@ -361,22 +361,22 @@ export class FaithPointsService {
     }
     return 1;
   }
-  
+
   /**
    * Get points needed for next level
    */
   private getPointsToNextLevel(totalPoints: number): number {
     const currentLevel = this.calculateLevel(totalPoints);
     const nextLevel = this.LEVELS.find(l => l.level > currentLevel);
-    
-    if (!nextLevel) return 0;
+
+    if (!nextLevel) {return 0;}
     return nextLevel.pointsRequired - totalPoints;
   }
-  
+
   /**
    * Update user streak
    */
-  private async updateStreak(userId: string, activity: string): Promise<number> {
+  private async updateStreak(userId: string, _activity: string): Promise<number> {
     try {
       const today = new Date().toDateString();
       const { data: profile } = await supabase
@@ -384,14 +384,14 @@ export class FaithPointsService {
         .select('current_streak, longest_streak, last_activity_date')
         .eq('user_id', userId)
         .single();
-      
-      if (!profile) return 1;
-      
+
+      if (!profile) {return 1;}
+
       const lastActivityDate = new Date(profile.last_activity_date).toDateString();
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
-      
+
       let newStreak = profile.current_streak;
-      
+
       if (lastActivityDate === today) {
         // Same day, no streak change
         return newStreak;
@@ -402,41 +402,41 @@ export class FaithPointsService {
         // Streak broken, reset to 1
         newStreak = 1;
       }
-      
+
       // Update longest streak if needed
       const newLongestStreak = Math.max(profile.longest_streak, newStreak);
-      
+
       await supabase
         .from('faith_points_profiles')
         .update({
           current_streak: newStreak,
-          longest_streak: newLongestStreak
+          longest_streak: newLongestStreak,
         })
         .eq('user_id', userId);
-      
+
       return newStreak;
-      
+
     } catch (error) {
       console.error('[FaithPointsService] Error updating streak:', error);
       return 1;
     }
   }
-  
+
   /**
    * Check for new badges earned
    */
   private async checkForNewBadges(
-    userId: string, 
-    totalPoints: number, 
+    userId: string,
+    totalPoints: number,
     activity: string
   ): Promise<Badge[]> {
     try {
       const availableBadges = await this.getAvailableBadges();
       const userBadges = await this.getUserBadges(userId);
       const userBadgeIds = userBadges.map(b => b.id);
-      
+
       const newBadges: Badge[] = [];
-      
+
       for (const badge of availableBadges) {
         if (!userBadgeIds.includes(badge.id) && totalPoints >= badge.pointsRequired) {
           // Check specific badge requirements
@@ -447,40 +447,40 @@ export class FaithPointsService {
           }
         }
       }
-      
+
       return newBadges;
-      
+
     } catch (error) {
       console.error('[FaithPointsService] Error checking badges:', error);
       return [];
     }
   }
-  
+
   /**
    * Helper methods
    */
   private getCategoryFromReason(reason: string): string {
-    if (reason.includes('playbook')) return 'playbook';
-    if (reason.includes('devotional')) return 'devotional';
-    if (reason.includes('journal')) return 'journal';
-    if (reason.includes('streak')) return 'streak';
-    if (reason.includes('achievement')) return 'achievement';
+    if (reason.includes('playbook')) {return 'playbook';}
+    if (reason.includes('devotional')) {return 'devotional';}
+    if (reason.includes('journal')) {return 'journal';}
+    if (reason.includes('streak')) {return 'streak';}
+    if (reason.includes('achievement')) {return 'achievement';}
     return 'bonus';
   }
-  
+
   private async getUserBadges(userId: string): Promise<Badge[]> {
     try {
       const { data: badges } = await supabase
         .from('user_badges')
         .select('badge_data')
         .eq('user_id', userId);
-      
+
       return badges?.map(b => b.badge_data) || [];
     } catch (error) {
       return [];
     }
   }
-  
+
   private async checkBadgeRequirement(userId: string, badge: Badge, activity: string): Promise<boolean> {
     // Implement specific badge requirement checks
     switch (badge.id) {
@@ -494,7 +494,7 @@ export class FaithPointsService {
         return true;
     }
   }
-  
+
   private async getActivityCount(userId: string, activity: string): Promise<number> {
     try {
       const { data: transactions } = await supabase
@@ -502,13 +502,13 @@ export class FaithPointsService {
         .select('id')
         .eq('user_id', userId)
         .eq('reason', activity);
-      
+
       return transactions?.length || 0;
     } catch (error) {
       return 0;
     }
   }
-  
+
   private async awardBadge(userId: string, badge: Badge): Promise<void> {
     try {
       await supabase
@@ -517,13 +517,13 @@ export class FaithPointsService {
           user_id: userId,
           badge_id: badge.id,
           badge_data: badge,
-          unlocked_at: new Date().toISOString()
+          unlocked_at: new Date().toISOString(),
         });
     } catch (error) {
       console.error('[FaithPointsService] Error awarding badge:', error);
     }
   }
-  
+
   private async updateProfileMetrics(profile: any): Promise<FaithPointsProfile> {
     // Convert database format to interface format
     return {
@@ -539,7 +539,7 @@ export class FaithPointsService {
       weeklyProgress: profile.weekly_progress,
       lastActivityDate: profile.last_activity_date,
       createdAt: profile.created_at,
-      updatedAt: profile.updated_at
+      updatedAt: profile.updated_at,
     };
   }
 }

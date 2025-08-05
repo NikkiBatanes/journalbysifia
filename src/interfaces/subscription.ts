@@ -37,26 +37,26 @@ export interface Subscription {
   userId: string;
   tier: SubscriptionTier;
   status: SubscriptionStatus;
-  
+
   // Billing
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
   priceId: string;
-  
+
   // Dates
   startDate: string;
   endDate: string;
   trialEndDate?: string;
   canceledAt?: string;
-  
+
   // Limits and usage
   limits: SubscriptionLimits;
   currentUsage: UsageTracking;
-  
+
   // Family plan specific
   familyOwnerId?: string;
   familyMembers?: string[];
-  
+
   // Metadata
   createdAt: string;
   updatedAt: string;

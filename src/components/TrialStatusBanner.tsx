@@ -8,10 +8,10 @@ interface TrialStatusBannerProps {
 }
 
 export const TrialStatusBanner: React.FC<TrialStatusBannerProps> = ({ onUpgradePress }) => {
-  const { message, urgencyLevel, showUrgency, daysRemaining, isActive } = useTrialCountdown();
+  const { message, urgencyLevel, daysRemaining, isActive } = useTrialCountdown();
   const navigation = useNavigation();
 
-  if (!isActive || !message) return null;
+  if (!isActive || !message) {return null;}
 
   const handleUpgradePress = () => {
     if (onUpgradePress) {
@@ -33,8 +33,8 @@ export const TrialStatusBanner: React.FC<TrialStatusBannerProps> = ({ onUpgradeP
   };
 
   const getButtonText = () => {
-    if (daysRemaining === 0) return 'Upgrade Now';
-    if (daysRemaining === 1) return 'Upgrade Today';
+    if (daysRemaining === 0) {return 'Upgrade Now';}
+    if (daysRemaining === 1) {return 'Upgrade Today';}
     return 'View Plans';
   };
 

@@ -54,12 +54,12 @@ export interface AlertThreshold {
 }
 
 export class PerformanceMonitoringService {
-  
+
   private metrics: PerformanceMetrics[] = [];
   private readonly MAX_METRICS_BUFFER = 1000;
   private readonly FLUSH_INTERVAL_MS = 30000; // 30 seconds
   private flushTimer?: NodeJS.Timeout;
-  
+
   // Performance thresholds
   private readonly ALERT_THRESHOLDS: AlertThreshold[] = [
     { metric: 'queue_wait_time', threshold: 300, severity: 'high', action: 'Scale workers' },
@@ -67,7 +67,7 @@ export class PerformanceMonitoringService {
     { metric: 'database_query_time', threshold: 5000, severity: 'high', action: 'Check indexes' },
     { metric: 'error_rate', threshold: 0.05, severity: 'critical', action: 'Immediate investigation' },
     { metric: 'context_accuracy', threshold: 0.7, severity: 'medium', action: 'Review context engine' },
-    { metric: 'memory_usage', threshold: 0.85, severity: 'high', action: 'Scale resources' }
+    { metric: 'memory_usage', threshold: 0.85, severity: 'high', action: 'Scale resources' },
   ];
 
   constructor() {
@@ -80,7 +80,7 @@ export class PerformanceMonitoringService {
   recordMetric(metric: PerformanceMetrics): void {
     this.metrics.push({
       ...metric,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     // Check for immediate alerts
@@ -103,10 +103,10 @@ export class PerformanceMonitoringService {
   ): Promise<T> {
     const startTime = Date.now();
     const startMemory = this.getMemoryUsage();
-    
+
     try {
       const result = await fn();
-      
+
       this.recordMetric({
         timestamp: new Date().toISOString(),
         userId,
@@ -117,12 +117,12 @@ export class PerformanceMonitoringService {
         resourceUsage: {
           memory: this.getMemoryUsage() - startMemory,
           cpu: this.getCpuUsage(),
-          tokens: metadata?.tokensUsed || 0
-        }
+          tokens: metadata?.tokensUsed || 0,
+        },
       });
-      
+
       return result;
-      
+
     } catch (error) {
       this.recordMetric({
         timestamp: new Date().toISOString(),
@@ -135,10 +135,10 @@ export class PerformanceMonitoringService {
         resourceUsage: {
           memory: this.getMemoryUsage() - startMemory,
           cpu: this.getCpuUsage(),
-          tokens: 0
-        }
+          tokens: 0,
+        },
       });
-      
+
       throw error;
     }
   }
@@ -152,7 +152,7 @@ export class PerformanceMonitoringService {
         this.getQueueHealth(),
         this.getDatabaseHealth(),
         this.getIntelligenceHealth(),
-        this.getUserEngagement()
+        this.getUserEngagement(),
       ]);
 
       const overallStatus = this.calculateOverallStatus(queueHealth, databaseHealth, intelligenceHealth);
@@ -162,7 +162,7 @@ export class PerformanceMonitoringService {
         queueHealth,
         databaseHealth,
         intelligenceHealth,
-        userEngagement
+        userEngagement,
       };
 
     } catch (error) {
@@ -189,7 +189,7 @@ export class PerformanceMonitoringService {
       const totalItems = queueStats.length;
       const completedItems = queueStats.filter(item => item.status === 'completed');
       const failedItems = queueStats.filter(item => item.status === 'failed');
-      
+
       const averageWaitTime = this.calculateAverageWaitTime(queueStats);
       const processingRate = completedItems.length / Math.max(totalItems, 1);
       const errorRate = failedItems.length / Math.max(totalItems, 1);
@@ -198,7 +198,7 @@ export class PerformanceMonitoringService {
         totalItems,
         averageWaitTime,
         processingRate,
-        errorRate
+        errorRate,
       };
 
     } catch (error) {
@@ -220,7 +220,7 @@ export class PerformanceMonitoringService {
       return {
         connectionPool,
         queryPerformance,
-        partitionEfficiency
+        partitionEfficiency,
       };
 
     } catch (error) {
@@ -242,7 +242,7 @@ export class PerformanceMonitoringService {
       return {
         contextAccuracy,
         detectionAccuracy,
-        generationQuality
+        generationQuality,
       };
 
     } catch (error) {
@@ -285,7 +285,7 @@ export class PerformanceMonitoringService {
       return {
         activeUsers,
         generationsPerHour,
-        faithPointsAwarded
+        faithPointsAwarded,
       };
 
     } catch (error) {
@@ -347,11 +347,11 @@ export class PerformanceMonitoringService {
         averageResponseTime: this.calculateAverageResponseTime(recentMetrics),
         successRate: this.calculateSuccessRate(recentMetrics),
         throughput: this.calculateThroughput(recentMetrics),
-        errorRate: this.calculateErrorRate(recentMetrics)
+        errorRate: this.calculateErrorRate(recentMetrics),
       },
       recommendations,
       alerts: this.getActiveAlerts(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -385,9 +385,9 @@ export class PerformanceMonitoringService {
     // Calculate context accuracy from recent operations
     const recentMetrics = this.getRecentMetrics();
     const contextOperations = recentMetrics.filter(m => m.operation.includes('context'));
-    
-    if (contextOperations.length === 0) return 0.85;
-    
+
+    if (contextOperations.length === 0) {return 0.85;}
+
     const successRate = contextOperations.filter(m => m.success).length / contextOperations.length;
     return Math.min(successRate + 0.1, 1.0);
   }
@@ -396,9 +396,9 @@ export class PerformanceMonitoringService {
     // Calculate detection accuracy from recent operations
     const recentMetrics = this.getRecentMetrics();
     const detectionOperations = recentMetrics.filter(m => m.operation.includes('detection'));
-    
-    if (detectionOperations.length === 0) return 0.9;
-    
+
+    if (detectionOperations.length === 0) {return 0.9;}
+
     const successRate = detectionOperations.filter(m => m.success).length / detectionOperations.length;
     return Math.min(successRate + 0.05, 1.0);
   }
@@ -407,12 +407,12 @@ export class PerformanceMonitoringService {
     // Calculate generation quality from recent operations
     const recentMetrics = this.getRecentMetrics();
     const generationOperations = recentMetrics.filter(m => m.operation.includes('generation'));
-    
-    if (generationOperations.length === 0) return 0.85;
-    
+
+    if (generationOperations.length === 0) {return 0.85;}
+
     const successRate = generationOperations.filter(m => m.success).length / generationOperations.length;
     const avgDuration = generationOperations.reduce((sum, m) => sum + m.duration, 0) / generationOperations.length;
-    
+
     // Quality based on success rate and reasonable response time
     const qualityScore = successRate * 0.7 + (avgDuration < 30000 ? 0.3 : 0.1);
     return Math.min(qualityScore, 1.0);
@@ -423,18 +423,18 @@ export class PerformanceMonitoringService {
     databaseHealth: SystemHealth['databaseHealth'],
     intelligenceHealth: SystemHealth['intelligenceHealth']
   ): 'healthy' | 'degraded' | 'critical' {
-    
+
     const criticalThresholds = {
       errorRate: 0.1,
       queryPerformance: 0.5,
-      contextAccuracy: 0.6
+      contextAccuracy: 0.6,
     };
 
     const degradedThresholds = {
       errorRate: 0.05,
       queryPerformance: 0.7,
       contextAccuracy: 0.75,
-      averageWaitTime: 120
+      averageWaitTime: 120,
     };
 
     // Check critical conditions
@@ -461,24 +461,24 @@ export class PerformanceMonitoringService {
       queueHealth: { totalItems: 0, averageWaitTime: 0, processingRate: 0, errorRate: 0 },
       databaseHealth: { connectionPool: 0.5, queryPerformance: 0.5, partitionEfficiency: 0.5 },
       intelligenceHealth: { contextAccuracy: 0.5, detectionAccuracy: 0.5, generationQuality: 0.5 },
-      userEngagement: { activeUsers: 0, generationsPerHour: 0, faithPointsAwarded: 0 }
+      userEngagement: { activeUsers: 0, generationsPerHour: 0, faithPointsAwarded: 0 },
     };
   }
 
   private getRecentMetrics(): PerformanceMetrics[] {
     const oneHourAgo = Date.now() - 3600000;
-    return this.metrics.filter(metric => 
+    return this.metrics.filter(metric =>
       new Date(metric.timestamp).getTime() > oneHourAgo
     );
   }
 
   private calculateAverageResponseTime(metrics: PerformanceMetrics[]): number {
-    if (metrics.length === 0) return 0;
+    if (metrics.length === 0) {return 0;}
     return metrics.reduce((sum, metric) => sum + metric.duration, 0) / metrics.length;
   }
 
   private calculateSuccessRate(metrics: PerformanceMetrics[]): number {
-    if (metrics.length === 0) return 1;
+    if (metrics.length === 0) {return 1;}
     return metrics.filter(metric => metric.success).length / metrics.length;
   }
 
@@ -488,7 +488,7 @@ export class PerformanceMonitoringService {
   }
 
   private calculateErrorRate(metrics: PerformanceMetrics[]): number {
-    if (metrics.length === 0) return 0;
+    if (metrics.length === 0) {return 0;}
     return metrics.filter(metric => !metric.success).length / metrics.length;
   }
 
@@ -516,7 +516,7 @@ export class PerformanceMonitoringService {
 
   private triggerAlert(metric: PerformanceMetrics, threshold: AlertThreshold): void {
     console.warn(`[ALERT] ${threshold.severity.toUpperCase()}: ${threshold.metric} exceeded threshold. Action: ${threshold.action}`);
-    
+
     // In production, this would send alerts to monitoring systems
     // For now, just log the alert
   }
@@ -549,7 +549,7 @@ export class PerformanceMonitoringService {
   }
 
   private async flushMetrics(): Promise<void> {
-    if (this.metrics.length === 0) return;
+    if (this.metrics.length === 0) {return;}
 
     try {
       const metricsToFlush = [...this.metrics];
@@ -568,9 +568,9 @@ export class PerformanceMonitoringService {
               success: metric.success,
               errorMessage: metric.errorMessage,
               metadata: metric.metadata,
-              resourceUsage: metric.resourceUsage
+              resourceUsage: metric.resourceUsage,
             },
-            created_at: metric.timestamp
+            created_at: metric.timestamp,
           }))
         );
 

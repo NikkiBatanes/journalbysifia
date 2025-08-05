@@ -12,8 +12,8 @@ import {
   ScrollView,
   Modal,
   StyleSheet,
-  Dimensions,
-  Alert
+  // Dimensions - removed as unused
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -55,8 +55,8 @@ const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       '8 Devotionals per month',
       'Unlimited journaling',
       'Basic export features',
-      'Email support'
-    ]
+      'Email support',
+    ],
   },
   {
     id: 'lite',
@@ -74,8 +74,8 @@ const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       'AI-Enhanced personalization',
       'Advanced export options',
       'Priority support',
-      'Content recommendations'
-    ]
+      'Content recommendations',
+    ],
   },
   {
     id: 'pro',
@@ -93,8 +93,8 @@ const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       'Premium export formats',
       'Priority queue processing',
       'Advanced analytics',
-      'Custom content themes'
-    ]
+      'Custom content themes',
+    ],
   },
   {
     id: 'family',
@@ -111,9 +111,9 @@ const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
       'Shared content library',
       'Family progress tracking',
       'Group devotionals',
-      'Parental controls'
-    ]
-  }
+      'Parental controls',
+    ],
+  },
 ];
 
 export const UpgradeModal: React.FC<UpgradeModalProps> = ({
@@ -121,9 +121,9 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   onClose,
   currentTier = 'free_trial',
   suggestedTier,
-  context = 'general'
+  context = 'general',
 }) => {
-  const { subscription, loading } = useSubscription();
+  const { subscription } = useSubscription();
   const { upgradeFlow } = useSubscriptionUpgrade();
   const [selectedTier, setSelectedTier] = useState(suggestedTier || 'lite');
   const [upgrading, setUpgrading] = useState(false);
@@ -132,7 +132,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
     try {
       setUpgrading(true);
       await upgradeFlow(tierId);
-      
+
       Alert.alert(
         'Upgrade Successful! 🎉',
         `Welcome to ${SUBSCRIPTION_TIERS.find(t => t.id === tierId)?.name}! Your new limits are active immediately.`,
@@ -154,17 +154,17 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
       case 'limit_reached':
         return {
           title: "You've reached your limit! 📚",
-          subtitle: "Upgrade to continue creating amazing content"
+          subtitle: 'Upgrade to continue creating amazing content',
         };
       case 'feature_locked':
         return {
-          title: "Unlock Premium Features! ✨",
-          subtitle: "Get AI-enhanced personalization and more"
+          title: 'Unlock Premium Features! ✨',
+          subtitle: 'Get AI-enhanced personalization and more',
         };
       default:
         return {
-          title: "Upgrade Your Experience! 🚀",
-          subtitle: "Choose the perfect plan for your spiritual journey"
+          title: 'Upgrade Your Experience! 🚀',
+          subtitle: 'Choose the perfect plan for your spiritual journey',
         };
     }
   };
@@ -174,14 +174,14 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
   const renderTierCard = (tier: SubscriptionTier) => {
     const isSelected = selectedTier === tier.id;
     const isCurrent = currentTier === tier.id;
-    
+
     return (
       <TouchableOpacity
         key={tier.id}
         style={[
           styles.tierCard,
           isSelected && styles.selectedTierCard,
-          isCurrent && styles.currentTierCard
+          isCurrent && styles.currentTierCard,
         ]}
         onPress={() => setSelectedTier(tier.id)}
         disabled={isCurrent}
@@ -191,7 +191,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
             <Text style={styles.popularText}>Most Popular</Text>
           </View>
         )}
-        
+
         {isCurrent && (
           <View style={styles.currentBadge}>
             <Text style={styles.currentText}>Current Plan</Text>
@@ -201,7 +201,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
         <View style={styles.tierHeader}>
           <Text style={styles.tierName}>{tier.name}</Text>
           <Text style={styles.tierDescription}>{tier.description}</Text>
-          
+
           <View style={styles.priceContainer}>
             <Text style={styles.price}>{tier.price}</Text>
             <Text style={styles.period}>{tier.period}</Text>
@@ -236,7 +236,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
           <TouchableOpacity
             style={[
               styles.selectButton,
-              isSelected && styles.selectedButton
+              isSelected && styles.selectedButton,
             ]}
             onPress={() => handleUpgrade(tier.id)}
             disabled={upgrading}
@@ -247,7 +247,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
             >
               <Text style={[
                 styles.selectText,
-                isSelected && styles.selectedText
+                isSelected && styles.selectedText,
               ]}>
                 {upgrading && selectedTier === tier.id ? 'Upgrading...' : 'Select Plan'}
               </Text>
@@ -271,7 +271,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#6B7280" />
           </TouchableOpacity>
-          
+
           <View style={styles.headerContent}>
             <Text style={styles.title}>{contextMessage.title}</Text>
             <Text style={styles.subtitle}>{contextMessage.subtitle}</Text>
@@ -294,7 +294,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
         )}
 
         {/* Subscription tiers */}
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -315,8 +315,6 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
     </Modal>
   );
 };
-
-const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {

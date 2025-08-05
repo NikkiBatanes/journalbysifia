@@ -14,22 +14,22 @@ export interface UseSubscriptionResult {
   subscription: any;
   usage: any;
   analytics: any;
-  
+
   // Loading states
   loading: boolean;
   error: Error | null;
-  
+
   // Generation checks (SIMPLE FOR USERS)
   canGenerate: (type: 'playbook' | 'devotional') => CanGenerateResult;
-  
+
   // Intelligence features
   hasIntelligence: boolean;
   recommendations: any;
-  
+
   // Actions
   upgradeSubscription: (tier: string) => Promise<void>;
   cancelSubscription: () => Promise<void>;
-  
+
   // Family features
   familyInfo: any;
   addFamilyMember: (email: string) => Promise<boolean>;
@@ -41,40 +41,40 @@ export const useSubscription = (): UseSubscriptionResult => {
   const userId = user?.id;
 
   // Get subscription data
-  const { 
-    data: subscription, 
+  const {
+    data: subscription,
     isLoading: subscriptionLoading,
-    error: subscriptionError 
+    error: subscriptionError,
   } = useQuery({
     queryKey: ['subscription', userId],
     queryFn: () => subscriptionService.getUserSubscription(userId!),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   });
 
   // Get usage data
-  const { 
-    data: usage, 
-    isLoading: usageLoading 
+  const {
+    data: usage,
+    isLoading: usageLoading,
   } = useQuery({
     queryKey: ['usage', userId],
     queryFn: () => subscriptionService.getCurrentUsage(userId!),
     enabled: !!userId,
     staleTime: 1 * 60 * 1000, // 1 minute (more frequent for usage)
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
   });
 
   // Get analytics
-  const { 
-    data: analytics, 
-    isLoading: analyticsLoading 
+  const {
+    data: analytics,
+    isLoading: analyticsLoading,
   } = useQuery({
     queryKey: ['subscription-analytics', userId],
     queryFn: () => subscriptionService.getSubscriptionAnalytics(userId!),
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   });
 
   // Get intelligence recommendations (only for premium users)
@@ -83,7 +83,7 @@ export const useSubscription = (): UseSubscriptionResult => {
     queryFn: () => intelligenceService.getContentRecommendations(userId!),
     enabled: !!userId && subscription?.intelligence_enabled,
     staleTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   });
 
   // Get family info (only for family plans)
@@ -92,13 +92,13 @@ export const useSubscription = (): UseSubscriptionResult => {
     queryFn: () => subscriptionService.getFamilyInfo(userId!),
     enabled: !!userId && subscription?.tier === 'family',
     staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   });
 
   // Upgrade subscription mutation
   const upgradeMutation = useMutation({
     mutationFn: async (tier: string) => {
-      if (!userId) throw new Error('User not authenticated');
+      if (!userId) {throw new Error('User not authenticated');}
       await subscriptionService.upgradeSubscription(userId, tier as any);
     },
     onSuccess: () => {
@@ -106,31 +106,31 @@ export const useSubscription = (): UseSubscriptionResult => {
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
       queryClient.invalidateQueries({ queryKey: ['usage'] });
       queryClient.invalidateQueries({ queryKey: ['subscription-analytics'] });
-    }
+    },
   });
 
   // Cancel subscription mutation
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      if (!userId) throw new Error('User not authenticated');
+      if (!userId) {throw new Error('User not authenticated');}
       await subscriptionService.cancelSubscription(userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
-    }
+    },
   });
 
   // Add family member mutation
   const addFamilyMemberMutation = useMutation({
     mutationFn: async (email: string) => {
-      if (!userId) throw new Error('User not authenticated');
+      if (!userId) {throw new Error('User not authenticated');}
       // This would typically involve sending an invitation
       // For now, we'll assume the member user ID is provided
       return await subscriptionService.addFamilyMember(userId, email);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['family-info'] });
-    }
+    },
   });
 
   // Simple generation check function (WHAT USERS SEE)
@@ -142,7 +142,7 @@ export const useSubscription = (): UseSubscriptionResult => {
         limit: 0,
         used: 0,
         upgradeRequired: true,
-        message: 'Loading subscription data...'
+        message: 'Loading subscription data...',
       };
     }
 
@@ -158,7 +158,7 @@ export const useSubscription = (): UseSubscriptionResult => {
         remaining: 'Unlimited',
         limit: 'Unlimited',
         used,
-        upgradeRequired: false
+        upgradeRequired: false,
       };
     }
 
@@ -177,7 +177,7 @@ export const useSubscription = (): UseSubscriptionResult => {
       limit,
       used,
       upgradeRequired: !allowed,
-      message
+      message,
     };
   };
 
@@ -189,7 +189,7 @@ export const useSubscription = (): UseSubscriptionResult => {
       lite: { playbooks: 20, devotionals: 20, intelligenceEnabled: true },
       pro: { playbooks: -1, devotionals: -1, intelligenceEnabled: true },
       family: { playbooks: -1, devotionals: -1, intelligenceEnabled: true },
-      enterprise: { playbooks: -1, devotionals: -1, intelligenceEnabled: true }
+      enterprise: { playbooks: -1, devotionals: -1, intelligenceEnabled: true },
     };
     return limitsMap[tier] || limitsMap.free_trial;
   };
@@ -203,25 +203,25 @@ export const useSubscription = (): UseSubscriptionResult => {
     subscription,
     usage,
     analytics,
-    
+
     // States
     loading,
     error,
-    
+
     // Functions
     canGenerate,
-    
+
     // Intelligence
     hasIntelligence,
     recommendations,
-    
+
     // Actions
     upgradeSubscription: upgradeMutation.mutateAsync,
     cancelSubscription: cancelMutation.mutateAsync,
-    
+
     // Family
     familyInfo,
-    addFamilyMember: addFamilyMemberMutation.mutateAsync
+    addFamilyMember: addFamilyMemberMutation.mutateAsync,
   };
 };
 
@@ -235,32 +235,32 @@ export const useGeneration = () => {
   const { data: queueStatus } = useQuery({
     queryKey: ['queue-status', userId],
     queryFn: async () => {
-      if (!userId) return null;
+      if (!userId) {return null;}
       const { queueService } = await import('../services/queueService');
       return queueService.getQueueStatus(userId);
     },
     enabled: !!userId,
     refetchInterval: 5000, // Refresh every 5 seconds
-    staleTime: 0 // Always fresh
+    staleTime: 0, // Always fresh
   });
 
   // Get personalized suggestions
   const { data: suggestions } = useQuery({
     queryKey: ['personalized-suggestions', userId],
     queryFn: async () => {
-      if (!userId || !hasIntelligence) return null;
+      if (!userId || !hasIntelligence) {return null;}
       const { enhancedGenerationService } = await import('../services/enhancedGenerationService');
       return enhancedGenerationService.getPersonalizedSuggestions(userId);
     },
     enabled: !!userId && hasIntelligence,
-    staleTime: 15 * 60 * 1000 // 15 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes
   });
 
   return {
     canGenerate,
     queueStatus,
     suggestions,
-    hasIntelligence
+    hasIntelligence,
   };
 };
 
@@ -282,7 +282,7 @@ export const useBehaviorTracking = () => {
       success?: boolean;
     } = {}
   ) => {
-    if (!userId || !hasIntelligence) return;
+    if (!userId || !hasIntelligence) {return;}
 
     try {
       await intelligenceService.trackBehavior(userId, {
@@ -293,7 +293,7 @@ export const useBehaviorTracking = () => {
         playbook_id: options.playbookId,
         devotional_id: options.devotionalId,
         duration_seconds: options.duration,
-        success_indicator: options.success
+        success_indicator: options.success,
       });
     } catch (error) {
       console.warn('Failed to track behavior:', error);
@@ -303,7 +303,7 @@ export const useBehaviorTracking = () => {
 
   return {
     trackBehavior,
-    canTrack: hasIntelligence
+    canTrack: hasIntelligence,
   };
 };
 
@@ -317,13 +317,13 @@ export const useSubscriptionUpgrade = () => {
       // In a real app, this would integrate with Stripe
       // For now, we'll just update the subscription directly
       await upgradeSubscription(targetTier);
-      
+
       // Show success message
       console.log(`Successfully upgraded to ${targetTier}`);
-      
+
       // Refresh all data
       queryClient.invalidateQueries();
-      
+
       return true;
     } catch (error) {
       console.error('Upgrade failed:', error);
@@ -332,6 +332,6 @@ export const useSubscriptionUpgrade = () => {
   };
 
   return {
-    upgradeFlow
+    upgradeFlow,
   };
 };

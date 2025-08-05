@@ -6,7 +6,8 @@
 
 import { subscriptionService } from './subscriptionService';
 import { intelligenceService } from './intelligenceService';
-import { queueService, GenerationResult } from './queueService';
+// import { GenerationResult } from './types';
+import { queueService } from './queueService';
 
 export interface PlaybookGenerationRequest {
   userId: string;
@@ -43,15 +44,15 @@ export class EnhancedGenerationService {
 
       // 1. Check subscription limits (SIMPLE FOR USERS)
       const canGenerate = await subscriptionService.canGenerate(request.userId, 'playbook');
-      
+
       if (!canGenerate.allowed) {
-        console.log(`[EnhancedGenerationService] Playbook generation blocked - limit reached`);
+        console.log('[EnhancedGenerationService] Playbook generation blocked - limit reached');
         return {
           success: false,
           message: canGenerate.message || `You've used all ${canGenerate.limit} playbooks this month. Upgrade for more!`,
           upgradeRequired: canGenerate.upgradeRequired,
           remaining: canGenerate.remaining,
-          limit: canGenerate.limit
+          limit: canGenerate.limit,
         };
       }
 
@@ -67,9 +68,9 @@ export class EnhancedGenerationService {
           event_category: 'generation',
           event_data: {
             input_length: request.userInput.length,
-            subscription_tier: subscription.tier
+            subscription_tier: subscription.tier,
           },
-          duration_seconds: 0
+          duration_seconds: 0,
         });
       }
 
@@ -78,7 +79,7 @@ export class EnhancedGenerationService {
         userId: request.userId,
         type: 'playbook',
         userInput: request.userInput,
-        userName: request.userName
+        userName: request.userName,
       });
 
       // 5. Get queue status for user feedback
@@ -89,13 +90,13 @@ export class EnhancedGenerationService {
       if (queueStatus.estimatedWaitTime > 0) {
         const waitMinutes = Math.ceil(queueStatus.estimatedWaitTime / 60);
         message = `Your playbook is in queue. Estimated wait: ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''}`;
-        
+
         if (intelligenceEnabled) {
           message += ' (AI-personalized)';
         }
       } else {
-        message = intelligenceEnabled 
-          ? 'Generating your personalized playbook...' 
+        message = intelligenceEnabled
+          ? 'Generating your personalized playbook...'
           : 'Generating your playbook...';
       }
 
@@ -109,16 +110,16 @@ export class EnhancedGenerationService {
         intelligenceEnabled,
         upgradeRequired: false,
         remaining: canGenerate.remaining,
-        limit: canGenerate.limit
+        limit: canGenerate.limit,
       };
 
     } catch (error) {
       console.error('[EnhancedGenerationService] Error in generatePlaybook:', error);
-      
+
       return {
         success: false,
         message: 'Sorry, there was an error generating your playbook. Please try again.',
-        upgradeRequired: false
+        upgradeRequired: false,
       };
     }
   }
@@ -132,15 +133,15 @@ export class EnhancedGenerationService {
 
       // 1. Check subscription limits
       const canGenerate = await subscriptionService.canGenerate(request.userId, 'devotional');
-      
+
       if (!canGenerate.allowed) {
-        console.log(`[EnhancedGenerationService] Devotional generation blocked - limit reached`);
+        console.log('[EnhancedGenerationService] Devotional generation blocked - limit reached');
         return {
           success: false,
           message: canGenerate.message || `You've used all ${canGenerate.limit} devotionals this month. Upgrade for more!`,
           upgradeRequired: canGenerate.upgradeRequired,
           remaining: canGenerate.remaining,
-          limit: canGenerate.limit
+          limit: canGenerate.limit,
         };
       }
 
@@ -157,9 +158,9 @@ export class EnhancedGenerationService {
           event_data: {
             duration: request.duration,
             has_playbook_context: !!request.playbookId,
-            subscription_tier: subscription.tier
+            subscription_tier: subscription.tier,
           },
-          duration_seconds: 0
+          duration_seconds: 0,
         });
       }
 
@@ -172,8 +173,8 @@ export class EnhancedGenerationService {
         additionalParams: {
           duration: request.duration || 7,
           playbookId: request.playbookId,
-          userInput: request.userInput
-        }
+          userInput: request.userInput,
+        },
       });
 
       // 5. Get queue status
@@ -184,13 +185,13 @@ export class EnhancedGenerationService {
       if (queueStatus.estimatedWaitTime > 0) {
         const waitMinutes = Math.ceil(queueStatus.estimatedWaitTime / 60);
         message = `Your devotional is in queue. Estimated wait: ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''}`;
-        
+
         if (intelligenceEnabled) {
           message += ' (AI-personalized)';
         }
       } else {
-        message = intelligenceEnabled 
-          ? 'Generating your personalized devotional...' 
+        message = intelligenceEnabled
+          ? 'Generating your personalized devotional...'
           : 'Generating your devotional...';
       }
 
@@ -204,16 +205,16 @@ export class EnhancedGenerationService {
         intelligenceEnabled,
         upgradeRequired: false,
         remaining: canGenerate.remaining,
-        limit: canGenerate.limit
+        limit: canGenerate.limit,
       };
 
     } catch (error) {
       console.error('[EnhancedGenerationService] Error in generateDevotional:', error);
-      
+
       return {
         success: false,
         message: 'Sorry, there was an error generating your devotional. Please try again.',
-        upgradeRequired: false
+        upgradeRequired: false,
       };
     }
   }
@@ -230,12 +231,12 @@ export class EnhancedGenerationService {
   }> {
     try {
       const status = await queueService.checkGenerationStatus(queueId);
-      
+
       let message = '';
       switch (status.status) {
         case 'pending':
           const waitMinutes = Math.ceil((status.estimatedWaitTime || 0) / 60);
-          message = waitMinutes > 0 
+          message = waitMinutes > 0
             ? `In queue - estimated wait: ${waitMinutes} minute${waitMinutes > 1 ? 's' : ''}`
             : 'In queue - processing soon';
           break;
@@ -255,13 +256,13 @@ export class EnhancedGenerationService {
         message,
         resultId: status.resultId,
         estimatedWaitTime: status.estimatedWaitTime,
-        processingTimeSeconds: status.processingTimeSeconds
+        processingTimeSeconds: status.processingTimeSeconds,
       };
     } catch (error) {
       console.error('[EnhancedGenerationService] Error checking generation status:', error);
       return {
         status: 'failed',
-        message: 'Error checking generation status'
+        message: 'Error checking generation status',
       };
     }
   }
@@ -272,10 +273,10 @@ export class EnhancedGenerationService {
   async cancelGeneration(queueId: string, userId: string): Promise<boolean> {
     try {
       const cancelled = await queueService.cancelQueueItem(queueId, userId);
-      
+
       if (cancelled) {
         console.log(`[EnhancedGenerationService] Cancelled generation ${queueId} for user ${userId}`);
-        
+
         // Track cancellation for intelligence system
         const hasIntelligence = await subscriptionService.hasIntelligenceAccess(userId);
         if (hasIntelligence) {
@@ -283,11 +284,11 @@ export class EnhancedGenerationService {
             event_type: 'generation_cancelled',
             event_category: 'engagement',
             event_data: { queue_id: queueId },
-            success_indicator: false
+            success_indicator: false,
           });
         }
       }
-      
+
       return cancelled;
     } catch (error) {
       console.error('[EnhancedGenerationService] Error cancelling generation:', error);
@@ -308,7 +309,7 @@ export class EnhancedGenerationService {
     try {
       // Get subscription analytics
       const subscriptionAnalytics = await subscriptionService.getSubscriptionAnalytics(userId);
-      
+
       // Get intelligence recommendations if available
       let recommendations = null;
       if (subscriptionAnalytics.analytics.intelligenceEnabled) {
@@ -317,7 +318,7 @@ export class EnhancedGenerationService {
 
       return {
         ...subscriptionAnalytics,
-        recommendations
+        recommendations,
       };
     } catch (error) {
       console.error('[EnhancedGenerationService] Error getting generation analytics:', error);
@@ -354,10 +355,10 @@ export class EnhancedGenerationService {
           content_id: contentId,
           completion_rate: completionData.completionRate,
           user_rating: completionData.userRating,
-          user_feedback: completionData.userFeedback
+          user_feedback: completionData.userFeedback,
         },
         success_indicator: completionData.completed,
-        duration_seconds: completionData.timeSpent
+        duration_seconds: completionData.timeSpent,
       });
 
       // Update content effectiveness tracking
@@ -396,7 +397,7 @@ export class EnhancedGenerationService {
         optimalTiming: recommendations.optimalTiming,
         recommendedContentLength: recommendations.contentLength,
         challengeLevel: recommendations.challengeLevel,
-        confidenceScore: recommendations.confidenceScore
+        confidenceScore: recommendations.confidenceScore,
       };
     } catch (error) {
       console.error('[EnhancedGenerationService] Error getting personalized suggestions:', error);
@@ -427,7 +428,7 @@ export class EnhancedGenerationService {
           completed_successfully: completionData.completed,
           user_feedback_positive: completionData.userRating ? completionData.userRating >= 4 : null,
           led_to_further_engagement: false, // Could be enhanced with more tracking
-          measured_at: new Date().toISOString()
+          measured_at: new Date().toISOString(),
         });
     } catch (error) {
       console.error('[EnhancedGenerationService] Error updating content effectiveness:', error);
@@ -439,19 +440,19 @@ export class EnhancedGenerationService {
    */
   private calculateEngagementScore(completionData: any): number {
     let score = completionData.completionRate; // Base score from completion rate
-    
+
     // Adjust based on time spent (more time = higher engagement, up to a point)
     if (completionData.timeSpent > 600) { // 10+ minutes
       score += 0.2;
     } else if (completionData.timeSpent > 300) { // 5+ minutes
       score += 0.1;
     }
-    
+
     // Adjust based on user rating
     if (completionData.userRating) {
       score += (completionData.userRating - 3) * 0.1; // Rating above 3 increases score
     }
-    
+
     return Math.min(1.0, Math.max(0.0, score));
   }
 

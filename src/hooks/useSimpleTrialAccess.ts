@@ -4,7 +4,7 @@
 // This is a simplified version that works with your existing codebase
 // without complex type dependencies
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabaseClient';
 
 export interface SimpleTrialStatus {
@@ -38,7 +38,7 @@ export const useSimpleTrialAccess = (userId?: string) => {
     isUnlimited: false,
   });
 
-  const fetchTrialStatus = async () => {
+  const fetchTrialStatus = useCallback(async () => {
     if (!userId) {
       setTrialStatus(prev => ({ ...prev, isLoading: false }));
       return;
@@ -62,7 +62,7 @@ export const useSimpleTrialAccess = (userId?: string) => {
       }
 
       const now = new Date();
-      const trialEndsAt = subscription.trial_ends_at 
+      const trialEndsAt = subscription.trial_ends_at
         ? new Date(subscription.trial_ends_at)
         : new Date();
 
@@ -98,14 +98,14 @@ export const useSimpleTrialAccess = (userId?: string) => {
         isLoading: false,
       });
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     fetchTrialStatus();
-  }, [userId]);
+  }, [userId, fetchTrialStatus]);
 
   const startTrial = async () => {
-    if (!userId) return;
+    if (!userId) {return;}
 
     try {
       const trialEndsAt = new Date();
@@ -131,8 +131,8 @@ export const useSimpleTrialAccess = (userId?: string) => {
   };
 
   const checkCanGenerate = async (contentType: 'playbook' | 'devotional') => {
-    const remaining = contentType === 'playbook' 
-      ? featureAccess.playbooksRemaining 
+    const remaining = contentType === 'playbook'
+      ? featureAccess.playbooksRemaining
       : featureAccess.devotionalsRemaining;
 
     if (remaining > 0) {
@@ -149,15 +149,15 @@ export const useSimpleTrialAccess = (userId?: string) => {
   return {
     // Trial status
     trialStatus,
-    
+
     // Feature access
     featureAccess,
-    
+
     // Actions
     startTrial,
     checkCanGenerate,
     refreshStatus: fetchTrialStatus,
-    
+
     // Computed values
     hasActiveAccess: trialStatus.isActive,
     daysRemaining: trialStatus.daysRemaining,
@@ -190,7 +190,7 @@ const getDevotionalLimit = (tier: string): number => {
 // Hook for specific feature access
 export const useFeatureAccess = (userId?: string, feature: keyof SimpleFeatureAccess) => {
   const { featureAccess, isLoading } = useSimpleTrialAccess(userId);
-  
+
   return {
     hasAccess: featureAccess[feature] || false,
     isLoading,
@@ -204,29 +204,29 @@ export const useUpgradePrompts = () => {
       smartJournaling: {
         title: 'Unlock Smart Journaling',
         message: 'Get AI-powered insights and personalized prompts to deepen your spiritual journey.',
-        recommendedTier: 'starter'
+        recommendedTier: 'starter',
       },
       journalTemplates: {
         title: 'Access All Journal Templates',
         message: 'Explore 20+ guided templates for prayer, gratitude, Bible study, and spiritual growth.',
-        recommendedTier: 'starter'
+        recommendedTier: 'starter',
       },
       playbooks: {
         title: 'Generate More Playbooks',
         message: 'Create unlimited personalized spiritual growth plans tailored to your journey.',
-        recommendedTier: 'growth'
+        recommendedTier: 'growth',
       },
       devotionals: {
         title: 'Unlimited Devotionals',
         message: 'Access daily AI-generated devotionals personalized to your spiritual needs.',
-        recommendedTier: 'growth'
+        recommendedTier: 'growth',
       },
     };
 
     return prompts[feature] || {
       title: 'Upgrade Your Plan',
       message: 'Unlock premium features to enhance your spiritual growth journey.',
-      recommendedTier: 'starter'
+      recommendedTier: 'starter',
     };
   };
 

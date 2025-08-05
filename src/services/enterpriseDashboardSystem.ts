@@ -5,7 +5,6 @@
  */
 
 import { supabase } from './supabaseClient';
-import { performanceMonitoringService } from './performanceMonitoringService';
 import { behavioralLearningSystem } from './behavioralLearningSystem';
 import { predictiveContentEngine } from './predictiveContentEngine';
 
@@ -114,7 +113,7 @@ class EnterpriseDashboardSystem {
     errorRate: 0.05,
     responseTime: 2000,
     queueBacklog: 1000,
-    systemLoad: 0.8
+    systemLoad: 0.8,
   };
 
   /**
@@ -133,7 +132,7 @@ class EnterpriseDashboardSystem {
         this.getUserAnalytics(),
         this.getContentAnalytics(),
         this.getPerformanceAnalytics(),
-        this.getActiveAlerts()
+        this.getActiveAlerts(),
       ]);
 
       return {
@@ -141,7 +140,7 @@ class EnterpriseDashboardSystem {
         userAnalytics,
         contentAnalytics,
         performanceAnalytics,
-        alerts
+        alerts,
       };
     } catch (error) {
       throw new Error('Failed to generate dashboard overview');
@@ -152,33 +151,33 @@ class EnterpriseDashboardSystem {
     try {
       // Check database health
       const dbHealth = await this.checkDatabaseHealth();
-      
+
       // Check API health
       const apiHealth = await this.checkApiHealth();
-      
+
       // Check intelligence systems health
       const intelligenceHealth = await this.checkIntelligenceHealth();
-      
+
       // Check queue health
       const queueHealth = await this.checkQueueHealth();
-      
+
       // Calculate overall health score
       const healthScores = {
         database: this.getHealthScore(dbHealth),
         api: this.getHealthScore(apiHealth),
         intelligence: this.getHealthScore(intelligenceHealth),
-        queue: this.getHealthScore(queueHealth)
+        queue: this.getHealthScore(queueHealth),
       };
-      
+
       const overallScore = Object.values(healthScores).reduce((a, b) => a + b, 0) / 4;
       const overallStatus = this.getHealthStatus(overallScore);
-      
+
       // Get current alerts
       const alerts = await this.getActiveAlerts();
-      
+
       // Generate recommendations
       const recommendations = this.generateHealthRecommendations(healthScores, alerts);
-      
+
       return {
         overall: overallStatus,
         score: Math.round(overallScore * 100),
@@ -186,10 +185,10 @@ class EnterpriseDashboardSystem {
           database: this.getHealthStatus(healthScores.database),
           api: this.getHealthStatus(healthScores.api),
           intelligence: this.getHealthStatus(healthScores.intelligence),
-          queue: this.getHealthStatus(healthScores.queue)
+          queue: this.getHealthStatus(healthScores.queue),
         },
         alerts,
-        recommendations
+        recommendations,
       };
     } catch (error) {
       return {
@@ -199,10 +198,10 @@ class EnterpriseDashboardSystem {
           database: 'critical',
           api: 'critical',
           intelligence: 'critical',
-          queue: 'critical'
+          queue: 'critical',
         },
         alerts: [],
-        recommendations: ['System health check failed - investigate immediately']
+        recommendations: ['System health check failed - investigate immediately'],
       };
     }
   }
@@ -212,7 +211,7 @@ class EnterpriseDashboardSystem {
       const [userStats, faithStats, contentStats] = await Promise.all([
         this.getUserStats(),
         this.getFaithPointStats(),
-        this.getUserContentStats()
+        this.getUserContentStats(),
       ]);
 
       return {
@@ -224,13 +223,13 @@ class EnterpriseDashboardSystem {
         spiritualGrowthMetrics: {
           averageFaithPoints: faithStats.average,
           consistencyRate: faithStats.consistency,
-          growthRate: faithStats.growth
+          growthRate: faithStats.growth,
         },
         contentMetrics: {
           totalGenerated: contentStats.total,
           averageRating: contentStats.rating,
-          completionRate: contentStats.completion
-        }
+          completionRate: contentStats.completion,
+        },
       };
     } catch (error) {
       return this.getDefaultUserAnalytics();
@@ -242,7 +241,7 @@ class EnterpriseDashboardSystem {
       const [contentStats, qualityStats, popularContent] = await Promise.all([
         this.getContentStats(),
         this.getContentQualityStats(),
-        this.getPopularContent()
+        this.getPopularContent(),
       ]);
 
       return {
@@ -254,8 +253,8 @@ class EnterpriseDashboardSystem {
         qualityMetrics: {
           averageRating: qualityStats.rating,
           userSatisfaction: qualityStats.satisfaction,
-          spiritualRelevance: qualityStats.relevance
-        }
+          spiritualRelevance: qualityStats.relevance,
+        },
       };
     } catch (error) {
       return this.getDefaultContentAnalytics();
@@ -267,7 +266,7 @@ class EnterpriseDashboardSystem {
       const [systemStats, queueStats, resourceStats] = await Promise.all([
         this.getSystemStats(),
         this.getQueueStats(),
-        this.getResourceStats()
+        this.getResourceStats(),
       ]);
 
       return {
@@ -279,13 +278,13 @@ class EnterpriseDashboardSystem {
           pending: queueStats.pending,
           processing: queueStats.processing,
           completed: queueStats.completed,
-          failed: queueStats.failed
+          failed: queueStats.failed,
         },
         resourceUtilization: {
           cpu: resourceStats.cpu,
           memory: resourceStats.memory,
-          storage: resourceStats.storage
-        }
+          storage: resourceStats.storage,
+        },
       };
     } catch (error) {
       return this.getDefaultPerformanceAnalytics();
@@ -298,7 +297,7 @@ class EnterpriseDashboardSystem {
         this.generateUserGrowthForecast(),
         this.generateContentDemandForecast(),
         this.generateSystemLoadForecast(),
-        this.generateEngagementTrends()
+        this.generateEngagementTrends(),
       ]);
 
       const recommendations = this.generatePredictiveRecommendations(
@@ -312,7 +311,7 @@ class EnterpriseDashboardSystem {
         contentDemandForecast: contentForecast,
         systemLoadForecast: systemForecast,
         spiritualEngagementTrends: engagementTrends,
-        recommendations
+        recommendations,
       };
     } catch (error) {
       return this.getDefaultPredictiveAnalytics();
@@ -325,23 +324,23 @@ class EnterpriseDashboardSystem {
   private async checkDatabaseHealth(): Promise<any> {
     try {
       const start = Date.now();
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_behavior_events')
         .select('id')
         .limit(1);
-      
+
       const responseTime = Date.now() - start;
-      
+
       return {
         status: error ? 'error' : 'healthy',
         responseTime,
-        error: error?.message
+        error: error?.message,
       };
     } catch (error) {
       return {
         status: 'error',
         responseTime: 0,
-        error: 'Database connection failed'
+        error: 'Database connection failed',
       };
     }
   }
@@ -351,21 +350,21 @@ class EnterpriseDashboardSystem {
       // Simulate API health check
       const start = Date.now();
       const responseTime = Date.now() - start;
-      
+
       return {
         status: 'healthy',
         responseTime,
         endpoints: {
           auth: 'healthy',
           content: 'healthy',
-          analytics: 'healthy'
-        }
+          analytics: 'healthy',
+        },
       };
     } catch (error) {
       return {
         status: 'error',
         responseTime: 0,
-        error: 'API health check failed'
+        error: 'API health check failed',
       };
     }
   }
@@ -375,19 +374,19 @@ class EnterpriseDashboardSystem {
       // Check if intelligence services are responding
       const predictiveHealth = predictiveContentEngine ? 'healthy' : 'error';
       const behavioralHealth = behavioralLearningSystem ? 'healthy' : 'error';
-      
+
       return {
         status: predictiveHealth === 'healthy' && behavioralHealth === 'healthy' ? 'healthy' : 'warning',
         services: {
           predictive: predictiveHealth,
           behavioral: behavioralHealth,
-          monitoring: 'healthy'
-        }
+          monitoring: 'healthy',
+        },
       };
     } catch (error) {
       return {
         status: 'error',
-        error: 'Intelligence systems check failed'
+        error: 'Intelligence systems check failed',
       };
     }
   }
@@ -398,20 +397,20 @@ class EnterpriseDashboardSystem {
         .from('generation_queue')
         .select('status')
         .limit(1000);
-      
+
       const pending = queueItems?.filter(item => item.status === 'pending').length || 0;
       const processing = queueItems?.filter(item => item.status === 'processing').length || 0;
-      
+
       return {
         status: pending > this.ALERT_THRESHOLDS.queueBacklog ? 'warning' : 'healthy',
         pending,
         processing,
-        backlog: pending
+        backlog: pending,
       };
     } catch (error) {
       return {
         status: 'error',
-        error: 'Queue health check failed'
+        error: 'Queue health check failed',
       };
     }
   }
@@ -423,19 +422,19 @@ class EnterpriseDashboardSystem {
     try {
       const thirtyDaysAgo = new Date(Date.now() - 2592000000).toISOString();
       const sevenDaysAgo = new Date(Date.now() - 604800000).toISOString();
-      
+
       const [totalUsers, activeUsers, newUsers] = await Promise.all([
         this.getTotalUserCount(),
         this.getActiveUserCount(sevenDaysAgo),
-        this.getNewUserCount(thirtyDaysAgo)
+        this.getNewUserCount(thirtyDaysAgo),
       ]);
-      
+
       return {
         total: totalUsers,
         active: activeUsers,
         new: newUsers,
         retention: totalUsers > 0 ? activeUsers / totalUsers : 0,
-        engagement: 0.75 // Simulated engagement score
+        engagement: 0.75, // Simulated engagement score
       };
     } catch (error) {
       return {
@@ -443,7 +442,7 @@ class EnterpriseDashboardSystem {
         active: 0,
         new: 0,
         retention: 0,
-        engagement: 0
+        engagement: 0,
       };
     }
   }
@@ -454,18 +453,18 @@ class EnterpriseDashboardSystem {
         .from('faith_points_transactions')
         .select('points, user_id, created_at')
         .gte('created_at', new Date(Date.now() - 2592000000).toISOString());
-      
+
       if (!transactions || transactions.length === 0) {
         return { average: 0, consistency: 0, growth: 0 };
       }
-      
+
       const totalPoints = transactions.reduce((sum, t) => sum + t.points, 0);
       const uniqueUsers = new Set(transactions.map(t => t.user_id)).size;
-      
+
       return {
         average: uniqueUsers > 0 ? totalPoints / uniqueUsers : 0,
         consistency: 0.68, // Simulated consistency rate
-        growth: 0.15 // Simulated growth rate
+        growth: 0.15, // Simulated growth rate
       };
     } catch (error) {
       return { average: 0, consistency: 0, growth: 0 };
@@ -478,22 +477,22 @@ class EnterpriseDashboardSystem {
         .from('generated_content')
         .select('id, metadata')
         .gte('created_at', new Date(Date.now() - 2592000000).toISOString());
-      
+
       if (!content || content.length === 0) {
         return { total: 0, rating: 0, completion: 0 };
       }
-      
+
       const ratings = content
         .map(c => c.metadata?.rating)
         .filter(r => r !== undefined && r !== null);
-      
-      const avgRating = ratings.length > 0 ? 
+
+      const avgRating = ratings.length > 0 ?
         ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0;
-      
+
       return {
         total: content.length,
         rating: avgRating,
-        completion: 0.82 // Simulated completion rate
+        completion: 0.82, // Simulated completion rate
       };
     } catch (error) {
       return { total: 0, rating: 0, completion: 0 };
@@ -506,52 +505,44 @@ class EnterpriseDashboardSystem {
         .from('generated_content')
         .select('content_type, created_at, metadata')
         .gte('created_at', new Date(Date.now() - 604800000).toISOString());
-      
+
       if (!content || content.length === 0) {
         return {
           total: 0,
           byType: {},
           avgTime: 0,
-          successRate: 0
+          successRate: 0,
         };
       }
-      
+
       const byType: { [key: string]: number } = {};
       content.forEach(c => {
         byType[c.content_type] = (byType[c.content_type] || 0) + 1;
       });
-      
+
       return {
         total: content.length,
         byType,
         avgTime: 2500, // Simulated average generation time in ms
-        successRate: 0.95 // Simulated success rate
+        successRate: 0.95, // Simulated success rate
       };
     } catch (error) {
       return {
         total: 0,
         byType: {},
         avgTime: 0,
-        successRate: 0
+        successRate: 0,
       };
     }
   }
 
   private async getContentQualityStats(): Promise<any> {
-    try {
-      // Simulated quality metrics
-      return {
-        rating: 4.2,
-        satisfaction: 0.85,
-        relevance: 0.92
-      };
-    } catch (error) {
-      return {
-        rating: 0,
-        satisfaction: 0,
-        relevance: 0
-      };
-    }
+    // Simulated quality metrics
+    return {
+      rating: 4.2,
+      satisfaction: 0.85,
+      relevance: 0.92,
+    };
   }
 
   private async getPopularContent(): Promise<any[]> {
@@ -561,7 +552,7 @@ class EnterpriseDashboardSystem {
         .select('id, content_type, title, metadata')
         .order('created_at', { ascending: false })
         .limit(10);
-      
+
       return content || [];
     } catch (error) {
       return [];
@@ -572,21 +563,21 @@ class EnterpriseDashboardSystem {
    * Utility methods
    */
   private getHealthScore(healthData: any): number {
-    if (healthData.status === 'healthy') return 1.0;
-    if (healthData.status === 'warning') return 0.7;
-    if (healthData.status === 'error') return 0.3;
+    if (healthData.status === 'healthy') {return 1.0;}
+    if (healthData.status === 'warning') {return 0.7;}
+    if (healthData.status === 'error') {return 0.3;}
     return 0.0;
   }
 
   private getHealthStatus(score: number): 'healthy' | 'warning' | 'critical' {
-    if (score >= 0.8) return 'healthy';
-    if (score >= 0.5) return 'warning';
+    if (score >= 0.8) {return 'healthy';}
+    if (score >= 0.5) {return 'warning';}
     return 'critical';
   }
 
   private generateHealthRecommendations(healthScores: any, alerts: Alert[]): string[] {
     const recommendations: string[] = [];
-    
+
     if (healthScores.database < 0.8) {
       recommendations.push('Monitor database performance and consider optimization');
     }
@@ -596,7 +587,7 @@ class EnterpriseDashboardSystem {
     if (alerts.length > 5) {
       recommendations.push('Address high number of active alerts');
     }
-    
+
     return recommendations;
   }
 
@@ -605,7 +596,7 @@ class EnterpriseDashboardSystem {
       const { count } = await supabase
         .from('user_contexts')
         .select('*', { count: 'exact', head: true });
-      
+
       return count || 0;
     } catch (error) {
       return 0;
@@ -618,9 +609,9 @@ class EnterpriseDashboardSystem {
         .from('user_behavior_events')
         .select('user_id')
         .gte('created_at', since);
-      
-      if (!data) return 0;
-      
+
+      if (!data) {return 0;}
+
       const uniqueUsers = new Set(data.map(event => event.user_id));
       return uniqueUsers.size;
     } catch (error) {
@@ -634,7 +625,7 @@ class EnterpriseDashboardSystem {
         .from('user_contexts')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', since);
-      
+
       return count || 0;
     } catch (error) {
       return 0;
@@ -646,7 +637,7 @@ class EnterpriseDashboardSystem {
       load: 0.65,
       responseTime: 850,
       throughput: 1250,
-      errorRate: 0.02
+      errorRate: 0.02,
     };
   }
 
@@ -655,21 +646,21 @@ class EnterpriseDashboardSystem {
       const { data: queueItems } = await supabase
         .from('generation_queue')
         .select('status');
-      
+
       if (!queueItems) {
         return { pending: 0, processing: 0, completed: 0, failed: 0 };
       }
-      
+
       const stats = queueItems.reduce((acc, item) => {
         acc[item.status] = (acc[item.status] || 0) + 1;
         return acc;
       }, {} as any);
-      
+
       return {
         pending: stats.pending || 0,
         processing: stats.processing || 0,
         completed: stats.completed || 0,
-        failed: stats.failed || 0
+        failed: stats.failed || 0,
       };
     } catch (error) {
       return { pending: 0, processing: 0, completed: 0, failed: 0 };
@@ -680,14 +671,14 @@ class EnterpriseDashboardSystem {
     return {
       cpu: 0.45,
       memory: 0.62,
-      storage: 0.38
+      storage: 0.38,
     };
   }
 
   private async getActiveAlerts(): Promise<Alert[]> {
     // Simulated alerts based on system conditions
     const alerts: Alert[] = [];
-    
+
     const queueStats = await this.getQueueStats();
     if (queueStats.pending > this.ALERT_THRESHOLDS.queueBacklog) {
       alerts.push({
@@ -698,10 +689,10 @@ class EnterpriseDashboardSystem {
         category: 'performance',
         timestamp: new Date().toISOString(),
         resolved: false,
-        actions: ['Scale queue processing', 'Monitor queue capacity']
+        actions: ['Scale queue processing', 'Monitor queue capacity'],
       });
     }
-    
+
     return alerts;
   }
 
@@ -718,13 +709,13 @@ class EnterpriseDashboardSystem {
       spiritualGrowthMetrics: {
         averageFaithPoints: 0,
         consistencyRate: 0,
-        growthRate: 0
+        growthRate: 0,
       },
       contentMetrics: {
         totalGenerated: 0,
         averageRating: 0,
-        completionRate: 0
-      }
+        completionRate: 0,
+      },
     };
   }
 
@@ -738,8 +729,8 @@ class EnterpriseDashboardSystem {
       qualityMetrics: {
         averageRating: 0,
         userSatisfaction: 0,
-        spiritualRelevance: 0
-      }
+        spiritualRelevance: 0,
+      },
     };
   }
 
@@ -753,13 +744,13 @@ class EnterpriseDashboardSystem {
         pending: 0,
         processing: 0,
         completed: 0,
-        failed: 0
+        failed: 0,
       },
       resourceUtilization: {
         cpu: 0,
         memory: 0,
-        storage: 0
-      }
+        storage: 0,
+      },
     };
   }
 
@@ -772,8 +763,8 @@ class EnterpriseDashboardSystem {
       recommendations: {
         scaling: [],
         optimization: [],
-        content: []
-      }
+        content: [],
+      },
     };
   }
 
@@ -785,12 +776,12 @@ class EnterpriseDashboardSystem {
     const baseGrowth = 1.05; // 5% monthly growth
     const forecast: number[] = [];
     let current = await this.getTotalUserCount();
-    
+
     for (let i = 0; i < 30; i++) {
-      current *= baseGrowth ** (1/30); // Daily growth rate
+      current *= baseGrowth ** (1 / 30); // Daily growth rate
       forecast.push(Math.round(current));
     }
-    
+
     return forecast;
   }
 
@@ -798,26 +789,26 @@ class EnterpriseDashboardSystem {
     // Simulated content demand forecast
     const baseDemand = 100; // Base daily content generation
     const forecast: number[] = [];
-    
+
     for (let i = 0; i < 30; i++) {
       const weekday = (new Date().getDay() + i) % 7;
       const weekdayMultiplier = weekday === 0 || weekday === 6 ? 0.7 : 1.2; // Lower on weekends
       const demand = Math.round(baseDemand * weekdayMultiplier * (1 + Math.random() * 0.3));
       forecast.push(demand);
     }
-    
+
     return forecast;
   }
 
   private async generateSystemLoadForecast(): Promise<number[]> {
     // Simulated system load forecast
     const forecast: number[] = [];
-    
+
     for (let i = 0; i < 24; i++) { // 24-hour forecast
       const hourlyLoad = 0.3 + (Math.sin((i - 6) * Math.PI / 12) + 1) * 0.3; // Peak during day
       forecast.push(Math.min(hourlyLoad, 1.0));
     }
-    
+
     return forecast;
   }
 
@@ -826,7 +817,7 @@ class EnterpriseDashboardSystem {
     return [
       { date: '2024-01-01', engagement: 0.75, spiritualActivity: 0.68 },
       { date: '2024-01-02', engagement: 0.78, spiritualActivity: 0.72 },
-      { date: '2024-01-03', engagement: 0.82, spiritualActivity: 0.75 }
+      { date: '2024-01-03', engagement: 0.82, spiritualActivity: 0.75 },
     ];
   }
 
@@ -838,22 +829,22 @@ class EnterpriseDashboardSystem {
     const recommendations = {
       scaling: [] as string[],
       optimization: [] as string[],
-      content: [] as string[]
+      content: [] as string[],
     };
-    
+
     // Analyze forecasts and generate recommendations
     const maxSystemLoad = Math.max(...systemForecast);
     if (maxSystemLoad > 0.8) {
       recommendations.scaling.push('Consider scaling infrastructure for peak load periods');
     }
-    
+
     const avgContentDemand = contentForecast.reduce((a, b) => a + b, 0) / contentForecast.length;
     if (avgContentDemand > 150) {
       recommendations.content.push('Prepare for increased content generation demand');
     }
-    
+
     recommendations.optimization.push('Monitor system performance during peak hours');
-    
+
     return recommendations;
   }
 }

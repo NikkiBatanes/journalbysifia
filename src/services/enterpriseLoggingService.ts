@@ -1,6 +1,6 @@
 /**
  * Enterprise Logging Service
- * Provides structured, centralized logging with multiple levels, 
+ * Provides structured, centralized logging with multiple levels,
  * correlation IDs, and enterprise-grade log management
  */
 
@@ -121,7 +121,7 @@ class EnterpriseLoggingService {
     const errorData = error ? {
       name: error.name,
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
     } : undefined;
 
     this.log('error', message, metadata, userId, errorData);
@@ -134,11 +134,11 @@ class EnterpriseLoggingService {
     const errorData = error ? {
       name: error.name,
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
     } : undefined;
 
     this.log('fatal', message, metadata, userId, errorData);
-    
+
     // Immediately flush fatal errors
     this.flushLogs();
   }
@@ -147,15 +147,15 @@ class EnterpriseLoggingService {
    * Log performance metrics
    */
   performance(
-    message: string, 
-    duration: number, 
-    metadata?: Record<string, any>, 
+    message: string,
+    duration: number,
+    metadata?: Record<string, any>,
     userId?: string
   ): void {
     const performanceData = {
       duration,
       memory: this.getMemoryUsage(),
-      cpu: this.getCpuUsage()
+      cpu: this.getCpuUsage(),
     };
 
     this.log('info', message, metadata, userId, undefined, performanceData);
@@ -173,13 +173,13 @@ class EnterpriseLoggingService {
     requestId?: string
   ): void {
     const level: LogLevel = statusCode >= 500 ? 'error' : statusCode >= 400 ? 'warn' : 'info';
-    
+
     this.log(level, `API ${method} ${endpoint}`, {
       method,
       endpoint,
       statusCode,
       duration,
-      requestId
+      requestId,
     }, userId, undefined, { duration, memory: this.getMemoryUsage() });
   }
 
@@ -193,7 +193,7 @@ class EnterpriseLoggingService {
   ): void {
     this.log('info', `User action: ${action}`, {
       action,
-      ...metadata
+      ...metadata,
     }, userId);
   }
 
@@ -208,7 +208,7 @@ class EnterpriseLoggingService {
     this.log('info', `Business event: ${event}`, {
       event,
       category: 'business',
-      ...metadata
+      ...metadata,
     }, userId);
   }
 
@@ -233,7 +233,7 @@ class EnterpriseLoggingService {
       correlationId: this.correlationId || undefined,
       metadata,
       error,
-      performance
+      performance,
     };
 
     // Add to buffer
@@ -326,7 +326,7 @@ class EnterpriseLoggingService {
 
       const { data, error } = await query;
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       return data || [];
     } catch (error) {
@@ -345,7 +345,7 @@ class EnterpriseLoggingService {
 
       const logs = await this.queryLogs({
         startTime: since,
-        limit: 10000
+        limit: 10000,
       });
 
       const totalLogs = logs.length;
@@ -354,7 +354,7 @@ class EnterpriseLoggingService {
         info: 0,
         warn: 0,
         error: 0,
-        fatal: 0
+        fatal: 0,
       };
       const logsByService: Record<string, number> = {};
       const errorMessages: Record<string, { count: number; service: string }> = {};
@@ -388,7 +388,7 @@ class EnterpriseLoggingService {
         .map(([message, data]) => ({
           message,
           count: data.count,
-          service: data.service
+          service: data.service,
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 10);
@@ -399,7 +399,7 @@ class EnterpriseLoggingService {
         logsByService,
         errorRate,
         avgResponseTime,
-        topErrors
+        topErrors,
       };
     } catch (error) {
       console.error('[EnterpriseLogging] Error getting log metrics:', error);
@@ -409,7 +409,7 @@ class EnterpriseLoggingService {
         logsByService: {},
         errorRate: 0,
         avgResponseTime: 0,
-        topErrors: []
+        topErrors: [],
       };
     }
   }
@@ -426,7 +426,7 @@ class EnterpriseLoggingService {
         .delete()
         .lt('timestamp', cutoffDate);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       const deletedCount = Array.isArray(data) ? data.length : 0;
       this.info(`Cleaned ${deletedCount} old log entries`, { retentionDays, cutoffDate });
@@ -448,8 +448,8 @@ class EnterpriseLoggingService {
   private consoleLog(logEntry: LogEntry): void {
     const timestamp = new Date(logEntry.timestamp).toLocaleTimeString();
     const prefix = `[${timestamp}] [${logEntry.level.toUpperCase()}] [${logEntry.service}]`;
-    
-    const message = logEntry.correlationId 
+
+    const message = logEntry.correlationId
       ? `${prefix} [${logEntry.correlationId}] ${logEntry.message}`
       : `${prefix} ${logEntry.message}`;
 
@@ -488,24 +488,24 @@ export const enterpriseLogger = new EnterpriseLoggingService();
 
 // Export convenience methods
 export const logger = {
-  debug: (message: string, metadata?: Record<string, any>, userId?: string) => 
+  debug: (message: string, metadata?: Record<string, any>, userId?: string) =>
     enterpriseLogger.debug(message, metadata, userId),
-  info: (message: string, metadata?: Record<string, any>, userId?: string) => 
+  info: (message: string, metadata?: Record<string, any>, userId?: string) =>
     enterpriseLogger.info(message, metadata, userId),
-  warn: (message: string, metadata?: Record<string, any>, userId?: string) => 
+  warn: (message: string, metadata?: Record<string, any>, userId?: string) =>
     enterpriseLogger.warn(message, metadata, userId),
-  error: (message: string, error?: Error, metadata?: Record<string, any>, userId?: string) => 
+  error: (message: string, error?: Error, metadata?: Record<string, any>, userId?: string) =>
     enterpriseLogger.error(message, error, metadata, userId),
-  fatal: (message: string, error?: Error, metadata?: Record<string, any>, userId?: string) => 
+  fatal: (message: string, error?: Error, metadata?: Record<string, any>, userId?: string) =>
     enterpriseLogger.fatal(message, error, metadata, userId),
-  performance: (message: string, duration: number, metadata?: Record<string, any>, userId?: string) => 
+  performance: (message: string, duration: number, metadata?: Record<string, any>, userId?: string) =>
     enterpriseLogger.performance(message, duration, metadata, userId),
-  apiLog: (method: string, endpoint: string, statusCode: number, duration: number, userId?: string, requestId?: string) => 
+  apiLog: (method: string, endpoint: string, statusCode: number, duration: number, userId?: string, requestId?: string) =>
     enterpriseLogger.apiLog(method, endpoint, statusCode, duration, userId, requestId),
-  userAction: (action: string, userId: string, metadata?: Record<string, any>) => 
+  userAction: (action: string, userId: string, metadata?: Record<string, any>) =>
     enterpriseLogger.userAction(action, userId, metadata),
-  businessEvent: (event: string, metadata?: Record<string, any>, userId?: string) => 
+  businessEvent: (event: string, metadata?: Record<string, any>, userId?: string) =>
     enterpriseLogger.businessEvent(event, metadata, userId),
   setCorrelationId: (correlationId: string) => enterpriseLogger.setCorrelationId(correlationId),
-  generateCorrelationId: () => enterpriseLogger.generateCorrelationId()
+  generateCorrelationId: () => enterpriseLogger.generateCorrelationId(),
 };

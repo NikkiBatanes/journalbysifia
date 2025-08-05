@@ -47,7 +47,7 @@ class EnterpriseSecurityService {
       sessionTimeout: 3600000, // 1 hour
       requireMFA: false,
       allowedOrigins: ['localhost', '127.0.0.1'],
-      rateLimitPerMinute: 100
+      rateLimitPerMinute: 100,
     };
   }
 
@@ -88,20 +88,20 @@ class EnterpriseSecurityService {
       return {
         isValid: errors.length === 0,
         errors,
-        sanitized
+        sanitized,
       };
     } catch (error) {
       await this.logSecurityEvent({
         eventType: 'security_violation',
         severity: 'medium',
         description: 'Input validation error',
-        metadata: { type, error: error instanceof Error ? error.message : 'Unknown error' }
+        metadata: { type, error: error instanceof Error ? error.message : 'Unknown error' },
       });
 
       return {
         isValid: false,
         errors: ['Validation failed'],
-        sanitized: ''
+        sanitized: '',
       };
     }
   }
@@ -118,16 +118,16 @@ class EnterpriseSecurityService {
     }
 
     const requests = this.rateLimitTracker.get(identifier)!;
-    
+
     // Remove old requests outside the window
     const recentRequests = requests.filter(timestamp => timestamp > windowStart);
-    
+
     if (recentRequests.length >= this.securityPolicy.rateLimitPerMinute) {
       await this.logSecurityEvent({
         eventType: 'suspicious_activity',
         severity: 'medium',
         description: 'Rate limit exceeded',
-        metadata: { identifier, requestCount: recentRequests.length }
+        metadata: { identifier, requestCount: recentRequests.length },
       });
       return false;
     }
@@ -135,7 +135,7 @@ class EnterpriseSecurityService {
     // Add current request
     recentRequests.push(now);
     this.rateLimitTracker.set(identifier, recentRequests);
-    
+
     return true;
   }
 
@@ -151,7 +151,7 @@ class EnterpriseSecurityService {
         eventType: 'auth_attempt',
         severity: 'low',
         description: 'Successful login',
-        metadata: { identifier }
+        metadata: { identifier },
       });
       return true;
     }
@@ -164,7 +164,7 @@ class EnterpriseSecurityService {
         eventType: 'suspicious_activity',
         severity: 'high',
         description: 'Multiple failed login attempts detected',
-        metadata: { identifier, attempts: newAttempts }
+        metadata: { identifier, attempts: newAttempts },
       });
       return false;
     }
@@ -173,7 +173,7 @@ class EnterpriseSecurityService {
       eventType: 'auth_attempt',
       severity: 'medium',
       description: 'Failed login attempt',
-      metadata: { identifier, attempts: newAttempts }
+      metadata: { identifier, attempts: newAttempts },
     });
 
     return true;
@@ -199,7 +199,7 @@ class EnterpriseSecurityService {
         eventType: 'data_access',
         severity: 'low',
         description: 'Data encrypted',
-        metadata: { classification: classification.level }
+        metadata: { classification: classification.level },
       });
 
       return encrypted;
@@ -208,7 +208,7 @@ class EnterpriseSecurityService {
         eventType: 'security_violation',
         severity: 'high',
         description: 'Encryption failed',
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
       });
       throw new Error('Encryption failed');
     }
@@ -235,7 +235,7 @@ class EnterpriseSecurityService {
         eventType: 'data_access',
         severity: 'low',
         description: 'Data decrypted',
-        metadata: { classification: classification.level }
+        metadata: { classification: classification.level },
       });
 
       return decrypted;
@@ -244,7 +244,7 @@ class EnterpriseSecurityService {
         eventType: 'security_violation',
         severity: 'high',
         description: 'Decryption failed',
-        metadata: { error: error instanceof Error ? error.message : 'Unknown error' }
+        metadata: { error: error instanceof Error ? error.message : 'Unknown error' },
       });
       throw new Error('Decryption failed');
     }
@@ -281,7 +281,7 @@ class EnterpriseSecurityService {
         timestamp: new Date().toISOString(),
         userId: event.userId,
         ipAddress: event.ipAddress,
-        userAgent: event.userAgent
+        userAgent: event.userAgent,
       };
 
       // Store in database
@@ -321,7 +321,7 @@ class EnterpriseSecurityService {
         .select('*')
         .gte('timestamp', since);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       const totalEvents = events?.length || 0;
       const eventsByType: Record<string, number> = {};
@@ -336,7 +336,7 @@ class EnterpriseSecurityService {
         .map(([type, count]) => ({
           type,
           count,
-          description: this.getThreatDescription(type)
+          description: this.getThreatDescription(type),
         }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
@@ -348,7 +348,7 @@ class EnterpriseSecurityService {
         eventsByType,
         eventsBySeverity,
         topThreats,
-        recommendations
+        recommendations,
       };
     } catch (error) {
       console.error('[SecurityService] Error getting security metrics:', error);
@@ -357,7 +357,7 @@ class EnterpriseSecurityService {
         eventsByType: {},
         eventsBySeverity: {},
         topThreats: [],
-        recommendations: ['Unable to retrieve security metrics']
+        recommendations: ['Unable to retrieve security metrics'],
       };
     }
   }
@@ -403,7 +403,7 @@ class EnterpriseSecurityService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -415,7 +415,7 @@ class EnterpriseSecurityService {
       /<script/i,
       /javascript:/i,
       /eval\(/i,
-      /exec\(/i
+      /exec\(/i,
     ];
 
     return suspiciousPatterns.some(pattern => pattern.test(input));
@@ -432,7 +432,7 @@ class EnterpriseSecurityService {
       'data_access': 'Data access events',
       'api_call': 'API call monitoring',
       'suspicious_activity': 'Suspicious behavior detected',
-      'security_violation': 'Security policy violations'
+      'security_violation': 'Security policy violations',
     };
 
     return descriptions[eventType] || 'Unknown threat type';

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { trialAccessService, TrialStatus, FeatureAccess } from '../services/trialAccessService';
-import { useAuth } from './useAuth';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Hook for managing trial status and feature access
@@ -14,26 +14,26 @@ export const useTrialAccess = () => {
   const {
     data: trialStatus,
     isLoading: isLoadingTrial,
-    error: trialError
+    error: trialError,
   } = useQuery<TrialStatus>({
     queryKey: ['trial-status', user?.id],
     queryFn: () => trialAccessService.getTrialStatus(user!.id),
     enabled: !!user?.id,
     refetchInterval: 60000, // Refresh every minute
-    staleTime: 30000 // Consider fresh for 30 seconds
+    staleTime: 30000, // Consider fresh for 30 seconds
   });
 
   // Get feature access
   const {
     data: featureAccess,
     isLoading: isLoadingAccess,
-    error: accessError
+    error: accessError,
   } = useQuery<FeatureAccess>({
     queryKey: ['feature-access', user?.id],
     queryFn: () => trialAccessService.getFeatureAccess(user!.id),
     enabled: !!user?.id,
     refetchInterval: 60000,
-    staleTime: 30000
+    staleTime: 30000,
   });
 
   // Start trial mutation
@@ -43,7 +43,7 @@ export const useTrialAccess = () => {
       queryClient.invalidateQueries({ queryKey: ['trial-status', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['feature-access', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['subscription', user?.id] });
-    }
+    },
   });
 
   return {
@@ -51,21 +51,21 @@ export const useTrialAccess = () => {
     trialStatus,
     isLoadingTrial,
     trialError,
-    
+
     // Feature access
     featureAccess,
     isLoadingAccess,
     accessError,
-    
+
     // Actions
     startTrial: startTrialMutation.mutate,
     isStartingTrial: startTrialMutation.isPending,
-    
+
     // Computed values
     isLoading: isLoadingTrial || isLoadingAccess,
     hasActiveAccess: trialStatus?.fullAccessEnabled || false,
     daysRemaining: trialStatus?.daysRemaining || 0,
-    hasExpired: trialStatus?.hasExpired || false
+    hasExpired: trialStatus?.hasExpired || false,
   };
 };
 
@@ -74,10 +74,10 @@ export const useTrialAccess = () => {
  */
 export const useFeatureAccess = (feature: keyof FeatureAccess) => {
   const { featureAccess, isLoadingAccess } = useTrialAccess();
-  
+
   return {
     hasAccess: featureAccess?.[feature] || false,
-    isLoading: isLoadingAccess
+    isLoading: isLoadingAccess,
   };
 };
 
@@ -89,8 +89,8 @@ export const useContentGeneration = () => {
   const { featureAccess } = useTrialAccess();
 
   const checkCanGenerate = async (contentType: 'playbook' | 'devotional') => {
-    if (!user?.id) return { canGenerate: false, reason: 'not_authenticated' };
-    
+    if (!user?.id) {return { canGenerate: false, reason: 'not_authenticated' };}
+
     return await trialAccessService.canGenerateContent(user.id, contentType);
   };
 
@@ -98,7 +98,7 @@ export const useContentGeneration = () => {
     playbooksRemaining: featureAccess?.playbooksRemaining || 0,
     devotionalsRemaining: featureAccess?.devotionalsRemaining || 0,
     checkCanGenerate,
-    hasUnlimitedAccess: featureAccess?.playbooksRemaining === 999 // During trial
+    hasUnlimitedAccess: featureAccess?.playbooksRemaining === 999, // During trial
   };
 };
 
@@ -118,12 +118,12 @@ export const useTrialCountdown = () => {
   }, [trialStatus]);
 
   const getCountdownMessage = () => {
-    if (!trialStatus?.isActive) return null;
-    
+    if (!trialStatus?.isActive) {return null;}
+
     const { daysRemaining } = trialStatus;
-    
+
     if (daysRemaining === 0) {
-      return "Your trial expires today! Upgrade to keep full access.";
+      return 'Your trial expires today! Upgrade to keep full access.';
     } else if (daysRemaining === 1) {
       return "Only 1 day left in your trial! Don't lose access to premium features.";
     } else {
@@ -132,10 +132,10 @@ export const useTrialCountdown = () => {
   };
 
   const getUrgencyLevel = (): 'low' | 'medium' | 'high' => {
-    if (!trialStatus?.isActive) return 'low';
-    
-    if (trialStatus.daysRemaining === 0) return 'high';
-    if (trialStatus.daysRemaining === 1) return 'medium';
+    if (!trialStatus?.isActive) {return 'low';}
+
+    if (trialStatus.daysRemaining === 0) {return 'high';}
+    if (trialStatus.daysRemaining === 1) {return 'medium';}
     return 'low';
   };
 
@@ -144,7 +144,7 @@ export const useTrialCountdown = () => {
     urgencyLevel: getUrgencyLevel(),
     showUrgency,
     daysRemaining: trialStatus?.daysRemaining || 0,
-    isActive: trialStatus?.isActive || false
+    isActive: trialStatus?.isActive || false,
   };
 };
 
@@ -152,7 +152,6 @@ export const useTrialCountdown = () => {
  * Hook for upgrade prompts when features are blocked
  */
 export const useUpgradePrompts = () => {
-  const { user } = useAuth();
   const { featureAccess, hasExpired } = useTrialAccess();
 
   const getUpgradePrompt = (feature: string) => {
@@ -160,15 +159,15 @@ export const useUpgradePrompts = () => {
   };
 
   const shouldShowUpgradePrompt = (feature: keyof FeatureAccess): boolean => {
-    if (!featureAccess) return false;
-    
+    if (!featureAccess) {return false;}
+
     // Show upgrade prompt if trial expired and feature is locked
     return hasExpired && !featureAccess[feature];
   };
 
   const getBlockedFeatureMessage = (feature: keyof FeatureAccess): string => {
-    if (!hasExpired) return '';
-    
+    if (!hasExpired) {return '';}
+
     const messages = {
       smartJournalingEnabled: 'Smart Journaling is now locked. Upgrade to Starter to unlock AI-powered insights.',
       journalTemplatesAccess: 'Premium templates are now locked. Upgrade to access all 20+ guided templates.',
@@ -176,7 +175,7 @@ export const useUpgradePrompts = () => {
       devotionalsRemaining: 'You\'ve reached your devotional limit. Upgrade for unlimited daily devotionals.',
       intelligenceEnabled: 'Advanced AI features are locked. Upgrade to Transformation for enhanced personalization.',
       advancedAnalytics: 'Analytics are locked. Upgrade to track your spiritual growth journey.',
-      prioritySupport: 'Priority support is locked. Upgrade for faster response times.'
+      prioritySupport: 'Priority support is locked. Upgrade for faster response times.',
     };
 
     return messages[feature] || 'This feature requires a subscription. Upgrade to unlock.';
@@ -186,6 +185,6 @@ export const useUpgradePrompts = () => {
     getUpgradePrompt,
     shouldShowUpgradePrompt,
     getBlockedFeatureMessage,
-    hasExpiredTrial: hasExpired
+    hasExpiredTrial: hasExpired,
   };
 };

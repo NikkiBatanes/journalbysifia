@@ -41,11 +41,11 @@ export interface ScalingDecision {
 }
 
 export class ConcurrencyOptimizationEngine {
-  
+
   private workerPools = new Map<string, WorkerPool>();
   private activeOperations = new Map<string, any>();
   private readonly MAX_CONCURRENT_OPERATIONS = 10000;
-  
+
   constructor() {
     this.initializeWorkerPools();
   }
@@ -60,17 +60,17 @@ export class ConcurrencyOptimizationEngine {
     priority: 'low' | 'medium' | 'high' = 'medium'
   ): Promise<T> {
     const operationId = this.generateOperationId();
-    
+
     try {
       // Check concurrency limits
       await this.checkConcurrencyLimits(operationType, priority);
-      
+
       // Select optimal worker
       const worker = await this.selectOptimalWorker(operationType);
-      
+
       // Register operation
       this.registerOperation(operationId, operationType, userId, worker.id);
-      
+
       // Execute with monitoring
       const result = await performanceMonitoringService.recordOperation(
         `concurrent_${operationType}`,
@@ -85,9 +85,9 @@ export class ConcurrencyOptimizationEngine {
         },
         { workerId: worker.id, priority }
       );
-      
+
       return result;
-      
+
     } catch (error) {
       console.error(`[ConcurrencyOptimization] Error in operation ${operationType}:`, error);
       throw error;
@@ -116,7 +116,7 @@ export class ConcurrencyOptimizationEngine {
         averageResponseTime,
         throughput,
         errorRate,
-        resourceUtilization
+        resourceUtilization,
       };
 
     } catch (error) {
@@ -133,7 +133,7 @@ export class ConcurrencyOptimizationEngine {
       const metrics = await this.getConcurrencyMetrics();
       const decisions: ScalingDecision[] = [];
 
-      for (const [poolId, pool] of this.workerPools.entries()) {
+      for (const [_poolId, pool] of this.workerPools.entries()) {
         const decision = await this.analyzeWorkerPoolScaling(pool, metrics);
         if (decision) {
           decisions.push(decision);
@@ -157,13 +157,13 @@ export class ConcurrencyOptimizationEngine {
   async handleTrafficSpike(spikeIntensity: number): Promise<void> {
     try {
       console.log(`[ConcurrencyOptimization] Handling traffic spike with intensity ${spikeIntensity}`);
-      
+
       if (spikeIntensity > 0.8) {
         await this.activateEmergencyMode();
       }
-      
+
       await this.scaleUpCriticalWorkers(spikeIntensity);
-      
+
     } catch (error) {
       console.error('[ConcurrencyOptimization] Error handling traffic spike:', error);
     }
@@ -179,7 +179,7 @@ export class ConcurrencyOptimizationEngine {
       capacity: 50,
       currentLoad: 0,
       health: 1.0,
-      lastHealthCheck: new Date().toISOString()
+      lastHealthCheck: new Date().toISOString(),
     });
 
     this.workerPools.set('intelligence_primary', {
@@ -188,7 +188,7 @@ export class ConcurrencyOptimizationEngine {
       capacity: 100,
       currentLoad: 0,
       health: 1.0,
-      lastHealthCheck: new Date().toISOString()
+      lastHealthCheck: new Date().toISOString(),
     });
 
     this.workerPools.set('database_primary', {
@@ -197,7 +197,7 @@ export class ConcurrencyOptimizationEngine {
       capacity: 200,
       currentLoad: 0,
       health: 1.0,
-      lastHealthCheck: new Date().toISOString()
+      lastHealthCheck: new Date().toISOString(),
     });
 
     this.workerPools.set('analytics_primary', {
@@ -206,13 +206,13 @@ export class ConcurrencyOptimizationEngine {
       capacity: 75,
       currentLoad: 0,
       health: 1.0,
-      lastHealthCheck: new Date().toISOString()
+      lastHealthCheck: new Date().toISOString(),
     });
   }
 
   private async checkConcurrencyLimits(operationType: string, priority: string): Promise<void> {
     const currentOperations = this.activeOperations.size;
-    
+
     if (currentOperations >= this.MAX_CONCURRENT_OPERATIONS) {
       if (priority === 'high') {
         await this.clearLowPriorityOperations();
@@ -240,7 +240,7 @@ export class ConcurrencyOptimizationEngine {
       'context_building': ['intelligence'],
       'journal_detection': ['intelligence'],
       'database_query': ['database'],
-      'analytics': ['analytics']
+      'analytics': ['analytics'],
     };
 
     const eligibleTypes = operationTypeMap[operationType] || ['generation', 'intelligence'];
@@ -250,17 +250,17 @@ export class ConcurrencyOptimizationEngine {
   private selectIntelligent(workers: WorkerPool[], operationType: string): WorkerPool {
     const scoredWorkers = workers.map(worker => {
       let score = 0;
-      
+
       score += worker.health * 0.3;
       score += (1 - worker.currentLoad / worker.capacity) * 0.25;
       score += this.getTypeAffinity(worker.type, operationType) * 0.2;
       score += this.getRecentPerformance(worker.id) * 0.15;
       score += 0.1; // Base score
-      
+
       return { worker, score };
     });
 
-    return scoredWorkers.reduce((best, current) => 
+    return scoredWorkers.reduce((best, current) =>
       current.score > best.score ? current : best
     ).worker;
   }
@@ -270,27 +270,27 @@ export class ConcurrencyOptimizationEngine {
       'generation': {
         'generation': 1.0,
         'context_building': 0.6,
-        'journal_detection': 0.4
+        'journal_detection': 0.4,
       },
       'intelligence': {
         'context_building': 1.0,
         'journal_detection': 1.0,
-        'generation': 0.7
+        'generation': 0.7,
       },
       'database': {
         'database_query': 1.0,
-        'context_building': 0.8
+        'context_building': 0.8,
       },
       'analytics': {
         'analytics': 1.0,
-        'performance_monitoring': 1.0
-      }
+        'performance_monitoring': 1.0,
+      },
     };
 
     return affinityMap[workerType]?.[operationType] || 0.5;
   }
 
-  private getRecentPerformance(workerId: string): number {
+  private getRecentPerformance(_workerId: string): number {
     return Math.random() * 0.3 + 0.7; // 0.7-1.0
   }
 
@@ -301,7 +301,7 @@ export class ConcurrencyOptimizationEngine {
       userId,
       workerId,
       startTime: Date.now(),
-      priority: 'medium'
+      priority: 'medium',
     });
   }
 
@@ -342,7 +342,7 @@ export class ConcurrencyOptimizationEngine {
 
   private async getAverageResponseTime(): Promise<number> {
     const operations = Array.from(this.activeOperations.values());
-    if (operations.length === 0) return 0;
+    if (operations.length === 0) {return 0;}
 
     const totalTime = operations.reduce((sum, op) => sum + (Date.now() - op.startTime), 0);
     return totalTime / operations.length;
@@ -351,7 +351,7 @@ export class ConcurrencyOptimizationEngine {
   private async getThroughput(): Promise<number> {
     const completedInLastMinute = Array.from(this.activeOperations.values())
       .filter(op => Date.now() - op.startTime < 60000).length;
-    
+
     return completedInLastMinute / 60;
   }
 
@@ -362,7 +362,7 @@ export class ConcurrencyOptimizationEngine {
   private async getResourceUtilization(): Promise<ConcurrencyMetrics['resourceUtilization']> {
     const totalCapacity = Array.from(this.workerPools.values())
       .reduce((sum, worker) => sum + worker.capacity, 0);
-    
+
     const totalLoad = Array.from(this.workerPools.values())
       .reduce((sum, worker) => sum + worker.currentLoad, 0);
 
@@ -372,7 +372,7 @@ export class ConcurrencyOptimizationEngine {
       cpu: Math.min(utilization * 1.2, 1.0),
       memory: Math.min(utilization * 1.1, 1.0),
       database: Math.min(utilization * 0.8, 1.0),
-      queue: Math.min(utilization * 0.9, 1.0)
+      queue: Math.min(utilization * 0.9, 1.0),
     };
   }
 
@@ -384,13 +384,13 @@ export class ConcurrencyOptimizationEngine {
       averageResponseTime: 0,
       throughput: 0,
       errorRate: 0,
-      resourceUtilization: { cpu: 0, memory: 0, database: 0, queue: 0 }
+      resourceUtilization: { cpu: 0, memory: 0, database: 0, queue: 0 },
     };
   }
 
-  private async analyzeWorkerPoolScaling(pool: WorkerPool, metrics: ConcurrencyMetrics): Promise<ScalingDecision | null> {
+  private async analyzeWorkerPoolScaling(pool: WorkerPool, _metrics: ConcurrencyMetrics): Promise<ScalingDecision | null> {
     const utilizationRate = pool.currentLoad / pool.capacity;
-    
+
     if (utilizationRate > 0.85) {
       return {
         action: 'scale_up',
@@ -398,10 +398,10 @@ export class ConcurrencyOptimizationEngine {
         currentCapacity: pool.capacity,
         targetCapacity: Math.ceil(pool.capacity * 1.5),
         reasoning: 'High utilization rate detected',
-        urgency: utilizationRate > 0.95 ? 'critical' : 'high'
+        urgency: utilizationRate > 0.95 ? 'critical' : 'high',
       };
     }
-    
+
     if (utilizationRate < 0.3 && pool.capacity > 10) {
       return {
         action: 'scale_down',
@@ -409,16 +409,16 @@ export class ConcurrencyOptimizationEngine {
         currentCapacity: pool.capacity,
         targetCapacity: Math.max(Math.ceil(pool.capacity * 0.7), 10),
         reasoning: 'Low utilization rate detected',
-        urgency: 'low'
+        urgency: 'low',
       };
     }
-    
+
     return null;
   }
 
   private async activateEmergencyMode(): Promise<void> {
     console.log('[ConcurrencyOptimization] Activating emergency mode');
-    
+
     for (const pool of this.workerPools.values()) {
       pool.capacity = Math.ceil(pool.capacity * 1.5);
     }
@@ -427,7 +427,7 @@ export class ConcurrencyOptimizationEngine {
   private async scaleUpCriticalWorkers(spikeIntensity: number): Promise<void> {
     const scaleFactor = 1 + spikeIntensity;
     const criticalTypes = ['generation', 'intelligence'];
-    
+
     for (const pool of this.workerPools.values()) {
       if (criticalTypes.includes(pool.type)) {
         pool.capacity = Math.ceil(pool.capacity * scaleFactor);
@@ -439,7 +439,7 @@ export class ConcurrencyOptimizationEngine {
     const lowPriorityOps = Array.from(this.activeOperations.entries())
       .filter(([_, op]) => op.priority === 'low')
       .slice(0, 10);
-    
+
     for (const [opId] of lowPriorityOps) {
       this.unregisterOperation(opId);
     }

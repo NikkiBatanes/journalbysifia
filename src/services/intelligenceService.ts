@@ -10,39 +10,39 @@ import { subscriptionService } from './subscriptionService';
 export interface UserIntelligenceProfile {
   id: string;
   user_id: string;
-  
+
   // Basic profile (LOCAL ANALYSIS)
   spiritual_maturity: 'beginner' | 'growing' | 'mature';
   learning_style: 'visual' | 'auditory' | 'reading' | 'kinesthetic' | 'balanced';
   preferred_challenge_level: 'gentle' | 'moderate' | 'intense';
   communication_style: 'direct' | 'gentle' | 'encouraging' | 'balanced';
-  
+
   // Success patterns (LOCAL TRACKING)
   successful_playbook_types: string[];
   successful_devotional_types: string[];
   optimal_action_step_count: number;
   preferred_content_length: 'short' | 'medium' | 'long';
-  
+
   // Engagement patterns (LOCAL ANALYTICS)
   best_engagement_times: number[]; // hours of day
   typical_session_length: number; // minutes
   preferred_session_frequency: number; // times per week
-  
+
   // Completion patterns (LOCAL CALCULATION)
   average_completion_rate: number; // 0.0 to 1.0
   consistency_score: number; // 0.0 to 1.0
   engagement_depth_score: number; // 0.0 to 1.0
-  
+
   // Growth tracking
   focus_areas: string[];
   growth_areas: string[];
   strength_areas: string[];
-  
+
   // Personalization preferences
   preferred_bible_versions: string[];
   favorite_topics: string[];
   avoided_topics: string[];
-  
+
   // Metadata
   confidence_score: number; // How confident we are in this profile
   data_points_count: number;
@@ -121,7 +121,7 @@ export class IntelligenceService {
 
       // Calculate engagement score locally
       const engagementScore = this.calculateEngagementScore(event);
-      
+
       // Insert behavior event
       await this.supabase
         .from('user_behavior_events')
@@ -135,7 +135,7 @@ export class IntelligenceService {
           devotional_id: event.devotional_id,
           engagement_score: engagementScore,
           success_indicator: event.success_indicator || false,
-          duration_seconds: event.duration_seconds
+          duration_seconds: event.duration_seconds,
         });
 
       // Update intelligence profile based on new behavior
@@ -159,13 +159,13 @@ export class IntelligenceService {
       }
 
       const profile = await this.getUserIntelligenceProfile(userId);
-      
+
       return {
         spiritualContext: this.buildSpiritualContext(profile),
         learningPreferences: this.buildLearningPreferences(profile),
         successPatterns: this.buildSuccessPatterns(profile),
         communicationStyle: this.buildCommunicationStyle(profile),
-        currentFocus: this.buildCurrentFocus(profile)
+        currentFocus: this.buildCurrentFocus(profile),
       };
     } catch (error) {
       console.error('[IntelligenceService] Error generating personalized prompt data:', error);
@@ -185,7 +185,7 @@ export class IntelligenceService {
 
       const profile = await this.getUserIntelligenceProfile(userId);
       const recentBehavior = await this.getRecentBehaviorPatterns(userId);
-      
+
       return {
         recommendedPlaybookTypes: this.calculateRecommendedPlaybookTypes(profile, recentBehavior),
         recommendedDevotionalTypes: this.calculateRecommendedDevotionalTypes(profile, recentBehavior),
@@ -193,7 +193,7 @@ export class IntelligenceService {
         challengeLevel: this.recommendChallengeLevel(profile),
         contentLength: this.suggestContentLength(profile),
         personalizedTopics: this.suggestPersonalizedTopics(profile, recentBehavior),
-        confidenceScore: profile.confidence_score
+        confidenceScore: profile.confidence_score,
       };
     } catch (error) {
       console.error('[IntelligenceService] Error getting content recommendations:', error);
@@ -214,7 +214,7 @@ export class IntelligenceService {
       // Get recent behavior data
       const behaviorEvents = await this.getRecentBehaviorEvents(userId, 30); // Last 30 days
       const completionData = await this.getCompletionData(userId);
-      
+
       // Analyze patterns locally
       const patterns = {
         spiritualMaturity: this.assessSpiritualMaturity(completionData, behaviorEvents),
@@ -223,7 +223,7 @@ export class IntelligenceService {
         engagementTimes: this.analyzeEngagementTimes(behaviorEvents),
         preferredComplexity: this.assessComplexityPreference(completionData),
         communicationStyle: this.inferCommunicationStyle(behaviorEvents),
-        consistencyScore: this.calculateConsistencyScore(behaviorEvents)
+        consistencyScore: this.calculateConsistencyScore(behaviorEvents),
       };
 
       // Update profile with new insights
@@ -262,7 +262,7 @@ export class IntelligenceService {
       favorite_topics: [],
       avoided_topics: [],
       confidence_score: 0,
-      data_points_count: 0
+      data_points_count: 0,
     };
 
     const { data, error } = await this.supabase
@@ -314,8 +314,8 @@ export class IntelligenceService {
 
     // Adjust based on duration (longer engagement = higher score)
     if (event.duration_seconds) {
-      if (event.duration_seconds > 300) score += 0.2; // 5+ minutes
-      else if (event.duration_seconds > 120) score += 0.1; // 2+ minutes
+      if (event.duration_seconds > 300) {score += 0.2;} // 5+ minutes
+      else if (event.duration_seconds > 120) {score += 0.1;} // 2+ minutes
     }
 
     // Ensure score is between 0 and 1
@@ -329,7 +329,7 @@ export class IntelligenceService {
     const avgCompletion = completionData.averageCompletionRate || 0;
     const complexityHandled = completionData.averageComplexityHandled || 0;
     const consistentEngagement = behaviorEvents.length > 50; // Regular user
-    
+
     if (avgCompletion > 0.8 && complexityHandled > 0.7 && consistentEngagement) {
       return 'mature';
     } else if (avgCompletion > 0.5 && complexityHandled > 0.4) {
@@ -343,11 +343,12 @@ export class IntelligenceService {
    */
   private identifyLearningStyle(behaviorEvents: any[]): 'visual' | 'auditory' | 'reading' | 'kinesthetic' | 'balanced' {
     // Analyze interaction patterns to infer learning style
-    const patterns = {
+    type LearningStyleKey = 'visual' | 'auditory' | 'reading' | 'kinesthetic';
+    const patterns: Record<LearningStyleKey, number> = {
       visual: 0,
       auditory: 0,
       reading: 0,
-      kinesthetic: 0
+      kinesthetic: 0,
     };
 
     behaviorEvents.forEach(event => {
@@ -362,8 +363,11 @@ export class IntelligenceService {
       }
     });
 
-    const maxPattern = Object.entries(patterns).reduce((a, b) => patterns[a[0]] > patterns[b[0]] ? a : b);
-    
+    const maxPattern = Object.entries(patterns).reduce<[LearningStyleKey, number]>(
+      (max, [key, value]) => value > max[1] ? [key as LearningStyleKey, value] : max,
+      ['visual', -1] as [LearningStyleKey, number]
+    );
+
     // If no clear preference, return balanced
     if (maxPattern[1] < behaviorEvents.length * 0.3) {
       return 'balanced';
@@ -378,7 +382,7 @@ export class IntelligenceService {
   private findSuccessPatterns(completionData: any): string[] {
     // Analyze which types of content the user completes most successfully
     const successfulTypes: string[] = [];
-    
+
     if (completionData.playbooksByType) {
       Object.entries(completionData.playbooksByType).forEach(([type, data]: [string, any]) => {
         if (data.completionRate > 0.7) {
@@ -395,7 +399,7 @@ export class IntelligenceService {
    */
   private analyzeEngagementTimes(behaviorEvents: any[]): number[] {
     const hourCounts: Record<number, number> = {};
-    
+
     behaviorEvents.forEach(event => {
       const hour = new Date(event.created_at).getHours();
       hourCounts[hour] = (hourCounts[hour] || 0) + 1;
@@ -405,7 +409,7 @@ export class IntelligenceService {
     return Object.entries(hourCounts)
       .sort(([,a], [,b]) => b - a)
       .slice(0, 3)
-      .map(([hour]) => parseInt(hour));
+      .map(([hour]) => parseInt(hour, 10));
   }
 
   /**
@@ -415,7 +419,7 @@ export class IntelligenceService {
     const maturityContext = {
       beginner: 'new to faith, needs gentle guidance and foundational concepts',
       growing: 'developing in faith, ready for moderate challenges and deeper study',
-      mature: 'experienced in faith, seeks advanced insights and complex applications'
+      mature: 'experienced in faith, seeks advanced insights and complex applications',
     };
 
     return `User is ${maturityContext[profile.spiritual_maturity]}. Focus areas: ${profile.focus_areas.join(', ') || 'general spiritual growth'}.`;
@@ -430,7 +434,7 @@ export class IntelligenceService {
       auditory: 'learns through discussion, prayer, and verbal processing',
       reading: 'enjoys detailed text, scripture study, and written reflection',
       kinesthetic: 'learns through action, practice, and hands-on application',
-      balanced: 'benefits from varied learning approaches'
+      balanced: 'benefits from varied learning approaches',
     };
 
     return `Learning style: ${styleDescriptions[profile.learning_style]}. Preferred content length: ${profile.preferred_content_length}. Optimal action steps: ${profile.optimal_action_step_count}.`;
@@ -455,7 +459,7 @@ export class IntelligenceService {
       direct: 'appreciates straightforward, clear guidance without excessive encouragement',
       gentle: 'responds well to soft, nurturing language and gradual challenges',
       encouraging: 'thrives on positive reinforcement and motivational language',
-      balanced: 'benefits from a mix of direct guidance and encouragement'
+      balanced: 'benefits from a mix of direct guidance and encouragement',
     };
 
     return `Communication preference: ${styleDescriptions[profile.communication_style]}. Challenge level: ${profile.preferred_challenge_level}.`;
@@ -465,7 +469,7 @@ export class IntelligenceService {
    * Build current focus for personalized prompts
    */
   private buildCurrentFocus(profile: UserIntelligenceProfile): string {
-    const currentFocus = profile.growth_areas.length > 0 
+    const currentFocus = profile.growth_areas.length > 0
       ? profile.growth_areas.slice(0, 2).join(' and ')
       : 'general spiritual development';
 
@@ -473,10 +477,10 @@ export class IntelligenceService {
   }
 
   // Additional helper methods for recommendations and analysis...
-  private calculateRecommendedPlaybookTypes(profile: UserIntelligenceProfile, recentBehavior: any): string[] {
+  private calculateRecommendedPlaybookTypes(profile: UserIntelligenceProfile, _recentBehavior: any): string[] {
     // Local algorithm to recommend playbook types based on success patterns
     const recommendations = [...profile.successful_playbook_types];
-    
+
     // Add variety based on growth areas
     profile.growth_areas.forEach(area => {
       if (!recommendations.includes(area)) {
@@ -487,7 +491,7 @@ export class IntelligenceService {
     return recommendations.slice(0, 3);
   }
 
-  private calculateRecommendedDevotionalTypes(profile: UserIntelligenceProfile, recentBehavior: any): string[] {
+  private calculateRecommendedDevotionalTypes(profile: UserIntelligenceProfile, _recentBehavior: any): string[] {
     return profile.successful_devotional_types.slice(0, 3);
   }
 
@@ -497,8 +501,8 @@ export class IntelligenceService {
     }
 
     const hour = profile.best_engagement_times[0];
-    if (hour < 12) return 'Morning';
-    if (hour < 18) return 'Afternoon';
+    if (hour < 12) {return 'Morning';}
+    if (hour < 18) {return 'Afternoon';}
     return 'Evening';
   }
 
@@ -513,7 +517,7 @@ export class IntelligenceService {
     return profile.preferred_content_length;
   }
 
-  private suggestPersonalizedTopics(profile: UserIntelligenceProfile, recentBehavior: any): string[] {
+  private suggestPersonalizedTopics(profile: UserIntelligenceProfile, _recentBehavior: any): string[] {
     return [...profile.favorite_topics, ...profile.focus_areas].slice(0, 5);
   }
 
@@ -529,39 +533,41 @@ export class IntelligenceService {
     return data || [];
   }
 
-  private async getCompletionData(userId: string) {
+  private async getCompletionData(_userId: string) {
     // This would analyze completion rates from playbooks and devotionals
     // For now, return mock data structure
     return {
       averageCompletionRate: 0.7,
       averageComplexityHandled: 0.6,
-      playbooksByType: {}
+      playbooksByType: {},
     };
   }
 
-  private async getRecentBehaviorPatterns(userId: string) {
-    return await this.getRecentBehaviorEvents(userId, 7); // Last 7 days
+  private async getRecentBehaviorPatterns(_userId: string) {
+    return await this.getRecentBehaviorEvents(_userId, 7); // Last 7 days
   }
 
-  private calculateConsistencyScore(behaviorEvents: any[]): number {
+  private calculateConsistencyScore(behaviorEvents: Array<{created_at: string}>): number {
     // Calculate how consistently the user engages
-    const uniqueDays = new Set(behaviorEvents.map(e => 
+    if (!behaviorEvents || behaviorEvents.length === 0) {return 0;}
+
+    const uniqueDays = new Set(behaviorEvents.map((e: {created_at: string}) =>
       new Date(e.created_at).toDateString()
-    )).size;
-    
-    return Math.min(1.0, uniqueDays / 30); // Consistency over 30 days
+    ));
+
+    return Math.min(uniqueDays.size / 7, 1); // Normalize to 0-1 range (7 days)
   }
 
-  private inferCommunicationStyle(behaviorEvents: any[]): 'direct' | 'gentle' | 'encouraging' | 'balanced' {
+  private inferCommunicationStyle(_behaviorEvents: any[]): 'direct' | 'gentle' | 'encouraging' | 'balanced' {
     // For now, return balanced - could be enhanced with more sophisticated analysis
     return 'balanced';
   }
 
   private assessComplexityPreference(completionData: any): 'gentle' | 'moderate' | 'intense' {
     const completionRate = completionData.averageCompletionRate || 0;
-    
-    if (completionRate > 0.8) return 'intense';
-    if (completionRate > 0.6) return 'moderate';
+
+    if (completionRate > 0.8) {return 'intense';}
+    if (completionRate > 0.6) {return 'moderate';}
     return 'gentle';
   }
 
@@ -578,7 +584,7 @@ export class IntelligenceService {
         consistency_score: patterns.consistencyScore,
         confidence_score: Math.min(1.0, patterns.consistencyScore + 0.3),
         last_analysis: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId);
   }
@@ -586,7 +592,7 @@ export class IntelligenceService {
   private async updateIntelligenceProfileFromBehavior(userId: string): Promise<void> {
     // Trigger the database function to update profile based on recent behavior
     await this.supabase.rpc('update_intelligence_profile_from_behavior', {
-      p_user_id: userId
+      p_user_id: userId,
     });
   }
 }

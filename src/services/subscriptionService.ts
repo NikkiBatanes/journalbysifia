@@ -5,12 +5,12 @@
  */
 
 import { supabase } from './supabaseClient';
-import { 
-  Subscription, 
-  SubscriptionTier, 
-  SubscriptionStatus, 
-  UsageTracking, 
-  SUBSCRIPTION_CONFIGS 
+import {
+  Subscription,
+  SubscriptionTier,
+  // SubscriptionStatus - removed as unused
+  UsageTracking,
+  // SUBSCRIPTION_CONFIGS - removed as unused
 } from '../interfaces/subscription';
 
 export interface CanGenerateResult {
@@ -93,7 +93,7 @@ export class SubscriptionService {
           ai_tokens_used: 0,
           ai_cost_cents: 0,
           exports_used: 0,
-          api_calls_used: 0
+          api_calls_used: 0,
         };
 
         const { data: created, error: createError } = await this.supabase
@@ -136,7 +136,7 @@ export class SubscriptionService {
           remaining: 'Unlimited',
           limit: 'Unlimited',
           used,
-          upgradeRequired: false
+          upgradeRequired: false,
         };
       }
 
@@ -155,7 +155,7 @@ export class SubscriptionService {
         limit,
         used,
         upgradeRequired: !allowed,
-        message
+        message,
       };
     } catch (error) {
       console.error('[SubscriptionService] Error checking generation limits:', error);
@@ -165,7 +165,7 @@ export class SubscriptionService {
         limit: 0,
         used: 0,
         upgradeRequired: true,
-        message: 'Error checking subscription limits'
+        message: 'Error checking subscription limits',
       };
     }
   }
@@ -174,20 +174,20 @@ export class SubscriptionService {
    * Track usage after successful generation
    */
   async trackUsage(
-    userId: string, 
+    userId: string,
     type: 'playbook' | 'devotional',
     tokensUsed: number = 0,
     costCents: number = 0
   ): Promise<void> {
     try {
       const period = new Date().toISOString().slice(0, 7);
-      
+
       await this.supabase.rpc('increment_usage_counter', {
         p_user_id: userId,
         p_period: period,
         p_type: type,
         p_tokens_used: tokensUsed,
-        p_cost_cents: costCents
+        p_cost_cents: costCents,
       });
 
       console.log(`[SubscriptionService] Tracked ${type} usage for user ${userId}`);
@@ -213,7 +213,7 @@ export class SubscriptionService {
         smartJournalingEnabled: true,  // Full access during trial
         journalTemplatesAccess: 'all', // All templates during trial
         advancedAnalytics: false,
-        prioritySupport: false
+        prioritySupport: false,
       },
       starter: {
         playbooks: 4,
@@ -225,7 +225,7 @@ export class SubscriptionService {
         smartJournalingEnabled: true,
         journalTemplatesAccess: 'all',
         advancedAnalytics: false,
-        prioritySupport: false
+        prioritySupport: false,
       },
       growth: {
         playbooks: 15,
@@ -238,7 +238,7 @@ export class SubscriptionService {
         smartJournalingEnabled: true,
         journalTemplatesAccess: 'all',
         advancedAnalytics: true,
-        prioritySupport: true
+        prioritySupport: true,
       },
       transformation: {
         playbooks: -1,
@@ -251,7 +251,7 @@ export class SubscriptionService {
         smartJournalingEnabled: true,
         journalTemplatesAccess: 'all',
         advancedAnalytics: true,
-        prioritySupport: true
+        prioritySupport: true,
       },
       family: {
         playbooks: -1,
@@ -264,8 +264,8 @@ export class SubscriptionService {
         smartJournalingEnabled: true,
         journalTemplatesAccess: 'all',
         advancedAnalytics: true,
-        prioritySupport: true
-      }
+        prioritySupport: true,
+      },
     };
 
     return limitsMap[tier];
@@ -295,7 +295,7 @@ export class SubscriptionService {
       pro: 3,
       lite: 4,
       starter: 5,
-      free_trial: 6     // Lowest priority
+      free_trial: 6,     // Lowest priority
     };
 
     return priorityMap[tier] || 6;
@@ -306,8 +306,8 @@ export class SubscriptionService {
    */
   private async createFreeTrial(userId: string): Promise<Subscription> {
     try {
-      const { data, error } = await this.supabase.rpc('create_free_trial_subscription', {
-        p_user_id: userId
+      const { error } = await this.supabase.rpc('create_free_trial_subscription', {
+        p_user_id: userId,
       });
 
       if (error) {
@@ -318,7 +318,7 @@ export class SubscriptionService {
       // Get the created subscription
       const subscription = await this.getUserSubscription(userId);
       console.log('[SubscriptionService] Created free trial for user:', userId);
-      
+
       return subscription;
     } catch (error) {
       console.error('[SubscriptionService] Error in createFreeTrial:', error);
@@ -333,9 +333,9 @@ export class SubscriptionService {
     try {
       await this.supabase
         .from('user_subscriptions')
-        .update({ 
+        .update({
           status: 'expired',
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
@@ -350,14 +350,14 @@ export class SubscriptionService {
    * Upgrade subscription
    */
   async upgradeSubscription(
-    userId: string, 
+    userId: string,
     newTier: SubscriptionTier,
     stripeSubscriptionId?: string,
     priceId?: string
   ): Promise<void> {
     try {
       const limits = await this.getSubscriptionLimits(newTier);
-      
+
       await this.supabase
         .from('user_subscriptions')
         .update({
@@ -369,7 +369,7 @@ export class SubscriptionService {
           advanced_analytics: limits.advancedAnalytics,
           priority_support: limits.prioritySupport,
           export_features: limits.exports > 0,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
@@ -390,7 +390,7 @@ export class SubscriptionService {
         .update({
           status: 'canceled',
           canceled_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
@@ -411,10 +411,10 @@ export class SubscriptionService {
       const limits = await this.getSubscriptionLimits(subscription.tier);
 
       // Calculate usage percentages
-      const playbookUsagePercent = limits.playbooks === -1 ? 0 : 
+      const playbookUsagePercent = limits.playbooks === -1 ? 0 :
         Math.round((usage.playbooks_used / limits.playbooks) * 100);
-      
-      const devotionalUsagePercent = limits.devotionals === -1 ? 0 : 
+
+      const devotionalUsagePercent = limits.devotionals === -1 ? 0 :
         Math.round((usage.devotionals_used / limits.devotionals) * 100);
 
       return {
@@ -428,8 +428,8 @@ export class SubscriptionService {
           costThisMonth: usage.ai_cost_cents / 100, // Convert to dollars
           tokensUsed: usage.ai_tokens_used,
           daysUntilReset: this.getDaysUntilReset(),
-          intelligenceEnabled: limits.intelligenceEnabled
-        }
+          intelligenceEnabled: limits.intelligenceEnabled,
+        },
       };
     } catch (error) {
       console.error('[SubscriptionService] Error getting analytics:', error);
@@ -453,7 +453,7 @@ export class SubscriptionService {
   async getFamilyInfo(userId: string) {
     try {
       const subscription = await this.getUserSubscription(userId);
-      
+
       if (subscription.tier !== 'family') {
         return null;
       }
@@ -463,7 +463,7 @@ export class SubscriptionService {
         ownerId: subscription.family_owner_id,
         members: subscription.family_members || [],
         maxMembers: subscription.max_family_members || 5,
-        availableSlots: (subscription.max_family_members || 5) - (subscription.family_members?.length || 0)
+        availableSlots: (subscription.max_family_members || 5) - (subscription.family_members?.length || 0),
       };
     } catch (error) {
       console.error('[SubscriptionService] Error getting family info:', error);
@@ -477,7 +477,7 @@ export class SubscriptionService {
   async addFamilyMember(ownerId: string, memberUserId: string): Promise<boolean> {
     try {
       const ownerSubscription = await this.getUserSubscription(ownerId);
-      
+
       if (ownerSubscription.tier !== 'family' || ownerSubscription.family_owner_id !== ownerId) {
         throw new Error('Only family plan owners can add members');
       }
@@ -493,12 +493,12 @@ export class SubscriptionService {
 
       // Add member to family
       const updatedMembers = [...currentMembers, memberUserId];
-      
+
       await this.supabase
         .from('user_subscriptions')
         .update({
           family_members: updatedMembers,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', ownerId);
 
@@ -513,7 +513,7 @@ export class SubscriptionService {
           intelligence_enabled: true,
           advanced_analytics: true,
           priority_support: true,
-          export_features: true
+          export_features: true,
         });
 
       console.log(`[SubscriptionService] Added family member ${memberUserId} to ${ownerId}`);

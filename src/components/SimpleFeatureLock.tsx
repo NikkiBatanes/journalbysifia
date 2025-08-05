@@ -36,14 +36,14 @@ export const SimpleFeatureLock: React.FC<SimpleFeatureLockProps> = ({
       <View style={styles.lockedContent}>
         {children}
       </View>
-      
+
       {/* Lock overlay */}
       <View style={styles.overlay}>
         <View style={styles.lockCard}>
           <Text style={styles.lockIcon}>🔒</Text>
           <Text style={styles.title}>{prompt.title}</Text>
           <Text style={styles.message}>{prompt.message}</Text>
-          
+
           <TouchableOpacity
             style={styles.upgradeButton}
             onPress={onUpgradePress}
@@ -75,7 +75,7 @@ export const SimpleFeatureLockCard: React.FC<SimpleFeatureLockCardProps> = ({
       <Text style={styles.lockIcon}>🔒</Text>
       <Text style={styles.title}>{prompt.title}</Text>
       <Text style={styles.message}>{prompt.message}</Text>
-      
+
       <TouchableOpacity
         style={styles.upgradeButton}
         onPress={onUpgradePress}
@@ -114,7 +114,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
           <Text style={styles.modalIcon}>🚀</Text>
           <Text style={styles.modalTitle}>{prompt.title}</Text>
           <Text style={styles.modalMessage}>{prompt.message}</Text>
-          
+
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={styles.modalCancelButton}
@@ -122,7 +122,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
             >
               <Text style={styles.modalCancelText}>Maybe Later</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.modalUpgradeButton}
               onPress={onUpgradePress}
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
-  
+
   // Modal styles
   modalOverlay: {
     flex: 1,

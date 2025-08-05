@@ -15,11 +15,11 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
   visible,
   feature,
   onClose,
-  onUpgrade
+  onUpgrade,
 }) => {
   const { getUpgradePrompt } = useUpgradePrompts();
   const navigation = useNavigation();
-  
+
   const prompt = getUpgradePrompt(feature);
 
   const handleUpgrade = () => {
@@ -27,8 +27,8 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
     if (onUpgrade) {
       onUpgrade();
     } else {
-      navigation.navigate('Subscription' as never, { 
-        recommendedTier: prompt.recommendedTier 
+      navigation.navigate('Subscription' as never, {
+        recommendedTier: prompt.recommendedTier,
       });
     }
   };
@@ -50,16 +50,16 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
               <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
           </View>
-          
+
           <Text style={styles.title}>{prompt.title}</Text>
           <Text style={styles.message}>{prompt.message}</Text>
-          
+
           <View style={styles.trialInfo}>
             <Text style={styles.trialText}>
               Your 3-day trial has ended. Upgrade to continue enjoying premium features.
             </Text>
           </View>
-          
+
           <View style={styles.actions}>
             <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
               <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
@@ -85,19 +85,19 @@ export const FeatureLockCard: React.FC<FeatureLockCardProps> = ({
   feature,
   children,
   isLocked,
-  onUnlockPress
+  onUnlockPress,
 }) => {
   const { getUpgradePrompt } = useUpgradePrompts();
   const navigation = useNavigation();
-  
+
   const prompt = getUpgradePrompt(feature);
 
   const handleUnlock = () => {
     if (onUnlockPress) {
       onUnlockPress();
     } else {
-      navigation.navigate('Subscription' as never, { 
-        recommendedTier: prompt.recommendedTier 
+      navigation.navigate('Subscription' as never, {
+        recommendedTier: prompt.recommendedTier,
       });
     }
   };
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 16,
   },
-  
+
   // Card styles
   lockedCard: {
     position: 'relative',

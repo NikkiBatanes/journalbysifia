@@ -19,10 +19,10 @@ interface UsageIndicatorProps {
 export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
   type,
   onUpgradePress,
-  showIntelligenceBadge = true
+  showIntelligenceBadge = true,
 }) => {
   const { canGenerate, hasIntelligence, loading } = useSubscription();
-  
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -47,7 +47,7 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
         gradient: ['#4F46E5', '#7C3AED'],
         background: '#EEF2FF',
         text: '#4F46E5',
-        warning: false
+        warning: false,
       };
     }
 
@@ -57,21 +57,21 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
         gradient: ['#EF4444', '#DC2626'],
         background: '#FEF2F2',
         text: '#EF4444',
-        warning: true
+        warning: true,
       };
     } else if (usagePercent >= 0.8) {
       return {
         gradient: ['#F59E0B', '#D97706'],
         background: '#FFFBEB',
         text: '#F59E0B',
-        warning: true
+        warning: true,
       };
     } else {
       return {
         gradient: ['#10B981', '#059669'],
         background: '#ECFDF5',
         text: '#10B981',
-        warning: false
+        warning: false,
       };
     }
   };
@@ -94,7 +94,7 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
             </View>
           )}
         </View>
-        
+
         <Text style={[styles.count, { color: colorScheme.text }]}>
           {remainingCount}
         </Text>
@@ -119,7 +119,7 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
 
       {/* Upgrade prompt for limited users */}
       {!allowed && onUpgradePress && (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.upgradeButton}
           onPress={onUpgradePress}
           activeOpacity={0.8}
@@ -139,13 +139,13 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
       {/* Warning message */}
       {colorScheme.warning && allowed && (
         <View style={styles.warningContainer}>
-          <Ionicons 
-            name={progress >= 1 ? "alert-circle" : "warning"} 
-            size={14} 
-            color={colorScheme.text} 
+          <Ionicons
+            name={progress >= 1 ? 'alert-circle' : 'warning'}
+            size={14}
+            color={colorScheme.text}
           />
           <Text style={[styles.warningText, { color: colorScheme.text }]}>
-            {progress >= 1 
+            {progress >= 1
               ? `No ${contentType.toLowerCase()} left this month`
               : `Running low on ${contentType.toLowerCase()}`
             }
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
 // Compact version for smaller spaces
 export const CompactUsageIndicator: React.FC<UsageIndicatorProps> = ({
   type,
-  onUpgradePress
+  onUpgradePress,
 }) => {
   const { canGenerate, hasIntelligence } = useSubscription();
   const generationData = canGenerate(type);
@@ -272,16 +272,16 @@ export const CompactUsageIndicator: React.FC<UsageIndicatorProps> = ({
 
   const isUnlimited = remaining === 'Unlimited';
   const remainingCount = isUnlimited ? '∞' : remaining;
-  
+
   const getColor = () => {
-    if (isUnlimited) return '#4F46E5';
-    if (!allowed) return '#EF4444';
-    if ((remaining as number) <= 2) return '#F59E0B';
+    if (isUnlimited) {return '#4F46E5';}
+    if (!allowed) {return '#EF4444';}
+    if ((remaining as number) <= 2) {return '#F59E0B';}
     return '#10B981';
   };
 
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.compactContainer, { borderColor: getColor() }]}
       onPress={!allowed ? onUpgradePress : undefined}
       disabled={allowed}

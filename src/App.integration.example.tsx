@@ -30,10 +30,10 @@ export default function App() {
         <TrialProvider>
           <NavigationContainer>
             <StatusBar style="auto" />
-            
+
             {/* Add trial banner at the top level */}
             <TrialStatusBanner />
-            
+
             <Stack.Navigator
               initialRouteName="Home"
               screenOptions={{
@@ -46,23 +46,23 @@ export default function App() {
                 },
               }}
             >
-              <Stack.Screen 
-                name="Home" 
+              <Stack.Screen
+                name="Home"
                 component={HomeScreen}
                 options={{ title: 'siFia - Spiritual Growth' }}
               />
-              <Stack.Screen 
-                name="Journaling" 
+              <Stack.Screen
+                name="Journaling"
                 component={JournalingScreen}
                 options={{ title: 'Journaling' }}
               />
-              <Stack.Screen 
-                name="Playbooks" 
+              <Stack.Screen
+                name="Playbooks"
                 component={PlaybookScreen}
                 options={{ title: 'Spiritual Playbooks' }}
               />
-              <Stack.Screen 
-                name="Subscription" 
+              <Stack.Screen
+                name="Subscription"
                 component={SubscriptionScreen}
                 options={{ title: 'Upgrade Plan' }}
               />

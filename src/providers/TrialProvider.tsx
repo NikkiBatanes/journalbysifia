@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAuth } from '../hooks/useAuth';
-import { trialAccessService } from '../services/trialAccessService';
+// import { useAuth } from '../hooks/useAuth';
+// import { trialAccessService } from '../services/trialAccessService';
 
 // Create QueryClient instance
 const queryClient = new QueryClient({
@@ -46,7 +46,7 @@ export const TrialProvider: React.FC<TrialProviderProps> = ({ children }) => {
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
-    
+
     // Mark trial system as ready
     setIsTrialSystemReady(true);
 
@@ -74,11 +74,11 @@ export const withTrialAccess = <P extends object>(
 ) => {
   return (props: P) => {
     const { isTrialSystemReady } = useTrialContext();
-    
+
     if (!isTrialSystemReady) {
       return null; // or loading spinner
     }
-    
+
     return <Component {...props} />;
   };
 };
