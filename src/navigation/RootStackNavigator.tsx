@@ -20,15 +20,17 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
 import OnboardingNotificationPermissionScreen from '../screens/onboarding/OnboardingNotificationPermissionScreen';
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
-import OnboardingAccountCreationScreen from '../screens/onboarding/OnboardingAccountCreationScreen';
+
 import OnboardingFaithJourneyScreen from '../screens/onboarding/OnboardingFaithJourneyScreen';
-import OnboardingValuePropositionScreen from '../screens/onboarding/OnboardingValuePropositionScreen';
 import OnboardingChallengeSelectionScreen from '../screens/onboarding/OnboardingChallengeSelectionScreen';
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
-import OnboardingFeatureShowcaseScreen from '../screens/onboarding/OnboardingFeatureShowcaseScreen';
+import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
+import OnboardingOriginalFeatureShowcaseScreen from '../screens/onboarding/OnboardingOriginalFeatureShowcaseScreen';
 import OnboardingPlaybookNavigationScreen from '../screens/onboarding/OnboardingPlaybookNavigationScreen';
 import OnboardingTrialSetupScreen from '../screens/onboarding/OnboardingTrialSetupScreen';
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
+import OnboardingPersonalizationSummaryScreen from '../screens/onboarding/OnboardingPersonalizationSummaryScreen';
+import OnboardingChallengeDetailsScreen from '../screens/onboarding/OnboardingChallengeDetailsScreen';
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
 
 
@@ -236,109 +238,30 @@ export default function RootStackNavigator({
   // Note: renderMainTabs was removed since we're using component prop directly
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="OnboardingSplash">
+      {/* Pre-auth screens */}
+      {!isAuthenticated ? (
         <>
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabsScreen}
-          />
-          <Stack.Screen
-            name="GeneratingPlaybook"
-            component={GeneratingPlaybookScreen as React.ComponentType}
-          />
-          <Stack.Screen
-            name="PlaybookDetail"
-            component={PlaybookDetailScreen as React.ComponentType}
-            options={playbookDetailOptions}
-          />
-          <Stack.Screen
-            name="CardDetail"
-            component={CardDetailScreen as React.ComponentType}
-            options={cardDetailOptions}
-          />
-          <Stack.Screen
-            name="DevotionalDetail"
-            component={DevotionalDetailScreen as unknown as React.ComponentType}
-            options={({ navigation }) => getDevotionalDetailOptions({ navigation })}
-          />
-          <Stack.Screen
-            name="Journal"
-            component={JournalScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          {/* New Onboarding screens */}
-          <Stack.Screen
-            name="OnboardingSplash"
-            component={OnboardingSplashScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingNotificationPermission"
-            component={OnboardingNotificationPermissionScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingWelcome"
-            component={OnboardingWelcomeScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingAccountCreation"
-            component={OnboardingAccountCreationScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingFaithJourney"
-            component={OnboardingFaithJourneyScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingValueProposition"
-            component={OnboardingValuePropositionScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingChallengeSelection"
-            component={OnboardingChallengeSelectionScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingPlaybookGeneration"
-            component={OnboardingPlaybookGenerationScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-
-          <Stack.Screen
-            name="OnboardingFeatureShowcase"
-            component={OnboardingFeatureShowcaseScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingPlaybookNavigation"
-            component={OnboardingPlaybookNavigationScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingTrialSetup"
-            component={OnboardingTrialSetupScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingPersonalization"
-            component={OnboardingPersonalizationScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OnboardingComplete"
-            component={OnboardingCompleteScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="OnboardingSplash" component={OnboardingSplashScreen as React.ComponentType} />
+          <Stack.Screen name="TransformJourney" component={OnboardingTransformYourLifeScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen as React.ComponentType} />
+          <Stack.Screen name="Auth">{() => <AuthStack onLogin={handleLogin} />}</Stack.Screen>
         </>
       ) : (
-        <Stack.Screen name="AuthStack">
-          {() => <AuthStack onLogin={handleLogin} />}
-        </Stack.Screen>
+        <>
+          {/* Unified onboarding flow after authentication */}
+          <Stack.Screen name="OnboardingPersonalization" component={OnboardingPersonalizationScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingPersonalizationSummary" component={OnboardingPersonalizationSummaryScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingChallengeDetails" component={OnboardingChallengeDetailsScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingFaithJourney" component={OnboardingFaithJourneyScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingChallengeSelection" component={OnboardingChallengeSelectionScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingPlaybookGeneration" component={OnboardingPlaybookGenerationScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingOriginalFeatureShowcase" component={OnboardingOriginalFeatureShowcaseScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingPlaybookNavigation" component={OnboardingPlaybookNavigationScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingTrialSetup" component={OnboardingTrialSetupScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingNotificationPermission" component={OnboardingNotificationPermissionScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingComplete" component={OnboardingCompleteScreen as React.ComponentType} />
+        </>
       )}
     </Stack.Navigator>
   );

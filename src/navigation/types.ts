@@ -2,7 +2,7 @@ import { Playbook } from '../interfaces/playbook';
 
 export type RootStackParamList = {
   // Auth Stack
-  Auth: undefined;
+  Auth: { screen: 'Login' | 'Register' } | undefined;
   Login: { onLogin: () => void } | undefined;
   Register: { onRegister: () => void } | undefined;
 

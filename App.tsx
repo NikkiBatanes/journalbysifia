@@ -77,6 +77,8 @@ function App(): React.JSX.Element {
   );
 }
 
+import { useAuth } from './src/context/IndustryStandardAuthContext';
+
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
   const [adminPanelVisible, setAdminPanelVisible] = useState(false);
 
@@ -90,7 +92,9 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
     setAdminPanelVisible(false);
   };
 
-  if (!fontsLoaded) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (!fontsLoaded || loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.anchorBlue} />
@@ -113,23 +117,20 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
               <OnboardingProvider>
                 <LogoutContext.Provider value={{ onLogout: async () => {} }}>
                   <AuthStateMonitor>
-                    <AuthGuard>
-                      <OnboardingIntegration>
-                        <RootStackNavigator
-                          isAuthenticated={true} // Will be managed by AuthGuard
-                          handleLogin={async () => {}}
-                          handleLogout={async () => {}}
-                          onLogin={async () => {}}
-                          AuthStack={AuthStackNavigator}
-                        />
-                        <NetworkStatus />
-
-                        {/* DEV-ONLY: Admin panel modal inside OnboardingProvider context */}
-                        {__DEV__ && (
-                          <DevAdminPanelModal visible={adminPanelVisible} onClose={handleCloseAdminPanel} />
-                        )}
-                      </OnboardingIntegration>
-                    </AuthGuard>
+                    <OnboardingIntegration>
+                      <RootStackNavigator
+                        isAuthenticated={isAuthenticated}
+                        handleLogin={async () => {}}
+                        handleLogout={async () => {}}
+                        onLogin={async () => {}}
+                        AuthStack={AuthStackNavigator}
+                      />
+                      <NetworkStatus />
+                      {/* DEV-ONLY: Admin panel modal inside OnboardingProvider context */}
+                      {__DEV__ && (
+                        <DevAdminPanelModal visible={adminPanelVisible} onClose={handleCloseAdminPanel} />
+                      )}
+                    </OnboardingIntegration>
                   </AuthStateMonitor>
                 </LogoutContext.Provider>
               </OnboardingProvider>

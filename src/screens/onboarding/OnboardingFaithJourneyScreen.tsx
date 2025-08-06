@@ -103,7 +103,7 @@ const OnboardingFaithJourneyScreen: React.FC = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Navigate to value demonstration
-      navigation.navigate('OnboardingValueProposition' as any);
+      navigation.navigate('OnboardingChallengeSelection' as any);
     } catch (error) {
       console.error('Error saving faith journey:', error);
     } finally {

@@ -14,7 +14,7 @@ const DevAdminPanelModal: React.FC<DevAdminPanelModalProps> = ({ visible, onClos
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={true}
+      transparent={Platform.OS !== 'ios'}
       onRequestClose={onClose}
       presentationStyle={Platform.OS === 'ios' ? 'formSheet' : 'overFullScreen'}
     >

@@ -211,8 +211,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     try {
       console.log('📚 Playbook completed, proceeding to feature exploration');
 
-      // Navigate to feature showcase
-      navigation.navigate('OnboardingFeatureShowcase' as any, {
+      // Navigate to original feature showcase
+      navigation.navigate('OnboardingOriginalFeatureShowcase' as any, {
         generatedPlaybook,
       });
     } catch (error) {

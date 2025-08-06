@@ -1,236 +1,376 @@
 /**
  * OnboardingPersonalizationScreen.tsx
- * Tell Us About Yourself - Multi-step form with solid anchor blue background
- * Uses inline page view pagination styling and card container styling
+ * Multi-step personalization screen matching exact design
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  Animated,
   StatusBar,
-  Platform,
-  Alert,
   Dimensions,
-  Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
+  Modal,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-interface PersonalizationData {
-  name: string;
-  ageGroup: string;
+interface FaithJourney {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
 }
+
+interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  examples?: string[];
+}
+
+interface AgeGroup {
+  value: string;
+  label: string;
+}
+
+const ageGroups: AgeGroup[] = [
+  { value: 'teen', label: '13-17' },
+  { value: 'young-adult', label: '18-25' },
+  { value: 'adult', label: '26-35' },
+  { value: 'mid-adult', label: '36-45' },
+  { value: 'mature-adult', label: '46-55' },
+  { value: 'senior', label: '56-65' },
+  { value: 'elder', label: '65+' },
+];
+
+const faithJourneyOptions: FaithJourney[] = [
+  {
+    id: 'exploring',
+    title: 'Exploring Faith',
+    description: 'Curious about faith and seeking answers',
+    icon: 'search-outline',
+  },
+  {
+    id: 'new-believer',
+    title: 'New Believer',
+    description: 'Recently committed to faith, eager to learn',
+    icon: 'leaf-outline',
+  },
+  {
+    id: 'growing',
+    title: 'Growing in Faith',
+    description: 'Established believer seeking deeper understanding',
+    icon: 'trending-up-outline',
+  },
+  {
+    id: 'mature',
+    title: 'Mature Believer',
+    description: 'Strong foundation, focused on service and discipleship',
+    icon: 'star-outline',
+  },
+  {
+    id: 'returning',
+    title: 'Returning to Faith',
+    description: 'Coming back after a period of distance',
+    icon: 'return-up-back-outline',
+  },
+];
+
+const challengeOptions: Challenge[] = [
+  {
+    id: 'relationships',
+    title: 'Relationships & Family',
+    description: 'Marriage, parenting, friendships, conflict resolution',
+    icon: 'people-outline',
+    examples: ['Marriage struggles', 'Parenting challenges', 'Friendship conflicts', 'Family tensions'],
+  },
+  {
+    id: 'anxiety',
+    title: 'Anxiety & Stress',
+    description: 'Worry, fear, overwhelm, mental health',
+    icon: 'heart-circle-outline',
+    examples: ['Work stress', 'Financial worry', 'Health anxiety', 'General overwhelm'],
+  },
+  {
+    id: 'purpose',
+    title: 'Purpose & Direction',
+    description: 'Career decisions, life calling, major transitions',
+    icon: 'compass-outline',
+    examples: ['Career change', 'Life purpose', 'Major decisions', 'Feeling lost'],
+  },
+  {
+    id: 'forgiveness',
+    title: 'Forgiveness & Healing',
+    description: 'Past hurts, trauma, letting go, emotional healing',
+    icon: 'heart-circle-outline',
+    examples: ['Past trauma', 'Unforgiveness', 'Emotional wounds', 'Letting go'],
+  },
+  {
+    id: 'financial',
+    title: 'Financial Stewardship',
+    description: 'Money management, debt, generosity, contentment',
+    icon: 'card-outline',
+    examples: ['Debt struggles', 'Budgeting', 'Generosity', 'Financial anxiety'],
+  },
+  {
+    id: 'spiritual',
+    title: 'Spiritual Growth',
+    description: 'Prayer life, Bible study, spiritual disciplines',
+    icon: 'book-outline',
+    examples: ['Prayer struggles', 'Bible reading', 'Spiritual dryness', 'Growing closer to God'],
+  },
+  {
+    id: 'addiction',
+    title: 'Addiction & Habits',
+    description: 'Breaking bad habits, overcoming addictions',
+    icon: 'refresh-outline',
+    examples: ['Social media addiction', 'Bad habits', 'Substance issues', 'Behavioral patterns'],
+  },
+  {
+    id: 'grief',
+    title: 'Grief & Loss',
+    description: 'Death, loss, major life changes, mourning',
+    icon: 'flower-outline',
+    examples: ['Death of loved one', 'Job loss', 'Relationship end', 'Major life changes'],
+  },
+];
 
 const OnboardingPersonalizationScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const [data, setData] = useState<PersonalizationData>({
-    name: '',
-    ageGroup: '',
-  });
-  
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
+  const [currentStep, setCurrentStep] = useState(1);
+  const [name, setName] = useState('');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState<string>('');
+  const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>('');
+  const [selectedChallenge, setSelectedChallenge] = useState<string>('');
+  const [challengeDetails, setChallengeDetails] = useState('');
 
-  const ageGroups = [
-    { label: '13-17 years', value: 'teen' },
-    { label: '18-25 years', value: 'young_adult' },
-    { label: '26-35 years', value: 'adult' },
-    { label: '36-50 years', value: 'middle_age' },
-    { label: '51+ years', value: 'senior' },
-  ];
 
-  useEffect(() => {
-    // Set status bar
-    StatusBar.setBarStyle('light-content');
-    if (Platform.OS === 'android') {
-      StatusBar.setBackgroundColor('#1e3a8a');
-    }
-
-    // Entrance animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim]);
-
-  const handleContinue = async () => {
-    if (currentStep === 0) {
-      // Name step validation
-      if (!data.name.trim()) {
-        Alert.alert('Missing Information', 'Please enter your name');
-        return;
-      }
-      setCurrentStep(1);
-      return;
-    }
-
-    if (currentStep === 1) {
-      // Age group step validation
-      if (!data.ageGroup) {
-        Alert.alert('Missing Information', 'Please select your age group');
-        return;
-      }
-      
-      // Complete personalization
-      setIsLoading(true);
-      try {
-        console.log('🎯 Personalization completed:', data);
-        
-        // Simulate saving data
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Navigate to next screen (you can change this to your desired destination)
-        navigation.navigate('OnboardingComplete' as any);
-      } catch (error) {
-        Alert.alert('Error', 'Unable to save your information');
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
+  const totalSteps = 4;
 
   const handleBack = () => {
-    if (currentStep > 0) {
+    if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     } else {
       navigation.goBack();
     }
   };
 
-  const renderNameStep = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>What's your name?</Text>
-      
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Enter your name"
-          placeholderTextColor="rgba(255,255,255,0.6)"
-          value={data.name}
-          onChangeText={(text) => setData({ ...data, name: text })}
-          autoCapitalize="words"
-          autoCorrect={false}
-        />
+  const handleContinue = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      // Navigate to personalization summary screen with selected data
+      (navigation as any).navigate('OnboardingPersonalizationSummary', {
+        personalizationData: {
+          name,
+          ageGroup: selectedAgeGroup,
+          faithJourney: selectedFaithJourney,
+          challenge: selectedChallenge,
+          challengeDetails,
+        },
+      });
+    }
+  };
+
+  const canContinue = () => {
+    switch (currentStep) {
+      case 1:
+        return name.trim().length > 0;
+      case 2:
+        return selectedAgeGroup !== '';
+      case 3:
+        return selectedFaithJourney !== '';
+      case 4:
+        return selectedChallenge !== '';
+      default:
+        return false;
+    }
+  };
+
+  const renderProgressBar = () => (
+    <View style={styles.progressContainer}>
+      <View style={styles.progressSegments}>
+        {Array.from({ length: totalSteps }, (_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.progressSegment,
+              index < currentStep && styles.progressSegmentActive,
+            ]}
+          />
+        ))}
       </View>
     </View>
   );
 
-  const renderAgeGroupStep = () => (
+  const renderNameStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Your Age Group</Text>
-      
-      <View style={styles.ageGroupContainer}>
-        {ageGroups.map((group) => (
+      <Text style={styles.stepTitle}>What's your name?</Text>
+      <TextInput
+        style={styles.nameInput}
+        value={name}
+        onChangeText={setName}
+        placeholder=""
+        placeholderTextColor={Colors.mediumGray}
+        autoFocus
+      />
+    </View>
+  );
+
+  const renderAgeStep = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>What's your age group?</Text>
+      <View style={styles.ageOptionsContainer}>
+        {ageGroups.map((ageGroup) => (
           <TouchableOpacity
-            key={group.value}
+            key={ageGroup.value}
             style={[
-              styles.ageGroupButton,
-              data.ageGroup === group.value && styles.ageGroupButtonSelected
+              styles.ageOption,
+              selectedAgeGroup === ageGroup.value && styles.selectedAgeOption,
             ]}
-            onPress={() => setData({ ...data, ageGroup: group.value })}
+            onPress={() => setSelectedAgeGroup(ageGroup.value)}
           >
-            <Text style={[
-              styles.ageGroupText,
-              data.ageGroup === group.value && styles.ageGroupTextSelected
-            ]}>
-              {group.label}
-            </Text>
+            <Text style={styles.ageOptionTitle}>{ageGroup.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
     </View>
   );
 
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+  const renderFaithJourneyStep = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>Where are you in your{'\n'}faith Journey?</Text>
+      <View style={styles.optionsContainer}>
+        {faithJourneyOptions.map((option) => (
+          <TouchableOpacity
+            key={option.id}
+            style={[
+              styles.faithOption,
+              selectedFaithJourney === option.id && styles.selectedFaithOption,
+            ]}
+            onPress={() => setSelectedFaithJourney(option.id)}
+          >
+            <View style={styles.faithOptionIcon}>
+              <Ionicons name={option.icon} size={24} color={Colors.alertCoral} />
+            </View>
+            <View style={styles.faithOptionText}>
+              <Text style={styles.faithOptionTitle}>{option.title}</Text>
+              <Text style={styles.faithOptionDescription}>{option.description}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderChallengeStep = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>What's your biggest{"\n"}challenge right now?</Text>
+      <Text style={styles.stepSubtitle}>
+        Choose the area where you need the most guidance,{'\n'}
+        and we'll create a personalized playbook just for you
+      </Text>
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.hopeWhite} />
-        </TouchableOpacity>
+      <View style={styles.challengeOptionsContainer}>
+        {challengeOptions.map((challenge) => (
+          <TouchableOpacity
+            key={challenge.id}
+            style={[
+              styles.challengeOption,
+              selectedChallenge === challenge.id && styles.selectedChallengeOption,
+            ]}
+            onPress={() => {
+              setSelectedChallenge(challenge.id);
+              // Navigate to challenge details screen
+              (navigation as any).navigate('OnboardingChallengeDetails', {
+                challenge: challenge,
+                personalizationData: {
+                  name,
+                  ageGroup: selectedAgeGroup,
+                  faithJourney: selectedFaithJourney,
+                },
+              });
+            }}
+          >
+            <View style={styles.challengeOptionIcon}>
+              <Ionicons name={challenge.icon} size={24} color={Colors.white} />
+            </View>
+            <View style={styles.challengeOptionText}>
+              <Text style={styles.challengeOptionTitle}>{challenge.title}</Text>
+              <Text style={styles.challengeOptionDescription}>{challenge.description}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Top Section - Logo and Title */}
-      <Animated.View
-        style={[
-          styles.topSection,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        {/* Logo */}
+
+    </View>
+  );
+
+
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      
+      <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Image
-            source={require('../../../assets/icons/siFiaTransparent.png')}
-            style={styles.logo}
+          <Image 
+            source={require('../../../assets/icons/siFiaTransparent.png')} 
+            style={styles.logoImage}
             resizeMode="contain"
           />
         </View>
-
-        {/* Main Title */}
-        <Text style={styles.mainTitle}>Tell us about yourself</Text>
-        <Text style={styles.subtitle}>
-          Help us craft your personalized faith journey with siFia: Faith in Action
-        </Text>
-      </Animated.View>
-
-      {/* Bottom Section - Card Container - Floating */}
-      <View style={styles.bottomSection}>
-        <View style={styles.cardContainer}>
-          {/* Progress Indicator - Inline Page View Style */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressDots}>
-              <View style={[styles.progressDot, currentStep >= 0 && styles.progressDotActive]} />
-              <View style={[styles.progressDot, currentStep >= 1 && styles.progressDotActive]} />
-            </View>
-          </View>
-
-          {/* Step Content */}
-          <ScrollView 
-            style={styles.stepContent}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.stepContentContainer}
-          >
-            {currentStep === 0 ? renderNameStep() : renderAgeGroupStep()}
-          </ScrollView>
-
-          {/* Continue Button */}
-          <TouchableOpacity
-            style={[styles.continueButton, isLoading && styles.buttonDisabled]}
-            onPress={handleContinue}
-            disabled={isLoading}
-          >
-            <Text style={styles.continueButtonText}>
-              {isLoading ? 'Saving...' : 'Continue'}
-            </Text>
-          </TouchableOpacity>
-        </View>
       </View>
-    </View>
+
+      <View style={styles.titleContainer}>
+        <Text style={styles.title}>Tell us about yourself</Text>
+        <Text style={styles.subtitle}>
+          Help us craft your personalized faith{'\n'}journey with siFia: Faith in Action
+        </Text>
+      </View>
+
+      <View style={styles.contentContainer}>
+        <TouchableOpacity style={styles.modalBackButton} onPress={handleBack}>
+          <Ionicons name="chevron-back" size={24} color={Colors.white} />
+        </TouchableOpacity>
+        {renderProgressBar()}
+        
+        <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+          {currentStep === 1 && renderNameStep()}
+          {currentStep === 2 && renderAgeStep()}
+          {currentStep === 3 && renderFaithJourneyStep()}
+          {currentStep === 4 && renderChallengeStep()}
+        </ScrollView>
+
+        <TouchableOpacity
+          style={[styles.continueButton, canContinue() && styles.continueButtonActive]}
+          onPress={handleContinue}
+          disabled={!canContinue()}
+        >
+          <Text style={styles.continueButtonText}>
+            {currentStep === totalSteps ? 'Create My Playbook' : 'Continue'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+
+    </KeyboardAvoidingView>
   );
 };
 
@@ -240,165 +380,264 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
   },
   header: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    marginBottom: 0,
-  },
-  backButton: {
-    padding: 0,
-  },
-  topSection: {
-    height: 400, // much taller to ensure all content is visible above modal
-    paddingHorizontal: 24,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 0,
+    backgroundColor: Colors.anchorBlue,
     justifyContent: 'center',
-    paddingBottom: 20,
-  },
-  bottomSection: {
-    position: 'absolute',
-    top: 360, // start much lower to avoid covering content
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#274673', // new modal color
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  cardContainer: {
-    flex: 1,
-    backgroundColor: '#274673', // match modal background
-    paddingHorizontal: 24,
-    paddingBottom: 40,
   },
   logoContainer: {
-    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  logo: {
+  modalBackButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  logoImage: {
     width: 140,
     height: 140,
   },
-  mainTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  titleContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 30,
+    backgroundColor: Colors.anchorBlue,
+  },
+  title: {
+    fontSize: 28,
     fontFamily: Fonts.bold,
-    color: Colors.hopeWhite,
+    color: Colors.white,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   subtitle: {
     fontSize: 16,
     fontFamily: Fonts.regular,
-    color: 'rgba(255,255,255,0.8)',
+    color: Colors.white,
     textAlign: 'center',
+    opacity: 0.9,
     lineHeight: 22,
-    paddingHorizontal: 20,
+  },
+  contentContainer: {
+    flex: 1,
+    backgroundColor: Colors.modalBlue,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingTop: 20,
   },
   progressContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
+    paddingHorizontal: 20,
+    marginBottom: 30,
   },
-  progressDots: {
+  progressSegments: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 8,
   },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(30, 58, 138, 0.2)',
-    marginHorizontal: 4,
-  },
-  progressDotActive: {
-    backgroundColor: Colors.anchorBlue,
-    width: 24,
-    borderRadius: 4,
-  },
-  stepContent: {
+  progressSegment: {
     flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
   },
-  stepContentContainer: {
-    flexGrow: 1,
-    justifyContent: 'center',
+  progressSegmentActive: {
+    backgroundColor: Colors.growthGreen,
+  },
+  scrollContainer: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
   stepContainer: {
-    alignItems: 'center',
+    flex: 1,
   },
   stepTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
     fontFamily: Fonts.bold,
-    color: Colors.hopeWhite, // white text on dark background
+    color: Colors.white,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
   },
-  inputContainer: {
-    width: '100%',
-    marginBottom: 20,
+  stepSubtitle: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: Colors.white,
+    textAlign: 'center',
+    marginBottom: 30,
+    opacity: 0.8,
+    lineHeight: 20,
   },
-  textInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+  nameInput: {
+    backgroundColor: 'transparent',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    padding: 16,
     fontSize: 16,
     fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
-    textAlign: 'center',
-  },
-  ageGroupContainer: {
-    width: '100%',
-  },
-  ageGroupButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    marginBottom: 12,
-    alignItems: 'center',
-  },
-  ageGroupButtonSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  ageGroupText: {
-    fontSize: 16,
-    fontFamily: Fonts.medium,
-    color: Colors.hopeWhite,
-    fontWeight: '500',
-  },
-  ageGroupTextSelected: {
-    color: Colors.hopeWhite,
-    fontWeight: '600',
-  },
-  continueButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 12,
-    paddingVertical: 16,
+  },
+  ageOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    justifyContent: 'center',
+  },
+  ageOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    minWidth: 80,
     alignItems: 'center',
-    width: '100%',
-    marginTop: 24,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  selectedAgeOption: {
+    backgroundColor: Colors.growthGreen,
+    borderColor: Colors.growthGreen,
   },
-  continueButtonText: {
-    color: Colors.hopeWhite,
+  ageOptionTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    color: Colors.white,
+    textAlign: 'center',
+  },
+  optionsContainer: {
+    gap: 16,
+  },
+  faithOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  selectedFaithOption: {
+    backgroundColor: Colors.growthGreen,
+    borderColor: Colors.growthGreen,
+  },
+  faithOptionIcon: {
+    marginRight: 16,
+  },
+  faithOptionText: {
+    flex: 1,
+  },
+  faithOptionTitle: {
     fontSize: 16,
     fontFamily: Fonts.semiBold,
-    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: 4,
   },
+  faithOptionDescription: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: Colors.white,
+    opacity: 0.8,
+  },
+  challengeOptionsContainer: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  challengeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  selectedChallengeOption: {
+    backgroundColor: Colors.growthGreen,
+    borderColor: Colors.growthGreen,
+  },
+  challengeOptionIcon: {
+    marginRight: 16,
+  },
+  challengeOptionText: {
+    flex: 1,
+  },
+  challengeOptionTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: Colors.white,
+    marginBottom: 4,
+  },
+  challengeOptionDescription: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: Colors.white,
+    opacity: 0.8,
+  },
+  detailsSection: {
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: 12,
+    padding: 20,
+    marginTop: 20,
+  },
+  detailsTitle: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: Colors.white,
+    marginBottom: 16,
+  },
+  examplesLabel: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: Colors.white,
+    marginBottom: 12,
+  },
+  exampleTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  exampleTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  exampleTagText: {
+    fontSize: 12,
+    fontFamily: Fonts.regular,
+    color: Colors.white,
+  },
+  detailsInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    color: Colors.white,
+    textAlignVertical: 'top',
+    minHeight: 80,
+  },
+  continueButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.3)',
+    borderRadius: 12,
+    padding: 16,
+    margin: 20,
+    alignItems: 'center',
+  },
+  continueButtonActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontFamily: Fonts.semiBold,
+    color: Colors.white,
+  },
+
 });
 
 export default OnboardingPersonalizationScreen;

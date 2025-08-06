@@ -26,13 +26,11 @@ interface OnboardingSplashScreenProps {
 const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onComplete }) => {
   const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.3)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
   
-  // Simple loading dots animations
-  const dot1Anim = useRef(new Animated.Value(0.3)).current;
-  const dot2Anim = useRef(new Animated.Value(0.3)).current;
-  const dot3Anim = useRef(new Animated.Value(0.3)).current;
+  // Elegant loading dots animations
+  const dot1Anim = useRef(new Animated.Value(0.4)).current;
+  const dot2Anim = useRef(new Animated.Value(0.4)).current;
+  const dot3Anim = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
     // Set status bar for splash
@@ -41,91 +39,52 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       StatusBar.setBackgroundColor(Colors.anchorBlue);
     }
 
-    // Fun logo entrance animation with bounce and rotation
-    const logoSequence = Animated.sequence([
-      // Initial bounce in
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 100,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-        Animated.timing(rotateAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]);
-
-    logoSequence.start();
+    // Simple logo fade-in
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
     
-    // Start simple dots animation after logo appears
-    setTimeout(() => {
-      const animateDot = (dotAnim: Animated.Value) => {
-        return Animated.sequence([
+    // Start elegant pulsing dots animation
+    const animateDot = (dotAnim: Animated.Value, delay: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
           Animated.timing(dotAnim, {
             toValue: 1,
-            duration: 600,
+            duration: 800,
             useNativeDriver: true,
           }),
           Animated.timing(dotAnim, {
-            toValue: 0.3,
-            duration: 600,
+            toValue: 0.4,
+            duration: 800,
             useNativeDriver: true,
           }),
-        ]);
-      };
-
-      Animated.loop(
-        Animated.stagger(200, [
-          animateDot(dot1Anim),
-          animateDot(dot2Anim),
-          animateDot(dot3Anim),
         ])
-      ).start();
-    }, 1000);
+      );
+    };
 
-    // Navigate after delay with fun exit animation
+    // Start staggered dot animations
+    animateDot(dot1Anim, 0).start();
+    animateDot(dot2Anim, 200).start();
+    animateDot(dot3Anim, 400).start();
+
+    // Navigate after delay with simple fade out
     setTimeout(() => {
-      const exitAnimation = Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(scaleAnim, {
-          toValue: 0.8,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(rotateAnim, {
-          toValue: 2,
-          duration: 500,
-          useNativeDriver: true,
-        }),
-      ]);
-
-      exitAnimation.start(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => {
         if (onComplete) {
           onComplete();
         } else {
-          navigation.navigate('OnboardingWelcome' as never);
+          navigation.navigate('TransformJourney' as any);
         }
       });
-    }, 3000);
-  }, [navigation, onComplete, fadeAnim, scaleAnim, rotateAnim, dot1Anim, dot2Anim, dot3Anim]);
-
-  const rotateInterpolate = rotateAnim.interpolate({
-    inputRange: [0, 1, 2],
-    outputRange: ['0deg', '360deg', '720deg'],
-  });
+    }, 2500);
+  }, [navigation, onComplete, fadeAnim, dot1Anim, dot2Anim, dot3Anim]);
 
   return (
     <View style={styles.container}>
@@ -133,24 +92,16 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       
       {/* Logo Section */}
       <View style={styles.logoSection}>
-        <Animated.View
+        <Animated.Image
+          source={require('../../../assets/icons/siFiaTransparent.png')}
           style={[
-            styles.logoContainer,
+            styles.logoImage,
             {
               opacity: fadeAnim,
-              transform: [
-                { scale: scaleAnim },
-                { rotate: rotateInterpolate },
-              ],
             },
           ]}
-        >
-          <Image
-            source={require('../../../assets/icons/siFiaTransparent.png')}
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-        </Animated.View>
+          resizeMode="contain"
+        />
 
         {/* Simple Loading Dots */}
         <View style={styles.loadingContainer}>

@@ -4,6 +4,7 @@ export const Colors = {
   // Brand Colors
   anchorBlue: '#1a3c6d',
   anchorBlueLight: '#E8EDFF', // Lighter version of anchorBlue
+  modalBlue: '#274674', // Modal and content background
   faithGold: '#F5A623',
   growthGreen: '#4CAF50',
   alertCoral: '#FF6B6B',
