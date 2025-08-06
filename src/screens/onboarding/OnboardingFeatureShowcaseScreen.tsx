@@ -1,7 +1,7 @@
 /**
  * OnboardingFeatureShowcaseScreen.tsx
- * Phase 4.1: Core Features Showcase
- * Accurate feature representation, no audio/video claims
+ * Transform Your Life Through Faith-Driven Action
+ * Feature showcase with clean design
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   Animated,
   StatusBar,
-  ScrollView,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -23,62 +23,30 @@ interface Feature {
   title: string;
   description: string;
   icon: string;
-  benefits: string[];
-  demoText: string;
+  color: string;
 }
 
 const features: Feature[] = [
   {
-    id: 'playbooks',
-    title: 'Personalized Playbooks',
-    description: 'AI-generated biblical guidance tailored to your specific life challenges',
-    icon: 'book',
-    benefits: [
-      'Custom action steps with subtasks',
-      'Biblical affirmations for encouragement',
-      'Scripture-backed solutions',
-      'Progress tracking and insights',
-    ],
-    demoText: 'Like the playbook we just created for your challenge!',
+    id: 'guidance',
+    title: 'Personalized Guidance',
+    description: 'AI-powered biblical wisdom tailored to your specific life challenges',
+    icon: 'book-outline',
+    color: '#FF6B6B',
+  },
+  {
+    id: 'growth',
+    title: 'Actionable Growth Plans',
+    description: 'Step-by-step playbooks that turn spiritual insights into daily actions',
+    icon: 'trending-up-outline',
+    color: '#4ECDC4',
   },
   {
     id: 'journaling',
     title: 'Smart Journaling',
-    description: 'Guided reflection integrated with your playbook progress',
-    icon: 'journal',
-    benefits: [
-      'Reflection prompts from your playbooks',
-      'Progress visualization',
-      'Spiritual growth tracking',
-      'Personal insights discovery',
-    ],
-    demoText: 'Journal about your action steps and see your growth over time.',
-  },
-  {
-    id: 'devotionals',
-    title: 'Generated Devotionals',
-    description: 'Personalized devotionals created FROM your playbooks',
-    icon: 'heart',
-    benefits: [
-      'Devotionals based on your playbooks',
-      'Daily spiritual nourishment',
-      'Reflection questions included',
-      'Prayer prompts and guidance',
-    ],
-    demoText: 'Each playbook can generate multiple devotionals for deeper study.',
-  },
-  {
-    id: 'progress',
-    title: 'Progress Tracking',
-    description: 'Visual insights into your spiritual transformation journey',
-    icon: 'trending-up',
-    benefits: [
-      'Completion tracking for action steps',
-      'Spiritual growth metrics',
-      'Achievement celebrations',
-      'Consistency insights',
-    ],
-    demoText: 'See how consistently you\'re growing in your faith journey.',
+    description: 'Track your spiritual growth with guided reflection and progress insights',
+    icon: 'create-outline',
+    color: '#45B7D1',
   },
 ];
 
@@ -157,14 +125,12 @@ const OnboardingFeatureShowcaseScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log('🎯 Feature showcase completed, proceeding to playbook navigation');
+      console.log('🎯 Feature showcase completed, proceeding to account creation');
 
-      // Navigate to playbook navigation demo
-      navigation.navigate('OnboardingPlaybookNavigation' as any, {
-        generatedPlaybook: (route.params as any)?.generatedPlaybook,
-      });
+      // Navigate to account creation
+      navigation.navigate('OnboardingPersonalization' as any);
     } catch (error) {
-      console.error('Error proceeding to playbook navigation:', error);
+      console.error('Error proceeding to account creation:', error);
     } finally {
       setIsLoading(false);
     }
@@ -185,123 +151,53 @@ const OnboardingFeatureShowcaseScreen: React.FC = () => {
           },
         ]}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Discover Your Spiritual Growth Tools</Text>
-          <Text style={styles.subtitle}>
-            Everything you need to transform challenges into spiritual victories
+        {/* Logo Section */}
+        <View style={styles.logoSection}>
+          <Image 
+            source={require('../../../assets/icons/siFiaTransparent.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </View>
+
+        {/* Main Content */}
+        <View style={styles.mainContent}>
+          <Text style={styles.transformTitle}>Transform Your Life</Text>
+          <Text style={styles.transformTitle}>Through Faith-Driven Action</Text>
+          
+          <Text style={styles.transformSubtitle}>
+            Get personalized biblical guidance{"\n"}for real-world challenges
           </Text>
-        </View>
 
-        {/* Feature indicators */}
-        <View style={styles.featureIndicators}>
-          {features.map((_, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.featureIndicator,
-                index === currentFeature && styles.featureIndicatorActive,
-              ]}
-              onPress={() => {
-                if (index !== currentFeature) {
-                  animateFeatureChange(index > currentFeature ? 'next' : 'prev');
-                  setCurrentFeature(index);
-                }
-              }}
-            />
-          ))}
-        </View>
-
-        {/* Feature content */}
-        <ScrollView
-          contentContainerStyle={styles.featureContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Feature icon */}
-          <View style={styles.featureIconContainer}>
-            <Ionicons
-              name={currentFeatureData.icon as any}
-              size={64}
-              color={Colors.white}
-            />
-          </View>
-
-          {/* Feature details */}
-          <Text style={styles.featureTitle}>{currentFeatureData.title}</Text>
-          <Text style={styles.featureDescription}>{currentFeatureData.description}</Text>
-
-          {/* Demo text */}
-          <View style={styles.demoContainer}>
-            <Ionicons name="information-circle-outline" size={20} color={Colors.lightBlue} />
-            <Text style={styles.demoText}>{currentFeatureData.demoText}</Text>
-          </View>
-
-          {/* Benefits list */}
-          <View style={styles.benefitsList}>
-            <Text style={styles.benefitsTitle}>Key Benefits:</Text>
-            {currentFeatureData.benefits.map((benefit, index) => (
-              <View key={index} style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.lightBlue} />
-                <Text style={styles.benefitText}>{benefit}</Text>
+          {/* Features List */}
+          <View style={styles.featuresList}>
+            {features.map((feature, index) => (
+              <View key={index} style={styles.featureItem}>
+                <Ionicons name={feature.icon} size={24} color={feature.color} style={styles.featureIcon} />
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureItemTitle}>{feature.title}</Text>
+                  <Text style={styles.featureItemDescription}>{feature.description}</Text>
+                </View>
               </View>
             ))}
           </View>
-
-          {/* Feature preview card */}
-          <View style={styles.previewCard}>
-            <View style={styles.previewHeader}>
-              <Ionicons name={currentFeatureData.icon as any} size={24} color={Colors.anchorBlue} />
-              <Text style={styles.previewTitle}>{currentFeatureData.title}</Text>
-            </View>
-            <Text style={styles.previewDescription}>
-              {currentFeature === 0 && 'Your personalized playbooks will appear here, ready to guide you through any challenge.'}
-              {currentFeature === 1 && 'Write reflections, track progress, and discover insights about your spiritual growth.'}
-              {currentFeature === 2 && 'Daily devotionals generated from your playbooks for deeper spiritual nourishment.'}
-              {currentFeature === 3 && 'Visual charts and insights showing your consistency and spiritual growth over time.'}
-            </Text>
-          </View>
-        </ScrollView>
-
-        {/* Navigation */}
-        <View style={styles.navigation}>
-          <TouchableOpacity
-            style={[styles.navButton, currentFeature === 0 && styles.navButtonDisabled]}
-            onPress={handlePrevious}
-            disabled={currentFeature === 0}
-          >
-            <Ionicons
-              name="chevron-back"
-              size={24}
-              color={currentFeature === 0 ? Colors.hopeWhite : Colors.white}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
-            onPress={handleNext}
-            disabled={isLoading}
-          >
-            <Text style={styles.primaryButtonText}>
-              {currentFeature === features.length - 1
-                ? (isLoading ? 'Loading...' : 'Try Your Playbook')
-                : 'Next Feature'
-              }
-            </Text>
-            <Ionicons
-              name={currentFeature === features.length - 1 ? 'play' : 'chevron-forward'}
-              size={20}
-              color={Colors.anchorBlue}
-              style={styles.buttonIcon}
-            />
-          </TouchableOpacity>
         </View>
 
-        {/* Progress indicator */}
-        <View style={styles.progressContainer}>
-          <Text style={styles.progressText}>Step 5 of 6</Text>
-          <View style={styles.progressBar}>
-              <View style={[styles.progressFill, styles.progressStep5]} />
-          </View>
+        {/* Bottom Section */}
+        <View style={styles.bottomSection}>
+          <TouchableOpacity
+            style={[styles.startButton, isLoading && styles.buttonDisabled]}
+            onPress={handleContinue}
+            disabled={isLoading}
+          >
+            <Text style={styles.startButtonText}>
+              {isLoading ? 'Starting...' : 'Start Your Journey'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.trialText}>
+            3-day free trial • No commitment Required
+          </Text>
         </View>
       </Animated.View>
     </View>
@@ -504,7 +400,79 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   progressStep5: {
-    width: '83.33%',
+    width: '83%',
+  },
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  logoImage: {
+    width: 140,
+    height: 140,
+  },
+  mainContent: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  transformTitle: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    color: Colors.white,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  transformSubtitle: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 40,
+  },
+  featuresList: {
+    alignSelf: 'stretch',
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  featureIcon: {
+    marginRight: 16,
+  },
+  featureTextContainer: {
+    flex: 1,
+  },
+  featureItemTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: 4,
+  },
+  featureItemDescription: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    lineHeight: 20,
+  },
+  bottomSection: {
+    alignItems: 'center',
+    paddingTop: 20,
+  },
+  startButton: {
+    backgroundColor: Colors.white,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 25,
+    marginBottom: 16,
+  },
+  startButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.anchorBlue,
+  },
+  trialText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
   },
 });
 

@@ -1,11 +1,13 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil } from 'lucide-react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { ViewConfigurationManager } from '../../systems/journal/ViewConfigurationManager';
 import { ViewMode } from '../../systems/journal/types';
+import { AnimationUtils } from '../../utils/animations';
+import LinearGradient from 'react-native-linear-gradient';
 
 interface JournalCardProps {
   icon?: string | React.ReactNode;
@@ -41,6 +43,29 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 }) => {
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
+  
+  // Enhanced animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const slideAnim = useRef(new Animated.Value(10)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Entrance animation for journal cards
+    const entranceAnimation = Animated.parallel([
+      AnimationUtils.fadeIn(fadeAnim, 600, 0),
+      AnimationUtils.scaleIn(scaleAnim, 500, 100),
+      AnimationUtils.slideUp(slideAnim, 400, 200),
+    ]);
+    
+    entranceAnimation.start();
+    
+    // Optional subtle pulse for interactive cards
+    if (onAdd || _onExpand) {
+      const pulseAnimation = AnimationUtils.pulse(pulseAnim, 0.98, 1.02, 3000);
+      pulseAnimation.start();
+    }
+  }, [fadeAnim, scaleAnim, slideAnim, pulseAnim, onAdd, _onExpand]);
 
   // Helper function to check if we should show the subtitle
   const shouldShowSubtitle = (): boolean => {
@@ -100,22 +125,57 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     };
 
     return (
-      <View style={getEmptyCardStyle()}>
+      <Animated.View 
+        style={[
+          getEmptyCardStyle(),
+          {
+            opacity: fadeAnim,
+            transform: [
+              { scale: scaleAnim },
+              { translateY: slideAnim },
+              { scale: pulseAnim }
+            ]
+          }
+        ]}
+      >
+        {/* Pattern design gradient background */}
+        <LinearGradient
+          colors={[Colors.hopeWhite, 'rgba(248, 249, 250, 0.8)', Colors.hopeWhite]}
+          style={styles.cardGradient}
+        />
+        
+        {/* Color accent border */}
+        <View style={styles.colorAccentBorder}>
+          <View style={[styles.accentDot, { backgroundColor: Colors.alertCoral }]} />
+          <View style={[styles.accentDot, { backgroundColor: Colors.growthGreen }]} />
+          <View style={[styles.accentDot, { backgroundColor: Colors.faithGold }]} />
+        </View>
+        
         <View style={[styles.header, styles.headerEmpty]}>
           <View style={styles.headerContent}>
             {(viewMode as ViewMode) !== 'inline' && (
               typeof icon === 'string' ? (
-                <View style={styles.icon}>
+                <Animated.View 
+                  style={[
+                    styles.icon,
+                    { transform: [{ scale: pulseAnim }] }
+                  ]}
+                >
                   <Ionicons
                     name={icon as any}
                     size={16}
                     color={Colors.alertCoral}
                   />
-                </View>
+                </Animated.View>
               ) : (
-                <View style={styles.icon}>
+                <Animated.View 
+                  style={[
+                    styles.icon,
+                    { transform: [{ scale: pulseAnim }] }
+                  ]}
+                >
                   {icon}
-                </View>
+                </Animated.View>
               )
             )}
             <View style={styles.titleContainer}>
@@ -125,14 +185,21 @@ export const JournalCard: React.FC<JournalCardProps> = ({
               )}
             </View>
           </View>
-          {/* Floating edit button for empty card */}
+          {/* Enhanced floating edit button */}
           {showAddButton && onAdd && !isAdding && (viewMode as string) !== 'inline' && (
-            <TouchableOpacity onPress={onAdd} style={styles.addButtonFloating}>
-              <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
-            </TouchableOpacity>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <TouchableOpacity onPress={onAdd} style={styles.addButtonFloating}>
+                <LinearGradient
+                  colors={[Colors.growthGreen, Colors.faithGold]}
+                  style={styles.addButtonGradient}
+                >
+                  <Pencil size={14} color={Colors.hopeWhite} strokeWidth={2.5} />
+                </LinearGradient>
+              </TouchableOpacity>
+            </Animated.View>
           )}
         </View>
-      </View>
+      </Animated.View>
     );
   }
 
@@ -348,5 +415,34 @@ const styles = StyleSheet.create({
   cancelButton: {
     padding: 4,
     backgroundColor: 'transparent',
+  },
+  // Pattern design styles
+  cardGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 30,
+  },
+  colorAccentBorder: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'row',
+    gap: 4,
+  },
+  accentDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    opacity: 0.8,
+  },
+  addButtonGradient: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

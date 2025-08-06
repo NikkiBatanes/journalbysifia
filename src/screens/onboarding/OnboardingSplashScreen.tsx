@@ -1,22 +1,21 @@
 /**
  * OnboardingSplashScreen.tsx
- * Enhanced UI: Upper animation area + modal-like bottom with logo
- * Phase 2.0: Modern Layout Design
+ * Clean splash screen with logo and loading animation
+ * New Design: Simple, centered logo with loading indicator
  */
 
 import React, { useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Animated,
   StatusBar,
   Platform,
   Dimensions,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
-import LinearGradient from 'react-native-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,7 +26,13 @@ interface OnboardingSplashScreenProps {
 const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onComplete }) => {
   const navigation = useNavigation();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const scaleAnim = useRef(new Animated.Value(0.3)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  
+  // Simple loading dots animations
+  const dot1Anim = useRef(new Animated.Value(0.3)).current;
+  const dot2Anim = useRef(new Animated.Value(0.3)).current;
+  const dot3Anim = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
     // Set status bar for splash
@@ -36,82 +41,145 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       StatusBar.setBackgroundColor(Colors.anchorBlue);
     }
 
-    // Start animations
-    const animationSequence = Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 800,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
+    // Fun logo entrance animation with bounce and rotation
+    const logoSequence = Animated.sequence([
+      // Initial bounce in
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ]),
     ]);
 
-    animationSequence.start();
+    logoSequence.start();
+    
+    // Start simple dots animation after logo appears
+    setTimeout(() => {
+      const animateDot = (dotAnim: Animated.Value) => {
+        return Animated.sequence([
+          Animated.timing(dotAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+          Animated.timing(dotAnim, {
+            toValue: 0.3,
+            duration: 600,
+            useNativeDriver: true,
+          }),
+        ]);
+      };
 
-    // Auto-advance after 3 seconds
-    const timer = setTimeout(() => {
-      if (onComplete) {
-        onComplete();
-      } else {
-        navigation.navigate('OnboardingNotificationPermission' as any);
-      }
+      Animated.loop(
+        Animated.stagger(200, [
+          animateDot(dot1Anim),
+          animateDot(dot2Anim),
+          animateDot(dot3Anim),
+        ])
+      ).start();
+    }, 1000);
+
+    // Navigate after delay with fun exit animation
+    setTimeout(() => {
+      const exitAnimation = Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(rotateAnim, {
+          toValue: 2,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]);
+
+      exitAnimation.start(() => {
+        if (onComplete) {
+          onComplete();
+        } else {
+          navigation.navigate('OnboardingWelcome' as never);
+        }
+      });
     }, 3000);
+  }, [navigation, onComplete, fadeAnim, scaleAnim, rotateAnim, dot1Anim, dot2Anim, dot3Anim]);
 
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [fadeAnim, scaleAnim, navigation, onComplete]);
+  const rotateInterpolate = rotateAnim.interpolate({
+    inputRange: [0, 1, 2],
+    outputRange: ['0deg', '360deg', '720deg'],
+  });
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       
-      {/* Upper Animation Area */}
-      <View style={styles.animationArea}>
+      {/* Logo Section */}
+      <View style={styles.logoSection}>
         <Animated.View
           style={[
-            styles.logoAnimationContainer,
+            styles.logoContainer,
             {
               opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
+              transform: [
+                { scale: scaleAnim },
+                { rotate: rotateInterpolate },
+              ],
             },
           ]}
         >
-          {/* Logo placeholder - will be replaced with SVG/Lottie */}
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>siFia</Text>
-          </View>
+          <Image
+            source={require('../../../assets/icons/siFiaTransparent.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </Animated.View>
-      </View>
 
-      {/* Modal-like Bottom Content */}
-      <Animated.View
-        style={[
-          styles.modalContent,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: Animated.multiply(fadeAnim, -20) }],
-          },
-        ]}
-      >
-        {/* Welcome Content */}
-        <View style={styles.welcomeContent}>
-          <Text style={styles.welcomeTitle}>Welcome to siFia</Text>
-          <Text style={styles.welcomeSubtitle}>Where Faith Meets Action</Text>
-          
-          {/* Loading Animation */}
-          <View style={styles.loadingContainer}>
-            <View style={styles.loadingDot} />
-            <View style={[styles.loadingDot, styles.loadingDotDelay1]} />
-            <View style={[styles.loadingDot, styles.loadingDotDelay2]} />
-          </View>
+        {/* Simple Loading Dots */}
+        <View style={styles.loadingContainer}>
+          <Animated.View
+            style={[
+              styles.dot,
+              {
+                opacity: dot1Anim,
+              },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.dot,
+              {
+                opacity: dot2Anim,
+              },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.dot,
+              {
+                opacity: dot3Anim,
+              },
+            ]}
+          />
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 };
@@ -120,89 +188,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
-  },
-  // Upper animation area (30% of screen)
-  animationArea: {
-    height: height * 0.3,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 60,
-  },
-  logoAnimationContainer: {
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  logoSection: {
+    alignItems: 'center',
     justifyContent: 'center',
+  },
+  logoContainer: {
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    marginBottom: 0,
   },
-  logoText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: Colors.white,
-    letterSpacing: 1,
-  },
-  // Modal-like bottom content (70% of screen)
-  modalContent: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    paddingTop: 40,
-    paddingHorizontal: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: -5,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  welcomeContent: {
-    alignItems: 'center',
-    paddingTop: 20,
-  },
-  welcomeTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.anchorBlue,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    marginBottom: 40,
-    fontWeight: '400',
-    letterSpacing: 0.5,
+  logoImage: {
+    width: 200,
+    height: 200,
   },
   loadingContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 20,
   },
-  loadingDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.anchorBlue,
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.hopeWhite,
     marginHorizontal: 4,
-    opacity: 0.8,
-  },
-  loadingDotDelay1: {
-    opacity: 0.6,
-  },
-  loadingDotDelay2: {
-    opacity: 0.4,
   },
 });
 

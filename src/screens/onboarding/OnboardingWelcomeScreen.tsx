@@ -13,6 +13,7 @@ import {
   Animated,
   StatusBar,
   ScrollView,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -40,12 +41,22 @@ const OnboardingWelcomeScreen: React.FC = () => {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const handleStartJourney = async () => {
+  const handleCreateAccount = async () => {
     setIsLoading(true);
 
-    // Navigate to account creation
+    // Navigate to Transform Your Life screen first
     setTimeout(() => {
-      navigation.navigate('OnboardingAccountCreation' as any);
+      navigation.navigate('OnboardingFeatureShowcase' as any);
+      setIsLoading(false);
+    }, 500);
+  };
+
+  const handleLogin = async () => {
+    setIsLoading(true);
+
+    // Navigate to login screen
+    setTimeout(() => {
+      navigation.navigate('OnboardingLogin' as any);
       setIsLoading(false);
     }, 500);
   };
@@ -54,101 +65,59 @@ const OnboardingWelcomeScreen: React.FC = () => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
       >
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          {/* Hero section */}
-          <View style={styles.heroSection}>
-            <Text style={styles.mainTitle}>Transform Your Life Through Faith-Driven Action</Text>
+        {/* Logo and Welcome */}
+        <View style={styles.logoSection}>
+          <Text style={styles.welcomeText}>Welcome to</Text>
+          <Image
+            source={require('../../../assets/icons/siFiaTransparent.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.tagline}>Where faith meets action</Text>
+        </View>
 
-            <Text style={styles.subtitle}>
-              Get personalized biblical guidance for real-world challenges
+        {/* Action Buttons */}
+        <View style={styles.buttonSection}>
+          <TouchableOpacity
+            style={[styles.createButton, isLoading && styles.buttonDisabled]}
+            onPress={handleCreateAccount}
+            disabled={isLoading}
+          >
+            <Text style={styles.createButtonText}>
+              Create an account
             </Text>
-          </View>
+          </TouchableOpacity>
 
-          {/* Value propositions */}
-          <View style={styles.valuePropositions}>
-            <View style={styles.valueItem}>
-              <View style={styles.valueIconContainer}>
-                <Ionicons name="book" size={24} color={Colors.anchorBlue} />
-              </View>
-              <View style={styles.valueTextContainer}>
-                <Text style={styles.valueTitle}>Personalized Guidance</Text>
-                <Text style={styles.valueDescription}>
-                  AI-powered biblical wisdom tailored to your specific life challenges
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.valueItem}>
-              <View style={styles.valueIconContainer}>
-                <Ionicons name="trending-up" size={24} color={Colors.anchorBlue} />
-              </View>
-              <View style={styles.valueTextContainer}>
-                <Text style={styles.valueTitle}>Actionable Growth Plans</Text>
-                <Text style={styles.valueDescription}>
-                  Step-by-step playbooks that turn spiritual insights into daily actions
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.valueItem}>
-              <View style={styles.valueIconContainer}>
-                <Ionicons name="journal" size={24} color={Colors.anchorBlue} />
-              </View>
-              <View style={styles.valueTextContainer}>
-                <Text style={styles.valueTitle}>Smart Journaling</Text>
-                <Text style={styles.valueDescription}>
-                  Track your spiritual growth with guided reflection and progress insights
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Call to action */}
-          <View style={styles.ctaSection}>
-            <TouchableOpacity
-              style={[styles.startButton, isLoading && styles.buttonDisabled]}
-              onPress={handleStartJourney}
-              disabled={isLoading}
-            >
-              <Text style={styles.startButtonText}>
-                {isLoading ? 'Starting...' : 'Start Your Journey'}
-              </Text>
-              <Ionicons
-                name="arrow-forward"
-                size={20}
-                color={Colors.anchorBlue}
-                style={styles.buttonIcon}
-              />
-            </TouchableOpacity>
-
-            <Text style={styles.freeTrialText}>
-              3-day free trial • No commitment required
+          <TouchableOpacity
+            style={[styles.loginButton, isLoading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            <Text style={styles.loginButtonText}>
+              Login
             </Text>
-          </View>
+          </TouchableOpacity>
+        </View>
 
-          {/* Progress indicator */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressDot} />
-            <View style={styles.progressDot} />
-            <View style={[styles.progressDot, styles.progressDotActive]} />
-            <View style={styles.progressDot} />
-            <View style={styles.progressDot} />
-            <View style={styles.progressDot} />
-          </View>
-        </Animated.View>
-      </ScrollView>
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            By continuing, you agree to our{' '}
+            <Text style={styles.linkText}>Terms of Service</Text>
+            {' '}and{' '}
+            <Text style={styles.linkText}>Privacy Policy</Text>
+          </Text>
+        </View>
+      </Animated.View>
     </View>
   );
 };
@@ -158,112 +127,96 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    paddingTop: 80,
+    paddingBottom: 60,
   },
-  heroSection: {
-    marginBottom: 48,
+  logoSection: {
     alignItems: 'center',
+    marginBottom: 60,
   },
-  mainTitle: {
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoText: {
+    fontSize: 48,
+    fontWeight: '300',
+    color: Colors.white,
+    letterSpacing: -1,
+  },
+  logoPlus: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: Colors.white,
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 38,
+    color: '#FF6B6B',
+    marginLeft: 4,
+    marginTop: -8,
   },
-  subtitle: {
+  tagline: {
     fontSize: 18,
-    color: Colors.hopeWhite,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '400',
     textAlign: 'center',
-    lineHeight: 26,
   },
-  valuePropositions: {
-    marginBottom: 48,
+  buttonSection: {
+    gap: 16,
+    marginBottom: 40,
   },
-  valueItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 24,
-    paddingHorizontal: 8,
-  },
-  valueIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  valueTextContainer: {
-    flex: 1,
-  },
-  valueTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.white,
-    marginBottom: 4,
-  },
-  valueDescription: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    lineHeight: 20,
-  },
-  ctaSection: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  startButton: {
-    backgroundColor: Colors.white,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+  createButton: {
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 18,
     borderRadius: 12,
-    marginBottom: 12,
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    minWidth: 200,
   },
-  startButtonText: {
-    fontSize: 16,
+  createButtonText: {
+    color: Colors.white,
+    fontSize: 18,
     fontWeight: '600',
-    color: Colors.anchorBlue,
   },
-  buttonIcon: {
-    marginLeft: 8,
+  loginButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  loginButtonText: {
+    color: Colors.white,
+    fontSize: 18,
+    fontWeight: '500',
+  },
+  footer: {
+    alignItems: 'center',
+  },
+  footerText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  linkText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
   },
   buttonDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
-  freeTrialText: {
-    fontSize: 14,
+  welcomeText: {
+    fontSize: 18,
     color: Colors.hopeWhite,
     textAlign: 'center',
+    marginBottom: 8,
+    fontWeight: '400',
   },
-  progressContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  progressDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.hopeWhite,
-    marginHorizontal: 4,
-    opacity: 0.3,
-  },
-  progressDotActive: {
-    opacity: 1,
-    backgroundColor: Colors.white,
+  logoImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 8,
   },
 });
 

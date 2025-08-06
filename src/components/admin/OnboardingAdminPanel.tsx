@@ -18,6 +18,7 @@ import { useOnboarding } from '../../context/OnboardingContext';
 import { onboardingAnalyticsService } from '../../services/onboardingAnalyticsService';
 import { useNavigation } from '@react-navigation/native';
 
+
 interface OnboardingAdminPanelProps {
   onClose?: () => void;
   isVisible?: boolean;
@@ -145,6 +146,7 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
               Health
             </Text>
           </TouchableOpacity>
+
         </View>
       </View>
 
@@ -185,6 +187,8 @@ export const OnboardingAdminPanel: React.FC<OnboardingAdminPanelProps> = ({ onCl
             </TouchableOpacity>
           </View>
         )}
+
+
 
         {/* Results Display */}
         {adminError && (
@@ -275,6 +279,10 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 30,
+  },
+  pastoralSection: {
+    flex: 1,
+    marginTop: -10,
   },
   sectionTitle: {
     fontSize: 18,

@@ -3,6 +3,8 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import EmailLoginScreen from '../screens/EmailLoginScreen';
+import EmailRegisterScreen from '../screens/EmailRegisterScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 
 const Stack = createNativeStackNavigator();
@@ -26,6 +28,16 @@ export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavig
       <Stack.Screen
         name="Register"
         component={RegisterScreen}
+        options={{ title: 'Create Account' }}
+      />
+      <Stack.Screen
+        name="EmailLogin"
+        component={EmailLoginScreen}
+        options={{ title: 'Email Sign In' }}
+      />
+      <Stack.Screen
+        name="EmailRegister"
+        component={EmailRegisterScreen}
         options={{ title: 'Create Account' }}
       />
       <Stack.Screen

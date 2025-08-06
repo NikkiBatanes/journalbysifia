@@ -32,6 +32,7 @@ import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPer
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
 
 
+
 // Header Components
 interface BackButtonProps {
   onPress: () => void;
@@ -307,6 +308,7 @@ export default function RootStackNavigator({
             component={OnboardingPlaybookGenerationScreen as React.ComponentType}
             options={{ headerShown: false }}
           />
+
           <Stack.Screen
             name="OnboardingFeatureShowcase"
             component={OnboardingFeatureShowcaseScreen as React.ComponentType}
