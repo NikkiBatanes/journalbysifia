@@ -83,78 +83,103 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       // Use real generation service
       const response = await enhancedGenerationService.generatePlaybook({
         userId,
-        userInput: params.userInput,
+        userInput: params.userInput || 'Help me grow in my faith journey',
         userName,
+        isOnboarding: true, // Mark as onboarding playbook (free)
       });
 
-      if (response.success) {
-        console.log('✅ Playbook generation initiated successfully');
+      if (response.success && response.queueId) {
+        console.log('✅ Playbook generation queued successfully, queueId:', response.queueId);
 
-        // Simulate realistic generation time (3-8 seconds)
-        const generationTime = 5000 + Math.random() * 3000;
+        // Poll for completion
+        const pollForCompletion = async () => {
+          const maxAttempts = 30; // 30 attempts = 2.5 minutes max wait
+          let attempts = 0;
 
-        setTimeout(() => {
-          // Create realistic playbook data structure
-          const mockGeneratedPlaybook: GeneratedPlaybook = {
-            id: `playbook-${Date.now()}`,
-            title: `Overcoming ${params.specificChallenge}`,
-            truthInLove: `Dear ${userName}, I understand that ${params.specificChallenge.toLowerCase()} can feel overwhelming. Remember that God sees your struggle and has not abandoned you. His love for you is unwavering, and He desires to walk with you through this challenge. You are not alone in this journey.`,
-            actionSteps: [
-              {
-                title: 'Ground Yourself in Prayer',
-                description: 'Start each day by bringing your concerns to God in prayer',
-                subtasks: [
-                  'Set aside 10 minutes each morning for prayer',
-                  'Write down specific concerns about your challenge',
-                  'Ask God for wisdom and strength for the day ahead',
-                  'Thank Him for His faithfulness in past difficulties',
-                ],
-              },
-              {
-                title: 'Seek Biblical Wisdom',
-                description: 'Study scripture related to your specific challenge',
-                subtasks: [
-                  'Read one relevant Bible passage daily',
-                  'Journal about how the passage applies to your situation',
-                  'Memorize one verse that brings you comfort',
-                  'Share insights with a trusted friend or mentor',
-                ],
-              },
-              {
-                title: 'Take Practical Action',
-                description: 'Implement concrete steps to address your challenge',
-                subtasks: [
-                  'Identify one small action you can take today',
-                  'Create a realistic plan for moving forward',
-                  'Seek professional help if needed',
-                  'Celebrate small victories along the way',
-                ],
-              },
-            ],
-            affirmations: [
-              'I am loved unconditionally by God, regardless of my struggles',
-              'God gives me strength to face each challenge one day at a time',
-              'I can find peace in surrendering my worries to God\'s care',
-            ],
-            bibleVerse: {
-              text: 'Cast all your anxiety on him because he cares for you.',
-              reference: '1 Peter 5:7',
-            },
-            directChallenge: 'This week, I challenge you to take the first action step consistently for 7 days. Remember, transformation happens through small, faithful steps taken in God\'s strength.',
+          const poll = async (): Promise<void> => {
+            attempts++;
+
+            try {
+              const status = await enhancedGenerationService.checkGenerationStatus(response.queueId!);
+              console.log(`[Polling ${attempts}/${maxAttempts}] Status:`, status.status);
+
+              if (status.status === 'completed' && status.resultId) {
+                // Get the actual playbook from database
+                console.log('🎯 Playbook completed, fetching from database...');
+
+                // Import supabase to fetch the playbook
+                const { createClient } = await import('@supabase/supabase-js');
+                const supabase = createClient(
+                  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+                  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
+                );
+
+                const { data: playbook, error } = await supabase
+                  .from('playbooks')
+                  .select('*')
+                  .eq('id', status.resultId)
+                  .single();
+
+                if (playbook && !error) {
+                  console.log('✅ Real playbook fetched from database:', playbook.title);
+
+                  // Convert database playbook to UI format
+                  const realGeneratedPlaybook: GeneratedPlaybook = {
+                    id: playbook.id,
+                    title: playbook.title,
+                    truthInLove: playbook.truth_in_love || playbook.content?.truthInLove || 'God loves you and is with you in this journey.',
+                    actionSteps: playbook.action_steps || playbook.content?.actionSteps || [],
+                    affirmations: playbook.affirmations || playbook.content?.affirmations || [
+                      'I am loved unconditionally by God',
+                      'God gives me strength for each challenge',
+                      'I can find peace in God\'s presence',
+                    ],
+                    bibleVerse: playbook.bible_verse || playbook.content?.bibleVerse || {
+                      text: 'Cast all your anxiety on him because he cares for you.',
+                      reference: '1 Peter 5:7',
+                    },
+                    directChallenge: playbook.direct_challenge || playbook.content?.directChallenge || 'Take one step forward in faith this week.',
+                  };
+
+                  setGeneratedPlaybook(realGeneratedPlaybook);
+                  setIsGenerating(false);
+
+                  // Animate content appearance
+                  Animated.timing(contentFadeAnim, {
+                    toValue: 1,
+                    duration: 800,
+                    useNativeDriver: true,
+                  }).start();
+
+                  console.log('✅ Real playbook generation completed and displayed');
+                } else {
+                  console.error('❌ Error fetching playbook from database:', error);
+                  throw new Error('Failed to fetch generated playbook');
+                }
+
+              } else if (status.status === 'failed') {
+                throw new Error(status.message || 'Playbook generation failed');
+              } else if (attempts >= maxAttempts) {
+                throw new Error('Playbook generation timed out. Please try again.');
+              } else {
+                // Continue polling
+                setTimeout(poll, 5000); // Poll every 5 seconds
+              }
+            } catch (error) {
+              console.error('❌ Error during polling:', error);
+              throw error;
+            }
           };
 
-          setGeneratedPlaybook(mockGeneratedPlaybook);
+          // Start polling
+          setTimeout(poll, 2000); // Wait 2 seconds before first poll
+        };
+
+        pollForCompletion().catch((error) => {
+          console.error('❌ Playbook generation failed:', error);
+          setGenerationError(error.message || 'Failed to generate playbook. Please try again.');
           setIsGenerating(false);
-
-          // Animate content appearance
-          Animated.timing(contentFadeAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }).start();
-
-          console.log('✅ Playbook generation completed and displayed');
-        }, generationTime);
+        });
 
       } else {
         throw new Error(response.message || 'Failed to generate playbook');

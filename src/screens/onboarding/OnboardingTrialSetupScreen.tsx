@@ -16,6 +16,8 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { supabase } from '../../services/supabaseClient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { PRICING_US } from '../../interfaces/subscription';
@@ -90,6 +92,7 @@ const pricingTiers: PricingTier[] = [
 ];
 
 const OnboardingTrialSetupScreen: React.FC = () => {
+  const { user } = useAuth();
   const navigation = useNavigation();
   const [selectedTier, setSelectedTier] = useState('growth'); // Default to popular tier
   const [isAnnual, setIsAnnual] = useState(false);
@@ -136,13 +139,30 @@ const OnboardingTrialSetupScreen: React.FC = () => {
       // Simulate payment setup
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Mark onboarding as complete
+      if (user?.id) {
+        try {
+          await supabase
+            .from('user_profiles')
+            .update({ onboarding_completed: true })
+            .eq('id', user.id);
+          console.log('✅ Onboarding marked as complete');
+        } catch (error) {
+          console.error('Error marking onboarding complete:', error);
+        }
+      }
+
       Alert.alert(
-        'Trial Started!',
+        'Welcome to siFia!',
         'Your 3-day free trial has begun. You can cancel anytime before it ends to avoid charges.',
         [
           {
-            text: 'Continue',
-            onPress: () => navigation.navigate('OnboardingPersonalization' as any),
+            text: 'Get Started',
+            onPress: () => {
+              // Navigate to notification permission screen
+              console.log('🎉 Trial setup complete, proceeding to notification permission');
+              navigation.navigate('OnboardingNotificationPermission' as any);
+            },
           },
         ]
       );
@@ -156,205 +176,99 @@ const OnboardingTrialSetupScreen: React.FC = () => {
   const selectedTierData = pricingTiers.find(t => t.id === selectedTier);
   const currentPrice = isAnnual ? selectedTierData?.annualPrice : selectedTierData?.monthlyPrice;
 
+  const handleSkipTrial = async () => {
+    // Mark onboarding as complete and skip trial
+    if (user?.id) {
+      try {
+        await supabase
+          .from('user_profiles')
+          .update({ onboarding_completed: true })
+          .eq('id', user.id);
+        console.log('✅ Onboarding completed without trial');
+        navigation.navigate('MainTabs' as any);
+      } catch (error: any) {
+        console.error('Error completing onboarding:', error);
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      {/* Close Button */}
+      <TouchableOpacity style={styles.closeButton} onPress={handleSkipTrial}>
+        <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+      </TouchableOpacity>
+
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
       >
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Skeptical? Try siFia PRO</Text>
+          <Text style={styles.titleHighlight}>free for 7 days.</Text>
+          <Text style={styles.subtitle}>
+            How your free trial works:
+          </Text>
+        </View>
+
+        {/* Simple Timeline */}
+        <View style={styles.timelineSection}>
+          <View style={styles.timelineItem}>
+            <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
+            <View style={styles.timelineContent}>
+              <Text style={styles.timelineTitle}>Today – Free trial starts</Text>
+              <Text style={styles.timelineDescription}>Enjoy full access free for 7 days</Text>
+            </View>
+          </View>
+
+          <View style={styles.timelineItem}>
+            <Ionicons name="mail" size={24} color="rgba(255, 255, 255, 0.6)" />
+            <View style={styles.timelineContent}>
+              <Text style={styles.timelineTitle}>Aug 11 – Email reminder</Text>
+              <Text style={styles.timelineDescription}>We'll let you know when your trial is ending</Text>
+            </View>
+          </View>
+
+          <View style={styles.timelineItem}>
+            <Ionicons name="heart" size={24} color="#FF6B6B" />
+            <View style={styles.timelineContent}>
+              <Text style={styles.timelineTitle}>Aug 13 – Become a member</Text>
+              <Text style={styles.timelineDescription}>Your trial ends unless canceled. Enjoy!</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Simple Pricing Display */}
+        <View style={styles.simplePricingSection}>
+          <Text style={styles.pricingText}>7 days free, then ₱6,990.00 per year</Text>
+          <Text style={styles.pricingSubtext}>Only ₱133.96 / week</Text>
+        </View>
+
+        {/* Start trial button */}
+        <TouchableOpacity
+          style={[styles.startTrialButton, isLoading && styles.buttonDisabled]}
+          onPress={handleStartTrial}
+          disabled={isLoading}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Start Your 3-Day Free Trial</Text>
-            <Text style={styles.subtitle}>
-              Experience the full power of siFia with unlimited access to all features
-            </Text>
-          </View>
+          <Text style={styles.startTrialButtonText}>
+            {isLoading ? 'Setting up...' : 'Start your free 7-day trial'}
+          </Text>
+        </TouchableOpacity>
 
-          {/* Trial benefits */}
-          <View style={styles.trialBenefitsSection}>
-            <Text style={styles.trialBenefitsTitle}>What you get in your trial:</Text>
-            <View style={styles.trialBenefitsList}>
-              <View style={styles.trialBenefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.lightBlue} />
-                <Text style={styles.trialBenefitText}>Create unlimited personalized playbooks</Text>
-              </View>
-              <View style={styles.trialBenefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.lightBlue} />
-                <Text style={styles.trialBenefitText}>Generate devotionals from your playbooks</Text>
-              </View>
-              <View style={styles.trialBenefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.lightBlue} />
-                <Text style={styles.trialBenefitText}>Track your spiritual growth progress</Text>
-              </View>
-              <View style={styles.trialBenefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.lightBlue} />
-                <Text style={styles.trialBenefitText}>Access all premium features</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Billing toggle */}
-          <View style={styles.billingToggleSection}>
-            <Text style={styles.billingToggleTitle}>Choose your plan:</Text>
-            <View style={styles.billingToggle}>
-              <TouchableOpacity
-                style={[styles.billingOption, !isAnnual && styles.billingOptionActive]}
-                onPress={() => setIsAnnual(false)}
-              >
-                <Text style={[styles.billingOptionText, !isAnnual && styles.billingOptionTextActive]}>
-                  Monthly
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.billingOption, isAnnual && styles.billingOptionActive]}
-                onPress={() => setIsAnnual(true)}
-              >
-                <Text style={[styles.billingOptionText, isAnnual && styles.billingOptionTextActive]}>
-                  Annual
-                </Text>
-                <View style={styles.savingsBadge}>
-                  <Text style={styles.savingsBadgeText}>Save 17%</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Pricing tiers */}
-          <View style={styles.pricingSection}>
-            {pricingTiers.map((tier) => {
-              const isSelected = selectedTier === tier.id;
-              const tierPrice = isAnnual ? tier.annualPrice : tier.monthlyPrice;
-              const tierSavings = calculateSavings(tier);
-
-              return (
-                <TouchableOpacity
-                  key={tier.id}
-                  style={[
-                    styles.pricingCard,
-                    isSelected && styles.pricingCardSelected,
-                    tier.popular && styles.pricingCardPopular,
-                  ]}
-                  onPress={() => setSelectedTier(tier.id)}
-                >
-                  {tier.popular && (
-                    <View style={styles.popularBadge}>
-                      <Text style={styles.popularBadgeText}>Most Popular</Text>
-                    </View>
-                  )}
-
-                  <View style={styles.pricingHeader}>
-                    <Text style={[styles.tierName, isSelected && styles.tierNameSelected]}>
-                      {tier.name}
-                    </Text>
-                    <Text style={[styles.tierDescription, isSelected && styles.tierDescriptionSelected]}>
-                      {tier.description}
-                    </Text>
-                  </View>
-
-                  <View style={styles.pricingDetails}>
-                    <Text style={[styles.tierPrice, isSelected && styles.tierPriceSelected]}>
-                      ${tierPrice.toFixed(2)}
-                    </Text>
-                    <Text style={[styles.tierInterval, isSelected && styles.tierIntervalSelected]}>
-                      /{isAnnual ? 'year' : 'month'}
-                    </Text>
-                    {isAnnual && (
-                      <Text style={[styles.tierSavings, isSelected && styles.tierSavingsSelected]}>
-                        Save ${tierSavings.savings.toFixed(2)}/year
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={styles.tierFeatures}>
-                    {tier.features.slice(0, 3).map((feature, index) => (
-                      <View key={index} style={styles.featureItem}>
-                        <Ionicons
-                          name="checkmark"
-                          size={16}
-                          color={isSelected ? Colors.anchorBlue : Colors.lightBlue}
-                        />
-                        <Text style={[
-                          styles.featureText,
-                          isSelected && styles.featureTextSelected,
-                        ]}>
-                          {feature}
-                        </Text>
-                      </View>
-                    ))}
-                    {tier.features.length > 3 && (
-                      <Text style={[
-                        styles.moreFeatures,
-                        isSelected && styles.moreFeaturesSelected,
-                      ]}>
-                        +{tier.features.length - 3} more features
-                      </Text>
-                    )}
-                  </View>
-
-                  {isSelected && (
-                    <View style={styles.selectedIndicator}>
-                      <Ionicons name="checkmark-circle" size={24} color={Colors.anchorBlue} />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-
-          {/* Trial details */}
-          <View style={styles.trialDetailsSection}>
-            <Text style={styles.trialDetailsTitle}>Trial Details:</Text>
-            <Text style={styles.trialDetailsText}>
-              • Your trial starts immediately and lasts 3 days{'\n'}
-              • You'll be charged ${currentPrice?.toFixed(2)} {isAnnual ? 'annually' : 'monthly'} after the trial{'\n'}
-              • Cancel anytime before the trial ends to avoid charges{'\n'}
-              • No hidden fees or commitments
-            </Text>
-          </View>
-
-          {/* Start trial button */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.startTrialButton, isLoading && styles.buttonDisabled]}
-              onPress={handleStartTrial}
-              disabled={isLoading}
-            >
-              <Text style={styles.startTrialButtonText}>
-                {isLoading ? 'Setting up...' : 'Start 3-Day Free Trial'}
-              </Text>
-              <Ionicons
-                name="arrow-forward"
-                size={20}
-                color={Colors.anchorBlue}
-                style={styles.buttonIcon}
-              />
-            </TouchableOpacity>
-
-            <Text style={styles.paymentNote}>
-              You'll be asked to add a payment method on the next screen
-            </Text>
-          </View>
-
-          {/* Progress indicator */}
-          <View style={styles.progressContainer}>
-            <Text style={styles.progressText}>Almost done!</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, styles.progressAlmostComplete]} />
-            </View>
-          </View>
-        </Animated.View>
-      </ScrollView>
+        {/* Footer note */}
+        <View style={styles.footerNote}>
+          <Ionicons name="shield-checkmark" size={16} color="rgba(255, 255, 255, 0.6)" />
+          <Text style={styles.footerText}>Cancel anytime. Secure with App Store.</Text>
+        </View>
+      </Animated.View>
     </View>
   );
 };
@@ -643,6 +557,77 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.white,
     borderRadius: 2,
+  },
+  progressAlmostComplete: {
+    width: '90%',
+  },
+  // New styles for redesigned screen
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+    padding: 10,
+  },
+  titleHighlight: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: Colors.growthGreen,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  timelineSection: {
+    marginVertical: 40,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  timelineContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  timelineTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginBottom: 4,
+  },
+  timelineDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 20,
+  },
+  simplePricingSection: {
+    alignItems: 'center',
+    marginVertical: 30,
+  },
+  pricingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  pricingSubtext: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+  },
+  footerNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    paddingBottom: 40,
+  },
+  footerText: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginLeft: 8,
   },
 });
 

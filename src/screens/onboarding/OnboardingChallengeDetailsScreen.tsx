@@ -38,8 +38,8 @@ interface PersonalizationData {
 const OnboardingChallengeDetailsScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { challenge, personalizationData } = route.params as { 
-    challenge: Challenge; 
+  const { challenge, personalizationData } = route.params as {
+    challenge: Challenge;
     personalizationData: PersonalizationData;
   };
 
@@ -66,7 +66,7 @@ const OnboardingChallengeDetailsScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      
+
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>siFia</Text>
@@ -101,7 +101,7 @@ const OnboardingChallengeDetailsScreen: React.FC = () => {
 
           <View style={styles.detailsSection}>
             <Text style={styles.detailsTitle}>Tell us more about your specific situation:</Text>
-            
+
             <Text style={styles.examplesLabel}>Examples:</Text>
             <View style={styles.exampleTags}>
               {challenge.examples.map((example, index) => (

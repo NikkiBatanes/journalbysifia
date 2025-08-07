@@ -130,7 +130,7 @@ export class QueueService {
             .insert(basicQueueItem)
             .select()
             .single();
-          
+
           if (basicError) {
             console.error('[QueueService] Basic insert also failed:', basicError);
             // Return a mock queue ID to prevent app crashes
@@ -139,7 +139,7 @@ export class QueueService {
             this.startProcessing();
             return mockId;
           }
-          
+
           console.log(`[QueueService] Added ${request.type} generation to queue with basic schema`);
           this.startProcessing();
           return basicData.id;

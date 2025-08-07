@@ -22,14 +22,22 @@ export interface SubscriptionLimits {
 }
 
 export interface UsageTracking {
-  userId: string;
-  period: string; // YYYY-MM format
-  playbooks_used: number;
-  devotionals_used: number;
-  ai_tokens_used: number;
-  ai_cost_cents: number;
+  id?: string;
+  user_id: string;
+  subscription_id?: string;
+  playbooks_generated: number;
+  devotionals_generated: number;
+  journal_entries: number;
+  smart_journal_entries: number;
+  openai_tokens_used: number;
   api_calls_made: number;
-  lastUpdated: string;
+  intelligence_queries: number;
+  template_uses: Record<string, any>;
+  export_count: number;
+  last_reset_date: string;
+  reset_period: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Subscription {

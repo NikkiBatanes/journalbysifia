@@ -13,6 +13,7 @@ export interface PlaybookGenerationRequest {
   userId: string;
   userInput: string;
   userName: string;
+  isOnboarding?: boolean;
 }
 
 export interface DevotionalGenerationRequest {
@@ -43,7 +44,7 @@ export class EnhancedGenerationService {
       console.log(`[EnhancedGenerationService] Playbook generation requested for user ${request.userId}`);
 
       // 1. Check subscription limits (SIMPLE FOR USERS)
-      const canGenerate = await subscriptionService.canGenerate(request.userId, 'playbook');
+      const canGenerate = await subscriptionService.canGenerate(request.userId, 'playbook', request.isOnboarding || false);
 
       if (!canGenerate.allowed) {
         console.log('[EnhancedGenerationService] Playbook generation blocked - limit reached');
@@ -67,7 +68,7 @@ export class EnhancedGenerationService {
           event_type: 'playbook_generation_requested',
           event_category: 'generation',
           event_data: {
-            input_length: request.userInput.length,
+            input_length: request.userInput?.length || 0,
             subscription_tier: subscription.tier,
           },
           duration_seconds: 0,
@@ -142,18 +143,18 @@ export class EnhancedGenerationService {
   private async generateDirectPlaybook(request: PlaybookGenerationRequest): Promise<GenerationResponse> {
     try {
       console.log('[EnhancedGenerationService] Attempting direct AI playbook generation');
-      
+
       // Import the real generation service
       const { generatePlaybook } = await import('./apiIntegration');
-      
+
       // Call the real AI generation service directly
       console.log('[EnhancedGenerationService] Calling real AI generation service');
       const aiResult = await generatePlaybook(request.userInput, request.userName, {
-        showUserFeedback: false // Don't show UI feedback in direct mode
+        showUserFeedback: false, // Don't show UI feedback in direct mode
       });
-      
+
       console.log('[EnhancedGenerationService] AI generation completed successfully');
-      
+
       return {
         success: true,
         queueId: 'direct-' + Date.now(),
@@ -166,7 +167,7 @@ export class EnhancedGenerationService {
       };
     } catch (error) {
       console.error('[EnhancedGenerationService] Direct AI generation failed:', error);
-      
+
       // If AI generation fails, provide a helpful fallback message
       return {
         success: false,

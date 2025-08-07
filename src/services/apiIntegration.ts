@@ -134,9 +134,18 @@ export async function generatePlaybook(
   options: {
     showUserFeedback?: boolean;
     onAuthRequired?: () => void;
+    _retryCount?: number;
   } = {}
 ): Promise<any> {
-  const { showUserFeedback = true, onAuthRequired } = options;
+  const { showUserFeedback = true, onAuthRequired, _retryCount = 0 } = options;
+  const MAX_RETRIES = 2;
+
+  console.log(`[generatePlaybook] Starting generation (retry ${_retryCount}/${MAX_RETRIES})`);
+
+  if (_retryCount > MAX_RETRIES) {
+    console.error('[generatePlaybook] Max retries exceeded, aborting');
+    throw new Error('Maximum retry attempts exceeded for playbook generation');
+  }
 
   try {
     console.log('📚 Starting playbook generation with auth integration...');
@@ -155,7 +164,7 @@ export async function generatePlaybook(
         if (refreshResult.success) {
           console.log('✅ Session refreshed, retrying playbook generation...');
           // Retry with refreshed session
-          return generatePlaybook(userInput, userName, options);
+          return generatePlaybook(userInput, userName, { ...options, _retryCount: _retryCount + 1 });
         }
       }
 
@@ -217,7 +226,7 @@ export async function generatePlaybook(
 
     if (result.shouldRetry) {
       console.log('🔄 Retrying playbook generation...');
-      return generatePlaybook(userInput, userName, options);
+      return generatePlaybook(userInput, userName, { ...options, _retryCount: _retryCount + 1 });
     }
 
     if (!result.handled) {

@@ -140,7 +140,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     challenge: '',
     challengeDetails: '',
   });
-  
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const totalSteps = 4;
@@ -171,7 +171,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   };
 
   const handleContinue = async () => {
-    if (!canContinue()) return;
+    if (!canContinue()) {return;}
 
     if (currentStep < totalSteps - 1) {
       setCurrentStep(currentStep + 1);
@@ -203,19 +203,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     switch (currentStep) {
       case 0: return "What's your name?";
       case 1: return "What's your age group?";
-      case 2: return "Where are you in your faith journey?";
+      case 2: return 'Where are you in your faith journey?';
       case 3: return "What's your biggest challenge right now?";
-      default: return "Tell us about yourself";
+      default: return 'Tell us about yourself';
     }
   };
 
   const getStepSubtitle = () => {
     switch (currentStep) {
-      case 0: return "Help us craft your personalized faith journey with siFia: Faith in Action";
-      case 1: return "This helps us provide age-appropriate guidance and content";
-      case 2: return "Understanding your spiritual background helps us tailor your experience";
+      case 0: return 'Help us craft your personalized faith journey with siFia: Faith in Action';
+      case 1: return 'This helps us provide age-appropriate guidance and content';
+      case 2: return 'Understanding your spiritual background helps us tailor your experience';
       case 3: return "Choose the area where you need the most guidance, and we'll create a personalized playbook just for you";
-      default: return "Help us craft your personalized faith journey with siFia: Faith in Action";
+      default: return 'Help us craft your personalized faith journey with siFia: Faith in Action';
     }
   };
 
@@ -234,7 +234,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               <Ionicons name="close" size={24} color={Colors.hopeWhite} />
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
             {ageGroups.map((group) => (
               <TouchableOpacity
@@ -250,7 +250,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               >
                 <Text style={[
                   styles.modalOptionText,
-                  data.ageGroup === group.value && styles.modalOptionTextSelected
+                  data.ageGroup === group.value && styles.modalOptionTextSelected,
                 ]}>
                   {group.label}
                 </Text>
@@ -280,20 +280,20 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             />
           </View>
         );
-      
+
       case 1:
         return (
           <View style={styles.stepContainer}>
             <TouchableOpacity
               style={[
                 styles.selectionButton,
-                data.ageGroup && styles.selectionButtonSelected
+                data.ageGroup && styles.selectionButtonSelected,
               ]}
               onPress={() => setShowAgeModal(true)}
             >
               <Text style={[
                 styles.selectionButtonText,
-                data.ageGroup && styles.selectionButtonTextSelected
+                data.ageGroup && styles.selectionButtonTextSelected,
               ]}>
                 {data.ageGroup ? ageGroups.find(g => g.value === data.ageGroup)?.label : 'Select age group'}
               </Text>
@@ -301,7 +301,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         );
-      
+
       case 2:
         return (
           <View style={styles.stepContainer}>
@@ -330,7 +330,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             </ScrollView>
           </View>
         );
-      
+
       case 3:
         return (
           <View style={styles.stepContainer}>
@@ -357,7 +357,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            
+
             {data.challenge && (
               <View style={styles.detailsSection}>
                 <Text style={styles.detailsTitle}>Tell us more about your specific situation:</Text>
@@ -387,7 +387,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             )}
           </View>
         );
-      
+
       default:
         return null;
     }
@@ -396,7 +396,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
@@ -407,11 +407,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       {/* Progress Bar */}
       <View style={styles.progressContainer}>
         <View style={styles.progressBar}>
-          <View 
+          <View
             style={[
-              styles.progressFill, 
-              { width: `${((currentStep + 1) / totalSteps) * 100}%` }
-            ]} 
+              styles.progressFill,
+              { width: `${((currentStep + 1) / totalSteps) * 100}%` },
+            ]}
           />
         </View>
         <Text style={styles.progressText}>{currentStep + 1} of {totalSteps}</Text>
@@ -439,14 +439,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           style={[
             styles.continueButton,
             canContinue() ? styles.continueButtonActive : styles.continueButtonInactive,
-            isLoading && styles.buttonDisabled
+            isLoading && styles.buttonDisabled,
           ]}
           onPress={handleContinue}
           disabled={!canContinue() || isLoading}
         >
           <Text style={[
             styles.continueButtonText,
-            canContinue() ? styles.continueButtonTextActive : styles.continueButtonTextInactive
+            canContinue() ? styles.continueButtonTextActive : styles.continueButtonTextInactive,
           ]}>
             {isLoading ? 'Loading...' : currentStep === totalSteps - 1 ? 'Create My Playbook' : 'Continue'}
           </Text>

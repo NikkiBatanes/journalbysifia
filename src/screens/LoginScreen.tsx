@@ -48,7 +48,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      
+
       <View style={styles.contentContainer}>
         {/* Logo */}
         <Image
@@ -56,7 +56,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.logo}
           resizeMode="contain"
         />
-        
+
         {/* Illustration Placeholder */}
         <View style={styles.illustrationContainer}>
           <View style={styles.illustrationPlaceholder}>
@@ -66,12 +66,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="server-outline" size={30} color="rgba(255,255,255,0.15)" style={styles.serverIcon} />
           </View>
         </View>
-        
+
         {/* Title */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Login</Text>
         </View>
-        
+
         {/* Social Buttons */}
         <View style={styles.buttonContainer}>
           {Platform.OS === 'ios' && (
@@ -84,7 +84,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.buttonText}>Continue with Apple</Text>
             </TouchableOpacity>
           )}
-          
+
           <TouchableOpacity
             style={styles.googleButton}
             onPress={handleGoogleLogin}
@@ -93,7 +93,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="logo-google" size={20} color="#FF6B6B" />
             <Text style={styles.buttonText}>Continue with Google</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.emailButton}
             onPress={handleEmailLogin}
@@ -104,7 +104,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-      
+
       {/* Sign Up Link */}
       <View style={styles.signUpContainer}>
         <Text style={styles.signUpText}>Don't have an account? </Text>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
-    marginBottom: 0,
+    marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,

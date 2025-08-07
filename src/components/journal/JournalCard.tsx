@@ -43,7 +43,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
 }) => {
   const hasContent = React.Children.count(children) > 0;
   const showContent = hasContent || isAdding;
-  
+
   // Enhanced animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
@@ -57,9 +57,9 @@ export const JournalCard: React.FC<JournalCardProps> = ({
       AnimationUtils.scaleIn(scaleAnim, 500, 100),
       AnimationUtils.slideUp(slideAnim, 400, 200),
     ]);
-    
+
     entranceAnimation.start();
-    
+
     // Optional subtle pulse for interactive cards
     if (onAdd || _onExpand) {
       const pulseAnimation = AnimationUtils.pulse(pulseAnim, 0.98, 1.02, 3000);
@@ -125,7 +125,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
     };
 
     return (
-      <Animated.View 
+      <Animated.View
         style={[
           getEmptyCardStyle(),
           {
@@ -133,9 +133,9 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             transform: [
               { scale: scaleAnim },
               { translateY: slideAnim },
-              { scale: pulseAnim }
-            ]
-          }
+              { scale: pulseAnim },
+            ],
+          },
         ]}
       >
         {/* Pattern design gradient background */}
@@ -143,22 +143,22 @@ export const JournalCard: React.FC<JournalCardProps> = ({
           colors={[Colors.hopeWhite, 'rgba(248, 249, 250, 0.8)', Colors.hopeWhite]}
           style={styles.cardGradient}
         />
-        
+
         {/* Color accent border */}
         <View style={styles.colorAccentBorder}>
           <View style={[styles.accentDot, { backgroundColor: Colors.alertCoral }]} />
           <View style={[styles.accentDot, { backgroundColor: Colors.growthGreen }]} />
           <View style={[styles.accentDot, { backgroundColor: Colors.faithGold }]} />
         </View>
-        
+
         <View style={[styles.header, styles.headerEmpty]}>
           <View style={styles.headerContent}>
             {(viewMode as ViewMode) !== 'inline' && (
               typeof icon === 'string' ? (
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.icon,
-                    { transform: [{ scale: pulseAnim }] }
+                    { transform: [{ scale: pulseAnim }] },
                   ]}
                 >
                   <Ionicons
@@ -168,10 +168,10 @@ export const JournalCard: React.FC<JournalCardProps> = ({
                   />
                 </Animated.View>
               ) : (
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.icon,
-                    { transform: [{ scale: pulseAnim }] }
+                    { transform: [{ scale: pulseAnim }] },
                   ]}
                 >
                   {icon}

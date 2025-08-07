@@ -98,7 +98,9 @@ const OnboardingPlaybookNavigationScreen: React.FC = () => {
   };
 
   const playbook = params?.generatedPlaybook;
-  const totalSubtasks = playbook?.actionSteps?.reduce((total: number, step: any) => total + step.subtasks.length, 0) || 0;
+  const totalSubtasks = playbook?.actionSteps?.reduce((total: number, step: any) => {
+    return total + (step.subtasks?.length || 0);
+  }, 0) || 0;
   const completedCount = completedSubtasks.size;
   const progressPercentage = totalSubtasks > 0 ? (completedCount / totalSubtasks) * 100 : 0;
 
@@ -199,7 +201,7 @@ const OnboardingPlaybookNavigationScreen: React.FC = () => {
                 {selectedActionStep === stepIndex && (
                   <Animated.View style={styles.subtasksContainer}>
                     <Text style={styles.subtasksTitle}>Tasks to complete:</Text>
-                    {step.subtasks.map((subtask: string, subtaskIndex: number) => {
+                    {(step.subtasks || []).map((subtask: string, subtaskIndex: number) => {
                       const subtaskKey = `${stepIndex}-${subtaskIndex}`;
                       const isCompleted = completedSubtasks.has(subtaskKey);
 

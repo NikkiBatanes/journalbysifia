@@ -13,10 +13,14 @@ export type RootStackParamList = {
   OnboardingGoalsScreen: undefined;
   OnboardingPreferences: undefined;
   OnboardingTrialSetup: undefined;
+  OnboardingPersonalization: { name?: string; registrationMethod?: 'email' | 'oauth' } | undefined;
+  OnboardingPlaybookNavigation: { generatedPlaybook: Playbook } | undefined;
+  OnboardingNotificationPermission: { playbook?: Playbook } | undefined;
+  OnboardingComplete: { playbook?: Playbook } | undefined;
 
   // Main App
   MainTabs: undefined;
-  PlaybookDetail: { playbook: Playbook };
+  PlaybookDetail: { playbook: Playbook; isFromOnboarding?: boolean };
   CardDetail: {
     cardType: string;
     cardData: any;
@@ -30,6 +34,13 @@ export type RootStackParamList = {
   GeneratingPlaybook: {
     userInput: string;
     userName: string;
+    isFromOnboarding?: boolean;
+    onboardingData?: {
+      ageGroup: string;
+      faithJourney: string;
+      challenge: string;
+      challengeDetails: string;
+    };
   };
   // Devotional screens
   Devotionals: undefined;

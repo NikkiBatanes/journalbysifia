@@ -47,20 +47,94 @@ const SocialButton: React.FC<SocialButtonProps> = ({
 );
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
-  const { signInWithGoogle, signInWithApple, loading } = useAuth();
+  const { signInWithGoogle, signInWithApple, loading, user } = useAuth();
+
+  // Navigate to personalization screen after successful authentication
+  React.useEffect(() => {
+    if (user) {
+      console.log('✅ User authenticated, navigating to personalization screen');
+      // Extract name from user metadata or email
+      let displayName = '';
+      if (user.user_metadata) {
+        displayName = (
+          user.user_metadata.first_name ||
+          user.user_metadata.given_name ||
+          user.user_metadata.full_name ||
+          user.user_metadata.name ||
+          user.email?.split('@')[0] ||
+          ''
+        ).trim();
+      } else {
+        displayName = user.email?.split('@')[0] || '';
+      }
+
+      navigation.navigate('OnboardingPersonalization' as any, {
+        name: displayName,
+        registrationMethod: 'oauth', // Flag to indicate OAuth registration
+      });
+    }
+  }, [user, navigation]);
 
   const handleGoogleSignUp = async () => {
+    console.log('🔄 Starting Google sign up...');
+
+    // TEMPORARY: For testing, let's simulate successful OAuth and navigate directly
+    // This helps us test the personalization screen while we debug OAuth
+    const isTestMode = __DEV__; // Only in development
+
+    if (isTestMode) {
+      console.log('🧪 [TEST MODE] Simulating successful Google OAuth...');
+      // Simulate a successful user for testing
+      const testName = 'Test User';
+      navigation.navigate('OnboardingPersonalization' as any, {
+        name: testName,
+        registrationMethod: 'oauth', // Flag for test mode OAuth
+      });
+      return;
+    }
+
     const { error } = await signInWithGoogle();
     if (error) {
-      Alert.alert('Google Sign Up Failed', error.message || 'Please try again');
+      console.error('❌ Google sign up failed:', error);
+      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+      Alert.alert(
+        'Google Sign Up Failed',
+        `${error.message || 'Please try again'}\n\nError details: ${JSON.stringify(error, null, 2)}`
+      );
+    } else {
+      console.log('✅ Google sign up successful, waiting for auth state change...');
     }
+    // Navigation will be handled by useEffect when user state changes
   };
 
   const handleAppleSignUp = async () => {
+    console.log('🔄 Starting Apple sign up...');
+
+    // TEMPORARY: For testing, let's simulate successful OAuth and navigate directly
+    const isTestMode = __DEV__; // Only in development
+
+    if (isTestMode) {
+      console.log('🧪 [TEST MODE] Simulating successful Apple OAuth...');
+      const testName = 'Test User';
+      navigation.navigate('OnboardingPersonalization' as any, {
+        name: testName,
+        registrationMethod: 'oauth', // Flag for test mode OAuth
+      });
+      return;
+    }
+
     const { error } = await signInWithApple();
     if (error) {
-      Alert.alert('Apple Sign Up Failed', error.message || 'Please try again');
+      console.error('❌ Apple sign up failed:', error);
+      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+      Alert.alert(
+        'Apple Sign Up Failed',
+        `${error.message || 'Please try again'}\n\nError details: ${JSON.stringify(error, null, 2)}`
+      );
+    } else {
+      console.log('✅ Apple sign up successful, waiting for auth state change...');
     }
+    // Navigation will be handled by useEffect when user state changes
   };
 
   const handleEmailSignUp = () => {
@@ -75,7 +149,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      
+
       <View style={styles.contentContainer}>
         {/* Logo */}
         <Image
@@ -83,7 +157,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.logo}
           resizeMode="contain"
         />
-        
+
         {/* Illustration Placeholder */}
         <View style={styles.illustrationContainer}>
           <View style={styles.illustrationPlaceholder}>
@@ -93,12 +167,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="server-outline" size={30} color="rgba(255,255,255,0.15)" style={styles.serverIcon} />
           </View>
         </View>
-        
+
         {/* Title */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Create an Account</Text>
         </View>
-        
+
         {/* Social Buttons */}
         <View style={styles.buttonContainer}>
           {Platform.OS === 'ios' && (
@@ -111,7 +185,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.buttonText}>Continue with Apple</Text>
             </TouchableOpacity>
           )}
-          
+
           <TouchableOpacity
             style={styles.googleButton}
             onPress={handleGoogleSignUp}
@@ -120,7 +194,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="logo-google" size={20} color="#FF6B6B" />
             <Text style={styles.buttonText}>Continue with Google</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={styles.emailButton}
             onPress={handleEmailSignUp}
@@ -131,7 +205,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-      
+
       {/* Login Link */}
       <View style={styles.loginContainer}>
         <Text style={styles.loginText}>Already have an account? </Text>

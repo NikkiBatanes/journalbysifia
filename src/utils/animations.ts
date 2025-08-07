@@ -10,7 +10,7 @@ export const AnimationConfig = {
   fast: 300,
   medium: 600,
   slow: 1000,
-  
+
   // Easing functions
   easeInOut: Easing.bezier(0.4, 0, 0.2, 1),
   easeOut: Easing.bezier(0, 0, 0.2, 1),
@@ -105,7 +105,7 @@ export class AnimationUtils {
     animations: Animated.CompositeAnimation[],
     staggerDelay: number = 100
   ): Animated.CompositeAnimation {
-    const staggeredAnimations = animations.map((animation, index) => 
+    const staggeredAnimations = animations.map((animation, index) =>
       Animated.timing(new Animated.Value(0), {
         toValue: 1,
         duration: 0,
@@ -116,7 +116,7 @@ export class AnimationUtils {
 
     return Animated.parallel([
       ...staggeredAnimations,
-      Animated.stagger(staggerDelay, animations)
+      Animated.stagger(staggerDelay, animations),
     ]);
   }
 
@@ -337,7 +337,7 @@ export const OnboardingAnimations = {
     cards: Animated.Value[],
     staggerDelay: number = 150
   ) => {
-    const cardAnimations = cards.map(cardAnim => 
+    const cardAnimations = cards.map(cardAnim =>
       AnimationUtils.fadeIn(cardAnim, AnimationConfig.medium)
     );
     return AnimationUtils.staggered(cardAnimations, staggerDelay);

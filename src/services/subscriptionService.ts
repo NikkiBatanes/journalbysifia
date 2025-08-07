@@ -85,26 +85,30 @@ export class SubscriptionService {
         .from('usage_tracking')
         .select('*')
         .eq('user_id', userId)
-        .eq('period', period)
         .single();
 
       if (error || !data) {
-        // Create usage record if doesn't exist - use basic schema
+        // Create usage record if doesn't exist - match actual database schema
         const basicUsage = {
           user_id: userId,
-          period,
-          playbooks_used: 0,
-          devotionals_used: 0,
+          playbooks_generated: 0,
+          devotionals_generated: 0,
           created_at: new Date().toISOString(),
         };
 
         // Try full schema first, fallback to basic
         const newUsage = {
           ...basicUsage,
-          ai_tokens_used: 0,
-          ai_cost_cents: 0,
+          journal_entries: 0,
+          smart_journal_entries: 0,
+          openai_tokens_used: 0,
           api_calls_made: 0,
-          lastUpdated: new Date().toISOString(),
+          intelligence_queries: 0,
+          template_uses: {},
+          export_count: 0,
+          last_reset_date: new Date().toISOString().split('T')[0],
+          reset_period: 'monthly',
+          updated_at: new Date().toISOString(),
         };
 
         const { data: created, error: createError } = await this.supabase
@@ -123,7 +127,7 @@ export class SubscriptionService {
               .insert(basicUsage)
               .select()
               .single();
-            
+
             if (basicCreateError) {
               console.error('[SubscriptionService] Basic usage insert also failed:', basicCreateError);
               // Return default usage to prevent crashes
@@ -138,7 +142,7 @@ export class SubscriptionService {
                 lastUpdated: new Date().toISOString(),
               };
             }
-            
+
             // Convert basic usage to full usage tracking format
             return {
               userId: basicCreated.user_id,
@@ -181,14 +185,42 @@ export class SubscriptionService {
   /**
    * Check if user can perform a generation (SIMPLE FOR USERS)
    */
-  async canGenerate(userId: string, type: 'playbook' | 'devotional'): Promise<CanGenerateResult> {
+  async canGenerate(userId: string, type: 'playbook' | 'devotional', isOnboarding: boolean = false): Promise<CanGenerateResult> {
     try {
+      // Development flag - set to false to test actual limits
+      const DEV_UNLIMITED = __DEV__ && false; // Change to true for unlimited dev mode
+
+      if (DEV_UNLIMITED) {
+        console.log(`[SubscriptionService] Development mode: allowing ${type} generation for user ${userId}`);
+        return {
+          allowed: true,
+          remaining: 'Unlimited',
+          limit: 'Unlimited',
+          used: 0,
+          upgradeRequired: false,
+          message: 'Development mode - unlimited generation',
+        };
+      }
+
+      // Allow onboarding playbooks for free (don't count against limits)
+      if (isOnboarding && type === 'playbook') {
+        console.log(`[SubscriptionService] Allowing onboarding playbook for user ${userId}`);
+        return {
+          allowed: true,
+          remaining: 'Unlimited',
+          limit: 'Unlimited',
+          used: 0,
+          upgradeRequired: false,
+          message: 'Free onboarding playbook',
+        };
+      }
+
       const subscription = await this.getUserSubscription(userId);
       const usage = await this.getCurrentUsage(userId);
-      const limits = await this.getSubscriptionLimits(subscription.tier);
+      const limits = this.getSubscriptionLimits(subscription.tier);
 
       const limit = type === 'playbook' ? limits.playbooks : limits.devotionals;
-      const used = type === 'playbook' ? usage.playbooks_used : usage.devotionals_used;
+      const used = type === 'playbook' ? (usage.playbooks_generated || 0) : (usage.devotionals_generated || 0);
 
       // Handle unlimited subscriptions
       if (limit === -1) {
@@ -452,7 +484,7 @@ export class SubscriptionService {
    */
   private createInMemorySubscription(userId: string): Subscription {
     const trialEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    
+
     return {
       id: 'temp-' + userId,
       userId: userId,
@@ -462,25 +494,24 @@ export class SubscriptionService {
       startDate: new Date().toISOString(),
       endDate: trialEndDate.toISOString(),
       trialEndDate: trialEndDate.toISOString(),
-      limits: {
-        playbooks: 10,
-        devotionals: 10,
-        exports: 5,
-        apiCalls: 100,
-        familyMembers: 1,
-        intelligenceEnabled: false,
-        advancedAnalytics: false,
-        prioritySupport: false,
-      },
+      limits: this.getSubscriptionLimits('free_trial'),
       currentUsage: {
-        userId: userId,
-        period: new Date().toISOString().substring(0, 7),
-        playbooks_used: 0,
-        devotionals_used: 0,
-        ai_tokens_used: 0,
-        ai_cost_cents: 0,
+        id: 'temp-usage-' + userId,
+        user_id: userId,
+        subscription_id: 'temp-' + userId,
+        playbooks_generated: 0,
+        devotionals_generated: 0,
+        journal_entries: 0,
+        smart_journal_entries: 0,
+        openai_tokens_used: 0,
         api_calls_made: 0,
-        lastUpdated: new Date().toISOString(),
+        intelligence_queries: 0,
+        template_uses: {},
+        export_count: 0,
+        last_reset_date: new Date().toISOString(),
+        reset_period: 'monthly',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -492,7 +523,7 @@ export class SubscriptionService {
    */
   private convertToFullSubscription(dbData: any, userId: string): Subscription {
     const trialEndDate = new Date(dbData.trial_end_date || Date.now() + 7 * 24 * 60 * 60 * 1000);
-    
+
     return {
       id: dbData.id,
       userId: userId,

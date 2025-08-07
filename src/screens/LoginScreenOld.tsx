@@ -124,7 +124,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      
+
       {/* Top Section with Logo and Illustration */}
       <View style={styles.topSection}>
         {/* Logo */}
@@ -133,7 +133,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.logo}
           resizeMode="contain"
         />
-        
+
         {/* Illustration Placeholder */}
         <View style={styles.illustrationContainer}>
           <View style={styles.illustrationPlaceholder}>
@@ -142,12 +142,12 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons name="cloud-outline" size={30} color="rgba(255,255,255,0.2)" style={styles.cloudIcon} />
           </View>
         </View>
-        
+
         {/* Header Text */}
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>Sign in to continue your spiritual journey</Text>
       </View>
-      
+
       {/* Bottom Section with Form */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

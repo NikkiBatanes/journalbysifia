@@ -18,7 +18,9 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { userApi } from '../services/userApi';
+import { subscriptionService } from '../services/subscriptionService';
 import { UserProgress, Badge, UserPreferences } from '../types/auth';
+import { Subscription, UsageTracking } from '../interfaces/subscription';
 import { Colors } from '../theme/colors';
 
 const { width } = Dimensions.get('window');
@@ -44,6 +46,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
   const [recentBadges, setRecentBadges] = useState<Badge[]>([]);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [usage, setUsage] = useState<UsageTracking | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -109,6 +113,22 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       const badgesResponse = await userApi.getRecentBadges(user?.id || '', 5);
       if (badgesResponse.success && badgesResponse.data) {
         setRecentBadges(badgesResponse.data);
+      }
+
+      // Load subscription and usage data
+      if (user?.id) {
+        try {
+          const subscriptionData = await subscriptionService.getUserSubscription(user.id);
+          setSubscription(subscriptionData);
+
+          const usageData = await subscriptionService.getCurrentUsage(user.id);
+          setUsage(usageData);
+
+          console.log('📊 Subscription loaded:', subscriptionData.tier, subscriptionData.status);
+          console.log('📈 Usage loaded - Playbooks:', usageData.playbooks_generated, 'Devotionals:', usageData.devotionals_generated);
+        } catch (error) {
+          console.error('Failed to load subscription data:', error);
+        }
       }
 
       // TODO: Load user preferences from separate API or user_metadata
@@ -295,6 +315,87 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       </View>
     </View>
   );
+
+  const renderSubscriptionInfo = () => {
+    if (!subscription || !usage) {return null;}
+
+    const isTrialing = subscription.status === 'trialing';
+    const trialDaysLeft = subscription.trialEndDate
+      ? Math.max(0, Math.ceil((new Date(subscription.trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+      : 0;
+
+    const playbookLimit = subscription.limits.playbooks === -1 ? 'Unlimited' : subscription.limits.playbooks;
+    const devotionalLimit = subscription.limits.devotionals === -1 ? 'Unlimited' : subscription.limits.devotionals;
+
+    const playbookUsed = usage.playbooks_generated || 0;
+    const devotionalUsed = usage.devotionals_generated || 0;
+
+    return (
+      <View style={styles.subscriptionContainer}>
+        <Text style={styles.sectionTitle}>Your Plan</Text>
+
+        {/* Subscription Status */}
+        <View style={[styles.subscriptionCard, isTrialing && styles.trialCard]}>
+          <View style={styles.subscriptionHeader}>
+            <View style={styles.subscriptionTitleRow}>
+              <Ionicons
+                name={isTrialing ? 'time' : 'checkmark-circle'}
+                size={24}
+                color={isTrialing ? Colors.warning : Colors.success}
+              />
+              <Text style={styles.subscriptionTitle}>
+                {subscription.tier.replace('_', ' ').toUpperCase()}
+              </Text>
+            </View>
+            {isTrialing && (
+              <View style={styles.trialBadge}>
+                <Text style={styles.trialBadgeText}>{trialDaysLeft} days left</Text>
+              </View>
+            )}
+          </View>
+
+          <Text style={styles.subscriptionStatus}>
+            {isTrialing
+              ? `Your free trial expires in ${trialDaysLeft} days`
+              : `Active since ${new Date(subscription.startDate).toLocaleDateString()}`
+            }
+          </Text>
+        </View>
+
+        {/* Usage Statistics */}
+        <View style={styles.usageGrid}>
+          <View style={styles.usageCard}>
+            <View style={styles.usageHeader}>
+              <Ionicons name="book-outline" size={20} color={Colors.primary} />
+              <Text style={styles.usageTitle}>Playbooks</Text>
+            </View>
+            <Text style={styles.usageNumbers}>
+              {playbookUsed} / {playbookLimit}
+            </Text>
+            <Text style={styles.usageLabel}>Generated this month</Text>
+          </View>
+
+          <View style={styles.usageCard}>
+            <View style={styles.usageHeader}>
+              <Ionicons name="heart-outline" size={20} color={Colors.devotionalPurple} />
+              <Text style={styles.usageTitle}>Devotionals</Text>
+            </View>
+            <Text style={styles.usageNumbers}>
+              {devotionalUsed} / {devotionalLimit}
+            </Text>
+            <Text style={styles.usageLabel}>Generated this month</Text>
+          </View>
+        </View>
+
+        {isTrialing && (
+          <TouchableOpacity style={styles.upgradeButton}>
+            <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   const renderRecentBadges = () => (
     <View style={styles.badgesContainer}>
@@ -512,6 +613,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       >
         {renderProfileHeader()}
         {renderStatsGrid()}
+        {renderSubscriptionInfo()}
         {renderRecentBadges()}
         {renderMenuOptions()}
       </ScrollView>
@@ -810,6 +912,102 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.mediumGray,
     textTransform: 'capitalize',
+  },
+  // Subscription and Usage Styles
+  subscriptionContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  subscriptionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  trialCard: {
+    borderWidth: 2,
+    borderColor: Colors.warning,
+  },
+  subscriptionHeader: {
+    marginBottom: 8,
+  },
+  subscriptionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  subscriptionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginLeft: 8,
+  },
+  trialBadge: {
+    backgroundColor: Colors.warning,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  trialBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  subscriptionStatus: {
+    fontSize: 14,
+    color: Colors.mediumGray,
+  },
+  usageGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  usageCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 8,
+    padding: 12,
+    flex: 0.48,
+  },
+  usageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  usageTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+    marginLeft: 6,
+  },
+  usageNumbers: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginBottom: 4,
+  },
+  usageLabel: {
+    fontSize: 12,
+    color: Colors.mediumGray,
+  },
+  upgradeButton: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  upgradeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
   },
 });
 

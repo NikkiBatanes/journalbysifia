@@ -57,8 +57,9 @@ const OnboardingNotificationPermissionScreen: React.FC = () => {
       // Simulate permission request
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Navigate to welcome screen
-      navigation.navigate('OnboardingWelcome' as any);
+      // Navigate to completion screen
+      console.log('🔔 Notifications enabled, showing completion screen');
+      navigation.navigate('OnboardingComplete' as any);
     } catch (error) {
       Alert.alert('Permission Error', 'Unable to request notification permission');
     } finally {
@@ -67,8 +68,9 @@ const OnboardingNotificationPermissionScreen: React.FC = () => {
   };
 
   const handleMaybeLater = () => {
-    // Continue without notifications
-    navigation.navigate('OnboardingWelcome' as any);
+    // Navigate to completion screen without notifications
+    console.log('🔕 Notifications skipped, showing completion screen');
+    navigation.navigate('OnboardingComplete' as any);
   };
 
   return (

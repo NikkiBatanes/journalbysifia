@@ -15,7 +15,9 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { supabase } from '../../services/supabaseClient';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -92,6 +94,9 @@ const detailedFeatures: DetailedFeature[] = [
 
 const OnboardingOriginalFeatureShowcaseScreen: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute();
+  const { user } = useAuth();
+  const params = route.params as any;
   const [currentFeature, setCurrentFeature] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -130,11 +135,48 @@ const OnboardingOriginalFeatureShowcaseScreen: React.FC = () => {
   const handleGetStarted = async () => {
     setIsLoading(true);
     try {
-      console.log('🎯 Feature showcase completed, proceeding to next screen');
-      // Navigate to next onboarding screen
-      navigation.navigate('OnboardingPersonalization' as any);
+      // Check if we have a generated playbook (coming from onboarding flow)
+      if (params?.generatedPlaybook) {
+        console.log('[FeatureShowcase] Continuing onboarding flow to playbook navigation');
+        // Continue the onboarding flow to playbook navigation
+        navigation.navigate('OnboardingPlaybookNavigation' as any, {
+          generatedPlaybook: params.generatedPlaybook,
+        });
+        return;
+      }
+
+      // No playbook means user is accessing feature showcase independently
+      if (user?.id) {
+        // Check if user has completed onboarding
+        const { data: userProfile } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed')
+          .eq('id', user.id)
+          .single();
+
+        if (userProfile?.onboarding_completed) {
+          // User has completed onboarding, go to main app
+          console.log('[FeatureShowcase] User has completed onboarding, navigating to MainTabs');
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' as never }],
+          });
+          return;
+        }
+      }
+
+      // User hasn't completed onboarding and no playbook, start personalization
+      let displayName = '';
+      if (user) {
+        displayName = (user.user_metadata?.first_name || user.user_metadata?.full_name || user.email?.split('@')[0] || '').trim();
+      }
+
+      console.log('[FeatureShowcase] Starting onboarding from personalization');
+      navigation.navigate('OnboardingPersonalization' as any, { name: displayName });
     } catch (error) {
       console.error('Error proceeding from feature showcase:', error);
+      // Fallback to personalization on error
+      navigation.navigate('OnboardingPersonalization' as any);
     } finally {
       setIsLoading(false);
     }
@@ -170,11 +212,11 @@ const OnboardingOriginalFeatureShowcaseScreen: React.FC = () => {
             {currentFeature + 1} of {detailedFeatures.length}
           </Text>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
-                styles.progressFill, 
-                { width: `${((currentFeature + 1) / detailedFeatures.length) * 100}%` }
-              ]} 
+                styles.progressFill,
+                { width: `${((currentFeature + 1) / detailedFeatures.length) * 100}%` },
+              ]}
             />
           </View>
         </View>
@@ -184,10 +226,10 @@ const OnboardingOriginalFeatureShowcaseScreen: React.FC = () => {
           <View style={styles.featureContainer}>
             {/* Feature Icon */}
             <View style={[styles.iconContainer, { backgroundColor: `${currentFeatureData.color}20` }]}>
-              <Ionicons 
-                name={currentFeatureData.icon} 
-                size={48} 
-                color={currentFeatureData.color} 
+              <Ionicons
+                name={currentFeatureData.icon}
+                size={48}
+                color={currentFeatureData.color}
               />
             </View>
 
@@ -224,10 +266,10 @@ const OnboardingOriginalFeatureShowcaseScreen: React.FC = () => {
             onPress={handlePrevious}
             disabled={currentFeature === 0}
           >
-            <Ionicons 
-              name="chevron-back" 
-              size={24} 
-              color={currentFeature === 0 ? 'rgba(255,255,255,0.3)' : Colors.hopeWhite} 
+            <Ionicons
+              name="chevron-back"
+              size={24}
+              color={currentFeature === 0 ? 'rgba(255,255,255,0.3)' : Colors.hopeWhite}
             />
           </TouchableOpacity>
 
@@ -259,10 +301,10 @@ const OnboardingOriginalFeatureShowcaseScreen: React.FC = () => {
             disabled={isLoading}
           >
             <Text style={[OnboardingStyles.primaryButtonText, styles.actionButtonText]}>
-              {isLoading 
-                ? 'Loading...' 
-                : currentFeature === detailedFeatures.length - 1 
-                  ? 'Get Started' 
+              {isLoading
+                ? 'Loading...'
+                : currentFeature === detailedFeatures.length - 1
+                  ? 'Get Started'
                   : 'Next Feature'
               }
             </Text>

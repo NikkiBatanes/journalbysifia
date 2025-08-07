@@ -83,6 +83,62 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
     getInitialSession();
 
+    // Helper function to create user profile for OAuth users
+    const createUserProfileIfNeeded = async (user: any) => {
+      try {
+        console.log('🔍 Checking if user profile exists for:', user.id);
+
+        // Check if user profile already exists
+        const { data: existingProfile, error: fetchError } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .eq('id', user.id)
+          .single();
+
+        if (existingProfile) {
+          console.log('✅ User profile already exists');
+          return;
+        }
+
+        if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found
+          console.error('❌ Error checking user profile:', fetchError);
+          return;
+        }
+
+        console.log('📝 Creating new user profile for OAuth user');
+
+        // Extract name from user metadata or email
+        const userMetadata = user.user_metadata || {};
+        const firstName = userMetadata.first_name || userMetadata.given_name || user.email?.split('@')[0] || '';
+        const lastName = userMetadata.last_name || userMetadata.family_name || '';
+        const fullName = userMetadata.full_name || userMetadata.name || `${firstName} ${lastName}`.trim();
+        const displayName = fullName || firstName || user.email?.split('@')[0] || 'User';
+
+        // Create user profile matching actual database schema
+        const userProfile = {
+          id: user.id,
+          email: user.email,
+          first_name: firstName,
+          last_name: lastName,
+          full_name: fullName,
+          display_name: displayName,
+          onboarding_completed: false,
+        };
+
+        const { error: insertError } = await supabase
+          .from('user_profiles')
+          .insert([userProfile]);
+
+        if (insertError) {
+          console.error('❌ Error creating user profile:', insertError);
+        } else {
+          console.log('✅ User profile created successfully');
+        }
+      } catch (error) {
+        console.error('💥 Unexpected error creating user profile:', error);
+      }
+    };
+
     // Initialize session manager
     sessionManager.initialize();
 
@@ -121,7 +177,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         switch (event) {
           case 'SIGNED_IN':
             console.log('User signed in:', session?.user?.email);
-            // Store additional session info for persistence
+            // Create user profile for new OAuth users
+            if (session?.user) {
+              await createUserProfileIfNeeded(session.user);
+            }
             break;
           case 'SIGNED_OUT':
             console.log('User signed out');
@@ -230,77 +289,54 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signUp = async (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => {
     try {
-      console.log('🔑 Starting sign up process...', { email, hasUserData: !!userData });
+      console.log('🔑 Starting real Supabase sign up process...', { email, hasUserData: !!userData });
       setAuthState(prev => ({ ...prev, loading: true }));
 
-      // DEVELOPMENT WORKAROUND: Skip Supabase registration due to database trigger issues
-      // Create a mock authenticated state for development/testing
-      console.log('🔧 Database trigger issue detected - using development bypass');
-      console.log('🚀 Creating mock authenticated user for development...');
-      
-      // Generate a mock user ID for development
-      const mockUserId = `dev-user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Create mock user object
-      const mockUser = {
-        id: mockUserId,
-        email: email.toLowerCase().trim(),
-        email_confirmed_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        user_metadata: {},
-        app_metadata: {},
-        aud: 'authenticated',
-        role: 'authenticated',
-      };
-      
-      // Store user metadata for later use
+      // Prepare user metadata for Supabase
+      const userMetadata: any = {};
       if (userData?.firstName && userData?.lastName) {
-        mockUser.user_metadata = {
-          full_name: `${userData.firstName.trim()} ${userData.lastName.trim()}`,
-          first_name: userData.firstName.trim(),
-          last_name: userData.lastName.trim(),
-        };
-        console.log('📝 Mock user metadata prepared:', mockUser.user_metadata);
-        
-        // Store in localStorage for persistence
-        try {
-          localStorage.setItem(`dev_user_${mockUserId}`, JSON.stringify(mockUser));
-          localStorage.setItem('dev_current_user', JSON.stringify(mockUser));
-        } catch (storageError) {
-          console.warn('Could not store mock user data:', storageError);
-        }
+        userMetadata.full_name = `${userData.firstName.trim()} ${userData.lastName.trim()}`;
+        userMetadata.first_name = userData.firstName.trim();
+        userMetadata.last_name = userData.lastName.trim();
       }
-      
-      // Create mock session
-      const mockSession = {
-        access_token: `mock-access-token-${mockUserId}`,
-        refresh_token: `mock-refresh-token-${mockUserId}`,
-        expires_in: 3600,
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        token_type: 'bearer',
-        user: mockUser,
-      };
-      
-      // Update auth state to simulate successful registration
-      setAuthState({
-        user: mockUser as any,
-        session: mockSession as any,
-        loading: false,
-        isAuthenticated: true,
+
+      // Real Supabase registration
+      const { data, error } = await supabase.auth.signUp({
+        email: email.toLowerCase().trim(),
+        password,
+        options: {
+          data: userMetadata,
+        },
       });
-      
-      console.log('✅ Mock registration successful:', {
-        userId: mockUser.id,
-        email: mockUser.email,
-        isDevelopmentMode: true,
+
+      if (error) {
+        console.error('❌ Sign up failed:', error);
+        setAuthState(prev => ({ ...prev, loading: false }));
+        return { error };
+      }
+
+      if (!data.user) {
+        console.error('❌ No user returned from sign up');
+        setAuthState(prev => ({ ...prev, loading: false }));
+        return {
+          error: {
+            message: 'Registration failed - no user created',
+            status: 500,
+          } as SupabaseAuthError,
+        };
+      }
+
+      console.log('✅ Supabase sign up successful!', {
+        userId: data.user.id,
+        email: data.user.email,
+        confirmed: !!data.user.email_confirmed_at,
       });
-      
-      // Simulate async operation
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return { error: null }; // Success
-      
+
+      // Auth state will be updated by the onAuthStateChange listener
+      // Profile creation will be handled by the auth state change handler
+      // Don't set loading to false here - let the listener handle it
+
+      return { error: null };
     } catch (error) {
       console.error('💥 Sign up unexpected error:', error);
       setAuthState(prev => ({ ...prev, loading: false }));

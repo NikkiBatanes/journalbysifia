@@ -13,7 +13,7 @@ export const OnboardingStyles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
   },
-  
+
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
@@ -35,18 +35,20 @@ export const OnboardingStyles = StyleSheet.create({
   },
 
   logoImage: {
-    width: 100,
-    height: 100,
+    width: 140,
+    height: 140,
   },
 
   // Typography Standards
   mainTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
+    fontWeight: '700',
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 12,
     lineHeight: 28,
+    letterSpacing: 0.5,
   },
 
   subtitle: {
@@ -124,7 +126,7 @@ export const OnboardingStyles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -142,7 +144,7 @@ export const OnboardingStyles = StyleSheet.create({
 
   secondaryButton: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: Colors.hopeWhite,
     paddingVertical: 14,
     paddingHorizontal: 32,
@@ -318,7 +320,7 @@ export const OnboardingTypography = {
     fontFamily: Fonts.bold,
     lineHeight: 24,
   },
-  
+
   // Body Text
   subtitle: {
     fontSize: 15,

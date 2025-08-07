@@ -201,6 +201,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // 1. Route and navigation data
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
+  const isFromOnboarding = (route.params as any)?.isFromOnboarding || false;
 
   // Debug logging for playbookId
   console.log('📖 PlaybookDetailScreen - Route params debug:', {
@@ -726,8 +727,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     console.log('[DEBUG] Setting navigation options with headerLeft');
     navigation.setOptions({
       headerTitle: '',
-      headerLeft,
-      headerRight,
+      // Hide navigation elements during onboarding
+      headerLeft: isFromOnboarding ? () => null : headerLeft,
+      headerRight: isFromOnboarding ? () => null : headerRight,
       headerShown: true,
       headerTransparent: false,
       headerStyle: {
@@ -738,7 +740,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         paddingTop: 0, // Reduced bottom padding for title
       },
     });
-  }, [navigation, headerLeft, headerRight, user]);
+  }, [navigation, headerLeft, headerRight, user, isFromOnboarding]);
 
   // Debounced save function to prevent excessive calls
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -1108,15 +1110,31 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           )}
 
           <View style={[styles.bottomButtonContainer, showUserInput && styles.bottomButtonExpanded]}>
-            {((viewMode === 'document' && hasReachedLastCard) ||
-              (viewMode === 'stack' && showDevotionalButton))
-              && !hasCreatedDevotional && (
-              <View style={styles.devotionalButtonWrapper}>
-                <DevotionalButton
-                  onPress={() => setShowDevotionalModal(true)}
-                  visible={true}
-                />
-              </View>
+            {isFromOnboarding ? (
+              <TouchableOpacity
+                style={styles.onboardingContinueButton}
+                onPress={() => {
+                  navigation.navigate('OnboardingPlaybookNavigation' as any, {
+                    generatedPlaybook: routePlaybook,
+                  });
+                }}
+              >
+                <Text style={styles.onboardingContinueButtonText}>
+                  Start Your Journey
+                </Text>
+                <Ionicons name="arrow-forward" size={20} color={Colors.hopeWhite} style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+            ) : (
+              ((viewMode === 'document' && hasReachedLastCard) ||
+                (viewMode === 'stack' && showDevotionalButton))
+                && !hasCreatedDevotional && (
+                <View style={styles.devotionalButtonWrapper}>
+                  <DevotionalButton
+                    onPress={() => setShowDevotionalModal(true)}
+                    visible={true}
+                  />
+                </View>
+              )
             )}
           </View>
 
@@ -1154,6 +1172,8 @@ interface PlaybookDetailStyles {
   mainContainer: ViewStyle;
   bottomButtonContainer: ViewStyle;
   bottomButtonExpanded: ViewStyle;
+  onboardingContinueButton: ViewStyle;
+  onboardingContinueButtonText: TextStyle;
   devotionalButtonWrapper: ViewStyle;
   cardWrapperStyle: ViewStyle;
   cardContentStyle: ViewStyle;
@@ -1290,6 +1310,26 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   },
   bottomButtonExpanded: {
     marginTop: 20,
+  },
+  onboardingContinueButton: {
+    backgroundColor: Colors.growthGreen,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  onboardingContinueButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontWeight: '600',
+    fontFamily: Fonts.regular,
   },
   devotionalButtonWrapper: {
     width: '100%',

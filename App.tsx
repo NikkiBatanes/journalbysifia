@@ -9,8 +9,7 @@ import 'react-native-url-polyfill/auto';
 import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, StatusBar, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
-import DevAdminFloatingButton from './src/components/admin/DevAdminFloatingButton';
-import DevAdminPanelModal from './src/components/admin/DevAdminPanelModal';
+
 import { NavigationContainer } from '@react-navigation/native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -80,17 +79,6 @@ function App(): React.JSX.Element {
 import { useAuth } from './src/context/IndustryStandardAuthContext';
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
-  const [adminPanelVisible, setAdminPanelVisible] = useState(false);
-
-  const handleOpenAdminPanel = () => {
-    console.log('🟢 Opening admin panel...');
-    setAdminPanelVisible(true);
-  };
-
-  const handleCloseAdminPanel = () => {
-    console.log('🔴 Closing admin panel...');
-    setAdminPanelVisible(false);
-  };
 
   const { isAuthenticated, loading } = useAuth();
 
@@ -105,10 +93,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
   return (
     <NavigationContainer>
       <GestureHandlerRootView style={styles.gestureHandler}>
-        {/* DEV-ONLY: Floating button */}
-        {__DEV__ && (
-          <DevAdminFloatingButton onPress={handleOpenAdminPanel} />
-        )}
+
 
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <ScrollProvider>
@@ -117,7 +102,8 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
               <OnboardingProvider>
                 <LogoutContext.Provider value={{ onLogout: async () => {} }}>
                   <AuthStateMonitor>
-                    <OnboardingIntegration>
+                    {/* OnboardingIntegration temporarily disabled to fix email registration flow */}
+                    {/* <OnboardingIntegration> */}
                       <RootStackNavigator
                         isAuthenticated={isAuthenticated}
                         handleLogin={async () => {}}
@@ -126,11 +112,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
                         AuthStack={AuthStackNavigator}
                       />
                       <NetworkStatus />
-                      {/* DEV-ONLY: Admin panel modal inside OnboardingProvider context */}
-                      {__DEV__ && (
-                        <DevAdminPanelModal visible={adminPanelVisible} onClose={handleCloseAdminPanel} />
-                      )}
-                    </OnboardingIntegration>
+                    {/* </OnboardingIntegration> */}
                   </AuthStateMonitor>
                 </LogoutContext.Provider>
               </OnboardingProvider>

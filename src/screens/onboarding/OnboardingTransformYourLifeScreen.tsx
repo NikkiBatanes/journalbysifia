@@ -104,7 +104,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
       >
         {/* Logo Section */}
         <View style={styles.logoSection}>
-          <Image 
+          <Image
             source={require('../../../assets/icons/siFiaTransparent.png')}
             style={styles.logoImage}
             resizeMode="contain"
@@ -114,7 +114,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         {/* Main Content */}
         <View style={styles.mainContent}>
           <Text style={[OnboardingStyles.mainTitle, styles.transformTitle]}>Faith in Action, Every Day</Text>
-          
+
           <Text style={[OnboardingStyles.subtitle, styles.transformSubtitle]}>
             Transform your life with personalized, biblically grounded tools.
           </Text>
@@ -211,6 +211,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     textAlign: 'center',
+    marginTop: 10,
   },
 
 });

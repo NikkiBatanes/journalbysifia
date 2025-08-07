@@ -27,19 +27,12 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const { signUp, loading } = useAuth();
+  const { signUp, loading, user } = useAuth();
 
   const handleRegister = async () => {
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
@@ -48,13 +41,23 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
+    console.log('🔄 Starting email registration...');
     const { error } = await signUp(email, password, {
       firstName,
       lastName,
     });
-    
+
     if (error) {
+      console.error('❌ Email registration failed:', error);
       Alert.alert('Registration Failed', error.message || 'Please try again');
+    } else {
+      console.log('✅ Email registration successful!');
+      // Navigate to personalization screen after successful registration
+      const displayName = firstName || email.split('@')[0] || '';
+      navigation.navigate('OnboardingPersonalization' as any, {
+        name: displayName,
+        registrationMethod: 'email', // Flag to indicate email registration
+      });
     }
   };
 
@@ -67,19 +70,19 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBackToSocial}>
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
-          
+
           <Image
             source={require('../../assets/icons/siFiaTransparent.png')}
             style={styles.logo}
@@ -153,37 +156,15 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.eyeIcon}
               onPress={() => setShowPassword(!showPassword)}
             >
-              <Ionicons 
-                name={showPassword ? "eye-outline" : "eye-off-outline"} 
-                size={20} 
-                color="#FF6B6B" 
+              <Ionicons
+                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color="#FF6B6B"
               />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed" size={20} color="#FF6B6B" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm Password"
-              placeholderTextColor="rgba(255,255,255,0.5)"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              <Ionicons 
-                name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
-                size={20} 
-                color="#FF6B6B" 
-              />
-            </TouchableOpacity>
-          </View>
+
 
           <TouchableOpacity
             style={styles.registerButton}

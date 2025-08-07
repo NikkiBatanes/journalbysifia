@@ -22,7 +22,7 @@ const { width, height } = Dimensions.get('window');
 
 const OnboardingCompleteScreen: React.FC = () => {
   const navigation = useNavigation();
-  
+
   // Enhanced animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.3)).current;
@@ -45,10 +45,10 @@ const OnboardingCompleteScreen: React.FC = () => {
       // Progress bar fill
       AnimationUtils.progressBar(progressAnim, 100, 800),
     ]);
-    
+
     // Start pulsing animation
     const pulseAnimation = AnimationUtils.pulse(pulseAnim, 0.95, 1.05, 2000);
-    
+
     Animated.parallel([
       animationSequence,
       pulseAnimation,
@@ -69,7 +69,7 @@ const OnboardingCompleteScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.hopeWhite} />
-      
+
       {/* Background Gradient */}
       <LinearGradient
         colors={[Colors.hopeWhite, '#f8f9fa', Colors.hopeWhite]}
@@ -85,7 +85,7 @@ const OnboardingCompleteScreen: React.FC = () => {
               opacity: fadeAnim,
               transform: [
                 { scale: scaleAnim },
-                { scale: pulseAnim }
+                { scale: pulseAnim },
               ],
             },
           ]}
@@ -98,13 +98,13 @@ const OnboardingCompleteScreen: React.FC = () => {
       </View>
 
       {/* Modal Content Area (70% of screen) */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.modalContent,
           {
             opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }]
-          }
+            transform: [{ translateY: slideAnim }],
+          },
         ]}
       >
         <View style={styles.contentContainer}>
@@ -114,35 +114,35 @@ const OnboardingCompleteScreen: React.FC = () => {
               styles.checkmarkContainer,
               {
                 opacity: checkmarkAnim,
-                transform: [{ scale: checkmarkAnim }]
-              }
+                transform: [{ scale: checkmarkAnim }],
+              },
             ]}
           >
             <Ionicons name="checkmark-circle" size={100} color={Colors.growthGreen} />
           </Animated.View>
-          
+
           <Text style={styles.title}>Welcome to siFia!</Text>
           <Text style={styles.subtitle}>
             Your spiritual growth journey begins now
           </Text>
-          
+
           {/* Progress Completion */}
           <View style={styles.progressContainer}>
             <Text style={styles.progressLabel}>Setup Complete</Text>
             <View style={styles.progressBar}>
-              <Animated.View 
+              <Animated.View
                 style={[
                   styles.progressFill,
                   {
                     width: progressAnim.interpolate({
                       inputRange: [0, 100],
-                      outputRange: ['0%', '100%']
-                    })
-                  }
-                ]} 
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
+                ]}
               />
             </View>
-            
+
             {/* Color accents */}
             <View style={styles.colorAccents}>
               <View style={[styles.colorAccent, { backgroundColor: Colors.alertCoral }]} />
@@ -150,7 +150,7 @@ const OnboardingCompleteScreen: React.FC = () => {
               <View style={[styles.colorAccent, { backgroundColor: Colors.faithGold }]} />
             </View>
           </View>
-          
+
           <Text style={styles.redirectText}>Redirecting to your dashboard...</Text>
         </View>
       </Animated.View>

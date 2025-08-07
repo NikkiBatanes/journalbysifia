@@ -12,10 +12,11 @@ import {
   TouchableOpacity,
   Animated,
   StatusBar,
-  ScrollView,
   Image,
   Dimensions,
+  FlatList,
 } from 'react-native';
+
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
@@ -23,6 +24,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -43,10 +45,10 @@ const slides: Slide[] = [
     features: [
       'AI-powered insights tailored to your situation',
       'Practical steps for daily application',
-      'Scripture-backed solutions for growth'
+      'Scripture-backed solutions for growth',
     ],
     icon: 'book-outline',
-    color: '#FF6B6B'
+    color: '#FF6B6B',
   },
   {
     id: 2,
@@ -55,10 +57,10 @@ const slides: Slide[] = [
     features: [
       'Custom playbooks for your unique challenges',
       'Actionable steps with clear subtasks',
-      'Progress tracking with biblical affirmations'
+      'Progress tracking with biblical affirmations',
     ],
     icon: 'map-outline',
-    color: '#4ECDC4'
+    color: '#4ECDC4',
   },
   {
     id: 3,
@@ -67,19 +69,22 @@ const slides: Slide[] = [
     features: [
       'Custom devotionals built from your playbooks',
       'AI-guided journaling for personal insights',
-      'Progress visualization to track your growth'
+      'Progress visualization to track your growth',
     ],
     icon: 'create-outline',
-    color: '#45B7D1'
-  }
+    color: '#45B7D1',
+  },
 ];
 
 const OnboardingWelcomeScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { isAuthenticated, user } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const flatListRef = useRef<FlatList>(null);
+  const translateX = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Entrance animation
@@ -103,64 +108,56 @@ const OnboardingWelcomeScreen: React.FC = () => {
       setCurrentSlide((prev) => {
         const nextSlide = (prev + 1) % slides.length;
         if (nextSlide !== prev) {
-          animateSlideChange('next');
+          animateToSlide(nextSlide);
         }
         return nextSlide;
       });
-    }, 4000); // Change slide every 4 seconds
+    }, 5000); // Change slide every 5 seconds
 
     return () => clearInterval(interval);
   }, []);
 
-  const animateSlideChange = (direction: 'next' | 'prev') => {
-    const slideValue = direction === 'next' ? -30 : 30;
-
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0.3,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: slideValue,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
+  const animateToSlide = (slideIndex: number) => {
+    flatListRef.current?.scrollToIndex({
+      index: slideIndex,
+      animated: true,
+    });
   };
 
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
-      animateSlideChange('next');
-      setCurrentSlide(currentSlide + 1);
+      const nextSlide = currentSlide + 1;
+      setCurrentSlide(nextSlide);
+      animateToSlide(nextSlide);
     }
   };
 
   const handlePrevious = () => {
     if (currentSlide > 0) {
-      animateSlideChange('prev');
-      setCurrentSlide(currentSlide - 1);
+      const prevSlide = currentSlide - 1;
+      setCurrentSlide(prevSlide);
+      animateToSlide(prevSlide);
     }
+  };
+
+  const onScrollEnd = (event: any) => {
+    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+    setCurrentSlide(slideIndex);
   };
 
   const handleCreateAccount = async () => {
     setIsLoading(true);
     setTimeout(() => {
-      navigation.navigate('Auth', { screen: 'Register' });
+      if (isAuthenticated) {
+        // If already authenticated, go to personalization
+        navigation.navigate('OnboardingPersonalization' as any, {
+          name: user?.user_metadata?.first_name || user?.email?.split('@')[0] || '',
+          registrationMethod: 'email',
+        });
+      } else {
+        // If not authenticated, go to registration
+        navigation.navigate('Auth', { screen: 'Register' });
+      }
       setIsLoading(false);
     }, 500);
   };
@@ -168,18 +165,50 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const handleLogin = async () => {
     setIsLoading(true);
     setTimeout(() => {
-      navigation.navigate('Auth', { screen: 'Login' });
+      if (isAuthenticated) {
+        // If already authenticated, go to personalization
+        navigation.navigate('OnboardingPersonalization' as any, {
+          name: user?.user_metadata?.first_name || user?.email?.split('@')[0] || '',
+          registrationMethod: 'email',
+        });
+      } else {
+        // If not authenticated, go to login
+        navigation.navigate('Auth', { screen: 'Login' });
+      }
       setIsLoading(false);
     }, 500);
   };
 
-  const currentSlideData = slides[currentSlide];
+  const renderSlide = ({ item }: { item: Slide }) => (
+    <View style={[styles.slideContainer, { width }]}>
+      {/* Slide Icon */}
+      <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
+        <Ionicons name={item.icon} size={60} color={item.color} />
+      </View>
+
+      {/* Slide Title */}
+      <Text style={styles.slideTitle}>{item.title}</Text>
+
+      {/* Slide Subtitle */}
+      <Text style={styles.slideSubtitle}>{item.subtitle}</Text>
+
+      {/* Features List */}
+      <View style={styles.featuresList}>
+        {item.features.map((feature, index) => (
+          <View key={index} style={styles.featureItem}>
+            <Ionicons name="shield-checkmark" size={20} color={Colors.growthGreen} />
+            <Text style={styles.featureText}>{feature}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.container}>
         {/* Logo Section */}
         <View style={styles.logoSection}>
           <Image
@@ -189,37 +218,21 @@ const OnboardingWelcomeScreen: React.FC = () => {
           />
         </View>
 
-        {/* Slide Content */}
-        <Animated.View
-          style={[
-            styles.slideContent,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          {/* Slide Icon */}
-          <View style={[styles.iconContainer, { backgroundColor: currentSlideData.color + '20' }]}>
-            <Ionicons name={currentSlideData.icon} size={60} color={currentSlideData.color} />
-          </View>
-
-          {/* Slide Title */}
-          <Text style={styles.slideTitle}>{currentSlideData.title}</Text>
-
-          {/* Slide Subtitle */}
-          <Text style={styles.slideSubtitle}>{currentSlideData.subtitle}</Text>
-
-          {/* Features List */}
-          <View style={styles.featuresList}>
-            {currentSlideData.features.map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-                <Text style={styles.featureText}>{feature}</Text>
-              </View>
-            ))}
-          </View>
-        </Animated.View>
+        {/* Carousel */}
+        <FlatList
+          ref={flatListRef}
+          data={slides}
+          renderItem={renderSlide}
+          keyExtractor={(item) => item.id.toString()}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={onScrollEnd}
+          decelerationRate="fast"
+          snapToInterval={width}
+          snapToAlignment="center"
+          contentContainerStyle={styles.carouselContainer}
+        />
 
         {/* Navigation Dots */}
         <View style={styles.dotsContainer}>
@@ -228,14 +241,15 @@ const OnboardingWelcomeScreen: React.FC = () => {
               key={index}
               style={[
                 styles.dot,
-                index === currentSlide && styles.activeDot
+                index === currentSlide && styles.activeDot,
               ]}
-              onPress={() => setCurrentSlide(index)}
+              onPress={() => {
+                setCurrentSlide(index);
+                animateToSlide(index);
+              }}
             />
           ))}
         </View>
-
-
 
         {/* Action Buttons */}
         <View style={styles.buttonSection}>
@@ -245,7 +259,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
             disabled={isLoading}
           >
             <Text style={styles.createButtonText}>
-              Create an account
+              {isAuthenticated ? 'Continue Setup' : 'Create an account'}
             </Text>
           </TouchableOpacity>
 
@@ -255,7 +269,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
             disabled={isLoading}
           >
             <Text style={styles.loginButtonText}>
-              Login
+              {isAuthenticated ? 'Get Started' : 'Login'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -267,45 +281,108 @@ const OnboardingWelcomeScreen: React.FC = () => {
           {' '}and{' '}
           <Text style={styles.linkText}>Privacy Policy</Text>
         </Text>
-      </ScrollView>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: OnboardingStyles.container,
-  scrollContent: OnboardingStyles.scrollContent,
-  logoSection: OnboardingStyles.logoSection,
-  logoImage: OnboardingStyles.logoImage,
-  slideContent: {
-    alignItems: 'center',
-    marginBottom: OnboardingSpacing.xxxl,
+  container: {
+    ...OnboardingStyles.container,
+    paddingHorizontal: 0,
   },
-  iconContainer: OnboardingStyles.iconContainer,
+  scrollContent: OnboardingStyles.scrollContent,
+  logoSection: {
+    ...OnboardingStyles.logoSection,
+    paddingHorizontal: 24,
+    marginTop: 40,
+  },
+  logoImage: OnboardingStyles.logoImage,
+
+  // Carousel Styles
+  carouselContainer: {
+    alignItems: 'center',
+  },
+  slideContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    justifyContent: 'center',
+  },
+
+  // Slide Content Styles
+  iconContainer: {
+    ...OnboardingStyles.iconContainer,
+    marginBottom: 24,
+  },
   slideTitle: {
     ...OnboardingStyles.mainTitle,
     marginBottom: OnboardingSpacing.md,
+    textAlign: 'center',
   },
   slideSubtitle: {
     ...OnboardingStyles.subtitle,
     marginBottom: OnboardingSpacing.xxl,
+    textAlign: 'center',
   },
-  featuresList: OnboardingStyles.featuresList,
+  featuresList: {
+    ...OnboardingStyles.featuresList,
+    alignSelf: 'stretch',
+  },
   featureItem: OnboardingStyles.featureItem,
   featureText: OnboardingStyles.featureText,
-  dotsContainer: OnboardingStyles.dotsContainer,
+
+  // Navigation Dots
+  dotsContainer: {
+    ...OnboardingStyles.dotsContainer,
+    marginTop: 20,
+    marginBottom: 40,
+    paddingHorizontal: 24,
+  },
   dot: OnboardingStyles.dot,
   activeDot: OnboardingStyles.activeDot,
 
+  // Button Section
   buttonSection: {
     width: '100%',
+    paddingHorizontal: 24,
     marginBottom: OnboardingSpacing.lg,
   },
   createButton: OnboardingStyles.primaryButton,
   createButtonText: OnboardingStyles.primaryButtonText,
-  loginButton: OnboardingStyles.secondaryButton,
-  loginButtonText: OnboardingStyles.secondaryButtonText,
-  termsText: OnboardingStyles.termsText,
+
+  // Fix login button to match primary button styling
+  loginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    height: 56,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 12,
+  },
+  loginButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontFamily: Fonts.medium,
+    marginLeft: 12,
+    fontWeight: '500',
+  },
+
+  termsText: {
+    ...OnboardingStyles.termsText,
+    paddingHorizontal: 24,
+    marginBottom: 20,
+  },
   linkText: OnboardingStyles.linkText,
 });
 

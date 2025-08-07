@@ -15,10 +15,12 @@ import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useState, useEffect } from 'react';
+import { supabase } from '../services/supabaseClient';
 
 // New Onboarding screens
-import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
-import OnboardingNotificationPermissionScreen from '../screens/onboarding/OnboardingNotificationPermissionScreen';
+
+
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
 
 import OnboardingFaithJourneyScreen from '../screens/onboarding/OnboardingFaithJourneyScreen';
@@ -29,9 +31,10 @@ import OnboardingOriginalFeatureShowcaseScreen from '../screens/onboarding/Onboa
 import OnboardingPlaybookNavigationScreen from '../screens/onboarding/OnboardingPlaybookNavigationScreen';
 import OnboardingTrialSetupScreen from '../screens/onboarding/OnboardingTrialSetupScreen';
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
-import OnboardingPersonalizationSummaryScreen from '../screens/onboarding/OnboardingPersonalizationSummaryScreen';
+
 import OnboardingChallengeDetailsScreen from '../screens/onboarding/OnboardingChallengeDetailsScreen';
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
+import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
 
 
 
@@ -227,9 +230,72 @@ export default function RootStackNavigator({
   AuthStack,
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
+  const { user } = useAuth();
+  const [initialRoute, setInitialRoute] = useState<string>('OnboardingWelcome');
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+
+  // Check onboarding status for authenticated users
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!isAuthenticated || !user?.id) {
+        setInitialRoute('OnboardingWelcome');
+        setIsCheckingOnboarding(false);
+        return;
+      }
+
+      try {
+        const { data: userProfile, error } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed, created_at')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error checking onboarding status:', error);
+          // For new users without profile yet, don't redirect - let them continue onboarding
+          if (error.code === 'PGRST116') { // No rows returned
+            console.log('New user without profile - staying in onboarding flow');
+            setIsCheckingOnboarding(false);
+            return;
+          }
+          setInitialRoute('OnboardingWelcome');
+        } else {
+          // Check if user just signed up (within last 5 minutes) - don't redirect them
+          const createdAt = new Date(userProfile.created_at);
+          const now = new Date();
+          const timeDiff = now.getTime() - createdAt.getTime();
+          const minutesDiff = timeDiff / (1000 * 60);
+
+          if (minutesDiff < 5 && !userProfile?.onboarding_completed) {
+            console.log('Recently signed up user - staying in current flow');
+            setIsCheckingOnboarding(false);
+            return;
+          }
+
+          // If onboarding is completed, go to main app
+          setInitialRoute(userProfile?.onboarding_completed ? 'MainTabs' : 'OnboardingWelcome');
+        }
+      } catch (error) {
+        console.error('Error in onboarding check:', error);
+        setInitialRoute('OnboardingWelcome');
+      } finally {
+        setIsCheckingOnboarding(false);
+      }
+    };
+
+    // Add a small delay to prevent race conditions with navigation
+    const timer = setTimeout(checkOnboardingStatus, 100);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, user?.id]);
+
   // Get screen options
   const playbookDetailOptions = getPlaybookDetailOptions();
   const cardDetailOptions = getCardDetailOptions();
+
+  // Show loading while checking onboarding status
+  if (isCheckingOnboarding) {
+    return null; // Or a loading component
+  }
 
 
 
@@ -238,29 +304,98 @@ export default function RootStackNavigator({
   // Note: renderMainTabs was removed since we're using component prop directly
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="OnboardingSplash">
+    <Stack.Navigator
+      screenOptions={{ headerShown: false }}
+      initialRouteName={initialRoute as any}
+    >
+
+      {/* Transform Journey screen available for all users */}
+      <Stack.Screen
+        name="TransformJourney"
+        component={OnboardingTransformYourLifeScreen as React.ComponentType}
+        options={splashToFirstScreenAnimation}
+      />
+
+      {/* Welcome screen available for all users */}
+      <Stack.Screen
+        name="OnboardingWelcome"
+        component={OnboardingWelcomeScreen as React.ComponentType}
+        options={OnboardingAnimations.carousel}
+      />
+
       {/* Pre-auth screens */}
       {!isAuthenticated ? (
         <>
-          <Stack.Screen name="OnboardingSplash" component={OnboardingSplashScreen as React.ComponentType} />
-          <Stack.Screen name="TransformJourney" component={OnboardingTransformYourLifeScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen as React.ComponentType} />
           <Stack.Screen name="Auth">{() => <AuthStack onLogin={handleLogin} />}</Stack.Screen>
         </>
       ) : (
         <>
           {/* Unified onboarding flow after authentication */}
-          <Stack.Screen name="OnboardingPersonalization" component={OnboardingPersonalizationScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingPersonalizationSummary" component={OnboardingPersonalizationSummaryScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingChallengeDetails" component={OnboardingChallengeDetailsScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingFaithJourney" component={OnboardingFaithJourneyScreen as React.ComponentType} />
+          <Stack.Screen
+            name="OnboardingPersonalization"
+            component={OnboardingPersonalizationScreen as React.ComponentType}
+            options={OnboardingAnimations.pushFromBottom}
+          />
+
+          <Stack.Screen
+            name="OnboardingChallengeDetails"
+            component={OnboardingChallengeDetailsScreen as React.ComponentType}
+            options={OnboardingAnimations.smoothSlide}
+          />
+          <Stack.Screen
+            name="OnboardingFaithJourney"
+            component={OnboardingFaithJourneyScreen as React.ComponentType}
+            options={OnboardingAnimations.smoothSlide}
+          />
           <Stack.Screen name="OnboardingChallengeSelection" component={OnboardingChallengeSelectionScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingPlaybookGeneration" component={OnboardingPlaybookGenerationScreen as React.ComponentType} />
+          <Stack.Screen
+            name="OnboardingPlaybookGeneration"
+            component={OnboardingPlaybookGenerationScreen as React.ComponentType}
+            options={OnboardingAnimations.crossDissolve}
+          />
           <Stack.Screen name="OnboardingOriginalFeatureShowcase" component={OnboardingOriginalFeatureShowcaseScreen as React.ComponentType} />
           <Stack.Screen name="OnboardingPlaybookNavigation" component={OnboardingPlaybookNavigationScreen as React.ComponentType} />
           <Stack.Screen name="OnboardingTrialSetup" component={OnboardingTrialSetupScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingNotificationPermission" component={OnboardingNotificationPermissionScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingComplete" component={OnboardingCompleteScreen as React.ComponentType} />
+
+          <Stack.Screen
+            name="OnboardingComplete"
+            component={OnboardingCompleteScreen as React.ComponentType}
+            options={OnboardingAnimations.crossDissolve}
+          />
+
+          {/* Main App */}
+          <Stack.Screen
+            name="MainTabs"
+            component={MainTabsScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+
+          {/* Main App Detail Screens */}
+          <Stack.Screen
+            name="PlaybookDetail"
+            component={PlaybookDetailScreen as React.ComponentType}
+            options={playbookDetailOptions}
+          />
+          <Stack.Screen
+            name="CardDetail"
+            component={CardDetailScreen as React.ComponentType}
+            options={cardDetailOptions}
+          />
+          <Stack.Screen
+            name="GeneratingPlaybook"
+            component={GeneratingPlaybookScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="DevotionalDetail"
+            component={DevotionalDetailScreen as React.ComponentType}
+            options={{ headerShown: true }}
+          />
+          <Stack.Screen
+            name="Journal"
+            component={JournalScreen as React.ComponentType}
+            options={{ headerShown: true }}
+          />
         </>
       )}
     </Stack.Navigator>

@@ -85,10 +85,9 @@ export const OnboardingIntegration: React.FC<OnboardingIntegrationProps> = ({ ch
         isAuthenticated,
       });
 
-      // Navigate to the new modern onboarding flow
-      // This replaces the old multi-screen approach with a unified, engaging experience
+      // Always start from splash screen for consistent user experience
       setTimeout(() => {
-        console.log('🚀 Navigating to new onboarding flow...');
+        console.log('🚀 Navigating to splash screen...');
         navigation.navigate('OnboardingSplash' as any);
       }, 100);
     }

@@ -49,19 +49,19 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={handleBackToSocial}>
             <Ionicons name="chevron-back" size={24} color="#fff" />
           </TouchableOpacity>
-          
+
           <Image
             source={require('../../assets/icons/siFiaTransparent.png')}
             style={styles.logo}
@@ -107,10 +107,10 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
               style={styles.eyeIcon}
               onPress={() => setShowPassword(!showPassword)}
             >
-              <Ionicons 
-                name={showPassword ? "eye" : "eye-off"} 
-                size={20} 
-                color="#FF6B6B" 
+              <Ionicons
+                name={showPassword ? 'eye' : 'eye-off'}
+                size={20}
+                color="#FF6B6B"
               />
             </TouchableOpacity>
           </View>
