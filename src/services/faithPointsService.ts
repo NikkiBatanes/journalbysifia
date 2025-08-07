@@ -75,8 +75,8 @@ export class FaithPointsService {
     { level: 6, name: 'Teacher', description: 'Sharing wisdom', pointsRequired: 1500, benefits: ['Teaching resources'] },
     { level: 7, name: 'Mentor', description: 'Guiding others', pointsRequired: 2500, benefits: ['Mentorship tools'] },
     { level: 8, name: 'Elder', description: 'Wise in faith', pointsRequired: 4000, benefits: ['Elder privileges'] },
-    { level: 9, name: 'Saint', description: 'Exemplary faith', pointsRequired: 6000, benefits: ['Saint status'] },
-    { level: 10, name: 'Apostle', description: 'Spreading the word', pointsRequired: 10000, benefits: ['Apostle recognition'] },
+    { level: 9, name: 'Steward', description: 'Faithful steward of God\'s gifts', pointsRequired: 6000, benefits: ['Steward status'] },
+    { level: 10, name: 'Ambassador', description: 'Spreading the faith', pointsRequired: 10000, benefits: ['Ambassador recognition'] },
   ];
 
   // Points awarded for different activities
