@@ -796,37 +796,19 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
       {/* Test Faith Points Button */}
       <TouchableOpacity
-        style={{
-          position: 'absolute',
-          top: 100,
-          right: 20,
-          backgroundColor: Colors.faithGold,
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-          borderRadius: 20,
-          zIndex: 1000,
-        }}
+        style={styles.testButton}
         onPress={testFaithPoints}
       >
-        <Text style={{ color: Colors.hopeWhite, fontSize: 12, fontWeight: 'bold' }}>
+        <Text style={styles.testButtonText}>
           Test FP
         </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={{
-          position: 'absolute',
-          top: 140,
-          right: 20,
-          backgroundColor: Colors.alertCoral,
-          paddingHorizontal: 12,
-          paddingVertical: 8,
-          borderRadius: 20,
-          zIndex: 1000,
-        }}
+        style={[styles.testButton, styles.testButtonSecond]}
         onPress={testDatabaseDirect}
       >
-        <Text style={{ color: Colors.hopeWhite, fontSize: 12, fontWeight: 'bold' }}>
+        <Text style={styles.testButtonText}>
           Test DB
         </Text>
       </TouchableOpacity>
@@ -1218,6 +1200,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 8,
+  },
+  testButton: {
+    position: 'absolute',
+    top: 100,
+    right: 20,
+    backgroundColor: Colors.faithGold,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    zIndex: 1000,
+  },
+  testButtonSecond: {
+    top: 140,
+    backgroundColor: Colors.alertCoral,
+  },
+  testButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

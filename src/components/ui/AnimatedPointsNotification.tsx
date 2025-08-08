@@ -3,7 +3,7 @@
  * Animated notification that shows points awarded with smooth animations
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window'); // Removed unused width variable
 
 interface AnimatedPointsNotificationProps {
   points: number;

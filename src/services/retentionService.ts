@@ -114,8 +114,8 @@ export class RetentionService {
       }
 
       return false;
-    } catch (_error) {
-      console.error('[RetentionService] Error in checkRetentionTrigger:', _error);
+    } catch (error) {
+      console.error('Error tracking retention event:', error);
       return false;
     }
   }
@@ -157,8 +157,8 @@ export class RetentionService {
         spiritualGrowth,
         totalScore: Math.min(100, totalScore), // Cap at 100
       };
-    } catch (_error) {
-      console.error('[RetentionService] Error calculating user value score:', _error);
+    } catch (error) {
+      console.error('Error calculating user value score:', error);
       // Return default medium-value score on error
       return {
         engagementLevel: 15,
@@ -232,8 +232,8 @@ export class RetentionService {
         originalPrice,
         discountedPrice,
       };
-    } catch (_error) {
-      console.error('[RetentionService] Error generating dynamic offer:', _error);
+    } catch (error) {
+      console.error('Error generating dynamic offer:', error);
       // Fallback to static offer
       return this.getStaticRetentionOffer(eventType, originalPrice);
     }
@@ -285,7 +285,8 @@ export class RetentionService {
       },
     };
 
-    // Annual offers with higher discounts
+    // Annual offers with higher discounts (commented out as not currently used)
+    /*
     const _annualOffers: Record<string, RetentionOffer> = {
       'trial_declined': {
         discount: 20,
@@ -324,6 +325,7 @@ export class RetentionService {
         discountedPrice,
       },
     };
+    */
 
     // Return monthly offer by default, could be enhanced with A/B testing
     return offers[eventType] || offers.trial_declined;
@@ -400,12 +402,12 @@ export class RetentionService {
         .insert(retentionEvent);
 
       if (error) {
-        console.error('[RetentionService] Error logging retention event:', error);
+        console.error('Error logging retention event:', error);
       } else {
-        console.log(`[RetentionService] Logged retention event: ${eventType} - ${action}`);
+        console.log(`Logged retention event: ${eventType} - ${action}`);
       }
-    } catch (_error) {
-      console.error('[RetentionService] Error in logRetentionEvent:', _error);
+    } catch (error) {
+      console.error('Error logging retention event:', error);
     }
   }
 
@@ -425,13 +427,13 @@ export class RetentionService {
         .order('triggered_at', { ascending: false });
 
       if (error) {
-        console.error('[RetentionService] Error fetching retention events:', error);
+        console.error('Error getting retention offers:', error);
         return [];
       }
 
       return data || [];
-    } catch (_error) {
-      console.error('[RetentionService] Error in getRecentRetentionEvents:', _error);
+    } catch (error) {
+      console.error('Error getting retention offers:', error);
       return [];
     }
   }
@@ -473,8 +475,8 @@ export class RetentionService {
 
       const userHash = userId.slice(-6);
       return parts[1] === userHash;
-    } catch (_error) {
-      console.error('[RetentionService] Error validating discount code:', _error);
+    } catch (error) {
+      console.error('Error validating discount code:', error);
       return false;
     }
   }
@@ -488,15 +490,15 @@ export class RetentionService {
    */
   private async getUserSubscriptionData(userId: string): Promise<any> {
     try {
-      const { data, error } = await this.supabase
+      const { data } = await this.supabase
         .from('user_subscriptions')
         .select('*')
         .eq('user_id', userId)
         .single();
 
       return data || {};
-    } catch (_error) {
-      console.error('[RetentionService] Error fetching subscription data:', _error);
+    } catch (error) {
+      console.error('Error fetching subscription data:', error);
       return {};
     }
   }
@@ -506,7 +508,7 @@ export class RetentionService {
    */
   private async getUserUsageData(userId: string): Promise<any> {
     try {
-      const { data, error } = await this.supabase
+      const { data } = await this.supabase
         .from('usage_tracking')
         .select('*')
         .eq('user_id', userId)
@@ -515,8 +517,8 @@ export class RetentionService {
         .single();
 
       return data || {};
-    } catch (_error) {
-      console.error('[RetentionService] Error fetching usage data:', _error);
+    } catch (error) {
+      console.error('Error fetching usage data:', error);
       return {};
     }
   }
@@ -526,15 +528,15 @@ export class RetentionService {
    */
   private async getUserProfileData(userId: string): Promise<any> {
     try {
-      const { data, error } = await this.supabase
+      const { data } = await this.supabase
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
       return data || {};
-    } catch (_error) {
-      console.error('[RetentionService] Error fetching profile data:', _error);
+    } catch (error) {
+      console.error('[RetentionService] Error fetching profile data:', error);
       return {};
     }
   }
@@ -585,14 +587,15 @@ export class RetentionService {
     }
 
     // Tier level (0-10 points)
-    const tierScores = {
+    const tierScores: Record<string, number> = {
+      'free_trial': 0,
       'basic': 2,
       'starter': 4,
       'growth': 6,
       'transformation': 8,
       'family': 10,
     };
-    score += tierScores[subscription.tier] || 0;
+    score += tierScores[subscription.tier as string] || 0;
 
     return Math.min(25, score);
   }

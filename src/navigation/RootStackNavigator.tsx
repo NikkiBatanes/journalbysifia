@@ -6,8 +6,10 @@ import {
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
-
+import { useState, useEffect } from 'react';
 import { CommonActions } from '@react-navigation/native';
+
+
 import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
@@ -17,8 +19,8 @@ import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { useState, useEffect } from 'react';
-import { supabase } from '../services/supabaseClient';
+
+
 
 // New Onboarding screens
 import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
@@ -37,6 +39,7 @@ import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPer
 import OnboardingChallengeDetailsScreen from '../screens/onboarding/OnboardingChallengeDetailsScreen';
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
+
 
 // Header Components
 interface BackButtonProps {
@@ -158,18 +161,19 @@ const CardHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
   />
 ));
 
-const DevotionalHeaderLeft = React.memo(({ navigation }: { navigation: any }) => (
-  <HeaderLeft
-    color={Colors.anchorBlue}
-    onPress={() => {
-      try {
-        navigation.goBack();
-      } catch (error) {
-        console.log('Navigation error in DevotionalHeaderLeft:', error);
-      }
-    }}
-  />
-));
+// Unused component - commenting out to fix linting
+// const DevotionalHeaderLeft = ({ navigation }: { navigation: any }) => (
+//   <HeaderLeft
+//     color={Colors.anchorBlue}
+//     onPress={() => {
+//       try {
+//         navigation.goBack();
+//       } catch (error) {
+//         console.log('Navigation error in DevotionalHeaderLeft:', error);
+//       }
+//     }}
+//   />
+// );
 
 import { useLogout } from '../context/LogoutContext';
 const MainTabsScreen: React.FC = React.memo(() => {
@@ -203,15 +207,16 @@ const getCardDetailOptions = (): NativeStackNavigationOptions => ({
   headerShadowVisible: false,
 });
 
-const getDevotionalDetailOptions = ({ navigation }: any): NativeStackNavigationOptions => ({
-  title: '',
-  headerBackVisible: true,
-  headerLeft: () => <DevotionalHeaderLeft navigation={navigation} />,
-  animation: 'slide_from_bottom',
-  animationDuration: 300,
-  presentation: 'modal',
-  gestureEnabled: true,
-});
+// Unused function - commenting out to fix linting
+// const _getDevotionalDetailOptions = ({ navigation }: any): NativeStackNavigationOptions => ({
+//   title: '',
+//   headerBackVisible: true,
+//   headerLeft: () => <DevotionalHeaderLeft navigation={navigation} />,
+//   animation: 'slide_from_bottom',
+//   animationDuration: 300,
+//   presentation: 'modal',
+//   gestureEnabled: true,
+// });
 
 interface RootStackNavigatorProps {
   isAuthenticated: boolean;
@@ -228,14 +233,16 @@ export default function RootStackNavigator({
   AuthStack,
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
-  const { user } = useAuth();
-  const [initialRoute, setInitialRoute] = useState<string>('OnboardingSplash');
-  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
+  // Removed unused user variable from useAuth()
+  const [initialRoute, _setInitialRoute] = useState<string>('OnboardingSplash');
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
 
   // Simplified: Always start with OnboardingSplash, let it handle the routing logic
   useEffect(() => {
     // No complex onboarding checks needed here since splash screen handles it
     console.log('[RootStackNavigator] Starting with OnboardingSplash screen');
+    // Set checking to false so the navigator renders
+    setIsCheckingOnboarding(false);
   }, []);
 
   // Get screen options

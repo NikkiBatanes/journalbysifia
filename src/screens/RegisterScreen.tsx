@@ -20,14 +20,7 @@ interface Props {
   navigation: any;
 }
 
-interface SocialButtonProps {
-  onPress: () => void;
-  icon: string;
-  title: string;
-  backgroundColor: string;
-  textColor?: string;
-  loading?: boolean;
-}
+// Removed unused SocialButtonProps interface
 
 // Unused SocialButton component - commented out to fix lint
 /*

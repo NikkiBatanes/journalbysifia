@@ -5,7 +5,7 @@
  * with tier-based access control and user question support.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -36,15 +36,17 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
   actionStepId,
   actionStepText,
   subtaskId,
-  subtaskText,
+  subtaskText: _subtaskText,
   userId,
   onUpgrade,
 }) => {
-  const { canAccessExpounding, expoundingAccessResult, isLoading: accessLoading } = useExpoundingAccess();
+  const { canAccessExpounding, isLoading: accessLoading } = useExpoundingAccess();
 
   const [steps, setSteps] = useState<StepExpounding[]>([]);
-  const [currentStep, setCurrentStep] = useState(1);
+  const [_expounding, _setExpounding] = useState<StepExpounding[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [_error, _setError] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showQuestionModal, setShowQuestionModal] = useState(false);
   const [userQuestion, setUserQuestion] = useState('');
@@ -52,13 +54,24 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
   const [isAskingQuestion, setIsAskingQuestion] = useState(false);
   const [showLockOverlay, setShowLockOverlay] = useState(false);
 
-  useEffect(() => {
-    if (canAccessExpounding) {
-      loadStepExpounding();
+  const generateStepExpounding = useCallback(async () => {
+    setIsGenerating(true);
+    try {
+      const newSteps = await enhancedExpoundingService.generateStepByStepExpounding(
+        userId,
+        actionStepId,
+        actionStepText,
+        subtaskId
+      );
+      setSteps(newSteps);
+    } catch (err) {
+      console.error('[StepByStepExpounding] Error generating steps:', err);
+    } finally {
+      setIsGenerating(false);
     }
-  }, [canAccessExpounding, actionStepId, subtaskId]);
+  }, [userId, actionStepId, actionStepText, subtaskId]);
 
-  const loadStepExpounding = async () => {
+  const loadStepExpounding = useCallback(async () => {
     setIsLoading(true);
     try {
       const existingSteps = await enhancedExpoundingService.getStepExpounding(
@@ -73,32 +86,20 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
         // Generate new step-by-step expounding
         await generateStepExpounding();
       }
-    } catch (error) {
-      console.error('Error loading step expounding:', error);
-      Alert.alert('Error', 'Failed to load expounding content');
+    } catch (err) {
+      console.error('[StepByStepExpounding] Error:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [actionStepId, userId, subtaskId, generateStepExpounding]);
 
-  const generateStepExpounding = async () => {
-    setIsGenerating(true);
-    try {
-      const newSteps = await enhancedExpoundingService.generateStepByStepExpounding(
-        userId,
-        actionStepId,
-        actionStepText,
-        subtaskId,
-        subtaskText
-      );
-      setSteps(newSteps);
-    } catch (error) {
-      console.error('Error generating step expounding:', error);
-      Alert.alert('Error', 'Failed to generate expounding content');
-    } finally {
-      setIsGenerating(false);
+  useEffect(() => {
+    if (actionStepId && userId) {
+      loadStepExpounding();
     }
-  };
+  }, [loadStepExpounding, actionStepId, userId]);
+
+
 
   const handleAskQuestion = async () => {
     if (!userQuestion.trim()) {return;}
@@ -306,7 +307,7 @@ interface StepContentProps {
 const StepContent: React.FC<StepContentProps> = ({ step }) => (
   <View style={styles.stepContent}>
     <LinearGradient
-      colors={getStepGradient(step.contentType)}
+      colors={['#667eea', '#8B5CF6'] as const}
       style={styles.stepHeader}
     >
       <Text style={styles.stepTitle}>{step.stepTitle}</Text>
@@ -393,16 +394,6 @@ const QuestionResponseCard: React.FC<QuestionResponseCardProps> = ({
 );
 
 // Helper functions
-const getStepGradient = (contentType: string): string[] => {
-  const gradients: Record<string, string[]> = {
-    spiritual_insight: ['#6366F1', '#8B5CF6'],
-    practical_guidance: ['#059669', '#10B981'],
-    biblical_context: ['#DC2626', '#EF4444'],
-    reflection_questions: ['#D97706', '#F59E0B'],
-  };
-  return gradients[contentType] || ['#6B7280', '#9CA3AF'];
-};
-
 const formatContentType = (contentType: string): string => {
   const typeMap: Record<string, string> = {
     spiritual_insight: 'Spiritual Insight',

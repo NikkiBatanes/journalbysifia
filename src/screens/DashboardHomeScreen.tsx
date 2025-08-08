@@ -20,22 +20,21 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
-import { testFaithPointsSystem, logFaithPointsStatus } from '../utils/testFaithPoints';
-import { generateProgressReport, printProgressReport } from '../utils/progressReport';
 import { supabase } from '../services/supabaseClient';
 import { checkDatabaseTables } from '../utils/databaseCheck';
+import { dashboardNavigation } from '../services/NavigationManager';
+
 import DailyAffirmationCard from '../components/dashboard/DailyAffirmationCard';
 import DailyBibleVerseCard from '../components/dashboard/DailyBibleVerseCard';
 import PlaybookCarousel from '../components/dashboard/PlaybookCarousel';
 import DevotionalCarousel from '../components/dashboard/DevotionalCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
-import ReflectionQuestionsCard from '../components/dashboard/ReflectionQuestionsCard';
+
 import QuickActionCard from '../components/dashboard/QuickActionCard';
 import StreakTracker from '../components/dashboard/StreakTracker';
 import WeeklyInsights from '../components/dashboard/WeeklyInsights';
 import AIInsights from '../components/dashboard/AIInsights';
-import { dashboardNavigation } from '../services/NavigationManager';
-import { animationManager } from '../services/AnimationManager';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -62,8 +61,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { subscription, usage } = useSubscription();
   const [refreshing, setRefreshing] = useState(false);
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+
   const floatingButtonScale = useRef(new Animated.Value(1)).current;
+
 
   // Draggable floating button
   const pan = useRef(new Animated.ValueXY({ x: width - 76, y: height - 200 })).current;
@@ -338,7 +338,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.testButton, { top: 140, backgroundColor: Colors.alertCoral }]}
+        style={[styles.testButton, styles.dbTestButton]}
         onPress={handleCheckDatabase}
         activeOpacity={0.8}
       >
@@ -656,6 +656,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  dbTestButton: {
+    top: 140,
+    backgroundColor: Colors.alertCoral,
   },
   testButtonText: {
     fontSize: 12,

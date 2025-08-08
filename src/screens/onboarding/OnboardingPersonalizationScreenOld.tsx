@@ -1,5 +1,5 @@
 // @ts-nocheck
-/* eslint-disable */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * OnboardingPersonalizationScreen.tsx
  * Multi-step personalization screen matching exact design

@@ -3,7 +3,7 @@
  * Shows weekly spiritual growth insights and analytics
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -39,7 +39,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
   const [loading, setLoading] = useState(true);
   const [weekRange, setWeekRange] = useState('');
 
-  const fetchWeeklyInsights = async () => {
+  const fetchWeeklyInsights = useCallback(async () => {
     if (!user) {return;}
 
     try {
@@ -117,10 +117,10 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const calculateInsights = (currentWeek: any[], previousWeek: any[]): WeeklyInsight[] => {
-    const insights: WeeklyInsight[] = [];
+    const weeklyInsights: WeeklyInsight[] = [];
 
     // Prayer sessions (using daily_streak as proxy)
     const currentPrayers = currentWeek.filter(a => a.activity_type === 'daily_streak').length;
@@ -129,7 +129,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
       ((currentPrayers - previousPrayers) / previousPrayers) * 100 :
       currentPrayers > 0 ? 100 : 0;
 
-    insights.push({
+    weeklyInsights.push({
       metric: 'Prayer Sessions',
       value: currentPrayers,
       change: Math.round(prayerChange),
@@ -145,7 +145,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
       ((currentDevotionals - previousDevotionals) / previousDevotionals) * 100 :
       currentDevotionals > 0 ? 100 : 0;
 
-    insights.push({
+    weeklyInsights.push({
       metric: 'Devotionals',
       value: currentDevotionals,
       change: Math.round(devotionalChange),
@@ -161,7 +161,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
       ((currentJournals - previousJournals) / previousJournals) * 100 :
       currentJournals > 0 ? 100 : 0;
 
-    insights.push({
+    weeklyInsights.push({
       metric: 'Journal Entries',
       value: currentJournals,
       change: Math.round(journalChange),
@@ -177,7 +177,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
       ((currentPlaybookSteps - previousPlaybookSteps) / previousPlaybookSteps) * 100 :
       currentPlaybookSteps > 0 ? 100 : 0;
 
-    insights.push({
+    weeklyInsights.push({
       metric: 'Playbook Steps',
       value: currentPlaybookSteps,
       change: Math.round(playbookChange),
@@ -186,12 +186,12 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
       color: Colors.playbookBlue,
     });
 
-    return insights;
+    return weeklyInsights;
   };
 
   useEffect(() => {
     fetchWeeklyInsights();
-  }, [user]);
+  }, [fetchWeeklyInsights]);
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {

@@ -3,7 +3,7 @@
  * Displays reflection questions from user's playbooks and devotionals
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -41,7 +41,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchReflectionQuestions = async () => {
+  const fetchReflectionQuestions = useCallback(async () => {
     if (!user) {return;}
 
     try {
@@ -160,11 +160,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchReflectionQuestions();
-  }, [user]);
+  }, [fetchReflectionQuestions]);
 
   const handleRefresh = () => {
     fetchReflectionQuestions();

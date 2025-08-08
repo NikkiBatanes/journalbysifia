@@ -55,7 +55,7 @@ class SubscriptionSystemTester {
 
     for (const table of requiredTables) {
       try {
-        const { data, error } = await supabase
+        const { error } = await supabase
           .from(table)
           .select('*')
           .limit(1);
@@ -79,7 +79,7 @@ class SubscriptionSystemTester {
 
     // Test subscription_tier enum
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('subscriptions')
         .select('tier')
         .limit(1);
@@ -195,7 +195,7 @@ class SubscriptionSystemTester {
 
     try {
       // Test step_expounding table
-      const { data: expoundingData, error: expoundingError } = await supabase
+      const { error: expoundingError } = await supabase
         .from('step_expounding')
         .select('*')
         .limit(1);
@@ -209,7 +209,7 @@ class SubscriptionSystemTester {
       });
 
       // Test user_questions table
-      const { data: questionsData, error: questionsError } = await supabase
+      const { error: questionsError } = await supabase
         .from('user_questions')
         .select('*')
         .limit(1);

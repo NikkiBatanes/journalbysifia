@@ -48,13 +48,13 @@ class DatabaseCompatibilityTester {
 
   private async testDatabaseConnection(): Promise<void> {
     try {
-      const { data, error } = await supabase.from('users').select('count').limit(1);
+      const { data: _data, error } = await supabase.from('users').select('count').limit(1);
 
       this.addResult({
         test: 'Database Connection',
         passed: !error,
         error: error?.message,
-        data: data ? 'Connected successfully' : undefined,
+        data: _data ? 'Connected successfully' : undefined,
       });
     } catch (error) {
       this.addResult({
@@ -77,7 +77,7 @@ class DatabaseCompatibilityTester {
 
     for (const table of requiredTables) {
       try {
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
           .from(table)
           .select('*')
           .limit(1);
@@ -86,7 +86,7 @@ class DatabaseCompatibilityTester {
           test: `Table exists: ${table}`,
           passed: !error,
           error: error?.message,
-          data: data ? `Table accessible (${data.length} rows sampled)` : undefined,
+          data: _data ? `Table accessible (${_data.length} rows sampled)` : undefined,
         });
       } catch (error) {
         this.addResult({
@@ -177,7 +177,7 @@ class DatabaseCompatibilityTester {
   private async testUsageTracking(): Promise<void> {
     try {
       // Test if we can query the usage_tracking table structure
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('usage_tracking')
         .select('*')
         .limit(0); // Get structure without data
@@ -190,7 +190,7 @@ class DatabaseCompatibilityTester {
       });
 
       // Test if we can query user_events table
-      const { data: eventsData, error: eventsError } = await supabase
+      const { error: eventsError } = await supabase
         .from('user_events')
         .select('*')
         .limit(0);

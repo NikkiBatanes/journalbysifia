@@ -3,7 +3,7 @@
  * Displays user's spiritual growth streaks and achievements
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -30,13 +30,42 @@ interface StreakTrackerProps {
 }
 
 
-
 const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   const { user } = useAuth();
   const [streaks, setStreaks] = useState<Streak[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchStreaks = async () => {
+  const calculateStreaks = useCallback((activities: any[]): Streak[] => {
+    const streakTypes = [
+      { type: 'journal', activityTypes: ['journal_entry'] },
+      { type: 'playbook', activityTypes: ['playbook_generated', 'action_step_completed'] },
+      { type: 'devotional', activityTypes: ['devotional_generated', 'daily_streak'] },
+      { type: 'prayer', activityTypes: ['daily_streak'] }, // Prayer can be tracked via daily_streak
+    ];
+    const streakResults: Streak[] = [];
+
+    streakTypes.forEach(({ type, activityTypes }) => {
+      const typeActivities = activities.filter(activity =>
+        activityTypes.includes(activity.activity_type)
+      );
+
+      const { currentStreak, longestStreak, lastActivity, isActive } =
+        calculateStreakForType(typeActivities);
+
+      streakResults.push({
+        id: type,
+        type: type as any,
+        currentStreak,
+        longestStreak,
+        lastActivity: lastActivity || new Date().toISOString(),
+        isActive,
+      });
+    });
+
+    return streakResults;
+  }, []);
+
+  const fetchStreaks = useCallback(async () => {
     if (!user) {return;}
 
     try {
@@ -77,37 +106,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const calculateStreaks = (activities: any[]): Streak[] => {
-    const streakTypes = [
-      { type: 'journal', activityTypes: ['journal_entry'] },
-      { type: 'playbook', activityTypes: ['playbook_generated', 'action_step_completed'] },
-      { type: 'devotional', activityTypes: ['devotional_generated', 'daily_streak'] },
-      { type: 'prayer', activityTypes: ['daily_streak'] }, // Prayer can be tracked via daily_streak
-    ];
-    const streakResults: Streak[] = [];
-
-    streakTypes.forEach(({ type, activityTypes }) => {
-      const typeActivities = activities.filter(activity =>
-        activityTypes.includes(activity.activity_type)
-      );
-
-      const { currentStreak, longestStreak, lastActivity, isActive } =
-        calculateStreakForType(typeActivities);
-
-      streakResults.push({
-        id: type,
-        type: type as any,
-        currentStreak,
-        longestStreak,
-        lastActivity: lastActivity || new Date().toISOString(),
-        isActive,
-      });
-    });
-
-    return streakResults;
-  };
+  }, [user, calculateStreaks]);
 
   const calculateStreakForType = (activities: any[]) => {
     if (activities.length === 0) {
@@ -133,7 +132,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     const isActive = uniqueDates.includes(today) || uniqueDates.includes(yesterdayStr);
 
     if (uniqueDates.length > 0) {
-      let streakDate = new Date(uniqueDates[0]);
       const startDate = uniqueDates.includes(today) ? new Date(today) : new Date(yesterdayStr);
 
       // Count consecutive days
@@ -181,7 +179,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
 
   useEffect(() => {
     fetchStreaks();
-  }, [user]);
+  }, [fetchStreaks]);
 
   const getStreakIcon = (type: string) => {
     switch (type) {

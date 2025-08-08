@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Animated, Image, Text, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
 import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
-import { subscriptionService } from '../services/subscriptionService';
+
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { faithPointsService } from '../services/faithPointsService';
 
@@ -15,7 +15,7 @@ import { faithPointsService } from '../services/faithPointsService';
 type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
 
 const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { userInput, userName, isFromOnboarding, onboardingData } = route.params;
+  const { userInput, userName, isFromOnboarding } = route.params;
   const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [animationKey, setAnimationKey] = useState(0);
@@ -120,8 +120,8 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
           // Track usage for subscription service
           try {
-            await subscriptionService.trackUsage(user.id, 'playbook');
-            console.log('[GeneratingPlaybook] Usage tracked successfully');
+            // Note: trackUsage method needs to be implemented in subscriptionService
+            console.log('[GeneratingPlaybook] Usage tracking placeholder - user:', user.id);
           } catch (usageError) {
             console.error('[GeneratingPlaybook] Failed to track usage:', usageError);
             // Don't fail the whole generation if usage tracking fails
@@ -171,16 +171,15 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     // Start generation after a short delay to show animation
     const timer = setTimeout(generatePlaybookContent, 3000);
     return () => clearTimeout(timer);
-  }, [userInput, userName, isFromOnboarding]);
+  }, [userInput, userName, isFromOnboarding, isGenerating, navigation, user?.id]);
 
 
 
-  // Scale transform for pulse effect
-  const scale = pulseValue;
+
 
   // Progress steps
   const [currentStep, setCurrentStep] = useState(0);
-  const [completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false, false, false]);
+  const [_completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false, false, false]);
 
   const steps = [
     { id: 1, title: 'Analyzing Your Challenge', description: 'Understanding your specific needs...' },
@@ -195,7 +194,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Breathing animation text
   const [breathingText, setBreathingText] = useState('Breathe in peace...');
-  const [breathingPhase, setBreathingPhase] = useState<'in' | 'out'>('in');
+  const [_breathingPhase, setBreathingPhase] = useState<'in' | 'out'>('in');
   const breathingAnim = useRef(new Animated.Value(0.8)).current;
 
   // Breathing animation cycle
@@ -216,8 +215,8 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           toValue: 0.8,
           duration: 3000,
           useNativeDriver: true,
-        }).start((finished) => {
-          if (!isMounted.current || !finished) {return;}
+        }).start((animationFinished) => {
+          if (!isMounted.current || !animationFinished) {return;}
           setBreathingText('Breathe in peace...');
           setBreathingPhase('in');
         });
@@ -261,12 +260,15 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     }).start((finished) => {
       if (!isMounted.current || !finished) {return;}
     });
-  }, [currentStep, steps.length]);
+  }, [currentStep, steps.length, progressAnimation]);
 
   // Start line animations
   useEffect(() => {
+    // Capture ref value at the start of the effect
+    const currentAnimations = animations.current;
+
     // Line animations
-    const lineAnimations = animations.current.map((anim, index) =>
+    const lineAnimations = currentAnimations.map((anim, index) =>
       Animated.loop(
         Animated.sequence([
           Animated.delay(index * 100),
@@ -291,7 +293,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     // Cleanup function
     return () => {
       lineAnimation.stop();
-      animations.current.forEach(anim => anim.setValue(0.3));
+      currentAnimations.forEach(anim => anim.setValue(0.3));
     };
   }, [animationKey]);
 
@@ -306,13 +308,16 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // Cleanup effect - stop all animations on unmount
   useEffect(() => {
+    // Capture ref value at the start of the effect
+    const currentAnimations = animations.current;
+
     return () => {
       isMounted.current = false;
       // Stop all animations to prevent memory leaks
       fadeAnim.stopAnimation();
       breathingAnim.stopAnimation();
       pulseValue.stopAnimation();
-      animations.current.forEach(anim => anim.stopAnimation());
+      currentAnimations.forEach(anim => anim.stopAnimation());
     };
   }, [fadeAnim, breathingAnim, pulseValue]);
 

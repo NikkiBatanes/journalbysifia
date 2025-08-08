@@ -18,7 +18,7 @@ import {
   UIManager,
 } from 'react-native';
 import { StepByStepExpounding } from './StepByStepExpounding';
-import { ExportOptionsModal, ExportData } from './ExportOptionsModal';
+import { ExportOptionsModal } from './ExportOptionsModal';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 
 // Enable LayoutAnimation on Android
@@ -54,7 +54,7 @@ interface EnhancedActionStepCardProps {
 
 export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
   actionStep,
-  _playbookId,
+  playbookId: _playbookId,
   playbookTitle,
   userId,
   onToggleComplete,
@@ -68,7 +68,6 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
 
   // Feature access hooks
   const expoundingAccess = useFeatureAccess({ feature: 'expounding_content' });
-  const _exportAccess = exportService.checkExportAccess(userId); // assuming user is defined
 
   const toggleExpounding = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -81,17 +80,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
   };
 
   const handleExportStep = async () => {
-    const _exportData = await exportService.exportPlaybook({
-      id: actionStep.id,
-      title: `Action Step: ${actionStep.text}`,
-      content: generateStepExportContent(),
-      type: 'playbook',
-      metadata: {
-        createdAt: new Date().toISOString(),
-        category: 'Action Step',
-        tags: ['playbook', 'action-step'],
-      },
-    };
+    // Export functionality temporarily disabled due to service refactoring
     setShowExportModal(true);
   };
 

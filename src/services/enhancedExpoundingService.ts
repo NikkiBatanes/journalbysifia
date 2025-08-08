@@ -122,8 +122,8 @@ class EnhancedExpoundingService {
       const subscription = await subscriptionService.getUserSubscription(userId);
       const limits = subscriptionService.getSubscriptionLimits(subscription?.tier || 'basic');
 
-      // Check if expounding is enabled for this tier
-      const hasExpoundingAccess = limits.expoundingEnabled || false;
+      // Check if intelligence features (which include expounding) are enabled for this tier
+      const hasExpoundingAccess = limits.intelligenceEnabled || false;
 
       return {
         hasAccess: hasExpoundingAccess,
@@ -162,13 +162,13 @@ class EnhancedExpoundingService {
       }
 
       const expoundingSteps: StepExpounding[] = [];
-      const targetText = subtaskText || actionStepText;
+      const targetText = subtaskText || _actionStepText;
 
       for (const template of this.stepTemplates) {
         const stepContent = await this.generateStepContent(
           targetText,
           template,
-          actionStepText
+          _actionStepText
         );
 
         const stepExpounding: StepExpounding = {
@@ -257,7 +257,7 @@ class EnhancedExpoundingService {
   async getStepExpounding(
     userId: string,
     actionStepId: string,
-    subtaskId?: string
+    _subtaskId?: string
   ): Promise<StepExpounding[]> {
     try {
       const access = await this.checkExpoundingAccess(userId);
@@ -345,7 +345,8 @@ class EnhancedExpoundingService {
   private async generateStepContent(
     targetText: string,
     template: ExpoundingTemplate,
-    actionStepText: string
+    // actionStepText is currently not used but kept for future implementation
+    _actionStepText?: string
   ): Promise<{
     mainContent: string;
     scriptureReferences: string[];
@@ -482,7 +483,7 @@ class EnhancedExpoundingService {
   /**
    * Map database record to StepExpounding interface
    */
-  private mapDatabaseToStepExpounding(record: any): StepExpounding {
+  private mapDatabaseToStepExpounding(record: Record<string, any>): StepExpounding {
     return {
       id: record.id,
       actionStepId: record.action_step_id,
@@ -505,7 +506,7 @@ class EnhancedExpoundingService {
   /**
    * Map database record to UserQuestionResponse interface
    */
-  private mapDatabaseToUserQuestion(record: any): UserQuestionResponse {
+  private mapDatabaseToUserQuestion(record: Record<string, any>): UserQuestionResponse {
     return {
       id: record.id,
       actionStepId: record.action_step_id,
@@ -537,7 +538,7 @@ class EnhancedExpoundingService {
   /**
    * Generate practical steps for a step number
    */
-  private generatePracticalSteps(text: string, stepNumber: number): string[] {
+  private generatePracticalSteps(_text: string, stepNumber: number): string[] {
     const stepMaps: Record<number, string[]> = {
       1: ['Begin with prayer', 'Set clear intentions', 'Identify your motivation'],
       2: ['Create a specific plan', 'Set measurable goals', 'Establish accountability'],
@@ -551,7 +552,7 @@ class EnhancedExpoundingService {
   /**
    * Generate reflection questions for a step number
    */
-  private generateReflectionQuestions(text: string, stepNumber: number): string[] {
+  private generateReflectionQuestions(_text: string, stepNumber: number): string[] {
     const questionMaps: Record<number, string[]> = {
       1: ['What is God calling me to in this area?', 'How does this align with my values?'],
       2: ['What practical steps can I take today?', 'What obstacles might I face?'],
@@ -585,7 +586,7 @@ class EnhancedExpoundingService {
   private generateTemplateResponse(
     question: string,
     context: string,
-    type: string
+    type: 'clarification' | 'deeper_insight' | 'practical_help' | 'biblical_guidance'
   ): string {
     const templates: Record<string, string> = {
       clarification: `Let me help clarify this for you. Regarding "${question}" in the context of "${context}", here's what I understand...`,

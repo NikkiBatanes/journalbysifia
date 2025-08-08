@@ -1120,7 +1120,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 <Text style={styles.onboardingContinueButtonText}>
                   Start Your Journey
                 </Text>
-                <Ionicons name="arrow-forward" size={20} color={Colors.hopeWhite} style={{ marginLeft: 8 }} />
+                <Ionicons name="arrow-forward" size={20} color={Colors.hopeWhite} style={styles.arrowIcon} />
               </TouchableOpacity>
             ) : (
               ((viewMode === 'document' && hasReachedLastCard) ||
@@ -1608,22 +1608,6 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     width: 24,
     height: 24,
     marginRight: 8,
-  },
-  affirmationsList: {
-    gap: 12,
-  },
-  affirmationsTitle: {
-    fontFamily: 'Inter-Black',
-    fontSize: 20,
-    color: Colors.hopeWhite,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-    marginLeft: 8,
-  },
-  affirmationCardStyle: {
-    borderRadius: 28,
-    elevation: 0,
-    shadowColor: 'transparent',
     opacity: 1,
     position: 'absolute',
     top: 0,

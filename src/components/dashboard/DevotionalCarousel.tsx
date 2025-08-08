@@ -3,7 +3,7 @@
  * Displays user's devotionals in a horizontal carousel with completion status
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -58,7 +58,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDevotionals = async () => {
+  const fetchDevotionals = useCallback(async () => {
     if (!user) {return;}
 
     try {
@@ -182,11 +182,11 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchDevotionals();
-  }, [user]);
+  }, [fetchDevotionals]);
 
   const getStatusColor = (isCompleted: boolean) => {
     return isCompleted ? Colors.successGreen : Colors.devotionalPurple;
@@ -205,14 +205,13 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     return `${devotional.estimatedDuration} min read`;
   };
 
-  const renderDevotionalCard = (devotional: Devotional, index: number) => (
+  const renderDevotionalCard = (devotional: Devotional, _index: number) => (
     <TouchableOpacity
       key={devotional.id}
       style={[
         styles.devotionalCard,
         {
-          marginLeft: index === 0 ? 16 : CARD_MARGIN,
-          opacity: devotional.isCompleted ? 0.8 : 1,
+
         },
       ]}
       onPress={() => onDevotionalPress?.(devotional)}
@@ -515,6 +514,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '600',
+  },
+  dynamicCardStyle: {
+    // Base style for dynamic properties
   },
 });
 

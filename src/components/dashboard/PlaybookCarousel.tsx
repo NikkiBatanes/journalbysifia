@@ -3,7 +3,7 @@
  * Displays user's playbooks in a horizontal carousel with progress indicators
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -53,7 +53,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPlaybooks = async () => {
+  const fetchPlaybooks = useCallback(async () => {
     if (!user) {return;}
 
     try {
@@ -160,11 +160,11 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchPlaybooks();
-  }, [user]);
+  }, [fetchPlaybooks]);
 
   const getProgressColor = (progress: number) => {
     if (progress === 0) {return Colors.lightGray;}
@@ -184,7 +184,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       key={playbook.id}
       style={[
         styles.playbookCard,
-        { marginLeft: index === 0 ? 16 : CARD_MARGIN },
+        index === 0 ? styles.firstCard : styles.otherCard,
       ]}
       onPress={() => onPlaybookPress?.(playbook)}
       activeOpacity={0.8}
@@ -480,6 +480,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '600',
+  },
+  firstCard: {
+    marginLeft: 16,
+  },
+  otherCard: {
+    marginLeft: CARD_MARGIN,
   },
 });
 

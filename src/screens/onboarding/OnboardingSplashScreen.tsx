@@ -7,14 +7,16 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   Animated,
   StatusBar,
   Platform,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { supabase } from '../../services/supabaseClient';
+
 import { Colors } from '../../theme/colors';
 
 // Dimensions not needed here
@@ -23,7 +25,7 @@ interface OnboardingSplashScreenProps {
   onComplete?: () => void;
 }
 
-const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onComplete }) => {
+const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onComplete: _onComplete }) => {
   const navigation = useNavigation();
   const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -34,96 +36,112 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const dot3Anim = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
+    console.log('[SplashScreen] Component mounted, starting splash screen flow');
+
     // Set status bar for splash
-    StatusBar.setBarStyle('light-content');
-    if (Platform.OS === 'android') {
-      StatusBar.setBackgroundColor(Colors.anchorBlue);
+    try {
+      StatusBar.setBarStyle('light-content');
+      if (Platform.OS === 'android') {
+        StatusBar.setBackgroundColor(Colors.anchorBlue);
+      }
+    } catch (error) {
+      console.error('[SplashScreen] Error setting status bar:', error);
     }
 
     // Simple logo fade-in
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
+    try {
+      console.log('[SplashScreen] Starting logo fade-in animation');
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }).start(() => {
+        console.log('[SplashScreen] Logo fade-in animation completed');
+      });
+    } catch (error) {
+      console.error('[SplashScreen] Error in fade-in animation:', error);
+    }
 
     // Start elegant pulsing dots animation
-    const animateDot = (dotAnim: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(dotAnim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(dotAnim, {
-            toValue: 0.4,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-    };
-
-    // Start staggered dot animations
-    animateDot(dot1Anim, 0).start();
-    animateDot(dot2Anim, 200).start();
-    animateDot(dot3Anim, 400).start();
-
-    // Navigate after delay with proper routing logic
-    const navigateToCorrectScreen = async () => {
+    const animateDot = (dotAnim: Animated.Value, delay: number, dotNum: number) => {
+      console.log(`[SplashScreen] Starting dot ${dotNum} animation with delay ${delay}ms`);
       try {
-        if (!user) {
-          // User not authenticated, go to onboarding
-          console.log('[SplashScreen] User not authenticated, navigating to Transform Journey');
-          navigation.navigate('TransformJourney' as any);
-          return;
-        }
-
-        // Check user's onboarding status
-        console.log('[SplashScreen] Checking user onboarding status for:', user.id);
-        const { data: userProfile, error } = await supabase
-          .from('user_profiles')
-          .select('onboarding_completed')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('[SplashScreen] Error fetching user profile:', error);
-          // If error, assume onboarding not completed
-          navigation.navigate('TransformJourney' as any);
-          return;
-        }
-
-        if (userProfile?.onboarding_completed) {
-          console.log('[SplashScreen] User onboarding completed, navigating to main app');
-          navigation.navigate('MainTabs' as any);
-        } else {
-          console.log('[SplashScreen] User onboarding not completed, continuing onboarding');
-          navigation.navigate('OnboardingPersonalization' as any);
-        }
+        return Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.timing(dotAnim, {
+              toValue: 1,
+              duration: 800,
+              useNativeDriver: true,
+            }),
+            Animated.timing(dotAnim, {
+              toValue: 0.4,
+              duration: 800,
+              useNativeDriver: true,
+            }),
+          ])
+        );
       } catch (error) {
-        console.error('[SplashScreen] Error in navigation logic:', error);
-        // Fallback to onboarding
-        navigation.navigate('TransformJourney' as any);
+        console.error(`[SplashScreen] Error creating dot ${dotNum} animation:`, error);
+        return { start: () => {}, stop: () => {} };
       }
     };
 
-    setTimeout(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }).start(() => {
-        if (onComplete) {
-          onComplete();
-        } else {
-          navigateToCorrectScreen();
+    // Start staggered dot animations
+    let anim1: any, anim2: any, anim3: any;
+    try {
+      console.log('[SplashScreen] Starting dot animations');
+      anim1 = animateDot(dot1Anim, 0, 1);
+      anim2 = animateDot(dot2Anim, 200, 2);
+      anim3 = animateDot(dot3Anim, 400, 3);
+
+      anim1.start();
+      anim2.start();
+      anim3.start();
+    } catch (error) {
+      console.error('[SplashScreen] Error starting dot animations:', error);
+    }
+
+    // Simplified navigation logic - always go to TransformJourney for now
+    const navigateToCorrectScreen = () => {
+      console.log('[SplashScreen] Starting simplified navigation logic');
+      console.log('[SplashScreen] User state:', user ? 'authenticated' : 'not authenticated');
+      console.log('[SplashScreen] Navigating to TransformJourney');
+
+      try {
+        navigation.navigate('TransformJourney' as any);
+        console.log('[SplashScreen] Successfully navigated to TransformJourney');
+      } catch (navError) {
+        console.error('[SplashScreen] Error navigating to TransformJourney:', navError);
+        // Try reset navigation as fallback
+        try {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'TransformJourney' as any }],
+          });
+          console.log('[SplashScreen] Successfully reset navigation to TransformJourney');
+        } catch (resetError) {
+          console.error('[SplashScreen] Error with reset navigation:', resetError);
         }
-      });
-    }, 2500);
-  }, [navigation, onComplete, fadeAnim, dot1Anim, dot2Anim, dot3Anim, user]);
+      }
+    };
+
+    // Navigate after a short delay
+    console.log('[SplashScreen] Setting up navigation timeout for 1.5 seconds');
+    const navigationTimeout = setTimeout(() => {
+      console.log('[SplashScreen] Navigation timeout triggered after 1.5 seconds');
+      navigateToCorrectScreen();
+    }, 1500); // Reduced to 1.5 seconds for faster navigation
+
+    // Cleanup function for both animations and timeout
+    return () => {
+      console.log('[SplashScreen] Cleaning up animations and navigation timeout');
+      if (anim1) {anim1.stop();}
+      if (anim2) {anim2.stop();}
+      if (anim3) {anim3.stop();}
+      clearTimeout(navigationTimeout);
+    };
+  }, [dot1Anim, dot2Anim, dot3Anim, fadeAnim, navigation, user]); // Added missing dependencies
 
   return (
     <View style={styles.container}>
@@ -142,33 +160,28 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           resizeMode="contain"
         />
 
-        {/* Simple Loading Dots */}
+        {/* Loading Dots */}
         <View style={styles.loadingContainer}>
-          <Animated.View
-            style={[
-              styles.dot,
-              {
-                opacity: dot1Anim,
-              },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.dot,
-              {
-                opacity: dot2Anim,
-              },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.dot,
-              {
-                opacity: dot3Anim,
-              },
-            ]}
-          />
+          <Animated.View style={[styles.dot, { opacity: dot1Anim }]} />
+          <Animated.View style={[styles.dot, { opacity: dot2Anim }]} />
+          <Animated.View style={[styles.dot, { opacity: dot3Anim }]} />
         </View>
+
+        {/* Manual Navigation Test Button */}
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={() => {
+            console.log('[SplashScreen] Manual navigation button pressed');
+            try {
+              navigation.navigate('TransformJourney' as any);
+              console.log('[SplashScreen] Manual navigation successful');
+            } catch (error) {
+              console.error('[SplashScreen] Manual navigation failed:', error);
+            }
+          }}
+        >
+          <Text style={styles.testButtonText}>Go to Transform Journey (TEST)</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -206,6 +219,19 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: Colors.hopeWhite,
     marginHorizontal: 4,
+  },
+  testButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 30,
+  },
+  testButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 

@@ -3,11 +3,11 @@
  * Global context for managing animated points notifications across the app
  */
 
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
-import { View } from 'react-native';
+import React, { createContext, useContext, useState, useRef, useCallback, ReactNode } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
 import AnimatedPointsNotification from '../components/ui/AnimatedPointsNotification';
-import { notificationService } from '../services/notificationService';
+// Removed unused imports: useEffect, useCallback, Animated, Easing, StyleProp, ViewStyle, notificationService
 
 interface PointsNotification {
   id: string;
@@ -21,6 +21,19 @@ interface PointsNotificationContextType {
 }
 
 const PointsNotificationContext = createContext<PointsNotificationContextType | undefined>(undefined);
+
+const styles = StyleSheet.create({
+  notificationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999999999,
+    elevation: 999999999,
+    pointerEvents: 'none',
+  },
+});
 
 interface PointsNotificationProviderProps {
   children: ReactNode;
@@ -84,16 +97,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       {/* Global overlay for notifications - positioned outside normal flow */}
       {notifications.length > 0 && (
         <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: 999999999,
-            elevation: 999999999,
-            pointerEvents: 'none',
-          }}
+          style={styles.notificationOverlay}
         >
           {notifications.map((notification) => (
             <AnimatedPointsNotification

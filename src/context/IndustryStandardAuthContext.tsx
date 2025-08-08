@@ -107,12 +107,10 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
         console.log('📝 Creating new user profile for OAuth user');
 
-        // Extract name from user metadata or email
-        const userMetadata = user.user_metadata || {};
-        const firstName = userMetadata.first_name || userMetadata.given_name || user.email?.split('@')[0] || '';
-        const lastName = userMetadata.last_name || userMetadata.family_name || '';
-        const fullName = userMetadata.full_name || userMetadata.name || `${firstName} ${lastName}`.trim();
-        const displayName = fullName || firstName || user.email?.split('@')[0] || 'User';
+        // Extract name data for future use
+        // const userMetadata = user.user_metadata || {};
+        // const firstName = userMetadata.first_name || userMetadata.given_name || user.email?.split('@')[0] || '';
+        // const lastName = userMetadata.last_name || userMetadata.family_name || '';
 
         // Create user profile matching actual database schema
         const userProfile = {

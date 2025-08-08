@@ -29,7 +29,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { signUp, loading, user } = useAuth();
+  const { signUp, loading } = useAuth(); // Removed unused user variable
 
   const handleRegister = async () => {
     if (!firstName || !lastName || !email || !password) {

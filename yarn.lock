@@ -5230,6 +5230,11 @@ fs.realpath@^1.0.0:
   resolved "https://registry.npmjs.org/fs.realpath/-/fs.realpath-1.0.0.tgz"
   integrity sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==
 
+fsevents@^2.3.2:
+  version "2.3.3"
+  resolved "https://registry.npmjs.org/fsevents/-/fsevents-2.3.3.tgz"
+  integrity sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==
+
 function-bind@^1.1.2:
   version "1.1.2"
   resolved "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz"
@@ -6691,7 +6696,7 @@ lodash.throttle@^4.1.1:
   resolved "https://registry.npmjs.org/lodash.throttle/-/lodash.throttle-4.1.1.tgz"
   integrity sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==
 
-lodash@^4.17.15, lodash@^4.17.21, lodash@4.17.21:
+lodash@^4.17.13, lodash@^4.17.15, lodash@^4.17.21, lodash@4.17.21:
   version "4.17.21"
   resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
@@ -7616,6 +7621,11 @@ path-type@^4.0.0:
   resolved "https://registry.npmjs.org/path-type/-/path-type-4.0.0.tgz"
   integrity sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==
 
+paths-js@^0.4.10:
+  version "0.4.11"
+  resolved "https://registry.npmjs.org/paths-js/-/paths-js-0.4.11.tgz"
+  integrity sha512-3mqcLomDBXOo7Fo+UlaenG6f71bk1ZezPQy2JCmYHy2W2k5VKpP+Jbin9H0bjXynelTbglCqdFhSEkeIkKTYUA==
+
 performance-now@^2.1.0:
   version "2.1.0"
   resolved "https://registry.npmjs.org/performance-now/-/performance-now-2.1.0.tgz"
@@ -7671,6 +7681,11 @@ pngjs@^3.3.0:
   version "3.4.0"
   resolved "https://registry.npmjs.org/pngjs/-/pngjs-3.4.0.tgz"
   integrity sha512-NCrCHhWmnQklfH4MtJMRjZ2a8c80qXeMlQMv2uVp9ISJMTt562SbGd6n2oq0PaPgKm7Z6pL9E2UlLIhC+SHL3w==
+
+point-in-polygon@^1.0.1:
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/point-in-polygon/-/point-in-polygon-1.1.0.tgz"
+  integrity sha512-3ojrFwjnnw8Q9242TzgXuTD+eKiutbzyslcq1ydfu82Db2y+Ogbmyrkpv0Hgj31qwT3lbS9+QAAO/pIQM35XRw==
 
 possible-typed-array-names@^1.0.0:
   version "1.1.0"
@@ -7969,6 +7984,15 @@ react-native-calendars@^1.1313.0:
   optionalDependencies:
     moment "^2.29.4"
 
+react-native-chart-kit@^6.12.0:
+  version "6.12.0"
+  resolved "https://registry.npmjs.org/react-native-chart-kit/-/react-native-chart-kit-6.12.0.tgz"
+  integrity sha512-nZLGyCFzZ7zmX0KjYeeSV1HKuPhl1wOMlTAqa0JhlyW62qV/1ZPXHgT8o9s8mkFaGxdqbspOeuaa6I9jUQDgnA==
+  dependencies:
+    lodash "^4.17.13"
+    paths-js "^0.4.10"
+    point-in-polygon "^1.0.1"
+
 react-native-config@^1.5.6:
   version "1.5.6"
   resolved "https://registry.npmjs.org/react-native-config/-/react-native-config-1.5.6.tgz"
@@ -8101,7 +8125,7 @@ react-native-sound@^0.12.0:
   resolved "https://registry.npmjs.org/react-native-sound/-/react-native-sound-0.12.0.tgz"
   integrity sha512-uOtM/PJ8+xmuXwgS2WMYEcokE/oFE8MV6glZHmB5RYHZ+yzD/0Z7cDL+QJpetTYBbEFOirfcE42o6YfPMJfJfg==
 
-"react-native-svg@^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0", react-native-svg@^15.12.0, react-native-svg@>=12:
+"react-native-svg@^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0", react-native-svg@^15.12.0, "react-native-svg@> 6.4.1", react-native-svg@>=12:
   version "15.12.0"
   resolved "https://registry.npmjs.org/react-native-svg/-/react-native-svg-15.12.0.tgz"
   integrity sha512-iE25PxIJ6V0C6krReLquVw6R0QTsRTmEQc4K2Co3P6zsimU/jltcDBKYDy1h/5j9S/fqmMeXnpM+9LEWKJKI6A==
@@ -8135,7 +8159,7 @@ react-native-vector-icons@^10.3.0:
     prop-types "^15.7.2"
     yargs "^16.1.1"
 
-react-native@*, "react-native@^0.0.0-0 || >=0.65 <1.0", "react-native@>= 0.30.0", react-native@>=0.42.0, react-native@>=0.46, react-native@>=0.48.4, react-native@>=0.50.4, react-native@>=0.56, react-native@>=0.58, react-native@>=0.59, react-native@>=0.60.0, react-native@0.79.2:
+react-native@*, "react-native@^0.0.0-0 || >=0.65 <1.0", "react-native@>= 0.30.0", "react-native@>= 0.50.0", react-native@>=0.42.0, react-native@>=0.46, react-native@>=0.48.4, react-native@>=0.50.4, react-native@>=0.56, react-native@>=0.58, react-native@>=0.59, react-native@>=0.60.0, react-native@0.79.2:
   version "0.79.2"
   resolved "https://registry.npmjs.org/react-native/-/react-native-0.79.2.tgz"
   integrity sha512-AnGzb56JvU5YCL7cAwg10+ewDquzvmgrMddiBM0GAWLwQM/6DJfGd2ZKrMuKKehHerpDDZgG+EY64gk3x3dEkw==
@@ -8197,7 +8221,7 @@ react-test-renderer@19.0.0:
     react-is "^19.0.0"
     scheduler "^0.25.0"
 
-react@*, "react@^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^18 || ^19", react@^19.0.0, "react@>= 15.2.1", "react@>= 18.2.0", react@>=16.13.1, react@>=16.2.0, react@>=16.8, react@>=16.9, react@>=17.0.0, react@>=18.0.0, react@19.0.0:
+react@*, "react@^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react@^18 || ^19", react@^19.0.0, "react@> 16.7.0", "react@>= 15.2.1", "react@>= 18.2.0", react@>=16.13.1, react@>=16.2.0, react@>=16.8, react@>=16.9, react@>=17.0.0, react@>=18.0.0, react@19.0.0:
   version "19.0.0"
   resolved "https://registry.npmjs.org/react/-/react-19.0.0.tgz"
   integrity sha512-V8AVnmPIICiWpGfm6GLzCR/W5FXLchHop40W4nXBmdlEceh16rCN8O8LNWm5bh5XUX91fh7KpA+W0TgMKmgTpQ==
@@ -8781,7 +8805,7 @@ simple-swizzle@^0.2.2:
 
 "simply-deferred@git+https://github.com/Expensify/simply-deferred.git#77a08a95754660c7bd6e0b6979fdf84e8e831bf5":
   version "3.0.0"
-  resolved "git+ssh://git@github.com/Expensify/simply-deferred.git"
+  resolved "git+ssh://git@github.com/Expensify/simply-deferred.git#77a08a95754660c7bd6e0b6979fdf84e8e831bf5"
   integrity sha512-DSHaVm+6KduK2+cOnaA+choq8CowotOpFhmHDCL36Cb/CM4f++TumOhcdWCknMwI3IbZbf3u2fzVPvb4UVf8UA==
 
 sisteransi@^1.0.5:

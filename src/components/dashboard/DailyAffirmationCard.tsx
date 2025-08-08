@@ -3,7 +3,7 @@
  * Displays a random affirmation from the user's playbooks
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { faithPointsService } from '../../services/faithPointsService';
+
 
 interface Affirmation {
   id: string;
@@ -34,7 +35,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDailyAffirmation = async () => {
+  const fetchDailyAffirmation = useCallback(async () => {
     if (!user) {return;}
 
     try {
@@ -48,7 +49,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
       // First, try to get playbooks with only existing columns
       try {
         console.log('[DailyAffirmation] Fetching playbooks for user:', user.id);
-        const { data, error } = await supabase
+        const { data, error: playbookError } = await supabase
           .from('playbooks')
           .select('id, title, affirmations')
           // Temporarily remove user_id filter for testing
@@ -56,9 +57,9 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
           .not('affirmations', 'is', null)
           .limit(10);
 
-        if (error) {
-          console.error('[DailyAffirmation] Error fetching playbooks:', error);
-          playbooksError = error;
+        if (playbookError) {
+          console.error('[DailyAffirmation] Error fetching playbooks:', playbookError);
+          throw playbookError;
         } else {
           playbooks = data || [];
           console.log(`[DailyAffirmation] Found ${playbooks.length} playbooks for affirmations`);
@@ -128,11 +129,11 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchDailyAffirmation();
-  }, [user]);
+  }, [fetchDailyAffirmation]);
 
   const handleRefresh = () => {
     fetchDailyAffirmation();
@@ -150,8 +151,8 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
       });
 
       onAffirmationPress?.(affirmation);
-    } catch (error) {
-      console.error('Error awarding points for affirmation:', error);
+    } catch (affirmationError) {
+      console.error('Error awarding points for affirmation:', affirmationError);
       // Still call the callback even if points fail
       onAffirmationPress?.(affirmation);
     }

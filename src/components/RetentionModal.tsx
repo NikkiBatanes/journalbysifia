@@ -18,7 +18,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { retentionService } from '../services/retentionService';
+// import { retentionService } from '../services/retentionService'; // unused
 
 export interface RetentionOffer {
   discount: number;

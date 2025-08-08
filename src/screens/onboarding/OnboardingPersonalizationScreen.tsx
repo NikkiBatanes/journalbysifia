@@ -461,7 +461,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <View style={[styles.header, { backgroundColor: scrollY > 50 ? 'transparent' : Colors.anchorBlue }]}>
+      <View style={[styles.header, scrollY > 50 ? styles.headerTransparent : null]}>
         <View style={styles.logoContainer}>
           <Image
             source={require('../../../assets/icons/siFiaTransparent.png')}
@@ -473,7 +473,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
       <View style={styles.titleContainer}>
         {name ? (
-          <Text style={[OnboardingStyles.subtitle, { fontWeight: 'bold', fontSize: 18, marginBottom: 8 }]}>Hi, {name}.</Text>
+          <Text style={styles.userGreeting}>Hi, {name}.</Text>
         ) : null}
         <Text style={OnboardingStyles.mainTitle}>Tell us about yourself</Text>
         <Text style={OnboardingStyles.subtitle}>
@@ -568,6 +568,9 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 0,
     backgroundColor: Colors.anchorBlue,
+  },
+  headerTransparent: {
+    backgroundColor: 'transparent',
   },
   logoContainer: {
     flexDirection: 'row',
@@ -695,6 +698,12 @@ const styles = StyleSheet.create({
   selectedAgeOption: {
     borderColor: Colors.alertCoral,
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  userGreeting: {
+    ...OnboardingStyles.subtitle,
+    fontWeight: 'bold',
+    fontSize: 18,
+    marginBottom: 8,
   },
   ageOptionTitle: {
     fontSize: 14,

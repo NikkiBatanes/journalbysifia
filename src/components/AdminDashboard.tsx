@@ -5,7 +5,7 @@
  * subscription metrics, user behavior, retention analytics, and system health.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -18,10 +18,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
-import { analyticsService } from '../services/analyticsService';
+import { analyticsService, SubscriptionAnalytics as ServiceSubscriptionAnalytics, FeatureAnalytics as ServiceFeatureAnalytics } from '../services/analyticsService';
 
 const { width: screenWidth } = Dimensions.get('window');
 const chartWidth = screenWidth - 40;
+
+// Use the service types directly
+type SubscriptionAnalytics = ServiceSubscriptionAnalytics;
+type FeatureAnalytics = ServiceFeatureAnalytics;
 
 interface DashboardMetric {
   metric_name: string;
@@ -29,31 +33,6 @@ interface DashboardMetric {
   previous_value: number;
   change_percentage: number;
   trend: 'up' | 'down' | 'stable' | 'no_data';
-}
-
-interface SubscriptionAnalytics {
-  tier: string;
-  total_users: number;
-  active_users: number;
-  churn_rate: number;
-  average_revenue: number;
-  feature_usage: Record<string, number>;
-  conversion_rate: number;
-  retention_rate: number;
-}
-
-interface FeatureAnalytics {
-  feature_name: string;
-  total_usage: number;
-  unique_users: number;
-  average_usage_per_user: number;
-  usage_by_tier: Record<string, number>;
-  average_load_time: number;
-  error_rate: number;
-  satisfaction_score: number;
-  trials_triggered: number;
-  upgrades_generated: number;
-  conversion_rate: number;
 }
 
 export const AdminDashboard: React.FC = () => {
@@ -65,32 +44,34 @@ export const AdminDashboard: React.FC = () => {
   const [selectedTimeRange, setSelectedTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [activeTab, setActiveTab] = useState<'overview' | 'subscriptions' | 'features' | 'retention'>('overview');
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [selectedTimeRange]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     setIsLoading(true);
     try {
       const days = selectedTimeRange === '7d' ? 7 : selectedTimeRange === '30d' ? 30 : 90;
-      const endDate = new Date().toISOString();
-      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      const dateRange = {
+        start: new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString(),
+        end: new Date().toISOString(),
+      };
 
-      const [metrics, subscriptions, features] = await Promise.all([
+      const [metrics, subscriptionData, featureData] = await Promise.all([
         analyticsService.getDashboardMetrics(days),
-        analyticsService.getSubscriptionAnalytics({ start: startDate, end: endDate }),
+        analyticsService.getSubscriptionAnalytics(dateRange),
         analyticsService.getFeatureAnalytics(),
       ]);
 
-      setDashboardMetrics(metrics);
-      setSubscriptionAnalytics(subscriptions);
-      setFeatureAnalytics(features);
+      setDashboardMetrics(metrics || []);
+      setSubscriptionAnalytics(subscriptionData || []);
+      setFeatureAnalytics(featureData || []);
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
+      console.error('[AdminDashboard] Error loading dashboard data:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedTimeRange]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -98,40 +79,25 @@ export const AdminDashboard: React.FC = () => {
     setRefreshing(false);
   };
 
-  const formatCurrency = (value: number) => {
+  // Utility functions for trend display (removed unused functions)
+
+  // Utility functions for formatting
+  const formatCurrency = useCallback((value: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
-  };
+  }, []);
 
-  const formatNumber = (value: number) => {
+  const formatNumber = useCallback((value: number): string => {
     return new Intl.NumberFormat('en-US').format(value);
-  };
+  }, []);
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = useCallback((value: number): string => {
     return `${value.toFixed(1)}%`;
-  };
-
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'up': return 'trending-up';
-      case 'down': return 'trending-down';
-      case 'stable': return 'remove';
-      default: return 'help-circle';
-    }
-  };
-
-  const getTrendColor = (trend: string) => {
-    switch (trend) {
-      case 'up': return '#10B981';
-      case 'down': return '#EF4444';
-      case 'stable': return '#6B7280';
-      default: return '#6B7280';
-    }
-  };
+  }, []);
 
   const renderOverviewTab = () => (
     <View style={styles.tabContent}>
@@ -155,17 +121,14 @@ export const AdminDashboard: React.FC = () => {
         <Text style={styles.chartTitle}>Monthly Recurring Revenue</Text>
         <LineChart
           data={{
-            labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
-            datasets: [{
-              data: subscriptionAnalytics.map(s => s.average_revenue * s.active_users),
-            }],
+            labels: subscriptionAnalytics.map(item => item.tier),
+            datasets: [{ data: subscriptionAnalytics.map(item => item.total_subscribers) }],
           }}
-          width={chartWidth}
+          width={screenWidth - 40}
           height={220}
-          yAxisLabel="$"
+          yAxisLabel=""
           chartConfig={chartConfig}
-          style={styles.chart}
-        />
+          style={styles.chartStyle}    />
       </View>
 
       {/* User Distribution */}
@@ -194,7 +157,7 @@ export const AdminDashboard: React.FC = () => {
   const renderSubscriptionsTab = () => (
     <View style={styles.tabContent}>
       {/* Subscription Metrics */}
-      {subscriptionAnalytics.map((subscription) => (
+      {subscriptionAnalytics.map((subscription, _index) => (
         <SubscriptionCard
           key={subscription.tier}
           subscription={subscription}
@@ -206,36 +169,55 @@ export const AdminDashboard: React.FC = () => {
         <Text style={styles.chartTitle}>Churn Rate by Tier</Text>
         <BarChart
           data={{
-            labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
+            labels: subscriptionAnalytics.map(s => s.tier),
             datasets: [{
-              data: subscriptionAnalytics.map(s => s.churn_rate),
+              data: subscriptionAnalytics.map(s => s.metrics?.totalUsers || 0),
             }],
           }}
           width={chartWidth}
           height={220}
-          yAxisLabel=""
-          yAxisSuffix="%"
-          chartConfig={chartConfig}
-          style={styles.chart}
+          yAxisLabel="Users"
+          yAxisSuffix=""
+          chartConfig={{
+            backgroundColor: '#ffffff',
+            backgroundGradientFrom: '#ffffff',
+            backgroundGradientTo: '#ffffff',
+            decimalPlaces: 0,
+            color: (opacity = 1) => `rgba(81, 150, 244, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            style: { borderRadius: 16 },
+            propsForDots: { r: '6', strokeWidth: '2', stroke: '#5196f4' },
+          }}
+          style={styles.chartStyle}
+          showValuesOnTopOfBars={true}
         />
       </View>
 
       {/* Conversion Rates */}
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Conversion Rates</Text>
+        <Text style={styles.sectionTitle}>Conversion Rates</Text>
         <BarChart
           data={{
             labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
             datasets: [{
-              data: subscriptionAnalytics.map(s => s.conversion_rate),
+              data: subscriptionAnalytics.map(s => (s.metrics?.conversionRate || 0) * 100),
             }],
           }}
           width={chartWidth}
           height={220}
           yAxisLabel=""
           yAxisSuffix="%"
-          chartConfig={chartConfig}
-          style={styles.chart}
+          chartConfig={{
+            backgroundColor: '#ffffff',
+            backgroundGradientFrom: '#ffffff',
+            backgroundGradientTo: '#ffffff',
+            decimalPlaces: 1,
+            color: (opacity = 1) => `rgba(81, 150, 244, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            style: { borderRadius: 16 },
+            propsForDots: { r: '6', strokeWidth: '2', stroke: '#5196f4' },
+          }}
+          style={styles.chartStyle}
         />
       </View>
     </View>
@@ -244,29 +226,42 @@ export const AdminDashboard: React.FC = () => {
   const renderFeaturesTab = () => (
     <View style={styles.tabContent}>
       {/* Feature Usage Cards */}
-      {featureAnalytics.slice(0, 6).map((feature) => (
-        <FeatureCard
-          key={feature.feature_name}
-          feature={feature}
-        />
+      {featureAnalytics.slice(0, 6).map((feature, _index) => (
+        <View key={feature.feature_name} style={styles.featureCard}>
+          <Text style={styles.featureName}>{feature.feature_name.replace(/_/g, ' ').toUpperCase()}</Text>
+          <Text style={styles.featureUsage}>{formatNumber(feature.total_usage)} uses</Text>
+          <View style={styles.featureMetrics}>
+            <Text style={styles.sectionTitle}>Revenue Metrics</Text>
+            <View style={styles.metricsGrid}>
+              {subscriptionAnalytics.map((tier, _tierIndex) => (
+                <View key={tier.tier} style={styles.metricCard}>
+                  <Text style={styles.metricTitle}>{tier.tier.toUpperCase()}</Text>
+                  <Text style={styles.metricValue}>
+                    {formatCurrency((tier.metrics?.averageRevenue || 0) * (tier.metrics?.activeUsers || 0))}
+                  </Text>
+                  <Text style={styles.metricSubtext}>
+                    {tier.metrics?.activeUsers || 0} active users
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
       ))}
 
       {/* Feature Usage Chart */}
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Feature Usage (Total)</Text>
-        <BarChart
+        <LineChart
           data={{
-            labels: featureAnalytics.slice(0, 5).map(f => f.feature_name.replace('_', '\n')),
-            datasets: [{
-              data: featureAnalytics.slice(0, 5).map(f => f.total_usage),
-            }],
+            labels: featureAnalytics.map(item => item.feature_name),
+            datasets: [{ data: featureAnalytics.map(item => item.total_usage) }],
           }}
-          width={chartWidth}
+          width={screenWidth - 40}
           height={220}
           yAxisLabel=""
           chartConfig={chartConfig}
-          style={styles.chart}
-          showValuesOnTopOfBars
+          style={styles.chartStyle}      showValuesOnTopOfBars
         />
       </View>
 
@@ -275,17 +270,26 @@ export const AdminDashboard: React.FC = () => {
         <Text style={styles.chartTitle}>Feature Satisfaction Scores</Text>
         <BarChart
           data={{
-            labels: featureAnalytics.slice(0, 5).map(f => f.feature_name.replace('_', '\n')),
+            labels: featureAnalytics.map(f => f.feature_name),
             datasets: [{
-              data: featureAnalytics.slice(0, 5).map(f => f.satisfaction_score),
+              data: featureAnalytics.map(f => (f.performance?.satisfactionScore || 0) * 100),
             }],
           }}
           width={chartWidth}
           height={220}
           yAxisLabel=""
           yAxisSuffix="%"
-          chartConfig={chartConfig}
-          style={styles.chart}
+          chartConfig={{
+            backgroundColor: '#ffffff',
+            backgroundGradientFrom: '#ffffff',
+            backgroundGradientTo: '#ffffff',
+            decimalPlaces: 1,
+            color: (opacity = 1) => `rgba(81, 150, 244, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            style: { borderRadius: 16 },
+            propsForDots: { r: '6', strokeWidth: '2', stroke: '#5196f4' },
+          }}
+          style={styles.chartStyle}
         />
       </View>
     </View>
@@ -300,20 +304,29 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Retention Rate by Tier */}
       <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Retention Rate by Tier</Text>
+        <Text style={styles.sectionTitle}>Retention Rates</Text>
         <BarChart
           data={{
             labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
             datasets: [{
-              data: subscriptionAnalytics.map(s => s.retention_rate),
+              data: subscriptionAnalytics.map(s => (s.metrics?.retentionRate || 0) * 100),
             }],
           }}
           width={chartWidth}
           height={220}
           yAxisLabel=""
           yAxisSuffix="%"
-          chartConfig={chartConfig}
-          style={styles.chart}
+          chartConfig={{
+            backgroundColor: '#ffffff',
+            backgroundGradientFrom: '#ffffff',
+            backgroundGradientTo: '#ffffff',
+            decimalPlaces: 1,
+            color: (opacity = 1) => `rgba(81, 150, 244, ${opacity})`,
+            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+            style: { borderRadius: 16 },
+            propsForDots: { r: '6', strokeWidth: '2', stroke: '#5196f4' },
+          }}
+          style={styles.chartStyle}
         />
       </View>
     </View>
@@ -413,12 +426,8 @@ const MetricCard: React.FC<{
     <Text style={styles.metricTitle}>{title}</Text>
     <Text style={styles.metricValue}>{value}</Text>
     <View style={styles.metricChange}>
-      <Ionicons
-        name={getTrendIcon(trend)}
-        size={16}
-        color={getTrendColor(trend)}
-      />
-      <Text style={[styles.metricChangeText, { color: getTrendColor(trend) }]}>
+      <Ionicons name={getTrendIcon(trend)} size={16} color={getTrendColor(trend)} />
+      <Text style={[styles.metricChange, { color: getTrendColor(trend) }]}>
         {Math.abs(change).toFixed(1)}%
       </Text>
     </View>
@@ -430,51 +439,20 @@ const SubscriptionCard: React.FC<{
   subscription: SubscriptionAnalytics;
 }> = ({ subscription }) => (
   <View style={styles.subscriptionCard}>
-    <View style={styles.subscriptionHeader}>
-      <Text style={styles.subscriptionTier}>{subscription.tier.toUpperCase()}</Text>
-      <Text style={styles.subscriptionRevenue}>
-        {formatCurrency(subscription.average_revenue * subscription.active_users)}
-      </Text>
-    </View>
+    <Text style={styles.subscriptionTier}>{subscription.tier.toUpperCase()}</Text>
     <View style={styles.subscriptionMetrics}>
-      <View style={styles.subscriptionMetric}>
-        <Text style={styles.subscriptionMetricLabel}>Active Users</Text>
-        <Text style={styles.subscriptionMetricValue}>{subscription.active_users}</Text>
-      </View>
-      <View style={styles.subscriptionMetric}>
-        <Text style={styles.subscriptionMetricLabel}>Churn Rate</Text>
-        <Text style={styles.subscriptionMetricValue}>{formatPercentage(subscription.churn_rate)}</Text>
-      </View>
-      <View style={styles.subscriptionMetric}>
-        <Text style={styles.subscriptionMetricLabel}>Conversion</Text>
-        <Text style={styles.subscriptionMetricValue}>{formatPercentage(subscription.conversion_rate)}</Text>
-      </View>
-    </View>
-  </View>
-);
-
-// Feature Card Component
-const FeatureCard: React.FC<{
-  feature: FeatureAnalytics;
-}> = ({ feature }) => (
-  <View style={styles.featureCard}>
-    <View style={styles.featureHeader}>
-      <Text style={styles.featureName}>{feature.feature_name.replace(/_/g, ' ').toUpperCase()}</Text>
-      <Text style={styles.featureUsage}>{formatNumber(feature.total_usage)} uses</Text>
-    </View>
-    <View style={styles.featureMetrics}>
-      <View style={styles.featureMetric}>
-        <Text style={styles.featureMetricLabel}>Unique Users</Text>
-        <Text style={styles.featureMetricValue}>{feature.unique_users}</Text>
-      </View>
-      <View style={styles.featureMetric}>
-        <Text style={styles.featureMetricLabel}>Satisfaction</Text>
-        <Text style={styles.featureMetricValue}>{formatPercentage(feature.satisfaction_score)}</Text>
-      </View>
-      <View style={styles.featureMetric}>
-        <Text style={styles.featureMetricLabel}>Error Rate</Text>
-        <Text style={styles.featureMetricValue}>{formatPercentage(feature.error_rate)}</Text>
-      </View>
+      <Text style={styles.subscriptionMetric}>
+        Revenue: {formatCurrency((subscription.metrics?.averageRevenue || 0) * (subscription.metrics?.activeUsers || 0))}
+      </Text>
+      <Text style={styles.subscriptionMetric}>
+        Users: {(subscription.metrics?.activeUsers || 0).toLocaleString()}
+      </Text>
+      <Text style={styles.subscriptionMetric}>
+        Churn: {formatPercentage((subscription.metrics?.churnRate || 0) * 100)}
+      </Text>
+      <Text style={styles.subscriptionMetric}>
+        Conversion: {formatPercentage((subscription.metrics?.conversionRate || 0) * 100)}
+      </Text>
     </View>
   </View>
 );
@@ -732,11 +710,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   comingSoon: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 24,
+    marginTop: 20,
     fontStyle: 'italic',
+  },
+  chartStyle: {
+    marginVertical: 8,
+    borderRadius: 16,
   },
 });
 

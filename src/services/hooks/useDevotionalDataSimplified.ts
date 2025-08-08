@@ -132,7 +132,7 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
       const apiEntry = await DevotionalApi.markDayComplete(devotionalId, dayNumber);
       return transformApiEntryToDevotional(apiEntry);
     },
-    onSuccess: async (data, { devotionalId, dayNumber, userId }) => {
+    onSuccess: async (data, { devotionalId, dayNumber, userId: _completionUserId }) => {
       console.log('[useMarkDayCompleteReactQuery] Success:', { devotionalId, dayNumber });
 
       // Trigger cross-component sync to award faith points and update dashboard

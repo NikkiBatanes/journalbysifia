@@ -149,7 +149,7 @@ export class EnhancedGenerationService {
 
       // Call the real AI generation service directly
       console.log('[EnhancedGenerationService] Calling real AI generation service');
-      const _aiResult = await generatePlaybook(request.userInput, request.userName, {
+      await generatePlaybook(request.userInput, request.userName, {
         showUserFeedback: false, // Don't show UI feedback in direct mode
       });
 

@@ -12,7 +12,7 @@ import { Spacing, FontSizes } from '../theme/styles';
 import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
-import UserInputScreen from '../screens/UserInputScreen';
+
 import DevotionalsScreen from '../screens/DevotionalsScreen';
 import JournalScreen from '../screens/JournalScreen';
 import { MomentsScreen } from '../screens/MomentsScreen';

@@ -3,7 +3,7 @@
  * Displays unfinished action steps from user's playbooks
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -42,7 +42,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchActionSteps = async () => {
+  const fetchActionSteps = useCallback(async () => {
     if (!user) {return;}
 
     try {
@@ -50,7 +50,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       setError(null);
 
       // Fetch user's playbooks
-      const { data, error } = await supabase
+      const { data: __progressData, error: progressError } = await supabase
         .from('playbook_action_steps')
         .select(`
           *,
@@ -59,33 +59,38 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         .eq('completed', false)
         .limit(10);
 
-      if (error) {
-        console.error('Error fetching action steps:', error);
-        throw error;
+      if (progressError) {
+        console.error('Error fetching action steps:', progressError);
+        throw progressError;
       }
 
-      if (!data || data.length === 0) {
+      if (!__progressData || __progressData.length === 0) {
         setActionSteps([]);
         return;
       }
 
-      const { data: progressData } = await supabase
+      const { error: userProgressError } = await supabase
         .from('user_progress')
         .select('*');
 
-      setActionSteps(actionSteps);
+      if (userProgressError) {
+        console.error('Error fetching action steps:', userProgressError);
+        throw userProgressError;
+      }
 
-    } catch (err) {
-      console.error('Error fetching action steps:', err);
-      setError('Unable to load action steps');
+      setActionSteps(__progressData || []);
+
+    } catch (fetchError) {
+      console.error('Error fetching action steps:', fetchError);
+      setError('Failed to load action steps');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchActionSteps();
-  }, [user]);
+  }, [fetchActionSteps, user]);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {

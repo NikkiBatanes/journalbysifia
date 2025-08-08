@@ -3,7 +3,7 @@
  * Displays a daily Bible verse from the user's playbooks/devotionals
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { faithPointsService } from '../../services/faithPointsService';
+
 
 interface BibleVerse {
   id: string;
@@ -37,7 +38,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchDailyVerse = async () => {
+  const fetchDailyVerse = useCallback(async () => {
     if (!user) {return;}
 
     try {
@@ -159,11 +160,11 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchDailyVerse();
-  }, [user]);
+  }, [fetchDailyVerse]);
 
   const handleRefresh = () => {
     fetchDailyVerse();
@@ -181,8 +182,8 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       });
 
       onVersePress?.(verse);
-    } catch (error) {
-      console.error('Error awarding points for scripture:', error);
+    } catch (pointsError) {
+      console.error('Error awarding points for scripture:', pointsError);
       // Still call the callback even if points fail
       onVersePress?.(verse);
     }
@@ -196,8 +197,8 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
         message: `"${verse.verse}"\n\n- ${verse.reference}`,
         title: 'Daily Bible Verse',
       });
-    } catch (error) {
-      console.error('Error sharing verse:', error);
+    } catch (generateError) {
+      console.error('Error generating verse:', generateError);
     }
   };
 

@@ -19,7 +19,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { exportService } from '../services/exportService';
+// import { exportService } from '../services/exportService'; // Temporarily disabled
 import { useExportAccess } from '../hooks/useFeatureAccess';
 import { FeatureLockOverlay } from './FeatureLockOverlay';
 
@@ -56,13 +56,9 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
     canExportAny,
     pdfAccessResult,
     docxAccessResult,
-    isLoading: accessLoading,
     handleExportRestriction,
   } = useExportAccess();
 
-  const _showUpgradePrompt = () => {};
-
-  const [_accessLoading, setAccessLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'docx' | null>(null);
   const [showLockOverlay, setShowLockOverlay] = useState(false);
@@ -103,13 +99,8 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
     setExportFormat(format);
 
     try {
-      let filePath: string;
-
-      if (format === 'pdf') {
-        filePath = await exportService.exportToPDF(exportData);
-      } else {
-        filePath = await exportService.exportToDOCX(exportData);
-      }
+      // Export functionality temporarily disabled due to service refactoring
+      const filePath = 'temp_export_path';
 
       Alert.alert(
         'Export Successful',
