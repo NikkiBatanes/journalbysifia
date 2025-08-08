@@ -18,7 +18,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
 
 interface Feature {

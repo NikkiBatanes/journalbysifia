@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   Animated,
   StatusBar,
-  Image,
   ScrollView,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -21,8 +20,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
-import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
+import { OnboardingStyles, OnboardingTypography } from '../../theme/onboardingStyles';
 
 interface DetailedFeature {
   id: string;

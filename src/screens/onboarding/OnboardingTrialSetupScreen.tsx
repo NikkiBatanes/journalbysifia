@@ -13,7 +13,6 @@ import {
   TouchableOpacity,
   Animated,
   StatusBar,
-  ScrollView,
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -117,12 +116,7 @@ const OnboardingTrialSetupScreen: React.FC = () => {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const calculateSavings = (tier: PricingTier) => {
-    const monthlyTotal = tier.monthlyPrice * 12;
-    const savings = monthlyTotal - tier.annualPrice;
-    const percentage = Math.round((savings / monthlyTotal) * 100);
-    return { savings, percentage };
-  };
+  // Savings calculation not displayed in current UI
 
   const handleStartTrial = async () => {
     setIsLoading(true);
@@ -175,7 +169,6 @@ const OnboardingTrialSetupScreen: React.FC = () => {
   };
 
   const selectedTierData = pricingTiers.find(t => t.id === selectedTier);
-  const currentPrice = isAnnual ? selectedTierData?.annualPrice : selectedTierData?.monthlyPrice;
 
   const handleSkipTrial = async () => {
     // Mark onboarding as complete and skip trial

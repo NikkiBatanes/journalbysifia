@@ -19,7 +19,7 @@ import { Colors } from '../../theme/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { AnimationUtils } from '../../utils/animations';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 const OnboardingCompleteScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -65,6 +65,9 @@ const OnboardingCompleteScreen: React.FC = () => {
     }, 3000);
 
     return () => clearTimeout(timer);
+    // We intentionally only depend on navigation here because these Animated refs are stable (useRef)
+    // and this effect should run once on mount to kick off animations.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigation]);
 
   return (

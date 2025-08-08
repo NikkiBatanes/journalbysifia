@@ -19,7 +19,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Modal,
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -27,7 +26,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window'); // unused
 
 interface FaithJourney {
   id: string;
@@ -225,7 +224,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     } else {
       try {
         // Mark onboarding as completed
-        const { user } = useAuth();
         if (user) {
           console.log('[OnboardingPersonalization] Marking onboarding as completed for user:', user.id);
           const { error } = await supabase

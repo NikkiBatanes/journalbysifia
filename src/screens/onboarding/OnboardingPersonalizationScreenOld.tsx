@@ -1,3 +1,5 @@
+// @ts-nocheck
+/* eslint-disable */
 /**
  * OnboardingPersonalizationScreen.tsx
  * Multi-step personalization screen matching exact design
@@ -13,17 +15,16 @@ import {
   TextInput,
   StatusBar,
   Dimensions,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   Modal,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window');
 
 interface FaithJourney {
   id: string;

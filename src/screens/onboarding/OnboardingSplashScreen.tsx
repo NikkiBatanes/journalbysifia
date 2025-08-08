@@ -11,15 +11,13 @@ import {
   Animated,
   StatusBar,
   Platform,
-  Dimensions,
-  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { Colors } from '../../theme/colors';
 
-const { width, height } = Dimensions.get('window');
+// Dimensions not needed here
 
 interface OnboardingSplashScreenProps {
   onComplete?: () => void;
@@ -125,7 +123,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         }
       });
     }, 2500);
-  }, [navigation, onComplete, fadeAnim, dot1Anim, dot2Anim, dot3Anim]);
+  }, [navigation, onComplete, fadeAnim, dot1Anim, dot2Anim, dot3Anim, user]);
 
   return (
     <View style={styles.container}>
