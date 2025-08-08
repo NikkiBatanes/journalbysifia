@@ -150,7 +150,7 @@ class EnhancedExpoundingService {
   async generateStepByStepExpounding(
     userId: string,
     actionStepId: string,
-    actionStepText: string,
+    _actionStepText: string,
     subtaskId?: string,
     subtaskText?: string
   ): Promise<StepExpounding[]> {

@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+// import Ionicons from 'react-native-vector-icons/Ionicons'; // unused
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Pencil, Check } from 'lucide-react-native';
-import { useScroll } from '../context/ScrollContext';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
-import LinearGradient from 'react-native-linear-gradient';
-import { AnimationUtils } from '../utils/animations';
+// import LinearGradient from 'react-native-linear-gradient'; // unused
+// import { AnimationUtils } from '../utils/AnimationUtils'; // unused
+import { useScroll } from '../context/ScrollContext';
 
 import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';

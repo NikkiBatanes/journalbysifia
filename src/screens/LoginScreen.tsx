@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Alert,
   Platform,
-  ActivityIndicator,
+  // ActivityIndicator, // unused
   Image,
   StatusBar,
 } from 'react-native';

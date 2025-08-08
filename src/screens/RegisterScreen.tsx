@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Alert,
   Platform,
-  ActivityIndicator,
+  // ActivityIndicator, // unused
   Image,
   StatusBar,
 } from 'react-native';
@@ -29,6 +29,8 @@ interface SocialButtonProps {
   loading?: boolean;
 }
 
+// Unused SocialButton component - commented out to fix lint
+/*
 const SocialButton: React.FC<SocialButtonProps> = ({
   onPress,
   icon,
@@ -46,6 +48,7 @@ const SocialButton: React.FC<SocialButtonProps> = ({
     <Text style={[styles.socialButtonText, { color: textColor }]}>{title}</Text>
   </TouchableOpacity>
 );
+*/
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading, user } = useAuth();

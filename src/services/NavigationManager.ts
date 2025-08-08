@@ -3,7 +3,8 @@
  * Advanced navigation system with deep linking and analytics
  */
 
-import { NavigationContainerRef, CommonActions } from '@react-navigation/native';
+import { NavigationContainerRef } from '@react-navigation/native';
+// import { CommonActions } from '@react-navigation/native'; // unused
 import { supabase } from './supabaseClient';
 
 export type DashboardNavigationTarget =
