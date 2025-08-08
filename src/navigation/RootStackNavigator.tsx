@@ -31,6 +31,8 @@ import OnboardingChallengeSelectionScreen from '../screens/onboarding/Onboarding
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
 import OnboardingPlaybookNavigationScreen from '../screens/onboarding/OnboardingPlaybookNavigationScreen';
+import OnboardingInteractiveExplorationScreen from '../screens/onboarding/OnboardingInteractiveExplorationScreen';
+import OnboardingHandsOnDemoScreen from '../screens/onboarding/OnboardingHandsOnDemoScreen';
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
 import OnboardingPricingShowcaseScreen from '../screens/onboarding/OnboardingPricingShowcaseScreen';
 
@@ -319,6 +321,16 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="OnboardingPlaybookNavigation"
             component={OnboardingPlaybookNavigationScreen as React.ComponentType}
+            options={OnboardingAnimations.smoothSlide}
+          />
+          <Stack.Screen
+            name="OnboardingInteractiveExploration"
+            component={OnboardingInteractiveExplorationScreen as React.ComponentType}
+            options={OnboardingAnimations.smoothSlide}
+          />
+          <Stack.Screen
+            name="OnboardingHandsOnDemo"
+            component={OnboardingHandsOnDemoScreen as React.ComponentType}
             options={OnboardingAnimations.smoothSlide}
           />
 

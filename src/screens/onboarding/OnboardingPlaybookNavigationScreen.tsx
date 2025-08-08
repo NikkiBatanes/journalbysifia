@@ -97,8 +97,8 @@ const OnboardingPlaybookNavigationScreen: React.FC = () => {
 
       console.log('🎯 Playbook navigation completed, proceeding to pricing showcase');
 
-      // Navigate to pricing showcase (Phase 5)
-      navigation.navigate('OnboardingPricingShowcase' as any);
+      // Navigate to interactive exploration (Phase 4 continued)
+      navigation.navigate('OnboardingInteractiveExploration' as any);
     } catch (error) {
       console.error('Error proceeding to pricing showcase:', error);
     } finally {

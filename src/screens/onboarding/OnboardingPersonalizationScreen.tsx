@@ -245,11 +245,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // Use main playbook generation UI with onboarding data
         const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
 
-        // Present GeneratingPlaybook as modal within onboarding flow
-        (navigation as any).navigate('GeneratingPlaybook', {
-          userInput,
+        // Continue to Faith Journey screen (proper onboarding flow)
+        console.log('[OnboardingPersonalization] Proceeding to Faith Journey screen');
+        (navigation as any).navigate('OnboardingFaithJourney', {
           userName: name || 'Friend',
-          isFromOnboarding: true,
           onboardingData: {
             ageGroup: selectedAgeGroup,
             faithJourney: selectedFaithJourney,
@@ -260,11 +259,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       } catch (error) {
         console.error('[OnboardingPersonalization] Error in handleContinue:', error);
         // Continue with navigation even if onboarding update fails
-        const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
-        (navigation as any).navigate('GeneratingPlaybook', {
-          userInput,
+        console.log('[OnboardingPersonalization] Error occurred, but continuing to Faith Journey screen');
+        (navigation as any).navigate('OnboardingFaithJourney', {
           userName: name || 'Friend',
-          isFromOnboarding: true,
           onboardingData: {
             ageGroup: selectedAgeGroup,
             faithJourney: selectedFaithJourney,
