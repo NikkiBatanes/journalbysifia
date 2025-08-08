@@ -26,12 +26,12 @@ import { LogoutContext } from './src/context/LogoutContext';
 import { ScrollProvider } from './src/context/ScrollContext';
 
 import IndustryStandardAuthProvider from './src/context/IndustryStandardAuthContext';
-import AuthGuard from './src/components/AuthGuard';
+// import AuthGuard from './src/components/AuthGuard'; // unused
 import { QueryProvider } from './src/providers/QueryProvider';
 import { NetworkStatus } from './src/components/NetworkStatus';
 import AuthStateMonitor from './src/components/AuthStateMonitor';
 import { OnboardingProvider } from './src/context/OnboardingContext';
-import { OnboardingIntegration } from './src/components/onboarding/OnboardingIntegration';
+// import { OnboardingIntegration } from './src/components/onboarding/OnboardingIntegration'; // unused
 import { PointsNotificationProvider } from './src/context/PointsNotificationContext';
 
 // Stack navigator removed as it's not currently used

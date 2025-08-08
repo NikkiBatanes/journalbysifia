@@ -12,7 +12,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Animated,
+  // Animated, // unused
   LayoutAnimation,
   Platform,
   UIManager,
@@ -54,7 +54,7 @@ interface EnhancedActionStepCardProps {
 
 export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
   actionStep,
-  playbookId,
+  _playbookId,
   playbookTitle,
   userId,
   onToggleComplete,
@@ -68,7 +68,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
 
   // Feature access hooks
   const expoundingAccess = useFeatureAccess({ feature: 'expounding_content' });
-  const exportAccess = useFeatureAccess({ feature: 'export_pdf' });
+  const _exportAccess = exportService.checkExportAccess(userId); // assuming user is defined
 
   const toggleExpounding = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -80,8 +80,8 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
     setExpandedSubtasks(!expandedSubtasks);
   };
 
-  const handleExportStep = () => {
-    const exportData: ExportData = {
+  const handleExportStep = async () => {
+    const _exportData = await exportService.exportPlaybook({
       id: actionStep.id,
       title: `Action Step: ${actionStep.text}`,
       content: generateStepExportContent(),

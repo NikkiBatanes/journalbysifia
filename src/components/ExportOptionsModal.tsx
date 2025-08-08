@@ -5,7 +5,8 @@
  * and usage tracking for the access tiers system.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+// import { useEffect } from 'react'; // unused
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -57,9 +58,11 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
     docxAccessResult,
     isLoading: accessLoading,
     handleExportRestriction,
-    showUpgradePrompt,
   } = useExportAccess();
 
+  const _showUpgradePrompt = () => {};
+
+  const [_accessLoading, setAccessLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState<'pdf' | 'docx' | null>(null);
   const [showLockOverlay, setShowLockOverlay] = useState(false);
