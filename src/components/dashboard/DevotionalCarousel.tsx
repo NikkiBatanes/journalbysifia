@@ -49,9 +49,9 @@ interface DevotionalCarouselProps {
 
 
 
-const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({ 
-  onDevotionalPress, 
-  onViewAll 
+const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
+  onDevotionalPress,
+  onViewAll,
 }) => {
   const { user } = useAuth();
   const [devotionals, setDevotionals] = useState<Devotional[]>([]);
@@ -59,7 +59,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchDevotionals = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -93,22 +93,22 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             // Parse devotional content
             let verse = null;
             let estimatedDuration = 5; // default 5 minutes
-            
+
             try {
-              const content = devotional.content 
-                ? (typeof devotional.content === 'string' 
-                    ? JSON.parse(devotional.content) 
+              const content = devotional.content
+                ? (typeof devotional.content === 'string'
+                    ? JSON.parse(devotional.content)
                     : devotional.content)
                 : null;
-              
+
               // Extract verse information
               if (content && content.verse) {
                 verse = {
                   text: content.verse.text || content.verse,
-                  reference: content.verse.reference || 'Scripture'
+                  reference: content.verse.reference || 'Scripture',
                 };
               }
-              
+
               // Estimate duration based on content length
               if (content && (content.reflection || content.content)) {
                 const textLength = (content.reflection || content.content).length;
@@ -128,7 +128,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
                 const progress = typeof progressData.progress_data === 'string'
                   ? JSON.parse(progressData.progress_data)
                   : progressData.progress_data;
-                
+
                 isCompleted = progress.completed || false;
                 completedAt = progress.completedAt;
                 lastAccessed = progressData.updated_at;
@@ -147,7 +147,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               lastAccessed,
               estimatedDuration,
               category: devotional.category || 'Daily Devotion',
-              verse
+              verse,
             };
           } catch (err) {
             console.warn('Error processing devotional:', err);
@@ -158,7 +158,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               content: devotional.content,
               isCompleted: false,
               estimatedDuration: 5,
-              category: 'Daily Devotion'
+              category: 'Daily Devotion',
             };
           }
         })
@@ -198,7 +198,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
   const getStatusText = (devotional: Devotional) => {
     if (devotional.isCompleted) {
-      return devotional.completedAt 
+      return devotional.completedAt
         ? `Completed ${new Date(devotional.completedAt).toLocaleDateString()}`
         : 'Completed';
     }
@@ -210,10 +210,10 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       key={devotional.id}
       style={[
         styles.devotionalCard,
-        { 
+        {
           marginLeft: index === 0 ? 16 : CARD_MARGIN,
-          opacity: devotional.isCompleted ? 0.8 : 1
-        }
+          opacity: devotional.isCompleted ? 0.8 : 1,
+        },
       ]}
       onPress={() => onDevotionalPress?.(devotional)}
       activeOpacity={0.8}
@@ -223,10 +223,10 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
           <Text style={styles.categoryText}>{devotional.category}</Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(devotional.isCompleted) }]}>
-          <Ionicons 
-            name={getStatusIcon(devotional.isCompleted)} 
-            size={12} 
-            color={Colors.hopeWhite} 
+          <Ionicons
+            name={getStatusIcon(devotional.isCompleted)}
+            size={12}
+            color={Colors.hopeWhite}
           />
         </View>
       </View>
@@ -252,16 +252,16 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
       <View style={styles.statusSection}>
         <View style={styles.statusInfo}>
-          <Ionicons 
-            name={getStatusIcon(devotional.isCompleted)} 
-            size={16} 
-            color={getStatusColor(devotional.isCompleted)} 
+          <Ionicons
+            name={getStatusIcon(devotional.isCompleted)}
+            size={16}
+            color={getStatusColor(devotional.isCompleted)}
           />
           <Text style={[styles.statusText, { color: getStatusColor(devotional.isCompleted) }]}>
             {getStatusText(devotional)}
           </Text>
         </View>
-        
+
         {devotional.lastAccessed && !devotional.isCompleted && (
           <Text style={styles.lastAccessedText}>
             Last read: {new Date(devotional.lastAccessed).toLocaleDateString()}

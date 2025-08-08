@@ -34,7 +34,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
   // Define showPointsNotification first to avoid reference issues
   const showPointsNotification = useCallback((points: number, activityType: string, position: 'top' | 'center' | 'bottom' = 'center') => {
     const id = uuidv4();
-    
+
     const newNotification: PointsNotification = {
       id,
       points,
@@ -61,13 +61,13 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
   }, []);
 
   const handleAnimationComplete = useCallback((id: string) => {
-    if (!isMounted.current) return;
-    
+    if (!isMounted.current) {return;}
+
     // Use requestAnimationFrame to defer the state update
     requestAnimationFrame(() => {
       if (isMounted.current) {
         setNotifications(prev => prev.filter(n => n.id !== id));
-        
+
         // Clear any pending timeout for this notification
         if (timeouts.current[id]) {
           clearTimeout(timeouts.current[id]);
@@ -80,7 +80,7 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
   return (
     <PointsNotificationContext.Provider value={{ showPointsNotification }}>
       {children}
-      
+
       {/* Global overlay for notifications - positioned outside normal flow */}
       {notifications.length > 0 && (
         <View

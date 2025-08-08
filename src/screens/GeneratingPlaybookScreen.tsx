@@ -54,10 +54,10 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
     // Start both animations with mount check
     fadeIn.start((finished) => {
-      if (!isMounted.current || !finished) return;
+      if (!isMounted.current || !finished) {return;}
     });
     pulseAnimation.start((finished) => {
-      if (!isMounted.current || !finished) return;
+      if (!isMounted.current || !finished) {return;}
     });
 
     // Cleanup function
@@ -259,7 +259,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       duration: 500,
       useNativeDriver: false,
     }).start((finished) => {
-      if (!isMounted.current || !finished) return;
+      if (!isMounted.current || !finished) {return;}
     });
   }, [currentStep, steps.length]);
 

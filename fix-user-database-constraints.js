@@ -42,7 +42,7 @@ async function fixUserDatabaseConstraints() {
     // 3. If users table doesn't exist, create it or modify constraints
     if (!tables || tables.length === 0) {
       console.log('📝 Creating users table to match auth.users...');
-      
+
       // Create users table that mirrors auth.users structure
       const { error: createError } = await supabase.rpc('exec_sql', {
         sql: `
@@ -80,7 +80,7 @@ async function fixUserDatabaseConstraints() {
           CREATE TRIGGER on_auth_user_created
             AFTER INSERT OR UPDATE ON auth.users
             FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-        `
+        `,
       });
 
       if (createError) {
@@ -93,9 +93,9 @@ async function fixUserDatabaseConstraints() {
 
     // 4. Sync existing auth users to public.users
     console.log('🔄 Syncing existing auth users...');
-    
+
     const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
+
     if (authError) {
       console.error('❌ Error fetching auth users:', authError);
       return;
@@ -110,7 +110,7 @@ async function fixUserDatabaseConstraints() {
           id: user.id,
           email: user.email,
           created_at: user.created_at,
-          updated_at: user.updated_at
+          updated_at: user.updated_at,
         });
 
       if (insertError) {
@@ -122,7 +122,7 @@ async function fixUserDatabaseConstraints() {
 
     // 5. Check and fix user_profiles foreign key if needed
     console.log('🔧 Checking user_profiles constraints...');
-    
+
     const { data: profileConstraints, error: profileConstraintsError } = await supabase
       .from('information_schema.table_constraints')
       .select('constraint_name')

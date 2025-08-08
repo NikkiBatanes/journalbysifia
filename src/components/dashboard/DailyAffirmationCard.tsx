@@ -35,7 +35,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   const [error, setError] = useState<string | null>(null);
 
   const fetchDailyAffirmation = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -44,7 +44,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
       // Query playbooks table - try different approaches to get affirmations
       let playbooks: any[] = [];
       let playbooksError: any = null;
-      
+
       // First, try to get playbooks with only existing columns
       try {
         console.log('[DailyAffirmation] Fetching playbooks for user:', user.id);
@@ -55,7 +55,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
           // .eq('user_id', user.id)
           .not('affirmations', 'is', null)
           .limit(10);
-        
+
         if (error) {
           console.error('[DailyAffirmation] Error fetching playbooks:', error);
           playbooksError = error;
@@ -81,24 +81,24 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
 
       // Extract affirmations from playbook content
       const allAffirmations: Affirmation[] = [];
-      
+
       playbooks.forEach(playbook => {
         try {
           // Get affirmations from the affirmations field only
           let affirmations: any = null;
           if (playbook.affirmations) {
-            affirmations = typeof playbook.affirmations === 'string' 
-              ? JSON.parse(playbook.affirmations) 
+            affirmations = typeof playbook.affirmations === 'string'
+              ? JSON.parse(playbook.affirmations)
               : playbook.affirmations;
           }
-          
+
           // Add found affirmations to collection
           if (affirmations && Array.isArray(affirmations)) {
             affirmations.forEach((aff: any, index: number) => {
               allAffirmations.push({
                 id: `${playbook.id}-${index}`,
                 content: typeof aff === 'string' ? aff : aff.text || aff.content || aff.affirmation,
-                playbook_title: playbook.title
+                playbook_title: playbook.title,
               });
             });
           }
@@ -106,7 +106,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
           console.warn('Error parsing playbook affirmations:', parseError);
         }
       });
-      
+
       console.log(`Extracted ${allAffirmations.length} affirmations from ${playbooks.length} playbooks`);
 
       if (allAffirmations.length === 0) {
@@ -118,7 +118,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
       const today = new Date();
       const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
       const selectedIndex = dayOfYear % allAffirmations.length;
-      
+
       setAffirmation(allAffirmations[selectedIndex]);
 
     } catch (err) {
@@ -140,15 +140,15 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   };
 
   const handleAffirmationPress = async () => {
-    if (!affirmation || !user) return;
-    
+    if (!affirmation || !user) {return;}
+
     try {
       // Award faith points for engaging with daily affirmation
       await faithPointsService.awardPoints(user.id, 'daily_streak', {
         type: 'affirmation_read',
-        affirmation_id: affirmation.id
+        affirmation_id: affirmation.id,
       });
-      
+
       onAffirmationPress?.(affirmation);
     } catch (error) {
       console.error('Error awarding points for affirmation:', error);
@@ -181,7 +181,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
           <Ionicons name="refresh" size={18} color={Colors.mediumGray} />
         </TouchableOpacity>
       </View>
-      
+
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>

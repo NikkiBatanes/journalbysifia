@@ -60,7 +60,7 @@ export interface DynamicPricingConfig {
 
 export class RetentionService {
   private supabase = supabase;
-  
+
   // Dynamic pricing configuration
   private dynamicPricingConfig: DynamicPricingConfig = {
     baseDiscounts: {
@@ -134,19 +134,19 @@ export class RetentionService {
 
       // Calculate engagement level (0-30 points)
       const engagementLevel = this.calculateEngagementScore(usage, profile);
-      
+
       // Calculate subscription history (0-25 points)
       const subscriptionHistory = this.calculateSubscriptionHistoryScore(subscription);
-      
+
       // Calculate content creation (0-20 points)
       const contentCreation = this.calculateContentCreationScore(usage);
-      
+
       // Calculate social value (0-15 points)
       const socialValue = this.calculateSocialValueScore(subscription, profile);
-      
+
       // Calculate spiritual growth (0-10 points)
       const spiritualGrowth = this.calculateSpiritualGrowthScore(profile);
-      
+
       const totalScore = engagementLevel + subscriptionHistory + contentCreation + socialValue + spiritualGrowth;
 
       return {
@@ -184,7 +184,7 @@ export class RetentionService {
     try {
       // Calculate user value score
       const userValueScore = await this.calculateUserValueScore(userId);
-      
+
       // Determine base discount based on user value
       let baseDiscount: number;
       if (userValueScore.totalScore >= 80) {
@@ -209,10 +209,10 @@ export class RetentionService {
 
       // Apply tier multiplier
       const tierMultiplier = this.dynamicPricingConfig.tierMultipliers[currentTier as keyof typeof this.dynamicPricingConfig.tierMultipliers] || 1.0;
-      
+
       // Calculate final discount
       const finalDiscount = Math.min(50, Math.round((baseDiscount + timingBonus) * tierMultiplier));
-      
+
       // Calculate pricing
       const discountAmount = Math.round(originalPrice * (finalDiscount / 100));
       const discountedPrice = originalPrice - discountAmount;
@@ -251,8 +251,8 @@ export class RetentionService {
         discount: 20, // Additional 20% off as specified
         duration: 'first_month',
         title: "Don't miss out on your spiritual growth",
-        message: "Get 20% off your first month and continue your faith journey",
-        cta: "Get 20% Off Now",
+        message: 'Get 20% off your first month and continue your faith journey',
+        cta: 'Get 20% Off Now',
         userValueScore: 50, // Default medium value
         pricingStrategy: 'static',
         testGroup: 'static_offer_v1',
@@ -263,8 +263,8 @@ export class RetentionService {
         discount: 20,
         duration: 'first_month',
         title: "We'd love to have you back",
-        message: "Return to your spiritual practice with 20% off your first month",
-        cta: "Come Back (20% Off)",
+        message: 'Return to your spiritual practice with 20% off your first month',
+        cta: 'Come Back (20% Off)',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_offer_v1',
@@ -275,8 +275,8 @@ export class RetentionService {
         discount: 20,
         duration: 'first_month',
         title: "Your spiritual journey doesn't have to end",
-        message: "Restart your subscription with 20% off and continue growing in faith",
-        cta: "Restart Journey (20% Off)",
+        message: 'Restart your subscription with 20% off and continue growing in faith',
+        cta: 'Restart Journey (20% Off)',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_offer_v1',
@@ -290,9 +290,9 @@ export class RetentionService {
       'trial_declined': {
         discount: 20,
         duration: 'first_year',
-        title: "Commit to your spiritual growth",
-        message: "Get 20% off your entire first year with our annual plan",
-        cta: "Get Annual Discount",
+        title: 'Commit to your spiritual growth',
+        message: 'Get 20% off your entire first year with our annual plan',
+        cta: 'Get Annual Discount',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_annual_v1',
@@ -302,9 +302,9 @@ export class RetentionService {
       'trial_cancelled': {
         discount: 20,
         duration: 'first_year',
-        title: "A year of spiritual transformation awaits",
-        message: "Come back with 20% off your first year of spiritual growth",
-        cta: "Start Annual Plan",
+        title: 'A year of spiritual transformation awaits',
+        message: 'Come back with 20% off your first year of spiritual growth',
+        cta: 'Start Annual Plan',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_annual_v1',
@@ -314,9 +314,9 @@ export class RetentionService {
       'subscription_cancelled': {
         discount: 20,
         duration: 'first_year',
-        title: "Recommit to your faith journey",
-        message: "Get 20% off a full year and deepen your spiritual practice",
-        cta: "Annual Plan (20% Off)",
+        title: 'Recommit to your faith journey',
+        message: 'Get 20% off a full year and deepen your spiritual practice',
+        cta: 'Annual Plan (20% Off)',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_annual_v1',
@@ -326,7 +326,7 @@ export class RetentionService {
     };
 
     // Return monthly offer by default, could be enhanced with A/B testing
-    return offers[eventType] || offers['trial_declined'];
+    return offers[eventType] || offers.trial_declined;
   }
 
   /**
@@ -337,9 +337,9 @@ export class RetentionService {
       'trial_declined': {
         discount: 20, // Additional 20% off first year
         duration: 'first_year',
-        title: "Commit to your spiritual growth",
-        message: "Get 20% off your entire first year with our annual plan",
-        cta: "Get Annual Discount",
+        title: 'Commit to your spiritual growth',
+        message: 'Get 20% off your entire first year with our annual plan',
+        cta: 'Get Annual Discount',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_annual_v1',
@@ -349,9 +349,9 @@ export class RetentionService {
       'trial_cancelled': {
         discount: 20, // Additional 20% off first year
         duration: 'first_year',
-        title: "A year of spiritual transformation awaits",
-        message: "Come back with 20% off your first year of spiritual growth",
-        cta: "Start Annual Plan",
+        title: 'A year of spiritual transformation awaits',
+        message: 'Come back with 20% off your first year of spiritual growth',
+        cta: 'Start Annual Plan',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_annual_v1',
@@ -361,15 +361,15 @@ export class RetentionService {
       'subscription_cancelled': {
         discount: 20, // Additional 20% off first year
         duration: 'first_year',
-        title: "Recommit to your faith journey",
-        message: "Get 20% off a full year and deepen your spiritual practice",
-        cta: "Annual Plan (20% Off)",
+        title: 'Recommit to your faith journey',
+        message: 'Get 20% off a full year and deepen your spiritual practice',
+        cta: 'Annual Plan (20% Off)',
         userValueScore: 50,
         pricingStrategy: 'static',
         testGroup: 'static_annual_v1',
         originalPrice: 999,
         discountedPrice: 799,
-      }
+      },
     };
 
     return offers[eventType];
@@ -379,13 +379,13 @@ export class RetentionService {
    * Log retention event to database
    */
   async logRetentionEvent(
-    userId: string, 
+    userId: string,
     eventType: 'trial_declined' | 'trial_cancelled' | 'subscription_cancelled',
     action: 'triggered' | 'accepted' | 'declined' | 'ignored'
   ): Promise<void> {
     try {
       const offer = this.getStaticRetentionOffer(eventType);
-      
+
       const retentionEvent: Partial<RetentionEvent> = {
         user_id: userId,
         event_type: eventType,
@@ -458,7 +458,7 @@ export class RetentionService {
     const timestamp = Date.now().toString(36);
     const userHash = userId.slice(-6);
     const eventCode = eventType.substring(0, 3).toUpperCase();
-    
+
     return `${eventCode}20-${userHash}-${timestamp}`.toUpperCase();
   }
 
@@ -469,8 +469,8 @@ export class RetentionService {
     try {
       // Basic validation - in production, store codes in database
       const parts = code.split('-');
-      if (parts.length !== 3) return false;
-      
+      if (parts.length !== 3) {return false;}
+
       const userHash = userId.slice(-6);
       return parts[1] === userHash;
     } catch (error) {
@@ -493,7 +493,7 @@ export class RetentionService {
         .select('*')
         .eq('user_id', userId)
         .single();
-      
+
       return data || {};
     } catch (error) {
       console.error('[RetentionService] Error fetching subscription data:', error);
@@ -513,7 +513,7 @@ export class RetentionService {
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
-      
+
       return data || {};
     } catch (error) {
       console.error('[RetentionService] Error fetching usage data:', error);
@@ -531,7 +531,7 @@ export class RetentionService {
         .select('*')
         .eq('id', userId)
         .single();
-      
+
       return data || {};
     } catch (error) {
       console.error('[RetentionService] Error fetching profile data:', error);
@@ -544,31 +544,31 @@ export class RetentionService {
    */
   private calculateEngagementScore(usage: any, profile: any): number {
     let score = 0;
-    
+
     // Daily usage patterns (0-15 points)
     const playbooksUsed = usage.playbooks_used || usage.playbooks_generated || 0;
     const devotionalsUsed = usage.devotionals_used || usage.devotionals_generated || 0;
     const journalEntries = usage.journal_entries || 0;
-    
+
     score += Math.min(15, (playbooksUsed + devotionalsUsed + journalEntries) * 2);
-    
+
     // Feature usage diversity (0-10 points)
     const featuresUsed = [
       playbooksUsed > 0,
       devotionalsUsed > 0,
       journalEntries > 0,
       usage.smart_journal_entries > 0,
-      usage.export_count > 0
+      usage.export_count > 0,
     ].filter(Boolean).length;
-    
+
     score += featuresUsed * 2;
-    
+
     // Consistency (0-5 points)
     const daysActive = profile.days_active || 1;
     const accountAge = this.calculateAccountAgeInDays(profile.created_at);
     const consistencyRatio = Math.min(1, daysActive / Math.max(1, accountAge));
     score += Math.round(consistencyRatio * 5);
-    
+
     return Math.min(30, score);
   }
 
@@ -577,23 +577,23 @@ export class RetentionService {
    */
   private calculateSubscriptionHistoryScore(subscription: any): number {
     let score = 0;
-    
+
     // Subscription duration (0-15 points)
     if (subscription.created_at) {
       const subscriptionDays = this.calculateAccountAgeInDays(subscription.created_at);
       score += Math.min(15, Math.floor(subscriptionDays / 7)); // 1 point per week
     }
-    
+
     // Tier level (0-10 points)
     const tierScores = {
       'basic': 2,
       'starter': 4,
       'growth': 6,
       'transformation': 8,
-      'family': 10
+      'family': 10,
     };
     score += tierScores[subscription.tier] || 0;
-    
+
     return Math.min(25, score);
   }
 
@@ -602,19 +602,19 @@ export class RetentionService {
    */
   private calculateContentCreationScore(usage: any): number {
     let score = 0;
-    
+
     // Playbooks created (0-10 points)
     const playbooks = usage.playbooks_used || usage.playbooks_generated || 0;
     score += Math.min(10, playbooks);
-    
+
     // Devotionals created (0-5 points)
     const devotionals = usage.devotionals_used || usage.devotionals_generated || 0;
     score += Math.min(5, devotionals);
-    
+
     // Journal entries (0-5 points)
     const journalEntries = usage.journal_entries || 0;
     score += Math.min(5, Math.floor(journalEntries / 5));
-    
+
     return Math.min(20, score);
   }
 
@@ -623,20 +623,20 @@ export class RetentionService {
    */
   private calculateSocialValueScore(subscription: any, profile: any): number {
     let score = 0;
-    
+
     // Family plan owner (0-10 points)
     if (subscription.tier === 'family' && subscription.family_owner_id === subscription.user_id) {
       score += 10;
-      
+
       // Additional points for family members
       const familyMembers = subscription.family_members?.length || 0;
       score += Math.min(5, familyMembers);
     }
-    
+
     // Referrals (0-5 points) - placeholder for future implementation
     const referrals = profile.referrals_made || 0;
     score += Math.min(5, referrals);
-    
+
     return Math.min(15, score);
   }
 
@@ -645,20 +645,20 @@ export class RetentionService {
    */
   private calculateSpiritualGrowthScore(profile: any): number {
     let score = 0;
-    
+
     // Goal completion (0-5 points)
     const goalsCompleted = profile.goals_completed || 0;
     score += Math.min(5, goalsCompleted);
-    
+
     // Streak consistency (0-3 points)
     const currentStreak = profile.current_streak || 0;
     score += Math.min(3, Math.floor(currentStreak / 7)); // 1 point per week streak
-    
+
     // Onboarding completion (0-2 points)
     if (profile.onboarding_completed) {
       score += 2;
     }
-    
+
     return Math.min(10, score);
   }
 
@@ -673,27 +673,27 @@ export class RetentionService {
   ): { title: string; message: string; cta: string } {
     const isHighValue = userValueScore.totalScore >= 80;
     const isLongTerm = daysSinceEvent >= 30;
-    
+
     if (isHighValue) {
       // High-value users get relationship-focused messaging
       return {
-        title: "We value your spiritual journey",
+        title: 'We value your spiritual journey',
         message: `As a dedicated member of our community, we'd love to welcome you back with ${discount}% off`,
-        cta: `Continue My Journey (${discount}% Off)`
+        cta: `Continue My Journey (${discount}% Off)`,
       };
     } else if (isLongTerm) {
       // Long-term win-back campaigns
       return {
-        title: "Your faith journey is waiting",
+        title: 'Your faith journey is waiting',
         message: `It's been a while! Restart your spiritual growth with ${discount}% off`,
-        cta: `Restart My Journey (${discount}% Off)`
+        cta: `Restart My Journey (${discount}% Off)`,
       };
     } else {
       // Standard messaging
       return {
         title: "Don't let your spiritual growth pause",
         message: `Continue your faith journey with ${discount}% off your subscription`,
-        cta: `Get ${discount}% Off Now`
+        cta: `Get ${discount}% Off Now`,
       };
     }
   }
@@ -702,8 +702,8 @@ export class RetentionService {
    * Calculate account age in days
    */
   private calculateAccountAgeInDays(createdAt: string): number {
-    if (!createdAt) return 0;
-    
+    if (!createdAt) {return 0;}
+
     const created = new Date(createdAt);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - created.getTime());

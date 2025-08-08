@@ -42,15 +42,15 @@ const { width, height } = Dimensions.get('window');
 // Motivational texts that rotate
 const MOTIVATIONAL_TEXTS = [
   "Let's grow in faith today",
-  "Grow closer to God today with faith in action",
-  "Transform your faith into action today",
-  "Walk boldly in His purpose for you",
-  "Let His love guide your steps today",
-  "Embrace His grace in every moment",
-  "Find strength in His promises today",
-  "Let faith be your compass today",
-  "Discover His plan through prayer and action",
-  "Trust His timing, embrace His calling"
+  'Grow closer to God today with faith in action',
+  'Transform your faith into action today',
+  'Walk boldly in His purpose for you',
+  'Let His love guide your steps today',
+  'Embrace His grace in every moment',
+  'Find strength in His promises today',
+  'Let faith be your compass today',
+  'Discover His plan through prayer and action',
+  'Trust His timing, embrace His calling',
 ];
 
 interface DashboardHomeScreenProps {
@@ -64,10 +64,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const floatingButtonScale = useRef(new Animated.Value(1)).current;
-  
+
   // Draggable floating button
   const pan = useRef(new Animated.ValueXY({ x: width - 76, y: height - 200 })).current;
-  
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: () => true,
@@ -94,9 +94,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   ).current;
 
   // Get user's first name
-  const firstName = user?.user_metadata?.first_name || 
-                   user?.user_metadata?.given_name || 
-                   user?.email?.split('@')[0] || 
+  const firstName = user?.user_metadata?.first_name ||
+                   user?.user_metadata?.given_name ||
+                   user?.email?.split('@')[0] ||
                    'Friend';
 
   // Set daily motivational text based on current date
@@ -140,15 +140,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       console.log('❌ No user ID found!');
       return;
     }
-    
+
     console.log('🧪 Testing Faith Points System...');
     console.log(`👤 User ID: ${user.id}`);
-    
+
     try {
       // Step 0: Check database tables
       console.log('💾 Step 0: Checking database tables...');
       await checkDatabaseTables();
-      
+
       // Step 1: Check if user profile exists
       console.log('🔍 Step 1: Checking user profile...');
       const { data: existingProfile, error: profileError } = await supabase
@@ -156,30 +156,30 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         .select('*')
         .eq('user_id', user.id)
         .single();
-      
+
       if (profileError) {
         console.log('⚠️ Profile error:', profileError);
       } else {
         console.log('✅ Existing profile:', existingProfile);
       }
-      
+
       // Step 2: Test faith points service directly
       console.log('🎯 Step 2: Testing faith points service...');
       const { faithPointsService } = await import('../services/faithPointsService');
-      
+
       const profile = await faithPointsService.getUserProfile(user.id);
       console.log('📊 Current profile:', profile);
-      
+
       // Step 3: Award test points
       console.log('🎆 Step 3: Awarding test points...');
       const awardResult = await faithPointsService.awardPoints(user.id, 'devotional_generated');
       console.log('🎉 Award result:', awardResult);
-      
+
       // Step 4: Check updated profile
       console.log('🔄 Step 4: Checking updated profile...');
       const updatedProfile = await faithPointsService.getUserProfile(user.id);
       console.log('📊 Updated profile:', updatedProfile);
-      
+
       // Step 5: Check database directly
       console.log('💾 Step 5: Checking database...');
       const { data: dbProfile } = await supabase
@@ -188,7 +188,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         .eq('user_id', user.id)
         .single();
       console.log('💾 Database profile:', dbProfile);
-      
+
       const { data: transactions } = await supabase
         .from('faith_points_log')
         .select('*')
@@ -196,7 +196,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         .order('created_at', { ascending: false })
         .limit(5);
       console.log('📜 Recent transactions:', transactions);
-      
+
     } catch (error) {
       console.error('❌ Test failed with error:', error);
     }
@@ -206,7 +206,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const handleCheckDatabase = async () => {
     console.log('💾 Checking Database Tables...');
     const result = await checkDatabaseTables();
-    
+
     if (result.profilesTable && result.logTable) {
       console.log('✅ All faith points tables exist!');
     } else {
@@ -220,7 +220,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     <View style={styles.header}>
       <View style={styles.headerRight}>
         {/* Subscription Status */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.subscriptionBadge}
           onPress={() => navigation.navigate('UserProfile')}
         >
@@ -230,7 +230,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         </TouchableOpacity>
 
         {/* Playbook Counter - Available Usage */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.counterBadge}
           onPress={() => navigation.navigate('Playbooks')}
         >
@@ -239,14 +239,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             {(() => {
               const limit = subscription?.limits?.playbooks;
               const used = usage?.playbooks_generated || 0;
-              if (!limit || limit === -1) return '∞';
+              if (!limit || limit === -1) {return '∞';}
               return Math.max(0, limit - used);
             })()}
           </Text>
         </TouchableOpacity>
 
         {/* Devotional Counter - Available Usage */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.counterBadge}
           onPress={() => navigation.navigate('Devotionals')}
         >
@@ -255,7 +255,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             {(() => {
               const limit = subscription?.limits?.devotionals;
               const used = usage?.devotionals_generated || 0;
-              if (!limit || limit === -1) return '∞';
+              if (!limit || limit === -1) {return '∞';}
               return Math.max(0, limit - used);
             })()}
           </Text>
@@ -270,7 +270,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         </TouchableOpacity>
 
         {/* User Profile */}
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.profileButton}
           onPress={() => navigation.navigate('UserProfile')}
         >
@@ -303,20 +303,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   );
 
   const renderFloatingButton = () => (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.floatingButton, 
+        styles.floatingButton,
         {
           transform: [
             { translateX: pan.x },
             { translateY: pan.y },
-            { scale: floatingButtonScale }
-          ]
-        }
+            { scale: floatingButtonScale },
+          ],
+        },
       ]}
       {...panResponder.panHandlers}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.floatingButtonInner}
         onPress={() => navigation.navigate('UserInput')}
         activeOpacity={0.8}
@@ -329,15 +329,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const renderTestButton = () => (
     <>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.testButton}
         onPress={handleTestFaithPoints}
         activeOpacity={0.8}
       >
         <Text style={styles.testButtonText}>Test Faith Points</Text>
       </TouchableOpacity>
-      
-      <TouchableOpacity 
+
+      <TouchableOpacity
         style={[styles.testButton, { top: 140, backgroundColor: Colors.alertCoral }]}
         onPress={handleCheckDatabase}
         activeOpacity={0.8}
@@ -350,10 +350,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      
+
       {renderHeader()}
       {renderGreeting()}
-      
+
       <View style={styles.content}>
         <ScrollView
           style={styles.scrollView}
@@ -373,25 +373,25 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Your Journey</Text>
         </View>
-        
+
         <DailyBibleVerseCard onVersePress={(verse) => dashboardNavigation.toVerseDetail(verse)} />
         <StreakTracker onStreakPress={(streak) => dashboardNavigation.toStreakDetail(streak.type)} />
         <WeeklyInsights onInsightPress={() => dashboardNavigation.toAnalytics()} />
 
         {/* AI Insights */}
-        <AIInsights 
+        <AIInsights
           onInsightPress={() => dashboardNavigation.toAIInsights()}
           onActionPress={() => dashboardNavigation.toAIInsights()}
         />
 
-        <PlaybookCarousel 
+        <PlaybookCarousel
           onPlaybookPress={(playbook) => dashboardNavigation.toPlaybook(playbook.id)}
           onViewAll={() => {
             // Navigate to playbooks list
             console.log('Navigate to playbooks list');
           }}
         />
-        <DevotionalCarousel 
+        <DevotionalCarousel
           onDevotionalPress={(devotional) => {
             // Navigate to devotional detail screen
             console.log('Navigate to devotional:', devotional.title);
@@ -406,8 +406,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Today's Actions</Text>
         </View>
-        
-        <ActionStepsCard 
+
+        <ActionStepsCard
           onStepPress={(step) => {
             // Navigate to step detail or playbook
             console.log('Navigate to step:', step.title);
@@ -417,15 +417,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             console.log('Navigate to all action steps');
           }}
         />
-        {renderPlaceholderCard("Reflection Questions", "Guided spiritual growth", "bulb")}
+        {renderPlaceholderCard('Reflection Questions', 'Guided spiritual growth', 'bulb')}
 
         {/* Row 4: Quick Actions */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
         </View>
-        
+
         <View style={styles.row}>
-          <QuickActionCard 
+          <QuickActionCard
             title="Journal"
             description="Capture your thoughts"
             icon="journal"
@@ -435,7 +435,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             }}
             accentColor={Colors.faithGold}
           />
-          <QuickActionCard 
+          <QuickActionCard
             title="Prayer"
             description="Connect with God"
             icon="hands-up"

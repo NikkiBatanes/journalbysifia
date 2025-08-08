@@ -2,7 +2,7 @@
 
 /**
  * Database Cleanup Script
- * 
+ *
  * Fixes duplicate user profiles and subscription records that are causing
  * unique constraint violations and multiple row errors.
  */
@@ -22,14 +22,14 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function cleanupDuplicateUserProfiles() {
   console.log('🔍 Checking for duplicate user profiles...');
-  
+
   try {
     // Find users with multiple profiles
     const { data: duplicates, error } = await supabase
       .from('user_profiles')
       .select('id, created_at')
       .order('id, created_at');
-    
+
     if (error) {
       console.error('Error fetching user profiles:', error);
       return;
@@ -45,7 +45,7 @@ async function cleanupDuplicateUserProfiles() {
     });
 
     const duplicateUsers = Object.entries(userGroups).filter(([userId, profiles]) => profiles.length > 1);
-    
+
     if (duplicateUsers.length === 0) {
       console.log('✅ No duplicate user profiles found');
       return;
@@ -56,7 +56,7 @@ async function cleanupDuplicateUserProfiles() {
     // For each user with duplicates, keep the oldest profile and delete the rest
     for (const [userId, profiles] of duplicateUsers) {
       console.log(`Cleaning up user ${userId} (${profiles.length} profiles)`);
-      
+
       // Sort by created_at to keep the oldest
       profiles.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       const toKeep = profiles[0];
@@ -88,14 +88,14 @@ async function cleanupDuplicateUserProfiles() {
 
 async function cleanupDuplicateSubscriptions() {
   console.log('🔍 Checking for duplicate user subscriptions...');
-  
+
   try {
     // Find users with multiple subscriptions
     const { data: subscriptions, error } = await supabase
       .from('user_subscriptions')
       .select('user_id, created_at, tier, status')
       .order('user_id, created_at');
-    
+
     if (error) {
       console.error('Error fetching user subscriptions:', error);
       return;
@@ -111,7 +111,7 @@ async function cleanupDuplicateSubscriptions() {
     });
 
     const duplicateUsers = Object.entries(userGroups).filter(([userId, subs]) => subs.length > 1);
-    
+
     if (duplicateUsers.length === 0) {
       console.log('✅ No duplicate user subscriptions found');
       return;
@@ -122,13 +122,13 @@ async function cleanupDuplicateSubscriptions() {
     // For each user with duplicates, keep the most recent active subscription
     for (const [userId, subs] of duplicateUsers) {
       console.log(`Cleaning up user ${userId} subscriptions (${subs.length} records)`);
-      
+
       // Sort by priority: active status first, then by created_at (newest first)
       subs.sort((a, b) => {
         // Active subscriptions first
-        if (a.status === 'active' && b.status !== 'active') return -1;
-        if (b.status === 'active' && a.status !== 'active') return 1;
-        
+        if (a.status === 'active' && b.status !== 'active') {return -1;}
+        if (b.status === 'active' && a.status !== 'active') {return 1;}
+
         // Then by created_at (newest first)
         return new Date(b.created_at) - new Date(a.created_at);
       });
@@ -163,7 +163,7 @@ async function cleanupDuplicateSubscriptions() {
 async function fixSpecificUserIssue() {
   const problemUserId = 'b9500426-8818-48ce-807e-eb18c803d8fd';
   console.log(`🔧 Fixing specific issue for user: ${problemUserId}`);
-  
+
   try {
     // Check current subscriptions for this user
     const { data: existingSubs, error: fetchError } = await supabase
@@ -177,7 +177,7 @@ async function fixSpecificUserIssue() {
     }
 
     console.log(`Found ${existingSubs.length} existing subscriptions for user ${problemUserId}`);
-    
+
     if (existingSubs.length > 1) {
       // Keep the most recent one
       existingSubs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -185,7 +185,7 @@ async function fixSpecificUserIssue() {
       const toDelete = existingSubs.slice(1);
 
       console.log(`Keeping subscription: ${toKeep.tier} created at ${toKeep.created_at}`);
-      
+
       for (const sub of toDelete) {
         const { error: deleteError } = await supabase
           .from('user_subscriptions')
@@ -213,7 +213,7 @@ async function fixSpecificUserIssue() {
     }
 
     console.log(`Found ${existingProfiles.length} profiles for user ${problemUserId}`);
-    
+
     if (existingProfiles.length > 1) {
       // Keep the oldest one
       existingProfiles.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -221,7 +221,7 @@ async function fixSpecificUserIssue() {
       const toDelete = existingProfiles.slice(1);
 
       console.log(`Keeping profile created at ${toKeep.created_at}`);
-      
+
       for (const profile of toDelete) {
         const { error: deleteError } = await supabase
           .from('user_profiles')
@@ -244,19 +244,19 @@ async function fixSpecificUserIssue() {
 
 async function main() {
   console.log('🚀 Starting database cleanup...\n');
-  
+
   // Fix the specific user causing immediate issues
   await fixSpecificUserIssue();
   console.log('');
-  
+
   // Clean up all duplicate user profiles
   await cleanupDuplicateUserProfiles();
   console.log('');
-  
+
   // Clean up all duplicate subscriptions
   await cleanupDuplicateSubscriptions();
   console.log('');
-  
+
   console.log('✅ Database cleanup completed!');
   console.log('\n📋 Next steps:');
   console.log('1. Restart your React Native app');

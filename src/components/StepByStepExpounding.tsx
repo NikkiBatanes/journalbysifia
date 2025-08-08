@@ -1,6 +1,6 @@
 /**
  * Step-by-Step Expounding Component
- * 
+ *
  * Displays progressive spiritual insights for action steps
  * with tier-based access control and user question support.
  */
@@ -16,7 +16,7 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
-  Modal
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { enhancedExpoundingService, StepExpounding, UserQuestionResponse } from '../services/enhancedExpoundingService';
@@ -38,10 +38,10 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
   subtaskId,
   subtaskText,
   userId,
-  onUpgrade
+  onUpgrade,
 }) => {
   const { canAccessExpounding, expoundingAccessResult, isLoading: accessLoading } = useExpoundingAccess();
-  
+
   const [steps, setSteps] = useState<StepExpounding[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +66,7 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
         actionStepId,
         subtaskId
       );
-      
+
       if (existingSteps.length > 0) {
         setSteps(existingSteps);
       } else {
@@ -101,8 +101,8 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
   };
 
   const handleAskQuestion = async () => {
-    if (!userQuestion.trim()) return;
-    
+    if (!userQuestion.trim()) {return;}
+
     setIsAskingQuestion(true);
     try {
       const response = await enhancedExpoundingService.answerUserQuestion(
@@ -112,7 +112,7 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
         subtaskId,
         currentStep
       );
-      
+
       setQuestionResponse(response);
       setUserQuestion('');
     } catch (error) {
@@ -145,14 +145,14 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
   if (!canAccessExpounding) {
     return (
       <View style={styles.restrictedContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.restrictedButton}
           onPress={handleAccessRestriction}
         >
           <Ionicons name="lock-closed" size={20} color="#6366F1" />
           <Text style={styles.restrictedText}>Unlock Deeper Insights</Text>
         </TouchableOpacity>
-        
+
         <FeatureLockOverlay
           visible={showLockOverlay}
           feature="expounding_content"
@@ -187,14 +187,14 @@ export const StepByStepExpounding: React.FC<StepByStepExpoundingProps> = ({
                 key={step.stepNumber}
                 style={[
                   styles.stepTab,
-                  currentStep === step.stepNumber && styles.activeStepTab
+                  currentStep === step.stepNumber && styles.activeStepTab,
                 ]}
                 onPress={() => handleStepNavigation(step.stepNumber)}
               >
                 <Text
                   style={[
                     styles.stepTabText,
-                    currentStep === step.stepNumber && styles.activeStepTabText
+                    currentStep === step.stepNumber && styles.activeStepTabText,
                   ]}
                 >
                   {step.stepNumber}
@@ -357,7 +357,7 @@ interface QuestionResponseCardProps {
 const QuestionResponseCard: React.FC<QuestionResponseCardProps> = ({
   response,
   onRate,
-  onDismiss
+  onDismiss,
 }) => (
   <View style={styles.responseCard}>
     <View style={styles.responseHeader}>
@@ -398,7 +398,7 @@ const getStepGradient = (contentType: string): string[] => {
     spiritual_insight: ['#6366F1', '#8B5CF6'],
     practical_guidance: ['#059669', '#10B981'],
     biblical_context: ['#DC2626', '#EF4444'],
-    reflection_questions: ['#D97706', '#F59E0B']
+    reflection_questions: ['#D97706', '#F59E0B'],
   };
   return gradients[contentType] || ['#6B7280', '#9CA3AF'];
 };
@@ -409,7 +409,7 @@ const formatContentType = (contentType: string): string => {
     practical_guidance: 'Practical Guidance',
     biblical_context: 'Biblical Context',
     reflection_questions: 'Reflection Questions',
-    step_breakdown: 'Step Breakdown'
+    step_breakdown: 'Step Breakdown',
   };
   return typeMap[contentType] || contentType;
 };

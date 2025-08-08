@@ -26,7 +26,7 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
   description,
   icon,
   onPress,
-  accentColor = Colors.alertCoral
+  accentColor = Colors.alertCoral,
 }) => {
   return (
     <TouchableOpacity
@@ -38,10 +38,10 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
         <View style={[styles.iconContainer, { backgroundColor: accentColor }]}>
           <Ionicons name={icon as any} size={24} color={Colors.hopeWhite} />
         </View>
-        
+
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>
-        
+
         <View style={styles.actionHint}>
           <Text style={[styles.actionText, { color: accentColor }]}>
             Tap to start

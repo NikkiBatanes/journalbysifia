@@ -40,25 +40,25 @@ interface ProgressReport {
 
 export const generateProgressReport = async (userId: string): Promise<ProgressReport> => {
   console.log('📊 Generating Progress Report for user:', userId);
-  
+
   try {
     // Get user profile
     const profile = await faithPointsService.getUserProfile(userId);
-    
+
     // Get recent transactions (last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const { data: transactions } = await supabase
       .from('faith_points_log')
       .select('*')
       .eq('user_id', userId)
       .gte('created_at', thirtyDaysAgo.toISOString())
       .order('created_at', { ascending: false });
-    
+
     // Get activity counts by type
     const activityCounts = await getActivityCounts(userId);
-    
+
     // Calculate metrics
     const metrics: ProgressMetrics = {
       totalPoints: profile.totalPoints,
@@ -73,7 +73,7 @@ export const generateProgressReport = async (userId: string): Promise<ProgressRe
       streakActivities: activityCounts.streak,
       badgesEarned: 0, // TODO: Implement badge counting
     };
-    
+
     // Calculate percentages
     const percentages = {
       weeklyGoalCompletion: Math.round((metrics.weeklyProgress / metrics.weeklyGoal) * 100),
@@ -81,17 +81,17 @@ export const generateProgressReport = async (userId: string): Promise<ProgressRe
       streakMaintenance: Math.min(100, (metrics.currentStreak / 7) * 100),
       overallEngagement: calculateOverallEngagement(metrics),
     };
-    
+
     // Generate tabulation
     const tabulation = {
       pointsByActivity: generatePointsByActivity(transactions || []),
       recentAchievements: generateRecentAchievements(transactions || []),
       weeklyBreakdown: generateWeeklyBreakdown(transactions || []),
     };
-    
+
     // Generate recommendations
     const recommendations = generateRecommendations(metrics, percentages);
-    
+
     const report: ProgressReport = {
       userId,
       reportDate: new Date().toISOString(),
@@ -100,10 +100,10 @@ export const generateProgressReport = async (userId: string): Promise<ProgressRe
       tabulation,
       recommendations,
     };
-    
+
     console.log('✅ Progress Report Generated Successfully');
     return report;
-    
+
   } catch (error) {
     console.error('❌ Failed to generate progress report:', error);
     throw error;
@@ -115,21 +115,21 @@ const getActivityCounts = async (userId: string) => {
     .from('faith_points_log')
     .select('activity_type')
     .eq('user_id', userId);
-  
+
   const counts = {
     devotionals: 0,
     playbooks: 0,
     journal: 0,
     streak: 0,
   };
-  
+
   transactions?.forEach((t: any) => {
-    if (t.activity_type?.includes('devotional')) counts.devotionals++;
-    if (t.activity_type?.includes('playbook')) counts.playbooks++;
-    if (t.activity_type?.includes('journal')) counts.journal++;
-    if (t.activity_type?.includes('streak')) counts.streak++;
+    if (t.activity_type?.includes('devotional')) {counts.devotionals++;}
+    if (t.activity_type?.includes('playbook')) {counts.playbooks++;}
+    if (t.activity_type?.includes('journal')) {counts.journal++;}
+    if (t.activity_type?.includes('streak')) {counts.streak++;}
   });
-  
+
   return counts;
 };
 
@@ -139,7 +139,7 @@ const calculateLevelProgress = (currentLevel: number, totalPoints: number): numb
   const pointsForNextLevel = (currentLevel + 1) * 100;
   const progressInLevel = totalPoints - pointsForCurrentLevel;
   const pointsNeededForLevel = pointsForNextLevel - pointsForCurrentLevel;
-  
+
   return Math.round((progressInLevel / pointsNeededForLevel) * 100);
 };
 
@@ -150,13 +150,13 @@ const calculateOverallEngagement = (metrics: ProgressMetrics): number => {
     Math.min(metrics.devotionalsCompleted / 5, 1) * 25, // 25% weight
     Math.min(metrics.activitiesCompleted / 10, 1) * 25, // 25% weight
   ];
-  
+
   return Math.round(factors.reduce((sum, factor) => sum + factor, 0));
 };
 
 const generatePointsByActivity = (transactions: any[]) => {
   const activityMap = new Map();
-  
+
   transactions.forEach(t => {
     const activity = t.activity_type || 'Unknown';
     if (!activityMap.has(activity)) {
@@ -166,7 +166,7 @@ const generatePointsByActivity = (transactions: any[]) => {
     current.points += t.points || 0;
     current.count += 1;
   });
-  
+
   return Array.from(activityMap.entries()).map(([activity, data]) => ({
     activity,
     points: data.points,
@@ -187,10 +187,10 @@ const generateRecentAchievements = (transactions: any[]) => {
 const generateWeeklyBreakdown = (transactions: any[]) => {
   const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const breakdown = weekDays.map(day => ({ day, points: 0, activities: 0 }));
-  
+
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-  
+
   transactions
     .filter(t => new Date(t.created_at) >= oneWeekAgo)
     .forEach(t => {
@@ -198,33 +198,33 @@ const generateWeeklyBreakdown = (transactions: any[]) => {
       breakdown[dayIndex].points += t.points || 0;
       breakdown[dayIndex].activities += 1;
     });
-  
+
   return breakdown;
 };
 
 const generateRecommendations = (metrics: ProgressMetrics, percentages: any): string[] => {
   const recommendations = [];
-  
+
   if (percentages.weeklyGoalCompletion < 50) {
     recommendations.push('Focus on completing more daily activities to reach your weekly goal');
   }
-  
+
   if (metrics.currentStreak < 3) {
     recommendations.push('Build consistency by completing at least one activity daily');
   }
-  
+
   if (metrics.devotionalsCompleted < 3) {
     recommendations.push('Try reading more devotionals to deepen your spiritual growth');
   }
-  
+
   if (percentages.overallEngagement < 60) {
     recommendations.push('Increase engagement by exploring different types of spiritual activities');
   }
-  
+
   if (recommendations.length === 0) {
     recommendations.push('Great job! Keep up the excellent spiritual progress');
   }
-  
+
   return recommendations;
 };
 
@@ -241,32 +241,32 @@ export const printProgressReport = (report: ProgressReport) => {
   console.log(`   Activities Completed: ${report.metrics.activitiesCompleted}`);
   console.log(`   Devotionals: ${report.metrics.devotionalsCompleted}`);
   console.log(`   Playbooks: ${report.metrics.playbooksCompleted}`);
-  
+
   console.log('\n📈 PERCENTAGES:');
   console.log(`   Weekly Goal: ${report.percentages.weeklyGoalCompletion}%`);
   console.log(`   Level Progress: ${report.percentages.levelProgress}%`);
   console.log(`   Streak Maintenance: ${report.percentages.streakMaintenance}%`);
   console.log(`   Overall Engagement: ${report.percentages.overallEngagement}%`);
-  
+
   console.log('\n📋 POINTS BY ACTIVITY:');
   report.tabulation.pointsByActivity.forEach((item, i) => {
     console.log(`   ${i + 1}. ${item.activity}: ${item.points} pts (${item.count}x)`);
   });
-  
+
   console.log('\n🕐 RECENT ACHIEVEMENTS:');
   report.tabulation.recentAchievements.slice(0, 5).forEach((item, i) => {
     console.log(`   ${i + 1}. ${item.date}: ${item.activity} (+${item.points} pts)`);
   });
-  
+
   console.log('\n📅 WEEKLY BREAKDOWN:');
   report.tabulation.weeklyBreakdown.forEach(day => {
     console.log(`   ${day.day}: ${day.points} pts (${day.activities} activities)`);
   });
-  
+
   console.log('\n💡 RECOMMENDATIONS:');
   report.recommendations.forEach((rec, i) => {
     console.log(`   ${i + 1}. ${rec}`);
   });
-  
+
   console.log('=====================================\n');
 };

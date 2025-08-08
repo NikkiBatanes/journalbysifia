@@ -62,7 +62,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
   if (card.type === 'action') {
     // Use enhanced action step card for better expounding and export features
     const steps = card.steps ?? [];
-    
+
     return (
       <View style={styles.actionCard}>
         {steps.map((step, index) => (
@@ -74,7 +74,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
               completed: step.completed || false,
               orderIndex: index,
               examples: step.examples,
-              subtasks: step.subtasks
+              subtasks: step.subtasks,
             }}
             playbookId={playbookId || ''}
             playbookTitle={playbookTitle || ''}
@@ -89,7 +89,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
             }}
           />
         ))}
-        
+
         {/* Fallback to original card if no steps or enhanced features not needed */}
         {steps.length === 0 && (
           <ActionStepsCard

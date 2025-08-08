@@ -1,6 +1,6 @@
 /**
  * useFeatureAccess Hook
- * 
+ *
  * React hook for checking feature access and handling restrictions
  * across the application.
  */
@@ -32,7 +32,7 @@ export interface UseFeatureAccessReturn {
 export function useFeatureAccess({
   feature,
   skipUsageCheck = false,
-  onRestricted
+  onRestricted,
 }: UseFeatureAccessOptions): UseFeatureAccessReturn {
   const { user } = useAuth();
   const { subscription } = useSubscription();
@@ -52,9 +52,9 @@ export function useFeatureAccess({
         feature,
         { skipUsageCheck }
       );
-      
+
       setAccessResult(result);
-      
+
       if (!result.hasAccess && onRestricted) {
         onRestricted(result);
       }
@@ -68,8 +68,8 @@ export function useFeatureAccess({
   }, [user?.id, feature, skipUsageCheck, onRestricted]);
 
   const handleRestriction = useCallback(() => {
-    if (!user?.id || !subscription?.tier) return;
-    
+    if (!user?.id || !subscription?.tier) {return;}
+
     // Log restriction event for retention
     tierRestrictionService.triggerRestrictionRetention(
       user.id,
@@ -79,8 +79,8 @@ export function useFeatureAccess({
   }, [user?.id, subscription?.tier, feature]);
 
   const showUpgradePrompt = useCallback(() => {
-    if (!accessResult?.upgradePrompt) return;
-    
+    if (!accessResult?.upgradePrompt) {return;}
+
     // This would typically navigate to subscription screen or show modal
     // Implementation depends on navigation setup
     console.log('Show upgrade prompt:', accessResult.upgradePrompt);
@@ -97,7 +97,7 @@ export function useFeatureAccess({
     accessResult,
     checkAccess,
     handleRestriction,
-    showUpgradePrompt
+    showUpgradePrompt,
   };
 }
 
@@ -142,7 +142,7 @@ export function useMultipleFeatureAccess(features: string[]) {
     isLoading,
     checkAllAccess,
     hasAccess: (feature: string) => accessResults[feature]?.hasAccess ?? false,
-    getAccessResult: (feature: string) => accessResults[feature] || null
+    getAccessResult: (feature: string) => accessResults[feature] || null,
   };
 }
 
@@ -163,7 +163,7 @@ export function useTierFeatures() {
 
     const available = tierRestrictionService.getAvailableFeaturesForTier(subscription.tier);
     const restricted = tierRestrictionService.getRestrictionsForTier(subscription.tier);
-    
+
     setAvailableFeatures(available);
     setRestrictedFeatures(restricted);
   }, [subscription?.tier]);
@@ -172,7 +172,7 @@ export function useTierFeatures() {
     availableFeatures,
     restrictedFeatures,
     isFeatureAvailable: (feature: string) => availableFeatures.includes(feature),
-    isFeatureRestricted: (feature: string) => restrictedFeatures.includes(feature)
+    isFeatureRestricted: (feature: string) => restrictedFeatures.includes(feature),
   };
 }
 
@@ -204,9 +204,9 @@ export function useExportAccess() {
     isLoading: pdfAccess.isLoading || docxAccess.isLoading,
     handleExportRestriction,
     showUpgradePrompt: () => {
-      if (!canExportPDF) pdfAccess.showUpgradePrompt();
-      else if (!canExportDOCX) docxAccess.showUpgradePrompt();
-    }
+      if (!canExportPDF) {pdfAccess.showUpgradePrompt();}
+      else if (!canExportDOCX) {docxAccess.showUpgradePrompt();}
+    },
   };
 }
 
@@ -221,7 +221,7 @@ export function useExpoundingAccess() {
     expoundingAccessResult: access.accessResult,
     isLoading: access.isLoading,
     handleExpoundingRestriction: access.handleRestriction,
-    showExpoundingUpgrade: access.showUpgradePrompt
+    showExpoundingUpgrade: access.showUpgradePrompt,
   };
 }
 
@@ -238,13 +238,13 @@ export function useRestrictionRetention() {
     feature: string,
     originalPrice: number = 999
   ) => {
-    if (!user?.id || !subscription?.tier) return;
+    if (!user?.id || !subscription?.tier) {return;}
 
     setIsLoadingOffer(true);
     try {
       // Calculate days since last restriction event (simplified)
       const daysSinceEvent = 0; // Would be calculated from retention events
-      
+
       const offer = await retentionService.getDynamicRetentionOffer(
         user.id,
         'feature_restriction',
@@ -252,7 +252,7 @@ export function useRestrictionRetention() {
         subscription.tier,
         daysSinceEvent
       );
-      
+
       setRetentionOffer(offer);
     } catch (error) {
       console.error('[useRestrictionRetention] Error getting offer:', error);
@@ -270,6 +270,6 @@ export function useRestrictionRetention() {
     isLoadingOffer,
     triggerRetentionOffer,
     clearRetentionOffer,
-    hasRetentionOffer: !!retentionOffer
+    hasRetentionOffer: !!retentionOffer,
   };
 }

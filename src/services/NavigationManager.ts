@@ -6,9 +6,9 @@
 import { NavigationContainerRef, CommonActions } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
 
-export type DashboardNavigationTarget = 
+export type DashboardNavigationTarget =
   | 'playbook_detail'
-  | 'devotional_detail' 
+  | 'devotional_detail'
   | 'journal_entry'
   | 'prayer_log'
   | 'streak_detail'
@@ -51,7 +51,7 @@ class NavigationManager {
    * Navigate to a specific dashboard target with analytics tracking
    */
   async navigateTo(
-    target: DashboardNavigationTarget, 
+    target: DashboardNavigationTarget,
     params: NavigationParams = {},
     source: NavigationEvent['source'] = 'manual'
   ) {
@@ -66,7 +66,7 @@ class NavigationManager {
       params,
       timestamp: new Date(),
       userId: this.userId,
-      source
+      source,
     };
 
     this.navigationHistory.push(event);
@@ -77,68 +77,68 @@ class NavigationManager {
       case 'playbook_detail':
         this.navigationRef.navigate('PlaybookDetail', params);
         break;
-      
+
       case 'devotional_detail':
         this.navigationRef.navigate('DevotionalDetail', params);
         break;
-      
+
       case 'journal_entry':
-        this.navigationRef.navigate('Journal', { 
+        this.navigationRef.navigate('Journal', {
           action: 'new_entry',
-          ...params 
+          ...params,
         });
         break;
-      
+
       case 'prayer_log':
-        this.navigationRef.navigate('Prayer', { 
+        this.navigationRef.navigate('Prayer', {
           action: 'new_prayer',
-          ...params 
+          ...params,
         });
         break;
-      
+
       case 'streak_detail':
-        this.navigationRef.navigate('Analytics', { 
+        this.navigationRef.navigate('Analytics', {
           tab: 'streaks',
-          streakType: params.streakType 
+          streakType: params.streakType,
         });
         break;
-      
+
       case 'analytics':
         this.navigationRef.navigate('Analytics', params);
         break;
-      
+
       case 'ai_insights':
         this.navigationRef.navigate('AIInsights', params);
         break;
-      
+
       case 'verse_detail':
         this.navigationRef.navigate('VerseDetail', params);
         break;
-      
+
       case 'affirmation_detail':
         this.navigationRef.navigate('AffirmationDetail', params);
         break;
-      
+
       case 'action_steps':
         this.navigationRef.navigate('ActionSteps', params);
         break;
-      
+
       case 'reflection_questions':
         this.navigationRef.navigate('Reflection', params);
         break;
-      
+
       case 'community':
         this.navigationRef.navigate('Community', params);
         break;
-      
+
       case 'profile':
         this.navigationRef.navigate('Profile', params);
         break;
-      
+
       case 'settings':
         this.navigationRef.navigate('Settings', params);
         break;
-      
+
       default:
         console.warn(`Unknown navigation target: ${target}`);
     }
@@ -184,16 +184,16 @@ class NavigationManager {
    * Navigate back with analytics
    */
   goBack() {
-    if (!this.navigationRef) return;
-    
+    if (!this.navigationRef) {return;}
+
     this.navigationRef.goBack();
-    
+
     // Log back navigation
     this.logNavigationEvent({
       target: 'playbook_detail', // placeholder
       timestamp: new Date(),
       userId: this.userId,
-      source: 'manual'
+      source: 'manual',
     });
   }
 
@@ -222,7 +222,7 @@ class NavigationManager {
    */
   private async logNavigationEvent(event: NavigationEvent) {
     try {
-      if (!this.userId) return;
+      if (!this.userId) {return;}
 
       await supabase
         .from('faith_points_log')
@@ -234,8 +234,8 @@ class NavigationManager {
           metadata: {
             params: event.params,
             source: event.source,
-            timestamp: event.timestamp.toISOString()
-          }
+            timestamp: event.timestamp.toISOString(),
+          },
         });
     } catch (error) {
       console.error('Error logging navigation event:', error);
@@ -249,12 +249,12 @@ class NavigationManager {
     const totalNavigations = this.navigationHistory.length;
     const uniqueTargets = new Set(this.navigationHistory.map(e => e.target)).size;
     const mostVisited = this.getNavigationSuggestions()[0];
-    
+
     return {
       totalNavigations,
       uniqueTargets,
       mostVisited,
-      recentHistory: this.navigationHistory.slice(-5)
+      recentHistory: this.navigationHistory.slice(-5),
     };
   }
 
@@ -271,46 +271,46 @@ export const navigationManager = new NavigationManager();
 
 // Helper functions for dashboard components
 export const dashboardNavigation = {
-  toPlaybook: (playbookId: string) => 
+  toPlaybook: (playbookId: string) =>
     navigationManager.navigateTo('playbook_detail', { playbookId }, 'dashboard'),
-  
-  toDevotional: (devotionalId: string) => 
+
+  toDevotional: (devotionalId: string) =>
     navigationManager.navigateTo('devotional_detail', { devotionalId }, 'dashboard'),
-  
-  toJournal: () => 
+
+  toJournal: () =>
     navigationManager.navigateTo('journal_entry', {}, 'dashboard'),
-  
-  toPrayer: () => 
+
+  toPrayer: () =>
     navigationManager.navigateTo('prayer_log', {}, 'dashboard'),
-  
-  toStreakDetail: (streakType: string) => 
+
+  toStreakDetail: (streakType: string) =>
     navigationManager.navigateTo('streak_detail', { streakType }, 'dashboard'),
-  
-  toAnalytics: () => 
+
+  toAnalytics: () =>
     navigationManager.navigateTo('analytics', {}, 'dashboard'),
-  
-  toAIInsights: () => 
+
+  toAIInsights: () =>
     navigationManager.navigateTo('ai_insights', {}, 'dashboard'),
-  
-  toVerseDetail: (verse: any) => 
+
+  toVerseDetail: (verse: any) =>
     navigationManager.navigateTo('verse_detail', { verse }, 'dashboard'),
-  
-  toAffirmationDetail: (affirmation: any) => 
+
+  toAffirmationDetail: (affirmation: any) =>
     navigationManager.navigateTo('affirmation_detail', { affirmation }, 'dashboard'),
-  
-  toActionSteps: () => 
+
+  toActionSteps: () =>
     navigationManager.navigateTo('action_steps', {}, 'dashboard'),
-  
-  toReflectionQuestions: () => 
+
+  toReflectionQuestions: () =>
     navigationManager.navigateTo('reflection_questions', {}, 'dashboard'),
-  
-  toCommunity: () => 
+
+  toCommunity: () =>
     navigationManager.navigateTo('community', {}, 'dashboard'),
-  
-  toProfile: () => 
+
+  toProfile: () =>
     navigationManager.navigateTo('profile', {}, 'dashboard'),
-  
-  toSettings: () => 
+
+  toSettings: () =>
     navigationManager.navigateTo('settings', {}, 'dashboard'),
 };
 

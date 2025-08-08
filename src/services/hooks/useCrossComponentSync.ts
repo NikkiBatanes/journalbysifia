@@ -71,7 +71,7 @@ export const useCrossComponentSync = (userId: string) => {
         playbookId,
         timestamp: new Date().toISOString(),
       });
-      
+
       console.log('[CrossComponentSync] Faith points awarded:', pointsResult);
 
       const syncEvent: SyncEvent = {
@@ -79,7 +79,7 @@ export const useCrossComponentSync = (userId: string) => {
         devotionalId,
         playbookId,
         userId,
-        metadata: { 
+        metadata: {
           timestamp: new Date().toISOString(),
           pointsAwarded: pointsResult.pointsAwarded,
           newLevel: pointsResult.newLevel,
@@ -90,7 +90,7 @@ export const useCrossComponentSync = (userId: string) => {
       await queryClient.invalidateQueries({
         queryKey: queryKeys.devotionals.byUser(userId),
       });
-      
+
       // Invalidate dashboard-related queries to refresh components
       await queryClient.invalidateQueries({
         queryKey: ['dashboard', 'streaks', userId],

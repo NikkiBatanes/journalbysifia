@@ -1,6 +1,6 @@
 /**
  * Export Options Modal Component
- * 
+ *
  * Provides export functionality for playbooks with tier-based access control
  * and usage tracking for the access tiers system.
  */
@@ -15,7 +15,7 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Alert
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { exportService } from '../services/exportService';
@@ -47,7 +47,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
   exportData,
   onClose,
   onExportComplete,
-  onUpgrade
+  onUpgrade,
 }) => {
   const {
     canExportPDF,
@@ -57,7 +57,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
     docxAccessResult,
     isLoading: accessLoading,
     handleExportRestriction,
-    showUpgradePrompt
+    showUpgradePrompt,
   } = useExportAccess();
 
   const [isExporting, setIsExporting] = useState(false);
@@ -73,7 +73,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
       icon: 'document-text-outline',
       color: '#DC2626',
       available: canExportPDF,
-      accessResult: pdfAccessResult
+      accessResult: pdfAccessResult,
     },
     {
       id: 'docx',
@@ -82,13 +82,13 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
       icon: 'document-outline',
       color: '#2563EB',
       available: canExportDOCX,
-      accessResult: docxAccessResult
-    }
+      accessResult: docxAccessResult,
+    },
   ];
 
   const handleExport = async (format: 'pdf' | 'docx') => {
     const option = exportOptions.find(opt => opt.id === format);
-    
+
     if (!option?.available) {
       setLockFeature(format === 'pdf' ? 'export_pdf' : 'export_docx');
       setShowLockOverlay(true);
@@ -101,7 +101,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
 
     try {
       let filePath: string;
-      
+
       if (format === 'pdf') {
         filePath = await exportService.exportToPDF(exportData);
       } else {
@@ -117,8 +117,8 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
             onPress: () => {
               onExportComplete?.(format, filePath);
               onClose();
-            }
-          }
+            },
+          },
         ]
       );
     } catch (error) {
@@ -139,7 +139,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
     setShowLockOverlay(true);
   };
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   return (
     <>
@@ -250,7 +250,7 @@ const ExportOptionCard: React.FC<ExportOptionCardProps> = ({
   option,
   isExporting,
   onPress,
-  onRestrictedPress
+  onRestrictedPress,
 }) => {
   const handlePress = () => {
     if (option.available) {
@@ -264,7 +264,7 @@ const ExportOptionCard: React.FC<ExportOptionCardProps> = ({
     <TouchableOpacity
       style={[
         styles.optionCard,
-        !option.available && styles.disabledCard
+        !option.available && styles.disabledCard,
       ]}
       onPress={handlePress}
       disabled={isExporting}
@@ -274,10 +274,10 @@ const ExportOptionCard: React.FC<ExportOptionCardProps> = ({
           {isExporting ? (
             <ActivityIndicator size="small" color={option.color} />
           ) : (
-            <Ionicons 
-              name={option.icon as any} 
-              size={24} 
-              color={option.available ? option.color : '#9CA3AF'} 
+            <Ionicons
+              name={option.icon as any}
+              size={24}
+              color={option.available ? option.color : '#9CA3AF'}
             />
           )}
         </View>
@@ -285,13 +285,13 @@ const ExportOptionCard: React.FC<ExportOptionCardProps> = ({
         <View style={styles.optionText}>
           <Text style={[
             styles.optionTitle,
-            !option.available && styles.disabledText
+            !option.available && styles.disabledText,
           ]}>
             {option.title}
           </Text>
           <Text style={[
             styles.optionDescription,
-            !option.available && styles.disabledText
+            !option.available && styles.disabledText,
           ]}>
             {option.description}
           </Text>

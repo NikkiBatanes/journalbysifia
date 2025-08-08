@@ -385,7 +385,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             // Award faith points
             const pointsResult = await faithPointsService.awardPoints(user.id, 'devotional_generated');
             console.log('[DevotionalDetail] Faith points awarded for devotional completion:', pointsResult);
-            
+
             // Track usage for subscription
             await subscriptionService.trackUsage(user.id, 'devotional');
             console.log('[DevotionalDetail] Usage tracked for devotional completion');

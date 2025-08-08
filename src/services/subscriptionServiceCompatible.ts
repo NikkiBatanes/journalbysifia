@@ -1,6 +1,6 @@
 /**
  * Subscription Service - Compatible with Existing siFia Schema
- * 
+ *
  * Handles subscription management, usage tracking, and tier limits
  * using the existing database structure.
  */
@@ -204,7 +204,7 @@ class SubscriptionServiceCompatible {
   private async createUsageRecord(userId: string): Promise<UsageTracking | null> {
     try {
       const subscription = await this.getUserSubscription(userId);
-      
+
       const { data, error } = await supabase
         .from('usage_tracking')
         .insert({
@@ -219,12 +219,12 @@ class SubscriptionServiceCompatible {
           intelligence_queries: 0,
           export_count: 0,
           last_reset_date: new Date().toISOString().split('T')[0],
-          reset_period: 'monthly'
+          reset_period: 'monthly',
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     } catch (error) {
       console.error('Failed to create usage record:', error);
@@ -236,10 +236,10 @@ class SubscriptionServiceCompatible {
   async trackUsage(userId: string, feature: keyof UsageTracking, amount: number = 1): Promise<boolean> {
     try {
       const usage = await this.getUserUsage(userId);
-      if (!usage) return false;
+      if (!usage) {return false;}
 
       const updates: Partial<UsageTracking> = {
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
 
       // Map feature to the correct field
@@ -269,7 +269,7 @@ class SubscriptionServiceCompatible {
         .update(updates)
         .eq('user_id', userId);
 
-      if (error) throw error;
+      if (error) {throw error;}
       return true;
     } catch (error) {
       console.error('Failed to track usage:', error);
@@ -293,7 +293,7 @@ class SubscriptionServiceCompatible {
         return {
           canUse: false,
           reason: 'no_subscription',
-          tier: 'free_trial'
+          tier: 'free_trial',
         };
       }
 
@@ -301,7 +301,7 @@ class SubscriptionServiceCompatible {
         return {
           canUse: false,
           reason: 'no_usage_data',
-          tier: subscription.tier
+          tier: subscription.tier,
         };
       }
 
@@ -315,7 +315,7 @@ class SubscriptionServiceCompatible {
             currentUsage: usage.playbooks_generated,
             limit: limits.playbooks,
             tier: subscription.tier,
-            reason: usage.playbooks_generated >= limits.playbooks ? 'limit_exceeded' : undefined
+            reason: usage.playbooks_generated >= limits.playbooks ? 'limit_exceeded' : undefined,
           };
 
         case 'devotional_generation':
@@ -324,7 +324,7 @@ class SubscriptionServiceCompatible {
             currentUsage: usage.devotionals_generated,
             limit: limits.devotionals,
             tier: subscription.tier,
-            reason: usage.devotionals_generated >= limits.devotionals ? 'limit_exceeded' : undefined
+            reason: usage.devotionals_generated >= limits.devotionals ? 'limit_exceeded' : undefined,
           };
 
         case 'export_pdf':
@@ -334,27 +334,27 @@ class SubscriptionServiceCompatible {
             currentUsage: usage.export_count,
             limit: limits.exports,
             tier: subscription.tier,
-            reason: usage.export_count >= limits.exports ? 'limit_exceeded' : undefined
+            reason: usage.export_count >= limits.exports ? 'limit_exceeded' : undefined,
           };
 
         case 'expounding_content':
           return {
             canUse: limits.expoundingEnabled,
             tier: subscription.tier,
-            reason: !limits.expoundingEnabled ? 'feature_not_available' : undefined
+            reason: !limits.expoundingEnabled ? 'feature_not_available' : undefined,
           };
 
         case 'advanced_analytics':
           return {
             canUse: limits.advancedAnalytics,
             tier: subscription.tier,
-            reason: !limits.advancedAnalytics ? 'feature_not_available' : undefined
+            reason: !limits.advancedAnalytics ? 'feature_not_available' : undefined,
           };
 
         default:
           return {
             canUse: true,
-            tier: subscription.tier
+            tier: subscription.tier,
           };
       }
     } catch (error) {
@@ -362,7 +362,7 @@ class SubscriptionServiceCompatible {
       return {
         canUse: false,
         reason: 'error',
-        tier: 'free_trial'
+        tier: 'free_trial',
       };
     }
   }
@@ -382,11 +382,11 @@ class SubscriptionServiceCompatible {
           intelligence_queries: 0,
           export_count: 0,
           last_reset_date: new Date().toISOString().split('T')[0],
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
-      if (error) throw error;
+      if (error) {throw error;}
       return true;
     } catch (error) {
       console.error('Failed to reset monthly usage:', error);
@@ -403,11 +403,11 @@ class SubscriptionServiceCompatible {
   getNextTier(currentTier: SubscriptionTier): SubscriptionTier | null {
     const hierarchy = this.getTierHierarchy();
     const currentIndex = hierarchy.indexOf(currentTier);
-    
+
     if (currentIndex === -1 || currentIndex === hierarchy.length - 1) {
       return null;
     }
-    
+
     return hierarchy[currentIndex + 1];
   }
 

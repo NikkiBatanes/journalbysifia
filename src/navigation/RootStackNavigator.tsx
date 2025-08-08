@@ -352,16 +352,16 @@ export default function RootStackNavigator({
             component={JournalScreen as React.ComponentType}
             options={{ headerShown: true }}
           />
-          
+
           {/* siFia AI Input Screen */}
           <Stack.Screen
             name="UserInput"
             component={UserInputScreen as React.ComponentType}
-            options={{ 
+            options={{
               headerShown: true,
               title: 'siFia AI Assistant',
               presentation: 'modal',
-              animation: 'slide_from_bottom'
+              animation: 'slide_from_bottom',
             }}
           />
         </>

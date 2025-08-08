@@ -2,7 +2,7 @@
 
 /**
  * Subscription Intelligence System Test
- * 
+ *
  * This script tests the core subscription functionality
  * Run with: node test-subscription-system.js
  */
@@ -47,7 +47,7 @@ async function testSubscriptionSystem() {
     // Test 2: Check subscription limits function
     console.log('\n📊 Test 2: Testing Subscription Limits Function');
     const tiers = ['basic', 'starter', 'growth', 'transformation', 'family'];
-    
+
     for (const tier of tiers) {
       const { data, error } = await supabase.rpc('get_subscription_limits', { p_tier: tier });
       if (error) {
@@ -75,7 +75,7 @@ async function testSubscriptionSystem() {
     const intelligenceTables = [
       'user_intelligence_profiles',
       'user_behavior_events',
-      'generation_queue'
+      'generation_queue',
     ];
 
     for (const table of intelligenceTables) {

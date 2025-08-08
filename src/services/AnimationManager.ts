@@ -7,7 +7,7 @@ import { Animated, Easing, Dimensions } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-export type AnimationType = 
+export type AnimationType =
   | 'fadeIn'
   | 'fadeOut'
   | 'slideInLeft'
@@ -72,7 +72,7 @@ class AnimationManager {
       duration = 300,
       delay = 0,
       easing = Easing.out(Easing.cubic),
-      useNativeDriver = true
+      useNativeDriver = true,
     } = config;
 
     return new Promise((resolve) => {
@@ -105,7 +105,7 @@ class AnimationManager {
       tension = 40,
       friction = 7,
       delay = 0,
-      useNativeDriver = true
+      useNativeDriver = true,
     } = config;
 
     return new Promise((resolve) => {
@@ -133,7 +133,7 @@ class AnimationManager {
       duration = 300,
       delay = 0,
       easing = Easing.out(Easing.cubic),
-      useNativeDriver = true
+      useNativeDriver = true,
     } = config;
 
     return new Promise((resolve) => {
@@ -325,7 +325,7 @@ class AnimationManager {
       delay = 0,
       staggerDelay = 100,
       easing = Easing.out(Easing.cubic),
-      useNativeDriver = true
+      useNativeDriver = true,
     } = config;
 
     const animations = animatedValues.map((value, index) =>
@@ -416,8 +416,8 @@ class AnimationManager {
               animatedValue,
               [0, 1],
               [-width, 0]
-            )
-          }]
+            ),
+          }],
         };
 
       case 'slideInRight':
@@ -427,8 +427,8 @@ class AnimationManager {
               animatedValue,
               [0, 1],
               [width, 0]
-            )
-          }]
+            ),
+          }],
         };
 
       case 'slideInUp':
@@ -438,8 +438,8 @@ class AnimationManager {
               animatedValue,
               [0, 1],
               [-height, 0]
-            )
-          }]
+            ),
+          }],
         };
 
       case 'slideInDown':
@@ -449,19 +449,19 @@ class AnimationManager {
               animatedValue,
               [0, 1],
               [height, 0]
-            )
-          }]
+            ),
+          }],
         };
 
       case 'scaleIn':
       case 'scaleOut':
         return {
-          transform: [{ scale: animatedValue }]
+          transform: [{ scale: animatedValue }],
         };
 
       case 'shake':
         return {
-          transform: [{ translateX: animatedValue }]
+          transform: [{ translateX: animatedValue }],
         };
 
       case 'flip':
@@ -471,8 +471,8 @@ class AnimationManager {
               animatedValue,
               [0, 90, 180],
               ['0deg', '90deg', '180deg']
-            )
-          }]
+            ),
+          }],
         };
 
       default:

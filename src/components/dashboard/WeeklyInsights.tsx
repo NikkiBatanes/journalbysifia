@@ -40,7 +40,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
   const [weekRange, setWeekRange] = useState('');
 
   const fetchWeeklyInsights = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -62,19 +62,19 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
       previousWeekEnd.setDate(currentWeekStart.getDate() - 1);
 
       // Set week range display
-      setWeekRange(`${currentWeekStart.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      })} - ${currentWeekEnd.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
+      setWeekRange(`${currentWeekStart.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })} - ${currentWeekEnd.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
       })}`);
 
       // Fetch current week activities
       console.log('[WeeklyInsights] Fetching data for user:', user.id);
       console.log('[WeeklyInsights] Current week:', currentWeekStart.toISOString(), 'to', currentWeekEnd.toISOString());
       console.log('[WeeklyInsights] Previous week:', previousWeekStart.toISOString(), 'to', previousWeekEnd.toISOString());
-      
+
       const { data: currentData, error: currentError } = await supabase
         .from('faith_points_log')
         .select('*')
@@ -86,7 +86,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
         console.error('[WeeklyInsights] Error fetching current week data:', currentError);
         return;
       }
-      
+
       console.log('[WeeklyInsights] Current week activities:', currentData?.length || 0);
       console.log('[WeeklyInsights] Current week data:', currentData);
 
@@ -102,12 +102,12 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
         console.error('[WeeklyInsights] Error fetching previous week data:', previousError);
         return;
       }
-      
+
       console.log('[WeeklyInsights] Previous week activities:', previousWeekData?.length || 0);
 
       // Calculate insights
       const calculatedInsights = calculateInsights(
-        currentData || [], 
+        currentData || [],
         previousWeekData || []
       );
       setInsights(calculatedInsights);
@@ -125,8 +125,8 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
     // Prayer sessions (using daily_streak as proxy)
     const currentPrayers = currentWeek.filter(a => a.activity_type === 'daily_streak').length;
     const previousPrayers = previousWeek.filter(a => a.activity_type === 'daily_streak').length;
-    const prayerChange = previousPrayers > 0 ? 
-      ((currentPrayers - previousPrayers) / previousPrayers) * 100 : 
+    const prayerChange = previousPrayers > 0 ?
+      ((currentPrayers - previousPrayers) / previousPrayers) * 100 :
       currentPrayers > 0 ? 100 : 0;
 
     insights.push({
@@ -141,8 +141,8 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
     // Devotionals generated
     const currentDevotionals = currentWeek.filter(a => a.activity_type === 'devotional_generated').length;
     const previousDevotionals = previousWeek.filter(a => a.activity_type === 'devotional_generated').length;
-    const devotionalChange = previousDevotionals > 0 ? 
-      ((currentDevotionals - previousDevotionals) / previousDevotionals) * 100 : 
+    const devotionalChange = previousDevotionals > 0 ?
+      ((currentDevotionals - previousDevotionals) / previousDevotionals) * 100 :
       currentDevotionals > 0 ? 100 : 0;
 
     insights.push({
@@ -157,8 +157,8 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
     // Journal entries
     const currentJournals = currentWeek.filter(a => a.activity_type === 'journal_entry').length;
     const previousJournals = previousWeek.filter(a => a.activity_type === 'journal_entry').length;
-    const journalChange = previousJournals > 0 ? 
-      ((currentJournals - previousJournals) / previousJournals) * 100 : 
+    const journalChange = previousJournals > 0 ?
+      ((currentJournals - previousJournals) / previousJournals) * 100 :
       currentJournals > 0 ? 100 : 0;
 
     insights.push({
@@ -173,8 +173,8 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
     // Playbook steps completed
     const currentPlaybookSteps = currentWeek.filter(a => a.activity_type === 'action_step_completed').length;
     const previousPlaybookSteps = previousWeek.filter(a => a.activity_type === 'action_step_completed').length;
-    const playbookChange = previousPlaybookSteps > 0 ? 
-      ((currentPlaybookSteps - previousPlaybookSteps) / previousPlaybookSteps) * 100 : 
+    const playbookChange = previousPlaybookSteps > 0 ?
+      ((currentPlaybookSteps - previousPlaybookSteps) / previousPlaybookSteps) * 100 :
       currentPlaybookSteps > 0 ? 100 : 0;
 
     insights.push({
@@ -215,7 +215,7 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
       style={[
         styles.insightCard,
         { width: (width - 64) / 2 }, // 2 cards per row with margins
-        index % 2 === 1 && styles.rightCard
+        index % 2 === 1 && styles.rightCard,
       ]}
       onPress={() => onInsightPress?.(insight)}
       activeOpacity={0.8}
@@ -225,10 +225,10 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
           <Ionicons name={insight.icon as any} size={18} color={Colors.hopeWhite} />
         </View>
         <View style={[styles.trendContainer, { backgroundColor: getTrendColor(insight.trend) }]}>
-          <Ionicons 
-            name={getTrendIcon(insight.trend) as any} 
-            size={12} 
-            color={Colors.hopeWhite} 
+          <Ionicons
+            name={getTrendIcon(insight.trend) as any}
+            size={12}
+            color={Colors.hopeWhite}
           />
         </View>
       </View>

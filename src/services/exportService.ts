@@ -54,7 +54,7 @@ export class ExportService {
       // Handle limited exports
       const used = usage.exports_used || 0;
       const remaining = Math.max(0, limits.exports - used);
-      
+
       return {
         allowed: remaining > 0,
         remaining,
@@ -173,7 +173,7 @@ export class ExportService {
         .eq('id', playbookId)
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     } catch (error) {
       console.error('[ExportService] Error fetching playbook data:', error);
@@ -187,15 +187,15 @@ export class ExportService {
   private async generatePDF(playbook: any): Promise<string> {
     // For beta launch, we'll use a simple HTML to PDF conversion
     // In production, this would integrate with a PDF generation service
-    
+
     const htmlContent = this.generateHTMLContent(playbook);
-    
+
     // Mock PDF generation - in production, use a service like Puppeteer or PDFKit
     const mockPdfUrl = `https://api.sifia.app/exports/pdf/${playbook.id}?format=pdf&timestamp=${Date.now()}`;
-    
+
     // TODO: Implement actual PDF generation
     console.log('[ExportService] Generated PDF for playbook:', playbook.id);
-    
+
     return mockPdfUrl;
   }
 
@@ -205,13 +205,13 @@ export class ExportService {
   private async generateDOCX(playbook: any): Promise<string> {
     // For beta launch, we'll use a simple template-based approach
     // In production, this would integrate with a DOCX generation service
-    
+
     // Mock DOCX generation - in production, use a library like docx or officegen
     const mockDocxUrl = `https://api.sifia.app/exports/docx/${playbook.id}?format=docx&timestamp=${Date.now()}`;
-    
+
     // TODO: Implement actual DOCX generation
     console.log('[ExportService] Generated DOCX for playbook:', playbook.id);
-    
+
     return mockDocxUrl;
   }
 

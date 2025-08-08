@@ -32,9 +32,9 @@ interface ReflectionQuestionsCardProps {
 
 
 
-const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({ 
-  onQuestionPress, 
-  onViewAll 
+const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
+  onQuestionPress,
+  onViewAll,
 }) => {
   const { user } = useAuth();
   const [currentQuestion, setCurrentQuestion] = useState<ReflectionQuestion | null>(null);
@@ -42,7 +42,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchReflectionQuestions = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -59,7 +59,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           .from('devotionals')
           .select('id, title, content')
 
-          .not('content', 'is', null)
+          .not('content', 'is', null),
       ]);
 
       const allQuestions: ReflectionQuestion[] = [];
@@ -68,10 +68,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       if (playbooksResult.data) {
         playbooksResult.data.forEach(playbook => {
           try {
-            const content = typeof playbook.content === 'string' 
-              ? JSON.parse(playbook.content) 
+            const content = typeof playbook.content === 'string'
+              ? JSON.parse(playbook.content)
               : playbook.content;
-            
+
             // Look for reflection questions in various structures
             if (content.reflectionQuestions && Array.isArray(content.reflectionQuestions)) {
               content.reflectionQuestions.forEach((q: any, index: number) => {
@@ -80,11 +80,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                   question: typeof q === 'string' ? q : q.question || q.text,
                   source: playbook.title,
                   sourceType: 'playbook',
-                  category: q.category || 'Reflection'
+                  category: q.category || 'Reflection',
                 });
               });
             }
-            
+
             // Look for questions in action steps
             if (content.actionSteps && Array.isArray(content.actionSteps)) {
               content.actionSteps.forEach((step: any, index: number) => {
@@ -94,7 +94,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                     question: step.reflectionQuestion || step.question,
                     source: playbook.title,
                     sourceType: 'playbook',
-                    category: 'Action Reflection'
+                    category: 'Action Reflection',
                   });
                 }
               });
@@ -109,10 +109,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       if (devotionalsResult.data) {
         devotionalsResult.data.forEach(devotional => {
           try {
-            const content = typeof devotional.content === 'string' 
-              ? JSON.parse(devotional.content) 
+            const content = typeof devotional.content === 'string'
+              ? JSON.parse(devotional.content)
               : devotional.content;
-            
+
             if (content.reflectionQuestions && Array.isArray(content.reflectionQuestions)) {
               content.reflectionQuestions.forEach((q: any, index: number) => {
                 allQuestions.push({
@@ -120,11 +120,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                   question: typeof q === 'string' ? q : q.question || q.text,
                   source: devotional.title,
                   sourceType: 'devotional',
-                  category: q.category || 'Devotional'
+                  category: q.category || 'Devotional',
                 });
               });
             }
-            
+
             // Single reflection question
             if (content.reflectionQuestion) {
               allQuestions.push({
@@ -132,7 +132,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 question: content.reflectionQuestion,
                 source: devotional.title,
                 sourceType: 'devotional',
-                category: 'Devotional'
+                category: 'Devotional',
               });
             }
           } catch (parseError) {
@@ -147,7 +147,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         const today = new Date();
         const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
         const selectedIndex = dayOfYear % allQuestions.length;
-        
+
         setCurrentQuestion(allQuestions[selectedIndex]);
       } else {
         setCurrentQuestion(null);
@@ -220,19 +220,19 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           <Text style={styles.questionText}>
             {currentQuestion.question}
           </Text>
-          
+
           <View style={styles.questionFooter}>
             <View style={styles.sourceInfo}>
-              <Ionicons 
-                name={getSourceIcon(currentQuestion.sourceType)} 
-                size={14} 
-                color={Colors.mediumGray} 
+              <Ionicons
+                name={getSourceIcon(currentQuestion.sourceType)}
+                size={14}
+                color={Colors.mediumGray}
               />
               <Text style={styles.sourceText}>
                 {currentQuestion.source}
               </Text>
             </View>
-            
+
             {currentQuestion.category && (
               <View style={styles.categoryBadge}>
                 <Text style={styles.categoryText}>
@@ -241,7 +241,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
               </View>
             )}
           </View>
-          
+
           <View style={styles.tapHint}>
             <Text style={styles.tapHintText}>Tap to reflect</Text>
             <Ionicons name="arrow-forward" size={16} color={Colors.alertCoral} />

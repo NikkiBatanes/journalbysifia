@@ -16,12 +16,12 @@ class FaithPointsEventEmitter {
   }
 
   off(event: string, listener: FaithPointsEventListener) {
-    if (!this.listeners[event]) return;
+    if (!this.listeners[event]) {return;}
     this.listeners[event] = this.listeners[event].filter(l => l !== listener);
   }
 
   emit(event: string, data?: any) {
-    if (!this.listeners[event]) return;
+    if (!this.listeners[event]) {return;}
     this.listeners[event].forEach(listener => listener(data));
   }
 }

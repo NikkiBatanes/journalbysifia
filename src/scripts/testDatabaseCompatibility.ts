@@ -1,6 +1,6 @@
 /**
  * Database Compatibility Test Script
- * 
+ *
  * Tests the compatibility of our subscription and analytics services
  * with the existing siFia database schema.
  */
@@ -49,18 +49,18 @@ class DatabaseCompatibilityTester {
   private async testDatabaseConnection(): Promise<void> {
     try {
       const { data, error } = await supabase.from('users').select('count').limit(1);
-      
+
       this.addResult({
         test: 'Database Connection',
         passed: !error,
         error: error?.message,
-        data: data ? 'Connected successfully' : undefined
+        data: data ? 'Connected successfully' : undefined,
       });
     } catch (error) {
       this.addResult({
         test: 'Database Connection',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -72,7 +72,7 @@ class DatabaseCompatibilityTester {
       'usage_tracking',
       'playbooks',
       'devotionals',
-      'user_events'
+      'user_events',
     ];
 
     for (const table of requiredTables) {
@@ -86,13 +86,13 @@ class DatabaseCompatibilityTester {
           test: `Table exists: ${table}`,
           passed: !error,
           error: error?.message,
-          data: data ? `Table accessible (${data.length} rows sampled)` : undefined
+          data: data ? `Table accessible (${data.length} rows sampled)` : undefined,
         });
       } catch (error) {
         this.addResult({
           test: `Table exists: ${table}`,
           passed: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
@@ -102,36 +102,36 @@ class DatabaseCompatibilityTester {
     try {
       // Test getting subscription limits
       const limits = subscriptionServiceCompatible.getSubscriptionLimits('growth');
-      
+
       this.addResult({
         test: 'Subscription Service - Get Limits',
         passed: !!limits && limits.playbooks > 0,
-        data: limits
+        data: limits,
       });
 
       // Test tier hierarchy
       const hierarchy = subscriptionServiceCompatible.getTierHierarchy();
-      
+
       this.addResult({
         test: 'Subscription Service - Tier Hierarchy',
         passed: Array.isArray(hierarchy) && hierarchy.length > 0,
-        data: hierarchy
+        data: hierarchy,
       });
 
       // Test pricing
       const pricing = subscriptionServiceCompatible.getTierPricing('growth');
-      
+
       this.addResult({
         test: 'Subscription Service - Pricing',
         passed: !!pricing && pricing.monthly > 0,
-        data: pricing
+        data: pricing,
       });
 
     } catch (error) {
       this.addResult({
         test: 'Subscription Service',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -140,36 +140,36 @@ class DatabaseCompatibilityTester {
     try {
       // Test analytics service initialization
       const initialized = !!analyticsService;
-      
+
       this.addResult({
         test: 'Analytics Service - Initialization',
         passed: initialized,
-        data: initialized ? 'Service initialized successfully' : undefined
+        data: initialized ? 'Service initialized successfully' : undefined,
       });
 
       // Test event tracking (without actually sending events)
       const canTrack = typeof analyticsService.trackEvent === 'function';
-      
+
       this.addResult({
         test: 'Analytics Service - Event Tracking Method',
         passed: canTrack,
-        data: canTrack ? 'trackEvent method available' : undefined
+        data: canTrack ? 'trackEvent method available' : undefined,
       });
 
       // Test feature usage tracking method
       const canTrackFeature = typeof analyticsService.trackFeatureUsage === 'function';
-      
+
       this.addResult({
         test: 'Analytics Service - Feature Tracking Method',
         passed: canTrackFeature,
-        data: canTrackFeature ? 'trackFeatureUsage method available' : undefined
+        data: canTrackFeature ? 'trackFeatureUsage method available' : undefined,
       });
 
     } catch (error) {
       this.addResult({
         test: 'Analytics Service',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -186,7 +186,7 @@ class DatabaseCompatibilityTester {
         test: 'Usage Tracking - Table Structure',
         passed: !error,
         error: error?.message,
-        data: !error ? 'Table structure accessible' : undefined
+        data: !error ? 'Table structure accessible' : undefined,
       });
 
       // Test if we can query user_events table
@@ -199,14 +199,14 @@ class DatabaseCompatibilityTester {
         test: 'User Events - Table Structure',
         passed: !eventsError,
         error: eventsError?.message,
-        data: !eventsError ? 'Table structure accessible' : undefined
+        data: !eventsError ? 'Table structure accessible' : undefined,
       });
 
     } catch (error) {
       this.addResult({
         test: 'Usage Tracking',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -225,22 +225,22 @@ class DatabaseCompatibilityTester {
     this.results.forEach(result => {
       const status = result.passed ? '✅' : '❌';
       console.log(`${status} ${result.test}`);
-      
+
       if (result.error) {
         console.log(`   Error: ${result.error}`);
       }
-      
+
       if (result.data && typeof result.data === 'object') {
         console.log(`   Data: ${JSON.stringify(result.data, null, 2)}`);
       } else if (result.data) {
         console.log(`   Data: ${result.data}`);
       }
-      
+
       console.log('');
     });
 
-    console.log(`\n📈 Overall: ${passed}/${total} tests passed (${Math.round((passed/total) * 100)}%)`);
-    
+    console.log(`\n📈 Overall: ${passed}/${total} tests passed (${Math.round((passed / total) * 100)}%)`);
+
     if (passed === total) {
       console.log('🎉 All tests passed! Your database is compatible with the new services.');
     } else {
@@ -257,12 +257,12 @@ class DatabaseCompatibilityTester {
   getSummary(): { passed: number; failed: number; total: number; percentage: number } {
     const passed = this.results.filter(r => r.passed).length;
     const total = this.results.length;
-    
+
     return {
       passed,
       failed: total - passed,
       total,
-      percentage: Math.round((passed / total) * 100)
+      percentage: Math.round((passed / total) * 100),
     };
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Retention Modal Component
- * 
+ *
  * Displays dynamic retention offers with personalized pricing
  * and messaging based on user value and behavior.
  */
@@ -15,7 +15,7 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  Alert
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { retentionService } from '../services/retentionService';
@@ -48,11 +48,11 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
   onClose,
   onAccept,
   onDecline,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  if (!offer) return null;
+  if (!offer) {return null;}
 
   const handleAccept = async () => {
     setIsProcessing(true);
@@ -74,8 +74,8 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
     return `$${(price / 100).toFixed(2)}`;
   };
 
-  const savings = offer.originalPrice && offer.discountedPrice 
-    ? offer.originalPrice - offer.discountedPrice 
+  const savings = offer.originalPrice && offer.discountedPrice
+    ? offer.originalPrice - offer.discountedPrice
     : 0;
 
   return (
@@ -137,7 +137,7 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
                 <View style={styles.durationContainer}>
                   <Ionicons name="time-outline" size={16} color="#6366F1" />
                   <Text style={styles.durationText}>
-                    {offer.duration === 'first_year' 
+                    {offer.duration === 'first_year'
                       ? 'First year discount, then regular pricing'
                       : 'First month discount, then regular pricing'
                     }
@@ -148,21 +148,21 @@ export const RetentionModal: React.FC<RetentionModalProps> = ({
                 <View style={styles.featuresContainer}>
                   <Text style={styles.featuresTitle}>What you'll get:</Text>
                   <View style={styles.featuresList}>
-                    <FeatureItem 
-                      icon="book-outline" 
-                      text="Unlimited spiritual playbooks" 
+                    <FeatureItem
+                      icon="book-outline"
+                      text="Unlimited spiritual playbooks"
                     />
-                    <FeatureItem 
-                      icon="heart-outline" 
-                      text="Daily devotionals & reflections" 
+                    <FeatureItem
+                      icon="heart-outline"
+                      text="Daily devotionals & reflections"
                     />
-                    <FeatureItem 
-                      icon="download-outline" 
-                      text="Export your content" 
+                    <FeatureItem
+                      icon="download-outline"
+                      text="Export your content"
                     />
-                    <FeatureItem 
-                      icon="analytics-outline" 
-                      text="Track your spiritual growth" 
+                    <FeatureItem
+                      icon="analytics-outline"
+                      text="Track your spiritual growth"
                     />
                   </View>
                 </View>

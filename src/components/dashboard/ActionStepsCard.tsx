@@ -43,7 +43,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   const [error, setError] = useState<string | null>(null);
 
   const fetchActionSteps = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -71,7 +71,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
       const { data: progressData } = await supabase
         .from('user_progress')
-        .select('*')
+        .select('*');
 
       setActionSteps(actionSteps);
 
@@ -112,20 +112,20 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       activeOpacity={0.8}
     >
       <View style={styles.stepHeader}>
-        <Ionicons 
-          name={getPriorityIcon(item.priority || 'medium')} 
-          size={16} 
-          color={getPriorityColor(item.priority || 'medium')} 
+        <Ionicons
+          name={getPriorityIcon(item.priority || 'medium')}
+          size={16}
+          color={getPriorityColor(item.priority || 'medium')}
         />
         <Text style={styles.stepTitle} numberOfLines={1}>
           {item.title}
         </Text>
       </View>
-      
+
       <Text style={styles.playbookName} numberOfLines={1}>
         From: {item.playbookTitle}
       </Text>
-      
+
       {item.description && (
         <Text style={styles.stepDescription} numberOfLines={2}>
           {item.description}

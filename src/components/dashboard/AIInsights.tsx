@@ -39,7 +39,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ onInsightPress, onActionPress }
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
 
   const generateInsights = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -104,7 +104,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ onInsightPress, onActionPress }
     }
 
     // Analyze study patterns
-    const studyActivities = activities.filter(a => 
+    const studyActivities = activities.filter(a =>
       a.activity_type === 'devotional_read' || a.activity_type === 'playbook_step'
     );
     if (studyActivities.length < 5) {
@@ -282,7 +282,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ onInsightPress, onActionPress }
                 key={index}
                 style={[
                   styles.indicator,
-                  index === currentInsightIndex && styles.activeIndicator
+                  index === currentInsightIndex && styles.activeIndicator,
                 ]}
               />
             ))}
@@ -293,7 +293,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ onInsightPress, onActionPress }
       <TouchableOpacity
         style={[
           styles.insightCard,
-          { borderLeftColor: getInsightColor(currentInsight.category) }
+          { borderLeftColor: getInsightColor(currentInsight.category) },
         ]}
         onPress={() => onInsightPress?.(currentInsight)}
         activeOpacity={0.8}
@@ -301,7 +301,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ onInsightPress, onActionPress }
         <View style={styles.insightHeader}>
           <View style={[
             styles.iconContainer,
-            { backgroundColor: getInsightColor(currentInsight.category) }
+            { backgroundColor: getInsightColor(currentInsight.category) },
           ]}>
             <Ionicons
               name={getInsightIcon(currentInsight.type) as any}
@@ -314,7 +314,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ onInsightPress, onActionPress }
             <View style={styles.metaInfo}>
               <View style={[
                 styles.priorityBadge,
-                { backgroundColor: getPriorityColor(currentInsight.priority) }
+                { backgroundColor: getPriorityColor(currentInsight.priority) },
               ]}>
                 <Text style={styles.priorityText}>
                   {currentInsight.priority.toUpperCase()}
@@ -331,7 +331,7 @@ const AIInsights: React.FC<AIInsightsProps> = ({ onInsightPress, onActionPress }
           <TouchableOpacity
             style={[
               styles.actionButton,
-              { backgroundColor: getInsightColor(currentInsight.category) }
+              { backgroundColor: getInsightColor(currentInsight.category) },
             ]}
             onPress={() => onActionPress?.(currentInsight)}
           >

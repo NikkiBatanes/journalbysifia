@@ -642,36 +642,36 @@ class UserApiService {
     try {
       // Use faith points service to get real user profile data
       const profile = await faithPointsService.getUserProfile(userId);
-      
+
       // Get recent transactions to calculate additional stats
       const recentTransactions = await faithPointsService.getRecentTransactions(userId, 100);
-      
+
       // Calculate activity counts using exact activity type matches
-      const devotionalsFinished = recentTransactions.filter((t: any) => 
+      const devotionalsFinished = recentTransactions.filter((t: any) =>
         t.activity_type === 'devotional_generated'
       ).length;
-      
-      const prayerSessions = recentTransactions.filter((t: any) => 
+
+      const prayerSessions = recentTransactions.filter((t: any) =>
         t.activity_type === 'prayer_completed' || t.activity_type === 'daily_prayer'
       ).length;
-      
-      const journalEntries = recentTransactions.filter((t: any) => 
+
+      const journalEntries = recentTransactions.filter((t: any) =>
         t.activity_type === 'journal_entry'
       ).length;
-      
-      const playbooksCompleted = recentTransactions.filter((t: any) => 
+
+      const playbooksCompleted = recentTransactions.filter((t: any) =>
         t.activity_type === 'playbook_generated'
       ).length;
-      
-      const actionStepsCompleted = recentTransactions.filter((t: any) => 
+
+      const actionStepsCompleted = recentTransactions.filter((t: any) =>
         t.activity_type === 'action_step_completed'
       ).length;
-      
+
       const goalsCompleted = playbooksCompleted + actionStepsCompleted;
 
       // Calculate badges based on achievements (simplified for now)
       const totalBadges = Math.floor(profile.totalPoints / 50); // 1 badge per 50 points
-      
+
       const profileStats = {
         faithPoints: profile.totalPoints,
         level: profile.currentLevel,
@@ -688,10 +688,10 @@ class UserApiService {
         profile: {
           totalPoints: profile.totalPoints,
           currentLevel: profile.currentLevel,
-          currentStreak: profile.currentStreak
+          currentStreak: profile.currentStreak,
         },
         transactionCount: recentTransactions.length,
-        calculatedStats: profileStats
+        calculatedStats: profileStats,
       });
 
       return {

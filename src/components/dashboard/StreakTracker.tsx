@@ -37,7 +37,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchStreaks = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -48,7 +48,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
 
       console.log('[StreakTracker] Fetching activities for user:', user.id);
       console.log('[StreakTracker] Date range:', thirtyDaysAgo.toISOString(), 'to now');
-      
+
       const { data, error } = await supabase
         .from('faith_points_log')
         .select('*')
@@ -67,7 +67,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
 
       console.log(`[StreakTracker] Found ${data?.length || 0} activities for streak calculation`);
       console.log('[StreakTracker] Activities data:', data);
-      
+
       // Calculate streaks for each activity type
       const streakData = calculateStreaks(data || []);
       setStreaks(streakData);
@@ -84,16 +84,16 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
       { type: 'journal', activityTypes: ['journal_entry'] },
       { type: 'playbook', activityTypes: ['playbook_generated', 'action_step_completed'] },
       { type: 'devotional', activityTypes: ['devotional_generated', 'daily_streak'] },
-      { type: 'prayer', activityTypes: ['daily_streak'] } // Prayer can be tracked via daily_streak
+      { type: 'prayer', activityTypes: ['daily_streak'] }, // Prayer can be tracked via daily_streak
     ];
     const streakResults: Streak[] = [];
 
     streakTypes.forEach(({ type, activityTypes }) => {
-      const typeActivities = activities.filter(activity => 
+      const typeActivities = activities.filter(activity =>
         activityTypes.includes(activity.activity_type)
       );
 
-      const { currentStreak, longestStreak, lastActivity, isActive } = 
+      const { currentStreak, longestStreak, lastActivity, isActive } =
         calculateStreakForType(typeActivities);
 
       streakResults.push({
@@ -102,7 +102,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
         currentStreak,
         longestStreak,
         lastActivity: lastActivity || new Date().toISOString(),
-        isActive
+        isActive,
       });
     });
 
@@ -115,10 +115,10 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     }
 
     // Group activities by date
-    const activityDates = activities.map(activity => 
+    const activityDates = activities.map(activity =>
       new Date(activity.created_at).toDateString()
     );
-    const uniqueDates = [...new Set(activityDates)].sort((a, b) => 
+    const uniqueDates = [...new Set(activityDates)].sort((a, b) =>
       new Date(b).getTime() - new Date(a).getTime()
     );
 
@@ -135,12 +135,12 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     if (uniqueDates.length > 0) {
       let streakDate = new Date(uniqueDates[0]);
       const startDate = uniqueDates.includes(today) ? new Date(today) : new Date(yesterdayStr);
-      
+
       // Count consecutive days
       for (let i = 0; i < uniqueDates.length; i++) {
         const checkDate = new Date(startDate);
         checkDate.setDate(checkDate.getDate() - i);
-        
+
         if (uniqueDates.includes(checkDate.toDateString())) {
           currentStreak++;
         } else {
@@ -152,7 +152,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     // Calculate longest streak
     let longestStreak = 0;
     let tempStreak = 0;
-    
+
     for (let i = uniqueDates.length - 1; i >= 0; i--) {
       if (i === uniqueDates.length - 1) {
         tempStreak = 1;
@@ -160,7 +160,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
         const currentDate = new Date(uniqueDates[i]);
         const prevDate = new Date(uniqueDates[i + 1]);
         const dayDiff = (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
-        
+
         if (dayDiff === 1) {
           tempStreak++;
         } else {
@@ -175,7 +175,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
       currentStreak: isActive ? currentStreak : 0,
       longestStreak,
       lastActivity: activities[0]?.created_at,
-      isActive
+      isActive,
     };
   };
 
@@ -194,9 +194,9 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   };
 
   const getStreakColor = (streak: number) => {
-    if (streak >= 30) return Colors.successGreen;
-    if (streak >= 14) return Colors.faithGold;
-    if (streak >= 7) return Colors.alertCoral;
+    if (streak >= 30) {return Colors.successGreen;}
+    if (streak >= 14) {return Colors.faithGold;}
+    if (streak >= 7) {return Colors.alertCoral;}
     return Colors.mediumGray;
   };
 
@@ -215,17 +215,17 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
       key={streak.id}
       style={[
         styles.streakCard,
-        { borderLeftColor: getStreakColor(streak.currentStreak) }
+        { borderLeftColor: getStreakColor(streak.currentStreak) },
       ]}
       onPress={() => onStreakPress?.(streak)}
       activeOpacity={0.8}
     >
       <View style={styles.streakHeader}>
         <View style={[styles.iconContainer, { backgroundColor: getStreakColor(streak.currentStreak) }]}>
-          <Ionicons 
-            name={getStreakIcon(streak.type) as any} 
-            size={20} 
-            color={Colors.hopeWhite} 
+          <Ionicons
+            name={getStreakIcon(streak.type) as any}
+            size={20}
+            color={Colors.hopeWhite}
           />
         </View>
         <View style={styles.streakInfo}>
@@ -280,8 +280,8 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
         <Text style={styles.title}>Streak Tracker</Text>
       </View>
 
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContainer}
       >

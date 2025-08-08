@@ -160,12 +160,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
         console.log('🔄 First refresh attempt...');
         loadProfileData();
       }, 200);
-      
+
       setTimeout(() => {
         console.log('🔄 Second refresh attempt...');
         loadProfileData();
       }, 1000);
-      
+
       setTimeout(() => {
         console.log('🔄 Final refresh attempt...');
         loadProfileData();
@@ -206,27 +206,27 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
   // Test faith points function
   const testFaithPoints = async () => {
-    if (!user?.id) return;
-    
+    if (!user?.id) {return;}
+
     try {
       console.log('🧪 Testing faith points from profile screen...');
-      
+
       // Check if subscription tables exist
       const { data: subscriptionCheck } = await supabase
         .from('user_subscriptions')
         .select('id')
         .limit(1);
-      
+
       const { data: usageCheck } = await supabase
         .from('usage_tracking')
         .select('id')
         .limit(1);
-        
+
       console.log('📊 Database Check:', {
         subscription_table_exists: subscriptionCheck !== null,
-        usage_table_exists: usageCheck !== null
+        usage_table_exists: usageCheck !== null,
       });
-      
+
       const result = await faithPointsService.awardPoints(user.id, 'devotional_generated');
       console.log('✅ Faith points awarded:', result);
     } catch (error) {
@@ -243,7 +243,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
         console.error('❌ No user ID available for testing');
         return;
       }
-      
+
       const { data: insertResult, error: insertError } = await supabase
         .from('faith_points_profiles')
         .insert({
@@ -253,29 +253,29 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
           current_streak: 1,
           longest_streak: 1,
           weekly_goal: 50,
-          weekly_progress: 50
+          weekly_progress: 50,
         })
         .select();
-      
+
       if (insertError) {
         console.error('❌ Direct insert failed:', insertError);
       } else {
         console.log('✅ Direct insert succeeded:', insertResult);
       }
-      
+
       // Test 2: Direct profile fetch
       console.log('Test 2: Attempting direct profile fetch...');
       const { data: fetchResult, error: fetchError } = await supabase
         .from('faith_points_profiles')
         .select('*')
         .eq('user_id', user.id);
-      
+
       if (fetchError) {
         console.error('❌ Direct fetch failed:', fetchError);
       } else {
         console.log('✅ Direct fetch succeeded:', fetchResult);
       }
-      
+
       // Test 3: Direct transaction insert
       console.log('Test 3: Attempting direct transaction insert...');
       const { data: transactionResult, error: transactionError } = await supabase
@@ -284,16 +284,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
           user_id: user.id,
           points: 10,
           activity_type: 'test',
-          reason: 'direct_test'
+          reason: 'direct_test',
         })
         .select();
-      
+
       if (transactionError) {
         console.error('❌ Direct transaction insert failed:', transactionError);
       } else {
         console.log('✅ Direct transaction insert succeeded:', transactionResult);
       }
-      
+
     } catch (error) {
       console.error('❌ Database direct test failed:', error);
     }
@@ -348,8 +348,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   };
 
   const getLevelProgress = () => {
-    if (!profileStats) return 0;
-    
+    if (!profileStats) {return 0;}
+
     // Use the actual faith points level system
     const levels = [
       { level: 1, pointsRequired: 0 },
@@ -361,28 +361,28 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       { level: 7, pointsRequired: 2500 },
       { level: 8, pointsRequired: 4000 },
       { level: 9, pointsRequired: 6000 },
-      { level: 10, pointsRequired: 10000 }
+      { level: 10, pointsRequired: 10000 },
     ];
-    
+
     const currentLevel = levels.find(l => l.level === profileStats.level);
     const nextLevel = levels.find(l => l.level === profileStats.level + 1);
-    
+
     if (!currentLevel || !nextLevel) {
       return profileStats.level >= 10 ? 1 : 0; // Max level or no data
     }
-    
+
     const currentLevelPoints = currentLevel.pointsRequired;
     const nextLevelPoints = nextLevel.pointsRequired;
     const progress = (profileStats.faithPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints);
-    
-    console.log(`📊 Progress calculation:`, {
+
+    console.log('📊 Progress calculation:', {
       faithPoints: profileStats.faithPoints,
       currentLevel: profileStats.level,
       currentLevelPoints,
       nextLevelPoints,
-      progress: Math.max(0, Math.min(1, progress))
+      progress: Math.max(0, Math.min(1, progress)),
     });
-    
+
     return Math.max(0, Math.min(1, progress));
   };
 
@@ -491,8 +491,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       limits: subscription.limits,
       usage: {
         playbooks_generated: usage.playbooks_generated,
-        devotionals_generated: usage.devotionals_generated
-      }
+        devotionals_generated: usage.devotionals_generated,
+      },
     });
 
     const playbookLimit = subscription.limits?.playbooks === -1 ? 'Unlimited' : (subscription.limits?.playbooks || 0);
@@ -793,7 +793,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
       {renderEditProfileModal()}
       {renderSettingsModal()}
-      
+
       {/* Test Faith Points Button */}
       <TouchableOpacity
         style={{
@@ -812,7 +812,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
           Test FP
         </Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity
         style={{
           position: 'absolute',

@@ -1,6 +1,6 @@
 /**
  * Enhanced Action Step Card Component
- * 
+ *
  * Integrates step-by-step expounding, export functionality,
  * and tier-based access control for the complete Phase 3 experience.
  */
@@ -15,7 +15,7 @@ import {
   Animated,
   LayoutAnimation,
   Platform,
-  UIManager
+  UIManager,
 } from 'react-native';
 import { StepByStepExpounding } from './StepByStepExpounding';
 import { ExportOptionsModal, ExportData } from './ExportOptionsModal';
@@ -59,7 +59,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
   userId,
   onToggleComplete,
   onToggleSubtaskComplete,
-  onUpgrade
+  onUpgrade,
 }) => {
   const [showExpounding, setShowExpounding] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -89,36 +89,36 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
       metadata: {
         createdAt: new Date().toISOString(),
         category: 'Action Step',
-        tags: ['playbook', 'action-step']
-      }
+        tags: ['playbook', 'action-step'],
+      },
     };
     setShowExportModal(true);
   };
 
   const generateStepExportContent = (): string => {
     let content = `# ${playbookTitle}\n\n## Action Step ${actionStep.orderIndex + 1}\n\n${actionStep.text}\n\n`;
-    
+
     if (actionStep.examples) {
       content += `### Examples\n${actionStep.examples}\n\n`;
     }
-    
+
     if (actionStep.subtasks && actionStep.subtasks.length > 0) {
-      content += `### Subtasks\n`;
+      content += '### Subtasks\n';
       actionStep.subtasks.forEach((subtask, index) => {
         content += `${index + 1}. ${subtask.text}\n`;
       });
       content += '\n';
     }
-    
-    content += `### Completion Status\n`;
+
+    content += '### Completion Status\n';
     content += `- Main Step: ${actionStep.completed ? '✅ Completed' : '⏳ In Progress'}\n`;
-    
+
     if (actionStep.subtasks) {
       actionStep.subtasks.forEach((subtask) => {
         content += `- ${subtask.text}: ${subtask.completed ? '✅ Completed' : '⏳ In Progress'}\n`;
       });
     }
-    
+
     return content;
   };
 
@@ -145,7 +145,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
 
           <Text style={[
             styles.stepText,
-            actionStep.completed && styles.completedText
+            actionStep.completed && styles.completedText,
           ]}>
             {actionStep.text}
           </Text>
@@ -156,7 +156,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
             <TouchableOpacity
               style={[
                 styles.actionButton,
-                showExpounding && styles.activeActionButton
+                showExpounding && styles.activeActionButton,
               ]}
               onPress={toggleExpounding}
             >
@@ -240,8 +240,8 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
           type: 'playbook',
           metadata: {
             createdAt: new Date().toISOString(),
-            category: 'Action Step'
-          }
+            category: 'Action Step',
+          },
         }}
         onClose={() => setShowExportModal(false)}
         onUpgrade={onUpgrade}
@@ -261,7 +261,7 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({
   subtask,
   onToggleComplete,
   onShowExpounding,
-  hasExpoundingAccess
+  hasExpoundingAccess,
 }) => (
   <View style={styles.subtaskItem}>
     <TouchableOpacity
@@ -277,7 +277,7 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({
 
     <Text style={[
       styles.subtaskText,
-      subtask.completed && styles.completedText
+      subtask.completed && styles.completedText,
     ]}>
       {subtask.text}
     </Text>

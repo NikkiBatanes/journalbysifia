@@ -1,6 +1,6 @@
 /**
  * Tier Restriction Service
- * 
+ *
  * Handles feature access checking and restriction enforcement
  * across the application based on subscription tiers.
  */
@@ -37,82 +37,82 @@ class TierRestrictionService {
       feature: 'export_pdf',
       requiredTier: 'starter',
       usageType: 'exports',
-      featureFlag: 'intelligenceEnabled'
+      featureFlag: 'intelligenceEnabled',
     },
     {
       feature: 'export_docx',
       requiredTier: 'starter',
       usageType: 'exports',
-      featureFlag: 'intelligenceEnabled'
+      featureFlag: 'intelligenceEnabled',
     },
-    
+
     // Expounding content
     {
       feature: 'expounding_content',
       requiredTier: 'transformation',
-      featureFlag: 'expoundingEnabled'
+      featureFlag: 'expoundingEnabled',
     },
-    
+
     // Smart journaling
     {
       feature: 'smart_journaling',
       requiredTier: 'free_trial',
-      featureFlag: 'smartJournalingEnabled'
+      featureFlag: 'smartJournalingEnabled',
     },
-    
+
     // Calendar sync
     {
       feature: 'calendar_sync',
       requiredTier: 'growth',
-      featureFlag: 'calendarSyncEnabled'
+      featureFlag: 'calendarSyncEnabled',
     },
-    
+
     // Advanced analytics
     {
       feature: 'advanced_analytics',
       requiredTier: 'growth',
-      featureFlag: 'advancedAnalytics'
+      featureFlag: 'advancedAnalytics',
     },
-    
+
     // Priority support
     {
       feature: 'priority_support',
       requiredTier: 'transformation',
-      featureFlag: 'prioritySupport'
+      featureFlag: 'prioritySupport',
     },
-    
+
     // Family features
     {
       feature: 'family_sharing',
       requiredTier: 'family',
-      usageType: 'familyMembers'
+      usageType: 'familyMembers',
     },
-    
+
     // Content creation limits
     {
       feature: 'unlimited_playbooks',
       requiredTier: 'growth',
-      usageType: 'playbooks'
+      usageType: 'playbooks',
     },
     {
       feature: 'unlimited_devotionals',
       requiredTier: 'starter',
-      usageType: 'devotionals'
+      usageType: 'devotionals',
     },
-    
+
     // Copy incomplete todos
     {
       feature: 'copy_incomplete_todos',
       requiredTier: 'free_trial',
-      featureFlag: 'copyIncompleteTodosEnabled'
+      featureFlag: 'copyIncompleteTodosEnabled',
     },
-    
+
     // Answered prayer tracking
     {
       feature: 'answered_prayer_tracking',
       requiredTier: 'free_trial',
-      featureFlag: 'answeredPrayerTrackingEnabled'
-    }
+      featureFlag: 'answeredPrayerTrackingEnabled',
+    },
   ];
 
   /**
@@ -127,7 +127,7 @@ class TierRestrictionService {
       // Get user subscription and limits
       const subscription = await subscriptionService.getUserSubscription(userId);
       const limits = subscriptionService.getSubscriptionLimits(subscription?.tier || 'basic');
-      
+
       // Find restriction for this feature
       const restriction = this.restrictions.find(r => r.feature === feature);
       if (!restriction) {
@@ -141,7 +141,7 @@ class TierRestrictionService {
           hasAccess: false,
           reason: 'tier_restriction',
           requiredTier: restriction.requiredTier,
-          upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier)
+          upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier),
         };
       }
 
@@ -151,7 +151,7 @@ class TierRestrictionService {
           hasAccess: false,
           reason: 'feature_disabled',
           requiredTier: restriction.requiredTier,
-          upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier)
+          upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier),
         };
       }
 
@@ -168,7 +168,7 @@ class TierRestrictionService {
             currentUsage,
             limit,
             requiredTier: this.getNextTierWithUnlimitedAccess(restriction.usageType),
-            upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier)
+            upgradePrompt: this.generateUpgradePrompt(feature, restriction.requiredTier),
           };
         }
       }
@@ -189,13 +189,13 @@ class TierRestrictionService {
     features: string[]
   ): Promise<Record<string, FeatureAccessResult>> {
     const results: Record<string, FeatureAccessResult> = {};
-    
+
     await Promise.all(
       features.map(async (feature) => {
         results[feature] = await this.checkFeatureAccess(userId, feature);
       })
     );
-    
+
     return results;
   }
 
@@ -229,7 +229,7 @@ class TierRestrictionService {
       await retentionService.logRetentionEvent(userId, 'feature_restriction', {
         feature,
         currentTier,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       console.error('[TierRestrictionService] Error triggering retention:', error);
@@ -254,7 +254,7 @@ class TierRestrictionService {
       'transformation': 4,
       'transformation_annual': 4,
       'family': 5,
-      'family_annual': 5
+      'family_annual': 5,
     };
 
     return (tierHierarchy[currentTier] || 0) >= (tierHierarchy[requiredTier] || 0);
@@ -310,7 +310,7 @@ class TierRestrictionService {
       'devotionals': 'growth',
       'exports': 'transformation',
       'apiCalls': 'transformation',
-      'familyMembers': 'family'
+      'familyMembers': 'family',
     };
 
     return unlimitedTiers[usageType] || 'transformation';
@@ -337,7 +337,7 @@ class TierRestrictionService {
       'unlimited_playbooks': 'Unlimited Playbooks',
       'unlimited_devotionals': 'Unlimited Devotionals',
       'copy_incomplete_todos': 'Copy Incomplete Todos',
-      'answered_prayer_tracking': 'Prayer Tracking'
+      'answered_prayer_tracking': 'Prayer Tracking',
     };
 
     const tierNames: Record<SubscriptionTier, string> = {
@@ -350,7 +350,7 @@ class TierRestrictionService {
       'transformation': 'Transformation',
       'transformation_annual': 'Transformation Annual',
       'family': 'Family',
-      'family_annual': 'Family Annual'
+      'family_annual': 'Family Annual',
     };
 
     const featureName = featureNames[feature] || feature;
@@ -360,7 +360,7 @@ class TierRestrictionService {
       title: `Unlock ${featureName}`,
       message: `${featureName} is available with ${tierName} and higher plans. Upgrade to continue your spiritual growth journey.`,
       cta: `Upgrade to ${tierName}`,
-      recommendedTier: requiredTier
+      recommendedTier: requiredTier,
     };
   }
 }

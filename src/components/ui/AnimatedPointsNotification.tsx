@@ -62,7 +62,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   }, [translateY, opacity, scale, onAnimationComplete]);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {return;}
 
     // Start entrance animation
     const entranceAnimation = Animated.parallel([
@@ -107,7 +107,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       clearTimeout(hideTimer);
       sparkleAnimation.stop();
       entranceAnimation.stop();
-      
+
       // Reset animations if component unmounts
       if (!visible) {
         translateY.setValue(50);
@@ -129,24 +129,24 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   };
 
   const getActivityIcon = () => {
-    if (activityType.includes('devotional')) return 'book';
-    if (activityType.includes('prayer')) return 'heart';
-    if (activityType.includes('journal')) return 'create';
-    if (activityType.includes('playbook')) return 'library';
-    if (activityType.includes('streak')) return 'flame';
+    if (activityType.includes('devotional')) {return 'book';}
+    if (activityType.includes('prayer')) {return 'heart';}
+    if (activityType.includes('journal')) {return 'create';}
+    if (activityType.includes('playbook')) {return 'library';}
+    if (activityType.includes('streak')) {return 'flame';}
     return 'star';
   };
 
   const getActivityColor = () => {
-    if (activityType.includes('devotional')) return Colors.spiritualPink;
-    if (activityType.includes('prayer')) return Colors.anchorBlue;
-    if (activityType.includes('journal')) return Colors.growthGreen;
-    if (activityType.includes('playbook')) return Colors.modalBlue;
-    if (activityType.includes('streak')) return Colors.faithGold;
+    if (activityType.includes('devotional')) {return Colors.spiritualPink;}
+    if (activityType.includes('prayer')) {return Colors.anchorBlue;}
+    if (activityType.includes('journal')) {return Colors.growthGreen;}
+    if (activityType.includes('playbook')) {return Colors.modalBlue;}
+    if (activityType.includes('streak')) {return Colors.faithGold;}
     return Colors.spiritualPink;
   };
 
-  if (!visible) return null;
+  if (!visible) {return null;}
 
   const sparkleRotationInterpolate = sparkleRotation.interpolate({
     inputRange: [0, 1],
@@ -183,13 +183,13 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
         {/* Main content */}
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Ionicons 
-              name={getActivityIcon()} 
-              size={24} 
-              color={Colors.hopeWhite} 
+            <Ionicons
+              name={getActivityIcon()}
+              size={24}
+              color={Colors.hopeWhite}
             />
           </View>
-          
+
           <View style={styles.textContainer}>
             <Text style={styles.pointsText}>
               +{points} Faith Points

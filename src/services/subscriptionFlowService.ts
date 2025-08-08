@@ -1,6 +1,6 @@
 /**
  * Subscription Flow Service
- * 
+ *
  * Handles the logic for determining initial subscription tiers for new users
  * and managing the subscription flow based on different user sources and conditions.
  */
@@ -30,11 +30,11 @@ export class SubscriptionFlowService {
    * Based on signup source, campaigns, referrals, etc.
    */
   static determineInitialTier(
-    userId: string, 
+    userId: string,
     signupSource?: UserSignupSource
   ): SubscriptionTier {
     // Option 1: Free trial for specific campaigns or promotions
-    if (signupSource?.source === 'campaign' || 
+    if (signupSource?.source === 'campaign' ||
         signupSource?.source === 'promotion' ||
         signupSource?.utm_campaign?.includes('trial')) {
       console.log(`[SubscriptionFlow] User ${userId} gets free_trial from campaign/promotion`);
@@ -48,7 +48,7 @@ export class SubscriptionFlowService {
     }
 
     // Option 3: Free trial for paid advertising sources
-    if (signupSource?.utm_source === 'google-ads' || 
+    if (signupSource?.utm_source === 'google-ads' ||
         signupSource?.utm_source === 'facebook-ads' ||
         signupSource?.utm_medium === 'cpc') {
       console.log(`[SubscriptionFlow] User ${userId} gets free_trial from paid advertising`);
@@ -69,9 +69,9 @@ export class SubscriptionFlowService {
   ): Promise<{ tier: SubscriptionTier; success: boolean; error?: string }> {
     try {
       const initialTier = this.determineInitialTier(userId, signupSource);
-      
+
       // Calculate trial end date if applicable
-      const trialEndsAt = initialTier === 'free_trial' 
+      const trialEndsAt = initialTier === 'free_trial'
         ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000) // 3 days from now
         : null;
 
@@ -102,10 +102,10 @@ export class SubscriptionFlowService {
 
     } catch (error) {
       console.error('[SubscriptionFlow] Error in createInitialSubscription:', error);
-      return { 
-        tier: 'basic', 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        tier: 'basic',
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -116,37 +116,37 @@ export class SubscriptionFlowService {
   static async createOnboardingPlaybook(userId: string): Promise<OnboardingPlaybook | null> {
     try {
       const onboardingPlaybook = {
-        title: "Welcome to siFia - Your Spiritual Journey Begins",
+        title: 'Welcome to siFia - Your Spiritual Journey Begins',
         content: JSON.stringify({
-          introduction: "Welcome to siFia! This playbook will guide you through your first steps in spiritual growth and reflection.",
+          introduction: 'Welcome to siFia! This playbook will guide you through your first steps in spiritual growth and reflection.',
           sections: [
             {
-              title: "Getting Started",
+              title: 'Getting Started',
               steps: [
-                "Set up your daily reflection time",
-                "Choose your preferred prayer style",
-                "Explore the journal features",
-                "Set your spiritual goals"
-              ]
+                'Set up your daily reflection time',
+                'Choose your preferred prayer style',
+                'Explore the journal features',
+                'Set your spiritual goals',
+              ],
             },
             {
-              title: "Daily Practices",
+              title: 'Daily Practices',
               steps: [
-                "Morning gratitude reflection",
-                "Midday prayer check-in",
-                "Evening review and planning",
-                "Weekly spiritual assessment"
-              ]
-            }
+                'Morning gratitude reflection',
+                'Midday prayer check-in',
+                'Evening review and planning',
+                'Weekly spiritual assessment',
+              ],
+            },
           ],
           tips: [
-            "Start small - even 5 minutes daily makes a difference",
-            "Be consistent rather than perfect",
+            'Start small - even 5 minutes daily makes a difference',
+            'Be consistent rather than perfect',
             "Use the app's reminders to build habits",
-            "Connect with the community for support"
-          ]
+            'Connect with the community for support',
+          ],
         }),
-        category: "onboarding",
+        category: 'onboarding',
         user_id: userId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -253,7 +253,7 @@ export class SubscriptionFlowService {
         .from('user_subscriptions')
         .select('tier, created_at');
 
-      if (subError) throw subError;
+      if (subError) {throw subError;}
 
       // Get signup sources
       const { data: signupEvents, error: eventError } = await supabase
@@ -261,7 +261,7 @@ export class SubscriptionFlowService {
         .select('event_data, created_at')
         .eq('event_type', 'signup');
 
-      if (eventError) throw eventError;
+      if (eventError) {throw eventError;}
 
       // Calculate statistics
       const total = subscriptions?.length || 0;
@@ -273,17 +273,17 @@ export class SubscriptionFlowService {
       const bySource = signupEvents?.reduce((acc, event) => {
         const source = event.event_data?.source || 'unknown';
         const assignedTier = event.event_data?.assigned_tier;
-        
+
         if (!acc[source]) {
           acc[source] = { count: 0, tier_distribution: {} };
         }
-        
+
         acc[source].count++;
         if (assignedTier) {
-          acc[source].tier_distribution[assignedTier] = 
+          acc[source].tier_distribution[assignedTier] =
             (acc[source].tier_distribution[assignedTier] || 0) + 1;
         }
-        
+
         return acc;
       }, {} as Record<string, { count: number; tier_distribution: Record<SubscriptionTier, number> }>) || {};
 

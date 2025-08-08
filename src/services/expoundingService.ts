@@ -42,7 +42,7 @@ export class ExpoundingService {
     try {
       const subscription = await subscriptionService.getUserSubscription(userId);
       const limits = subscriptionService.getSubscriptionLimits(subscription.tier);
-      
+
       return {
         hasAccess: limits.expoundingEnabled || false,
         requiredTier: 'transformation',
@@ -89,9 +89,9 @@ export class ExpoundingService {
     try {
       // For beta launch, we'll use predefined templates
       // In production, this would integrate with AI service
-      
+
       const expandedContent = await this.generateContentWithAI(actionStep, subtask);
-      
+
       const expoundingContent: Partial<ExpoundingContent> = {
         action_step_id: actionStep.id,
         subtask_id: subtask.id,
@@ -126,52 +126,52 @@ export class ExpoundingService {
   private async generateContentWithAI(actionStep: any, subtask: any): Promise<any> {
     // For beta launch, use template-based content
     // In production, integrate with OpenAI or similar service
-    
+
     const templates = {
       prayer: {
         deeper_insights: "Prayer is not just communication with God, but a transformative practice that aligns our hearts with His will. Through consistent prayer, we develop spiritual sensitivity and learn to discern God's voice in our daily lives.",
         practical_steps: [
-          "Set aside a specific time each day for prayer",
-          "Create a quiet, dedicated space for prayer",
-          "Use a prayer journal to track requests and answers",
-          "Practice different types of prayer (praise, confession, thanksgiving, supplication)"
+          'Set aside a specific time each day for prayer',
+          'Create a quiet, dedicated space for prayer',
+          'Use a prayer journal to track requests and answers',
+          'Practice different types of prayer (praise, confession, thanksgiving, supplication)',
         ],
         reflection_questions: [
-          "How has God been speaking to you lately?",
+          'How has God been speaking to you lately?',
           "What areas of your life need God's guidance?",
-          "How can you make prayer a more consistent part of your routine?"
+          'How can you make prayer a more consistent part of your routine?',
         ],
-        biblical_context: "Jesus modeled consistent prayer throughout His ministry (Luke 5:16, Mark 1:35). The early church devoted themselves to prayer (Acts 2:42), showing its central importance in Christian life.",
+        biblical_context: 'Jesus modeled consistent prayer throughout His ministry (Luke 5:16, Mark 1:35). The early church devoted themselves to prayer (Acts 2:42), showing its central importance in Christian life.',
         common_challenges: [
           "Feeling like prayers aren't being answered",
-          "Struggling with consistency in prayer time",
-          "Not knowing what to pray about",
-          "Feeling distracted during prayer"
+          'Struggling with consistency in prayer time',
+          'Not knowing what to pray about',
+          'Feeling distracted during prayer',
         ],
-        encouragement: "Remember that prayer is a relationship, not a performance. God delights in hearing from you, whether your prayers are eloquent or simple. Every moment spent in prayer deepens your connection with Him."
+        encouragement: 'Remember that prayer is a relationship, not a performance. God delights in hearing from you, whether your prayers are eloquent or simple. Every moment spent in prayer deepens your connection with Him.',
       },
       bible_study: {
         deeper_insights: "Bible study is more than reading; it's engaging with God's living Word to transform our minds and hearts. Through careful study, we discover God's character, His promises, and His plan for our lives.",
         practical_steps: [
-          "Choose a consistent time and place for study",
-          "Use a study Bible with helpful notes and commentary",
-          "Ask questions: What does this teach about God? About humanity? About living faithfully?",
-          "Apply what you learn to your current circumstances"
+          'Choose a consistent time and place for study',
+          'Use a study Bible with helpful notes and commentary',
+          'Ask questions: What does this teach about God? About humanity? About living faithfully?',
+          'Apply what you learn to your current circumstances',
         ],
         reflection_questions: [
-          "What is God teaching you through His Word right now?",
+          'What is God teaching you through His Word right now?',
           "How can you apply today's reading to your life?",
-          "What questions do you have about what you've read?"
+          "What questions do you have about what you've read?",
         ],
-        biblical_context: "The Bereans were commended for examining the Scriptures daily (Acts 17:11). Timothy was reminded that Scripture is profitable for teaching, reproof, correction, and training in righteousness (2 Timothy 3:16-17).",
+        biblical_context: 'The Bereans were commended for examining the Scriptures daily (Acts 17:11). Timothy was reminded that Scripture is profitable for teaching, reproof, correction, and training in righteousness (2 Timothy 3:16-17).',
         common_challenges: [
-          "Finding time for consistent study",
-          "Understanding difficult passages",
-          "Staying focused while reading",
-          "Knowing where to start"
+          'Finding time for consistent study',
+          'Understanding difficult passages',
+          'Staying focused while reading',
+          'Knowing where to start',
         ],
-        encouragement: "God's Word is a lamp to your feet and a light to your path (Psalm 119:105). Every time you open Scripture, you're positioning yourself to hear from God and grow in wisdom."
-      }
+        encouragement: "God's Word is a lamp to your feet and a light to your path (Psalm 119:105). Every time you open Scripture, you're positioning yourself to hear from God and grow in wisdom.",
+      },
     };
 
     // Determine content type based on action step and subtask
@@ -194,15 +194,15 @@ export class ExpoundingService {
    */
   private determineContentType(actionStep: any, subtask: any): string {
     const text = `${actionStep.title} ${actionStep.description} ${subtask.text}`.toLowerCase();
-    
+
     if (text.includes('pray') || text.includes('prayer')) {
       return 'prayer';
     }
-    
+
     if (text.includes('bible') || text.includes('scripture') || text.includes('read')) {
       return 'bible_study';
     }
-    
+
     // Default to prayer template
     return 'prayer';
   }

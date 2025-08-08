@@ -1,6 +1,6 @@
 /**
  * Comprehensive Subscription System Test Script
- * 
+ *
  * Tests all subscription features including expounding and exporting
  */
 
@@ -45,12 +45,12 @@ class SubscriptionSystemTester {
     // Test required tables exist
     const requiredTables = [
       'subscriptions',
-      'usage_tracking', 
+      'usage_tracking',
       'user_events',
       'playbooks',
       'devotionals',
       'step_expounding',
-      'user_questions'
+      'user_questions',
     ];
 
     for (const table of requiredTables) {
@@ -65,14 +65,14 @@ class SubscriptionSystemTester {
           test: `Table exists: ${table}`,
           passed: !error,
           error: error?.message,
-          data: !error ? `✅ Table accessible` : undefined
+          data: !error ? '✅ Table accessible' : undefined,
         });
       } catch (error) {
         this.addResult({
           category: 'Database Schema',
           test: `Table exists: ${table}`,
           passed: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
@@ -89,14 +89,14 @@ class SubscriptionSystemTester {
         test: 'subscription_tier enum works',
         passed: !error,
         error: error?.message,
-        data: !error ? '✅ Enum accessible' : undefined
+        data: !error ? '✅ Enum accessible' : undefined,
       });
     } catch (error) {
       this.addResult({
         category: 'Database Schema',
         test: 'subscription_tier enum works',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -111,7 +111,7 @@ class SubscriptionSystemTester {
         category: 'Subscription Service',
         test: 'Get subscription limits',
         passed: !!limits && limits.playbooks > 0,
-        data: { playbooks: limits.playbooks, expoundingEnabled: limits.expoundingEnabled }
+        data: { playbooks: limits.playbooks, expoundingEnabled: limits.expoundingEnabled },
       });
 
       // Test tier hierarchy
@@ -120,7 +120,7 @@ class SubscriptionSystemTester {
         category: 'Subscription Service',
         test: 'Get tier hierarchy',
         passed: Array.isArray(hierarchy) && hierarchy.length > 0,
-        data: hierarchy
+        data: hierarchy,
       });
 
       // Test pricing
@@ -129,7 +129,7 @@ class SubscriptionSystemTester {
         category: 'Subscription Service',
         test: 'Get tier pricing',
         passed: !!pricing && pricing.monthly > 0,
-        data: pricing
+        data: pricing,
       });
 
       // Test feature access check
@@ -138,7 +138,7 @@ class SubscriptionSystemTester {
         category: 'Subscription Service',
         test: 'Check feature access',
         passed: typeof featureAccess.canUse === 'boolean',
-        data: featureAccess
+        data: featureAccess,
       });
 
     } catch (error) {
@@ -146,7 +146,7 @@ class SubscriptionSystemTester {
         category: 'Subscription Service',
         test: 'Service functionality',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -160,7 +160,7 @@ class SubscriptionSystemTester {
         category: 'Analytics Service',
         test: 'Service initialization',
         passed: !!analyticsService,
-        data: '✅ Service available'
+        data: '✅ Service available',
       });
 
       // Test method availability
@@ -168,7 +168,7 @@ class SubscriptionSystemTester {
         'trackEvent',
         'trackFeatureUsage',
         'trackRetentionEvent',
-        'getUserBehaviorMetrics'
+        'getUserBehaviorMetrics',
       ];
 
       for (const method of methods) {
@@ -176,7 +176,7 @@ class SubscriptionSystemTester {
           category: 'Analytics Service',
           test: `Method available: ${method}`,
           passed: typeof (analyticsService as any)[method] === 'function',
-          data: '✅ Method exists'
+          data: '✅ Method exists',
         });
       }
 
@@ -185,7 +185,7 @@ class SubscriptionSystemTester {
         category: 'Analytics Service',
         test: 'Service functionality',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -205,7 +205,7 @@ class SubscriptionSystemTester {
         test: 'step_expounding table accessible',
         passed: !expoundingError,
         error: expoundingError?.message,
-        data: !expoundingError ? '✅ Table ready for expounding content' : undefined
+        data: !expoundingError ? '✅ Table ready for expounding content' : undefined,
       });
 
       // Test user_questions table
@@ -219,7 +219,7 @@ class SubscriptionSystemTester {
         test: 'user_questions table accessible',
         passed: !questionsError,
         error: questionsError?.message,
-        data: !questionsError ? '✅ Table ready for user questions' : undefined
+        data: !questionsError ? '✅ Table ready for user questions' : undefined,
       });
 
       // Test expounding feature access for different tiers
@@ -230,7 +230,7 @@ class SubscriptionSystemTester {
           category: 'Expounding Features',
           test: `Expounding access for ${tier}`,
           passed: true,
-          data: { tier, expoundingEnabled: limits.expoundingEnabled }
+          data: { tier, expoundingEnabled: limits.expoundingEnabled },
         });
       }
 
@@ -239,7 +239,7 @@ class SubscriptionSystemTester {
         category: 'Expounding Features',
         test: 'Expounding system',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -256,7 +256,7 @@ class SubscriptionSystemTester {
           category: 'Export Features',
           test: `Export limits for ${tier}`,
           passed: true,
-          data: { tier, exports: limits.exports }
+          data: { tier, exports: limits.exports },
         });
       }
 
@@ -266,7 +266,7 @@ class SubscriptionSystemTester {
         category: 'Export Features',
         test: 'Export feature access check',
         passed: typeof exportAccess.canUse === 'boolean',
-        data: exportAccess
+        data: exportAccess,
       });
 
       // Test usage tracking for exports
@@ -275,7 +275,7 @@ class SubscriptionSystemTester {
         category: 'Export Features',
         test: 'Export usage tracking',
         passed: typeof trackingResult === 'boolean',
-        data: { tracked: trackingResult }
+        data: { tracked: trackingResult },
       });
 
     } catch (error) {
@@ -283,7 +283,7 @@ class SubscriptionSystemTester {
         category: 'Export Features',
         test: 'Export system',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -302,8 +302,8 @@ class SubscriptionSystemTester {
           playbooks: trialLimits.playbooks,
           devotionals: trialLimits.devotionals,
           exports: trialLimits.exports,
-          expoundingEnabled: trialLimits.expoundingEnabled
-        }
+          expoundingEnabled: trialLimits.expoundingEnabled,
+        },
       });
 
       // Test trial pricing
@@ -312,7 +312,7 @@ class SubscriptionSystemTester {
         category: 'Trial System',
         test: 'Free trial pricing',
         passed: trialPricing.monthly === 0,
-        data: trialPricing
+        data: trialPricing,
       });
 
       // Test next tier suggestion
@@ -321,7 +321,7 @@ class SubscriptionSystemTester {
         category: 'Trial System',
         test: 'Next tier suggestion',
         passed: !!nextTier,
-        data: { nextTier }
+        data: { nextTier },
       });
 
     } catch (error) {
@@ -329,7 +329,7 @@ class SubscriptionSystemTester {
         category: 'Trial System',
         test: 'Trial functionality',
         passed: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -343,23 +343,23 @@ class SubscriptionSystemTester {
     console.log('========================\n');
 
     const categories = [...new Set(this.results.map(r => r.category))];
-    
+
     categories.forEach(category => {
       const categoryResults = this.results.filter(r => r.category === category);
       const passed = categoryResults.filter(r => r.passed).length;
       const total = categoryResults.length;
-      
+
       console.log(`\n🔍 ${category} (${passed}/${total})`);
       console.log('─'.repeat(50));
-      
+
       categoryResults.forEach(result => {
         const status = result.passed ? '✅' : '❌';
         console.log(`${status} ${result.test}`);
-        
+
         if (result.error) {
           console.log(`   ❗ Error: ${result.error}`);
         }
-        
+
         if (result.data && typeof result.data === 'object') {
           console.log(`   📋 Data: ${JSON.stringify(result.data, null, 2)}`);
         } else if (result.data) {
@@ -373,7 +373,7 @@ class SubscriptionSystemTester {
     const percentage = Math.round((totalPassed / totalTests) * 100);
 
     console.log(`\n📈 Overall: ${totalPassed}/${totalTests} tests passed (${percentage}%)`);
-    
+
     if (totalPassed === totalTests) {
       console.log('🎉 All tests passed! Your subscription system is ready.');
     } else {
@@ -383,7 +383,7 @@ class SubscriptionSystemTester {
     // Feature availability summary
     console.log('\n🎯 Feature Availability Summary:');
     console.log('================================');
-    
+
     const tiers = ['free_trial', 'starter', 'growth', 'transformation'];
     tiers.forEach(tier => {
       const limits = subscriptionServiceCompatible.getSubscriptionLimits(tier as any);
@@ -405,19 +405,19 @@ class SubscriptionSystemTester {
   getSummaryByCategory(): Record<string, { passed: number; total: number; percentage: number }> {
     const categories = [...new Set(this.results.map(r => r.category))];
     const summary: Record<string, { passed: number; total: number; percentage: number }> = {};
-    
+
     categories.forEach(category => {
       const categoryResults = this.results.filter(r => r.category === category);
       const passed = categoryResults.filter(r => r.passed).length;
       const total = categoryResults.length;
-      
+
       summary[category] = {
         passed,
         total,
-        percentage: Math.round((passed / total) * 100)
+        percentage: Math.round((passed / total) * 100),
       };
     });
-    
+
     return summary;
   }
 }

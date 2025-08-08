@@ -1,6 +1,6 @@
 /**
  * Comprehensive Test Suite - Phase 4
- * 
+ *
  * Testing framework for subscription tiers, feature restrictions,
  * retention offers, expounding system, and analytics integration.
  */
@@ -26,10 +26,10 @@ jest.mock('../config/supabase', () => ({
       gte: jest.fn().mockReturnThis(),
     })),
     auth: {
-      getUser: jest.fn()
+      getUser: jest.fn(),
     },
-    rpc: jest.fn()
-  }
+    rpc: jest.fn(),
+  },
 }));
 
 describe('Subscription System Integration Tests', () => {
@@ -40,7 +40,7 @@ describe('Subscription System Integration Tests', () => {
     tier: 'growth' as SubscriptionTier,
     status: 'active' as const,
     created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
 
   beforeEach(() => {
@@ -52,11 +52,11 @@ describe('Subscription System Integration Tests', () => {
       const mockSupabase = require('../config/supabase').supabase;
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: mockSubscription,
-        error: null
+        error: null,
       });
 
       const subscription = await subscriptionService.getUserSubscription(mockUserId);
-      
+
       expect(subscription).toEqual(mockSubscription);
       expect(mockSupabase.from).toHaveBeenCalledWith('user_subscriptions');
     });
@@ -85,7 +85,7 @@ describe('Subscription System Integration Tests', () => {
         target_user_id: mockUserId,
         target_period: expect.any(String),
         field_name: 'playbooks_used',
-        increment_by: 1
+        increment_by: 1,
       });
     });
   });
@@ -93,17 +93,17 @@ describe('Subscription System Integration Tests', () => {
   describe('Tier Restriction Service', () => {
     it('should correctly check feature access for different tiers', async () => {
       const mockSupabase = require('../config/supabase').supabase;
-      
+
       // Mock subscription data
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: mockSubscription,
-        error: null
+        error: null,
       });
 
       // Mock usage data
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: { exports_used: 2 },
-        error: null
+        error: null,
       });
 
       const accessResult = await tierRestrictionService.checkFeatureAccess(
@@ -117,15 +117,15 @@ describe('Subscription System Integration Tests', () => {
 
     it('should deny access when usage limits are exceeded', async () => {
       const mockSupabase = require('../config/supabase').supabase;
-      
+
       mockSupabase.from().select().eq().single
         .mockResolvedValueOnce({
           data: mockSubscription,
-          error: null
+          error: null,
         })
         .mockResolvedValueOnce({
           data: { exports_used: 10 }, // Exceeds growth tier limit of 5
-          error: null
+          error: null,
         });
 
       const accessResult = await tierRestrictionService.checkFeatureAccess(
@@ -139,11 +139,11 @@ describe('Subscription System Integration Tests', () => {
 
     it('should provide correct upgrade prompts', async () => {
       const mockSupabase = require('../config/supabase').supabase;
-      
+
       // Mock free trial user
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: { ...mockSubscription, tier: 'free_trial' },
-        error: null
+        error: null,
       });
 
       const accessResult = await tierRestrictionService.checkFeatureAccess(
@@ -160,16 +160,16 @@ describe('Subscription System Integration Tests', () => {
   describe('Retention Service', () => {
     it('should calculate user value score correctly', async () => {
       const mockSupabase = require('../config/supabase').supabase;
-      
+
       // Mock user data for value calculation
       mockSupabase.from().select().eq().order()
         .mockResolvedValueOnce({
           data: [{ engagement_score: 0.8 }], // High engagement
-          error: null
+          error: null,
         })
         .mockResolvedValueOnce({
           data: [{ tier: 'growth', created_at: '2024-01-01' }], // Subscription history
-          error: null
+          error: null,
         });
 
       const valueScore = await retentionService.calculateUserValueScore(mockUserId);
@@ -180,12 +180,12 @@ describe('Subscription System Integration Tests', () => {
 
     it('should generate dynamic pricing offers', async () => {
       const mockSupabase = require('../config/supabase').supabase;
-      
+
       // Mock high-value user data
       mockSupabase.from().select().eq().order()
         .mockResolvedValue({
           data: [{ engagement_score: 0.9 }],
-          error: null
+          error: null,
         });
 
       const offer = await retentionService.generateDynamicOffer(mockUserId, 'growth');
@@ -217,11 +217,11 @@ describe('Subscription System Integration Tests', () => {
       const mockSupabase = require('../config/supabase').supabase;
       mockSupabase.from().select().eq().mockResolvedValue({
         data: [],
-        error: null
+        error: null,
       });
       mockSupabase.from().insert().mockResolvedValue({
         data: [{ id: 'exp-123' }],
-        error: null
+        error: null,
       });
 
       const expounding = await enhancedExpoundingService.generateStepByStepExpounding(
@@ -239,7 +239,7 @@ describe('Subscription System Integration Tests', () => {
       const mockSupabase = require('../config/supabase').supabase;
       mockSupabase.from().insert().mockResolvedValue({
         data: [{ id: 'question-123' }],
-        error: null
+        error: null,
       });
 
       const response = await enhancedExpoundingService.handleUserQuestion(
@@ -254,11 +254,11 @@ describe('Subscription System Integration Tests', () => {
 
     it('should check tier access for expounding features', async () => {
       const mockSupabase = require('../config/supabase').supabase;
-      
+
       // Mock free trial user
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: { ...mockSubscription, tier: 'free_trial' },
-        error: null
+        error: null,
       });
 
       const hasAccess = await enhancedExpoundingService.checkExpoundingAccess(mockUserId);
@@ -272,12 +272,12 @@ describe('Subscription System Integration Tests', () => {
       const mockSupabase = require('../config/supabase').supabase;
       mockSupabase.from().insert().mockResolvedValue({ data: null, error: null });
       mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: { id: mockUserId } }
+        data: { user: { id: mockUserId } },
       });
 
       await analyticsService.trackEvent('feature_used', {
         feature_name: 'export_pdf',
-        success: true
+        success: true,
       });
 
       expect(mockSupabase.from).toHaveBeenCalledWith('user_behavior_events');
@@ -290,12 +290,12 @@ describe('Subscription System Integration Tests', () => {
 
       await analyticsService.trackFeatureUsage('export_pdf', true, {
         file_size: '2MB',
-        export_time: 3000
+        export_time: 3000,
       });
 
-      expect(mockSupabase.rpc).toHaveBeenCalledWith('increment_usage_tracking', 
+      expect(mockSupabase.rpc).toHaveBeenCalledWith('increment_usage_tracking',
         expect.objectContaining({
-          field_name: 'exports_used'
+          field_name: 'exports_used',
         })
       );
     });
@@ -303,7 +303,7 @@ describe('Subscription System Integration Tests', () => {
     it('should calculate engagement scores correctly', () => {
       // Access private method through type assertion for testing
       const service = analyticsService as any;
-      
+
       const highEngagementScore = service.calculateEngagementScore('content_completed', { success: true });
       const lowEngagementScore = service.calculateEngagementScore('app_opened', { success: false });
 
@@ -315,12 +315,12 @@ describe('Subscription System Integration Tests', () => {
   describe('Integration Scenarios', () => {
     it('should handle complete user journey from restriction to upgrade', async () => {
       const mockSupabase = require('../config/supabase').supabase;
-      
+
       // Step 1: User hits feature restriction
       mockSupabase.from().select().eq().single
         .mockResolvedValueOnce({
           data: { ...mockSubscription, tier: 'free_trial' },
-          error: null
+          error: null,
         });
 
       const restrictionResult = await tierRestrictionService.checkFeatureAccess(
@@ -333,7 +333,7 @@ describe('Subscription System Integration Tests', () => {
       // Step 2: Retention offer is generated
       mockSupabase.from().select().eq().order().mockResolvedValue({
         data: [{ engagement_score: 0.7 }],
-        error: null
+        error: null,
       });
 
       const offer = await retentionService.generateDynamicOffer(mockUserId, 'growth');
@@ -341,10 +341,10 @@ describe('Subscription System Integration Tests', () => {
 
       // Step 3: Analytics tracks the journey
       mockSupabase.from().insert().mockResolvedValue({ data: null, error: null });
-      
+
       await analyticsService.trackUserJourney('feature_restriction_hit', true, {
         feature: 'export_pdf',
-        offer_shown: true
+        offer_shown: true,
       });
 
       expect(mockSupabase.from).toHaveBeenCalledWith('user_behavior_events');
@@ -352,11 +352,11 @@ describe('Subscription System Integration Tests', () => {
 
     it('should handle expounding access flow with tier checking', async () => {
       const mockSupabase = require('../config/supabase').supabase;
-      
+
       // Mock transformation tier user
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: { ...mockSubscription, tier: 'transformation' },
-        error: null
+        error: null,
       });
 
       // Check access
@@ -366,11 +366,11 @@ describe('Subscription System Integration Tests', () => {
       // Generate expounding
       mockSupabase.from().select().eq().mockResolvedValue({
         data: [],
-        error: null
+        error: null,
       });
       mockSupabase.from().insert().mockResolvedValue({
         data: [{ id: 'exp-123' }],
-        error: null
+        error: null,
       });
 
       const expounding = await enhancedExpoundingService.generateStepByStepExpounding(
@@ -392,7 +392,7 @@ describe('Subscription System Integration Tests', () => {
       const mockSupabase = require('../config/supabase').supabase;
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: null,
-        error: { message: 'Database connection failed' }
+        error: { message: 'Database connection failed' },
       });
 
       const subscription = await subscriptionService.getUserSubscription(mockUserId);
@@ -412,7 +412,7 @@ describe('Subscription System Integration Tests', () => {
       mockSupabase.from().select().eq().order().mockRejectedValue(new Error('Query failed'));
 
       const offer = await retentionService.generateDynamicOffer(mockUserId, 'growth');
-      
+
       // Should return static fallback offer
       expect(offer.discountPercentage).toBeGreaterThan(0);
       expect(offer.personalizedMessage).toBeDefined();
@@ -424,7 +424,7 @@ describe('Subscription System Integration Tests', () => {
       const mockSupabase = require('../config/supabase').supabase;
       mockSupabase.from().select().eq().single.mockResolvedValue({
         data: mockSubscription,
-        error: null
+        error: null,
       });
 
       const startTime = Date.now();
@@ -438,7 +438,7 @@ describe('Subscription System Integration Tests', () => {
       const mockSupabase = require('../config/supabase').supabase;
       mockSupabase.from().insert().mockResolvedValue({ data: null, error: null });
       mockSupabase.auth.getUser.mockResolvedValue({
-        data: { user: { id: mockUserId } }
+        data: { user: { id: mockUserId } },
       });
 
       const promises = Array.from({ length: 10 }, (_, i) =>
@@ -453,7 +453,7 @@ describe('Subscription System Integration Tests', () => {
 describe('Component Integration Tests', () => {
   // Tests for React components would go here
   // These would test the UI components with mocked services
-  
+
   describe('useFeatureAccess Hook', () => {
     it('should return correct access status', () => {
       // Mock hook testing would be implemented here

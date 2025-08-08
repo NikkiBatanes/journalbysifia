@@ -38,7 +38,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
   const [error, setError] = useState<string | null>(null);
 
   const fetchDailyVerse = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -60,9 +60,9 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
           // Temporarily remove user_id filter for testing
           // .eq('user_id', user.id)
           .not('content', 'is', null)
-          .limit(5)
+          .limit(5),
       ]);
-      
+
       console.log('[DailyScripture] Playbooks result:', playbooksResult.data?.length || 0);
       console.log('[DailyScripture] Devotionals result:', devotionalsResult.data?.length || 0);
 
@@ -72,10 +72,10 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       if (playbooksResult.data) {
         playbooksResult.data.forEach(playbook => {
           try {
-            const content = typeof playbook.content === 'string' 
-              ? JSON.parse(playbook.content) 
+            const content = typeof playbook.content === 'string'
+              ? JSON.parse(playbook.content)
               : playbook.content;
-            
+
             // Look for Bible verses in various content structures
             if (content.verses && Array.isArray(content.verses)) {
               content.verses.forEach((v: any, index: number) => {
@@ -83,11 +83,11 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
                   id: `playbook-${playbook.id}-${index}`,
                   verse: v.text || v.verse || v.content,
                   reference: v.reference || v.citation || 'Scripture',
-                  source: playbook.title
+                  source: playbook.title,
                 });
               });
             }
-            
+
             // Look for scripture in action steps
             if (content.actionSteps && Array.isArray(content.actionSteps)) {
               content.actionSteps.forEach((step: any, index: number) => {
@@ -96,7 +96,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
                     id: `playbook-step-${playbook.id}-${index}`,
                     verse: step.scripture.verse || step.scripture,
                     reference: step.scripture.reference || 'Scripture',
-                    source: playbook.title
+                    source: playbook.title,
                   });
                 }
               });
@@ -111,26 +111,26 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       if (devotionalsResult.data) {
         devotionalsResult.data.forEach(devotional => {
           try {
-            const content = typeof devotional.content === 'string' 
-              ? JSON.parse(devotional.content) 
+            const content = typeof devotional.content === 'string'
+              ? JSON.parse(devotional.content)
               : devotional.content;
-            
+
             if (content.verse) {
               allVerses.push({
                 id: `devotional-${devotional.id}`,
                 verse: content.verse.text || content.verse,
                 reference: content.verse.reference || 'Scripture',
-                source: devotional.title
+                source: devotional.title,
               });
             }
-            
+
             if (content.verses && Array.isArray(content.verses)) {
               content.verses.forEach((v: any, index: number) => {
                 allVerses.push({
                   id: `devotional-${devotional.id}-${index}`,
                   verse: v.text || v.verse || v.content,
                   reference: v.reference || v.citation || 'Scripture',
-                  source: devotional.title
+                  source: devotional.title,
                 });
               });
             }
@@ -146,7 +146,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
         const today = new Date();
         const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
         const selectedIndex = dayOfYear % allVerses.length;
-        
+
         setVerse(allVerses[selectedIndex]);
       } else {
         setVerse(null);
@@ -171,15 +171,15 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
   };
 
   const handleVersePress = async () => {
-    if (!verse || !user) return;
-    
+    if (!verse || !user) {return;}
+
     try {
       // Award faith points for engaging with daily scripture
       await faithPointsService.awardPoints(user.id, 'daily_streak', {
         type: 'scripture_read',
-        verse_id: verse.id
+        verse_id: verse.id,
       });
-      
+
       onVersePress?.(verse);
     } catch (error) {
       console.error('Error awarding points for scripture:', error);
@@ -189,7 +189,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
   };
 
   const handleShare = async () => {
-    if (!verse) return;
+    if (!verse) {return;}
 
     try {
       await Share.share({
@@ -230,7 +230,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
           </TouchableOpacity>
         </View>
       </View>
-      
+
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
@@ -239,7 +239,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
           </TouchableOpacity>
         </View>
       ) : (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={handleVersePress}
           activeOpacity={0.8}
           style={styles.verseContent}

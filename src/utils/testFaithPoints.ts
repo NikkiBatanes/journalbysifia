@@ -8,7 +8,7 @@ import { generateProgressReport, printProgressReport } from './progressReport';
 
 export const testFaithPointsSystem = async (userId: string) => {
   console.log('🧪 Testing Faith Points System...');
-  
+
   try {
     // Test 1: Get or create user profile
     console.log('📊 Step 1: Getting user profile...');
@@ -16,14 +16,14 @@ export const testFaithPointsSystem = async (userId: string) => {
     console.log('✅ User Profile:', {
       totalPoints: profile.totalPoints,
       currentLevel: profile.currentLevel,
-      currentStreak: profile.currentStreak
+      currentStreak: profile.currentStreak,
     });
 
     // Test 2: Award points for devotional completion
     console.log('🎯 Step 2: Awarding points for devotional...');
     const result = await faithPointsService.awardPoints(userId, 'devotional_generated', {
       testMode: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
     console.log('✅ Points Awarded:', result);
 
@@ -39,7 +39,7 @@ export const testFaithPointsSystem = async (userId: string) => {
       totalPoints: updatedProfile.totalPoints,
       currentLevel: updatedProfile.currentLevel,
       currentStreak: updatedProfile.currentStreak,
-      pointsGained: updatedProfile.totalPoints - profile.totalPoints
+      pointsGained: updatedProfile.totalPoints - profile.totalPoints,
     });
 
     // Test 5: Generate progress report
@@ -55,14 +55,14 @@ export const testFaithPointsSystem = async (userId: string) => {
       pointsAwarded: result.pointsAwarded,
       newLevel: result.newLevel,
       transactionCount: transactions.length,
-      progressReport
+      progressReport,
     };
 
   } catch (error) {
     console.error('❌ Faith Points Test Failed:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 };
@@ -71,7 +71,7 @@ export const logFaithPointsStatus = async (userId: string) => {
   try {
     const profile = await faithPointsService.getUserProfile(userId);
     const transactions = await faithPointsService.getRecentTransactions(userId, 10);
-    
+
     console.log('📊 FAITH POINTS STATUS REPORT');
     console.log('================================');
     console.log(`👤 User ID: ${userId}`);
@@ -81,14 +81,14 @@ export const logFaithPointsStatus = async (userId: string) => {
     console.log(`🎯 Weekly Progress: ${profile.weeklyProgress}/${profile.weeklyGoal}`);
     console.log(`📋 Recent Activities: ${transactions.length}`);
     console.log('================================');
-    
+
     if (transactions.length > 0) {
       console.log('🕐 Recent Activities:');
       transactions.forEach((t: any, i) => {
         console.log(`  ${i + 1}. ${t.activity_type || t.reason} (+${t.points} pts)`);
       });
     }
-    
+
   } catch (error) {
     console.error('❌ Failed to get faith points status:', error);
   }

@@ -44,9 +44,9 @@ interface PlaybookCarouselProps {
 
 
 
-const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({ 
-  onPlaybookPress, 
-  onViewAll 
+const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
+  onPlaybookPress,
+  onViewAll,
 }) => {
   const { user } = useAuth();
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
@@ -54,7 +54,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchPlaybooks = async () => {
-    if (!user) return;
+    if (!user) {return;}
 
     try {
       setLoading(true);
@@ -88,14 +88,14 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             // Parse playbook content to get total steps
             let totalSteps = 0;
             let completedSteps = 0;
-            
+
             try {
-              const content = playbook.content 
-                ? (typeof playbook.content === 'string' 
-                    ? JSON.parse(playbook.content) 
+              const content = playbook.content
+                ? (typeof playbook.content === 'string'
+                    ? JSON.parse(playbook.content)
                     : playbook.content)
                 : null;
-              
+
               if (content && content.actionSteps && Array.isArray(content.actionSteps)) {
                 totalSteps = content.actionSteps.length;
               } else if (content && content.steps && Array.isArray(content.steps)) {
@@ -116,7 +116,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
                 const progress = typeof progressData.progress_data === 'string'
                   ? JSON.parse(progressData.progress_data)
                   : progressData.progress_data;
-                
+
                 completedSteps = progress.completedSteps || 0;
               } catch (parseError) {
                 completedSteps = 0;
@@ -134,7 +134,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
               totalSteps,
               completedSteps,
               lastAccessed: progressData?.updated_at,
-              category: playbook.category || 'Personal Growth'
+              category: playbook.category || 'Personal Growth',
             };
           } catch (err) {
             console.warn('Error processing playbook:', err);
@@ -146,7 +146,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
               progress: 0,
               totalSteps: 1,
               completedSteps: 0,
-              category: 'Personal Growth'
+              category: 'Personal Growth',
             };
           }
         })
@@ -167,15 +167,15 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   }, [user]);
 
   const getProgressColor = (progress: number) => {
-    if (progress === 0) return Colors.lightGray;
-    if (progress < 30) return Colors.error;
-    if (progress < 70) return Colors.faithGold;
+    if (progress === 0) {return Colors.lightGray;}
+    if (progress < 30) {return Colors.error;}
+    if (progress < 70) {return Colors.faithGold;}
     return Colors.successGreen;
   };
 
   const getProgressText = (progress: number) => {
-    if (progress === 0) return 'Not Started';
-    if (progress === 100) return 'Complete';
+    if (progress === 0) {return 'Not Started';}
+    if (progress === 100) {return 'Complete';}
     return `${progress}% Complete`;
   };
 
@@ -184,7 +184,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       key={playbook.id}
       style={[
         styles.playbookCard,
-        { marginLeft: index === 0 ? 16 : CARD_MARGIN }
+        { marginLeft: index === 0 ? 16 : CARD_MARGIN },
       ]}
       onPress={() => onPlaybookPress?.(playbook)}
       activeOpacity={0.8}
@@ -210,14 +210,14 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
 
       <View style={styles.progressSection}>
         <View style={styles.progressBar}>
-          <View 
+          <View
             style={[
-              styles.progressFill, 
-              { 
+              styles.progressFill,
+              {
                 width: `${playbook.progress}%`,
-                backgroundColor: getProgressColor(playbook.progress)
-              }
-            ]} 
+                backgroundColor: getProgressColor(playbook.progress),
+              },
+            ]}
           />
         </View>
         <Text style={styles.progressText}>

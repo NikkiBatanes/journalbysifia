@@ -6,7 +6,7 @@ require('dotenv').config();
 
 async function fixDatabaseConstraints() {
   console.log('🔧 Starting database constraint fixes...');
-  
+
   // Check if environment variables are loaded
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('❌ Missing environment variables. Please check your .env file:');
@@ -22,7 +22,7 @@ async function fixDatabaseConstraints() {
 
   try {
     console.log('📋 Checking current database state...');
-    
+
     // 1. Check if users table exists
     const { data: userTable, error: userTableError } = await supabase
       .rpc('exec_sql', {
@@ -32,7 +32,7 @@ async function fixDatabaseConstraints() {
             WHERE table_schema = 'public' 
             AND table_name = 'users'
           ) as table_exists;
-        `
+        `,
       });
 
     if (userTableError) {
@@ -44,7 +44,7 @@ async function fixDatabaseConstraints() {
 
     // 2. Run the constraint fix SQL
     console.log('🔧 Applying database constraint fixes...');
-    
+
     const { error: sqlError } = await supabase.rpc('exec_sql', {
       sql: `
         -- Create users table if it doesn't exist
@@ -81,7 +81,7 @@ async function fixDatabaseConstraints() {
         CREATE TRIGGER on_auth_user_created
           AFTER INSERT OR UPDATE ON auth.users
           FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-      `
+      `,
     });
 
     if (sqlError) {
@@ -93,9 +93,9 @@ async function fixDatabaseConstraints() {
 
     // 3. Sync existing auth users
     console.log('🔄 Syncing existing auth users...');
-    
+
     const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
+
     if (authError) {
       console.error('❌ Error fetching auth users:', authError);
       return;
@@ -111,7 +111,7 @@ async function fixDatabaseConstraints() {
           id: user.id,
           email: user.email,
           created_at: user.created_at,
-          updated_at: user.updated_at
+          updated_at: user.updated_at,
         });
 
       if (insertError) {

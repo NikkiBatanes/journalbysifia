@@ -1,6 +1,6 @@
 /**
  * Admin Dashboard Component - Phase 4
- * 
+ *
  * Comprehensive business intelligence dashboard for monitoring
  * subscription metrics, user behavior, retention analytics, and system health.
  */
@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   Dimensions,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import { analyticsService } from '../services/analyticsService';
@@ -79,7 +79,7 @@ export const AdminDashboard: React.FC = () => {
       const [metrics, subscriptions, features] = await Promise.all([
         analyticsService.getDashboardMetrics(days),
         analyticsService.getSubscriptionAnalytics({ start: startDate, end: endDate }),
-        analyticsService.getFeatureAnalytics()
+        analyticsService.getFeatureAnalytics(),
       ]);
 
       setDashboardMetrics(metrics);
@@ -103,7 +103,7 @@ export const AdminDashboard: React.FC = () => {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
@@ -141,8 +141,8 @@ export const AdminDashboard: React.FC = () => {
           <MetricCard
             key={metric.metric_name}
             title={metric.metric_name.replace(/_/g, ' ').toUpperCase()}
-            value={metric.metric_name.includes('revenue') ? formatCurrency(metric.current_value) : 
-                   metric.metric_name.includes('rate') || metric.metric_name.includes('score') ? 
+            value={metric.metric_name.includes('revenue') ? formatCurrency(metric.current_value) :
+                   metric.metric_name.includes('rate') || metric.metric_name.includes('score') ?
                    formatPercentage(metric.current_value) : formatNumber(metric.current_value)}
             change={metric.change_percentage}
             trend={metric.trend}
@@ -157,8 +157,8 @@ export const AdminDashboard: React.FC = () => {
           data={{
             labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
             datasets: [{
-              data: subscriptionAnalytics.map(s => s.average_revenue * s.active_users)
-            }]
+              data: subscriptionAnalytics.map(s => s.average_revenue * s.active_users),
+            }],
           }}
           width={chartWidth}
           height={220}
@@ -177,7 +177,7 @@ export const AdminDashboard: React.FC = () => {
             population: s.active_users,
             color: pieColors[index % pieColors.length],
             legendFontColor: '#374151',
-            legendFontSize: 12
+            legendFontSize: 12,
           }))}
           width={chartWidth}
           height={220}
@@ -208,8 +208,8 @@ export const AdminDashboard: React.FC = () => {
           data={{
             labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
             datasets: [{
-              data: subscriptionAnalytics.map(s => s.churn_rate)
-            }]
+              data: subscriptionAnalytics.map(s => s.churn_rate),
+            }],
           }}
           width={chartWidth}
           height={220}
@@ -227,8 +227,8 @@ export const AdminDashboard: React.FC = () => {
           data={{
             labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
             datasets: [{
-              data: subscriptionAnalytics.map(s => s.conversion_rate)
-            }]
+              data: subscriptionAnalytics.map(s => s.conversion_rate),
+            }],
           }}
           width={chartWidth}
           height={220}
@@ -258,8 +258,8 @@ export const AdminDashboard: React.FC = () => {
           data={{
             labels: featureAnalytics.slice(0, 5).map(f => f.feature_name.replace('_', '\n')),
             datasets: [{
-              data: featureAnalytics.slice(0, 5).map(f => f.total_usage)
-            }]
+              data: featureAnalytics.slice(0, 5).map(f => f.total_usage),
+            }],
           }}
           width={chartWidth}
           height={220}
@@ -277,8 +277,8 @@ export const AdminDashboard: React.FC = () => {
           data={{
             labels: featureAnalytics.slice(0, 5).map(f => f.feature_name.replace('_', '\n')),
             datasets: [{
-              data: featureAnalytics.slice(0, 5).map(f => f.satisfaction_score)
-            }]
+              data: featureAnalytics.slice(0, 5).map(f => f.satisfaction_score),
+            }],
           }}
           width={chartWidth}
           height={220}
@@ -297,7 +297,7 @@ export const AdminDashboard: React.FC = () => {
       <Text style={styles.comingSoon}>
         Advanced retention analytics and cohort analysis coming soon...
       </Text>
-      
+
       {/* Retention Rate by Tier */}
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Retention Rate by Tier</Text>
@@ -305,8 +305,8 @@ export const AdminDashboard: React.FC = () => {
           data={{
             labels: subscriptionAnalytics.map(s => s.tier.toUpperCase()),
             datasets: [{
-              data: subscriptionAnalytics.map(s => s.retention_rate)
-            }]
+              data: subscriptionAnalytics.map(s => s.retention_rate),
+            }],
           }}
           width={chartWidth}
           height={220}
@@ -339,13 +339,13 @@ export const AdminDashboard: React.FC = () => {
               key={range}
               style={[
                 styles.timeRangeButton,
-                selectedTimeRange === range && styles.activeTimeRangeButton
+                selectedTimeRange === range && styles.activeTimeRangeButton,
               ]}
               onPress={() => setSelectedTimeRange(range)}
             >
               <Text style={[
                 styles.timeRangeButtonText,
-                selectedTimeRange === range && styles.activeTimeRangeButtonText
+                selectedTimeRange === range && styles.activeTimeRangeButtonText,
               ]}>
                 {range}
               </Text>
@@ -360,13 +360,13 @@ export const AdminDashboard: React.FC = () => {
           { key: 'overview', label: 'Overview', icon: 'analytics' },
           { key: 'subscriptions', label: 'Subscriptions', icon: 'card' },
           { key: 'features', label: 'Features', icon: 'layers' },
-          { key: 'retention', label: 'Retention', icon: 'people' }
+          { key: 'retention', label: 'Retention', icon: 'people' },
         ].map((tab) => (
           <TouchableOpacity
             key={tab.key}
             style={[
               styles.tabButton,
-              activeTab === tab.key && styles.activeTabButton
+              activeTab === tab.key && styles.activeTabButton,
             ]}
             onPress={() => setActiveTab(tab.key as any)}
           >
@@ -377,7 +377,7 @@ export const AdminDashboard: React.FC = () => {
             />
             <Text style={[
               styles.tabButtonText,
-              activeTab === tab.key && styles.activeTabButtonText
+              activeTab === tab.key && styles.activeTabButtonText,
             ]}>
               {tab.label}
             </Text>
@@ -488,13 +488,13 @@ const chartConfig = {
   color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
   labelColor: (opacity = 1) => `rgba(55, 65, 81, ${opacity})`,
   style: {
-    borderRadius: 16
+    borderRadius: 16,
   },
   propsForDots: {
     r: '6',
     strokeWidth: '2',
-    stroke: '#6366F1'
-  }
+    stroke: '#6366F1',
+  },
 };
 
 const pieColors = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];

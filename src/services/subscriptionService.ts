@@ -68,7 +68,7 @@ export class SubscriptionService {
         const limits = this.getSubscriptionLimits(data.tier);
         return {
           ...data,
-          limits
+          limits,
         } as Subscription;
       }
 
@@ -79,12 +79,12 @@ export class SubscriptionService {
       console.error('[SubscriptionService] Error getting subscription:', error);
       // Handle different error types gracefully
       const errorCode = (error as any)?.code;
-      
+
       if (errorCode === 'PGRST204') {
         console.log('[SubscriptionService] Database schema mismatch, creating in-memory subscription');
         return this.createInMemorySubscription(userId);
       }
-      
+
       if (errorCode === '23505') {
         // Duplicate key error - subscription already exists, try to fetch it
         console.log('[SubscriptionService] Subscription exists, attempting to fetch');
@@ -94,17 +94,17 @@ export class SubscriptionService {
             .select('*')
             .eq('user_id', userId)
             .single();
-          
+
           if (existing) {
             return existing as Subscription;
           }
         } catch (fetchError) {
           console.log('[SubscriptionService] Failed to fetch existing subscription, using in-memory');
         }
-        
+
         return this.createInMemorySubscription(userId);
       }
-      
+
       // For other errors, return in-memory subscription instead of throwing
       console.log('[SubscriptionService] Unexpected error, using in-memory subscription');
       return this.createInMemorySubscription(userId);
@@ -557,7 +557,7 @@ export class SubscriptionService {
       },
     };
 
-    return limitsMap[tier] || limitsMap['basic'];
+    return limitsMap[tier] || limitsMap.basic;
   }
 
   /**
@@ -621,13 +621,13 @@ export class SubscriptionService {
 
       if (error) {
         console.error('[SubscriptionService] Error creating free trial:', error);
-        
+
         // If function doesn't exist, create subscription manually
         if (error.code === 'PGRST202') {
           console.log('[SubscriptionService] Database function not found, creating trial manually');
           return await this.createFreeTrialManually(userId);
         }
-        
+
         // Handle duplicate key error from RPC function
         if (error.code === '23505') {
           console.log('[SubscriptionService] Trial already exists from RPC, fetching existing subscription');
@@ -637,17 +637,17 @@ export class SubscriptionService {
               .select('*')
               .eq('user_id', userId)
               .single();
-            
+
             if (existing) {
               return existing as Subscription;
             }
           } catch (fetchError) {
             console.log('[SubscriptionService] Failed to fetch existing trial from RPC, using in-memory');
           }
-          
+
           return this.createInMemorySubscription(userId);
         }
-        
+
         // For other errors, return in-memory subscription instead of throwing
         console.log('[SubscriptionService] Unexpected RPC error, using in-memory subscription');
         return this.createInMemorySubscription(userId);
@@ -661,13 +661,13 @@ export class SubscriptionService {
     } catch (error) {
       console.error('[SubscriptionService] Error in createFreeTrial:', error);
       const errorCode = (error as any)?.code;
-      
+
       // Handle different error types gracefully
       if (errorCode === 'PGRST202') {
         // Database function doesn't exist, use manual creation
         return await this.createFreeTrialManually(userId);
       }
-      
+
       if (errorCode === '23505') {
         // Duplicate key error - subscription already exists, fetch it
         console.log('[SubscriptionService] Trial already exists, fetching existing subscription');
@@ -677,17 +677,17 @@ export class SubscriptionService {
             .select('*')
             .eq('user_id', userId)
             .single();
-          
+
           if (existing) {
             return existing as Subscription;
           }
         } catch (fetchError) {
           console.log('[SubscriptionService] Failed to fetch existing trial, using in-memory');
         }
-        
+
         return this.createInMemorySubscription(userId);
       }
-      
+
       // For other errors, return in-memory subscription instead of throwing
       console.log('[SubscriptionService] Unexpected error in createFreeTrial, using in-memory subscription');
       return this.createInMemorySubscription(userId);
@@ -745,12 +745,12 @@ export class SubscriptionService {
             .select('*')
             .eq('user_id', userId)
             .single();
-          
+
           if (existing && !fetchError) {
             return this.convertToFullSubscription(existing, userId);
           }
         }
-        
+
         console.log('[SubscriptionService] Database insert failed, using in-memory subscription:', error.message);
         return this.createInMemorySubscription(userId);
       }
