@@ -590,6 +590,13 @@ export class SubscriptionService {
   }
 
   /**
+   * Public method to activate free trial for onboarding users
+   */
+  async activateFreeTrial(userId: string): Promise<Subscription> {
+    return this.createFreeTrial(userId);
+  }
+
+  /**
    * Create free trial subscription
    */
   private async createFreeTrial(userId: string): Promise<Subscription> {
@@ -619,17 +626,15 @@ export class SubscriptionService {
       });
 
       if (error) {
-        console.error('[SubscriptionService] Error creating free trial:', error);
-
         // If function doesn't exist, create subscription manually
         if (error.code === 'PGRST202') {
           console.log('[SubscriptionService] Database function not found, creating trial manually');
           return await this.createFreeTrialManually(userId);
         }
 
-        // Handle duplicate key error from RPC function
+        // Handle duplicate key error from RPC function - this is expected behavior
         if (error.code === '23505') {
-          console.log('[SubscriptionService] Trial already exists from RPC, fetching existing subscription');
+          console.log('[SubscriptionService] Trial already exists, fetching existing subscription');
           try {
             const { data: existing } = await this.supabase
               .from('user_subscriptions')
@@ -641,11 +646,14 @@ export class SubscriptionService {
               return existing as Subscription;
             }
           } catch (fetchError) {
-            console.log('[SubscriptionService] Failed to fetch existing trial from RPC, using in-memory');
+            console.log('[SubscriptionService] Failed to fetch existing trial, using in-memory');
           }
 
           return this.createInMemorySubscription(userId);
         }
+
+        // Only log unexpected errors
+        console.error('[SubscriptionService] Unexpected error creating free trial:', error);
 
         // For other errors, return in-memory subscription instead of throwing
         console.log('[SubscriptionService] Unexpected RPC error, using in-memory subscription');

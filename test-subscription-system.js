@@ -59,7 +59,7 @@ async function testSubscriptionSystem() {
 
     // Test 3: Check if user_subscriptions table exists
     console.log('\n👥 Test 3: Checking User Subscriptions Table');
-    const { data: subscriptions, error: subError } = await supabase
+    const { error: subError } = await supabase
       .from('user_subscriptions')
       .select('tier, status, count()')
       .limit(1);
@@ -79,7 +79,7 @@ async function testSubscriptionSystem() {
     ];
 
     for (const table of intelligenceTables) {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from(table)
         .select('count()')
         .limit(1);

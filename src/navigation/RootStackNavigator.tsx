@@ -30,11 +30,9 @@ import OnboardingFaithJourneyScreen from '../screens/onboarding/OnboardingFaithJ
 import OnboardingChallengeSelectionScreen from '../screens/onboarding/OnboardingChallengeSelectionScreen';
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
-import OnboardingOriginalFeatureShowcaseScreen from '../screens/onboarding/OnboardingOriginalFeatureShowcaseScreen';
 import OnboardingPlaybookNavigationScreen from '../screens/onboarding/OnboardingPlaybookNavigationScreen';
-import OnboardingTrialSetupScreen from '../screens/onboarding/OnboardingTrialSetupScreen';
-import OnboardingNotificationPermissionScreen from '../screens/onboarding/OnboardingNotificationPermissionScreen';
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
+import OnboardingPricingShowcaseScreen from '../screens/onboarding/OnboardingPricingShowcaseScreen';
 
 import OnboardingChallengeDetailsScreen from '../screens/onboarding/OnboardingChallengeDetailsScreen';
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
@@ -264,25 +262,28 @@ export default function RootStackNavigator({
       initialRouteName={initialRoute as any}
     >
 
-      {/* Onboarding Splash Screen - Always shown first */}
+      {/* PHASE 1: First Impression & Value Proposition (15%) */}
       <Stack.Screen
         name="OnboardingSplash"
         component={OnboardingSplashScreen as React.ComponentType}
         options={{ headerShown: false }}
       />
-
-      {/* Transform Journey screen available for all users */}
       <Stack.Screen
         name="TransformJourney"
         component={OnboardingTransformYourLifeScreen as React.ComponentType}
         options={splashToFirstScreenAnimation}
       />
-
-      {/* Welcome screen available for all users */}
       <Stack.Screen
         name="OnboardingWelcome"
         component={OnboardingWelcomeScreen as React.ComponentType}
         options={OnboardingAnimations.carousel}
+      />
+
+      {/* PHASE 2: Account Creation & Personalization (25%) - Available for both auth states */}
+      <Stack.Screen
+        name="OnboardingPersonalization"
+        component={OnboardingPersonalizationScreen as React.ComponentType}
+        options={OnboardingAnimations.pushFromBottom}
       />
 
       {/* Pre-auth screens */}
@@ -292,34 +293,41 @@ export default function RootStackNavigator({
         </>
       ) : (
         <>
-          {/* Unified onboarding flow after authentication */}
+          {/* PHASE 3: Challenge Selection & Playbook Generation (35%) */}
           <Stack.Screen
-            name="OnboardingPersonalization"
-            component={OnboardingPersonalizationScreen as React.ComponentType}
-            options={OnboardingAnimations.pushFromBottom}
+            name="OnboardingFaithJourney"
+            component={OnboardingFaithJourneyScreen as React.ComponentType}
+            options={OnboardingAnimations.smoothSlide}
           />
-
+          <Stack.Screen
+            name="OnboardingChallengeSelection"
+            component={OnboardingChallengeSelectionScreen as React.ComponentType}
+            options={OnboardingAnimations.smoothSlide}
+          />
           <Stack.Screen
             name="OnboardingChallengeDetails"
             component={OnboardingChallengeDetailsScreen as React.ComponentType}
             options={OnboardingAnimations.smoothSlide}
           />
           <Stack.Screen
-            name="OnboardingFaithJourney"
-            component={OnboardingFaithJourneyScreen as React.ComponentType}
-            options={OnboardingAnimations.smoothSlide}
-          />
-          <Stack.Screen name="OnboardingChallengeSelection" component={OnboardingChallengeSelectionScreen as React.ComponentType} />
-          <Stack.Screen
             name="OnboardingPlaybookGeneration"
             component={OnboardingPlaybookGenerationScreen as React.ComponentType}
             options={OnboardingAnimations.crossDissolve}
           />
-          <Stack.Screen name="OnboardingOriginalFeatureShowcase" component={OnboardingOriginalFeatureShowcaseScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingPlaybookNavigation" component={OnboardingPlaybookNavigationScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingTrialSetup" component={OnboardingTrialSetupScreen as React.ComponentType} />
-          <Stack.Screen name="OnboardingNotificationPermission" component={OnboardingNotificationPermissionScreen as React.ComponentType} />
 
+          {/* PHASE 4: Exploration & Value Demonstration (15%) */}
+          <Stack.Screen
+            name="OnboardingPlaybookNavigation"
+            component={OnboardingPlaybookNavigationScreen as React.ComponentType}
+            options={OnboardingAnimations.smoothSlide}
+          />
+
+          {/* PHASE 5: Trial Conversion & Monetization (10%) */}
+          <Stack.Screen
+            name="OnboardingPricingShowcase"
+            component={OnboardingPricingShowcaseScreen as React.ComponentType}
+            options={OnboardingAnimations.pushFromBottom}
+          />
           <Stack.Screen
             name="OnboardingComplete"
             component={OnboardingCompleteScreen as React.ComponentType}

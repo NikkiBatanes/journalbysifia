@@ -17,6 +17,8 @@ import {
   TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useUserState } from '../../hooks/useUserState';
+import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 
 import { Colors } from '../../theme/colors';
 
@@ -89,6 +91,7 @@ const challenges: Challenge[] = [
 
 const OnboardingChallengeSelectionScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { updateOnboardingStep, checkUsageLimit } = useUserState();
   const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);
   const [specificChallenge, setSpecificChallenge] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -119,10 +122,21 @@ const OnboardingChallengeSelectionScreen: React.FC = () => {
   const handleContinue = async () => {
     if (!selectedChallenge || !specificChallenge.trim()) {return;}
 
+    // Check if user can create playbooks
+    const playbookUsage = checkUsageLimit('playbooks');
+    if (!playbookUsage.canUse) {
+      navigation.navigate('OnboardingPricingShowcase' as any);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const selectedChallengeData = challenges.find(c => c.id === selectedChallenge);
+
+      // Update onboarding progress
+      updateOnboardingStep('challenge_selected', 3);
+
       console.log('🎯 Challenge selected for playbook generation:', {
         category: selectedChallengeData?.title,
         specific: specificChallenge,
@@ -160,6 +174,9 @@ const OnboardingChallengeSelectionScreen: React.FC = () => {
             },
           ]}
         >
+          {/* Progress Indicator */}
+          <OnboardingProgressIndicator compact />
+
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>What's your biggest challenge right now?</Text>

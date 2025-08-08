@@ -232,8 +232,8 @@ describe('Subscription System Integration Tests', () => {
       );
 
       expect(expounding).toHaveLength(4); // 4 steps
-      expect(expounding[0].step_number).toBe(1);
-      expect(expounding[0].content_type).toBe('spiritual_insight');
+      expect(expounding[0].stepNumber).toBe(1);
+      expect(expounding[0].contentType).toBe('spiritual_insight');
     });
 
     it('should handle user questions', async () => {

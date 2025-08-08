@@ -14,6 +14,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useUserState } from '../../hooks/useUserState';
+import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 
 import { Colors } from '../../theme/colors';
 import LinearGradient from 'react-native-linear-gradient';
@@ -23,6 +25,7 @@ const { height } = Dimensions.get('window');
 
 const OnboardingCompleteScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { updateOnboardingStep } = useUserState();
 
   // Enhanced animations
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -33,6 +36,9 @@ const OnboardingCompleteScreen: React.FC = () => {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Mark onboarding as completely finished
+    updateOnboardingStep('onboarding_complete', 5);
+
     // Enhanced entrance animation sequence
     const animationSequence = Animated.sequence([
       // Logo and content fade in
@@ -68,7 +74,7 @@ const OnboardingCompleteScreen: React.FC = () => {
     // We intentionally only depend on navigation here because these Animated refs are stable (useRef)
     // and this effect should run once on mount to kick off animations.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigation]);
+  }, [navigation, updateOnboardingStep]);
 
   return (
     <View style={styles.container}>
@@ -111,6 +117,9 @@ const OnboardingCompleteScreen: React.FC = () => {
           },
         ]}
       >
+        {/* Progress Indicator - Final Phase Complete */}
+        <OnboardingProgressIndicator compact />
+
         <View style={styles.contentContainer}>
           {/* Animated Checkmark */}
           <Animated.View

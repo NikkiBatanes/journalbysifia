@@ -7,12 +7,12 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View,
-  Text,
+
   StyleSheet,
   Animated,
   StatusBar,
   Platform,
-  TouchableOpacity,
+
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -167,21 +167,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           <Animated.View style={[styles.dot, { opacity: dot3Anim }]} />
         </View>
 
-        {/* Manual Navigation Test Button */}
-        <TouchableOpacity
-          style={styles.testButton}
-          onPress={() => {
-            console.log('[SplashScreen] Manual navigation button pressed');
-            try {
-              navigation.navigate('TransformJourney' as any);
-              console.log('[SplashScreen] Manual navigation successful');
-            } catch (error) {
-              console.error('[SplashScreen] Manual navigation failed:', error);
-            }
-          }}
-        >
-          <Text style={styles.testButtonText}>Go to Transform Journey (TEST)</Text>
-        </TouchableOpacity>
+
       </View>
     </View>
   );
@@ -219,19 +205,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: Colors.hopeWhite,
     marginHorizontal: 4,
-  },
-  testButton: {
-    backgroundColor: Colors.alertCoral,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 30,
-  },
-  testButtonText: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
   },
 });
 

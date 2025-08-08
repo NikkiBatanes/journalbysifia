@@ -17,6 +17,10 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useUserState } from '../../hooks/useUserState';
+import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
+import AIValueDemonstration from '../../components/AIValueDemonstration';
+import ConversionMomentum from '../../components/ConversionMomentum';
 
 import { Colors } from '../../theme/colors';
 
@@ -27,6 +31,7 @@ interface RouteParams {
 const OnboardingPlaybookNavigationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
+  const { updateOnboardingStep } = useUserState();
   const params = route.params as RouteParams;
 
   const [selectedActionStep, setSelectedActionStep] = useState<number | null>(null);
@@ -87,12 +92,15 @@ const OnboardingPlaybookNavigationScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
-      console.log('🎯 Playbook navigation completed, proceeding to trial setup');
+      // Update onboarding progress - Phase 4 complete
+      updateOnboardingStep('playbook_explored', 4);
 
-      // Navigate to trial setup
-      navigation.navigate('OnboardingTrialSetup' as any);
+      console.log('🎯 Playbook navigation completed, proceeding to pricing showcase');
+
+      // Navigate to pricing showcase (Phase 5)
+      navigation.navigate('OnboardingPricingShowcase' as any);
     } catch (error) {
-      console.error('Error proceeding to trial setup:', error);
+      console.error('Error proceeding to pricing showcase:', error);
     } finally {
       setIsLoading(false);
     }
@@ -132,6 +140,9 @@ const OnboardingPlaybookNavigationScreen: React.FC = () => {
           },
         ]}
       >
+        {/* Progress Indicator */}
+        <OnboardingProgressIndicator compact />
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Your Playbook in Action</Text>
@@ -266,6 +277,18 @@ const OnboardingPlaybookNavigationScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* AI Value Demonstration */}
+          <AIValueDemonstration
+            feature="smart_journaling"
+            onUpgrade={() => navigation.navigate('OnboardingPricingShowcase' as never)}
+          />
+
+          {/* Conversion Momentum */}
+          <ConversionMomentum
+            trigger="playbook_generated"
+            context="You've just experienced the power of AI-generated spiritual guidance"
+          />
 
           {/* Encouragement */}
           <View style={styles.encouragementSection}>

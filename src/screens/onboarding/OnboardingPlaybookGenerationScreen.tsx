@@ -21,6 +21,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { enhancedGenerationService } from '../../services/enhancedGenerationService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { useUserState } from '../../hooks/useUserState';
+import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 
 interface RouteParams {
   challengeCategory: string;
@@ -49,6 +51,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
+  const { updateOnboardingStep } = useUserState();
   const params = route.params as RouteParams;
 
   const [isGenerating, setIsGenerating] = useState(true);
@@ -235,10 +238,13 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Update onboarding progress
+      updateOnboardingStep('playbook_generated', 3);
+
       console.log('📚 Playbook completed, proceeding to feature exploration');
 
-      // Navigate to original feature showcase
-      navigation.navigate('OnboardingOriginalFeatureShowcase' as any, {
+      // Navigate to playbook navigation screen (Phase 4)
+      navigation.navigate('OnboardingPlaybookNavigation' as any, {
         generatedPlaybook,
       });
     } catch (error) {
@@ -284,6 +290,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        {/* Progress Indicator */}
+        <OnboardingProgressIndicator compact />
+
         {isGenerating ? (
           // Generation in progress
           <View style={styles.generationContainer}>

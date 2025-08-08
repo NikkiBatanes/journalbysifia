@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { useUserState } from '../../hooks/useUserState';
 import { supabase } from '../../services/supabaseClient';
 import {
   View,
@@ -161,6 +162,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
+  const { updateOnboardingStep } = useUserState();
   // Determine if we need to show name input step based on registration method
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
   const [showNameStep, setShowNameStep] = useState(false);
@@ -222,6 +224,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       setCurrentStep(currentStep + 1);
     } else {
       try {
+        // Update onboarding progress
+        updateOnboardingStep('personalization_completed', 2);
+
         // Mark onboarding as completed
         if (user) {
           console.log('[OnboardingPersonalization] Marking onboarding as completed for user:', user.id);
