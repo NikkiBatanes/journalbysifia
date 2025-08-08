@@ -314,6 +314,7 @@ export class SubscriptionService {
 
   /**
    * Track usage after successful generation
+   */
   async trackUsage(
     userId: string,
     type: 'playbook' | 'devotional',
