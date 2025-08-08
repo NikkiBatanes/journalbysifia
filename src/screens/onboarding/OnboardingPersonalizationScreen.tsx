@@ -15,7 +15,6 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   ScrollView,

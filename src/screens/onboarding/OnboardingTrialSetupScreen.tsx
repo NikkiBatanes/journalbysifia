@@ -94,8 +94,8 @@ const pricingTiers: PricingTier[] = [
 const OnboardingTrialSetupScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation();
-  const [selectedTier, setSelectedTier] = useState('growth'); // Default to popular tier
-  const [isAnnual, setIsAnnual] = useState(false);
+  const [selectedTier, _setSelectedTier] = useState('growth'); // Default to popular tier
+  const [isAnnual, _setIsAnnual] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -122,8 +122,9 @@ const OnboardingTrialSetupScreen: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const selectedTierData = pricingTiers.find(t => t.id === selectedTier);
-      const price = isAnnual ? selectedTierData?.annualPrice : selectedTierData?.monthlyPrice;
+      const price = (isAnnual
+        ? pricingTiers.find(t => t.id === selectedTier)?.annualPrice
+        : pricingTiers.find(t => t.id === selectedTier)?.monthlyPrice);
 
       console.log('💳 Starting trial setup:', {
         tier: selectedTier,
@@ -168,7 +169,7 @@ const OnboardingTrialSetupScreen: React.FC = () => {
     }
   };
 
-  const selectedTierData = pricingTiers.find(t => t.id === selectedTier);
+  // Note: removed unused selectedTierData to satisfy lint.
 
   const handleSkipTrial = async () => {
     // Mark onboarding as complete and skip trial

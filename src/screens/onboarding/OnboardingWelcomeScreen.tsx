@@ -24,7 +24,7 @@ import type { RootStackParamList } from '../../navigation/types';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
+import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 const { width } = Dimensions.get('window');
@@ -85,7 +85,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   const flatListRef = useRef<FlatList>(null);
-  const translateX = useRef(new Animated.Value(0)).current;
+  // Note: translateX was previously defined but unused; removed to satisfy lint.
 
   useEffect(() => {
     // Entrance animation
@@ -125,21 +125,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
     });
   };
 
-  const handleNext = () => {
-    if (currentSlide < slides.length - 1) {
-      const nextSlide = currentSlide + 1;
-      setCurrentSlide(nextSlide);
-      animateToSlide(nextSlide);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentSlide > 0) {
-      const prevSlide = currentSlide - 1;
-      setCurrentSlide(prevSlide);
-      animateToSlide(prevSlide);
-    }
-  };
+  // Unused manual navigation handlers removed to satisfy lint; carousel uses dots and auto-advance.
 
   const onScrollEnd = (event: any) => {
     const slideIndex = Math.round(event.nativeEvent.contentOffset.x / width);
