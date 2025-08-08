@@ -5,7 +5,8 @@
  * retention offers, expounding system, and analytics integration.
  */
 
-import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { describe, it, expect, beforeEach } from '@jest/globals';
+// import { afterEach } from '@jest/globals'; // unused
 import { subscriptionService } from '../services/subscriptionService';
 import { tierRestrictionService } from '../services/tierRestrictionService';
 import { retentionService } from '../services/retentionService';

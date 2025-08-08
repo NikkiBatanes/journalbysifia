@@ -11,7 +11,7 @@ export const checkDatabaseTables = async () => {
   try {
     // Check if faith_points_profiles table exists
     console.log('📋 Checking faith_points_profiles table...');
-    const { data: profilesData, error: profilesError } = await supabase
+    const { data: _profilesData, error: profilesError } = await supabase
       .from('faith_points_profiles')
       .select('*')
       .limit(1);
@@ -24,7 +24,7 @@ export const checkDatabaseTables = async () => {
 
     // Check if faith_points_log table exists
     console.log('📋 Checking faith_points_log table...');
-    const { data: logData, error: logError } = await supabase
+    const { data: _logData, error: logError } = await supabase
       .from('faith_points_log')
       .select('*')
       .limit(1);
@@ -37,7 +37,7 @@ export const checkDatabaseTables = async () => {
 
     // Check if playbooks table exists
     console.log('📋 Checking playbooks table...');
-    const { data: playbooksData, error: playbooksError } = await supabase
+    const { data: _playbooksData, error: playbooksError } = await supabase
       .from('playbooks')
       .select('*')
       .limit(1);
@@ -50,7 +50,7 @@ export const checkDatabaseTables = async () => {
 
     // Check if devotionals table exists
     console.log('📋 Checking devotionals table...');
-    const { data: devotionalsData, error: devotionalsError } = await supabase
+    const { data: _devotionalsData, error: devotionalsError } = await supabase
       .from('devotionals')
       .select('*')
       .limit(1);

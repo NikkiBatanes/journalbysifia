@@ -188,7 +188,7 @@ export class ExportService {
     // For beta launch, we'll use a simple HTML to PDF conversion
     // In production, this would integrate with a PDF generation service
 
-    const htmlContent = this.generateHTMLContent(playbook);
+    const _htmlContent = this.generateHTMLContent(playbook);
 
     // Mock PDF generation - in production, use a service like Puppeteer or PDFKit
     const mockPdfUrl = `https://api.sifia.app/exports/pdf/${playbook.id}?format=pdf&timestamp=${Date.now()}`;

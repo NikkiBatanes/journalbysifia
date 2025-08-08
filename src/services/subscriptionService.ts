@@ -314,12 +314,11 @@ export class SubscriptionService {
 
   /**
    * Track usage after successful generation
-   */
   async trackUsage(
     userId: string,
     type: 'playbook' | 'devotional',
     tokensUsed: number = 0,
-    costCents: number = 0
+    // costCents, // unused: number = 0
   ): Promise<void> {
     try {
       // Get or create usage record

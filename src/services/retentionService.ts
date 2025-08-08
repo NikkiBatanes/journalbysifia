@@ -114,8 +114,8 @@ export class RetentionService {
       }
 
       return false;
-    } catch (error) {
-      console.error('[RetentionService] Error in checkRetentionTrigger:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error in checkRetentionTrigger:', _error);
       return false;
     }
   }
@@ -157,8 +157,8 @@ export class RetentionService {
         spiritualGrowth,
         totalScore: Math.min(100, totalScore), // Cap at 100
       };
-    } catch (error) {
-      console.error('[RetentionService] Error calculating user value score:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error calculating user value score:', _error);
       // Return default medium-value score on error
       return {
         engagementLevel: 15,
@@ -232,8 +232,8 @@ export class RetentionService {
         originalPrice,
         discountedPrice,
       };
-    } catch (error) {
-      console.error('[RetentionService] Error generating dynamic offer:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error generating dynamic offer:', _error);
       // Fallback to static offer
       return this.getStaticRetentionOffer(eventType, originalPrice);
     }
@@ -286,7 +286,7 @@ export class RetentionService {
     };
 
     // Annual offers with higher discounts
-    const annualOffers: Record<string, RetentionOffer> = {
+    const _annualOffers: Record<string, RetentionOffer> = {
       'trial_declined': {
         discount: 20,
         duration: 'first_year',
@@ -404,8 +404,8 @@ export class RetentionService {
       } else {
         console.log(`[RetentionService] Logged retention event: ${eventType} - ${action}`);
       }
-    } catch (error) {
-      console.error('[RetentionService] Error in logRetentionEvent:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error in logRetentionEvent:', _error);
     }
   }
 
@@ -430,8 +430,8 @@ export class RetentionService {
       }
 
       return data || [];
-    } catch (error) {
-      console.error('[RetentionService] Error in getRecentRetentionEvents:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error in getRecentRetentionEvents:', _error);
       return [];
     }
   }
@@ -473,8 +473,8 @@ export class RetentionService {
 
       const userHash = userId.slice(-6);
       return parts[1] === userHash;
-    } catch (error) {
-      console.error('[RetentionService] Error validating discount code:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error validating discount code:', _error);
       return false;
     }
   }
@@ -495,8 +495,8 @@ export class RetentionService {
         .single();
 
       return data || {};
-    } catch (error) {
-      console.error('[RetentionService] Error fetching subscription data:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error fetching subscription data:', _error);
       return {};
     }
   }
@@ -515,8 +515,8 @@ export class RetentionService {
         .single();
 
       return data || {};
-    } catch (error) {
-      console.error('[RetentionService] Error fetching usage data:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error fetching usage data:', _error);
       return {};
     }
   }
@@ -533,8 +533,8 @@ export class RetentionService {
         .single();
 
       return data || {};
-    } catch (error) {
-      console.error('[RetentionService] Error fetching profile data:', error);
+    } catch (_error) {
+      console.error('[RetentionService] Error fetching profile data:', _error);
       return {};
     }
   }
