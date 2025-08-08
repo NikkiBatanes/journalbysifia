@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import Entypo from 'react-native-vector-icons/Entypo';
 import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, Modal, Platform } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import Entypo from 'react-native-vector-icons/Entypo';
+
 import { Check, ListTodo as LuListTodo, X, Pencil } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -44,7 +45,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
-
 
   // Local UI state
   const [newTodo, setNewTodo] = useState('');
@@ -110,7 +110,6 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       }, user?.id);
     }
   }, [error, dateStr, user?.id]);
-
 
   const createTodoMutation = useCreateTodoEntry();
   const updateTodoMutation = useUpdateTodoEntry();

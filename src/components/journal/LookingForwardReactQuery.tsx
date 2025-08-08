@@ -1,4 +1,6 @@
 import React, { useState, useRef } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 // SwipeableTodoItem handles the gesture handler imports
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
@@ -6,8 +8,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -32,7 +33,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
-
 
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
@@ -243,8 +243,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       Alert.alert('Error', 'Failed to load looking forward entry.');
     }
   }, [error, dateStr, user?.id]);
-
-
 
   // Handle loading state
   if (isLoading) {

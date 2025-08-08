@@ -1,11 +1,12 @@
 // src/navigation/BottomTabNavigator.tsx
 import React, { useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Colors } from '../theme/colors';
 import { Spacing, FontSizes } from '../theme/styles';
 import { TabBarIcons } from './TabBarIcons';
@@ -15,6 +16,7 @@ import UserInputScreen from '../screens/UserInputScreen';
 import DevotionalsScreen from '../screens/DevotionalsScreen';
 import JournalScreen from '../screens/JournalScreen';
 import { MomentsScreen } from '../screens/MomentsScreen';
+import DashboardHomeScreen from '../screens/DashboardHomeScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -179,8 +181,8 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
       }}
     >
       <Tab.Screen
-        name="UserInput"
-        component={UserInputScreen}
+        name="Dashboard"
+        component={DashboardHomeScreen}
         options={{
           tabBarLabel: 'Home',
           headerShown: false,

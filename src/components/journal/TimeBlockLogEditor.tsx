@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState, useImperativeHandle } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Modal } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -47,8 +48,6 @@ interface TimeBlockLogEditorProps {
 export interface TimeBlockLogEditorRef {
   focusInput: () => void;
 }
-
-
 
 // Styles matching other log editors
 const defaultStyles = {
@@ -627,7 +626,6 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
   const [_hasUserMadeChanges, _setHasUserMadeChanges] = React.useState(false);
   const [_isFirstLoad, _setIsFirstLoad] = React.useState(true);
 
-
   // Tab management
   const [_activeTab, _setActiveTab] = React.useState<'quick' | 'detailed'>('quick');
 
@@ -638,8 +636,6 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
   const [showRepeatModal, setShowRepeatModal] = useState(false);
   const [showCustomRepeatModal, setShowCustomRepeatModal] = useState(false);
   const [customFrequency, setCustomFrequency] = useState({ value: 1, unit: 'week' });
-
-
 
   // Check if this is an edit session
   const isEditing = !!existingTimeBlock;
@@ -1102,8 +1098,6 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
         </View>
       </Modal>
 
-
-
       {/* Floating Action Buttons - Standard Layout */}
       <View style={s.fabWrapper}>
         {/* Left Add FAB with Menu */}
@@ -1166,7 +1160,6 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
           </View>
         </View>
       </View>
-
 
     </View>
   );

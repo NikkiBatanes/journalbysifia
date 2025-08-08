@@ -7,6 +7,7 @@ export type RootStackParamList = {
   Register: { onRegister: () => void } | undefined;
 
   // Onboarding Stack
+  OnboardingSplash: undefined;
   OnboardingWelcome: undefined;
   OnboardingFaithJourney: undefined;
   OnboardingPersonalProfile: undefined;

@@ -123,6 +123,18 @@ export async function generatePlaybook(
       // Add journal type detection to all subtasks
       const playbookWithJournalTypes = addJournalTypesToPlaybook(result);
 
+      // Track usage for subscription after successful generation
+      try {
+        const { subscriptionService } = await import('./subscriptionService');
+        if (session.user?.id) {
+          await subscriptionService.trackUsage(session.user.id, 'playbook');
+          console.log('[ModernPlaybookApi] Usage tracked for playbook generation');
+        }
+      } catch (trackingError) {
+        console.warn('[ModernPlaybookApi] Failed to track usage:', trackingError);
+        // Don't fail the generation if tracking fails
+      }
+
       console.log('✅ Playbook generated successfully with ID:', result.id);
       console.log('✅ Journal types detected and added to subtasks');
       return playbookWithJournalTypes;

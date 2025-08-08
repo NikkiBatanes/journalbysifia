@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { Colors } from '../theme';
@@ -180,8 +181,6 @@ export default function ActionStepsCard({
       });
     }
   }, [selectedSubtask, existingReflection, isReflectionLoading, reflectionError, user?.id]);
-
-
 
   const steps = useMemo(() => {
     // Prioritize context steps over prop steps to ensure UI reflects latest state

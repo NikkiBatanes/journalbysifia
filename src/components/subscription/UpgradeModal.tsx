@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -16,7 +17,6 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import { useSubscription, useSubscriptionUpgrade } from '../../hooks/useSubscription';
 
 interface UpgradeModalProps {

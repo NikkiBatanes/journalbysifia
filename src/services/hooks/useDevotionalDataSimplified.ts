@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DevotionalApi } from '../api/devotionalApi';
 import { DevotionalApiEntry } from '../api/devotionalApi';
 import { Devotional, DevotionalCreationParams } from '../../interfaces/devotional';
+import { useCrossComponentSync } from './useCrossComponentSync';
 // import { analytics } from '../analytics'; // TODO: Fix analytics import
 
 // Query keys factory
@@ -117,8 +118,9 @@ export const useCreateDevotionalReactQuery = () => {
 /**
  * Mark a devotional day as complete
  */
-export const useMarkDayCompleteReactQuery = () => {
+export const useMarkDayCompleteReactQuery = (userId: string) => {
   const queryClient = useQueryClient();
+  const { syncDevotionalCompletion } = useCrossComponentSync(userId);
 
   return useMutation({
     mutationFn: async ({ devotionalId, dayNumber }: {
@@ -130,8 +132,16 @@ export const useMarkDayCompleteReactQuery = () => {
       const apiEntry = await DevotionalApi.markDayComplete(devotionalId, dayNumber);
       return transformApiEntryToDevotional(apiEntry);
     },
-    onSuccess: (data, { devotionalId, dayNumber, userId }) => {
+    onSuccess: async (data, { devotionalId, dayNumber, userId }) => {
       console.log('[useMarkDayCompleteReactQuery] Success:', { devotionalId, dayNumber });
+
+      // Trigger cross-component sync to award faith points and update dashboard
+      try {
+        await syncDevotionalCompletion(devotionalId);
+        console.log('[useMarkDayCompleteReactQuery] Cross-component sync completed');
+      } catch (syncError) {
+        console.error('[useMarkDayCompleteReactQuery] Sync error:', syncError);
+      }
 
       // Invalidate related queries
       queryClient.invalidateQueries({
@@ -226,7 +236,7 @@ export const useDeleteDevotionalReactQuery = () => {
 export const useDevotionalOperations = (userId: string) => {
   const { data: devotionals = [], isLoading, error, refetch } = useDevotionalDataReactQuery(userId);
   const createMutation = useCreateDevotionalReactQuery();
-  const markDayCompleteMutation = useMarkDayCompleteReactQuery();
+  const markDayCompleteMutation = useMarkDayCompleteReactQuery(userId);
   const submitRatingMutation = useSubmitDevotionalRatingReactQuery();
   const deleteMutation = useDeleteDevotionalReactQuery();
 

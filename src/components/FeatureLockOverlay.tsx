@@ -1,6 +1,6 @@
 import React from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useUpgradePrompts } from '../hooks/useTrialAccess';
 import { useNavigation } from '@react-navigation/native';
 
@@ -27,9 +27,7 @@ export const FeatureLockOverlay: React.FC<FeatureLockOverlayProps> = ({
     if (onUpgrade) {
       onUpgrade();
     } else {
-      navigation.navigate('Subscription' as never, {
-        recommendedTier: prompt.recommendedTier,
-      });
+      navigation.navigate('UserProfile' as never);
     }
   };
 
@@ -96,9 +94,7 @@ export const FeatureLockCard: React.FC<FeatureLockCardProps> = ({
     if (onUnlockPress) {
       onUnlockPress();
     } else {
-      navigation.navigate('Subscription' as never, {
-        recommendedTier: prompt.recommendedTier,
-      });
+      navigation.navigate('UserProfile' as never);
     }
   };
 

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import Markdown from 'react-native-markdown-display';
@@ -163,8 +164,6 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
     );
   }
 
-
-
   if (error) {
     return (
       <View
@@ -190,8 +189,6 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       </View>
     );
   }
-
-
 
   // Add prayer logic using React Query
   const handleAddPrayer = async () => {
@@ -490,7 +487,6 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
           {renderPrayerGroup(PRAYER_TYPES[4], actsData.freeform)}
         </>
       )}
-
 
     </View>
   );

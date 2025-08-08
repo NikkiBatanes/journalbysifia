@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useImperativeHandle } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { GUIDED_PROMPTS } from './reflectionConstants';
-
-
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -282,7 +281,6 @@ const fallbackStyles = {
     fontWeight: '500',
   },
 
-
   editorModeToggle: {
     flexDirection: 'row',
     marginBottom: 12,
@@ -323,12 +321,8 @@ const fallbackStyles = {
     padding: 16,
   },
 
-
-
   // Metadata styles moved to inline styles to prevent override
 };
-
-
 
 const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionLogEditorProps>((
   {
@@ -387,7 +381,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       .replace(/\n/g, '<br>'); // Line breaks
   };
 
-
   const [newEntry, setNewEntry] = React.useState<{ title: string; content: string; tags: string[] }>(
     {
       title: initialEntry.title || initialTitle || '',
@@ -425,7 +418,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Mobile WYSIWYG state
 
-
   // State for showing draft notification
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
 
@@ -445,8 +437,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     const hasChanges = content !== initialState.content || title !== initialState.title;
     setHasUserMadeChanges(hasChanges);
   }, [initialState]);
-
-
 
   // Helper function to get draft key (unique for each devotional question)
   const getDraftKey = React.useCallback(() => {
@@ -711,10 +701,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       ],
     );
   };
-
-
-
-
 
   return (
     <View style={s.container}>
@@ -1047,7 +1033,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               />
             </TouchableOpacity>
 
-
           </View>
 
           {/* Right Action Buttons */}
@@ -1087,7 +1072,6 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         </View>
       )}
     </KeyboardAvoidingView>
-
 
   </View>
   );

@@ -1,11 +1,13 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
+
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { NotebookPen as LuNotebookPen, X, Pencil } from 'lucide-react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 import ReflectionLogEditor from './ReflectionLogEditor';
@@ -21,7 +23,6 @@ import {
 import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
 import { toLocalDateString } from '../../utils/date';
 import { analytics } from '../../utils/analytics';
-
 
 type ViewMode = 'free' | 'guided' | 'devotional' | 'playbook';
 
@@ -61,7 +62,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
-
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
@@ -1438,5 +1438,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
-
 

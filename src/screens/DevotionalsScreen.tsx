@@ -1,4 +1,6 @@
 import React, { useRef } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   View,
   Text,
@@ -18,8 +20,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Devotional } from '../interfaces/devotional';
 import { format } from 'date-fns';
 import { Swipeable, RectButton } from 'react-native-gesture-handler';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import { extractCleanTitle } from '../utils/titleUtils';
 import { Colors, Fonts } from '../theme';
 import 'react-native-gesture-handler';

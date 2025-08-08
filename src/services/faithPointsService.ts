@@ -5,6 +5,8 @@
  */
 
 import { supabase } from './supabaseClient';
+import { notificationService } from './notificationService';
+import { faithPointsEvents, FAITH_POINTS_EVENTS } from './faithPointsEvents';
 
 export interface FaithPointsProfile {
   userId: string;
@@ -97,23 +99,35 @@ export class FaithPointsService {
    */
   async getUserProfile(userId: string): Promise<FaithPointsProfile> {
     try {
-      const { data: profile } = await supabase
+      console.log(`[FaithPointsService] Fetching profile for user: ${userId}`);
+      
+      const { data: profile, error } = await supabase
         .from('faith_points_profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle to avoid errors when no data found
 
-      if (!profile) {
-        // Create new profile for first-time user
+      if (error) {
+        console.error('[FaithPointsService] Database error getting profile:', error);
         return await this.createUserProfile(userId);
       }
+
+      if (!profile) {
+        console.log('[FaithPointsService] No profile found, creating new one');
+        return await this.createUserProfile(userId);
+      }
+
+      console.log(`[FaithPointsService] Profile found:`, {
+        totalPoints: profile.total_points,
+        currentLevel: profile.current_level
+      });
 
       // Update streak and level if needed
       const updatedProfile = await this.updateProfileMetrics(profile);
       return updatedProfile;
 
     } catch (error) {
-      console.error('[FaithPointsService] Error getting user profile:', error);
+      console.error('[FaithPointsService] Unexpected error getting user profile:', error);
       return await this.createUserProfile(userId);
     }
   }
@@ -131,12 +145,14 @@ export class FaithPointsService {
       const pointsAwarded = this.POINTS_SYSTEM[activity];
       console.log(`[FaithPointsService] Awarding ${pointsAwarded} points for ${activity} to user ${userId}`);
 
-      // Record the transaction
-      await this.recordTransaction(userId, pointsAwarded, activity, _metadata);
-
-      // Update user profile
       const profile = await this.getUserProfile(userId);
       const newTotalPoints = profile.totalPoints + pointsAwarded;
+      
+      console.log(`[FaithPointsService] Current profile:`, {
+        totalPoints: profile.totalPoints,
+        newTotalPoints,
+        pointsAwarded
+      });
 
       // Check for level up
       const currentLevel = this.calculateLevel(profile.totalPoints);
@@ -150,7 +166,26 @@ export class FaithPointsService {
       const updatedStreak = await this.updateStreak(userId, activity);
 
       // Update profile in database
-      await supabase
+      console.log(`[FaithPointsService] Updating profile with:`, {
+        total_points: newTotalPoints,
+        current_level: newLevel,
+        userId
+      });
+      
+      // First, let's check if the profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('faith_points_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error('[FaithPointsService] Error checking existing profile:', checkError);
+      }
+      
+      console.log('[FaithPointsService] Existing profile before update:', existingProfile);
+      
+      const { data: updateResult, error: updateError } = await supabase
         .from('faith_points_profiles')
         .update({
           total_points: newTotalPoints,
@@ -160,12 +195,65 @@ export class FaithPointsService {
           last_activity_date: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select();
+        
+      if (updateError) {
+        console.error('[FaithPointsService] Profile update failed:', updateError);
+        throw updateError;
+      }
+
+      console.log('[FaithPointsService] Profile updated successfully:', updateResult);
+      
+      // Verify the update worked
+      if (!updateResult || updateResult.length === 0) {
+        console.error('[FaithPointsService] Update returned no data - profile may not exist or RLS issue');
+        // Try to fetch the profile again to see current state
+        const { data: afterUpdate } = await supabase
+          .from('faith_points_profiles')
+          .select('*')
+          .eq('user_id', userId)
+          .maybeSingle();
+        console.log('[FaithPointsService] Profile state after update attempt:', afterUpdate);
+      }
+
+      // Record transaction AFTER profile update (non-blocking)
+      console.log(`[FaithPointsService] Recording transaction...`);
+      try {
+        await this.recordTransaction(userId, pointsAwarded, activity, _metadata);
+        console.log(`[FaithPointsService] Transaction recorded successfully`);
+      } catch (transactionError) {
+        console.warn(`[FaithPointsService] Transaction logging failed, but faith points were awarded:`, transactionError);
+        // Continue execution - don't let transaction logging failure block faith points
+      }
 
       // Award bonus points for level up
       if (leveledUp) {
         await this.recordTransaction(userId, 50, 'achievement', { type: 'level_up', level: newLevel });
+        // Show level up notification
+        notificationService.showPointsNotification(50, 'level_up', 'center');
       }
+
+      // Show points notification
+      notificationService.showPointsNotification(pointsAwarded, activity, 'center');
+
+      // Emit events for UI updates with delay to ensure database is updated
+      setTimeout(() => {
+        faithPointsEvents.emit(FAITH_POINTS_EVENTS.POINTS_UPDATED, {
+          userId,
+          pointsAwarded,
+          totalPoints: newTotalPoints,
+          level: newLevel,
+        });
+
+        if (leveledUp) {
+          faithPointsEvents.emit(FAITH_POINTS_EVENTS.LEVEL_UP, {
+            userId,
+            newLevel,
+            totalPoints: newTotalPoints,
+          });
+        }
+      }, 100); // Small delay to ensure database transaction is complete
 
       return {
         pointsAwarded,
@@ -185,7 +273,7 @@ export class FaithPointsService {
   async getRecentTransactions(userId: string, limit: number = 10): Promise<PointsTransaction[]> {
     try {
       const { data: transactions } = await supabase
-        .from('faith_points_transactions')
+        .from('faith_points_log')
         .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -306,14 +394,11 @@ export class FaithPointsService {
           user_id: userId,
           total_points: 0,
           current_level: 1,
-          points_to_next_level: 100,
           current_streak: 0,
           longest_streak: 0,
           weekly_goal: 50,
           weekly_progress: 0,
           last_activity_date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         });
 
       console.log(`[FaithPointsService] Created new profile for user ${userId}`);
@@ -335,18 +420,60 @@ export class FaithPointsService {
     metadata?: any
   ): Promise<void> {
     try {
-      await supabase
-        .from('faith_points_transactions')
-        .insert({
-          user_id: userId,
-          points,
-          reason,
-          category: this.getCategoryFromReason(reason),
-          metadata,
-          created_at: new Date().toISOString(),
-        });
+      const transactionData = {
+        user_id: userId,
+        points: points,
+        activity_type: reason,
+        reason: this.getCategoryFromReason(reason),
+        metadata: metadata || null,
+        created_at: new Date().toISOString(),
+      };
+      
+      console.log(`[FaithPointsService] Inserting transaction:`, transactionData);
+      
+      // Try manual SQL query to bypass schema cache
+      console.log('[FaithPointsService] Attempting manual SQL insert...');
+      
+      const manualQuery = `
+        INSERT INTO faith_points_log (user_id, points, activity_type, reason, metadata, created_at)
+        VALUES ('${userId}', ${points}, '${reason}', '${this.getCategoryFromReason(reason)}', ${metadata ? `'${JSON.stringify(metadata)}'` : 'NULL'}, NOW())
+        RETURNING *;
+      `;
+      
+      const { data: manualData, error: manualError } = await supabase
+        .rpc('execute_sql', { query: manualQuery });
+        
+      if (manualError || !manualData) {
+        console.log('[FaithPointsService] Manual SQL failed, trying simple insert...');
+        
+        // Try the simplest possible insert
+        const { data, error } = await supabase
+          .from('faith_points_log')
+          .insert({
+            user_id: userId,
+            points: points,
+            activity_type: reason,
+            reason: this.getCategoryFromReason(reason),
+            metadata: metadata || null,
+            created_at: new Date().toISOString()
+          });
+          
+        if (error) {
+          console.error('[FaithPointsService] All insert methods failed:', error);
+          // Don't throw error, just log it so faith points awarding continues
+          console.log('[FaithPointsService] Continuing without transaction logging...');
+          return;
+        }
+        
+        console.log(`[FaithPointsService] Simple insert succeeded:`, data);
+        return;
+      }
+      
+      console.log(`[FaithPointsService] Manual SQL succeeded:`, manualData);
+      return;
     } catch (error) {
       console.error('[FaithPointsService] Error recording transaction:', error);
+      throw error;
     }
   }
 
@@ -498,10 +625,10 @@ export class FaithPointsService {
   private async getActivityCount(userId: string, activity: string): Promise<number> {
     try {
       const { data: transactions } = await supabase
-        .from('faith_points_transactions')
+        .from('faith_points_log')
         .select('id')
         .eq('user_id', userId)
-        .eq('reason', activity);
+        .eq('activity_type', activity);
 
       return transactions?.length || 0;
     } catch (error) {

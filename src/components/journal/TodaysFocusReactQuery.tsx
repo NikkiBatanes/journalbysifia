@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -44,7 +45,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
 
-
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
@@ -54,8 +54,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();
-
-
 
   // Transform API data to local format
   const existingEntry = focusEntries.length > 0 ? focusEntries[0] : null;

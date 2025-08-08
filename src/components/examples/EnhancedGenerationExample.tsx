@@ -5,6 +5,7 @@
  */
 
 import React, { useState } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -15,8 +16,6 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-
 // Import our new components and services
 import { UsageIndicator, CompactUsageIndicator } from '../subscription/UsageIndicator';
 import { UpgradeModal } from '../subscription/UpgradeModal';

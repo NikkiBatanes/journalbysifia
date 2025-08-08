@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Check, X, Pencil } from 'lucide-react-native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -44,8 +45,6 @@ interface TimeBlockItem {
     };
   };
 }
-
-
 
 const formatDuration = (start: Date, end: Date): string => {
   const diffInMs = end.getTime() - start.getTime();
@@ -92,8 +91,6 @@ const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[], cus
       return '';
   }
 };
-
-
 
 interface TimeBlockProps {
   selectedDate?: Date;

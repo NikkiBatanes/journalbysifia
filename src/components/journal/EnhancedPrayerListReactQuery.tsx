@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Pencil, X, Check } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -37,10 +38,6 @@ interface EnhancedPrayerListReactQueryProps {
   onExpand?: () => void;
 }
 
-
-
-
-
 const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> = ({
   selectedDate,
   variant = 'carousel',
@@ -63,8 +60,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   console.log('[EnhancedPrayerListReactQuery] peoplePrayers:', peoplePrayers);
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
-
-
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -160,7 +155,6 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
       console.log('🙏 [IMMEDIATE] About to save prayer. activeTab:', activeTab, 'prayerData:', prayerData);
       await createPrayerMutation.mutateAsync(prayerData);
-
 
       // Clear inputs and exit edit mode
       setName('');

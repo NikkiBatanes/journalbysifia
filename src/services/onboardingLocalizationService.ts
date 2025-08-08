@@ -225,7 +225,7 @@ class OnboardingLocalizationService {
 
     // Trial Setup
     'onboarding.trial.title': 'Start Your Free Trial',
-    'onboarding.trial.subtitle': 'Experience the full power of siFia for 14 days',
+    'onboarding.trial.subtitle': 'Experience the full power of siFia for 3 days',
     'onboarding.trial.features.smartJournaling': 'AI-powered spiritual journaling',
     'onboarding.trial.features.personalizedContent': 'Personalized devotions and studies',
     'onboarding.trial.features.progressTracking': 'Track your spiritual growth',

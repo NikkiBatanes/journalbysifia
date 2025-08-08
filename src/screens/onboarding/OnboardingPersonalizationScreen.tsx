@@ -4,8 +4,10 @@
  */
 
 import React, { useState } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { supabase } from '../../services/supabaseClient';
 import {
   View,
   Text,
@@ -21,7 +23,7 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 
@@ -217,25 +219,58 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Use main playbook generation UI with onboarding data
-      const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
+      try {
+        // Mark onboarding as completed
+        const { user } = useAuth();
+        if (user) {
+          console.log('[OnboardingPersonalization] Marking onboarding as completed for user:', user.id);
+          const { error } = await supabase
+            .from('user_profiles')
+            .update({ onboarding_completed: true })
+            .eq('id', user.id);
 
-      // Present GeneratingPlaybook as modal within onboarding flow
-      (navigation as any).navigate('GeneratingPlaybook', {
-        userInput,
-        userName: name || 'Friend',
-        isFromOnboarding: true,
-        onboardingData: {
-          ageGroup: selectedAgeGroup,
-          faithJourney: selectedFaithJourney,
-          challenge: selectedChallenge,
-          challengeDetails,
-        },
-      });
+          if (error) {
+            console.error('[OnboardingPersonalization] Error updating onboarding status:', error);
+          } else {
+            console.log('[OnboardingPersonalization] Onboarding marked as completed');
+          }
+        }
+
+        // Use main playbook generation UI with onboarding data
+        const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
+
+        // Present GeneratingPlaybook as modal within onboarding flow
+        (navigation as any).navigate('GeneratingPlaybook', {
+          userInput,
+          userName: name || 'Friend',
+          isFromOnboarding: true,
+          onboardingData: {
+            ageGroup: selectedAgeGroup,
+            faithJourney: selectedFaithJourney,
+            challenge: selectedChallenge,
+            challengeDetails,
+          },
+        });
+      } catch (error) {
+        console.error('[OnboardingPersonalization] Error in handleContinue:', error);
+        // Continue with navigation even if onboarding update fails
+        const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
+        (navigation as any).navigate('GeneratingPlaybook', {
+          userInput,
+          userName: name || 'Friend',
+          isFromOnboarding: true,
+          onboardingData: {
+            ageGroup: selectedAgeGroup,
+            faithJourney: selectedFaithJourney,
+            challenge: selectedChallenge,
+            challengeDetails,
+          },
+        });
+      }
     }
   };
 
@@ -377,7 +412,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const renderChallengeDetailsStep = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Tell us about your{'\n'}specific situation</Text>
-
 
       {selectedChallenge && (
         <View style={styles.challengeCard}>
@@ -522,7 +556,6 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
       </View>
-
 
     </KeyboardAvoidingView>
   );

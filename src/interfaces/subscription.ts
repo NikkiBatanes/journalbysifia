@@ -3,7 +3,7 @@
  * Handles all subscription tiers, limits, and billing
  */
 
-export type SubscriptionTier = 'free_trial' | 'starter' | 'growth' | 'transformation' | 'family' | 'starter_annual' | 'growth_annual' | 'transformation_annual' | 'family_annual';
+export type SubscriptionTier = 'free_trial' | 'basic' | 'starter' | 'growth' | 'transformation' | 'family' | 'starter_annual' | 'growth_annual' | 'transformation_annual' | 'family_annual';
 
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'unpaid' | 'trialing' | 'expired';
 
@@ -14,9 +14,14 @@ export interface SubscriptionLimits {
   apiCalls: number;
   familyMembers: number;
   intelligenceEnabled: boolean;
-  intelligenceLevel?: 'basic' | 'enhanced' | 'advanced';
-  smartJournalingEnabled?: boolean;
-  journalTemplatesAccess?: 'basic' | 'all';
+  intelligenceLevel: string;
+  smartJournalingEnabled: boolean;
+  journalTemplatesAccess: string;
+  calendarSyncEnabled: boolean;
+  expoundingEnabled: boolean;
+  copyIncompleteTodosEnabled: boolean;
+  answeredPrayerTrackingEnabled: boolean;
+  maxLevel: number;
   advancedAnalytics: boolean;
   prioritySupport: boolean;
 }
@@ -96,12 +101,35 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'basic',
     smartJournalingEnabled: true,  // Full access during trial
     journalTemplatesAccess: 'all', // All templates during trial
+    calendarSyncEnabled: true,
+    expoundingEnabled: true,
+    copyIncompleteTodosEnabled: true,
+    answeredPrayerTrackingEnabled: true,
+    maxLevel: 10,
+    advancedAnalytics: false,
+    prioritySupport: false,
+  },
+  basic: {
+    playbooks: 0,
+    devotionals: 0,
+    exports: 0,
+    familyMembers: 0,
+    apiCalls: 0,
+    intelligenceEnabled: false,  // No intelligence for freemium
+    intelligenceLevel: 'none',
+    smartJournalingEnabled: false, // Limited journaling
+    journalTemplatesAccess: 'basic', // Only basic templates
+    calendarSyncEnabled: false,
+    expoundingEnabled: false,
+    copyIncompleteTodosEnabled: false,
+    answeredPrayerTrackingEnabled: false,
+    maxLevel: 3,
     advancedAnalytics: false,
     prioritySupport: false,
   },
   starter: {
-    playbooks: 4,
-    devotionals: 4,
+    playbooks: 8,
+    devotionals: 8,
     exports: 0,
     familyMembers: 0,
     apiCalls: 0,
@@ -109,12 +137,17 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'basic',
     smartJournalingEnabled: true,
     journalTemplatesAccess: 'all',
+    calendarSyncEnabled: false,
+    expoundingEnabled: false,
+    copyIncompleteTodosEnabled: false,
+    answeredPrayerTrackingEnabled: false,
+    maxLevel: 5,
     advancedAnalytics: false,
     prioritySupport: false,
   },
   growth: {
-    playbooks: 15,
-    devotionals: 15,
+    playbooks: 20,
+    devotionals: 20,
     exports: 0,
     familyMembers: 0,
     apiCalls: 0,
@@ -122,6 +155,11 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'enhanced',
     smartJournalingEnabled: true,
     journalTemplatesAccess: 'all',
+    calendarSyncEnabled: true,
+    expoundingEnabled: true,
+    copyIncompleteTodosEnabled: true,
+    answeredPrayerTrackingEnabled: true,
+    maxLevel: 8,
     advancedAnalytics: true,
     prioritySupport: true,
   },
@@ -135,6 +173,11 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'advanced',
     smartJournalingEnabled: true,
     journalTemplatesAccess: 'all',
+    calendarSyncEnabled: true,
+    expoundingEnabled: true,
+    copyIncompleteTodosEnabled: true,
+    answeredPrayerTrackingEnabled: true,
+    maxLevel: 10,
     advancedAnalytics: true,
     prioritySupport: true,
   },
@@ -148,6 +191,11 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'advanced',
     smartJournalingEnabled: true,
     journalTemplatesAccess: 'all',
+    calendarSyncEnabled: true,
+    expoundingEnabled: true,
+    copyIncompleteTodosEnabled: true,
+    answeredPrayerTrackingEnabled: true,
+    maxLevel: 10,
     advancedAnalytics: true,
     prioritySupport: true,
   },
@@ -161,6 +209,11 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'basic',
     smartJournalingEnabled: true,
     journalTemplatesAccess: 'all',
+    calendarSyncEnabled: false,
+    expoundingEnabled: false,
+    copyIncompleteTodosEnabled: false,
+    answeredPrayerTrackingEnabled: false,
+    maxLevel: 5,
     advancedAnalytics: false,
     prioritySupport: false,
   },
@@ -174,6 +227,11 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'enhanced',
     smartJournalingEnabled: true,
     journalTemplatesAccess: 'all',
+    calendarSyncEnabled: true,
+    expoundingEnabled: true,
+    copyIncompleteTodosEnabled: true,
+    answeredPrayerTrackingEnabled: true,
+    maxLevel: 8,
     advancedAnalytics: true,
     prioritySupport: true,
   },
@@ -187,6 +245,11 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'advanced',
     smartJournalingEnabled: true,
     journalTemplatesAccess: 'all',
+    calendarSyncEnabled: true,
+    expoundingEnabled: true,
+    copyIncompleteTodosEnabled: true,
+    answeredPrayerTrackingEnabled: true,
+    maxLevel: 10,
     advancedAnalytics: true,
     prioritySupport: true,
   },
@@ -200,6 +263,11 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     intelligenceLevel: 'advanced',
     smartJournalingEnabled: true,
     journalTemplatesAccess: 'all',
+    calendarSyncEnabled: true,
+    expoundingEnabled: true,
+    copyIncompleteTodosEnabled: true,
+    answeredPrayerTrackingEnabled: true,
+    maxLevel: 10,
     advancedAnalytics: true,
     prioritySupport: true,
   },
@@ -208,6 +276,7 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
 // US Market Pricing (USD)
 export const PRICING_US: Record<SubscriptionTier, { amount: number; currency: string; interval: 'month' | 'year' }> = {
   free_trial: { amount: 0, currency: 'usd', interval: 'month' },
+  basic: { amount: 0, currency: 'usd', interval: 'month' }, // FREE freemium
   starter: { amount: 699, currency: 'usd', interval: 'month' }, // $6.99
   growth: { amount: 1299, currency: 'usd', interval: 'month' }, // $12.99
   transformation: { amount: 2499, currency: 'usd', interval: 'month' }, // $24.99
@@ -221,14 +290,15 @@ export const PRICING_US: Record<SubscriptionTier, { amount: number; currency: st
 // Philippines Market Pricing (PHP) - Profitable & Affordable
 export const PRICING_PH: Record<SubscriptionTier, { amount: number; currency: string; interval: 'month' | 'year' }> = {
   free_trial: { amount: 0, currency: 'php', interval: 'month' },
+  basic: { amount: 0, currency: 'php', interval: 'month' }, // FREE freemium
   starter: { amount: 19900, currency: 'php', interval: 'month' }, // ₱199 (~$3.58 USD equivalent)
-  growth: { amount: 34900, currency: 'php', interval: 'month' }, // ₱349 (~$6.28 USD equivalent)
-  transformation: { amount: 54900, currency: 'php', interval: 'month' }, // ₱549 (~$9.88 USD equivalent)
-  family: { amount: 69900, currency: 'php', interval: 'month' }, // ₱699 (~$12.58 USD equivalent)
+  growth: { amount: 39900, currency: 'php', interval: 'month' }, // ₱399 (~$7.18 USD equivalent)
+  transformation: { amount: 69900, currency: 'php', interval: 'month' }, // ₱699 (~$12.58 USD equivalent)
+  family: { amount: 99900, currency: 'php', interval: 'month' }, // ₱999 (~$17.98 USD equivalent)
   starter_annual: { amount: 199900, currency: 'php', interval: 'year' }, // ₱1,999 (17% off)
-  growth_annual: { amount: 349900, currency: 'php', interval: 'year' }, // ₱3,499 (17% off)
-  transformation_annual: { amount: 549900, currency: 'php', interval: 'year' }, // ₱5,499 (17% off)
-  family_annual: { amount: 699900, currency: 'php', interval: 'year' }, // ₱6,999 (17% off)
+  growth_annual: { amount: 399900, currency: 'php', interval: 'year' }, // ₱3,999 (17% off)
+  transformation_annual: { amount: 699900, currency: 'php', interval: 'year' }, // ₱6,999 (17% off)
+  family_annual: { amount: 999900, currency: 'php', interval: 'year' }, // ₱9,999 (17% off)
 };
 
 // Default to US pricing for backward compatibility

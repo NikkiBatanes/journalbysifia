@@ -1,4 +1,5 @@
 import React from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -8,7 +9,6 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export type GroupingType = 'date' | 'month' | 'category' | 'type' | 'none';
 export type SortType = 'newest' | 'oldest' | 'category' | 'type';

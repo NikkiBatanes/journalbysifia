@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useCallback, useImperativeHandle } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Keyboard } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
@@ -422,8 +423,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     },
   }));
 
-
-
   // Structured prayer data for "Prayers for People" tab
   const [prayerForPerson, setPrayerForPerson] = React.useState('');
   const [prayerRequest, setPrayerRequest] = React.useState('');
@@ -727,8 +726,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
         </View>
       </View>
 
-
-
       <KeyboardAvoidingView
         style={s.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -868,7 +865,6 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             </TouchableOpacity>
           </View>
         </View>
-
 
     </View>
   );

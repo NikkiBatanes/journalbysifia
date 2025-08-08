@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
+
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { TIMEBLOCK_CATEGORIES, TimeBlockCategory } from './TimeBlockCategories';

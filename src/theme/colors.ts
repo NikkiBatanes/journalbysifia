@@ -10,6 +10,9 @@ export const Colors = {
   alertCoral: '#FF6B6B',
   devotionalPurple: '#6A0DAD',
   spiritualPink: '#E91E63', // New pink color
+  playbookBlue: '#2196F3', // Blue for playbooks
+  successGreen: '#4CAF50', // Success/completion color
+  lightPurple: '#F3E5F5', // Light purple background
 
   // Standard UI Colors (for consistency)
   primary: '#1a3c6d', // Maps to anchorBlue

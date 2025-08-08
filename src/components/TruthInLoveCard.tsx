@@ -1,11 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
-
 
 type TruthInLoveCardProps = {
   truth: string;

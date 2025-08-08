@@ -1,4 +1,5 @@
 import React, { useRef, useCallback } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -9,7 +10,7 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 // MaterialCommunityIcons import removed as it's not being used
 import { useDevotionalPrayerData } from '../../services/hooks/usePrayerData';
 import { useAuth } from '../../context/IndustryStandardAuthContext';

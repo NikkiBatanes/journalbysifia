@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -11,7 +12,6 @@ import { Calendar } from 'react-native-calendars';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths } from 'date-fns';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export type DateRange = {
   startDate: Date;

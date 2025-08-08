@@ -1,8 +1,8 @@
 import React, { Component, ReactNode } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface Props {
   children: ReactNode;

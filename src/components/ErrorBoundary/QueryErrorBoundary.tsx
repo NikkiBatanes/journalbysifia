@@ -1,7 +1,8 @@
 import React from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { ErrorBoundary as ReactErrorBoundary } from 'react-error-boundary';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 

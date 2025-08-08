@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { User, UserPreferences, Goal, Challenge, UserProgress, Badge, AuthError } from '../types/auth';
+import { faithPointsService } from './faithPointsService';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -639,40 +640,59 @@ class UserApiService {
 
   async getProfileStats(userId: string): Promise<ApiResponse<any>> {
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select(`
-          faith_points,
-          growth_level,
-          gamification_stats
-        `)
-        .eq('id', userId)
-        .single();
+      // Use faith points service to get real user profile data
+      const profile = await faithPointsService.getUserProfile(userId);
+      
+      // Get recent transactions to calculate additional stats
+      const recentTransactions = await faithPointsService.getRecentTransactions(userId, 100);
+      
+      // Calculate activity counts using exact activity type matches
+      const devotionalsFinished = recentTransactions.filter((t: any) => 
+        t.activity_type === 'devotional_generated'
+      ).length;
+      
+      const prayerSessions = recentTransactions.filter((t: any) => 
+        t.activity_type === 'prayer_completed' || t.activity_type === 'daily_prayer'
+      ).length;
+      
+      const journalEntries = recentTransactions.filter((t: any) => 
+        t.activity_type === 'journal_entry'
+      ).length;
+      
+      const playbooksCompleted = recentTransactions.filter((t: any) => 
+        t.activity_type === 'playbook_generated'
+      ).length;
+      
+      const actionStepsCompleted = recentTransactions.filter((t: any) => 
+        t.activity_type === 'action_step_completed'
+      ).length;
+      
+      const goalsCompleted = playbooksCompleted + actionStepsCompleted;
 
-      if (error) {
-        return {
-          success: false,
-          error: { code: 'FETCH_FAILED', message: error.message },
-        };
-      }
-
-      // Extract stats from gamification_stats JSONB
-      const stats = data.gamification_stats || {};
-
+      // Calculate badges based on achievements (simplified for now)
+      const totalBadges = Math.floor(profile.totalPoints / 50); // 1 badge per 50 points
+      
       const profileStats = {
-        faithPoints: data.faith_points || 0,
-        level: data.growth_level || 1,
-        totalBadges: stats.total_badges || 0,
-        currentStreak: Math.max(
-          stats.devotional_day_streaks || 0,
-          stats.gratitude_daily_streak || 0,
-          stats.prayer_streak || 0
-        ),
-        goalsCompleted: stats.goals_completed || 0,
-        devotionalsFinished: stats.devotionals_finished || 0,
-        prayerSessions: stats.prayer_sessions || 0,
-        journalEntries: stats.journal_entries || 0,
+        faithPoints: profile.totalPoints,
+        level: profile.currentLevel,
+        totalBadges,
+        currentStreak: profile.currentStreak,
+        goalsCompleted,
+        devotionalsFinished,
+        prayerSessions,
+        journalEntries,
       };
+
+      console.log('📊 Profile Stats Calculated:', {
+        userId,
+        profile: {
+          totalPoints: profile.totalPoints,
+          currentLevel: profile.currentLevel,
+          currentStreak: profile.currentStreak
+        },
+        transactionCount: recentTransactions.length,
+        calculatedStats: profileStats
+      });
 
       return {
         success: true,

@@ -32,6 +32,7 @@ import { NetworkStatus } from './src/components/NetworkStatus';
 import AuthStateMonitor from './src/components/AuthStateMonitor';
 import { OnboardingProvider } from './src/context/OnboardingContext';
 import { OnboardingIntegration } from './src/components/onboarding/OnboardingIntegration';
+import { PointsNotificationProvider } from './src/context/PointsNotificationContext';
 
 // Stack navigator removed as it's not currently used
 
@@ -100,21 +101,23 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
           <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
             <UserProvider>
               <OnboardingProvider>
-                <LogoutContext.Provider value={{ onLogout: async () => {} }}>
-                  <AuthStateMonitor>
-                    {/* OnboardingIntegration temporarily disabled to fix email registration flow */}
-                    {/* <OnboardingIntegration> */}
-                      <RootStackNavigator
-                        isAuthenticated={isAuthenticated}
-                        handleLogin={async () => {}}
-                        handleLogout={async () => {}}
-                        onLogin={async () => {}}
-                        AuthStack={AuthStackNavigator}
-                      />
-                      <NetworkStatus />
-                    {/* </OnboardingIntegration> */}
-                  </AuthStateMonitor>
-                </LogoutContext.Provider>
+                <PointsNotificationProvider>
+                  <LogoutContext.Provider value={{ onLogout: async () => {} }}>
+                    <AuthStateMonitor>
+                      {/* OnboardingIntegration temporarily disabled to fix email registration flow */}
+                      {/* <OnboardingIntegration> */}
+                        <RootStackNavigator
+                          isAuthenticated={isAuthenticated}
+                          handleLogin={async () => {}}
+                          handleLogout={async () => {}}
+                          onLogin={async () => {}}
+                          AuthStack={AuthStackNavigator}
+                        />
+                        <NetworkStatus />
+                      {/* </OnboardingIntegration> */}
+                    </AuthStateMonitor>
+                  </LogoutContext.Provider>
+                </PointsNotificationProvider>
               </OnboardingProvider>
             </UserProvider>
           </ActionStepsProviderWrapper>

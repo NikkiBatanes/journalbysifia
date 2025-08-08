@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { View, ScrollView, StyleSheet, StatusBar, Text, TouchableOpacity, Image } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, ScrollView, StyleSheet, StatusBar, Text, TouchableOpacity, Image } from 'react-native';
+
 import { useFocusEffect } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { CommonActions } from '@react-navigation/native';

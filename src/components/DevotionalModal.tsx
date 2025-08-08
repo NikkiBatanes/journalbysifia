@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing, ActivityIndicator } from 'react-native';
 import { Colors, defaultFontFamily } from '../theme';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 
@@ -155,7 +156,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       });
     }
 
-
     return () => {
       isMounted = false;
       if (animation) {
@@ -264,7 +264,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     inputRange: [0, 1],
     outputRange: ['0deg', '180deg'],
   });
-
 
   if (!isVisible && !visible) {return null;}
 

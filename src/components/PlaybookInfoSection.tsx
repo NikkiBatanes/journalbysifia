@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, Text, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle } from 'react-native';
+
 import { Colors } from '../theme';
 import { Playbook } from '../interfaces/playbook';
 

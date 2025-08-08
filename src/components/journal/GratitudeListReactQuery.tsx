@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Check, HandHeart as LuHandHeart, X, Pencil } from 'lucide-react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
@@ -40,7 +42,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
 
-
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -59,7 +60,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // React Query hooks with performance tracking
   const loadStartTime = React.useRef<number>(Date.now());
   const { data: gratitudeEntries = [], isLoading, error } = useGratitudeData(user?.id || '', dateStr);
-
 
   const createMutation = useCreateJournalEntry();
   const updateMutation = useUpdateJournalEntry();

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -24,7 +25,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
 import { debugAuthState, getCurrentUserId } from '../utils/authCheck';
 import { Colors } from '../theme/colors';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -100,7 +100,6 @@ const UserInputScreen: React.FC = () => {
 
   // Use the real generatePlaybook from the API service
   // Remove the local mock implementation.
-
 
   const handleGeneratePlaybook = async () => {
     animateButton();

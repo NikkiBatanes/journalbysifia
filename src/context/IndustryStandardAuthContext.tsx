@@ -118,10 +118,6 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         const userProfile = {
           id: user.id,
           email: user.email,
-          first_name: firstName,
-          last_name: lastName,
-          full_name: fullName,
-          display_name: displayName,
           onboarding_completed: false,
         };
 

@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { View, Text, StyleSheet } from 'react-native';
+
 import { Colors } from '../../theme';
 
 const formatPrayerDate = (prayerDate: Date): string => {

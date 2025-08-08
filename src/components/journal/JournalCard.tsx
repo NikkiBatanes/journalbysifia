@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil } from 'lucide-react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { ViewConfigurationManager } from '../../systems/journal/ViewConfigurationManager';
 import { ViewMode } from '../../systems/journal/types';
 import { AnimationUtils } from '../../utils/animations';

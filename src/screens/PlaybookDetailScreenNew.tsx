@@ -1,5 +1,6 @@
 // React & React Native
 import * as React from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   StyleSheet,
@@ -29,7 +30,6 @@ import Animated, {
 import { Gesture } from 'react-native-gesture-handler';
 
 // Icons
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
 // Theme & Styling
 import { Colors, Fonts } from '../theme';
@@ -966,8 +966,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     }
 
     const visibleCardCount = Math.min(5, cardData.length - currentCard);
-
-
 
     const renderCard = (cardIndex: number, stackIndex: number, _onToggleView: (mode: 'stack' | 'document') => void) => {
       const card = cardData[cardIndex];

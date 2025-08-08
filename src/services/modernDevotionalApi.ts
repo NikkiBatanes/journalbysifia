@@ -117,6 +117,18 @@ export async function generateDevotional(
 
       console.log('✅ Devotional saved to database:', savedDevotional.id);
 
+      // Track usage for subscription after successful generation
+      try {
+        const { subscriptionService } = await import('./subscriptionService');
+        if (session.user?.id) {
+          await subscriptionService.trackUsage(session.user.id, 'devotional');
+          console.log('[ModernDevotionalApi] Usage tracked for devotional generation');
+        }
+      } catch (trackingError) {
+        console.warn('[ModernDevotionalApi] Failed to track usage:', trackingError);
+        // Don't fail the generation if tracking fails
+      }
+
       // Return the complete devotional object matching the Devotional interface
       return {
         ...result,

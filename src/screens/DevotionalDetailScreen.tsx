@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   Animated,
   StatusBar,
@@ -22,14 +23,15 @@ import {
 } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Typography as TypographyStyles } from '../theme/typography';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { faithPointsService } from '../services/faithPointsService';
+import { subscriptionService } from '../services/subscriptionService';
+
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
 import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 import { extractCleanTitle } from '../utils/titleUtils';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
-
 
 type DevotionalDetailScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'DevotionalDetail'>;
@@ -375,6 +377,23 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     try {
       // Submit the rating
       await submitDevotionalRating(devotional.id, rating);
+
+      // Award faith points and track usage for completing devotional (delayed to show after modal closes)
+      if (user?.id) {
+        setTimeout(async () => {
+          try {
+            // Award faith points
+            const pointsResult = await faithPointsService.awardPoints(user.id, 'devotional_generated');
+            console.log('[DevotionalDetail] Faith points awarded for devotional completion:', pointsResult);
+            
+            // Track usage for subscription
+            await subscriptionService.trackUsage(user.id, 'devotional');
+            console.log('[DevotionalDetail] Usage tracked for devotional completion');
+          } catch (error) {
+            console.error('[DevotionalDetail] Failed to award points or track usage:', error);
+          }
+        }, 1000); // Delay 1 second to let modal close
+      }
 
       // React Query handles optimistic updates automatically
       // No need to update local state
@@ -815,8 +834,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-
-
   headerSpacer: {
     width: 40,
     zIndex: 1,
@@ -1056,6 +1073,5 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
   },
-
 
 });

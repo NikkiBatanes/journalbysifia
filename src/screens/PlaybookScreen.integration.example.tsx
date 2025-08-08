@@ -4,9 +4,8 @@
 // This shows how to handle content generation limits and trial expiration
 
 import React, { useState } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
 // Import trial hooks and components
 import { useTrialAccess, useContentGeneration } from '../hooks/useTrialAccess';
 import { FeatureLockOverlay } from '../components/FeatureLockOverlay';

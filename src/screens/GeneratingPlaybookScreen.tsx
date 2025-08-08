@@ -8,6 +8,7 @@ import type { RootStackParamList } from '../navigation/types';
 import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
 import { subscriptionService } from '../services/subscriptionService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { faithPointsService } from '../services/faithPointsService';
 
 
 
@@ -51,9 +52,13 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       ])
     );
 
-    // Start both animations
-    fadeIn.start();
-    pulseAnimation.start();
+    // Start both animations with mount check
+    fadeIn.start((finished) => {
+      if (!isMounted.current || !finished) return;
+    });
+    pulseAnimation.start((finished) => {
+      if (!isMounted.current || !finished) return;
+    });
 
     // Cleanup function
     return () => {
@@ -103,6 +108,15 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             throw new Error(saveResult.error || 'Failed to save playbook to database');
           }
           console.log('[GeneratingPlaybook] Playbook saved successfully:', savedPlaybook.id);
+
+          // Award faith points for playbook generation
+          try {
+            const pointsResult = await faithPointsService.awardPoints(user.id, 'playbook_generated');
+            console.log('[GeneratingPlaybook] Faith points awarded:', pointsResult);
+          } catch (pointsError) {
+            console.error('[GeneratingPlaybook] Failed to award faith points:', pointsError);
+            // Don't fail the whole generation if points awarding fails
+          }
 
           // Track usage for subscription service
           try {
@@ -192,8 +206,8 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
         toValue: 1.1,
         duration: 3000,
         useNativeDriver: true,
-      }).start(() => {
-        if (!isMounted.current) {return;}
+      }).start((finished) => {
+        if (!isMounted.current || !finished) {return;}
         setBreathingText('Breathe out worry...');
         setBreathingPhase('out');
 
@@ -202,8 +216,8 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           toValue: 0.8,
           duration: 3000,
           useNativeDriver: true,
-        }).start(() => {
-          if (!isMounted.current) {return;}
+        }).start((finished) => {
+          if (!isMounted.current || !finished) {return;}
           setBreathingText('Breathe in peace...');
           setBreathingPhase('in');
         });
@@ -244,7 +258,9 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       toValue: ((currentStep + 1) / steps.length) * 100,
       duration: 500,
       useNativeDriver: false,
-    }).start();
+    }).start((finished) => {
+      if (!isMounted.current || !finished) return;
+    });
   }, [currentStep, steps.length]);
 
   // Start line animations

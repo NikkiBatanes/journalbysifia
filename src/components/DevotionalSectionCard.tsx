@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { View, Text, StyleSheet } from 'react-native';
+
 import { Colors, defaultFontFamily, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 
 interface DevotionalSectionCardProps {

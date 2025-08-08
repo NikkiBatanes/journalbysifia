@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   Modal,
   StyleSheet,
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 import { Colors } from '../theme';
 import { Typography as TypographyStyles } from '../theme/typography';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Devotional } from '../interfaces/devotional';
 import { extractCleanTitle } from '../utils/titleUtils';
 

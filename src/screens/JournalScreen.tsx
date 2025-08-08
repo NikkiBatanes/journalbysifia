@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
@@ -9,7 +10,7 @@ import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import LinearGradient from 'react-native-linear-gradient';
 import { AnimationUtils } from '../utils/animations';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';
 import PrayCarousel from '../components/journal/PrayCarousel';
@@ -19,10 +20,6 @@ import { JournalSystem } from '../systems/journal';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
-
-
-
-
 
 export type JournalScreenRef = {
   resetToCurrentDate: () => void;
@@ -70,7 +67,6 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
 
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(new Date().getDay());
 
-
   // Track if we've handled the initial scroll
   const hasInitializedScroll = useRef(false);
 
@@ -109,7 +105,6 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     outputRange: [44, 0],
     extrapolate: 'clamp',
   });
-
 
   useEffect(() => {
     const generateWeeks = () => {
@@ -190,8 +185,6 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   useEffect(() => {
     setSelectedDayOfWeek(currentDate.getDay());
   }, [currentDate]);
-
-
 
   // Track scroll position and update current date based on visible week
   const handleScroll = (event: any) => {
@@ -404,8 +397,6 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     }
   };
 
-
-
   const handleContentScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
     const y = event.nativeEvent.contentOffset.y;
     const isScrollingUp = y < (lastScrollY.current || 0);
@@ -464,10 +455,6 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
       setIsRefreshing(false);
     }
   }, [user, currentDate, isRefreshing]);
-
-
-
-
 
   return (
     <View style={styles.container}>

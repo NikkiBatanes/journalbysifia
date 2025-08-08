@@ -1,7 +1,8 @@
 import React from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, { Easing, useSharedValue, useAnimatedStyle, withRepeat, withTiming } from 'react-native-reanimated';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Colors } from '../theme';
 
 export default function SwipeUpIndicator() {

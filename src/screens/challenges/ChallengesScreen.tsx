@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -10,7 +11,7 @@ import {
   // Dimensions, // Unused
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import LinearGradient from 'react-native-linear-gradient';
 // import { useAuth } from '../../context/IndustryStandardAuthContext'; // Unused
 import { userApi } from '../../services/userApi';

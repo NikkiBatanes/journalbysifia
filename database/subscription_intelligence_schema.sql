@@ -10,51 +10,80 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ENUMS AND TYPES
 -- =============================================
 
-CREATE TYPE subscription_tier AS ENUM (
-  'free_trial', 
-  'starter', 
-  'lite', 
-  'pro', 
-  'family', 
-  'enterprise'
-);
+-- Subscription tiers with intelligence levels
+-- Use DO block to handle existing types gracefully
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscription_tier') THEN
+    CREATE TYPE subscription_tier AS ENUM (
+      'free_trial',      -- 3-day trial with full features
+      'basic',           -- FREE freemium model - limited features, no intelligence
+      'starter',         -- $6.99/month - Basic intelligence
+      'growth',          -- $12.99/month - Enhanced intelligence
+      'transformation',  -- $24.99/month - Advanced intelligence + priority
+      'family',          -- $34.99/month - All features for family
+      'starter_annual',  -- Annual starter plan
+      'growth_annual',   -- Annual growth plan
+      'transformation_annual', -- Annual transformation plan
+      'family_annual'    -- Annual family plan
+    );
+  END IF;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TYPE subscription_status AS ENUM (
-  'active', 
-  'canceled', 
-  'past_due', 
-  'unpaid', 
-  'trialing', 
-  'expired'
-);
+DO $$ BEGIN
+  CREATE TYPE subscription_status AS ENUM (
+    'active', 
+    'canceled', 
+    'past_due', 
+    'unpaid', 
+    'trialing', 
+    'expired'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TYPE generation_type AS ENUM (
-  'playbook', 
-  'devotional', 
-  'expansion', 
-  'regeneration'
-);
+DO $$ BEGIN
+  CREATE TYPE generation_type AS ENUM (
+    'playbook', 
+    'devotional', 
+    'expansion', 
+    'regeneration'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TYPE queue_status AS ENUM (
-  'pending', 
-  'processing', 
-  'completed', 
-  'failed', 
-  'cancelled'
-);
+DO $$ BEGIN
+  CREATE TYPE queue_status AS ENUM (
+    'pending', 
+    'processing', 
+    'completed', 
+    'failed', 
+    'cancelled'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TYPE intelligence_level AS ENUM (
-  'basic',     -- Free/Starter: No intelligence
-  'enhanced',  -- Lite: Basic personalization
-  'advanced'   -- Pro/Family/Enterprise: Full intelligence
-);
+DO $$ BEGIN
+  CREATE TYPE intelligence_level AS ENUM (
+    'basic',     -- Free/Starter: No intelligence
+    'enhanced',  -- Lite: Basic personalization
+    'advanced'   -- Pro/Family/Enterprise: Full intelligence
+  );
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- =============================================
 -- SUBSCRIPTION TABLES
 -- =============================================
 
 -- User subscriptions with intelligence features
-CREATE TABLE user_subscriptions (
+CREATE TABLE IF NOT EXISTS user_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   tier subscription_tier NOT NULL DEFAULT 'free_trial',
@@ -70,6 +99,13 @@ CREATE TABLE user_subscriptions (
   end_date TIMESTAMPTZ,
   trial_end_date TIMESTAMPTZ,
   canceled_at TIMESTAMPTZ,
+  next_billing_date TIMESTAMPTZ,
+  
+  -- Pending billing (for trial-to-paid conversion)
+  pending_tier subscription_tier,
+  pending_price_cents INTEGER,
+  pending_currency TEXT DEFAULT 'usd',
+  pending_interval TEXT, -- 'month' or 'year'
   
   -- Intelligence features by tier
   intelligence_enabled BOOLEAN DEFAULT false,
@@ -90,7 +126,7 @@ CREATE TABLE user_subscriptions (
 );
 
 -- Simple usage tracking (what users see)
-CREATE TABLE usage_tracking (
+CREATE TABLE IF NOT EXISTS usage_tracking (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   period TEXT NOT NULL, -- YYYY-MM format
@@ -107,6 +143,7 @@ CREATE TABLE usage_tracking (
   -- Export and feature usage
   exports_used INTEGER DEFAULT 0,
   api_calls_used INTEGER DEFAULT 0,
+  last_export_date TIMESTAMPTZ,
   
   -- Metadata
   last_updated TIMESTAMPTZ DEFAULT NOW(),
@@ -116,7 +153,7 @@ CREATE TABLE usage_tracking (
 );
 
 -- Billing history for transparency
-CREATE TABLE billing_history (
+CREATE TABLE IF NOT EXISTS billing_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   subscription_id UUID REFERENCES user_subscriptions(id),
@@ -144,7 +181,7 @@ CREATE TABLE billing_history (
 -- =============================================
 
 -- User intelligence profiles (LOCAL PROCESSING)
-CREATE TABLE user_intelligence_profiles (
+CREATE TABLE IF NOT EXISTS user_intelligence_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   
@@ -193,42 +230,75 @@ CREATE TABLE user_intelligence_profiles (
 );
 
 -- Behavior tracking for intelligence (LOCAL ANALYTICS)
-CREATE TABLE user_behavior_events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+-- Note: user_behavior_events table already exists, so we'll add missing columns if needed
+
+-- Add missing columns to existing user_behavior_events table
+DO $$
+BEGIN
+  -- Add event_category column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_behavior_events' 
+                 AND column_name = 'event_category') THEN
+    ALTER TABLE user_behavior_events ADD COLUMN event_category TEXT DEFAULT 'engagement';
+  END IF;
   
-  -- Event classification
-  event_type TEXT NOT NULL, -- playbook_generated, devotional_completed, journal_entry, etc.
-  event_category TEXT NOT NULL, -- generation, completion, engagement, navigation
+  -- Add playbook_id column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_behavior_events' 
+                 AND column_name = 'playbook_id') THEN
+    ALTER TABLE user_behavior_events ADD COLUMN playbook_id UUID;
+  END IF;
   
-  -- Event data (flexible JSON storage)
-  event_data JSONB DEFAULT '{}',
+  -- Add devotional_id column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_behavior_events' 
+                 AND column_name = 'devotional_id') THEN
+    ALTER TABLE user_behavior_events ADD COLUMN devotional_id UUID;
+  END IF;
   
-  -- Context information
-  session_id UUID,
-  playbook_id UUID,
-  devotional_id UUID,
-  journal_entry_id UUID,
+  -- Add journal_entry_id column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_behavior_events' 
+                 AND column_name = 'journal_entry_id') THEN
+    ALTER TABLE user_behavior_events ADD COLUMN journal_entry_id UUID;
+  END IF;
   
-  -- Timing and sequence
-  sequence_number INTEGER, -- Order within session
-  duration_seconds INTEGER, -- How long the event took
+  -- Add sequence_number column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_behavior_events' 
+                 AND column_name = 'sequence_number') THEN
+    ALTER TABLE user_behavior_events ADD COLUMN sequence_number INTEGER;
+  END IF;
   
-  -- Intelligence scoring (calculated locally)
-  engagement_score FLOAT DEFAULT 0, -- 0.0 to 1.0
-  success_indicator BOOLEAN DEFAULT false,
+  -- Add duration_seconds column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_behavior_events' 
+                 AND column_name = 'duration_seconds') THEN
+    ALTER TABLE user_behavior_events ADD COLUMN duration_seconds INTEGER;
+  END IF;
   
-  -- Metadata
-  created_at TIMESTAMPTZ DEFAULT NOW(),
+  -- Add engagement_score column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_behavior_events' 
+                 AND column_name = 'engagement_score') THEN
+    ALTER TABLE user_behavior_events ADD COLUMN engagement_score FLOAT DEFAULT 0;
+  END IF;
   
-  -- Index for fast queries
-  INDEX idx_behavior_events_user_type (user_id, event_type),
-  INDEX idx_behavior_events_category (event_category),
-  INDEX idx_behavior_events_created (created_at DESC)
-);
+  -- Add success_indicator column if it doesn't exist
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                 WHERE table_name = 'user_behavior_events' 
+                 AND column_name = 'success_indicator') THEN
+    ALTER TABLE user_behavior_events ADD COLUMN success_indicator BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+
+-- Create indexes for user_behavior_events if they don't exist
+CREATE INDEX IF NOT EXISTS idx_behavior_events_user_type ON user_behavior_events (user_id, event_type);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_category ON user_behavior_events (event_category);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_created ON user_behavior_events (created_at);
 
 -- Content effectiveness tracking (LEARNING SYSTEM)
-CREATE TABLE content_effectiveness (
+CREATE TABLE IF NOT EXISTS content_effectiveness (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
   -- Content identification
@@ -263,13 +333,13 @@ CREATE TABLE content_effectiveness (
 -- =============================================
 
 -- Generation queue with intelligence and priority
-CREATE TABLE generation_queue (
+CREATE TABLE IF NOT EXISTS generation_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   
   -- Queue management
   type generation_type NOT NULL,
-  priority INTEGER NOT NULL DEFAULT 3, -- 1=enterprise, 2=family, 3=pro, 4=lite, 5=starter/free
+  priority INTEGER NOT NULL DEFAULT 4, -- 1=family, 2=transformation, 3=growth, 4=starter, 5=basic/free_trial
   status queue_status NOT NULL DEFAULT 'pending',
   
   -- Generation data
@@ -308,38 +378,38 @@ CREATE TABLE generation_queue (
 -- =============================================
 
 -- Subscription indexes
-CREATE INDEX idx_user_subscriptions_user_id ON user_subscriptions(user_id);
-CREATE INDEX idx_user_subscriptions_tier ON user_subscriptions(tier);
-CREATE INDEX idx_user_subscriptions_status ON user_subscriptions(status);
-CREATE INDEX idx_user_subscriptions_trial_end ON user_subscriptions(trial_end_date) WHERE trial_end_date IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user_id ON user_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_tier ON user_subscriptions(tier);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_status ON user_subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_trial_end ON user_subscriptions(trial_end_date) WHERE trial_end_date IS NOT NULL;
 
 -- Usage tracking indexes
-CREATE INDEX idx_usage_tracking_user_period ON usage_tracking(user_id, period);
-CREATE INDEX idx_usage_tracking_period ON usage_tracking(period);
+CREATE INDEX IF NOT EXISTS idx_usage_tracking_user_period ON usage_tracking(user_id, period);
+CREATE INDEX IF NOT EXISTS idx_usage_tracking_period ON usage_tracking(period);
 
 -- Intelligence indexes
-CREATE INDEX idx_user_intelligence_profiles_user_id ON user_intelligence_profiles(user_id);
-CREATE INDEX idx_user_intelligence_profiles_maturity ON user_intelligence_profiles(spiritual_maturity);
-CREATE INDEX idx_user_intelligence_profiles_updated ON user_intelligence_profiles(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_intelligence_profiles_user_id ON user_intelligence_profiles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_intelligence_profiles_maturity ON user_intelligence_profiles(spiritual_maturity);
+CREATE INDEX IF NOT EXISTS idx_user_intelligence_profiles_updated ON user_intelligence_profiles(updated_at DESC);
 
 -- Behavior events indexes
-CREATE INDEX idx_behavior_events_user_id ON user_behavior_events(user_id);
-CREATE INDEX idx_behavior_events_type ON user_behavior_events(event_type);
-CREATE INDEX idx_behavior_events_category ON user_behavior_events(event_category);
-CREATE INDEX idx_behavior_events_created ON user_behavior_events(created_at DESC);
-CREATE INDEX idx_behavior_events_session ON user_behavior_events(session_id) WHERE session_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_behavior_events_user_id ON user_behavior_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_type ON user_behavior_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_category ON user_behavior_events(event_category);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_created ON user_behavior_events(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_behavior_events_session ON user_behavior_events(session_id) WHERE session_id IS NOT NULL;
 
 -- Content effectiveness indexes
-CREATE INDEX idx_content_effectiveness_content ON content_effectiveness(content_type, content_id);
-CREATE INDEX idx_content_effectiveness_user ON content_effectiveness(user_id);
-CREATE INDEX idx_content_effectiveness_completion ON content_effectiveness(completion_rate DESC);
+CREATE INDEX IF NOT EXISTS idx_content_effectiveness_content ON content_effectiveness(content_type, content_id);
+CREATE INDEX IF NOT EXISTS idx_content_effectiveness_user ON content_effectiveness(user_id);
+CREATE INDEX IF NOT EXISTS idx_content_effectiveness_completion ON content_effectiveness(completion_rate DESC);
 
 -- Queue indexes
-CREATE INDEX idx_generation_queue_status ON generation_queue(status);
-CREATE INDEX idx_generation_queue_priority ON generation_queue(priority, created_at);
-CREATE INDEX idx_generation_queue_user ON generation_queue(user_id);
-CREATE INDEX idx_generation_queue_type ON generation_queue(type);
-CREATE INDEX idx_generation_queue_processing ON generation_queue(status, priority, created_at) WHERE status IN ('pending', 'processing');
+CREATE INDEX IF NOT EXISTS idx_generation_queue_status ON generation_queue(status);
+CREATE INDEX IF NOT EXISTS idx_generation_queue_priority ON generation_queue(priority, created_at);
+CREATE INDEX IF NOT EXISTS idx_generation_queue_user ON generation_queue(user_id);
+CREATE INDEX IF NOT EXISTS idx_generation_queue_type ON generation_queue(type);
+CREATE INDEX IF NOT EXISTS idx_generation_queue_processing ON generation_queue(status, priority, created_at) WHERE status IN ('pending', 'processing');
 
 -- =============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -355,39 +425,49 @@ ALTER TABLE content_effectiveness ENABLE ROW LEVEL SECURITY;
 ALTER TABLE generation_queue ENABLE ROW LEVEL SECURITY;
 
 -- Subscription policies
+DROP POLICY IF EXISTS "Users can view own subscription" ON user_subscriptions;
 CREATE POLICY "Users can view own subscription" ON user_subscriptions
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own subscription" ON user_subscriptions;
 CREATE POLICY "Users can update own subscription" ON user_subscriptions
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Usage tracking policies
+DROP POLICY IF EXISTS "Users can view own usage" ON usage_tracking;
 CREATE POLICY "Users can view own usage" ON usage_tracking
   FOR SELECT USING (auth.uid() = user_id);
 
 -- Billing history policies
+DROP POLICY IF EXISTS "Users can view own billing" ON billing_history;
 CREATE POLICY "Users can view own billing" ON billing_history
   FOR SELECT USING (auth.uid() = user_id);
 
 -- Intelligence profile policies
+DROP POLICY IF EXISTS "Users can view own intelligence profile" ON user_intelligence_profiles;
 CREATE POLICY "Users can view own intelligence profile" ON user_intelligence_profiles
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own intelligence profile" ON user_intelligence_profiles;
 CREATE POLICY "Users can update own intelligence profile" ON user_intelligence_profiles
   FOR UPDATE USING (auth.uid() = user_id);
 
 -- Behavior events policies
+DROP POLICY IF EXISTS "Users can view own behavior events" ON user_behavior_events;
 CREATE POLICY "Users can view own behavior events" ON user_behavior_events
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own behavior events" ON user_behavior_events;
 CREATE POLICY "Users can insert own behavior events" ON user_behavior_events
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Content effectiveness policies
+DROP POLICY IF EXISTS "Users can view own content effectiveness" ON content_effectiveness;
 CREATE POLICY "Users can view own content effectiveness" ON content_effectiveness
   FOR SELECT USING (auth.uid() = user_id);
 
 -- Queue policies
+DROP POLICY IF EXISTS "Users can view own queue items" ON generation_queue;
 CREATE POLICY "Users can view own queue items" ON generation_queue
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -478,11 +558,11 @@ RETURNS JSONB AS $$
 BEGIN
   RETURN CASE p_tier
     WHEN 'free_trial' THEN '{"playbooks": 2, "devotionals": 2, "exports": 0, "api_calls": 0, "family_members": 0}'::jsonb
-    WHEN 'starter' THEN '{"playbooks": 8, "devotionals": 8, "exports": 10, "api_calls": 0, "family_members": 0}'::jsonb
-    WHEN 'lite' THEN '{"playbooks": 20, "devotionals": 20, "exports": 50, "api_calls": 0, "family_members": 0}'::jsonb
-    WHEN 'pro' THEN '{"playbooks": -1, "devotionals": -1, "exports": -1, "api_calls": 1000, "family_members": 0}'::jsonb
+    WHEN 'basic' THEN '{"playbooks": 0, "devotionals": 0, "exports": 0, "api_calls": 0, "family_members": 0}'::jsonb
+    WHEN 'starter' THEN '{"playbooks": 8, "devotionals": 8, "exports": 0, "api_calls": 0, "family_members": 0}'::jsonb
+    WHEN 'growth' THEN '{"playbooks": 20, "devotionals": 20, "exports": 0, "api_calls": 0, "family_members": 0}'::jsonb
+    WHEN 'transformation' THEN '{"playbooks": -1, "devotionals": -1, "exports": -1, "api_calls": 1000, "family_members": 0}'::jsonb
     WHEN 'family' THEN '{"playbooks": -1, "devotionals": -1, "exports": -1, "api_calls": 2000, "family_members": 5}'::jsonb
-    WHEN 'enterprise' THEN '{"playbooks": -1, "devotionals": -1, "exports": -1, "api_calls": 10000, "family_members": 25}'::jsonb
     ELSE '{"playbooks": 0, "devotionals": 0, "exports": 0, "api_calls": 0, "family_members": 0}'::jsonb
   END;
 END;
@@ -554,7 +634,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- =============================================
 
 -- Create subscription tier pricing reference (for application use)
-CREATE TABLE subscription_pricing (
+CREATE TABLE IF NOT EXISTS subscription_pricing (
   tier subscription_tier PRIMARY KEY,
   monthly_price_cents INTEGER NOT NULL,
   annual_price_cents INTEGER,
@@ -566,12 +646,12 @@ CREATE TABLE subscription_pricing (
 
 -- Insert pricing data
 INSERT INTO subscription_pricing (tier, monthly_price_cents, annual_price_cents, features) VALUES
-('free_trial', 0, 0, '{"trial_days": 3, "intelligence": false, "priority_support": false}'),
-('starter', 700, 7000, '{"intelligence": false, "priority_support": false, "export_formats": ["pdf"]}'),
-('lite', 1500, 15000, '{"intelligence": true, "priority_support": false, "export_formats": ["pdf", "docx"]}'),
-('pro', 2900, 29000, '{"intelligence": true, "priority_support": true, "export_formats": ["pdf", "docx", "json"], "api_access": true}'),
-('family', 4900, 49000, '{"intelligence": true, "priority_support": true, "export_formats": ["pdf", "docx", "json"], "api_access": true, "family_features": true}'),
-('enterprise', 9900, 99000, '{"intelligence": true, "priority_support": true, "export_formats": ["pdf", "docx", "json", "xml"], "api_access": true, "enterprise_features": true}');
+('free_trial', 0, 0, '{"trial_days": 3, "intelligence": true, "priority_support": false}'),
+('basic', 0, 0, '{"intelligence": false, "priority_support": false, "export_formats": []}'),
+('starter', 699, 4999, '{"intelligence": true, "priority_support": false, "export_formats": ["pdf"]}'),
+('growth', 1299, 12999, '{"intelligence": true, "priority_support": false, "export_formats": ["pdf", "docx"]}'),
+('transformation', 2499, 24999, '{"intelligence": true, "priority_support": true, "export_formats": ["pdf", "docx", "json"], "api_access": true}'),
+('family', 3499, 34999, '{"intelligence": true, "priority_support": true, "export_formats": ["pdf", "docx", "json"], "api_access": true, "family_features": true}');
 
 -- =============================================
 -- COMMENTS AND DOCUMENTATION
@@ -586,15 +666,172 @@ COMMENT ON TABLE content_effectiveness IS 'Learning system to improve content ge
 
 COMMENT ON COLUMN user_subscriptions.intelligence_enabled IS 'Whether user has access to AI personalization features';
 COMMENT ON COLUMN user_intelligence_profiles.confidence_score IS 'How confident we are in this profile (0.0-1.0)';
-COMMENT ON COLUMN generation_queue.priority IS '1=enterprise, 2=family, 3=pro, 4=lite, 5=starter/free';
+COMMENT ON COLUMN generation_queue.priority IS '1=family, 2=transformation, 3=growth, 4=starter, 5=basic/free_trial';
 COMMENT ON COLUMN user_behavior_events.engagement_score IS 'Calculated engagement score for this event (0.0-1.0)';
 
 -- Schema version for migrations
-CREATE TABLE schema_version (
+CREATE TABLE IF NOT EXISTS schema_version (
   version INTEGER PRIMARY KEY,
   description TEXT,
   applied_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- =============================================
+-- ACCESS TIERS SYSTEM TABLES
+-- =============================================
+
+-- Expounding content for action steps
+CREATE TABLE IF NOT EXISTS expounding_content (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  action_step_id UUID NOT NULL,
+  subtask_id UUID NOT NULL,
+  expanded_content JSONB NOT NULL,
+  tier_required subscription_tier NOT NULL DEFAULT 'transformation',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Retention events tracking
+CREATE TABLE IF NOT EXISTS retention_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  event_type TEXT NOT NULL, -- 'trial_declined', 'trial_cancelled', 'subscription_cancelled'
+  triggered_at TIMESTAMPTZ DEFAULT NOW(),
+  modal_shown BOOLEAN DEFAULT false,
+  action_taken TEXT, -- 'accepted', 'declined', 'ignored'
+  discount_offered INTEGER, -- percentage discount offered
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS Policies for new tables
+ALTER TABLE expounding_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE retention_events ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view expounding content" ON expounding_content;
+CREATE POLICY "Users can view expounding content" ON expounding_content
+  FOR SELECT USING (true); -- Public read for all users
+
+DROP POLICY IF EXISTS "Users can view own retention events" ON retention_events;
+CREATE POLICY "Users can view own retention events" ON retention_events
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own retention events" ON retention_events;
+CREATE POLICY "Users can insert own retention events" ON retention_events
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_expounding_content_action_step ON expounding_content(action_step_id);
+CREATE INDEX IF NOT EXISTS idx_expounding_content_subtask ON expounding_content(subtask_id);
+CREATE INDEX IF NOT EXISTS idx_retention_events_user_type ON retention_events(user_id, event_type);
+CREATE INDEX IF NOT EXISTS idx_retention_events_triggered ON retention_events(triggered_at);
+
+-- Enhanced expounding tables for step-by-step insights
+
+-- Step-by-step expounding table
+CREATE TABLE IF NOT EXISTS step_expounding (
+  id text PRIMARY KEY,
+  action_step_id uuid REFERENCES playbook_action_steps(id) ON DELETE CASCADE,
+  subtask_id uuid REFERENCES playbook_sub_tasks(id) ON DELETE CASCADE,
+  step_number integer NOT NULL CHECK (step_number >= 1 AND step_number <= 10),
+  step_title text NOT NULL,
+  content_type text NOT NULL CHECK (content_type IN ('spiritual_insight', 'practical_guidance', 'biblical_context', 'reflection_questions', 'step_breakdown')),
+  content text NOT NULL,
+  scripture_references text[],
+  practical_steps text[],
+  reflection_questions text[],
+  ai_generated boolean DEFAULT true,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  is_public boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- User questions and AI responses table
+CREATE TABLE IF NOT EXISTS user_questions (
+  id text PRIMARY KEY,
+  action_step_id uuid REFERENCES playbook_action_steps(id) ON DELETE CASCADE,
+  subtask_id uuid REFERENCES playbook_sub_tasks(id) ON DELETE CASCADE,
+  user_question text NOT NULL,
+  ai_response text NOT NULL,
+  response_type text NOT NULL CHECK (response_type IN ('clarification', 'deeper_insight', 'practical_help', 'biblical_guidance')),
+  related_step_number integer,
+  parent_expounding_id text,
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  is_helpful boolean,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Legacy expounding content table (keeping for backward compatibility)
+CREATE TABLE IF NOT EXISTS expounding_content_legacy (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  action_step_id uuid REFERENCES playbook_action_steps(id) ON DELETE CASCADE,
+  subtask_id uuid REFERENCES playbook_sub_tasks(id) ON DELETE CASCADE,
+  expanded_content jsonb NOT NULL,
+  tier_required subscription_tier NOT NULL DEFAULT 'transformation',
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+-- Add RLS policies for step expounding
+ALTER TABLE step_expounding ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own step expounding" ON step_expounding;
+CREATE POLICY "Users can view their own step expounding" ON step_expounding
+  FOR SELECT USING (auth.uid() = user_id OR is_public = true);
+
+DROP POLICY IF EXISTS "Users can insert their own step expounding" ON step_expounding;
+CREATE POLICY "Users can insert their own step expounding" ON step_expounding
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own step expounding" ON step_expounding;
+CREATE POLICY "Users can update their own step expounding" ON step_expounding
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Add RLS policies for user questions
+ALTER TABLE user_questions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own questions" ON user_questions;
+CREATE POLICY "Users can view their own questions" ON user_questions
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own questions" ON user_questions;
+CREATE POLICY "Users can insert their own questions" ON user_questions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own questions" ON user_questions;
+CREATE POLICY "Users can update their own questions" ON user_questions
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Add RLS policies for expounding content
+ALTER TABLE expounding_content_legacy ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own expounding content" ON expounding_content_legacy;
+CREATE POLICY "Users can view their own expounding content" ON expounding_content_legacy
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own expounding content" ON expounding_content_legacy;
+CREATE POLICY "Users can insert their own expounding content" ON expounding_content_legacy
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own expounding content" ON expounding_content_legacy;
+CREATE POLICY "Users can update their own expounding content" ON expounding_content_legacy
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_step_expounding_action_step ON step_expounding(action_step_id);
+CREATE INDEX IF NOT EXISTS idx_step_expounding_subtask ON step_expounding(subtask_id);
+CREATE INDEX IF NOT EXISTS idx_step_expounding_user ON step_expounding(user_id);
+CREATE INDEX IF NOT EXISTS idx_step_expounding_step_number ON step_expounding(step_number);
+
+CREATE INDEX IF NOT EXISTS idx_user_questions_action_step ON user_questions(action_step_id);
+CREATE INDEX IF NOT EXISTS idx_user_questions_subtask ON user_questions(subtask_id);
+CREATE INDEX IF NOT EXISTS idx_user_questions_user ON user_questions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_questions_created ON user_questions(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_expounding_content_legacy_action_step ON expounding_content_legacy(action_step_id);
+CREATE INDEX IF NOT EXISTS idx_expounding_content_legacy_subtask ON expounding_content_legacy(subtask_id);
+CREATE INDEX IF NOT EXISTS idx_expounding_content_legacy_user ON expounding_content_legacy(user_id);
 
 INSERT INTO schema_version (version, description) VALUES 
 (1, 'Initial subscription and intelligence system schema');

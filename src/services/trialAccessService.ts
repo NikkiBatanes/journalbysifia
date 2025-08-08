@@ -193,18 +193,18 @@ class TrialAccessService {
   }
 
   /**
-   * Handle trial expiration - convert to free tier with locked features
+   * Handle trial expiration - move to basic (freemium) tier
    */
   async handleTrialExpiration(userId: string): Promise<void> {
     try {
       const trialStatus = await this.getTrialStatus(userId);
 
       if (trialStatus.hasExpired && trialStatus.isActive) {
-        // Update subscription to expired trial state
+        // Move expired trial users to basic (freemium) tier
         await supabase
           .from('subscriptions')
           .update({
-            tier: 'free_trial', // Keep as trial but expired
+            tier: 'basic', // Move to freemium tier
             status: 'trial_expired',
             updated_at: new Date().toISOString(),
           })
@@ -213,7 +213,7 @@ class TrialAccessService {
         // Log trial expiration for analytics
         await this.logTrialEvent(userId, 'trial_expired');
 
-        console.log(`Trial expired for user ${userId}`);
+        console.log(`Trial expired for user ${userId} - moved to basic (freemium) tier`);
       }
     } catch (error) {
       console.error('Error handling trial expiration:', error);

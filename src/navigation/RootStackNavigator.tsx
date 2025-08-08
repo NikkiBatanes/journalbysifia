@@ -1,11 +1,12 @@
 // src/navigation/RootStackNavigator.tsx
 import React from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { CommonActions } from '@react-navigation/native';
 import { Colors } from '../theme';
 import BottomTabNavigator from './BottomTabNavigator';
@@ -14,13 +15,13 @@ import CardDetailScreen from '../screens/CardDetailScreen';
 import GeneratingPlaybookScreen from '../screens/GeneratingPlaybookScreen';
 import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
+import UserInputScreen from '../screens/UserInputScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabaseClient';
 
 // New Onboarding screens
-
-
+import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
 
 import OnboardingFaithJourneyScreen from '../screens/onboarding/OnboardingFaithJourneyScreen';
@@ -30,13 +31,12 @@ import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingT
 import OnboardingOriginalFeatureShowcaseScreen from '../screens/onboarding/OnboardingOriginalFeatureShowcaseScreen';
 import OnboardingPlaybookNavigationScreen from '../screens/onboarding/OnboardingPlaybookNavigationScreen';
 import OnboardingTrialSetupScreen from '../screens/onboarding/OnboardingTrialSetupScreen';
+import OnboardingNotificationPermissionScreen from '../screens/onboarding/OnboardingNotificationPermissionScreen';
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
 
 import OnboardingChallengeDetailsScreen from '../screens/onboarding/OnboardingChallengeDetailsScreen';
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
-
-
 
 // Header Components
 interface BackButtonProps {
@@ -122,8 +122,6 @@ const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation
 const HeaderLeft = React.memo(({ color = Colors.anchorBlue, onPress }: { color?: string, onPress: () => void }) => {
   return <BackButton onPress={onPress} color={color} />;
 });
-
-
 
 // Header right components as functions
 // These are used in navigation options below
@@ -231,62 +229,14 @@ export default function RootStackNavigator({
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
   const { user } = useAuth();
-  const [initialRoute, setInitialRoute] = useState<string>('OnboardingWelcome');
-  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [initialRoute, setInitialRoute] = useState<string>('OnboardingSplash');
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
 
-  // Check onboarding status for authenticated users
+  // Simplified: Always start with OnboardingSplash, let it handle the routing logic
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      if (!isAuthenticated || !user?.id) {
-        setInitialRoute('OnboardingWelcome');
-        setIsCheckingOnboarding(false);
-        return;
-      }
-
-      try {
-        const { data: userProfile, error } = await supabase
-          .from('user_profiles')
-          .select('onboarding_completed, created_at')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error checking onboarding status:', error);
-          // For new users without profile yet, don't redirect - let them continue onboarding
-          if (error.code === 'PGRST116') { // No rows returned
-            console.log('New user without profile - staying in onboarding flow');
-            setIsCheckingOnboarding(false);
-            return;
-          }
-          setInitialRoute('OnboardingWelcome');
-        } else {
-          // Check if user just signed up (within last 5 minutes) - don't redirect them
-          const createdAt = new Date(userProfile.created_at);
-          const now = new Date();
-          const timeDiff = now.getTime() - createdAt.getTime();
-          const minutesDiff = timeDiff / (1000 * 60);
-
-          if (minutesDiff < 5 && !userProfile?.onboarding_completed) {
-            console.log('Recently signed up user - staying in current flow');
-            setIsCheckingOnboarding(false);
-            return;
-          }
-
-          // If onboarding is completed, go to main app
-          setInitialRoute(userProfile?.onboarding_completed ? 'MainTabs' : 'OnboardingWelcome');
-        }
-      } catch (error) {
-        console.error('Error in onboarding check:', error);
-        setInitialRoute('OnboardingWelcome');
-      } finally {
-        setIsCheckingOnboarding(false);
-      }
-    };
-
-    // Add a small delay to prevent race conditions with navigation
-    const timer = setTimeout(checkOnboardingStatus, 100);
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, user?.id]);
+    // No complex onboarding checks needed here since splash screen handles it
+    console.log('[RootStackNavigator] Starting with OnboardingSplash screen');
+  }, []);
 
   // Get screen options
   const playbookDetailOptions = getPlaybookDetailOptions();
@@ -297,8 +247,6 @@ export default function RootStackNavigator({
     return null; // Or a loading component
   }
 
-
-
   // Removed unused devotionalListOptions
 
   // Note: renderMainTabs was removed since we're using component prop directly
@@ -308,6 +256,13 @@ export default function RootStackNavigator({
       screenOptions={{ headerShown: false }}
       initialRouteName={initialRoute as any}
     >
+
+      {/* Onboarding Splash Screen - Always shown first */}
+      <Stack.Screen
+        name="OnboardingSplash"
+        component={OnboardingSplashScreen as React.ComponentType}
+        options={{ headerShown: false }}
+      />
 
       {/* Transform Journey screen available for all users */}
       <Stack.Screen
@@ -356,6 +311,7 @@ export default function RootStackNavigator({
           <Stack.Screen name="OnboardingOriginalFeatureShowcase" component={OnboardingOriginalFeatureShowcaseScreen as React.ComponentType} />
           <Stack.Screen name="OnboardingPlaybookNavigation" component={OnboardingPlaybookNavigationScreen as React.ComponentType} />
           <Stack.Screen name="OnboardingTrialSetup" component={OnboardingTrialSetupScreen as React.ComponentType} />
+          <Stack.Screen name="OnboardingNotificationPermission" component={OnboardingNotificationPermissionScreen as React.ComponentType} />
 
           <Stack.Screen
             name="OnboardingComplete"
@@ -395,6 +351,18 @@ export default function RootStackNavigator({
             name="Journal"
             component={JournalScreen as React.ComponentType}
             options={{ headerShown: true }}
+          />
+          
+          {/* siFia AI Input Screen */}
+          <Stack.Screen
+            name="UserInput"
+            component={UserInputScreen as React.ComponentType}
+            options={{ 
+              headerShown: true,
+              title: 'siFia AI Assistant',
+              presentation: 'modal',
+              animation: 'slide_from_bottom'
+            }}
           />
         </>
       )}

@@ -1,8 +1,9 @@
 import React, { useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, StyleSheet, Animated } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { TouchableOpacity } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Check } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';

@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -14,7 +15,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
@@ -118,8 +119,6 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleSignUp = () => {
     navigation.navigate('Register');
   };
-
-
 
   return (
     <View style={styles.container}>

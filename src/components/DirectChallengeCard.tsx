@@ -1,7 +1,8 @@
 import React from 'react';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet } from 'react-native';
 import { BorderRadii } from '../theme/styles';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 

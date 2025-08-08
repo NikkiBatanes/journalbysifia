@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
 
 import { Colors } from '../theme';
 
@@ -90,8 +90,6 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
       width: `${Math.max(0, Math.min(100, progress))}%` as unknown as number,
     },
   };
-
-
 
   return (
     <SafeAreaView style={styles.safeArea}>

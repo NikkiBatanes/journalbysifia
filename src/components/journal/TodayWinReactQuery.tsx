@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 // SwipeableTodoItem handles the gesture handler imports
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
@@ -6,7 +7,7 @@ import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Check, X, Trophy as LuTrophy, Pencil } from 'lucide-react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import {
@@ -31,7 +32,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
-
 
   const { user } = useAuth();
   const [winText, setWinText] = useState('');
@@ -102,8 +102,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       }
     }
   }, [globalEditMode?.isGlobalEditMode, entries.length, viewMode, entries, isAdding, isEditing]);
-
-
 
   // Track loading performance
   React.useEffect(() => {

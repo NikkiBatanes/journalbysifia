@@ -17,7 +17,7 @@ export const TrialStatusBanner: React.FC<TrialStatusBannerProps> = ({ onUpgradeP
     if (onUpgradePress) {
       onUpgradePress();
     } else {
-      navigation.navigate('Subscription' as never);
+      navigation.navigate('UserProfile' as never);
     }
   };
 

@@ -41,36 +41,73 @@ export class SubscriptionService {
    */
   async getUserSubscription(userId: string): Promise<Subscription> {
     try {
+      // First, try to get existing subscription with maybeSingle to avoid errors
       const { data, error } = await this.supabase
         .from('user_subscriptions')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error || !data) {
-        console.log('[SubscriptionService] No subscription found, creating free trial');
-        return await this.createFreeTrial(userId);
+      if (error) {
+        console.error('[SubscriptionService] Error fetching subscription:', error);
+        // If there's an error fetching, return in-memory subscription
+        return this.createInMemorySubscription(userId);
       }
 
-      // Check if trial has expired
-      if (data.status === 'trialing' && data.trial_end_date) {
-        const trialEnd = new Date(data.trial_end_date);
-        if (trialEnd < new Date()) {
-          console.log('[SubscriptionService] Trial expired, updating status');
-          await this.expireTrial(userId);
-          data.status = 'expired';
+      if (data) {
+        // Subscription exists, check if trial has expired
+        if (data.status === 'trialing' && data.trial_end_date) {
+          const trialEnd = new Date(data.trial_end_date);
+          if (trialEnd < new Date()) {
+            console.log('[SubscriptionService] Trial expired, updating status');
+            await this.expireTrial(userId);
+            data.status = 'expired';
+          }
         }
+        // Add limits to subscription data
+        const limits = this.getSubscriptionLimits(data.tier);
+        return {
+          ...data,
+          limits
+        } as Subscription;
       }
 
-      return data as Subscription;
+      // No subscription found, try to create one
+      console.log('[SubscriptionService] No subscription found, creating free trial');
+      return await this.createFreeTrial(userId);
     } catch (error) {
       console.error('[SubscriptionService] Error getting subscription:', error);
-      // If database schema issues, return in-memory subscription
-      if ((error as any)?.code === 'PGRST204') {
+      // Handle different error types gracefully
+      const errorCode = (error as any)?.code;
+      
+      if (errorCode === 'PGRST204') {
         console.log('[SubscriptionService] Database schema mismatch, creating in-memory subscription');
         return this.createInMemorySubscription(userId);
       }
-      throw error;
+      
+      if (errorCode === '23505') {
+        // Duplicate key error - subscription already exists, try to fetch it
+        console.log('[SubscriptionService] Subscription exists, attempting to fetch');
+        try {
+          const { data: existing } = await this.supabase
+            .from('user_subscriptions')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+          
+          if (existing) {
+            return existing as Subscription;
+          }
+        } catch (fetchError) {
+          console.log('[SubscriptionService] Failed to fetch existing subscription, using in-memory');
+        }
+        
+        return this.createInMemorySubscription(userId);
+      }
+      
+      // For other errors, return in-memory subscription instead of throwing
+      console.log('[SubscriptionService] Unexpected error, using in-memory subscription');
+      return this.createInMemorySubscription(userId);
     }
   }
 
@@ -285,20 +322,70 @@ export class SubscriptionService {
     costCents: number = 0
   ): Promise<void> {
     try {
-      const period = new Date().toISOString().slice(0, 7);
+      // Get or create usage record
+      let { data: usage, error } = await this.supabase
+        .from('usage_tracking')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-      await this.supabase.rpc('increment_usage_counter', {
-        p_user_id: userId,
-        p_period: period,
-        p_type: type,
-        p_tokens_used: tokensUsed,
-        p_cost_cents: costCents,
-      });
+      if (error || !usage) {
+        // Create usage record if doesn't exist
+        const { data: newUsage, error: createError } = await this.supabase
+          .from('usage_tracking')
+          .insert({
+            user_id: userId,
+            playbooks_generated: type === 'playbook' ? 1 : 0,
+            devotionals_generated: type === 'devotional' ? 1 : 0,
+            journal_entries: 0,
+            smart_journal_entries: 0,
+            openai_tokens_used: tokensUsed,
+            api_calls_made: 0,
+            intelligence_queries: 0,
+            template_uses: {},
+            export_count: 0,
+            last_reset_date: new Date().toISOString().split('T')[0],
+            reset_period: 'monthly',
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('[SubscriptionService] Error creating usage record:', createError);
+          return; // Don't throw, just log
+        }
+        usage = newUsage;
+      } else {
+        // Update existing usage record
+        const updateData: any = {
+          updated_at: new Date().toISOString(),
+        };
+
+        if (type === 'playbook') {
+          updateData.playbooks_generated = (usage.playbooks_generated || 0) + 1;
+        } else if (type === 'devotional') {
+          updateData.devotionals_generated = (usage.devotionals_generated || 0) + 1;
+        }
+
+        if (tokensUsed > 0) {
+          updateData.openai_tokens_used = (usage.openai_tokens_used || 0) + tokensUsed;
+        }
+
+        const { error: updateError } = await this.supabase
+          .from('usage_tracking')
+          .update(updateData)
+          .eq('user_id', userId);
+
+        if (updateError) {
+          console.error('[SubscriptionService] Error updating usage:', updateError);
+          return; // Don't throw, just log
+        }
+      }
 
       console.log(`[SubscriptionService] Tracked ${type} usage for user ${userId}`);
     } catch (error) {
       console.error('[SubscriptionService] Error tracking usage:', error);
-      throw error;
+      // Don't throw error to avoid breaking the main flow
     }
   }
 
@@ -314,66 +401,163 @@ export class SubscriptionService {
         apiCalls: 0,
         familyMembers: 0,
         intelligenceEnabled: true,
-        intelligenceLevel: 'basic',
         smartJournalingEnabled: true,  // Full access during trial
-        journalTemplatesAccess: 'all', // All templates during trial
+        calendarSyncEnabled: false,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 1,
+        advancedAnalytics: false,
+        prioritySupport: false,
+      },
+      basic: {
+        playbooks: 1,
+        devotionals: 0,
+        exports: 0,
+        apiCalls: 0,
+        familyMembers: 0,
+        intelligenceEnabled: false,
+        smartJournalingEnabled: false,  // Restricted for basic
+        calendarSyncEnabled: false,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: false,
+        answeredPrayerTrackingEnabled: false,
+        maxLevel: 1,
         advancedAnalytics: false,
         prioritySupport: false,
       },
       starter: {
-        playbooks: 4,
-        devotionals: 4,
+        playbooks: 8,
+        devotionals: 8,
+        exports: 10,
         apiCalls: 0,
         familyMembers: 0,
         intelligenceEnabled: true,
-        intelligenceLevel: 'basic',
         smartJournalingEnabled: true,
-        journalTemplatesAccess: 'all',
+        calendarSyncEnabled: true,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 2,
         advancedAnalytics: false,
         prioritySupport: false,
       },
       growth: {
-        playbooks: 15,
-        devotionals: 15,
-        exports: 0,
+        playbooks: 20,
+        devotionals: 20,
+        exports: 50,
         apiCalls: 0,
         familyMembers: 0,
         intelligenceEnabled: true,
-        intelligenceLevel: 'enhanced',
         smartJournalingEnabled: true,
-        journalTemplatesAccess: 'all',
+        calendarSyncEnabled: true,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 4,
         advancedAnalytics: true,
         prioritySupport: true,
       },
       transformation: {
         playbooks: -1,
         devotionals: -1,
-        exports: 0,
+        exports: -1,
         apiCalls: 1000,
         familyMembers: 0,
         intelligenceEnabled: true,
-        intelligenceLevel: 'advanced',
         smartJournalingEnabled: true,
-        journalTemplatesAccess: 'all',
+        calendarSyncEnabled: true,
+        expoundingEnabled: true,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 9,
         advancedAnalytics: true,
         prioritySupport: true,
       },
       family: {
         playbooks: -1,
         devotionals: -1,
-        exports: 0,
+        exports: -1,
         apiCalls: 2000,
         familyMembers: 5,
         intelligenceEnabled: true,
-        intelligenceLevel: 'advanced',
         smartJournalingEnabled: true,
-        journalTemplatesAccess: 'all',
+        calendarSyncEnabled: true,
+        expoundingEnabled: true,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 10,
+        advancedAnalytics: true,
+        prioritySupport: true,
+      },
+      // Annual plans have same limits as monthly
+      starter_annual: {
+        playbooks: 8,
+        devotionals: 8,
+        exports: 10,
+        apiCalls: 0,
+        familyMembers: 0,
+        intelligenceEnabled: true,
+        smartJournalingEnabled: true,
+        calendarSyncEnabled: true,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 2,
+        advancedAnalytics: false,
+        prioritySupport: false,
+      },
+      growth_annual: {
+        playbooks: 20,
+        devotionals: 20,
+        exports: 50,
+        apiCalls: 0,
+        familyMembers: 0,
+        intelligenceEnabled: true,
+        smartJournalingEnabled: true,
+        calendarSyncEnabled: true,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 4,
+        advancedAnalytics: true,
+        prioritySupport: true,
+      },
+      transformation_annual: {
+        playbooks: -1,
+        devotionals: -1,
+        exports: -1,
+        apiCalls: 1000,
+        familyMembers: 0,
+        intelligenceEnabled: true,
+        smartJournalingEnabled: true,
+        calendarSyncEnabled: true,
+        expoundingEnabled: true,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 9,
+        advancedAnalytics: true,
+        prioritySupport: true,
+      },
+      family_annual: {
+        playbooks: -1,
+        devotionals: -1,
+        exports: -1,
+        apiCalls: 2000,
+        familyMembers: 5,
+        intelligenceEnabled: true,
+        smartJournalingEnabled: true,
+        calendarSyncEnabled: true,
+        expoundingEnabled: true,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 10,
         advancedAnalytics: true,
         prioritySupport: true,
       },
     };
 
-    return limitsMap[tier];
+    return limitsMap[tier] || limitsMap['basic'];
   }
 
   /**
@@ -411,19 +595,62 @@ export class SubscriptionService {
    */
   private async createFreeTrial(userId: string): Promise<Subscription> {
     try {
-      // Try to use the database function first
+      // FIRST: Check if subscription already exists to prevent duplicate key errors
+      console.log('[SubscriptionService] Checking if subscription already exists for user:', userId);
+      const { data: existingSubscription, error: checkError } = await this.supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('[SubscriptionService] Error checking existing subscription:', checkError);
+        return this.createInMemorySubscription(userId);
+      }
+
+      if (existingSubscription) {
+        console.log('[SubscriptionService] Subscription already exists, returning existing one');
+        return existingSubscription as Subscription;
+      }
+
+      // Only try to create if subscription doesn't exist
+      console.log('[SubscriptionService] No existing subscription found, creating new one');
       const { error } = await this.supabase.rpc('create_free_trial_subscription', {
         p_user_id: userId,
       });
 
       if (error) {
+        console.error('[SubscriptionService] Error creating free trial:', error);
+        
         // If function doesn't exist, create subscription manually
         if (error.code === 'PGRST202') {
           console.log('[SubscriptionService] Database function not found, creating trial manually');
           return await this.createFreeTrialManually(userId);
         }
-        console.error('[SubscriptionService] Error creating free trial:', error);
-        throw error;
+        
+        // Handle duplicate key error from RPC function
+        if (error.code === '23505') {
+          console.log('[SubscriptionService] Trial already exists from RPC, fetching existing subscription');
+          try {
+            const { data: existing } = await this.supabase
+              .from('user_subscriptions')
+              .select('*')
+              .eq('user_id', userId)
+              .single();
+            
+            if (existing) {
+              return existing as Subscription;
+            }
+          } catch (fetchError) {
+            console.log('[SubscriptionService] Failed to fetch existing trial from RPC, using in-memory');
+          }
+          
+          return this.createInMemorySubscription(userId);
+        }
+        
+        // For other errors, return in-memory subscription instead of throwing
+        console.log('[SubscriptionService] Unexpected RPC error, using in-memory subscription');
+        return this.createInMemorySubscription(userId);
       }
 
       // Get the created subscription
@@ -433,11 +660,37 @@ export class SubscriptionService {
       return subscription;
     } catch (error) {
       console.error('[SubscriptionService] Error in createFreeTrial:', error);
-      // Fallback to manual creation
-      if ((error as any)?.code === 'PGRST202') {
+      const errorCode = (error as any)?.code;
+      
+      // Handle different error types gracefully
+      if (errorCode === 'PGRST202') {
+        // Database function doesn't exist, use manual creation
         return await this.createFreeTrialManually(userId);
       }
-      throw error;
+      
+      if (errorCode === '23505') {
+        // Duplicate key error - subscription already exists, fetch it
+        console.log('[SubscriptionService] Trial already exists, fetching existing subscription');
+        try {
+          const { data: existing } = await this.supabase
+            .from('user_subscriptions')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+          
+          if (existing) {
+            return existing as Subscription;
+          }
+        } catch (fetchError) {
+          console.log('[SubscriptionService] Failed to fetch existing trial, using in-memory');
+        }
+        
+        return this.createInMemorySubscription(userId);
+      }
+      
+      // For other errors, return in-memory subscription instead of throwing
+      console.log('[SubscriptionService] Unexpected error in createFreeTrial, using in-memory subscription');
+      return this.createInMemorySubscription(userId);
     }
   }
 
@@ -446,6 +699,24 @@ export class SubscriptionService {
    */
   private async createFreeTrialManually(userId: string): Promise<Subscription> {
     try {
+      // FIRST: Double-check if subscription already exists to prevent duplicate key errors
+      console.log('[SubscriptionService] Double-checking if subscription exists before manual creation');
+      const { data: existingSubscription, error: checkError } = await this.supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('[SubscriptionService] Error checking existing subscription in manual creation:', checkError);
+        return this.createInMemorySubscription(userId);
+      }
+
+      if (existingSubscription) {
+        console.log('[SubscriptionService] Subscription already exists during manual creation, returning existing one');
+        return existingSubscription as Subscription;
+      }
+
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 7); // 7-day trial
 
@@ -460,12 +731,26 @@ export class SubscriptionService {
       };
 
       const { data, error } = await this.supabase
-        .from('subscriptions')
+        .from('user_subscriptions')
         .insert(basicSubscriptionData)
         .select()
         .single();
 
       if (error) {
+        // If subscription already exists, fetch it instead of creating a new one
+        if (error.code === '23505') { // Unique constraint violation
+          console.log('[SubscriptionService] Subscription already exists, fetching existing one');
+          const { data: existing, error: fetchError } = await this.supabase
+            .from('user_subscriptions')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+          
+          if (existing && !fetchError) {
+            return this.convertToFullSubscription(existing, userId);
+          }
+        }
+        
         console.log('[SubscriptionService] Database insert failed, using in-memory subscription:', error.message);
         return this.createInMemorySubscription(userId);
       }
@@ -617,16 +902,18 @@ export class SubscriptionService {
    */
   async cancelSubscription(userId: string): Promise<void> {
     try {
+      // When users cancel or opt out, they become basic (freemium) users
       await this.supabase
         .from('user_subscriptions')
         .update({
+          tier: 'basic',  // Move to freemium tier
           status: 'canceled',
           canceled_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
-      console.log('[SubscriptionService] Canceled subscription for user:', userId);
+      console.log('[SubscriptionService] Canceled subscription for user:', userId, '- moved to basic (freemium) tier');
     } catch (error) {
       console.error('[SubscriptionService] Error canceling subscription:', error);
       throw error;

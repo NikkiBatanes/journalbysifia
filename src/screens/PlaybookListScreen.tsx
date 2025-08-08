@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect, useMemo, createRef } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -11,7 +12,7 @@ import {
   Button,
   RefreshControl,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { format } from 'date-fns';
 
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
@@ -61,7 +62,6 @@ export const calculateTaskStats = (actionSteps: any[] = []): TaskStats => {
 
   return { completed, total };
 };
-
 
 /**
  * Formats a date into a human-readable month and year string

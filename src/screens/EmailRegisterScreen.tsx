@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -13,7 +14,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
@@ -163,8 +164,6 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               />
             </TouchableOpacity>
           </View>
-
-
 
           <TouchableOpacity
             style={styles.registerButton}

@@ -16,18 +16,9 @@
                         <rect key="frame" x="0.0" y="0.0" width="375" height="667"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="siFia-logo">
-                                <rect key="frame" x="75" y="233.5" width="225" height="200"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="225" id="0wL-3I-8wq"/>
-                                    <constraint firstAttribute="height" constant="200" id="GmY-9m-5eX"/>
-                                </constraints>
-                            </imageView>
                         </subviews>
                         <color key="backgroundColor" red="0.0" green="0.2" blue="0.4" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="siFia-logo" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1"/>
-                            <constraint firstItem="siFia-logo" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="2"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
                     </view>
@@ -35,7 +26,6 @@
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
             <resources>
-                <image name="Splash" width="225" height="200"/>
             </resources>
             <point key="canvasLocation" x="52.173913043478265" y="375"/>
         </scene>

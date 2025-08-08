@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useImperativeHandle } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Pencil, X } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 
@@ -183,8 +184,6 @@ const defaultStyles = {
     marginTop: 16,
     marginBottom: 20,
   },
-
-
 
   // Compact view styles (for card view)
   compactCard: {
@@ -436,8 +435,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
   const [isFirstLoad, setIsFirstLoad] = React.useState(true);
 
-
-
   // Refs for inputs
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -571,8 +568,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
     setGratitudeItems([...gratitudeItems, '']);
     setHasUserMadeChanges(true);
   };
-
-
 
   const getCurrentDate = () => {
     const today = new Date();
@@ -831,7 +826,6 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
           </View>
         </View>
       </View>
-
 
     </View>
   );

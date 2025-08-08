@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -13,7 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import { Colors } from '../../theme/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { AnimationUtils } from '../../utils/animations';

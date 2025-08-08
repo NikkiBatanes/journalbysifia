@@ -1,6 +1,7 @@
 import React from 'react';
-import { ScrollView, View, Text, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { ScrollView, View, Text, StyleSheet } from 'react-native';
+
 import { Colors } from '../theme';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';

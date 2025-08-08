@@ -6,6 +6,7 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../queryKeys';
+import { faithPointsService } from '../faithPointsService';
 
 interface SyncEvent {
   type: 'playbook_progress' | 'devotional_completion' | 'journal_entry' | 'prayer_added';
@@ -63,38 +64,67 @@ export const useCrossComponentSync = (userId: string) => {
   const syncDevotionalCompletion = useCallback(async (devotionalId: string, playbookId?: string) => {
     console.log('[CrossComponentSync] Syncing devotional completion:', { devotionalId, playbookId });
 
-    const syncEvent: SyncEvent = {
-      type: 'devotional_completion',
-      devotionalId,
-      playbookId,
-      userId,
-      metadata: { timestamp: new Date().toISOString() },
-    };
+    try {
+      // Award faith points for devotional completion
+      const pointsResult = await faithPointsService.awardPoints(userId, 'devotional_generated', {
+        devotionalId,
+        playbookId,
+        timestamp: new Date().toISOString(),
+      });
+      
+      console.log('[CrossComponentSync] Faith points awarded:', pointsResult);
 
-    // Update devotional queries
-    await queryClient.invalidateQueries({
-      queryKey: queryKeys.devotionals.list(userId),
-    });
+      const syncEvent: SyncEvent = {
+        type: 'devotional_completion',
+        devotionalId,
+        playbookId,
+        userId,
+        metadata: { 
+          timestamp: new Date().toISOString(),
+          pointsAwarded: pointsResult.pointsAwarded,
+          newLevel: pointsResult.newLevel,
+        },
+      };
 
-    // If linked to a playbook, update playbook queries
-    if (playbookId) {
+      // Update devotional queries
       await queryClient.invalidateQueries({
-        queryKey: queryKeys.playbooks.detail(userId, playbookId),
+        queryKey: queryKeys.devotionals.byUser(userId),
+      });
+      
+      // Invalidate dashboard-related queries to refresh components
+      await queryClient.invalidateQueries({
+        queryKey: ['dashboard', 'streaks', userId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['dashboard', 'insights', userId],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ['dashboard', 'affirmations', userId],
       });
 
-      // Update cross-component relationship
-      queryClient.setQueryData(
-        queryKeys.playbooks.withDevotionals(userId, playbookId),
-        (oldData: any) => ({
-          ...oldData,
-          lastDevotionalCompleted: devotionalId,
-          lastSynced: new Date().toISOString(),
-        })
-      );
-    }
+      // If linked to a playbook, update playbook queries
+      if (playbookId) {
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.playbooks.detail(userId, playbookId),
+        });
 
-    console.log('[CrossComponentSync] Devotional completion sync completed');
-    return syncEvent;
+        // Update cross-component relationship
+        queryClient.setQueryData(
+          queryKeys.playbooks.withDevotionals(userId, playbookId),
+          (oldData: any) => ({
+            ...oldData,
+            lastDevotionalCompleted: devotionalId,
+            lastSynced: new Date().toISOString(),
+          })
+        );
+      }
+
+      console.log('[CrossComponentSync] Devotional completion sync completed');
+      return syncEvent;
+    } catch (error) {
+      console.error('[CrossComponentSync] Error syncing devotional completion:', error);
+      throw error;
+    }
   }, [queryClient, userId]);
 
   // Sync journal entry creation with related playbooks

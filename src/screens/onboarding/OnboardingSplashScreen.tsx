@@ -73,57 +73,46 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     animateDot(dot2Anim, 200).start();
     animateDot(dot3Anim, 400).start();
 
-    // Navigate after delay with simple fade out
-    setTimeout(async () => {
-      // Check if user has completed onboarding
-      let shouldGoToMainApp = false;
-
-      if (user?.id) {
-        try {
-          const { data: userProfile, error } = await supabase
-            .from('user_profiles')
-            .select('onboarding_completed')
-            .eq('id', user.id)
-            .single();
-
-          if (error && error.code === 'PGRST116') {
-            // User profile doesn't exist - create it
-            console.log('[SplashScreen] User profile missing, creating...');
-            const userMetadata = user.user_metadata || {};
-            const firstName = userMetadata.first_name || userMetadata.given_name || user.email?.split('@')[0] || '';
-            const lastName = userMetadata.last_name || userMetadata.family_name || '';
-            const fullName = userMetadata.full_name || userMetadata.name || `${firstName} ${lastName}`.trim();
-
-            const newProfile = {
-              id: user.id,
-              email: user.email,
-              onboarding_completed: false, // Default to false for new profiles
-            };
-
-            const { error: insertError } = await supabase
-              .from('user_profiles')
-              .insert([newProfile]);
-
-            if (insertError) {
-              console.error('Error creating user profile:', insertError);
-              shouldGoToMainApp = false;
-            } else {
-              console.log('[SplashScreen] User profile created, starting onboarding');
-              shouldGoToMainApp = false; // New profile = needs onboarding
-            }
-          } else if (error) {
-            console.error('Error checking onboarding status:', error);
-            shouldGoToMainApp = false;
-          } else {
-            shouldGoToMainApp = userProfile?.onboarding_completed === true;
-            console.log(`[SplashScreen] User onboarding completed: ${shouldGoToMainApp}`);
-          }
-        } catch (error) {
-          console.error('Unexpected error checking onboarding status:', error);
-          shouldGoToMainApp = false;
+    // Navigate after delay with proper routing logic
+    const navigateToCorrectScreen = async () => {
+      try {
+        if (!user) {
+          // User not authenticated, go to onboarding
+          console.log('[SplashScreen] User not authenticated, navigating to Transform Journey');
+          navigation.navigate('TransformJourney' as any);
+          return;
         }
-      }
 
+        // Check user's onboarding status
+        console.log('[SplashScreen] Checking user onboarding status for:', user.id);
+        const { data: userProfile, error } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('[SplashScreen] Error fetching user profile:', error);
+          // If error, assume onboarding not completed
+          navigation.navigate('TransformJourney' as any);
+          return;
+        }
+
+        if (userProfile?.onboarding_completed) {
+          console.log('[SplashScreen] User onboarding completed, navigating to main app');
+          navigation.navigate('MainTabs' as any);
+        } else {
+          console.log('[SplashScreen] User onboarding not completed, continuing onboarding');
+          navigation.navigate('OnboardingPersonalization' as any);
+        }
+      } catch (error) {
+        console.error('[SplashScreen] Error in navigation logic:', error);
+        // Fallback to onboarding
+        navigation.navigate('TransformJourney' as any);
+      }
+    };
+
+    setTimeout(() => {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 400,
@@ -131,15 +120,8 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       }).start(() => {
         if (onComplete) {
           onComplete();
-        } else if (shouldGoToMainApp) {
-          console.log('[SplashScreen] Navigating to main app');
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'MainTabs' as never }],
-          });
         } else {
-          console.log('[SplashScreen] Continuing with onboarding flow');
-          navigation.navigate('TransformJourney' as any);
+          navigateToCorrectScreen();
         }
       });
     }, 2500);

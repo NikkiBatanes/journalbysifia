@@ -4,9 +4,8 @@
 // This shows how to protect smart journaling and premium templates
 
 import React, { useState } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
 // Import trial hooks and components
 import { useTrialAccess, useFeatureAccess } from '../hooks/useTrialAccess';
 import { FeatureLockOverlay, FeatureLockCard } from '../components/FeatureLockOverlay';

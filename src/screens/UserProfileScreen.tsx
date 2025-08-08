@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
@@ -14,11 +15,14 @@ import {
   Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { userApi } from '../services/userApi';
 import { subscriptionService } from '../services/subscriptionService';
+import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
+import { faithPointsService } from '../services/faithPointsService';
+import { supabase } from '../services/supabaseClient';
 import { UserProgress, Badge, UserPreferences } from '../types/auth';
 import { Subscription, UsageTracking } from '../interfaces/subscription';
 import { Colors } from '../theme/colors';
@@ -147,6 +151,36 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     loadProfileData();
   }, [loadProfileData]);
 
+  // Listen for faith points updates
+  useEffect(() => {
+    const handlePointsUpdate = (data?: any) => {
+      console.log('🔄 Faith points updated, refreshing profile data...', data);
+      // Force multiple refreshes to ensure data is updated
+      setTimeout(() => {
+        console.log('🔄 First refresh attempt...');
+        loadProfileData();
+      }, 200);
+      
+      setTimeout(() => {
+        console.log('🔄 Second refresh attempt...');
+        loadProfileData();
+      }, 1000);
+      
+      setTimeout(() => {
+        console.log('🔄 Final refresh attempt...');
+        loadProfileData();
+      }, 2000);
+    };
+
+    faithPointsEvents.on(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdate);
+    faithPointsEvents.on(FAITH_POINTS_EVENTS.LEVEL_UP, handlePointsUpdate);
+
+    return () => {
+      faithPointsEvents.off(FAITH_POINTS_EVENTS.POINTS_UPDATED, handlePointsUpdate);
+      faithPointsEvents.off(FAITH_POINTS_EVENTS.LEVEL_UP, handlePointsUpdate);
+    };
+  }, [loadProfileData]);
+
   // Sync profile form with user metadata
   useEffect(() => {
     if (user) {
@@ -168,6 +202,101 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     setRefreshing(true);
     await loadProfileData();
     setRefreshing(false);
+  };
+
+  // Test faith points function
+  const testFaithPoints = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('🧪 Testing faith points from profile screen...');
+      
+      // Check if subscription tables exist
+      const { data: subscriptionCheck } = await supabase
+        .from('user_subscriptions')
+        .select('id')
+        .limit(1);
+      
+      const { data: usageCheck } = await supabase
+        .from('usage_tracking')
+        .select('id')
+        .limit(1);
+        
+      console.log('📊 Database Check:', {
+        subscription_table_exists: subscriptionCheck !== null,
+        usage_table_exists: usageCheck !== null
+      });
+      
+      const result = await faithPointsService.awardPoints(user.id, 'devotional_generated');
+      console.log('✅ Faith points awarded:', result);
+    } catch (error) {
+      console.error('❌ Faith points test failed:', error);
+    }
+  };
+
+  const testDatabaseDirect = async () => {
+    console.log('🔧 Testing direct database access...');
+    try {
+      // Test 1: Direct profile insert
+      console.log('Test 1: Attempting direct profile insert...');
+      if (!user?.id) {
+        console.error('❌ No user ID available for testing');
+        return;
+      }
+      
+      const { data: insertResult, error: insertError } = await supabase
+        .from('faith_points_profiles')
+        .insert({
+          user_id: user.id,
+          total_points: 50,
+          current_level: 2,
+          current_streak: 1,
+          longest_streak: 1,
+          weekly_goal: 50,
+          weekly_progress: 50
+        })
+        .select();
+      
+      if (insertError) {
+        console.error('❌ Direct insert failed:', insertError);
+      } else {
+        console.log('✅ Direct insert succeeded:', insertResult);
+      }
+      
+      // Test 2: Direct profile fetch
+      console.log('Test 2: Attempting direct profile fetch...');
+      const { data: fetchResult, error: fetchError } = await supabase
+        .from('faith_points_profiles')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (fetchError) {
+        console.error('❌ Direct fetch failed:', fetchError);
+      } else {
+        console.log('✅ Direct fetch succeeded:', fetchResult);
+      }
+      
+      // Test 3: Direct transaction insert
+      console.log('Test 3: Attempting direct transaction insert...');
+      const { data: transactionResult, error: transactionError } = await supabase
+        .from('faith_points_log')
+        .insert({
+          user_id: user.id,
+          points: 10,
+          activity_type: 'test',
+          reason: 'direct_test'
+        })
+        .select();
+      
+      if (transactionError) {
+        console.error('❌ Direct transaction insert failed:', transactionError);
+      } else {
+        console.log('✅ Direct transaction insert succeeded:', transactionResult);
+      }
+      
+    } catch (error) {
+      console.error('❌ Database direct test failed:', error);
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -219,10 +348,41 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   };
 
   const getLevelProgress = () => {
-    if (!profileStats) {return 0;}
-    const currentLevelPoints = profileStats.level * 1000;
-    const nextLevelPoints = (profileStats.level + 1) * 1000;
+    if (!profileStats) return 0;
+    
+    // Use the actual faith points level system
+    const levels = [
+      { level: 1, pointsRequired: 0 },
+      { level: 2, pointsRequired: 100 },
+      { level: 3, pointsRequired: 300 },
+      { level: 4, pointsRequired: 600 },
+      { level: 5, pointsRequired: 1000 },
+      { level: 6, pointsRequired: 1500 },
+      { level: 7, pointsRequired: 2500 },
+      { level: 8, pointsRequired: 4000 },
+      { level: 9, pointsRequired: 6000 },
+      { level: 10, pointsRequired: 10000 }
+    ];
+    
+    const currentLevel = levels.find(l => l.level === profileStats.level);
+    const nextLevel = levels.find(l => l.level === profileStats.level + 1);
+    
+    if (!currentLevel || !nextLevel) {
+      return profileStats.level >= 10 ? 1 : 0; // Max level or no data
+    }
+    
+    const currentLevelPoints = currentLevel.pointsRequired;
+    const nextLevelPoints = nextLevel.pointsRequired;
     const progress = (profileStats.faithPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints);
+    
+    console.log(`📊 Progress calculation:`, {
+      faithPoints: profileStats.faithPoints,
+      currentLevel: profileStats.level,
+      currentLevelPoints,
+      nextLevelPoints,
+      progress: Math.max(0, Math.min(1, progress))
+    });
+    
     return Math.max(0, Math.min(1, progress));
   };
 
@@ -320,12 +480,23 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     if (!subscription || !usage) {return null;}
 
     const isTrialing = subscription.status === 'trialing';
-    const trialDaysLeft = subscription.trialEndDate
+    const isCanceled = subscription.status === 'canceled';
+    const trialDaysLeft = (subscription.trialEndDate && !isCanceled)
       ? Math.max(0, Math.ceil((new Date(subscription.trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
       : 0;
 
-    const playbookLimit = subscription.limits.playbooks === -1 ? 'Unlimited' : subscription.limits.playbooks;
-    const devotionalLimit = subscription.limits.devotionals === -1 ? 'Unlimited' : subscription.limits.devotionals;
+    console.log('🔍 Subscription Debug:', {
+      tier: subscription.tier,
+      status: subscription.status,
+      limits: subscription.limits,
+      usage: {
+        playbooks_generated: usage.playbooks_generated,
+        devotionals_generated: usage.devotionals_generated
+      }
+    });
+
+    const playbookLimit = subscription.limits?.playbooks === -1 ? 'Unlimited' : (subscription.limits?.playbooks || 0);
+    const devotionalLimit = subscription.limits?.devotionals === -1 ? 'Unlimited' : (subscription.limits?.devotionals || 0);
 
     const playbookUsed = usage.playbooks_generated || 0;
     const devotionalUsed = usage.devotionals_generated || 0;
@@ -339,15 +510,15 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
           <View style={styles.subscriptionHeader}>
             <View style={styles.subscriptionTitleRow}>
               <Ionicons
-                name={isTrialing ? 'time' : 'checkmark-circle'}
+                name={isCanceled ? 'close-circle' : (isTrialing ? 'time' : 'checkmark-circle')}
                 size={24}
-                color={isTrialing ? Colors.warning : Colors.success}
+                color={isCanceled ? Colors.error : (isTrialing ? Colors.warning : Colors.success)}
               />
               <Text style={styles.subscriptionTitle}>
-                {subscription.tier.replace('_', ' ').toUpperCase()}
+                {isCanceled ? 'BASIC (FREEMIUM)' : subscription.tier.replace('_', ' ').toUpperCase()}
               </Text>
             </View>
-            {isTrialing && (
+            {isTrialing && trialDaysLeft > 0 && (
               <View style={styles.trialBadge}>
                 <Text style={styles.trialBadgeText}>{trialDaysLeft} days left</Text>
               </View>
@@ -355,9 +526,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
           </View>
 
           <Text style={styles.subscriptionStatus}>
-            {isTrialing
-              ? `Your free trial expires in ${trialDaysLeft} days`
-              : `Active since ${new Date(subscription.startDate).toLocaleDateString()}`
+            {isCanceled
+              ? 'Trial cancelled - You now have basic access'
+              : (isTrialing
+                ? `Your free trial expires in ${trialDaysLeft} days`
+                : `Active since ${new Date(subscription.startDate).toLocaleDateString()}`)
             }
           </Text>
         </View>
@@ -620,6 +793,43 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
       {renderEditProfileModal()}
       {renderSettingsModal()}
+      
+      {/* Test Faith Points Button */}
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          top: 100,
+          right: 20,
+          backgroundColor: Colors.faithGold,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: 20,
+          zIndex: 1000,
+        }}
+        onPress={testFaithPoints}
+      >
+        <Text style={{ color: Colors.hopeWhite, fontSize: 12, fontWeight: 'bold' }}>
+          Test FP
+        </Text>
+      </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          top: 140,
+          right: 20,
+          backgroundColor: Colors.alertCoral,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+          borderRadius: 20,
+          zIndex: 1000,
+        }}
+        onPress={testDatabaseDirect}
+      >
+        <Text style={{ color: Colors.hopeWhite, fontSize: 12, fontWeight: 'bold' }}>
+          Test DB
+        </Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };

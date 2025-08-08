@@ -4,8 +4,9 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+
 import { useNetworkState } from '../services/network/networkManager';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
