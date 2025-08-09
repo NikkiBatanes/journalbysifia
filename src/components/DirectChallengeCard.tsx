@@ -35,7 +35,7 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: 'transparent',
     borderRadius: BorderRadii.cardXL,
     padding: 24,
     width: '100%',

@@ -36,44 +36,48 @@ interface Slide {
   features: string[];
   icon: string;
   color: string;
+  iconSize?: number;
 }
 
 const slides: Slide[] = [
   {
     id: 1,
-    title: 'Biblical Wisdom for\nYour Challenges',
-    subtitle: 'Transform life\'s struggles with\nscripture-based guidance.',
+    title: 'When life feels heavy,\nGod\'s Word is light.',
+    subtitle: 'We\'ll help you hear His voice in your exact situation and give you simple steps to live it out today.',
     features: [
-      'AI-powered insights tailored to your situation',
-      'Practical steps for daily application',
-      'Scripture-backed solutions for growth',
+      'Hear God\'s voice in your exact situation',
+      'Simple, faith-driven steps you can do now',
+      'Encouragement that lasts beyond Sunday',
     ],
     icon: 'book-outline',
     color: '#FF6B6B',
+    iconSize: 62,
   },
   {
     id: 2,
-    title: 'Personalized Playbooks\nfor Your Journey',
-    subtitle: 'Turn faith into action with\nstep-by-step plans',
+    title: 'A plan for your heart,\nnot just your calendar.',
+    subtitle: 'Your playbook is more than a checklist. \nIt\'s a companion for your walk with God.',
     features: [
-      'Custom playbooks for your unique challenges',
-      'Actionable steps with clear subtasks',
-      'Progress tracking with biblical affirmations',
+      'Made for your season of life',
+      'Clear steps that bring real progress',
+      'Reminders that keep your spirit steady',
     ],
     icon: 'map-outline',
     color: '#4ECDC4',
+    iconSize: 62,
   },
   {
     id: 3,
-    title: 'Smart Journaling &\nDevotionals',
-    subtitle: 'Deepen your faith with guided\nreflection and inspiration.',
+    title: 'Grow steady,\neven in the storm.',
+    subtitle: 'Guided devotionals and journaling prompts \nwill help you keep your heart anchored in truth.',
     features: [
-      'Custom devotionals built from your playbooks',
-      'AI-guided journaling for personal insights',
-      'Progress visualization to track your growth',
+      'Daily moments with God',
+      'Reflections that reveal His work in you',
+      'A clear picture of your growth over time',
     ],
     icon: 'create-outline',
     color: '#45B7D1',
+    iconSize: 62,
   },
 ];
 
@@ -113,7 +117,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
         }
         return nextSlide;
       });
-    }, 5000); // Change slide every 5 seconds
+    }, 8000); // Change slide every 8 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -170,7 +174,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
     <View style={[styles.slideContainer, { width }]}>
       {/* Slide Icon */}
       <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
-        <Ionicons name={item.icon} size={60} color={item.color} />
+        <Ionicons name={item.icon} size={item.iconSize || 60} color={item.color} />
       </View>
 
       {/* Slide Title */}
@@ -183,7 +187,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
       <View style={styles.featuresList}>
         {item.features.map((feature, index) => (
           <View key={index} style={styles.featureItem}>
-            <Ionicons name="shield-checkmark" size={20} color={Colors.growthGreen} />
+            <Ionicons name="heart" size={24} color={Colors.alertCoral} style={{ marginTop: 2 }} />
             <Text style={styles.featureText}>{feature}</Text>
           </View>
         ))}
@@ -282,7 +286,8 @@ const styles = StyleSheet.create({
   logoSection: {
     ...OnboardingStyles.logoSection,
     paddingHorizontal: 24,
-    marginTop: 40,
+    marginTop: 20,
+    marginBottom: 10,
   },
   logoImage: OnboardingStyles.logoImage,
 
@@ -293,14 +298,20 @@ const styles = StyleSheet.create({
   slideContainer: {
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingVertical: 20,
-    justifyContent: 'center',
+    paddingTop: 10,
+    paddingBottom: 20,
+    justifyContent: 'flex-start',
   },
 
   // Slide Content Styles
   iconContainer: {
     ...OnboardingStyles.iconContainer,
     marginBottom: 24,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   slideTitle: {
     ...OnboardingStyles.mainTitle,

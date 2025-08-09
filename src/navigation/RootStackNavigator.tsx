@@ -38,6 +38,15 @@ import OnboardingPricingShowcaseScreen from '../screens/onboarding/OnboardingPri
 
 import OnboardingChallengeDetailsScreen from '../screens/onboarding/OnboardingChallengeDetailsScreen';
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
+
+// New Simplified Onboarding Flow Screens
+import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
+import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
+import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
+import OnboardingPaymentProcessingScreen from '../screens/onboarding/OnboardingPaymentProcessingScreen';
+import OnboardingPaymentConfirmationScreen from '../screens/onboarding/OnboardingPaymentConfirmationScreen';
+import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
+
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
 
 
@@ -317,7 +326,39 @@ export default function RootStackNavigator({
             options={OnboardingAnimations.crossDissolve}
           />
 
-          {/* PHASE 4: Exploration & Value Demonstration (15%) */}
+          {/* NEW SIMPLIFIED ONBOARDING FLOW */}
+          <Stack.Screen
+            name="OnboardingPlaybookReady"
+            component={OnboardingPlaybookReadyScreen as React.ComponentType}
+            options={OnboardingAnimations.smoothSlide}
+          />
+          <Stack.Screen
+            name="OnboardingSalesOffer"
+            component={OnboardingSalesOfferScreen as React.ComponentType}
+            options={OnboardingAnimations.pushFromBottom}
+          />
+          <Stack.Screen
+            name="OnboardingTrialOffer"
+            component={OnboardingTrialOfferScreen as React.ComponentType}
+            options={OnboardingAnimations.pushFromBottom}
+          />
+          <Stack.Screen
+            name="OnboardingPaymentProcessing"
+            component={OnboardingPaymentProcessingScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingPaymentConfirmation"
+            component={OnboardingPaymentConfirmationScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OnboardingNotificationSetup"
+            component={OnboardingNotificationSetupScreen as React.ComponentType}
+            options={{ headerShown: false }}
+          />
+
+          {/* OLD SCREENS - KEEPING FOR NOW, WILL REMOVE LATER */}
           <Stack.Screen
             name="OnboardingPlaybookNavigation"
             component={OnboardingPlaybookNavigationScreen as React.ComponentType}
@@ -333,8 +374,6 @@ export default function RootStackNavigator({
             component={OnboardingHandsOnDemoScreen as React.ComponentType}
             options={OnboardingAnimations.smoothSlide}
           />
-
-          {/* PHASE 5: Trial Conversion & Monetization (10%) */}
           <Stack.Screen
             name="OnboardingPricingShowcase"
             component={OnboardingPricingShowcaseScreen as React.ComponentType}

@@ -81,23 +81,25 @@ export const OnboardingStyles = StyleSheet.create({
   // Feature Lists
   featuresList: {
     width: '100%',
-    marginBottom: 16,
+    marginBottom: 24,
+    marginTop: 8,
   },
 
   featureItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 16,
     paddingHorizontal: 8,
+    minHeight: 30, // Ensure consistent height for each item
   },
 
   featureText: {
-    fontSize: 13,
+    fontSize: 15,
     fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
-    marginLeft: 12,
+    marginLeft: 14,
     flex: 1,
-    lineHeight: 18,
+    lineHeight: 22,
   },
 
   // Icon Containers

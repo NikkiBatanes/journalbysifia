@@ -715,7 +715,7 @@ export default function ActionStepsCard({
           style={styles.icon}
         />
         <Text style={[styles.heading, textColor ? { color: textColor } : {}]}>
-          {steps.length} Action steps
+          {steps.length} Action Steps
         </Text>
       </View>
 

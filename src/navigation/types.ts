@@ -18,10 +18,49 @@ export type RootStackParamList = {
   OnboardingPlaybookNavigation: { generatedPlaybook: Playbook } | undefined;
   OnboardingNotificationPermission: { playbook?: Playbook } | undefined;
   OnboardingComplete: { playbook?: Playbook } | undefined;
+  
+  // New Simplified Onboarding Flow Screens
+  OnboardingPlaybookReady: { 
+    playbook: Playbook; 
+    onboardingData: {
+      name: string;
+      ageGroup: string;
+      faithJourney: string;
+      challenge: string;
+      challengeDetails: string;
+    };
+  };
+  OnboardingSalesOffer: undefined;
+  OnboardingTrialOffer: undefined;
+  OnboardingPaymentProcessing: {
+    selectedTier?: string;
+    isAnnual?: boolean;
+    price?: number;
+    isDiscounted?: boolean;
+    discountPercentage?: number;
+  };
+  OnboardingPaymentConfirmation: {
+    userType: 'trial' | 'paid' | 'freemium';
+    selectedTier?: string;
+    isAnnual?: boolean;
+  };
+  OnboardingNotificationSetup: {
+    userType: 'trial' | 'paid' | 'freemium';
+  };
 
   // Main App
   MainTabs: undefined;
-  PlaybookDetail: { playbook: Playbook; isFromOnboarding?: boolean };
+  PlaybookDetail: {
+    playbook: Playbook;
+    isFromOnboarding?: boolean;
+    onboardingData?: {
+      name: string;
+      ageGroup: string;
+      faithJourney: string;
+      challenge: string;
+      challengeDetails: string;
+    };
+  };
   CardDetail: {
     cardType: string;
     cardData: any;

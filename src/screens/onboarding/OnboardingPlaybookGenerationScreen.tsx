@@ -1,22 +1,23 @@
 /**
  * OnboardingPlaybookGenerationScreen.tsx
  * Phase 3.3: REAL Playbook Generation using actual API
- * Shows real AI-generated content, auto-saves to playbooks
+ * Shows real AI-generated content with beautiful UI, auto-saves to playbooks
  */
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
   Animated,
   StatusBar,
+  Image,
   ScrollView,
-  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors } from '../../theme/colors';
 import { enhancedGenerationService } from '../../services/enhancedGenerationService';
@@ -48,11 +49,13 @@ interface GeneratedPlaybook {
 }
 
 const OnboardingPlaybookGenerationScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
   const { updateOnboardingStep } = useUserState();
   const params = route.params as RouteParams;
+  const isMounted = useRef(true);
 
   const [isGenerating, setIsGenerating] = useState(true);
   const [generatedPlaybook, setGeneratedPlaybook] = useState<GeneratedPlaybook | null>(null);
@@ -60,16 +63,24 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Enhanced animations for better UI
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const contentFadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseValue = useRef(new Animated.Value(0.8)).current;
+  const breathingAnim = useRef(new Animated.Value(0.8)).current;
+
+  // Breathing animation text
+  const [breathingText, setBreathingText] = useState('Breathe in peace...');
+  const [breathingPhase, setBreathingPhase] = useState<'in' | 'out'>('in');
+  // No manual measurement: we'll use flex spacers and safe-area padding
 
   const generationSteps = [
-    'Analyzing your challenge...',
-    'Finding relevant scripture...',
-    'Creating action steps...',
-    'Generating affirmations...',
-    'Finalizing your playbook...',
+    { title: 'Listening to your heart…', description: '' },
+    { title: 'Finding God\'s Word for your season…', description: '' },
+    { title: 'Preparing your steps…', description: '' },
+    { title: 'Equipping you for the journey…', description: '' },
+    { title: 'Finalizing Your Playbook', description: '' },
   ];
 
   const generatePlaybook = useCallback(async () => {
@@ -97,7 +108,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
         // Poll for completion
         const pollForCompletion = async () => {
-          const maxAttempts = 30; // 30 attempts = 2.5 minutes max wait
+          const maxAttempts = 35; // 35 attempts = 35 seconds max wait - faster with early direct DB checks
           let attempts = 0;
 
           const poll = async (): Promise<void> => {
@@ -107,22 +118,87 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               const status = await enhancedGenerationService.checkGenerationStatus(response.queueId!);
               console.log(`[Polling ${attempts}/${maxAttempts}] Status:`, status.status);
 
-              if (status.status === 'completed' && status.resultId) {
+              // ENTERPRISE FIX: Database security issues are blocking queue status updates
+              // Check for direct playbook creation much earlier to bypass broken queue system
+              let playbookExists = false;
+              let directPlaybook = null;
+              
+              if (status.status === 'processing' && attempts > 5) {
+                // After 15 seconds, start checking if playbook exists directly
+                try {
+                  const { supabase } = await import('../../services/supabaseClient');
+                  const { data: recentPlaybooks } = await supabase
+                    .from('playbooks')
+                    .select('*')
+                    .eq('user_id', user?.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                  if (recentPlaybooks && recentPlaybooks.length > 0) {
+                    const recentPlaybook = recentPlaybooks[0];
+                    const playbookAge = Date.now() - new Date(recentPlaybook.created_at).getTime();
+                    
+                    // If playbook was created in the last 60 seconds, it's likely our generated one
+                    if (playbookAge < 60000) {
+                      console.log('🎯 Found recently created playbook, using as completion fallback');
+                      playbookExists = true;
+                      directPlaybook = recentPlaybook;
+                    }
+                  }
+                } catch (error) {
+                  console.log('Could not check for direct playbook:', error);
+                }
+              }
+
+              if ((status.status === 'completed' && status.resultId) || playbookExists) {
                 // Get the actual playbook from database
                 console.log('🎯 Playbook completed, fetching from database...');
 
-                // Import supabase to fetch the playbook
-                const { createClient } = await import('@supabase/supabase-js');
-                const supabase = createClient(
-                  process.env.EXPO_PUBLIC_SUPABASE_URL!,
-                  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
-                );
+                let playbook = null;
+                let error = null;
 
-                const { data: playbook, error } = await supabase
-                  .from('playbooks')
-                  .select('*')
-                  .eq('id', status.resultId)
-                  .single();
+                // Use direct playbook if we found one via fallback, otherwise fetch by resultId
+                if (playbookExists && directPlaybook) {
+                  console.log('✅ Using direct playbook from fallback detection');
+                  playbook = directPlaybook;
+                } else {
+                  // Use the existing supabase client to fetch the playbook
+                  const { supabase } = await import('../../services/supabaseClient');
+
+                  console.log(`🔍 Attempting to fetch playbook with result_id: ${status.resultId}`);
+
+                  // Try fetching by result_id first
+                  let result = await supabase
+                    .from('playbooks')
+                    .select('*')
+                    .eq('id', status.resultId)
+                    .single();
+                  
+                  // If that fails, try fetching the most recent playbook for this user
+                  if (result.error && result.error.code === 'PGRST116') {
+                    console.log('🔄 Result ID not found, trying to fetch most recent playbook...');
+                    
+                    const fallbackResult = await supabase
+                      .from('playbooks')
+                      .select('*')
+                      .eq('user_id', user?.id)
+                      .order('created_at', { ascending: false })
+                      .limit(1)
+                      .single();
+                    
+                    if (fallbackResult.data) {
+                      const playbookAge = Date.now() - new Date(fallbackResult.data.created_at).getTime();
+                      // If playbook was created in the last 2 minutes, it's likely our generated one
+                      if (playbookAge < 120000) {
+                        console.log('✅ Found recent playbook via fallback, using it');
+                        result = fallbackResult;
+                      }
+                    }
+                  }
+                  
+                  playbook = result.data;
+                  error = result.error;
+                }
 
                 if (playbook && !error) {
                   console.log('✅ Real playbook fetched from database:', playbook.title);
@@ -145,17 +221,29 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                     directChallenge: playbook.direct_challenge || playbook.content?.directChallenge || 'Take one step forward in faith this week.',
                   };
 
-                  setGeneratedPlaybook(realGeneratedPlaybook);
-                  setIsGenerating(false);
+                  // First ensure progress bar is complete, then navigate immediately
+                  return new Promise<void>((resolve) => {
+                    // Animate progress to 100%
+                    Animated.timing(progressAnim, {
+                      toValue: 100,
+                      duration: 800,
+                      useNativeDriver: false,
+                    }).start(() => {
+                      // Keep isGenerating true to avoid blank state, navigate immediately
+                      setGeneratedPlaybook(realGeneratedPlaybook);
+                      console.log('✅ Real playbook generation completed. Navigating to Ready screen...');
 
-                  // Animate content appearance
-                  Animated.timing(contentFadeAnim, {
-                    toValue: 1,
-                    duration: 800,
-                    useNativeDriver: true,
-                  }).start();
+                      // Use replace to avoid brief blank flash and back-stack flicker
+                      (navigation as any).replace('OnboardingPlaybookReady', {
+                        playbook: realGeneratedPlaybook,
+                        challengeCategory: params.challengeCategory,
+                        specificChallenge: params.specificChallenge,
+                        userInput: params.userInput,
+                      });
 
-                  console.log('✅ Real playbook generation completed and displayed');
+                      resolve();
+                    });
+                  });
                 } else {
                   console.error('❌ Error fetching playbook from database:', error);
                   throw new Error('Failed to fetch generated playbook');
@@ -166,8 +254,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               } else if (attempts >= maxAttempts) {
                 throw new Error('Playbook generation timed out. Please try again.');
               } else {
-                // Continue polling
-                setTimeout(poll, 5000); // Poll every 5 seconds
+                // Continue polling - much faster for onboarding
+                setTimeout(poll, 1000); // Poll every 1 second for responsive onboarding
               }
             } catch (error) {
               console.error('❌ Error during polling:', error);
@@ -175,8 +263,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             }
           };
 
-          // Start polling
-          setTimeout(poll, 2000); // Wait 2 seconds before first poll
+          // Start polling immediately for faster onboarding
+          setTimeout(poll, 500); // Wait only 0.5 seconds before first poll
         };
 
         pollForCompletion().catch((error) => {
@@ -196,6 +284,48 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     }
   }, [params, user, contentFadeAnim]);
 
+  // Breathing animation cycle
+  useEffect(() => {
+    const breathingCycle = () => {
+      // Breathe in phase
+      Animated.timing(breathingAnim, {
+        toValue: 1.1,
+        duration: 3000,
+        useNativeDriver: true,
+      }).start((finished) => {
+        if (!isMounted.current || !finished) return;
+        // Use setTimeout to avoid useInsertionEffect warning
+        setTimeout(() => {
+          if (isMounted.current) {
+            setBreathingText('Breathe out worry...');
+            setBreathingPhase('out');
+          }
+        }, 0);
+
+        // Breathe out phase
+        Animated.timing(breathingAnim, {
+          toValue: 0.8,
+          duration: 3000,
+          useNativeDriver: true,
+        }).start((animationFinished) => {
+          if (!isMounted.current || !animationFinished) return;
+          // Use setTimeout to avoid useInsertionEffect warning
+          setTimeout(() => {
+            if (isMounted.current) {
+              setBreathingText('Breathe in peace...');
+              setBreathingPhase('in');
+            }
+          }, 0);
+        });
+      });
+    };
+
+    const interval = setInterval(breathingCycle, 6000);
+    breathingCycle(); // Start immediately
+
+    return () => clearInterval(interval);
+  }, [breathingAnim]);
+
   useEffect(() => {
     // Start entrance animation
     Animated.timing(fadeAnim, {
@@ -214,21 +344,29 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       const stepInterval = setInterval(() => {
         setCurrentStep(prev => {
           const nextStep = prev + 1;
-          if (nextStep >= generationSteps.length) {
+          const isLastStep = nextStep >= generationSteps.length;
+          
+          // Animate progress bar
+          Animated.timing(progressAnim, {
+            toValue: (isLastStep ? generationSteps.length : nextStep) / generationSteps.length * 100,
+            duration: 1000, // Slightly longer for smoother animation
+            useNativeDriver: false,
+          }).start(() => {
+            // Only proceed to next step after animation completes
+            if (isLastStep) {
+              clearInterval(stepInterval);
+              return;
+            }
+          });
+
+          if (isLastStep) {
             clearInterval(stepInterval);
             return prev;
           }
-
-          // Animate progress bar
-          Animated.timing(progressAnim, {
-            toValue: (nextStep / generationSteps.length) * 100,
-            duration: 800,
-            useNativeDriver: false,
-          }).start();
-
+          
           return nextStep;
         });
-      }, 1500);
+      }, 3000); // 3 seconds per step for better readability
 
       return () => clearInterval(stepInterval);
     }
@@ -241,14 +379,21 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       // Update onboarding progress
       updateOnboardingStep('playbook_generated', 3);
 
-      console.log('📚 Playbook completed, proceeding to feature exploration');
+      console.log('📚 Playbook completed, proceeding directly to OnboardingPlaybookReady');
 
-      // Navigate to playbook navigation screen (Phase 4)
-      navigation.navigate('OnboardingPlaybookNavigation' as any, {
-        generatedPlaybook,
+      // Navigate directly to OnboardingPlaybookReady (skip intermediate screen)
+      (navigation as any).replace('OnboardingPlaybookReady', {
+        playbook: generatedPlaybook,
+        onboardingData: {
+          name: params?.userInput?.split(' ')[0] || 'Friend',
+          ageGroup: 'Adult',
+          faithJourney: 'Growing in Faith',
+          challenge: params?.challengeCategory || 'Personal Growth',
+          challengeDetails: params?.specificChallenge || 'Seeking spiritual growth',
+        },
       });
     } catch (error) {
-      console.error('Error proceeding to feature showcase:', error);
+      console.error('Error proceeding to playbook detail:', error);
     } finally {
       setIsLoading(false);
     }
@@ -286,146 +431,77 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top','bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+      <Animated.View 
+        style={[styles.content, { opacity: fadeAnim }]}
+      > 
         {/* Progress Indicator */}
-        <OnboardingProgressIndicator compact />
+        {/* No progress indicator needed */}
 
         {isGenerating ? (
-          // Generation in progress
-          <View style={styles.generationContainer}>
-            <View style={styles.generationHeader}>
-              <Text style={styles.generationTitle}>Creating Your Personal Playbook</Text>
-              <Text style={styles.generationSubtitle}>
-                Using AI and biblical wisdom to address: {params.specificChallenge}
-              </Text>
-            </View>
-
-            <View style={styles.progressSection}>
-              <View style={styles.progressBarContainer}>
-                <Animated.View
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width: progressAnim.interpolate({
-                        inputRange: [0, 100],
-                        outputRange: ['0%', '100%'],
-                        extrapolate: 'clamp',
-                      }),
-                    },
-                  ]}
+          // Beautiful generation in progress with breathing animation
+          <View style={styles.centerBlockContainer}>
+            <View style={styles.centerBlock}>
+              {/* Logo with breathing animation */}
+              <Animated.View
+                style={[
+                  styles.logoContainer,
+                  {
+                    transform: [
+                      { scale: breathingAnim },
+                    ],
+                  },
+                ]}
+              >
+                <Image
+                  source={require('../../../assets/images/siFiaAppIcon.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
                 />
-              </View>
+              </Animated.View>
 
-              <Text style={styles.currentStepText}>
-                {generationSteps[Math.min(currentStep, generationSteps.length - 1)]}
-              </Text>
-            </View>
+              {/* Title */}
+              <Text style={styles.generationTitle}>Creating Your Playbook</Text>
 
-            <View style={styles.loadingIndicator}>
-              <ActivityIndicator size="large" color={Colors.white} />
-            </View>
-          </View>
-        ) : (
-          // Generated playbook display
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <Animated.View style={[styles.playbookContent, { opacity: contentFadeAnim }]}>
-              {/* Success header */}
-              <View style={styles.successHeader}>
-                <Ionicons name="checkmark-circle" size={48} color={Colors.lightBlue} />
-                <Text style={styles.successTitle}>Your Playbook is Ready!</Text>
-                <Text style={styles.successSubtitle}>
-                  Here's your personalized biblical guidance for {params.specificChallenge}
-                </Text>
-              </View>
-
-              {generatedPlaybook && (
-                <>
-                  {/* Playbook title */}
-                  <View style={styles.playbookSection}>
-                    <Text style={styles.playbookTitle}>{generatedPlaybook.title}</Text>
-                  </View>
-
-                  {/* Truth in Love */}
-                  <View style={styles.playbookSection}>
-                    <Text style={styles.sectionTitle}>Truth in Love</Text>
-                    <Text style={styles.truthText}>{generatedPlaybook.truthInLove}</Text>
-                  </View>
-
-                  {/* Action Steps Preview */}
-                  <View style={styles.playbookSection}>
-                    <Text style={styles.sectionTitle}>Action Steps ({generatedPlaybook.actionSteps.length})</Text>
-                    {generatedPlaybook.actionSteps.slice(0, 2).map((step, index) => (
-                      <View key={index} style={styles.actionStepPreview}>
-                        <Text style={styles.actionStepTitle}>{index + 1}. {step.title}</Text>
-                        <Text style={styles.actionStepDescription}>{step.description}</Text>
-                      </View>
-                    ))}
-                    {generatedPlaybook.actionSteps.length > 2 && (
-                      <Text style={styles.moreStepsText}>
-                        +{generatedPlaybook.actionSteps.length - 2} more steps in your full playbook
-                      </Text>
-                    )}
-                  </View>
-
-                  {/* Affirmations */}
-                  <View style={styles.playbookSection}>
-                    <Text style={styles.sectionTitle}>Your Affirmations</Text>
-                    {generatedPlaybook.affirmations.map((affirmation, index) => (
-                      <View key={index} style={styles.affirmationItem}>
-                        <Ionicons name="heart" size={16} color={Colors.lightBlue} />
-                        <Text style={styles.affirmationText}>{affirmation}</Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Bible Verse */}
-                  <View style={styles.playbookSection}>
-                    <Text style={styles.sectionTitle}>Your Verse</Text>
-                    <View style={styles.verseContainer}>
-                      <Text style={styles.verseText}>"{generatedPlaybook.bibleVerse.text}"</Text>
-                      <Text style={styles.verseReference}>— {generatedPlaybook.bibleVerse.reference}</Text>
-                    </View>
-                  </View>
-                </>
-              )}
-
-              {/* Continue button */}
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={[styles.continueButton, isLoading && styles.buttonDisabled]}
-                  onPress={handleContinue}
-                  disabled={isLoading}
-                >
-                  <Text style={styles.continueButtonText}>
-                    {isLoading ? 'Loading...' : 'Explore More Features'}
-                  </Text>
-                  <Ionicons
-                    name="arrow-forward"
-                    size={20}
-                    color={Colors.anchorBlue}
-                    style={styles.buttonIcon}
+              {/* Simple Progress Bar */}
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBarBackground}>
+                  <Animated.View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 100],
+                          outputRange: ['0%', '100%'],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ]}
                   />
-                </TouchableOpacity>
-              </View>
-
-              {/* Progress indicator */}
-              <View style={styles.progressContainer}>
-                <Text style={styles.progressText}>Step 5 of 6</Text>
-                <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, styles.progressStep5]} />
                 </View>
               </View>
-            </Animated.View>
-          </ScrollView>
-        )}
+
+              {/* Current Step Text */}
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.stepTextContainer}
+              >
+                <Text style={styles.currentStepText}>
+                  {generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title}
+                </Text>
+              </ScrollView>
+            </View>
+          </View>
+        ) : null}
+        {/* Breathing Text pinned to bottom of the screen */}
+        <Text style={[styles.breathingText, { bottom: insets.bottom + 24 }]}>
+          {breathingText}
+        </Text>
       </Animated.View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -437,13 +513,20 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  centerBlockContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   generationContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+    paddingHorizontal: 16,
   },
   generationHeader: {
     alignItems: 'center',
@@ -454,7 +537,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.white,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 24,
+    width: '100%',
+    paddingHorizontal: 20,
   },
   generationSubtitle: {
     fontSize: 16,
@@ -466,23 +551,65 @@ const styles = StyleSheet.create({
     width: '100%',
     marginBottom: 48,
   },
+  centeredContent: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  centerBlock: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  logoContainer: {
+    width: 80,
+    height: 80,
+    marginBottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 16,
+  },
   progressBarContainer: {
+    width: '80%',
+    marginBottom: 30,
+  },
+  progressBarBackground: {
     width: '100%',
     height: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 4,
-    marginBottom: 16,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.lightBlue,
+    backgroundColor: Colors.growthGreen,
     borderRadius: 4,
   },
-  currentStepText: {
+  breathingText: {
     fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 32,
+  },
+  stepTextContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  currentStepText: {
+    fontSize: 14,
     color: Colors.white,
     textAlign: 'center',
     fontWeight: '500',
+    paddingHorizontal: 8,
+    includeFontPadding: false,
   },
   loadingIndicator: {
     marginTop: 32,
@@ -516,16 +643,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.anchorBlue,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  playbookContent: {
-    flex: 1,
-  },
-  successHeader: {
-    alignItems: 'center',
-    marginBottom: 32,
   },
   successTitle: {
     fontSize: 24,
@@ -661,6 +778,7 @@ const styles = StyleSheet.create({
   progressStep5: {
     width: '83.33%',
   },
+
 });
 
 export default OnboardingPlaybookGenerationScreen;

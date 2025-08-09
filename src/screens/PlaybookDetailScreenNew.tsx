@@ -83,7 +83,7 @@ interface CardData {
 }
 
 // Header left component extracted to fix linter warning
-const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage }: {
+const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, onboardingNextStep }: {
   navigation: any;
   showUserInput: boolean;
   setShowUserInput: (show: boolean) => void;
@@ -93,12 +93,20 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
   completedTasksCount: number;
   totalTasksCount: number;
   progressPercentage: number;
+  isFromOnboarding?: boolean;
+  onboardingNextStep?: string;
 }) => (
   <View style={styles.headerLeftContainer}>
     <TouchableOpacity
       onPress={() => {
         try {
-          navigation.goBack();
+          if (isFromOnboarding && onboardingNextStep) {
+            // Continue onboarding flow to next step
+            console.log('🎯 Continuing onboarding flow to:', onboardingNextStep);
+            navigation.navigate(onboardingNextStep);
+          } else {
+            navigation.goBack();
+          }
         } catch (err) {
           console.log('Navigation error:', err);
         }
@@ -202,6 +210,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // 1. Route and navigation data
   const playbookId = route.params?.playbook?.id || (route.params as any)?.playbookId;
   const isFromOnboarding = (route.params as any)?.isFromOnboarding || false;
+  const onboardingNextStep = (route.params as any)?.onboardingNextStep;
 
   // Debug logging for playbookId
   console.log('📖 PlaybookDetailScreen - Route params debug:', {
@@ -516,8 +525,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       completedTasksCount={completedTasksCount}
       totalTasksCount={totalTasksCount}
       progressPercentage={progress}
+      isFromOnboarding={isFromOnboarding}
+      onboardingNextStep={onboardingNextStep}
     />
-  ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress]);
+  ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress, isFromOnboarding, onboardingNextStep]);
 
   // Header right component
   const headerRight = React.useCallback(() => (

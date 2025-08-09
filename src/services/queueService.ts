@@ -232,7 +232,6 @@ export class QueueService {
 
       if (data.status === 'completed') {
         result.resultId = data.result_id;
-        result.processingTimeSeconds = data.processing_time_seconds;
       } else if (data.status === 'failed') {
         result.errorMessage = data.error_message;
       } else if (data.status === 'pending') {
@@ -339,7 +338,6 @@ export class QueueService {
       await this.updateQueueStatus(item.id, 'completed', {
         completed_at: new Date().toISOString(),
         result_id: result.id,
-        processing_time_seconds: processingTime,
         tokens_used: result.tokensUsed || 0,
         cost_cents: result.costCents || 0,
       });
@@ -348,8 +346,7 @@ export class QueueService {
       await subscriptionService.trackUsage(
         item.user_id,
         item.type,
-        result.tokensUsed || 0,
-        result.costCents || 0
+        result.tokensUsed || 0
       );
 
       // Track behavior for intelligence system
@@ -359,7 +356,6 @@ export class QueueService {
           event_category: 'generation',
           event_data: {
             intelligence_level: item.intelligence_level,
-            processing_time_seconds: processingTime,
             tokens_used: result.tokensUsed,
           },
           success_indicator: true,
@@ -392,7 +388,18 @@ export class QueueService {
     // This would call your existing playbook generation function
     // For now, we'll simulate the call structure
 
-    const functionUrl = `${process.env.SUPABASE_URL}/functions/v1/generate-playbook`;
+    // Use the proper environment configuration
+    const { getEnvironmentConfig } = await import('../config/environment');
+    const env = getEnvironmentConfig();
+    
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
+    const supabaseUrl = env.SUPABASE_URL;
+    const supabaseKey = env.SUPABASE_ANON_KEY;
+
+    const functionUrl = `${supabaseUrl}/functions/v1/generate-playbook`;
 
     // Build request body with intelligence data
     const requestBody: any = {
@@ -407,20 +414,56 @@ export class QueueService {
       requestBody.intelligenceLevel = item.intelligence_level;
     }
 
+    console.log(`[QueueService] Calling playbook generation function: ${functionUrl}`);
+    console.log(`[QueueService] Request body:`, JSON.stringify(requestBody, null, 2));
+
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify(requestBody),
     });
 
+    console.log(`[QueueService] Response status: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
-      throw new Error(`Playbook generation failed: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`[QueueService] Response error:`, errorText);
+      throw new Error(`Playbook generation failed: ${response.statusText} - ${errorText}`);
     }
 
     const result = await response.json();
+    console.log(`[QueueService] Generation result:`, result);
+
+    // Save the generated playbook to the database
+    console.log(`[QueueService] Saving playbook to database for user ${item.user_id}`);
+    
+    const { data: savedPlaybook, error: saveError } = await this.supabase
+      .from('playbooks')
+      .insert({
+        id: result.id,
+        user_id: item.user_id,
+        title: result.title,
+        subtitle: result.subtitle,
+        truth_in_love: result.truthInLove,
+        action_steps: result.actionSteps,
+        affirmations: result.affirmations,
+        bible_verse: result.bibleVerse,
+        direct_challenge: result.directChallenge,
+        created_at: result.createdAt || new Date().toISOString(),
+        updated_at: result.updatedAt || new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (saveError) {
+      console.error(`[QueueService] Failed to save playbook to database:`, saveError);
+      // Don't throw error - the generation succeeded, just log the save issue
+    } else {
+      console.log(`[QueueService] Successfully saved playbook to database:`, savedPlaybook?.title);
+    }
 
     return {
       id: result.id,
@@ -433,7 +476,15 @@ export class QueueService {
    * Generate devotional directly (calls your existing generation function)
    */
   private async generateDevotionalDirect(item: QueueItem): Promise<any> {
-    const functionUrl = `${process.env.SUPABASE_URL}/functions/v1/generate-devotional`;
+    // Use the proper environment configuration
+    const { getEnvironmentConfig } = await import('../config/environment');
+    const env = getEnvironmentConfig();
+    
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
+    const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-devotional`;
 
     const requestBody: any = {
       userName: item.user_name,
@@ -450,7 +501,7 @@ export class QueueService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${env.SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify(requestBody),
     });
@@ -472,23 +523,37 @@ export class QueueService {
    * Update queue item status
    */
   private async updateQueueStatus(itemId: string, status: string, updates: any = {}): Promise<void> {
-    // Create update data in a way that's compatible with older browsers
-    const updateData: Record<string, any> = {
-      status,
-      updated_at: new Date().toISOString(),
-    };
+    try {
+      // Create update data in a way that's compatible with older browsers
+      const updateData: Record<string, any> = {
+        status,
+        updated_at: new Date().toISOString(),
+      };
 
-    // Manually copy properties from updates to ensure IE compatibility
-    if (updates) {
-      Object.keys(updates).forEach(key => {
-        updateData[key] = updates[key];
-      });
+      // Manually copy properties from updates to ensure IE compatibility
+      if (updates) {
+        Object.keys(updates).forEach(key => {
+          updateData[key] = updates[key];
+        });
+      }
+
+      console.log(`[QueueService] Updating queue status for ${itemId} to ${status}:`, updateData);
+
+      const { data, error } = await this.supabase
+        .from('generation_queue')
+        .update(updateData)
+        .eq('id', itemId);
+
+      if (error) {
+        console.error(`[QueueService] Failed to update queue status for ${itemId}:`, error);
+        throw error;
+      }
+
+      console.log(`[QueueService] Successfully updated queue status for ${itemId} to ${status}`);
+    } catch (error) {
+      console.error(`[QueueService] Error updating queue status for ${itemId}:`, error);
+      throw error;
     }
-
-    await this.supabase
-      .from('generation_queue')
-      .update(updateData)
-      .eq('id', itemId);
   }
 
   /**

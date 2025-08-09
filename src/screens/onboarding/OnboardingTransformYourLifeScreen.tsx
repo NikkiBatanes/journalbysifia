@@ -14,7 +14,9 @@ import {
   Animated,
   StatusBar,
   Image,
+  Dimensions,
 } from 'react-native';
+import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
@@ -109,45 +111,59 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             style={styles.logoImage}
             resizeMode="contain"
           />
+          
+          {/* Lottie Animation */}
+          <View style={styles.animationContainer}>
+            <Lottie
+              source={require('../../../assets/animations/Jesus walking on water.json')}
+              autoPlay
+              loop
+              style={styles.animation}
+              colorFilters={[
+                {
+                  keypath: '*',
+                  color: Colors.hopeWhite, // Replace with your desired color
+                },
+              ]}
+            />
+          </View>
         </View>
 
         {/* Main Content */}
         <View style={styles.mainContent}>
-          <Text style={[OnboardingStyles.mainTitle, styles.transformTitle]}>Faith in Action, Every Day</Text>
+          <View style={styles.textContainer}>
+            <Text style={[OnboardingStyles.mainTitle, styles.transformTitle, { textAlign: 'left', width: '100%' }]}>This is the start of something new.</Text>
+          </View>
 
-          <Text style={[OnboardingStyles.subtitle, styles.transformSubtitle]}>
-            Transform your life with personalized, biblically grounded tools.
-          </Text>
+          <View style={styles.textContainer}>
+            <Text style={styles.mainText}>
+            God has a way of meeting us right in the middle of our story, not when everything is perfect, but when our hearts are open.
+            </Text>
+            <Text style={[styles.mainText, { marginTop: 20 }]}>
+            Let's take the first step together.
+            </Text>
+          </View>
 
-          {/* Features List */}
+          {/* Features List - Temporarily Hidden */}
           <View style={styles.featuresList}>
-            {features.map((feature, index) => (
-              <View key={index} style={styles.featureItem}>
-                <View style={styles.featureIconContainer}>
-                  <Ionicons name={feature.icon} size={24} color={Colors.hopeWhite} />
-                </View>
-                <Text style={styles.featureItemTitle}>{feature.title}</Text>
-              </View>
-            ))}
+            <View style={[styles.featureItem, { opacity: 0, height: 0 }]} />
+            <View style={[styles.featureItem, { opacity: 0, height: 0 }]} />
+            <View style={[styles.featureItem, { opacity: 0, height: 0, marginBottom: 30 }]} />
+
+            {/* Button */}
+            <TouchableOpacity
+              style={[OnboardingStyles.primaryButton, styles.startButton, isLoading && OnboardingStyles.buttonDisabled]}
+              onPress={handleContinue}
+              disabled={isLoading}
+            >
+              <Text style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
+                {isLoading ? 'Starting...' : 'Start my journey'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Bottom Section */}
-        <View style={styles.bottomSection}>
-          <TouchableOpacity
-            style={[OnboardingStyles.primaryButton, styles.startButton, isLoading && OnboardingStyles.buttonDisabled]}
-            onPress={handleContinue}
-            disabled={isLoading}
-          >
-            <Text style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
-              {isLoading ? 'Starting...' : 'Start your journey'}
-            </Text>
-          </TouchableOpacity>
 
-          <Text style={styles.trialText}>
-            3-day free trial • No commitment Required
-          </Text>
-        </View>
       </Animated.View>
     </View>
   );
@@ -158,7 +174,22 @@ const styles = StyleSheet.create({
   content: OnboardingStyles.content,
   logoSection: {
     ...OnboardingStyles.logoSection,
-    marginBottom: OnboardingSpacing.huge,
+    marginBottom: OnboardingSpacing.md,
+    alignItems: 'center',
+  },
+  animationContainer: {
+    width: '100%',
+    aspectRatio: 1.5, // Wider aspect ratio for waves
+    maxHeight: 250, // Slightly taller to fit all waves
+    marginTop: OnboardingSpacing.sm,
+    marginBottom: OnboardingSpacing.md,
+    alignSelf: 'center',
+    overflow: 'visible', // Ensure no clipping of the waves
+  },
+  animation: {
+    width: '100%',
+    height: '100%',
+    alignSelf: 'center',
   },
   logoImage: {
     width: 140,
@@ -175,11 +206,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: OnboardingSpacing.md,
   },
-  transformSubtitle: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    textAlign: 'center',
-    marginBottom: OnboardingSpacing.huge,
+  textContainer: {
+    width: '100%',
+    paddingHorizontal: 24,
+    marginBottom: OnboardingSpacing.md,
   },
+  mainText: {
+    ...OnboardingTypography.subtitle,
+    color: Colors.hopeWhite,
+    textAlign: 'left',
+    marginBottom: OnboardingSpacing.sm,
+  },
+  subText: {
+    ...OnboardingTypography.subtitle,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'left',
+    fontStyle: 'italic',
+  },
+
   featuresList: {
     width: '100%',
     alignSelf: 'stretch',
@@ -189,7 +233,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 20,
   },
-  featureIconContainer: OnboardingStyles.featureIconContainer,
+  featureIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   featureItemTitle: {
     fontSize: 16,
     fontWeight: '600',

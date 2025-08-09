@@ -62,37 +62,37 @@ const faithJourneyOptions: FaithJourney[] = [
   {
     id: 'exploring',
     title: 'Exploring Faith',
-    description: 'Curious about faith and seeking answers',
+    description: 'Curious and seeking answers',
     icon: 'search-outline',
   },
   {
     id: 'new-believer',
     title: 'New Believer',
-    description: 'Recently committed to faith, eager to learn',
+    description: 'Recently committed, eager to learn',
     icon: 'leaf-outline',
   },
   {
     id: 'growing',
     title: 'Growing in Faith',
-    description: 'Established believer seeking deeper understanding',
+    description: 'Hungry for deeper understanding',
     icon: 'trending-up-outline',
   },
   {
     id: 'mature',
     title: 'Mature Believer',
-    description: 'Strong foundation, focused on service and discipleship',
+    description: 'Living out your calling',
     icon: 'library-outline',
   },
   {
     id: 'struggling',
     title: 'Going Through Struggles',
-    description: 'Facing challenges, need encouragement and guidance',
+    description: 'Needing strength and encouragement',
     icon: 'heart-outline',
   },
   {
     id: 'returning',
     title: 'Returning to Faith',
-    description: 'Coming back after a period of distance',
+    description: 'Coming back after time away',
     icon: 'return-up-back-outline',
   },
 ];
@@ -245,10 +245,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         // Use main playbook generation UI with onboarding data
         const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
 
-        // Continue to Faith Journey screen (proper onboarding flow)
-        console.log('[OnboardingPersonalization] Proceeding to Faith Journey screen');
-        (navigation as any).navigate('OnboardingFaithJourney', {
+        // Skip redundant screens and go directly to playbook generation
+        console.log('[OnboardingPersonalization] Proceeding directly to Playbook Generation');
+        (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
+          userInput,
           onboardingData: {
             ageGroup: selectedAgeGroup,
             faithJourney: selectedFaithJourney,
@@ -259,9 +260,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       } catch (error) {
         console.error('[OnboardingPersonalization] Error in handleContinue:', error);
         // Continue with navigation even if onboarding update fails
-        console.log('[OnboardingPersonalization] Error occurred, but continuing to Faith Journey screen');
-        (navigation as any).navigate('OnboardingFaithJourney', {
+        console.log('[OnboardingPersonalization] Error occurred, but continuing to Playbook Generation');
+        const userInput = `I am a ${selectedAgeGroup} on a ${selectedFaithJourney} faith journey, struggling with ${selectedChallenge}. ${challengeDetails || ''}`.trim();
+        (navigation as any).navigate('OnboardingPlaybookGeneration', {
           userName: name || 'Friend',
+          userInput,
           onboardingData: {
             ageGroup: selectedAgeGroup,
             faithJourney: selectedFaithJourney,
@@ -333,7 +336,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderAgeStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>What's your age group?</Text>
+      <Text style={styles.stepTitle}>Which stage of life are you in right now?</Text>
       <View style={styles.ageOptionsContainer}>
         {ageGroups.map((ageGroup) => (
           <TouchableOpacity
@@ -353,7 +356,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderFaithJourneyStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Where are you in your{'\n'}faith journey?</Text>
+      <Text style={styles.stepTitle}>Where are you in your{`
+`}walk with God?</Text>
+      <Text style={[OnboardingStyles.subtitle, { textAlign: 'left', marginBottom: 20 }]}>
+        There's no wrong answer. {'\n'}He welcomes you exactly as you are.
+      </Text>
       <View style={styles.optionsContainer}>
         {faithJourneyOptions.map((option) => (
           <TouchableOpacity
@@ -396,7 +403,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             onPress={() => setSelectedChallenge(challenge.id)}
           >
             <View style={styles.challengeOptionIcon}>
-              <Ionicons name={challenge.icon} size={24} color={Colors.white} />
+              <Ionicons name={challenge.icon} size={24} color={Colors.alertCoral} />
             </View>
             <View style={styles.challengeOptionText}>
               <Text style={styles.challengeOptionTitle}>{challenge.title}</Text>
@@ -410,7 +417,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderChallengeDetailsStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Tell us about your{'\n'}specific situation</Text>
+      <Text style={styles.stepTitle}>Tell us more, if you'd like.</Text>
 
       {selectedChallenge && (
         <View style={styles.challengeCard}>
@@ -444,15 +451,17 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         ))}
       </View>
 
-      <TextInput
-        style={styles.detailsInput}
-        placeholder="Share more about your situation..."
-        placeholderTextColor="rgba(255, 255, 255, 0.5)"
-        value={challengeDetails}
-        onChangeText={setChallengeDetails}
-        multiline
-        textAlignVertical="top"
-      />
+      <View style={styles.askBox}>
+        <TextInput
+          style={styles.askInput}
+          placeholder="Share more about your situation..."
+          placeholderTextColor="rgba(255, 255, 255, 0.5)"
+          value={challengeDetails}
+          onChangeText={setChallengeDetails}
+          multiline
+          textAlignVertical="top"
+        />
+      </View>
     </View>
   );
 
@@ -477,9 +486,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         {name ? (
           <Text style={styles.userGreeting}>Hi, {name}.</Text>
         ) : null}
-        <Text style={OnboardingStyles.mainTitle}>Tell us about yourself</Text>
+        <Text style={OnboardingStyles.mainTitle}>Let's make this yours.</Text>
         <Text style={OnboardingStyles.subtitle}>
-          Help us craft your personalized faith{'\n'}journey with siFia: Faith in Action
+          Tell us a little about your season of life so we can create a playbook that speaks right to your heart.
         </Text>
       </View>
 
@@ -656,7 +665,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.white,
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 20,
   },
   stepSubtitle: {
     fontSize: 14,
@@ -792,13 +801,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   challengeCardIcon: {
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(30, 85, 11, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   challengeCardText: {
     flex: 1,
@@ -851,13 +860,54 @@ const styles = StyleSheet.create({
   },
   detailsInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    fontFamily: Fonts.regular,
+    borderRadius: 16,
+    padding: 16,
     color: Colors.white,
+    fontSize: 16,
+    minHeight: 120,
     textAlignVertical: 'top',
-    minHeight: 80,
+    marginBottom: 20,
+  },
+  askBox: {
+    borderRadius: 28,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    padding: 16,
+    width: '100%',
+    minHeight: 150,
+    maxHeight: 300,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    flexDirection: 'column',
+    position: 'relative',
+    ...Platform.select({
+      android: {
+        paddingTop: 10,
+      },
+    }),
+  },
+  askInput: {
+    color: Colors.white,
+    fontSize: 16,
+    padding: 0,
+    margin: 0,
+    lineHeight: 24,
+    backgroundColor: 'transparent',
+    width: '100%',
+    textAlign: 'left',
+    includeFontPadding: true,
+    textAlignVertical: 'top',
+    flex: 1,
+    ...Platform.select({
+      ios: {
+        paddingTop: 8,
+      },
+      android: {
+        textAlignVertical: 'top',
+        paddingTop: 6,
+      },
+    }),
   },
   continueButtonContainer: {
     backgroundColor: 'transparent',
