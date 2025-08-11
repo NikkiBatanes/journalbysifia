@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,11 @@ import {
   Modal,
   TouchableOpacity,
   Dimensions,
+  Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import pricingService from '../services/pricingService';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 
@@ -32,6 +35,9 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
 }) => {
   const navigation = useNavigation();
   const [timeLeft, setTimeLeft] = useState(15 * 60); // 15 minutes in seconds
+  const { user } = useAuth();
+  const giftScale = useRef(new Animated.Value(1)).current;
+  const giftOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (!visible) return;
@@ -50,6 +56,25 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
     return () => clearInterval(timer);
   }, [visible, onClose]);
 
+  // Gentle pulsing animation for the gift icon
+  useEffect(() => {
+    if (!visible) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(giftScale, { toValue: 1.12, duration: 700, useNativeDriver: true }),
+          Animated.timing(giftOpacity, { toValue: 0.95, duration: 700, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(giftScale, { toValue: 1.0, duration: 700, useNativeDriver: true }),
+          Animated.timing(giftOpacity, { toValue: 1.0, duration: 700, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [visible, giftScale, giftOpacity]);
+
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -59,7 +84,14 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
   const discountedPrice = originalPrice * (1 - discountPercentage / 100);
   const savings = originalPrice - discountedPrice;
 
-  const handleGetOffer = () => {
+  const handleGetOffer = async () => {
+    // Mark discount as redeemed for this user/device
+    try {
+      await pricingService.markDiscountRedeemed(user?.id, discountPercentage);
+    } catch (e) {
+      // non-blocking
+      console.warn('Failed to mark discount redeemed', e);
+    }
     onClose();
     navigation.navigate('OnboardingPaymentProcessing' as any, {
       selectedTier: tier,
@@ -91,24 +123,32 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
         <View style={styles.modalContainer}>
           {/* Close Button */}
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color={Colors.textDark} />
+            <Ionicons name="close" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
+
+          {/* Animated Gift Icon */}
+          <Animated.View style={[
+            styles.giftIconContainer,
+            { transform: [{ scale: giftScale }], opacity: giftOpacity }
+          ]}>
+            <Ionicons name="gift" size={26} color={Colors.hopeWhite} />
+          </Animated.View>
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Limited Time Offer</Text>
-            <Text style={styles.headerSubtitle}>Don't miss this exclusive discount!</Text>
+            <Text style={styles.headerTitle}>A Ministry Gift to {'\n'}Help You Begin</Text>
+            <Text style={styles.headerSubtitle}>We’re committed to serving people at every stage. A limited gifted rate is available to help you start strong.</Text>
           </View>
 
-          {/* Discount Badge */}
+          {/* Gifted Rate Badge */}
           <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{discountPercentage}% OFF</Text>
+            <Text style={styles.discountText}>{discountPercentage}% Gifted Rate</Text>
           </View>
 
           {/* Timer */}
           <View style={styles.timerContainer}>
             <Ionicons name="time" size={24} color={Colors.alertCoral} />
-            <Text style={styles.timerText}>Expires in {formatTime(timeLeft)}</Text>
+            <Text style={styles.timerText}>Reserved for {formatTime(timeLeft)}</Text>
           </View>
 
           {/* Pricing */}
@@ -122,6 +162,17 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
             </View>
             
             <Text style={styles.savingsText}>You save ${savings.toFixed(2)}!</Text>
+
+            {/* First-term only note */}
+            {isAnnual ? (
+              <Text style={[styles.footerText, styles.firstTermNote]}>
+                Gifted rate applies to the first year. {'\n'}Renews at the standard annual price.
+              </Text>
+            ) : (
+              <Text style={[styles.footerText, styles.firstTermNote]}>
+                Gifted rate applies to the first month. {'\n'}Renews at the standard monthly price.
+              </Text>
+            )}
           </View>
 
           {/* Features Highlight */}
@@ -137,19 +188,17 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
-              <Text style={styles.featureText}>Advanced spiritual insights</Text>
+              <Text style={styles.featureText}>Practical tools for steady growth</Text>
             </View>
           </View>
 
           {/* CTA Button */}
           <TouchableOpacity style={styles.ctaButton} onPress={handleGetOffer}>
-            <Text style={styles.ctaButtonText}>Get This Offer</Text>
+            <Text style={styles.ctaButtonText}>Accept Gifted Rate</Text>
           </TouchableOpacity>
 
           {/* Footer */}
-          <Text style={styles.footerText}>
-            This discount won't be available again. Secure your spiritual growth journey now.
-          </Text>
+          <Text style={styles.footerText}>Shown once per plan during onboarding.</Text>
         </View>
       </View>
     </Modal>
@@ -165,12 +214,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   modalContainer: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 20,
     padding: 24,
     width: '100%',
     maxWidth: 360,
     alignItems: 'center',
+  },
+  giftIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.alertCoral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   closeButton: {
     position: 'absolute',
@@ -180,7 +244,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -192,13 +256,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     marginBottom: 8,
+    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 16,
-    color: Colors.textDark,
-    opacity: 0.7,
+    color: Colors.hopeWhite,
+    opacity: 0.85,
     textAlign: 'center',
   },
   discountBadge: {
@@ -216,7 +281,7 @@ const styles = StyleSheet.create({
   timerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
@@ -235,13 +300,13 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     marginBottom: 4,
   },
   billingPeriod: {
     fontSize: 14,
-    color: Colors.textDark,
-    opacity: 0.7,
+    color: Colors.hopeWhite,
+    opacity: 0.85,
     marginBottom: 12,
   },
   priceRow: {
@@ -251,8 +316,8 @@ const styles = StyleSheet.create({
   },
   originalPrice: {
     fontSize: 18,
-    color: Colors.textDark,
-    opacity: 0.5,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
     textDecorationLine: 'line-through',
     marginRight: 12,
   },
@@ -273,7 +338,7 @@ const styles = StyleSheet.create({
   featuresTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -284,7 +349,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 14,
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     marginLeft: 8,
     flex: 1,
   },
@@ -304,10 +369,13 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: Colors.textDark,
-    opacity: 0.6,
+    color: Colors.hopeWhite,
+    opacity: 0.75,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  firstTermNote: {
+    marginTop: 10,
   },
 });
 

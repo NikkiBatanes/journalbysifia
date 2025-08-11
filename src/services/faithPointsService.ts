@@ -95,6 +95,13 @@ export class FaithPointsService {
   };
 
   /**
+   * Get points configured for a specific activity key
+   */
+  public getPointsForActivity(activity: keyof typeof this.POINTS_SYSTEM): number {
+    return this.POINTS_SYSTEM[activity];
+  }
+
+  /**
    * Get user's faith points profile
    */
   async getUserProfile(userId: string): Promise<FaithPointsProfile> {
@@ -138,7 +145,7 @@ export class FaithPointsService {
   async awardPoints(
     userId: string,
     activity: keyof typeof this.POINTS_SYSTEM,
-    _metadata?: any
+    _metadata?: { suppressNotification?: boolean } & any
   ): Promise<{ pointsAwarded: number; newLevel?: number; newBadges?: Badge[] }> {
 
     try {
@@ -230,12 +237,16 @@ export class FaithPointsService {
       // Award bonus points for level up
       if (leveledUp) {
         await this.recordTransaction(userId, 50, 'achievement', { type: 'level_up', level: newLevel });
-        // Show level up notification
-        notificationService.showPointsNotification(50, 'level_up', 'center');
+        // Show level up notification (unless suppressed)
+        if (!_metadata?.suppressNotification) {
+          notificationService.showPointsNotification(50, 'level_up', 'center');
+        }
       }
 
-      // Show points notification
-      notificationService.showPointsNotification(pointsAwarded, activity, 'center');
+      // Show points notification unless suppressed
+      if (!_metadata?.suppressNotification) {
+        notificationService.showPointsNotification(pointsAwarded, activity, 'center');
+      }
 
       // Emit events for UI updates with delay to ensure database is updated
       setTimeout(() => {

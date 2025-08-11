@@ -3,10 +3,11 @@
  * Global context for managing animated points notifications across the app
  */
 
-import React, { createContext, useContext, useState, useRef, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useRef, useCallback, ReactNode, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { v4 as uuidv4 } from 'uuid';
 import AnimatedPointsNotification from '../components/ui/AnimatedPointsNotification';
+import { notificationService } from '../services/notificationService';
 // Removed unused imports: useEffect, useCallback, Animated, Easing, StyleProp, ViewStyle, notificationService
 
 interface PointsNotification {
@@ -72,6 +73,22 @@ export const PointsNotificationProvider: React.FC<PointsNotificationProviderProp
       }
     };
   }, []);
+
+  // Wire up the global notification service so calls from services trigger this UI
+  useEffect(() => {
+    isMounted.current = true;
+    notificationService.setPointsNotificationCallback((points, activityType, position) => {
+      showPointsNotification(points, activityType, position);
+    });
+
+    return () => {
+      isMounted.current = false;
+      notificationService.clearPointsNotificationCallback();
+      // Clear any pending timeouts
+      Object.values(timeouts.current).forEach(clearTimeout);
+      timeouts.current = {};
+    };
+  }, [showPointsNotification]);
 
   const handleAnimationComplete = useCallback((id: string) => {
     if (!isMounted.current) {return;}

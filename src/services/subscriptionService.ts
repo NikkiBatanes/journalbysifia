@@ -12,6 +12,7 @@ import {
   UsageTracking,
   // SUBSCRIPTION_CONFIGS - removed as unused
 } from '../interfaces/subscription';
+import { getTrialOptOut } from './discountStorage';
 
 export interface CanGenerateResult {
   allowed: boolean;
@@ -53,7 +54,7 @@ export class SubscriptionService {
         // If there's an error fetching, return in-memory subscription
         return this.createInMemorySubscription(userId);
       }
-
+      
       if (data) {
         // Subscription exists, check if trial has expired
         if (data.status === 'trialing' && data.trial_end_date) {
@@ -64,6 +65,24 @@ export class SubscriptionService {
             data.status = 'expired';
           }
         }
+
+        // If user opted out of trial but already has a trial subscription, honor opt-out now
+        try {
+          const optedOut = await getTrialOptOut(userId);
+          const isTrialTier = (data as any)?.tier === 'free_trial';
+          const isTrialing = (data as any)?.status === 'trialing';
+          if (optedOut && (isTrialTier || isTrialing)) {
+            console.log('[SubscriptionService] User opted out but has trial. Expiring trial and returning Basic.');
+            try {
+              await this.expireTrial(userId);
+            } catch (e) {
+              console.warn('[SubscriptionService] Failed to expire trial in DB. Continuing with in-memory Basic.', e);
+            }
+            return this.createBasicFreemiumSubscription(userId);
+          }
+        } catch (e) {
+          console.warn('[SubscriptionService] Opt-out recheck failed while existing sub present.', e);
+        }
         // Add limits to subscription data
         const limits = this.getSubscriptionLimits(data.tier);
         return {
@@ -72,8 +91,20 @@ export class SubscriptionService {
         } as Subscription;
       }
 
-      // No subscription found, try to create one
-      console.log('[SubscriptionService] No subscription found, creating free trial');
+      // No subscription found
+      console.log('[SubscriptionService] No subscription found for user, checking trial opt-out');
+      try {
+        const optedOut = await getTrialOptOut(userId);
+        if (optedOut) {
+          console.log('[SubscriptionService] User has opted out of free trial. Returning Basic (freemium).');
+          return this.createBasicFreemiumSubscription(userId);
+        }
+      } catch (e) {
+        // If opt-out check fails, proceed with normal flow
+        console.log('[SubscriptionService] Opt-out check failed, falling back to trial creation');
+      }
+
+      console.log('[SubscriptionService] Creating free trial');
       return await this.createFreeTrial(userId);
     } catch (error) {
       console.error('[SubscriptionService] Error getting subscription:', error);
@@ -109,6 +140,44 @@ export class SubscriptionService {
       console.log('[SubscriptionService] Unexpected error, using in-memory subscription');
       return this.createInMemorySubscription(userId);
     }
+  }
+
+  /**
+   * Create an in-memory Basic (freemium) subscription respecting trial opt-out
+   */
+  private createBasicFreemiumSubscription(userId: string): Subscription {
+    const limits = this.getSubscriptionLimits('basic');
+    const now = new Date().toISOString();
+    return {
+      id: 'basic-' + userId,
+      userId,
+      tier: 'basic',
+      status: 'active',
+      priceId: 'basic-free',
+      startDate: now,
+      endDate: now,
+      limits,
+      currentUsage: {
+        id: 'usage-basic-' + userId,
+        user_id: userId,
+        subscription_id: 'basic-' + userId,
+        playbooks_generated: 0,
+        devotionals_generated: 0,
+        journal_entries: 0,
+        smart_journal_entries: 0,
+        openai_tokens_used: 0,
+        api_calls_made: 0,
+        intelligence_queries: 0,
+        template_uses: {},
+        export_count: 0,
+        last_reset_date: now.split('T')[0],
+        reset_period: 'monthly',
+        created_at: now,
+        updated_at: now,
+      },
+      createdAt: now,
+      updatedAt: now,
+    } as Subscription;
   }
 
   /**

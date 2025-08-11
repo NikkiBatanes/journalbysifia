@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,55 +7,136 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
-import pricingService from '../../services/pricingService';
+import pricingService, { LocationPricing } from '../../services/pricingService';
+import { subscriptionService } from '../../services/subscriptionService';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
+import { setTrialOptOut } from '../../services/discountStorage';
+import { supabase } from '../../services/supabaseClient';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
-  const [isAnnual, setIsAnnual] = useState(false);
+  const route = useRoute<any>();
+  // Read selection from params; default to annual
+  const initialTierId: string = route?.params?.selectedTierId || 'growth';
+  const initialBilling: 'annual' | 'monthly' = route?.params?.billing || 'annual';
+  const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
+  const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
   const [wantsTrial, setWantsTrial] = useState(true);
   const [showDynamicModal, setShowDynamicModal] = useState(false);
   const [dynamicDiscount, setDynamicDiscount] = useState<any>(null);
+  const [pricingTiers, setPricingTiers] = useState<any[]>([]);
+  const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      await setTrialOptOut(user?.id || null, true);
+      // Force-refresh subscription to honor opt-out immediately
+      if (user?.id) {
+        try {
+          await subscriptionService.getUserSubscription(user.id);
+        } catch (e) {
+          // non-blocking
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
     // User becomes basic (freemium) user
     navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+  };
+
+  const getTierDisplayName = (tierName: string) => {
+    switch (tierName) {
+      case 'starter': return 'Starter';
+      case 'growth': return 'Growth';
+      case 'transformation': return 'Transformation';
+      case 'family': return 'Family';
+      default: return 'Growth';
+    }
+  };
+
+  // Load pricing and currency for dynamic copy
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [tiers, currency] = await Promise.all([
+          pricingService.getLocationAdjustedPricing(),
+          pricingService.getCurrencyInfo(),
+        ]);
+        if (mounted) {
+          setPricingTiers(tiers || []);
+          setCurrencyInfo(currency || null);
+        }
+      } catch (e) {
+        console.error('Failed to load pricing for trial screen', e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'growth');
+  const getCurrentPrice = () => {
+    const t = getSelectedTier();
+    if (!t) return 0;
+    return isAnnual ? t.annualPrice : t.monthlyPrice;
+  };
+  const getMonthlyEquivalent = () => {
+    const t = getSelectedTier();
+    if (!t) return 0;
+    return (t.annualPrice / 12);
   };
 
   const handleStartTrial = () => {
     // Navigate to payment processing for trial
     navigation.navigate('OnboardingPaymentProcessing' as any, {
-      selectedTier: 'growth',
-      isAnnual: true,
+      selectedTier: selectedTierId,
+      isAnnual,
       isTrial: true,
       trialDays: 3,
       price: 0 // Free trial
     });
   };
 
+  // Helpers for local date computations
+  const addDays = (date: Date, days: number) => {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+  };
+  const formatMD = (date: Date) =>
+    date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+  const today = new Date();
+  const reminderDate = addDays(today, 1); // remind one day before end
+  const endDate = addDays(today, 2); // 3-day trial counts start day, so +2
+
   const timelineItems = [
     {
       id: 1,
       title: 'Today - Free trial starts',
-      description: 'Try Sifia free Growth for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.',
+      description: 'Try siFia GROWTH PLAN free for 3 days.\nNo pressure, no catch.\nExperience personalized guidance and see how it fits your story.',
       icon: 'checkmark-circle',
       iconColor: Colors.growthGreen,
       isCompleted: true,
     },
     {
       id: 2,
-      title: 'Aug 11 - Email Reminder',
-      description: 'We\'ll remind you before your trial ends, so you can decide with peace.',
+      title: `${formatMD(reminderDate)} - Email Reminder`,
+      description: 'We\'ll remind you before your trial ends, \nso you can decide with peace.',
       icon: 'mail',
       iconColor: Colors.alertCoral,
       isCompleted: false,
     },
     {
       id: 3,
-      title: 'Aug 12 - Continue Your Journey',
+      title: `${formatMD(endDate)} - Continue Your Journey`,
       description: 'Your trial ends unless cancelled.',
       icon: 'heart',
       iconColor: Colors.alertCoral,
@@ -72,12 +153,24 @@ const OnboardingTrialOfferScreen = () => {
           <View style={[styles.timelineIcon, { backgroundColor: item.iconColor }]}>
             <Ionicons name={item.icon} size={20} color={Colors.hopeWhite} />
           </View>
-          {!isLast && <View style={styles.timelineLine} />}
+          {!isLast && (
+            <View style={styles.timelineLineTrack}>
+              {index === 0 ? <View style={styles.timelineLineFill} /> : null}
+            </View>
+          )}
         </View>
         
         <View style={styles.timelineContent}>
           <Text style={styles.timelineTitle}>{item.title}</Text>
-          <Text style={styles.timelineDescription}>{item.description}</Text>
+          {item.id === 1 ? (
+            <Text style={styles.timelineDescription}>
+              Try <Text style={styles.strong}>siFia {`${getTierDisplayName(selectedTierId).toUpperCase()} PLAN`}</Text> free for 3 days{"\n"}
+              No pressure, no catch.{"\n"}
+              Experience personalized guidance and see how it fits your story.
+            </Text>
+          ) : (
+            <Text style={styles.timelineDescription}>{item.description}</Text>
+          )}
         </View>
       </View>
     );
@@ -87,73 +180,91 @@ const OnboardingTrialOfferScreen = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-          <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+        <TouchableOpacity style={styles.closeButton} onPress={handleClose} accessibilityRole="button" accessibilityLabel="Close">
+          <Ionicons name="close" size={22} color={Colors.hopeWhite} />
         </TouchableOpacity>
-        
-        <View style={styles.logoContainer}>
-          <Text style={styles.logo}>siFia</Text>
-          <Text style={styles.logoHeart}>❤</Text>
+        <View style={styles.headerTextBlock}>
+          <Text style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+            You've taken your first step!
+          </Text>
+          <Text style={styles.headerSubtitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+            Keep walking, one faithful step at a time.
+          </Text>
         </View>
       </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <View style={styles.scrollContainer}>
         {/* Main Content */}
-        <Text style={styles.mainTitle}>Take the Next Step.</Text>
-        <Text style={styles.subtitle}>No Pressure, Just Grace</Text>
+        <View style={styles.contentWrap}>
+          {/* Spacer below header */}
+          <View style={{ height: 4 }} />
 
-        {/* Intro Text */}
-        <View style={styles.introSection}>
-          <Text style={styles.introTitle}>Not sure yet?</Text>
-          <Text style={styles.introText}>
-            That's okay. Starting something new can feel uncertain.
+          {/* Intro Text */}
+          <View style={styles.introSection}>
+            <Text style={styles.introTitle}>Not sure yet?</Text>
+            <Text style={styles.introText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.92}>
+              That's okay. Starting something new can feel uncertain.
+            </Text>
+          </View>
+
+          {/* How Trial Works */}
+          <Text style={styles.sectionTitle}>So, how the trial works:</Text>
+
+          {/* Plan Toggle */}
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
+              onPress={() => setIsAnnual(false)}
+              activeOpacity={0.9}
+            >
+              <Text style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toggleButton, isAnnual && styles.activeToggle]}
+              onPress={() => setIsAnnual(true)}
+              activeOpacity={0.9}
+            >
+              <Text style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Timeline */}
+          <View style={styles.timelineContainer}>
+            {timelineItems.map((item, index) => renderTimelineItem(item, index))}
+          </View>
+
+          {/* Pricing Summary (dynamic) */}
+          <View style={styles.pricingSummary}>
+            {/* Rounded divider with floating centered tag */}
+            <View style={styles.dividerWrapper}>
+              <View style={styles.dividerLine} />
+              <View style={styles.planTagFloating}>
+                <Text style={styles.planTagText}>
+                  {`${getTierDisplayName(selectedTierId).toUpperCase()} PLAN`}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.pricingTitle}>
+              {`3 days free, then ${(currencyInfo?.symbol || '$')}${getCurrentPrice().toFixed(2)} per ${isAnnual ? 'year' : 'month'}`}
+            </Text>
+            {isAnnual ? (
+              <Text style={styles.pricingSubtitle}>
+                {`Only ${(currencyInfo?.symbol || '$')}${getMonthlyEquivalent().toFixed(2)}/month`}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+
+        {/* CTA and Footer */}
+        <View style={styles.footerBlock}>
+          <TouchableOpacity style={styles.startTrialButton} onPress={handleStartTrial} activeOpacity={0.9}>
+            <Text style={styles.startTrialButtonText}>Start your free 3‑day trial</Text>
+          </TouchableOpacity>
+          <Text style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+            Try 3 days free. No pressure. Cancel anytime
           </Text>
         </View>
-
-        {/* How Trial Works */}
-        <Text style={styles.sectionTitle}>So, how the trial works:</Text>
-
-        {/* Toggle Button */}
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity
-            style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
-            onPress={() => setIsAnnual(false)}
-          >
-            <Text style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>
-              Monthly
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleButton, isAnnual && styles.activeToggle]}
-            onPress={() => setIsAnnual(true)}
-          >
-            <Text style={[styles.toggleText, isAnnual && styles.activeToggleText]}>
-              Annual
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Timeline */}
-        <View style={styles.timelineContainer}>
-          {timelineItems.map((item, index) => renderTimelineItem(item, index))}
-        </View>
-
-        {/* Pricing Summary */}
-        <View style={styles.pricingSummary}>
-          <Text style={styles.pricingTitle}>3 days free, then $129.99 per year</Text>
-          <Text style={styles.pricingSubtitle}>Only $10.83/month</Text>
-        </View>
-
-        {/* Start Trial Button */}
-        <TouchableOpacity style={styles.startTrialButton} onPress={handleStartTrial}>
-          <Text style={styles.startTrialButtonText}>Start your free 3-day trial</Text>
-        </TouchableOpacity>
-
-        {/* Footer Text */}
-        <Text style={styles.footerText}>
-          Try 3 days free. No pressure. Cancel anytime
-        </Text>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -164,42 +275,56 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    position: 'relative',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: 8,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  headerTextBlock: {
+    alignItems: 'flex-start',
+    width: '100%',
+    paddingRight: 56, // leave room for close button
+    paddingLeft: 0,
+    maxWidth: '100%',
+    gap: 2,
+    alignSelf: 'stretch',
   },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    justifyContent: 'center',
-  },
-  logo: {
-    fontSize: 24,
+  headerMainTitle: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
+    textAlign: 'left',
+    lineHeight: 26,
+    letterSpacing: 0.2,
+    marginBottom: 2,
   },
-  logoHeart: {
+  headerSubtitle: {
     fontSize: 16,
-    color: Colors.alertCoral,
-    marginLeft: 2,
+    color: Colors.hopeWhite,
+    opacity: 0.88,
+    marginTop: 0,
+    lineHeight: 22,
+    letterSpacing: 0.15,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'absolute',
+    right: 16,
+    top: 0,
+    zIndex: 2,
   },
   scrollContainer: {
     flex: 1,
     paddingHorizontal: 24,
+    justifyContent: 'space-between',
+    paddingBottom: 56,
   },
   mainTitle: {
     fontSize: 24,
@@ -217,38 +342,41 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   introSection: {
-    marginBottom: 32,
+    marginBottom: 20,
   },
   introTitle: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    marginBottom: 8,
+    marginBottom: 6,
     fontWeight: '600',
   },
   introText: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.hopeWhite,
-    lineHeight: 24,
+    lineHeight: 22,
     opacity: 0.9,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 17,
     color: Colors.hopeWhite,
     fontWeight: '600',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    padding: 4,
-    marginBottom: 32,
+    backgroundColor: 'rgba(20, 52, 96, 0.65)', // deeper pill like photo
+    borderRadius: 22,
+    padding: 6,
+    marginBottom: 16,
     alignSelf: 'center',
+    borderWidth: 0,
   },
   toggleButton: {
     paddingVertical: 8,
-    paddingHorizontal: 24,
-    borderRadius: 6,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    minWidth: 104,
+    alignItems: 'center',
   },
   activeToggle: {
     backgroundColor: Colors.growthGreen,
@@ -256,30 +384,31 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   activeToggleText: {
     color: Colors.hopeWhite,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   timelineContainer: {
-    marginBottom: 32,
+    marginBottom: 20,
   },
   timelineItem: {
     flexDirection: 'row',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   timelineIconContainer: {
     alignItems: 'center',
     marginRight: 16,
   },
   timelineIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   timelineLine: {
     width: 2,
@@ -287,50 +416,128 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     minHeight: 40,
   },
+  timelineLineTrack: {
+    width: 6,
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 999,
+    overflow: 'hidden',
+    minHeight: 40,
+  },
+  timelineLineFill: {
+    flex: 1,
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 999,
+  },
   timelineContent: {
     flex: 1,
-    paddingTop: 8,
+    paddingTop: 4,
   },
   timelineTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: Colors.hopeWhite,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   timelineDescription: {
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.hopeWhite,
-    lineHeight: 20,
+    lineHeight: 18,
     opacity: 0.9,
+  },
+  strong: {
+    fontWeight: '700',
   },
   pricingSummary: {
     alignItems: 'center',
-    marginBottom: 32,
-    paddingVertical: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+    marginBottom: 20,
+    paddingVertical: 16,
+  },
+  dividerWrapper: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  dividerLine: {
+    width: '100%',
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 999,
+  },
+  planTagFloating: {
+    position: 'absolute',
+    top: -12,
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#35537F',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   pricingTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   pricingSubtitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     textAlign: 'center',
+  },
+  planTag: {
+    alignSelf: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    marginBottom: 8,
+  },
+  planTagText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'none',
+  },
+  contentWrap: {
+    flexShrink: 1,
+    paddingBottom: 8,
   },
   startTrialButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    paddingVertical: 14,
+    borderRadius: 10,
+    marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  footerBlock: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingTop: 4,
+    paddingBottom: 6,
+    paddingHorizontal: 24,
+    backgroundColor: 'transparent',
   },
   startTrialButtonText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -340,7 +547,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     opacity: 0.8,
-    marginBottom: 40,
+    marginBottom: 0,
   },
 });
 

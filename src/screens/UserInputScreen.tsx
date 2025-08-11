@@ -22,8 +22,6 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
-import { debugAuthState, getCurrentUserId } from '../utils/authCheck';
 import { Colors } from '../theme/colors';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
@@ -52,7 +50,7 @@ const UserInputScreen: React.FC = () => {
     };
   }, []);
   const [userInput, setUserInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  // Removed isLoading state since generation happens in GeneratingPlaybookScreen
   const [placeholderText, setPlaceholderText] = useState('');
   const placeholderIndex = useRef(0);
   // Animate placeholder text
@@ -121,99 +119,11 @@ const UserInputScreen: React.FC = () => {
       return;
     }
 
-    // Navigate to GeneratingPlaybookScreen first
+    // Navigate directly to GeneratingPlaybookScreen - it will handle the generation
     navigation.navigate('GeneratingPlaybook', {
       userInput,
       userName: userName || 'Friend',
     });
-
-    setIsLoading(true);
-    try {
-      // Generate playbook content via AI with integrated auth handling
-      const aiResponse = await generatePlaybook(userInput, userName, {
-        showUserFeedback: true,
-        onAuthRequired: () => {
-          console.log('🔐 Authentication required for playbook generation');
-          // The auth error handler will manage the user flow
-        },
-      });
-
-      if (!aiResponse) {
-        throw new Error('Playbook generation failed. Please try again.');
-      }
-      console.log('[UserInputScreen] AI Response received:', aiResponse);
-      console.log('[UserInputScreen] Raw AI Response JSON:', JSON.stringify(aiResponse, null, 2));
-      // Save to database using normalized API
-      let savedPlaybook;
-
-      console.log('[UserInputScreen] User ID from context:', userId);
-      console.log('[UserInputScreen] User ID type:', typeof userId);
-      console.log('[UserInputScreen] User authenticated:', !!userId);
-
-      // Debug authentication state
-      await debugAuthState();
-
-      // Try to get user ID from multiple sources
-      let actualUserId = userId;
-      if (!actualUserId) {
-        console.log('[UserInputScreen] Trying to get user ID from auth sources...');
-        actualUserId = await getCurrentUserId() || undefined;
-      }
-
-      if (!actualUserId) {
-        console.error('[UserInputScreen] No user ID available from any source');
-        throw new Error('User not authenticated. Please log in and try again.');
-      }
-
-      console.log('[UserInputScreen] Final user ID to use:', actualUserId);
-
-      if (userId) {
-        console.log('[UserInputScreen] Saving playbook to database...');
-        console.log('[UserInputScreen] AI Response structure:', {
-          title: aiResponse.title,
-          actionStepsCount: aiResponse.actionSteps?.length || 0,
-          actionSteps: aiResponse.actionSteps,
-          affirmationsCount: aiResponse.affirmations?.length || 0,
-          affirmations: aiResponse.affirmations,
-          truthInLove: aiResponse.truthInLove,
-          bibleVerse: aiResponse.bibleVerse,
-          directChallenge: aiResponse.directChallenge,
-        });
-
-        // Use the AI response that already contains smart journaling data
-        savedPlaybook = aiResponse;
-        console.log('[UserInputScreen] Using AI response with smart journaling data:', savedPlaybook.id);
-
-        // Save the generated playbook to the database
-        const saveResult = await savePlaybook(savedPlaybook, actualUserId);
-        if (!saveResult.success) {
-          throw new Error(saveResult.error || 'Failed to save playbook to database');
-        }
-        console.log('[UserInputScreen] Playbook saved to database successfully:', savedPlaybook.id);
-      } else {
-        console.warn('[UserInputScreen] No user ID, cannot save to database');
-        savedPlaybook = aiResponse;
-      }
-
-      // Navigate to PlaybookDetail with the generated playbook
-      navigation.reset({
-        index: 0,
-        routes: [
-          { name: 'MainTabs', state: {
-            routes: [
-              { name: 'Home' },
-              { name: 'PlaybookList' },
-            ],
-            index: 1, // Make sure PlaybookList is active
-          }},
-          { name: 'PlaybookDetail', params: { playbook: savedPlaybook || aiResponse } },
-        ],
-      });
-  } catch (_error) {
-    Alert.alert('Error', 'Failed to generate playbook. Please try again.');
-  } finally {
-    setIsLoading(false);
-  }
 };
 
   const handleInputPress = () => {
@@ -269,17 +179,13 @@ const UserInputScreen: React.FC = () => {
                     (!userInput || !userInput.trim()) && styles.disabledButton,
                   ]}
                   onPress={handleGeneratePlaybook}
-                  disabled={isLoading || !userInput || !userInput.trim()}
+                  disabled={!userInput || !userInput.trim()}
                 >
-                  {isLoading ? (
-                    <ActivityIndicator color={Colors.hopeWhite} />
-                  ) : (
-                    <Ionicons
-                      name="arrow-up-circle"
-                      size={34}
-                      color={(!userInput || !userInput.trim()) ? 'rgba(255, 255, 255, 0.5)' : Colors.hopeWhite}
-                    />
-                  )}
+                  <Ionicons
+                    name="arrow-up-circle"
+                    size={34}
+                    color={userInput.trim() ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
+                  />
                 </TouchableOpacity>
               </View>
             </View>

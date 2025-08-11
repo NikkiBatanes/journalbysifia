@@ -225,7 +225,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           onPress={() => navigation.navigate('UserProfile')}
         >
           <Text style={styles.subscriptionText}>
-            {subscription?.tier === 'free_trial' ? 'TRIAL' : 'PREMIUM'}
+            {(() => {
+              const tier = subscription?.tier || 'basic';
+              if (tier === 'basic') return 'BASIC';
+              if (tier === 'free_trial') return 'TRIAL';
+              return 'PREMIUM';
+            })()}
           </Text>
         </TouchableOpacity>
 

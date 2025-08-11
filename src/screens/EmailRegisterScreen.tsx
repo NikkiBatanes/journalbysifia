@@ -14,6 +14,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
@@ -55,10 +56,20 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
       console.log('✅ Email registration successful!');
       // Navigate to personalization screen after successful registration
       const displayName = firstName || email.split('@')[0] || '';
-      navigation.navigate('OnboardingPersonalization' as any, {
-        name: displayName,
-        registrationMethod: 'email', // Flag to indicate email registration
-      });
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'OnboardingPersonalization' as any,
+              params: {
+                name: displayName,
+                registrationMethod: 'email',
+              },
+            },
+          ],
+        })
+      );
     }
   };
 

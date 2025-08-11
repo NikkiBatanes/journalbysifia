@@ -15,7 +15,10 @@ import {
 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { subscriptionService } from '../../services/subscriptionService';
+import { OnboardingService } from '../../services/onboardingService';
 
 import { Colors } from '../../theme/colors';
 
@@ -102,26 +105,86 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       console.error('[SplashScreen] Error starting dot animations:', error);
     }
 
-    // Simplified navigation logic - always go to TransformJourney for now
-    const navigateToCorrectScreen = () => {
-      console.log('[SplashScreen] Starting simplified navigation logic');
-      console.log('[SplashScreen] User state:', user ? 'authenticated' : 'not authenticated');
-      console.log('[SplashScreen] Navigating to TransformJourney');
+    // Conditional navigation: decide based on auth + subscription status
+    const navigateToCorrectScreen = async () => {
+      console.log('[SplashScreen] Starting conditional navigation logic');
 
-      try {
-        navigation.navigate('TransformJourney' as any);
-        console.log('[SplashScreen] Successfully navigated to TransformJourney');
-      } catch (navError) {
-        console.error('[SplashScreen] Error navigating to TransformJourney:', navError);
-        // Try reset navigation as fallback
+      // Not authenticated → pre-onboarding
+      if (!user) {
+        const target = 'TransformJourney';
+        console.log('[SplashScreen] No user →', target);
         try {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'TransformJourney' as any }],
-          });
-          console.log('[SplashScreen] Successfully reset navigation to TransformJourney');
-        } catch (resetError) {
-          console.error('[SplashScreen] Error with reset navigation:', resetError);
+          navigation.navigate(target as any);
+        } catch (e) {
+          navigation.reset({ index: 0, routes: [{ name: target as any }] });
+        }
+        return;
+      }
+
+      // Authenticated → prioritize onboarding completion check first
+      try {
+        const onboardingService = new OnboardingService();
+        const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
+
+        // Look at local onboarding progress to avoid looping users back to personalization
+        let personalizationCompletedLocally = false;
+        try {
+          const stored = await AsyncStorage.getItem(`onboarding_progress_${user.id}`);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            const steps: string[] = parsed?.completedSteps || [];
+            personalizationCompletedLocally = steps.includes('personalization_completed');
+          }
+        } catch {}
+
+        if (!hasCompleted && !personalizationCompletedLocally) {
+          console.log('[SplashScreen] Onboarding not completed → initializing (if needed) and navigating to OnboardingPersonalization');
+          try {
+            // Initialize onboarding session; ignore errors to avoid blocking
+            await onboardingService.initializeOnboarding(user.id);
+          } catch (initErr) {
+            console.warn('[SplashScreen] Onboarding initialization failed or not required:', initErr);
+          }
+
+          const target = 'OnboardingPersonalization';
+          try {
+            navigation.navigate(target as any);
+          } catch (navErr) {
+            navigation.reset({ index: 0, routes: [{ name: target as any }] });
+          }
+          return;
+        }
+      } catch (obErr) {
+        console.warn('[SplashScreen] Onboarding check failed, proceeding to subscription gate:', obErr);
+      }
+
+      // Onboarding completed → check subscription to decide app access
+      try {
+        const sub = await subscriptionService.getUserSubscription(user.id);
+        const status = (sub as any)?.status || 'unknown';
+        const tier = (sub as any)?.tier || 'unknown';
+        const trialEnd = (sub as any)?.trial_end_date ? new Date((sub as any).trial_end_date) : null;
+        const trialActive = status === 'trialing' && trialEnd ? trialEnd > new Date() : false;
+
+        // Access granted if active/past_due or trial active; otherwise fallback to MainTabs with restricted features
+        const allowMain = status === 'active' || status === 'past_due' || trialActive || (tier && tier !== 'free_trial');
+        const target = allowMain ? 'MainTabs' : 'OnboardingPersonalization';
+        console.log('[SplashScreen] Subscription gate →', { status, tier, trialActive, target });
+
+        try {
+          navigation.navigate(target as any);
+          console.log(`[SplashScreen] Successfully navigated to ${target}`);
+        } catch (navError) {
+          console.error('[SplashScreen] Error navigating:', navError);
+          navigation.reset({ index: 0, routes: [{ name: target as any }] });
+        }
+      } catch (subErr) {
+        console.warn('[SplashScreen] Subscription check failed, defaulting to MainTabs:', subErr);
+        const target = 'MainTabs';
+        try {
+          navigation.navigate(target as any);
+        } catch {
+          navigation.reset({ index: 0, routes: [{ name: target as any }] });
         }
       }
     };
@@ -130,6 +193,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     console.log('[SplashScreen] Setting up navigation timeout for 1.5 seconds');
     const navigationTimeout = setTimeout(() => {
       console.log('[SplashScreen] Navigation timeout triggered after 1.5 seconds');
+      // Execute async navigation logic
       navigateToCorrectScreen();
     }, 1500); // Reduced to 1.5 seconds for faster navigation
 

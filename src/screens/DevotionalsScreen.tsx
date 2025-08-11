@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {
   View,
   Text,
@@ -8,13 +9,14 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
+import { usePlaybooksData } from '../services/hooks/usePlaybookData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 
 import { Devotional } from '../interfaces/devotional';
@@ -31,12 +33,16 @@ const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
   const { user } = useAuth();
   const userId = user?.id;
+  const insets = useSafeAreaInsets();
   const {
     devotionals,
     deleteDevotional,
     fetchPlaybookById,
     isLoading,
   } = useDevotionalOperations(userId || '');
+
+  // Fetch user's playbooks to suggest creating devotionals
+  const { data: playbooks = [], isLoading: isLoadingPlaybooks } = usePlaybooksData(userId || '');
 
   const handleDevotionalPress = (devotional: Devotional) => {
     // Log title extraction for debugging
@@ -215,27 +221,140 @@ const DevotionalsScreen = () => {
       );
     }
 
+    const hasPlaybooks = !isLoadingPlaybooks && (playbooks?.length ?? 0) > 0;
+
     return (
       <View style={styles.emptyStateContainer}>
-        <View style={styles.emptyIconContainer}>
-          <Ionicons name="book-outline" size={64} color={Colors.anchorBlue} />
-          <Ionicons name="heart-outline" size={32} color={Colors.faithGold} style={styles.overlayIcon} />
+        {/* Hero (centered card) */}
+        <View style={styles.emptyHeroContainer}>
+          <View style={styles.heroCard}>
+            <MaterialIcons
+              name="filter-center-focus"
+              size={32}
+              color="rgba(255,255,255,0.8)"
+              style={styles.heroIcon}
+            />
+            <Text style={styles.heroOverline}>DEVOTIONALS</Text>
+            <Text style={styles.heroTitle}>Start with Scripture</Text>
+            <Text style={styles.heroSubtitle}>
+              {hasPlaybooks
+                ? "You already have playbooks—turn one into a daily devotional."
+                : "Create a playbook for what you're facing, then build a daily devotional from it."}
+            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Playbooks' as never)}
+              activeOpacity={0.85}
+              style={styles.heroOutlineButton}
+            >
+              <Ionicons name="pencil" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+              <Text style={styles.heroOutlineButtonText}>{hasPlaybooks ? 'Create Devotional' : 'Create Playbook'}</Text>
+            </TouchableOpacity>
+
+            {/* Guided steps */}
+            <View style={styles.stepsContainer}>
+              {hasPlaybooks ? (
+                <>
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
+                    <Text style={styles.stepText}>Pick a Playbook</Text>
+                  </View>
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
+                    <Text style={styles.stepText}>Create your Devotional</Text>
+                  </View>
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
+                    <Text style={styles.stepText}>Walk with Scripture daily</Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
+                    <Text style={styles.stepText}>Create a Playbook</Text>
+                  </View>
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
+                    <Text style={styles.stepText}>Add Scriptures and prompts</Text>
+                  </View>
+                  <View style={styles.stepItem}>
+                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
+                    <Text style={styles.stepText}>Start your Daily Devotional</Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
         </View>
-        <Text style={styles.emptyStateTitle}>No Devotionals Yet</Text>
-        <Text style={styles.emptyStateText}>
-          Create a devotional from a playbook to start your spiritual journey.
-        </Text>
+
+        {/* Suggestions carousel from Playbooks (without devotionals) */}
+        {!isLoadingPlaybooks && playbooks.length > 0 && (
+          (() => {
+            const existingDevotionalPBIds = new Set((devotionals || []).filter(d => d.playbookId).map(d => d.playbookId));
+            const suggested = playbooks.filter(pb => !existingDevotionalPBIds.has(pb.id)).slice(0, 10);
+            if (suggested.length === 0) { return null; }
+
+            return (
+              <View style={styles.carouselSection}>
+                <Text style={styles.carouselTitle}>Suggested from your Playbooks</Text>
+                <FlatList
+                  data={suggested}
+                  keyExtractor={(item) => item.id}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.carouselList}
+                  contentContainerStyle={styles.carouselContent}
+                  snapToInterval={272}
+                  decelerationRate="fast"
+                  snapToAlignment="start"
+                  renderItem={({ item }) => (
+                    <View style={styles.card}>
+                      <View style={styles.cardIconCircle}>
+                        <Ionicons name="book" size={28} color={Colors.hopeWhite} />
+                      </View>
+                      <Text style={styles.cardTitle} numberOfLines={2}>{extractCleanTitle(item.title, 'Playbook')}</Text>
+                      {item.truthInLove?.summary ? (
+                        <Text style={styles.cardSubtitle} numberOfLines={3}>{item.truthInLove.summary}</Text>
+                      ) : null}
+                      <TouchableOpacity
+                        style={styles.cardCTA}
+                        activeOpacity={0.9}
+                        onPress={() => handlePlaybookPress(item.id)}
+                      >
+                        <Text style={styles.cardCTAText}>Create Devotional</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              </View>
+            );
+          })()
+        )}
+
+        {/* Secondary link */}
+        <View style={styles.linkContainer}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Playbooks' as never)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.emptySecondaryLink}>Browse Playbooks</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
 
+  const isEmpty = !isLoading && (devotionals?.length ?? 0) === 0;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={styles.container} edges={['left','right','bottom']}>
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Devotionals</Text>
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <View style={styles.pageInner}>
+          <Text style={styles.headerTitle}>My Devotionals</Text>
+        </View>
       </View>
 
       <FlatList
@@ -248,7 +367,7 @@ const DevotionalsScreen = () => {
         })}
         renderItem={renderDevotionalItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={isEmpty ? styles.emptyListContent : [styles.listContent, styles.pageInner]}
         ListEmptyComponent={renderEmptyState}
       />
     </SafeAreaView>
@@ -298,19 +417,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.anchorBlue,
   },
+  pageInner: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
   listContent: {
     padding: 16,
+    paddingBottom: 2,
+  },
+  emptyListContent: {
+    paddingHorizontal: 0,
+    paddingTop: 16,
     paddingBottom: 2,
   },
   devotionalCard: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
     position: 'relative',
   },
   cardContent: {
@@ -482,35 +606,293 @@ const styles = StyleSheet.create({
   emptyStateContainer: {
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
+    alignItems: 'stretch',
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 0,
     minHeight: 300,
+  },
+  emptyHeroContainer: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyHero: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  heroCard: {
+    width: '90%',
+    maxWidth: 720,
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 20,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  heroIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  heroOverline: {
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.9)',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+  },
+  heroTitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    lineHeight: 24,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 20,
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  heroOutlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    minWidth: 120,
+  },
+  heroButtonIcon: {
+    marginRight: 8,
+  },
+  heroOutlineButtonText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    letterSpacing: 0.5,
+  },
+  heroBenefitsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 12,
+  },
+  heroBenefit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  heroBenefitText: {
+    marginLeft: 6,
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    opacity: 0.95,
+  },
+  stepsContainer: {
+    width: '100%',
+    marginTop: 12,
+    paddingHorizontal: 8,
+    gap: 6,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  stepBadgeText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontFamily: Fonts.bold,
+  },
+  stepText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: Fonts.medium,
+  },
+  emptyAura: {
+    position: 'absolute',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(20, 52, 96, 0.08)',
+    top: 80,
   },
   emptyIconContainer: {
     position: 'relative',
-    width: 80,
-    height: 80,
+    width: 96,
+    height: 96,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
-  overlayIcon: {
+  iconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.anchorBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallBadge: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
+    bottom: -2,
+    right: -2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.faithGold,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.hopeWhite,
   },
   emptyStateTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: Colors.textDark,
-    marginBottom: 8,
+    marginBottom: 10,
     textAlign: 'center',
   },
   emptyStateText: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.textGray,
     textAlign: 'center',
     lineHeight: 22,
+    marginBottom: 16,
+  },
+  emptyBadgesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  emptyBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginHorizontal: 4,
+  },
+  emptyBadgeText: {
+    marginLeft: 6,
+    fontSize: 12,
+    color: Colors.textDark,
+    fontWeight: '600',
+  },
+  emptyCTAButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    marginBottom: 8,
+  },
+  emptyCTAButtonText: {
+    color: Colors.hopeWhite,
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  emptySecondaryLink: {
+    color: Colors.anchorBlue,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  linkContainer: {
+    width: '100%',
+    paddingHorizontal: 16, // match gutters
+  },
+  carouselSection: {
+    width: '100%',
+    marginTop: 8,
+    marginBottom: 12,
+    paddingHorizontal: 16, // gutters for section title and spacing
+  },
+  carouselTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textDark,
+    marginBottom: 8,
+    paddingLeft: 0,
+  },
+  // FlatList should scroll edge-to-edge while cards have gutters
+  carouselList: {
+    marginHorizontal: -16, // bleed the scrolling area to screen edges
+  },
+  carouselContent: {
+    paddingHorizontal: 16, // gutters for first/last cards
+  },
+  card: {
+    width: 256,
+    marginRight: 16,
+    backgroundColor: 'white',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(0,0,0,0.06)',
+  },
+  cardIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.anchorBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textDark,
+    marginBottom: 6,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: Colors.textGray,
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  cardCTA: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+  },
+  cardCTAText: {
+    color: Colors.hopeWhite,
+    fontWeight: '700',
+    fontSize: 14,
   },
 });
 

@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.15,
     shadowRadius: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 24,
     justifyContent: 'space-around',
     alignItems: 'center',
     paddingBottom: Platform.OS === 'ios' ? 20 : 15,  // Increased padding at the bottom

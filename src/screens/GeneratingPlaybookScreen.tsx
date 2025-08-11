@@ -24,8 +24,16 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const hasGenerated = useRef(false);
   const isMounted = useRef(true);
 
-  // Pulse animation values
+  // Pulse animation values (legacy simple pulse for lines/logo)
   const pulseValue = useRef(new Animated.Value(0.8)).current;
+
+  // Concentric Aura breathing values (three rings)
+  const aura1Scale = useRef(new Animated.Value(0.9)).current;
+  const aura2Scale = useRef(new Animated.Value(0.9)).current;
+  const aura3Scale = useRef(new Animated.Value(0.9)).current;
+  const aura1Opacity = useRef(new Animated.Value(0.35)).current;
+  const aura2Opacity = useRef(new Animated.Value(0.28)).current;
+  const aura3Opacity = useRef(new Animated.Value(0.20)).current;
 
   // Fade in and pulse animation when component mounts
   useEffect(() => {
@@ -111,7 +119,11 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
           // Award faith points for playbook generation
           try {
-            const pointsResult = await faithPointsService.awardPoints(user.id, 'playbook_generated');
+            const pointsResult = await faithPointsService.awardPoints(
+              user.id,
+              'playbook_generated',
+              { suppressNotification: !!isFromOnboarding }
+            );
             console.log('[GeneratingPlaybook] Faith points awarded:', pointsResult);
           } catch (pointsError) {
             console.error('[GeneratingPlaybook] Failed to award faith points:', pointsError);
@@ -128,14 +140,6 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           }
         }
 
-        // Show success notification
-        Alert.alert(
-          '🎉 Success!',
-          'Your personalized playbook has been created successfully!',
-          [{ text: 'Continue', style: 'default' }],
-          { cancelable: false }
-        );
-
         // Navigate based on whether this is from onboarding or main flow
         if (isFromOnboarding) {
           // For onboarding, go to actual playbook first
@@ -144,7 +148,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             isFromOnboarding: true,
           });
         } else {
-          // For main flow, go to playbook detail
+          // For main flow, go directly to playbook detail
           navigation.reset({
             index: 0,
             routes: [
@@ -193,41 +197,86 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const progressAnimation = useRef(new Animated.Value(0)).current;
 
   // Breathing animation text
-  const [breathingText, setBreathingText] = useState('Breathe in peace...');
-  const [_breathingPhase, setBreathingPhase] = useState<'in' | 'out'>('in');
-  const breathingAnim = useRef(new Animated.Value(0.8)).current;
+  const [breathingText, setBreathingText] = useState('Breathe in...');
+  const [_breathingPhase, setBreathingPhase] = useState<'in' | 'hold' | 'out'>('in');
+  const breathingAnim = useRef(new Animated.Value(0.9)).current;
 
-  // Breathing animation cycle
+  // Breathing animation cycle: Inhale (4s) → Hold (1s) → Exhale (4s)
   useEffect(() => {
-    const breathingCycle = () => {
-      // Breathe in phase
-      Animated.timing(breathingAnim, {
-        toValue: 1.1,
-        duration: 3000,
-        useNativeDriver: true,
-      }).start((finished) => {
-        if (!isMounted.current || !finished) {return;}
-        setBreathingText('Breathe out worry...');
-        setBreathingPhase('out');
+    let stopped = false;
 
-        // Breathe out phase
-        Animated.timing(breathingAnim, {
-          toValue: 0.8,
-          duration: 3000,
-          useNativeDriver: true,
-        }).start((animationFinished) => {
-          if (!isMounted.current || !animationFinished) {return;}
-          setBreathingText('Breathe in peace...');
-          setBreathingPhase('in');
+    const animateRing = (
+      scaleVal: Animated.Value,
+      opacityVal: Animated.Value,
+      startDelay: number
+    ) => {
+      const cycle = () => {
+        if (stopped) {return;}
+        // Inhale
+        Animated.sequence([
+          Animated.delay(startDelay),
+          Animated.parallel([
+            Animated.timing(scaleVal, { toValue: 1.1, duration: 4000, useNativeDriver: true }),
+            Animated.timing(opacityVal, { toValue: 0.55, duration: 4000, useNativeDriver: true }),
+          ]),
+          // Hold
+          Animated.parallel([
+            Animated.delay(1000),
+          ]),
+          // Exhale
+          Animated.parallel([
+            Animated.timing(scaleVal, { toValue: 0.85, duration: 4000, useNativeDriver: true }),
+            Animated.timing(opacityVal, { toValue: 0.22, duration: 4000, useNativeDriver: true }),
+          ]),
+        ]).start(({ finished }) => {
+          if (!finished || stopped) {return;}
+          cycle();
         });
-      });
+      };
+      cycle();
     };
 
-    const interval = setInterval(breathingCycle, 6000);
-    breathingCycle(); // Start immediately
+    // Drive the central logo scale with the main breathingAnim
+    const animateCore = () => {
+      const coreCycle = () => {
+        if (stopped) {return;}
+        // Inhale
+        Animated.timing(breathingAnim, { toValue: 1.12, duration: 4000, useNativeDriver: true }).start(({ finished }) => {
+          if (!finished || stopped) {return;}
+          setBreathingPhase('hold');
+          setBreathingText('Hold...');
+          // Hold
+          Animated.delay(1000).start(() => {
+            if (stopped) {return;}
+            setBreathingPhase('out');
+            setBreathingText('Breathe out...');
+            // Exhale
+            Animated.timing(breathingAnim, { toValue: 0.88, duration: 4000, useNativeDriver: true }).start(({ finished: f2 }) => {
+              if (!f2 || stopped) {return;}
+              setBreathingPhase('in');
+              setBreathingText('Breathe in...');
+              coreCycle();
+            });
+          });
+        });
+      };
+      coreCycle();
+    };
 
-    return () => clearInterval(interval);
-  }, [breathingAnim]);
+    // Start rings with slight phase offsets
+    animateRing(aura1Scale, aura1Opacity, 0);
+    animateRing(aura2Scale, aura2Opacity, 250);
+    animateRing(aura3Scale, aura3Opacity, 500);
+    animateCore();
+
+    return () => {
+      stopped = true;
+      // Stop animations by stopping any running timing (best-effort)
+      aura1Scale.stopAnimation(); aura2Scale.stopAnimation(); aura3Scale.stopAnimation();
+      aura1Opacity.stopAnimation(); aura2Opacity.stopAnimation(); aura3Opacity.stopAnimation();
+      breathingAnim.stopAnimation();
+    };
+  }, [breathingAnim, aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity]);
 
   // Progress step animation
   useEffect(() => {
@@ -334,23 +383,45 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
       {/* Centered Content Container */}
       <View style={styles.centeredContent}>
-        {/* Logo */}
-        <Animated.View
-          style={[
-            styles.logoContainer,
-            {
-              transform: [
-                { scale: breathingAnim },
-              ],
-            },
-          ]}
-        >
-          <Image
-            source={require('../../assets/images/siFiaAppIcon.png')}
-            style={styles.logo}
-            resizeMode="contain"
+        {/* Breathing Aura + Logo */}
+        <View style={styles.auraWrapper}>
+          {/* Concentric Aura Rings (behind logo) */}
+          <Animated.View
+            style={[
+              styles.auraRing,
+              styles.auraRing1,
+              { transform: [{ scale: aura1Scale }], opacity: aura1Opacity },
+            ]}
           />
-        </Animated.View>
+          <Animated.View
+            style={[
+              styles.auraRing,
+              styles.auraRing2,
+              { transform: [{ scale: aura2Scale }], opacity: aura2Opacity },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.auraRing,
+              styles.auraRing3,
+              { transform: [{ scale: aura3Scale }], opacity: aura3Opacity },
+            ]}
+          />
+
+          {/* Logo on top */}
+          <Animated.View
+            style={[
+              styles.logoContainer,
+              { transform: [{ scale: breathingAnim }] },
+            ]}
+          >
+            <Image
+              source={require('../../assets/images/siFiaAppIcon.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </Animated.View>
+        </View>
 
         {/* Title */}
         <Text style={styles.title}>Creating Your Playbook</Text>
@@ -415,6 +486,39 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 16,
+  },
+  // Concentric aura container and rings
+  auraWrapper: {
+    width: 260,
+    height: 260,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  auraRing: {
+    position: 'absolute',
+    borderRadius: 9999,
+    backgroundColor: '#FFFFFF',
+    // Soft glow for iOS; Android relies on opacity for softness
+    shadowColor: '#FFFFFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+  },
+  auraRing1: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+  },
+  auraRing2: {
+    width: 270,
+    height: 270,
+    borderRadius: 135,
+  },
+  auraRing3: {
+    width: 320,
+    height: 320,
+    borderRadius: 160,
   },
   breathingContainer: {
     marginBottom: 40,

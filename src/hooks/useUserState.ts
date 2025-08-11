@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { subscriptionService } from '../services/subscriptionService';
@@ -83,6 +85,28 @@ export const useUserState = () => {
     if (user) {
       loadUserState();
     }
+  }, [user, loadUserState]);
+
+  // Refresh on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user) {
+        loadUserState();
+      }
+      return () => {};
+    }, [user, loadUserState])
+  );
+
+  // Refresh when app returns to foreground
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active' && user) {
+        loadUserState();
+      }
+    });
+    return () => {
+      sub.remove();
+    };
   }, [user, loadUserState]);
 
   const saveOnboardingProgress = async (progress: Partial<OnboardingProgress>) => {

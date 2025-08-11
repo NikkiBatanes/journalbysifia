@@ -735,8 +735,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   scrollViewContent: {
-    padding: 4, // Reduced from 8
+    paddingTop: 4, // vertical padding only
     paddingBottom: 100,
+    paddingHorizontal: 0,
     gap: 0, // Add gap between carousel items
   },
   tabText: {

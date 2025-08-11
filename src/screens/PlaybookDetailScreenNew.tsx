@@ -350,7 +350,35 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // 11. Gesture handler will be defined after navigation functions
 
   // 12. Memoized values
-  const cardData: CardData[] = useMemo(() => playbook ? [
+  const cardData: CardData[] = useMemo(() => {
+    if (!playbook) return [];
+    
+    console.log('[DEBUG] cardData: Creating card data from playbook:', {
+      playbookId: playbook.id,
+      actionStepsFromContext: actionSteps?.length || 0,
+      actionStepsFromPlaybook: playbook?.actionSteps?.length || 0,
+      affirmationsFromPlaybook: playbook?.affirmations?.length || 0,
+      actionStepsType: typeof actionSteps,
+      playbookActionStepsType: typeof playbook?.actionSteps,
+      affirmationsType: typeof playbook?.affirmations
+    });
+    
+    // Debug action steps data
+    const finalActionSteps = Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
+          (Array.isArray(playbook?.actionSteps) ? playbook.actionSteps : []);
+    console.log('[DEBUG] cardData: Final action steps:', finalActionSteps);
+    
+    // Debug affirmations data
+    const finalAffirmations = Array.isArray(playbook?.affirmations)
+      ? playbook.affirmations.filter((a): a is Required<Affirmation> =>
+          a?.id !== undefined &&
+          a?.text !== undefined &&
+          a?.completed !== undefined
+        )
+      : [];
+    console.log('[DEBUG] cardData: Final affirmations:', finalAffirmations);
+    
+    return [
     {
       type: 'truth' as const,
       truth: playbook.truthInLove?.text ?? '',
@@ -359,19 +387,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     },
     {
       type: 'action' as const,
-      steps: Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
-            (Array.isArray(playbook?.actionSteps) ? playbook.actionSteps : []),
+      steps: finalActionSteps,
       tappable: false,
     },
     {
       type: 'affirmation' as const,
-      affirmations: Array.isArray(playbook?.affirmations)
-        ? playbook.affirmations.filter((a): a is Required<Affirmation> =>
-            a?.id !== undefined &&
-            a?.text !== undefined &&
-            a?.completed !== undefined
-          )
-        : [],
+      affirmations: finalAffirmations,
       tappable: false,
     },
     {
@@ -390,7 +411,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       challengeCTA: playbook.challengeCTA,
       tappable: false,
     },
-  ] : [], [playbook, actionSteps]);
+  ];
+  }, [playbook, actionSteps]);
 
   // Navigation callbacks that depend on cardData
   const goToNextCard = useCallback(() => {

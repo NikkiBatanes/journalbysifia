@@ -19,7 +19,9 @@ import { LookingForwardReactQuery } from './LookingForwardReactQuery';
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
 const CARD_SPACING = 8; // Narrower gap between cards
-const SIDE_PADDING = 8; // Less side padding to reveal more of next/prev card
+const SIDE_OFFSET = (screenWidth - CARD_WIDTH) / 2; // Center items in viewport
+const PEEK = 8; // reveal a bit of next card
+const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 
 interface ReflectCarouselProps {
   selectedDate: Date;
@@ -98,7 +100,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>REFLECT</Text>
+        <Text style={styles.title}>REFLECT & GROW</Text>
       </View>
       <Animated.ScrollView
         ref={scrollViewRef}
@@ -111,13 +113,8 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
         directionalLockEnabled={true}
         bounces={true}
         bouncesZoom={false}
-        contentInset={{
-          left: SIDE_PADDING / 2,
-          right: SIDE_PADDING / 2,
-        }}
-        contentContainerStyle={{
-          paddingHorizontal: SIDE_PADDING,
-        }}
+        contentInset={{ left: SIDE_INSET, right: SIDE_INSET }}
+        contentContainerStyle={{ paddingHorizontal: SIDE_INSET }}
         style={styles.scrollView}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -200,6 +197,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     // Removed fixed height for dynamic expansion
+    // Centering handled by contentInset + content padding
   },
   carouselItem: {
     width: CARD_WIDTH,

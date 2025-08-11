@@ -6,118 +6,84 @@ import {
   ScrollView,
   TouchableOpacity,
   SafeAreaView,
-  Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
-import pricingService from '../../services/pricingService';
+import pricingService, { LocationPricing, PricingTier as ServicePricingTier } from '../../services/pricingService';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 
-const { width } = Dimensions.get('window');
+// removed Dimensions width as unused
 
-interface PricingTier {
-  id: string;
-  name: string;
-  duration: string;
-  description: string;
-  features: string[];
-  monthlyPrice: number;
-  annualPrice: number;
-  monthlyOriginal?: number;
-  annualOriginal?: number;
-  isPopular?: boolean;
-}
+// Use PricingTier from pricingService to avoid drift
+type PricingTier = ServicePricingTier;
 
 const OnboardingSalesOfferScreen: React.FC = () => {
   const navigation = useNavigation();
-  const [isAnnual, setIsAnnual] = useState(false);
+  const { user } = useAuth();
+  const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTier, setSelectedTier] = useState('growth');
   const [showDynamicModal, setShowDynamicModal] = useState(false);
   const [dynamicDiscount, setDynamicDiscount] = useState<any>(null);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
+  const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
 
-  // Pricing tiers with Family tier included
-  const pricingTiers: PricingTier[] = [
-    {
-      id: 'starter',
-      name: 'Starter',
-      duration: '12 months',
-      description: 'For consistent encouragement',
-      features: [
-        '8 playbooks & 8 devotionals each month',
-        'Gentle reminders to keep you on track',
-        'Track your progress week by week'
-      ],
-      monthlyPrice: 49.99,
-      annualPrice: 49.99,
-      monthlyOriginal: 83.88,
-      annualOriginal: 83.88,
-    },
-    {
-      id: 'growth',
-      name: 'Growth',
-      duration: '12 months',
-      description: 'For deeper transformation',
-      features: [
-        '20 playbooks & 20 devotionals each month',
-        'Advanced reflection prompts',
-        'Seasonal challenges for breakthrough'
-      ],
-      monthlyPrice: 129.99,
-      annualPrice: 129.99,
-      monthlyOriginal: 155.88,
-      annualOriginal: 155.88,
-      isPopular: true,
-    },
-    {
-      id: 'transformation',
-      name: 'Transformation',
-      duration: '12 months',
-      description: 'For complete spiritual renewal',
-      features: [
-        'Unlimited playbooks & devotionals',
-        'Personal spiritual mentor access',
-        'Custom prayer & meditation guides',
-        'Priority support & guidance'
-      ],
-      monthlyPrice: 199.99,
-      annualPrice: 199.99,
-      monthlyOriginal: 249.99,
-      annualOriginal: 249.99,
-    },
-    {
-      id: 'family',
-      name: 'Family',
-      duration: '12 months',
-      description: 'For the whole family\'s growth',
-      features: [
-        'Everything in Transformation',
-        'Up to 6 family member accounts',
-        'Family devotionals & activities',
-        'Parental guidance resources'
-      ],
-      monthlyPrice: 299.99,
-      annualPrice: 299.99,
-      monthlyOriginal: 359.99,
-      annualOriginal: 359.99,
+  // Load location-adjusted pricing and currency
+  useEffect(() => {
+    let isMounted = true;
+    const loadPricing = async () => {
+      try {
+        const [tiers, currency] = await Promise.all([
+          pricingService.getLocationAdjustedPricing(),
+          pricingService.getCurrencyInfo(),
+        ]);
+        if (isMounted) {
+          setPricingTiers(tiers);
+          setCurrencyInfo(currency);
+          // Ensure default selection exists
+          const recommended = pricingService.getRecommendedTier();
+          setSelectedTier(recommended);
+        }
+      } catch (e) {
+        console.error('Failed to load pricing:', e);
+      }
+    };
+    loadPricing();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Auto-collapse all expanded feature sections when billing period changes
+  useEffect(() => {
+    if (expandedCards.size > 0) {
+      setExpandedCards(new Set());
     }
-  ];
+  }, [isAnnual]);
 
-  const handleClose = () => {
+  const handleClose = async () => {
     // Track user opt-out and check if dynamic discount should be shown
-    const shouldShowDiscount = pricingService.trackUserOptOut();
-    
+    const shouldShowDiscount = await pricingService.trackUserOptOut(user?.id, selectedTier);
+
     if (shouldShowDiscount) {
-      const discount = pricingService.getDynamicDiscount();
+      const discount = await pricingService.getDynamicDiscount(
+        user?.id,
+        selectedTier,
+        isAnnual ? 'annual' : 'monthly'
+      );
       if (discount) {
         setDynamicDiscount(discount);
         setShowDynamicModal(true);
         return;
       }
     }
-    
-    navigation.navigate('OnboardingTrialOffer' as any);
+
+    navigation.navigate('OnboardingTrialOffer' as any, {
+      selectedTierId: selectedTier,
+      billing: isAnnual ? 'annual' : 'monthly',
+    });
   };
 
   const handleUnlockPlan = () => {
@@ -169,7 +135,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       >
         {tier.isPopular && (
           <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>Popular</Text>
+            <Text style={styles.popularText}>POPULAR</Text>
           </View>
         )}
         
@@ -177,53 +143,78 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           <Text style={[styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
           </Text>
-          <Text style={[styles.tierDuration, isSelected && styles.selectedText]}>
-            -{tier.duration}
-          </Text>
+          {isAnnual && (
+            <Text style={[styles.tierDuration, isSelected && styles.selectedText]}>
+              -{tier.duration}
+            </Text>
+          )}
         </View>
         
         <Text style={[styles.tierDescription, isSelected && styles.selectedText]}>
           {tier.description}
         </Text>
         
-        <View style={styles.featuresContainer}>
-          {(isExpanded ? tier.features : tier.features.slice(0, 2)).map((feature, index) => (
-            <View key={index} style={styles.featureRow}>
-              <Text style={[styles.featureIcon, { color: Colors.growthGreen }]}>✓</Text>
-              <Text style={styles.featureText}>{feature}</Text>
-            </View>
-          ))}
-          {tier.features.length > 2 && (
-            <TouchableOpacity 
-              style={styles.expandButton}
-              onPress={() => toggleCardExpansion(tier.id)}
-            >
-              <Text style={styles.expandButtonText}>
-                {isExpanded ? 'Show Less' : `Show ${tier.features.length - 2} More Features`}
-              </Text>
-              <Ionicons 
-                name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-                size={16} 
-                color={Colors.faithGold} 
-              />
-            </TouchableOpacity>
-          )}
-        </View>
+        {isExpanded && (
+          <View style={styles.featuresContainer}>
+            {(() => {
+              const processed: string[] = [];
+              const first = tier.features[0]?.trim() || '';
+              const m = first.match(/^(\d+)\s*playbooks\s*&\s*(\d+)\s*devotionals\s*each\s*month$/i);
+              if (m) {
+                processed.push(`${m[1]} playbooks each month`);
+                processed.push(`${m[2]} devotionals each month`);
+                processed.push(...tier.features.slice(1));
+              } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
+                processed.push('Unlimited playbooks each month');
+                processed.push('Unlimited devotionals each month');
+                processed.push(...tier.features.slice(1));
+              } else {
+                processed.push(...tier.features);
+              }
+              return processed.map((feature, index) => (
+                <View key={index} style={styles.featureRow}>
+                  <Ionicons name="heart" size={16} color={Colors.alertCoral} style={{ marginRight: 8 }} />
+                  <Text style={styles.featureText}>{feature}</Text>
+                </View>
+              ));
+            })()}
+          </View>
+        )}
         
         <View style={styles.priceContainer}>
           <View style={styles.priceRow}>
-            <Text style={[styles.currentPrice, isSelected && styles.selectedText]}>
-              ${isAnnual ? tier.annualPrice : tier.monthlyPrice}
-            </Text>
-            {(isAnnual ? tier.annualOriginal : tier.monthlyOriginal) && (
-              <Text style={styles.originalPrice}>
-                ${isAnnual ? tier.annualOriginal : tier.monthlyOriginal}
+            <View style={styles.priceLeft}>
+              <Text style={[styles.currentPrice, isSelected && styles.selectedText]}>
+                {(currencyInfo?.symbol || '$')}{isAnnual ? tier.annualPrice.toFixed(2) : tier.monthlyPrice.toFixed(2)}
               </Text>
-            )}
+              {(() => {
+                const original = isAnnual ? tier.annualOriginal : tier.monthlyOriginal;
+                const current = isAnnual ? tier.annualPrice : tier.monthlyPrice;
+                return original && original > current ? (
+                  <Text style={styles.originalPrice}>
+                    {(currencyInfo?.symbol || '$')}{original.toFixed(2)}
+                  </Text>
+                ) : null;
+              })()}
+            </View>
+            <View style={styles.priceRight}>
+              <Text style={styles.monthlyEquivalent}>
+                {(currencyInfo?.symbol || '$')}{isAnnual ? getMonthlyEquivalent(tier) : tier.monthlyPrice.toFixed(2)}/month
+              </Text>
+              <TouchableOpacity 
+                style={styles.detailsToggle}
+                onPress={() => toggleCardExpansion(tier.id)}
+                activeOpacity={0.8}
+              >
+                <Ionicons 
+                  name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+                  size={14} 
+                  color={Colors.faithGold} 
+                />
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={[styles.monthlyEquivalent, isSelected && styles.selectedText]}>
-            ${getMonthlyEquivalent(tier)}/month
-          </Text>
+          {/* original price now shown inline next to current price */}
         </View>
         
         {isSelected && (
@@ -240,21 +231,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Ionicons name="close" size={24} color={Colors.hopeWhite} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.logoContainer}>
-          <Text style={styles.logo}>siFia</Text>
-          <Text style={styles.logoHeart}>❤</Text>
-        </View>
-        
-        <View style={styles.headerRight} />
+        {/* Close button top-right */}
+        <TouchableOpacity style={styles.closeButtonTopRight} onPress={handleClose} activeOpacity={0.8}>
+          <Ionicons name="close" size={24} color={Colors.hopeWhite} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      {/* Body content (fixed top + scrollable pricing) */}
+      <View style={styles.content}>
         {/* Main Content */}
         <Text style={styles.mainTitle}>You've taken your first step!</Text>
         <Text style={styles.subtitle}>Keep walking, one faithful step at a time.</Text>
@@ -262,31 +246,26 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         {/* Feature Bullets */}
         <View style={styles.featuresSection}>
           <View style={styles.featureBullet}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
+            <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
             <Text style={styles.bulletText}>
               Personalized playbooks and devotionals created just for you delivered at a pace that fits your plan.
             </Text>
           </View>
-          
           <View style={styles.featureBullet}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
+            <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
             <Text style={styles.bulletText}>
               Track your growth with smart journaling and unlock deeper reflections on higher tiers.
             </Text>
           </View>
-          
           <View style={styles.featureBullet}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
+            <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
             <Text style={styles.bulletText}>
               Picture walking daily with God, growing stronger with every step.
             </Text>
           </View>
-          
           <View style={styles.featureBullet}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
-            <Text style={styles.bulletText}>
-              Your journey, your pace.
-            </Text>
+            <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+            <Text style={styles.bulletText}>Your journey, your pace.</Text>
           </View>
         </View>
 
@@ -296,35 +275,38 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
             onPress={() => setIsAnnual(false)}
           >
-            <Text style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>
-              Monthly
-            </Text>
+            <Text style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.toggleButton, isAnnual && styles.activeToggle]}
             onPress={() => setIsAnnual(true)}
           >
-            <Text style={[styles.toggleText, isAnnual && styles.activeToggleText]}>
-              Annual
-            </Text>
+            <Text style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Pricing Cards - Vertical Layout */}
-        <View style={styles.cardsContainer}>
-          {pricingTiers.map(renderPricingCard)}
-        </View>
+        {/* Pricing Cards - Scrollable only */}
+        <ScrollView
+          style={styles.pricingScroll}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 60 }}
+          scrollIndicatorInsets={{ bottom: 60 }}
+        >
+          <View style={styles.cardsContainer}>{pricingTiers.map(renderPricingCard)}</View>
+        </ScrollView>
+      </View>
 
-        {/* Unlock Button */}
-        <TouchableOpacity style={styles.unlockButton} onPress={handleUnlockPlan}>
-          <Text style={styles.unlockButtonText}>Unlock My Plan</Text>
+      {/* Fixed Footer CTA */}
+      <View style={styles.footerContainer}>
+        <TouchableOpacity style={styles.unlockButton} onPress={handleUnlockPlan} activeOpacity={0.9}>
+          <Text style={styles.unlockButtonText}>Continue My Journey</Text>
         </TouchableOpacity>
-
-        {/* Footer Text */}
-        <Text style={styles.footerText}>
-          Cancel anytime. We're here to walk with you. Secure checkout.
-        </Text>
-      </ScrollView>
+        <View style={styles.footerRow}>
+          <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />
+          <Text style={styles.footerText}>Cancel anytime.</Text>
+          <Text style={styles.footerText}> Secure checkout</Text>
+        </View>
+      </View>
 
       {/* Dynamic Pricing Modal */}
       {dynamicDiscount && (
@@ -332,7 +314,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           visible={showDynamicModal}
           onClose={() => {
             setShowDynamicModal(false);
-            navigation.navigate('OnboardingTrialOffer' as any);
+            navigation.navigate('OnboardingTrialOffer' as any, {
+              selectedTierId: selectedTier,
+              billing: isAnnual ? 'annual' : 'monthly',
+            });
           }}
           discountPercentage={dynamicDiscount.percentage}
           originalPrice={getCurrentPrice()}
@@ -354,10 +339,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
     position: 'relative',
   },
+  closeButtonTopRight: {
+    position: 'absolute',
+    top: 0,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
+  },
+  
   closeButton: {
     width: 40,
     height: 40,
@@ -384,58 +382,63 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
     marginLeft: 2,
   },
-  scrollContainer: {
+  content: {
     flex: 1,
     paddingHorizontal: 24,
+  },
+  pricingScroll: {
+    flex: 1,
+    marginTop: 4,
   },
   mainTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 8,
+    textAlign: 'left',
+    marginTop: 0,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginBottom: 32,
+    textAlign: 'left',
+    marginBottom: 22,
     opacity: 0.8,
   },
   featuresSection: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   featureBullet: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: 12,
   },
   bulletText: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite,
     marginLeft: 12,
     flex: 1,
-    lineHeight: 24,
+    lineHeight: 20,
   },
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    borderRadius: 20,
     padding: 4,
     marginBottom: 24,
     alignSelf: 'center',
+    overflow: 'hidden',
   },
   toggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 24,
-    borderRadius: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 26,
+    borderRadius: 16,
   },
   activeToggle: {
     backgroundColor: Colors.growthGreen,
   },
   toggleText: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '500',
   },
@@ -444,16 +447,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cardsContainer: {
-    marginBottom: 32,
+    marginBottom: 16,
   },
   pricingCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 6,
     width: '100%',
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   selectedCard: {
     borderColor: Colors.growthGreen,
@@ -479,21 +482,26 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   tierName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
   },
   tierDuration: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: 'semibold',
     color: Colors.hopeWhite,
     opacity: 0.8,
+    marginLeft: 8,
   },
   tierDescription: {
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '600',
     color: Colors.hopeWhite,
-    marginBottom: 16,
+    marginBottom: 8,
     opacity: 0.9,
   },
   featuresContainer: {
@@ -501,7 +509,7 @@ const styles = StyleSheet.create({
   },
   featureRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 8,
   },
   featureIcon: {
@@ -516,28 +524,74 @@ const styles = StyleSheet.create({
   },
   priceContainer: {
     alignItems: 'flex-start',
+    width: '100%',
   },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  priceLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+    flexGrow: 0,
+    flex: 1,
+    minWidth: 140,
+  },
+  priceRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 6,
+    flexShrink: 0,
+    justifyContent: 'flex-end',
+    // allow content width
   },
   currentPrice: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
-    marginRight: 8,
+    marginRight: 4,
+    flexShrink: 0,
   },
   originalPrice: {
     fontSize: 16,
+    fontWeight: '600',
     color: Colors.hopeWhite,
     opacity: 0.6,
     textDecorationLine: 'line-through',
+    flexShrink: 0,
+    marginRight: 4,
   },
   monthlyEquivalent: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '600',
+    marginLeft: 'auto',
+    flexShrink: 0,
+    textAlign: 'right',
+  },
+  originalPriceBelow: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    textDecorationLine: 'line-through',
+    marginTop: 4,
+  },
+  detailsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  detailsToggleText: {
+    fontSize: 10,
+    color: Colors.faithGold,
+    marginRight: 4,
   },
   selectedText: {
     color: Colors.hopeWhite,
@@ -551,7 +605,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     paddingVertical: 16,
     borderRadius: 12,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   unlockButtonText: {
     fontSize: 18,
@@ -559,15 +613,43 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
+  footerContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 24,
+    paddingTop: 6,
+    paddingBottom: 12,
+    backgroundColor: Colors.anchorBlue,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+    marginBottom: 8,
+    flexWrap: 'nowrap',
+  },
   footerText: {
     fontSize: 14,
     color: Colors.hopeWhite,
     textAlign: 'center',
     opacity: 0.8,
-    marginBottom: 40,
+    marginBottom: 0,
+  },
+  footerDot: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    opacity: 0.6,
+    marginHorizontal: 6,
+  },
+  footerShield: {
+    marginRight: 4,
+    opacity: 0.8,
   },
   cardWrapper: {
-    marginBottom: 16,
+    marginBottom: 6,
   },
   headerLeft: {
     flex: 1,

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { loadDiscountState, saveDiscountState, mergeGuestToUser, type DiscountState } from './discountStorage';
 
 export interface PricingTier {
   id: string;
@@ -37,10 +38,9 @@ class PricingService {
         'Gentle reminders to keep you on track',
         'Track your progress week by week'
       ],
-      monthlyPrice: 49.99,
-      annualPrice: 49.99,
-      monthlyOriginal: 83.88,
+      monthlyPrice: 6.99,
       annualOriginal: 83.88,
+      annualPrice: 49.99,
     },
     {
       id: 'growth',
@@ -52,10 +52,9 @@ class PricingService {
         'Advanced reflection prompts',
         'Seasonal challenges for breakthrough'
       ],
-      monthlyPrice: 129.99,
-      annualPrice: 129.99,
-      monthlyOriginal: 155.88,
+      monthlyPrice: 12.99,
       annualOriginal: 155.88,
+      annualPrice: 129.99,
       isPopular: true,
     },
     {
@@ -69,10 +68,9 @@ class PricingService {
         'Custom prayer & meditation guides',
         'Priority support & guidance'
       ],
-      monthlyPrice: 199.99,
-      annualPrice: 199.99,
-      monthlyOriginal: 249.99,
-      annualOriginal: 249.99,
+      monthlyPrice: 24.99,
+      annualOriginal: 299.88,
+      annualPrice: 249.99,
     },
     {
       id: 'family',
@@ -85,10 +83,9 @@ class PricingService {
         'Family devotionals & activities',
         'Parental guidance resources'
       ],
-      monthlyPrice: 299.99,
-      annualPrice: 299.99,
-      monthlyOriginal: 359.99,
-      annualOriginal: 359.99,
+      monthlyPrice: 34.99,
+      annualOriginal: 419.88,
+      annualPrice: 349.99,
     }
   ];
 
@@ -101,8 +98,8 @@ class PricingService {
     'DEFAULT': { currency: 'USD', symbol: '$', multiplier: 1.0 },
   };
 
-  private userOptOutCount = 0;
-  private lastOptOutTime: Date | null = null;
+  private userOptOutCount = 0; // legacy in-memory (guest fallback)
+  private lastOptOutTime: Date | null = null; // legacy in-memory (guest fallback)
 
   /**
    * Get user's location-based pricing
@@ -145,38 +142,83 @@ class PricingService {
   /**
    * Track user opt-out and determine if dynamic discount should be offered
    */
-  trackUserOptOut(): boolean {
-    this.userOptOutCount++;
-    this.lastOptOutTime = new Date();
+  async trackUserOptOut(userId?: string | null, _tierId?: string | null): Promise<boolean> {
+    // Persist opt-out per user (or per device for guests)
+    const current: DiscountState = (await loadDiscountState(userId)) || {
+      discountPolicyVersion: 1,
+      optOutCount: 0,
+      lastShownAt: null,
+      lastDiscountPct: null,
+      redeemed: false,
+      blockedUntil: null,
+    };
 
-    // Show dynamic discount after 2nd opt-out
-    return this.userOptOutCount >= 2;
+    current.optOutCount += 1;
+    await saveDiscountState(current, userId);
+
+    // Show dynamic discount after 2nd opt-out (persisted rule)
+    return current.optOutCount >= 2 && !current.redeemed;
   }
 
   /**
    * Get dynamic discount based on user behavior
    */
-  getDynamicDiscount(): DynamicDiscount | null {
-    if (this.userOptOutCount < 2) {
+  async getDynamicDiscount(
+    userId?: string | null,
+    tierId?: string | null,
+    billing?: 'monthly' | 'annual'
+  ): Promise<DynamicDiscount | null> {
+    const current = (await loadDiscountState(userId)) || null;
+    const optOuts = current?.optOutCount ?? this.userOptOutCount;
+    const redeemed = current?.redeemed ?? false;
+    if (optOuts < 2 || redeemed) return null;
+
+    // Show-once per tier & billing gate
+    const period = billing || 'any';
+    const key = tierId ? `${tierId}-${period}` : `default-${period}`;
+    if (current?.shownByTier && current.shownByTier[key]) {
       return null;
     }
 
-    // Progressive discounts based on opt-out count
-    let percentage = 10; // Base 10% discount
-    
-    if (this.userOptOutCount >= 3) {
-      percentage = 20; // 20% after 3rd opt-out
-    }
-    
-    if (this.userOptOutCount >= 4) {
-      percentage = 30; // Maximum 30% discount
-    }
+    let percentage = 10;
+    if (optOuts >= 3) percentage = 20;
+    if (optOuts >= 4) percentage = 30;
+
+    // Update last shown metadata (non-blocking semantics here)
+    const next: DiscountState = {
+      discountPolicyVersion: 1,
+      optOutCount: optOuts,
+      lastShownAt: new Date().toISOString(),
+      lastDiscountPct: percentage,
+      redeemed: redeemed,
+      blockedUntil: current?.blockedUntil ?? null,
+      shownByTier: { ...(current?.shownByTier || {}), [key]: new Date().toISOString() },
+    };
+    await saveDiscountState(next, userId);
 
     return {
       percentage,
       reason: 'Limited time offer for returning users',
-      expiresInMinutes: 15, // 15 minutes to decide
+      expiresInMinutes: 15,
     };
+  }
+
+  async markDiscountRedeemed(userId: string | null | undefined, percentage: number): Promise<void> {
+    const current: DiscountState = (await loadDiscountState(userId)) || {
+      discountPolicyVersion: 1,
+      optOutCount: 0,
+      lastShownAt: null,
+      lastDiscountPct: null,
+      redeemed: false,
+      blockedUntil: null,
+    };
+    current.redeemed = true;
+    current.lastDiscountPct = percentage;
+    await saveDiscountState(current, userId);
+  }
+
+  async mergeGuestDiscountStateToUser(userId: string): Promise<void> {
+    await mergeGuestToUser(userId);
   }
 
   /**

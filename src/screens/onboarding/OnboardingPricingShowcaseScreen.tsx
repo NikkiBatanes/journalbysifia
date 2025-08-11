@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,9 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useUserState } from '../../hooks/useUserState';
 import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 import { Colors } from '../../theme';
+import { TrialBillingService, SelectedPlan } from '../../services/trialBillingService';
+import { SubscriptionTier } from '../../interfaces/subscription';
+import pricingService, { PricingTier, LocationPricing } from '../../services/pricingService';
 
 const { width } = Dimensions.get('window');
 
@@ -28,72 +31,74 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
   const { activateFreeTrial, updateOnboardingStep } = useUserState();
   const [selectedPlan, setSelectedPlan] = useState<'annual' | 'monthly'>('annual');
   const [isStartingTrial, setIsStartingTrial] = useState(false);
+  const [tiers, setTiers] = useState<PricingTier[] | null>(null);
+  const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
+  const [selectedTierId, setSelectedTierId] = useState<string>('growth');
+  const [isLoadingPricing, setIsLoadingPricing] = useState<boolean>(true);
 
   // Track pricing viewed on component mount
   React.useEffect(() => {
     updateOnboardingStep('pricing_viewed', 5);
   }, [updateOnboardingStep]);
 
-  const pricingPlans = {
-    annual: [
-      {
-        tier: 'starter_annual',
-        name: 'Starter',
-        price: '$59',
-        period: '/year',
-        savings: 'Save 30%',
-        features: ['8 Playbooks/month', '8 Devotionals/month', 'Smart Journaling', 'Calendar Sync', '10 Exports/month'],
-        popular: false,
-      },
-      {
-        tier: 'growth_annual',
-        name: 'Growth',
-        price: '$119',
-        period: '/year',
-        savings: 'Save 35%',
-        features: ['20 Playbooks/month', '20 Devotionals/month', 'Advanced Intelligence', 'Advanced Analytics', 'Priority Support', '50 Exports/month'],
-        popular: true,
-      },
-      {
-        tier: 'transformation_annual',
-        name: 'Transformation',
-        price: '$179',
-        period: '/year',
-        savings: 'Save 40%',
-        features: ['Unlimited Playbooks', 'Unlimited Devotionals', 'Premium Intelligence', 'Expounding Features', 'VIP Support', 'Unlimited Exports'],
-        popular: false,
-      },
-    ],
-    monthly: [
-      {
-        tier: 'starter',
-        name: 'Starter',
-        price: '$6.99',
-        period: '/month',
-        savings: '',
-        features: ['8 Playbooks/month', '8 Devotionals/month', 'Smart Journaling', 'Calendar Sync', '10 Exports/month'],
-        popular: false,
-      },
-      {
-        tier: 'growth',
-        name: 'Growth',
-        price: '$15.99',
-        period: '/month',
-        savings: '',
-        features: ['20 Playbooks/month', '20 Devotionals/month', 'Advanced Intelligence', 'Advanced Analytics', 'Priority Support', '50 Exports/month'],
-        popular: true,
-      },
-      {
-        tier: 'transformation',
-        name: 'Transformation',
-        price: '$24.99',
-        period: '/month',
-        savings: '',
-        features: ['Unlimited Playbooks', 'Unlimited Devotionals', 'Premium Intelligence', 'Expounding Features', 'VIP Support', 'Unlimited Exports'],
-        popular: false,
-      },
-    ],
-  };
+  // Load dynamic pricing
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setIsLoadingPricing(true);
+        const [adjTiers, curr] = await Promise.all([
+          pricingService.getLocationAdjustedPricing(),
+          pricingService.getCurrencyInfo(),
+        ]);
+        if (!mounted) {return;}
+        setTiers(adjTiers);
+        setCurrencyInfo(curr);
+        // Default selection to popular (growth) if present
+        const hasGrowth = adjTiers.some(t => t.id === 'growth');
+        setSelectedTierId(hasGrowth ? 'growth' : adjTiers[0]?.id || 'growth');
+      } catch (e) {
+        console.error('Failed to load pricing:', e);
+      } finally {
+        if (mounted) setIsLoadingPricing(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const pricingPlans = useMemo(() => {
+    if (!tiers || !currencyInfo) {
+      return { annual: [] as any[], monthly: [] as any[] };
+    }
+    const symbol = currencyInfo.symbol;
+    const fmt = (n: number) => `${symbol}${n.toFixed(0)}`; // display rounded whole for year, monthly keeps as-is
+    const computeSavings = (original?: number, current?: number) => {
+      if (!original || !current || original <= current) {return '';} 
+      const pct = Math.round(((original - current) / original) * 100);
+      return `Save ${pct}%`;
+    };
+    const annual = tiers.map(t => ({
+      tier: `${t.id}_annual`,
+      id: t.id,
+      name: t.name,
+      price: fmt(t.annualPrice),
+      period: '/year',
+      savings: computeSavings(t.annualOriginal, t.annualPrice),
+      features: t.features,
+      popular: !!t.isPopular,
+    }));
+    const monthly = tiers.map(t => ({
+      tier: t.id,
+      id: t.id,
+      name: t.name,
+      price: `${symbol}${t.monthlyPrice.toFixed(2)}`,
+      period: '/month',
+      savings: '',
+      features: t.features,
+      popular: !!t.isPopular,
+    }));
+    return { annual, monthly };
+  }, [tiers, currencyInfo]);
 
   const handleStartFreeTrial = async () => {
     if (!user) {
@@ -103,14 +108,37 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
 
     setIsStartingTrial(true);
     try {
-      const success = await activateFreeTrial();
+      if (!tiers || !currencyInfo) {
+        throw new Error('Pricing not loaded');
+      }
+      const chosen = tiers.find(t => t.id === selectedTierId) || tiers[0];
+      const tierCode: SubscriptionTier = (selectedPlan === 'annual' ? `${chosen.id}_annual` : chosen.id) as SubscriptionTier;
+      const priceNumber = selectedPlan === 'annual' ? chosen.annualPrice : chosen.monthlyPrice;
+      const priceCents = Math.round(priceNumber * 100);
+      const pendingPlan: SelectedPlan = {
+        tier: tierCode,
+        displayName: `${chosen.name} ${selectedPlan === 'annual' ? 'Annual' : 'Monthly'}`,
+        billing: selectedPlan,
+        price: priceCents,
+        currency: (currencyInfo.currency || 'USD').toLowerCase(),
+        features: chosen.features,
+      };
+
+      const result = await TrialBillingService.startTrialWithPendingBilling(user.id, pendingPlan);
+      const success = result.success;
 
       if (success) {
         updateOnboardingStep('trial_started', 5);
         console.log('✅ Free trial started successfully');
         navigation.navigate('OnboardingComplete');
       } else {
-        throw new Error('Failed to activate trial');
+        // Fallback to legacy trial activation without pending billing
+        const fallback = await activateFreeTrial();
+        if (fallback) {
+          navigation.navigate('OnboardingComplete');
+        } else {
+          throw new Error(result.error || 'Failed to activate trial');
+        }
       }
     } catch (error) {
       console.error('❌ Error starting free trial:', error);
@@ -128,7 +156,12 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const renderPricingCard = (plan: any) => (
-    <View key={plan.tier} style={[styles.pricingCard, plan.popular && styles.popularCard]}>
+    <TouchableOpacity
+      key={plan.tier}
+      activeOpacity={0.9}
+      onPress={() => setSelectedTierId(plan.id)}
+      style={[styles.pricingCard, plan.popular && styles.popularCard, selectedTierId === plan.id && styles.selectedCard]}
+    >
       {plan.popular && (
         <View style={styles.popularBadge}>
           <Text style={styles.popularText}>MOST POPULAR</Text>
@@ -154,7 +187,7 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         ))}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -199,7 +232,7 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
           snapToInterval={width * 0.8}
           decelerationRate="fast"
         >
-          {pricingPlans[selectedPlan].map(renderPricingCard)}
+          {(pricingPlans as any)[selectedPlan].map(renderPricingCard)}
         </ScrollView>
 
         {/* Free Trial CTA */}
@@ -297,6 +330,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.trustGrey,
     position: 'relative',
+  },
+  selectedCard: {
+    borderColor: Colors.anchorBlue,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 10,
+    elevation: 2,
   },
   popularCard: {
     borderColor: Colors.faithGold,

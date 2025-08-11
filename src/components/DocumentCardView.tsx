@@ -62,6 +62,10 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
   if (card.type === 'action') {
     // Use enhanced action step card for better expounding and export features
     const steps = card.steps ?? [];
+    console.log('[DEBUG] DocumentCardView: Action card rendering:', {
+      stepsCount: steps.length,
+      steps: steps.map(s => ({ id: s.id, title: s.title, hasSubTasks: s.subTasks?.length || 0 }))
+    });
 
     return (
       <View style={styles.actionCard}>
@@ -104,14 +108,18 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     );
   }
   if (card.type === 'affirmation') {
+    console.log('[DEBUG] DocumentCardView: Affirmation card rendering:', {
+      affirmationsCount: card.affirmations?.length || 0,
+      affirmations: card.affirmations?.map(a => ({ id: a.id, text: a.text?.substring(0, 50) + '...', completed: a.completed }))
+    });
     return (
       <View style={[propStyles.affirmationsCard, styles.affirmationsContainer]}>
         <View style={propStyles.affirmationsHeader}>
           <MaterialCommunityIcons
-            name="format-quote-open"
-            size={20}
-            color={Colors.alertCoral}
-            style={styles.affirmationIcon}
+            name="heart"
+            size={24}
+            color="white"
+            style={propStyles.icon}
           />
           <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
         </View>
