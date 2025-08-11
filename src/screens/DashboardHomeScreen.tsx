@@ -227,8 +227,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <Text style={styles.subscriptionText}>
             {(() => {
               const tier = subscription?.tier || 'basic';
-              if (tier === 'basic') return 'BASIC';
-              if (tier === 'free_trial') return 'TRIAL';
+              if (tier === 'basic') {return 'BASIC';}
+              if (tier === 'free_trial') {return 'TRIAL';}
               return 'PREMIUM';
             })()}
           </Text>

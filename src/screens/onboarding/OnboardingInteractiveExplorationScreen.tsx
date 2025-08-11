@@ -67,7 +67,7 @@ const OnboardingInteractiveExplorationScreen: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
   const [completedDemos, setCompletedDemos] = useState<Set<string>>(new Set());
   const [showContinue, setShowContinue] = useState(false);
-  
+
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -102,7 +102,7 @@ const OnboardingInteractiveExplorationScreen: React.FC = () => {
 
   const handleFeatureDemo = (featureId: string) => {
     setActiveFeature(featureId);
-    
+
     // Simulate interactive demo
     setTimeout(() => {
       setCompletedDemos(prev => new Set([...prev, featureId]));
@@ -118,7 +118,7 @@ const OnboardingInteractiveExplorationScreen: React.FC = () => {
   const renderFeatureCard = (feature: ExplorationFeature, index: number) => {
     const isActive = activeFeature === feature.id;
     const isCompleted = completedDemos.has(feature.id);
-    
+
     return (
       <Animated.View
         key={feature.id}
@@ -151,7 +151,7 @@ const OnboardingInteractiveExplorationScreen: React.FC = () => {
             <Text style={styles.featureDescription}>{feature.description}</Text>
           </View>
         </View>
-        
+
         <TouchableOpacity
           style={[
             styles.demoButton,
@@ -181,9 +181,9 @@ const OnboardingInteractiveExplorationScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
-      
+
       <OnboardingProgressIndicator currentStep={5} totalSteps={7} />
-      
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Animated.View
           style={[

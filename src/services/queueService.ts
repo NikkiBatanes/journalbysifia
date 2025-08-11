@@ -391,11 +391,11 @@ export class QueueService {
     // Use the proper environment configuration
     const { getEnvironmentConfig } = await import('../config/environment');
     const env = getEnvironmentConfig();
-    
+
     if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
       throw new Error('Missing Supabase environment variables');
     }
-    
+
     const supabaseUrl = env.SUPABASE_URL;
     const supabaseKey = env.SUPABASE_ANON_KEY;
 
@@ -415,7 +415,7 @@ export class QueueService {
     }
 
     console.log(`[QueueService] Calling playbook generation function: ${functionUrl}`);
-    console.log(`[QueueService] Request body:`, JSON.stringify(requestBody, null, 2));
+    console.log('[QueueService] Request body:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(functionUrl, {
       method: 'POST',
@@ -430,20 +430,20 @@ export class QueueService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[QueueService] Response error:`, errorText);
+      console.error('[QueueService] Response error:', errorText);
       throw new Error(`Playbook generation failed: ${response.statusText} - ${errorText}`);
     }
 
     const result = await response.json();
-    console.log(`[QueueService] Generation result:`, result);
+    console.log('[QueueService] Generation result:', result);
 
     // Save the generated playbook to the database using proper savePlaybook function
     console.log(`[QueueService] Saving playbook to database for user ${item.user_id}`);
-    
+
     try {
       // Import and use the proper savePlaybook function that handles separate tables
       const { savePlaybook } = await import('./modernPlaybookApi');
-      
+
       // Transform result to proper Playbook format
       const playbookToSave = {
         id: result.id,
@@ -463,20 +463,20 @@ export class QueueService {
         progress: 0,
         totalTasks: (result.actionSteps || []).length,
       };
-      
-      console.log(`[QueueService] Using proper savePlaybook function with action steps:`, playbookToSave.actionSteps?.length || 0);
-      console.log(`[QueueService] Using proper savePlaybook function with affirmations:`, playbookToSave.affirmations?.length || 0);
-      
+
+      console.log('[QueueService] Using proper savePlaybook function with action steps:', playbookToSave.actionSteps?.length || 0);
+      console.log('[QueueService] Using proper savePlaybook function with affirmations:', playbookToSave.affirmations?.length || 0);
+
       const saveResult = await savePlaybook(playbookToSave, item.user_id);
-      
+
       if (saveResult.success) {
-        console.log(`[QueueService] Successfully saved playbook with proper function:`, playbookToSave.title);
+        console.log('[QueueService] Successfully saved playbook with proper function:', playbookToSave.title);
       } else {
-        console.error(`[QueueService] Failed to save playbook with proper function:`, saveResult.error);
+        console.error('[QueueService] Failed to save playbook with proper function:', saveResult.error);
         // Don't throw error - the generation succeeded, just log the save issue
       }
     } catch (saveError) {
-      console.error(`[QueueService] Error using savePlaybook function:`, saveError);
+      console.error('[QueueService] Error using savePlaybook function:', saveError);
       // Don't throw error - the generation succeeded, just log the save issue
     }
 
@@ -494,11 +494,11 @@ export class QueueService {
     // Use the proper environment configuration
     const { getEnvironmentConfig } = await import('../config/environment');
     const env = getEnvironmentConfig();
-    
+
     if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
       throw new Error('Missing Supabase environment variables');
     }
-    
+
     const functionUrl = `${env.SUPABASE_URL}/functions/v1/generate-devotional`;
 
     const requestBody: any = {

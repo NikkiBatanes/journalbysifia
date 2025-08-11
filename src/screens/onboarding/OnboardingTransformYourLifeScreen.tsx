@@ -111,7 +111,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             style={styles.logoImage}
             resizeMode="contain"
           />
-          
+
           {/* Lottie Animation */}
           <View style={styles.animationContainer}>
             <Lottie

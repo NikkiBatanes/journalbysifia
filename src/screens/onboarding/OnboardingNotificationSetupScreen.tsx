@@ -72,7 +72,7 @@ const OnboardingNotificationSetupScreen = () => {
   ]);
 
   const handleToggleSetting = (id: string) => {
-    setNotificationSettings(prev => 
+    setNotificationSettings(prev =>
       prev.map(setting => {
         if (setting.id === id && !setting.required) {
           return { ...setting, enabled: !setting.enabled };
@@ -87,16 +87,16 @@ const OnboardingNotificationSetupScreen = () => {
       // Here you would request notification permissions
       // For now, we'll simulate the process
       console.log('Requesting notification permissions...');
-      
+
       // Simulate permission request
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Navigate to home screen
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' as any }],
       });
-      
+
     } catch (error) {
       console.error('Error setting up notifications:', error);
       Alert.alert(
@@ -183,7 +183,7 @@ const OnboardingNotificationSetupScreen = () => {
         {/* Notification Settings */}
         <View style={styles.settingsSection}>
           <Text style={styles.settingsTitle}>Notification Preferences</Text>
-          
+
           {notificationSettings.map((setting) => (
             <View key={setting.id} style={styles.settingItem}>
               <View style={styles.settingLeft}>

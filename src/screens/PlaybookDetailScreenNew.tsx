@@ -351,8 +351,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // 12. Memoized values
   const cardData: CardData[] = useMemo(() => {
-    if (!playbook) return [];
-    
+    if (!playbook) {return [];}
+
     console.log('[DEBUG] cardData: Creating card data from playbook:', {
       playbookId: playbook.id,
       actionStepsFromContext: actionSteps?.length || 0,
@@ -360,14 +360,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       affirmationsFromPlaybook: playbook?.affirmations?.length || 0,
       actionStepsType: typeof actionSteps,
       playbookActionStepsType: typeof playbook?.actionSteps,
-      affirmationsType: typeof playbook?.affirmations
+      affirmationsType: typeof playbook?.affirmations,
     });
-    
+
     // Debug action steps data
     const finalActionSteps = Array.isArray(actionSteps) && actionSteps.length > 0 ? actionSteps :
           (Array.isArray(playbook?.actionSteps) ? playbook.actionSteps : []);
     console.log('[DEBUG] cardData: Final action steps:', finalActionSteps);
-    
+
     // Debug affirmations data
     const finalAffirmations = Array.isArray(playbook?.affirmations)
       ? playbook.affirmations.filter((a): a is Required<Affirmation> =>
@@ -377,7 +377,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         )
       : [];
     console.log('[DEBUG] cardData: Final affirmations:', finalAffirmations);
-    
+
     return [
     {
       type: 'truth' as const,

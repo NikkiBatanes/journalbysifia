@@ -238,7 +238,7 @@ const DevotionalsScreen = () => {
             <Text style={styles.heroTitle}>Start with Scripture</Text>
             <Text style={styles.heroSubtitle}>
               {hasPlaybooks
-                ? "You already have playbooks—turn one into a daily devotional."
+                ? 'You already have playbooks—turn one into a daily devotional.'
                 : "Create a playbook for what you're facing, then build a daily devotional from it."}
             </Text>
             <TouchableOpacity

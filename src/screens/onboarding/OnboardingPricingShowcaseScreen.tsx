@@ -60,7 +60,7 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
       } catch (e) {
         console.error('Failed to load pricing:', e);
       } finally {
-        if (mounted) setIsLoadingPricing(false);
+        if (mounted) {setIsLoadingPricing(false);}
       }
     })();
     return () => { mounted = false; };
@@ -73,7 +73,7 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
     const symbol = currencyInfo.symbol;
     const fmt = (n: number) => `${symbol}${n.toFixed(0)}`; // display rounded whole for year, monthly keeps as-is
     const computeSavings = (original?: number, current?: number) => {
-      if (!original || !current || original <= current) {return '';} 
+      if (!original || !current || original <= current) {return '';}
       const pct = Math.round(((original - current) / original) * 100);
       return `Save ${pct}%`;
     };

@@ -18,10 +18,10 @@ export type RootStackParamList = {
   OnboardingPlaybookNavigation: { generatedPlaybook: Playbook } | undefined;
   OnboardingNotificationPermission: { playbook?: Playbook } | undefined;
   OnboardingComplete: { playbook?: Playbook } | undefined;
-  
+
   // New Simplified Onboarding Flow Screens
-  OnboardingPlaybookReady: { 
-    playbook: Playbook; 
+  OnboardingPlaybookReady: {
+    playbook: Playbook;
     onboardingData: {
       name: string;
       ageGroup: string;

@@ -40,7 +40,7 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
   const giftOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {return;}
 
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -58,7 +58,7 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
 
   // Gentle pulsing animation for the gift icon
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {return;}
     const loop = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -129,7 +129,7 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
           {/* Animated Gift Icon */}
           <Animated.View style={[
             styles.giftIconContainer,
-            { transform: [{ scale: giftScale }], opacity: giftOpacity }
+            { transform: [{ scale: giftScale }], opacity: giftOpacity },
           ]}>
             <Ionicons name="gift" size={26} color={Colors.hopeWhite} />
           </Animated.View>
@@ -155,12 +155,12 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
           <View style={styles.pricingContainer}>
             <Text style={styles.planName}>{getTierDisplayName(tier)} Plan</Text>
             <Text style={styles.billingPeriod}>{isAnnual ? 'Annual' : 'Monthly'} Billing</Text>
-            
+
             <View style={styles.priceRow}>
               <Text style={styles.originalPrice}>${originalPrice.toFixed(2)}</Text>
               <Text style={styles.discountedPrice}>${discountedPrice.toFixed(2)}</Text>
             </View>
-            
+
             <Text style={styles.savingsText}>You save ${savings.toFixed(2)}!</Text>
 
             {/* First-term only note */}

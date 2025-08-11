@@ -91,7 +91,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     navigation.navigate('OnboardingPaymentProcessing' as any, {
       selectedTier,
       isAnnual,
-      price: getCurrentPrice()
+      price: getCurrentPrice(),
     });
   };
 
@@ -121,14 +121,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const isSelected = selectedTier === tier.id;
     const isFocused = tier.id === 'growth'; // Growth tier always focused
     const isExpanded = expandedCards.has(tier.id);
-    
+
     return (
       <View key={tier.id} style={styles.cardWrapper}>
         <TouchableOpacity
           style={[
           styles.pricingCard,
           isSelected && styles.selectedCard,
-          isFocused && styles.focusedCard
+          isFocused && styles.focusedCard,
         ]}
         onPress={() => setSelectedTier(tier.id)}
         activeOpacity={0.8}
@@ -138,7 +138,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             <Text style={styles.popularText}>POPULAR</Text>
           </View>
         )}
-        
+
         <View style={styles.cardHeader}>
           <Text style={[styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
@@ -149,11 +149,11 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             </Text>
           )}
         </View>
-        
+
         <Text style={[styles.tierDescription, isSelected && styles.selectedText]}>
           {tier.description}
         </Text>
-        
+
         {isExpanded && (
           <View style={styles.featuresContainer}>
             {(() => {
@@ -180,7 +180,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             })()}
           </View>
         )}
-        
+
         <View style={styles.priceContainer}>
           <View style={styles.priceRow}>
             <View style={styles.priceLeft}>
@@ -201,22 +201,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               <Text style={styles.monthlyEquivalent}>
                 {(currencyInfo?.symbol || '$')}{isAnnual ? getMonthlyEquivalent(tier) : tier.monthlyPrice.toFixed(2)}/month
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.detailsToggle}
                 onPress={() => toggleCardExpansion(tier.id)}
                 activeOpacity={0.8}
               >
-                <Ionicons 
-                  name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-                  size={14} 
-                  color={Colors.faithGold} 
+                <Ionicons
+                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                  size={14}
+                  color={Colors.faithGold}
                 />
               </TouchableOpacity>
             </View>
           </View>
           {/* original price now shown inline next to current price */}
         </View>
-        
+
         {isSelected && (
           <View style={styles.selectionIndicator}>
             <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 2,
   },
-  
+
   closeButton: {
     width: 40,
     height: 40,

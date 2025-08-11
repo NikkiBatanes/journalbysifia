@@ -29,7 +29,7 @@ async function getDeviceId(): Promise<string> {
 }
 
 function storageKeyFor(userId?: string | null) {
-  if (userId) return `discount_state:user:${userId}`;
+  if (userId) {return `discount_state:user:${userId}`;}
   return `discount_state:guest:${guestCacheDeviceId}`;
 }
 
@@ -59,7 +59,7 @@ export async function saveDiscountState(state: DiscountState, userId?: string | 
 
 // Trial opt-out persistence
 function trialOptOutKeyFor(userId?: string | null) {
-  if (userId) return `trial_opt_out:user:${userId}`;
+  if (userId) {return `trial_opt_out:user:${userId}`;}
   return `trial_opt_out:guest:${guestCacheDeviceId}`;
 }
 
@@ -87,7 +87,7 @@ export async function mergeGuestToUser(userId: string): Promise<void> {
     const guestKey = storageKeyFor(null);
     const userKey = storageKeyFor(userId);
     const guestRaw = await AsyncStorage.getItem(guestKey);
-    if (!guestRaw) return;
+    if (!guestRaw) {return;}
 
     const guestState = JSON.parse(guestRaw) as DiscountState;
     const userRaw = await AsyncStorage.getItem(userKey);

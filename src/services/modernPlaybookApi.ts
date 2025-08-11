@@ -638,7 +638,7 @@ export async function getPlaybook(
     console.log('[DEBUG] getPlaybook: Action steps result:', {
       actionStepsData: actionStepsData || [],
       actionStepsCount: actionStepsData?.length || 0,
-      actionStepsError
+      actionStepsError,
     });
 
     if (actionStepsError) {
@@ -656,7 +656,7 @@ export async function getPlaybook(
     console.log('[DEBUG] getPlaybook: Affirmations result:', {
       affirmationsData: affirmationsData || [],
       affirmationsCount: affirmationsData?.length || 0,
-      affirmationsError
+      affirmationsError,
     });
 
     if (affirmationsError) {

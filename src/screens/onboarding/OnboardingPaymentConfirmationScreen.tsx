@@ -133,7 +133,7 @@ const OnboardingPaymentConfirmationScreen = () => {
               <Text style={styles.trialTitle}>Trial Reminder</Text>
             </View>
             <Text style={styles.trialText}>
-              Your 3-day free trial will automatically convert to a paid subscription unless cancelled. 
+              Your 3-day free trial will automatically convert to a paid subscription unless cancelled.
               We'll send you a reminder before it ends.
             </Text>
           </View>
@@ -143,7 +143,7 @@ const OnboardingPaymentConfirmationScreen = () => {
         <View style={styles.managementSection}>
           <Text style={styles.managementTitle}>Subscription Management</Text>
           <Text style={styles.managementText}>
-            You can manage or cancel your subscription anytime through your device's subscription settings 
+            You can manage or cancel your subscription anytime through your device's subscription settings
             or in the app's account section.
           </Text>
         </View>

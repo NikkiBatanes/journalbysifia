@@ -54,7 +54,7 @@ export class SubscriptionService {
         // If there's an error fetching, return in-memory subscription
         return this.createInMemorySubscription(userId);
       }
-      
+
       if (data) {
         // Subscription exists, check if trial has expired
         if (data.status === 'trialing' && data.trial_end_date) {

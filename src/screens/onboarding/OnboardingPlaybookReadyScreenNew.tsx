@@ -58,7 +58,7 @@ interface PlaybookCard {
 
 // Inner component that can access ActionStepsContext
 const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; specificChallenge: string; userInput: string }> = ({
-  playbook, challengeCategory, specificChallenge, userInput
+  playbook, challengeCategory, specificChallenge, userInput,
 }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -84,7 +84,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
   // Subtle grow animation for in-card expand hint
   const hintPulse = useRef(new Animated.Value(1)).current;
-  
+
   // Carousel sizing: modern center-snap with spacing and narrower cards
   const ITEM_SPACING = 16;
   const ITEM_WIDTH = Math.round(width * 0.80); // slimmer card for better centering
@@ -107,7 +107,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     pulse.start();
     return () => {
       hintPulse.stopAnimation();
-      if (devotionalTimerRef.current) clearTimeout(devotionalTimerRef.current);
+      if (devotionalTimerRef.current) {clearTimeout(devotionalTimerRef.current);}
     };
   }, []);
 
@@ -217,10 +217,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
     // Truth in Love card
     if (playbook.truthInLove) {
-      const truthData = typeof playbook.truthInLove === 'string' 
+      const truthData = typeof playbook.truthInLove === 'string'
         ? { text: playbook.truthInLove, summary: '' }
         : playbook.truthInLove;
-      
+
       cards.push({
         id: 'truth',
         type: 'Truth in Love',
@@ -310,10 +310,10 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
     // Challenge card
     if (playbook.directChallenge) {
-      const challengeText = typeof playbook.directChallenge === 'string' 
-        ? playbook.directChallenge 
+      const challengeText = typeof playbook.directChallenge === 'string'
+        ? playbook.directChallenge
         : playbook.directChallenge.text;
-      
+
       cards.push({
         id: 'challenge',
         type: 'Challenge',
@@ -486,7 +486,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 </Animated.View>
               ))}
             </View>
-            <Text style={styles.modalTitle}>Your Personalized{"\n"}Playbook is Ready</Text>
+            <Text style={styles.modalTitle}>Your Personalized{'\n'}Playbook is Ready</Text>
             <Text style={styles.modalSubtitle}>Here's your first step toward clarity.</Text>
             <View style={styles.warningContainer}>
               <Ionicons name="heart" size={16} color={Colors.alertCoral} />
@@ -552,12 +552,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             marginRight: -16 - insets.right,
             paddingLeft: 16 + insets.left,
             paddingRight: 16 + insets.right,
-          }
+          },
         ]}>
           <TouchableOpacity style={styles.playbookTitleRow} onPress={toggleUserInput} activeOpacity={0.8}>
             <Text style={styles.playbookLabel}>PLAYBOOK</Text>
             <AnimatedRe.View style={[styles.chevronIcon, chevronStyle]}>
-              <Ionicons 
+              <Ionicons
                 name={'chevron-down'}
                 size={16}
                 color={Colors.hopeWhite}
@@ -572,9 +572,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               <Text style={styles.userInputText}>{onboardingData.challengeDetails}</Text>
             </View>
           )}
-          
+
           <Text style={styles.playbookTitle}>{playbook.title || 'Your Personalized Journey'}</Text>
-          
+
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${progressData.percentage}%` }]} />
@@ -600,7 +600,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           </View>
         </View>
 
-        
+
 
         {/* CAROUSEL CARDS */}
         <View style={{ minHeight: availableHeight, justifyContent: 'center' }}>
@@ -611,7 +611,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             // bleed past ScrollView and safe-area paddings for true edge-to-edge
             marginLeft: -16 - insets.left,
             marginRight: -16 - insets.right,
-          }
+          },
         ]}>
           <Animated.FlatList
             ref={flatListRef}
@@ -679,13 +679,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             paddingTop: expandedCards.size === 0 ? 8 : 0,
             paddingBottom: insets.bottom + 8,
             backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
-          }
+          },
         ]}>
           {/* Helper text inside the footer, above the button (hidden when a card is expanded) */}
           {expandedCards.size === 0 && (
             <Text style={[styles.bottomText, { marginBottom: 10, textAlign: 'center' }]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</Text>
           )}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.continueButton}
             onPress={handleContinueJourney}
             activeOpacity={0.8}
@@ -834,7 +834,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: `${Colors.alertCoral}20`,
-    borderWidth: .4,
+    borderWidth: 0.4,
     borderColor: Colors.alertCoral,
     padding: 12,
     borderRadius: 12,
@@ -1079,7 +1079,7 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
 
   return (
     <ActionStepsProvider initialSteps={playbook.actionSteps || []}>
-      <PlaybookContent 
+      <PlaybookContent
         playbook={playbook}
         challengeCategory={challengeCategory}
         specificChallenge={specificChallenge}

@@ -36,7 +36,7 @@ class PricingService {
       features: [
         '8 playbooks & 8 devotionals each month',
         'Gentle reminders to keep you on track',
-        'Track your progress week by week'
+        'Track your progress week by week',
       ],
       monthlyPrice: 6.99,
       annualOriginal: 83.88,
@@ -50,7 +50,7 @@ class PricingService {
       features: [
         '20 playbooks & 20 devotionals each month',
         'Advanced reflection prompts',
-        'Seasonal challenges for breakthrough'
+        'Seasonal challenges for breakthrough',
       ],
       monthlyPrice: 12.99,
       annualOriginal: 155.88,
@@ -66,7 +66,7 @@ class PricingService {
         'Unlimited playbooks & devotionals',
         'Personal spiritual mentor access',
         'Custom prayer & meditation guides',
-        'Priority support & guidance'
+        'Priority support & guidance',
       ],
       monthlyPrice: 24.99,
       annualOriginal: 299.88,
@@ -81,12 +81,12 @@ class PricingService {
         'Everything in Transformation',
         'Up to 6 family member accounts',
         'Family devotionals & activities',
-        'Parental guidance resources'
+        'Parental guidance resources',
       ],
       monthlyPrice: 34.99,
       annualOriginal: 419.88,
       annualPrice: 349.99,
-    }
+    },
   ];
 
   private locationPricing: { [key: string]: LocationPricing } = {
@@ -120,7 +120,7 @@ class PricingService {
    */
   async getLocationAdjustedPricing(): Promise<PricingTier[]> {
     const location = await this.getUserLocation();
-    const locationData = this.locationPricing[location] || this.locationPricing['DEFAULT'];
+    const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
 
     return this.baseUSDPricing.map(tier => ({
       ...tier,
@@ -136,7 +136,7 @@ class PricingService {
    */
   async getCurrencyInfo(): Promise<LocationPricing> {
     const location = await this.getUserLocation();
-    return this.locationPricing[location] || this.locationPricing['DEFAULT'];
+    return this.locationPricing[location] || this.locationPricing.DEFAULT;
   }
 
   /**
@@ -171,7 +171,7 @@ class PricingService {
     const current = (await loadDiscountState(userId)) || null;
     const optOuts = current?.optOutCount ?? this.userOptOutCount;
     const redeemed = current?.redeemed ?? false;
-    if (optOuts < 2 || redeemed) return null;
+    if (optOuts < 2 || redeemed) {return null;}
 
     // Show-once per tier & billing gate
     const period = billing || 'any';
@@ -181,8 +181,8 @@ class PricingService {
     }
 
     let percentage = 10;
-    if (optOuts >= 3) percentage = 20;
-    if (optOuts >= 4) percentage = 30;
+    if (optOuts >= 3) {percentage = 20;}
+    if (optOuts >= 4) {percentage = 30;}
 
     // Update last shown metadata (non-blocking semantics here)
     const next: DiscountState = {

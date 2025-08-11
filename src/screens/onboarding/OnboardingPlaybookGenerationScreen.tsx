@@ -141,7 +141,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               // Check for direct playbook creation much earlier to bypass broken queue system
               let playbookExists = false;
               let directPlaybook = null;
-              
+
               if (status.status === 'processing' && attempts > 5) {
                 // After 15 seconds, start checking if playbook exists directly
                 try {
@@ -156,7 +156,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   if (recentPlaybooks && recentPlaybooks.length > 0) {
                     const recentPlaybook = recentPlaybooks[0];
                     const playbookAge = Date.now() - new Date(recentPlaybook.created_at).getTime();
-                    
+
                     // If playbook was created in the last 60 seconds, it's likely our generated one
                     if (playbookAge < 60000) {
                       console.log('🎯 Found recently created playbook, using as completion fallback');
@@ -215,7 +215,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                     }
                   } catch (fetchError) {
                     console.log('🔄 Result ID not found, trying to fetch most recent playbook...');
-                    
+
                     // Fallback: get the most recent playbook for this user
                     const { supabase } = await import('../../services/supabaseClient');
                     const fallbackResult = await supabase
@@ -225,7 +225,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       .order('created_at', { ascending: false })
                       .limit(1)
                       .single();
-                    
+
                     if (fallbackResult.data) {
                       const playbookAge = Date.now() - new Date(fallbackResult.data.created_at).getTime();
                       // If playbook was created in the last 2 minutes, it's likely our generated one
@@ -257,14 +257,14 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   console.log('[DEBUG] OnboardingGeneration: Raw playbook from getPlaybook:', JSON.stringify(playbook, null, 2));
                   console.log('[DEBUG] OnboardingGeneration: Action steps from getPlaybook:', playbook.actionSteps);
                   console.log('[DEBUG] OnboardingGeneration: Affirmations from getPlaybook:', playbook.affirmations);
-                  
+
                   // Convert database playbook to UI format - use any type to avoid TypeScript issues
                   const realGeneratedPlaybook: any = {
                     id: playbook.id,
                     title: playbook.title,
                     truthInLove: playbook.truthInLove || 'God loves you and is with you in this journey.',
                     actionSteps: playbook.actionSteps || [],
-                    affirmations: (playbook.affirmations && playbook.affirmations.length > 0) 
+                    affirmations: (playbook.affirmations && playbook.affirmations.length > 0)
                       ? playbook.affirmations.map((aff: any) => typeof aff === 'string' ? aff : aff.text || aff)
                       : [
                           'I am loved unconditionally by God',
@@ -277,7 +277,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                     },
                     directChallenge: playbook.directChallenge || 'Take one step forward in faith this week.',
                   };
-                  
+
                   // DEBUG: Log what we're passing to the ready screen
                   console.log('[DEBUG] OnboardingGeneration: Passing to ready screen:', JSON.stringify(realGeneratedPlaybook, null, 2));
 
@@ -464,7 +464,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         setCurrentStep(prev => {
           const nextStep = prev + 1;
           const isLastStep = nextStep >= generationSteps.length;
-          
+
           // Animate progress bar
           Animated.timing(progressAnim, {
             toValue: (isLastStep ? generationSteps.length : nextStep) / generationSteps.length * 100,
@@ -482,7 +482,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             clearInterval(stepInterval);
             return prev;
           }
-          
+
           return nextStep;
         });
       }, 3000); // 3 seconds per step for better readability
@@ -553,9 +553,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     <SafeAreaView style={styles.container} edges={['top','bottom']}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
-      <Animated.View 
+      <Animated.View
         style={[styles.content, { opacity: fadeAnim }]}
-      > 
+      >
         {/* Progress Indicator */}
         {/* No progress indicator needed */}
 
@@ -594,8 +594,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               </View>
 
               {/* Current Step Text */}
-              <ScrollView 
-                horizontal 
+              <ScrollView
+                horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.stepTextContainer}
               >

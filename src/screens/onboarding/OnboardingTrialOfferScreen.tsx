@@ -84,12 +84,12 @@ const OnboardingTrialOfferScreen = () => {
   const getSelectedTier = () => pricingTiers.find((t: any) => t.id === selectedTierId) || pricingTiers.find((t: any) => t.id === 'growth');
   const getCurrentPrice = () => {
     const t = getSelectedTier();
-    if (!t) return 0;
+    if (!t) {return 0;}
     return isAnnual ? t.annualPrice : t.monthlyPrice;
   };
   const getMonthlyEquivalent = () => {
     const t = getSelectedTier();
-    if (!t) return 0;
+    if (!t) {return 0;}
     return (t.annualPrice / 12);
   };
 
@@ -100,7 +100,7 @@ const OnboardingTrialOfferScreen = () => {
       isAnnual,
       isTrial: true,
       trialDays: 3,
-      price: 0 // Free trial
+      price: 0, // Free trial
     });
   };
 
@@ -141,12 +141,12 @@ const OnboardingTrialOfferScreen = () => {
       icon: 'heart',
       iconColor: Colors.alertCoral,
       isCompleted: false,
-    }
+    },
   ];
 
   const renderTimelineItem = (item: any, index: number) => {
     const isLast = index === timelineItems.length - 1;
-    
+
     return (
       <View key={item.id} style={styles.timelineItem}>
         <View style={styles.timelineIconContainer}>
@@ -159,13 +159,13 @@ const OnboardingTrialOfferScreen = () => {
             </View>
           )}
         </View>
-        
+
         <View style={styles.timelineContent}>
           <Text style={styles.timelineTitle}>{item.title}</Text>
           {item.id === 1 ? (
             <Text style={styles.timelineDescription}>
-              Try <Text style={styles.strong}>siFia {`${getTierDisplayName(selectedTierId).toUpperCase()} PLAN`}</Text> free for 3 days{"\n"}
-              No pressure, no catch.{"\n"}
+              Try <Text style={styles.strong}>siFia {`${getTierDisplayName(selectedTierId).toUpperCase()} PLAN`}</Text> free for 3 days{'\n'}
+              No pressure, no catch.{'\n'}
               Experience personalized guidance and see how it fits your story.
             </Text>
           ) : (

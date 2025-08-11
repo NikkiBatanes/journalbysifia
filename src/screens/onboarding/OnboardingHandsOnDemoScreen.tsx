@@ -86,24 +86,24 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
   }, []);
 
   const markStepCompleted = (stepId: string) => {
-    setDemoSteps(prev => 
-      prev.map(step => 
+    setDemoSteps(prev =>
+      prev.map(step =>
         step.id === stepId ? { ...step, completed: true } : step
       )
     );
   };
 
   const handleAskQuestion = () => {
-    if (!userQuestion.trim()) return;
-    
+    if (!userQuestion.trim()) {return;}
+
     setShowAiResponse(true);
     setAiResponse(`Based on your question about "${userQuestion}", here's some personalized guidance: Remember that faith is a journey of trust. Consider reflecting on Proverbs 3:5-6 - "Trust in the Lord with all your heart and lean not on your own understanding." Take time today to pray about this concern and listen for God's guidance.`);
     markStepCompleted('ai_chat');
   };
 
   const handleAddPrayer = () => {
-    if (!prayerText.trim()) return;
-    
+    if (!prayerText.trim()) {return;}
+
     setShowPrayerAdded(true);
     markStepCompleted('prayer_journal');
   };
@@ -117,7 +117,7 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
     <View style={styles.demoContainer}>
       <Text style={styles.demoTitle}>Try AI Spiritual Guidance</Text>
       <Text style={styles.demoSubtitle}>Ask any question about faith, relationships, or life challenges</Text>
-      
+
       <View style={styles.chatContainer}>
         <TextInput
           style={styles.questionInput}
@@ -127,7 +127,7 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
           multiline
           maxLength={200}
         />
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.askButton, !userQuestion.trim() && styles.disabledButton]}
           onPress={handleAskQuestion}
           disabled={!userQuestion.trim()}
@@ -157,7 +157,7 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
     <View style={styles.demoContainer}>
       <Text style={styles.demoTitle}>Try Prayer Journal</Text>
       <Text style={styles.demoSubtitle}>Add a prayer request and see how we help you track God's answers</Text>
-      
+
       <View style={styles.prayerContainer}>
         <TextInput
           style={styles.prayerInput}
@@ -167,7 +167,7 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
           multiline
           maxLength={300}
         />
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.prayerButton, !prayerText.trim() && styles.disabledButton]}
           onPress={handleAddPrayer}
           disabled={!prayerText.trim()}
@@ -199,7 +199,7 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
     <View style={styles.demoContainer}>
       <Text style={styles.demoTitle}>Interactive Scripture Study</Text>
       <Text style={styles.demoSubtitle}>Experience personalized Bible study with AI insights</Text>
-      
+
       <View style={styles.scriptureContainer}>
         <View style={styles.verseCard}>
           <Text style={styles.verseReference}>Philippians 4:13</Text>
@@ -207,8 +207,8 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
             "I can do all things through Christ who strengthens me."
           </Text>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.studyButton}
           onPress={() => markStepCompleted('scripture_study')}
         >
@@ -230,7 +230,7 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
     <View style={styles.demoContainer}>
       <Text style={styles.demoTitle}>Track Your Spiritual Growth</Text>
       <Text style={styles.demoSubtitle}>See how your faith journey progresses over time</Text>
-      
+
       <View style={styles.progressContainer}>
         <View style={styles.progressCard}>
           <Text style={styles.progressCardTitle}>This Week's Progress</Text>
@@ -249,8 +249,8 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
             <Text style={styles.progressValue}>5/7 days</Text>
           </View>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           style={styles.viewProgressButton}
           onPress={() => markStepCompleted('progress_tracker')}
         >
@@ -282,9 +282,9 @@ const OnboardingHandsOnDemoScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
-      
+
       <OnboardingProgressIndicator currentStep={6} totalSteps={7} />
-      
+
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Animated.View
           style={[

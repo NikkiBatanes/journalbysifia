@@ -22,7 +22,7 @@ const OnboardingPaymentProcessingScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { selectedTier, isAnnual, price, isTrial, trialDays } = route.params as RouteParams;
-  
+
   const [processingStep, setProcessingStep] = useState(0);
 
   const processingSteps = [
@@ -45,7 +45,7 @@ const OnboardingPaymentProcessingScreen = () => {
           // Apple will handle the actual payment processing
           // This is just UI simulation for the flow
           setProcessingStep(1);
-          
+
           setTimeout(() => {
             setProcessingStep(2);
             setTimeout(() => {
@@ -115,24 +115,24 @@ const OnboardingPaymentProcessingScreen = () => {
         {/* Order Summary */}
         <View style={styles.orderSummary}>
           <Text style={styles.summaryTitle}>Order Summary</Text>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Plan:</Text>
             <Text style={styles.summaryValue}>{getTierDisplayName(selectedTier)}</Text>
           </View>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Billing:</Text>
             <Text style={styles.summaryValue}>{isAnnual ? 'Annual' : 'Monthly'}</Text>
           </View>
-          
+
           {isTrial && trialDays && (
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Trial Period:</Text>
               <Text style={styles.summaryValue}>{trialDays} days free</Text>
             </View>
           )}
-          
+
           <View style={[styles.summaryRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>
               {isTrial ? 'Today\'s Charge:' : 'Total:'}
