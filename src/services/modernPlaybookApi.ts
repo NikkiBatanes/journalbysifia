@@ -628,22 +628,36 @@ export async function getPlaybook(
     }
 
     // Fetch action steps from separate table
+    console.log('[DEBUG] getPlaybook: Fetching action steps for playbook:', playbookId);
     const { data: actionStepsData, error: actionStepsError } = await supabase
       .from('playbook_action_steps')
       .select('*')
       .eq('playbook_id', playbookId)
       .order('order_index');
 
+    console.log('[DEBUG] getPlaybook: Action steps result:', {
+      actionStepsData: actionStepsData || [],
+      actionStepsCount: actionStepsData?.length || 0,
+      actionStepsError
+    });
+
     if (actionStepsError) {
       console.warn('⚠️ Warning: Could not fetch action steps:', actionStepsError);
     }
 
     // Fetch affirmations from separate table
+    console.log('[DEBUG] getPlaybook: Fetching affirmations for playbook:', playbookId);
     const { data: affirmationsData, error: affirmationsError } = await supabase
       .from('playbook_affirmations')
       .select('*')
       .eq('playbook_id', playbookId)
       .order('order_index');
+
+    console.log('[DEBUG] getPlaybook: Affirmations result:', {
+      affirmationsData: affirmationsData || [],
+      affirmationsCount: affirmationsData?.length || 0,
+      affirmationsError
+    });
 
     if (affirmationsError) {
       console.warn('⚠️ Warning: Could not fetch affirmations:', affirmationsError);
@@ -719,16 +733,39 @@ export async function getPlaybook(
 
     console.log('[DEBUG] Progress calculation:', { totalTasks, completedTasks, progress });
 
+    // Normalize potentially stringified JSON fields
+    const safeParse = (val: any) => {
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch { return val; }
+      }
+      return val;
+    };
+
+    const rawTruth = safeParse(data.truth_in_love);
+    const normalizedTruth = rawTruth && typeof rawTruth === 'object'
+      ? { text: rawTruth.text || '', summary: rawTruth.summary || '' }
+      : { text: typeof rawTruth === 'string' ? rawTruth : '', summary: '' };
+
+    const rawBible = safeParse(data.bible_verse);
+    const normalizedBible = rawBible && typeof rawBible === 'object'
+      ? { text: rawBible.text || '', reference: rawBible.reference || '' }
+      : { text: typeof rawBible === 'string' ? rawBible : '', reference: '' };
+
+    const rawChallenge = safeParse(data.direct_challenge);
+    const normalizedChallenge = rawChallenge && typeof rawChallenge === 'object'
+      ? { text: rawChallenge.text || '', summary: rawChallenge.summary || '' }
+      : (typeof rawChallenge === 'string' ? rawChallenge : '');
+
     // Transform to Playbook interface
     const playbook: Playbook = {
       id: data.id,
       title: data.title,
       userInput: data.user_input || '', // Use the actual user_input column
-      truthInLove: data.truth_in_love || { text: '', summary: '' },
+      truthInLove: normalizedTruth,
       actionSteps: actionSteps,
       affirmations: affirmations,
-      bibleVerse: data.bible_verse || { text: '', reference: '' },
-      directChallenge: data.direct_challenge,
+      bibleVerse: normalizedBible,
+      directChallenge: normalizedChallenge,
       challengeCTA: data.challenge_cta,
       profileImage: '', // Not stored in current schema
       progress: progress, // Calculated manually

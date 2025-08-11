@@ -10,12 +10,19 @@ import {
   Dimensions,
   Animated,
   StatusBar,
+  Modal,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AnimatedRe, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme';
 import { BorderRadii } from '../../theme/styles';
+import { notificationService } from '../../services/notificationService';
+import { faithPointsService } from '../../services/faithPointsService';
 import { Playbook } from '../../interfaces/playbook';
 import { ActionStepsProvider, useActionSteps } from '../../context/ActionStepsContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,7 +36,7 @@ import DirectChallengeCard from '../../components/DirectChallengeCard';
 import DevotionalButton from '../../components/DevotionalButton';
 import DevotionalModal from '../../components/DevotionalModal';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface RouteParams {
   playbook: Playbook;
@@ -59,17 +66,50 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set());
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [showIntroModal, setShowIntroModal] = useState(true);
   const [progressData, setProgressData] = useState({ completed: 0, total: 0, percentage: 0 });
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+  // Delayed & persistent devotional CTA visibility
+  const [devotionalVisible, setDevotionalVisible] = useState(false);
+  const devotionalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Heights for sticky header and fixed footer to vertically center carousel area
+  const [headerH, setHeaderH] = useState(0);
+  const [footerH, setFooterH] = useState(0);
+  const availableHeight = Math.max(0, height - headerH - footerH);
+  // Measured intrinsic heights for each card's content
+  const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
+  // Subtle grow animation for in-card expand hint
+  const hintPulse = useRef(new Animated.Value(1)).current;
   
   // Carousel sizing: modern center-snap with spacing and narrower cards
   const ITEM_SPACING = 16;
   const ITEM_WIDTH = Math.round(width * 0.80); // slimmer card for better centering
   const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
   const sidePadding = Math.round((width - ITEM_WIDTH) / 2); // center first/last (rounded to avoid half-pixel drift)
+
+  // Cleanup on unmount
+  useEffect(() => {
+    // Enable LayoutAnimation on Android
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+    // Start a gentle pulsing animation for the hint (only visible when needed)
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(hintPulse, { toValue: 1.06, duration: 900, useNativeDriver: true }),
+        Animated.timing(hintPulse, { toValue: 1.0, duration: 900, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => {
+      hintPulse.stopAnimation();
+      if (devotionalTimerRef.current) clearTimeout(devotionalTimerRef.current);
+    };
+  }, []);
 
   // Chevron animation (match PlaybookDetail rotation behavior)
   const chevronAnim = useSharedValue(0);
@@ -80,10 +120,53 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     transform: [{ rotate: `${chevronAnim.value * 180}deg` }],
   }));
 
+  // Show only the user's freeform input for the challenge
+  const resolvedChallengeDetails = (userInput && userInput.trim().length > 0)
+    ? userInput.trim()
+    : '—';
+
   const onboardingData = {
     name: 'Friend', // You could get this from user context
-    challengeDetails: `${challengeCategory}: ${specificChallenge}`,
+    challengeDetails: resolvedChallengeDetails,
   };
+
+  // Bursting stars animation for Intro Modal
+  const starPositions = React.useMemo(
+    () => [
+      { top: 20, left: '20%' },
+      { top: 10, right: '18%' },
+      { top: 60, left: '8%' },
+      { top: 55, right: '6%' },
+      { top: 30, left: '60%' },
+      { top: 75, left: '40%' },
+      { top: -5, right: '40%' },
+    ] as Array<{ top: number; left?: number | `${number}%` | 'auto'; right?: number | `${number}%` | 'auto' }>,
+    []
+  );
+  const starAnims = useRef(
+    starPositions.map(() => ({
+      scale: new Animated.Value(0),
+      opacity: new Animated.Value(0),
+    }))
+  ).current;
+
+  useEffect(() => {
+    if (showIntroModal) {
+      // Staggered burst
+      starAnims.forEach((anim, i) => {
+        anim.scale.setValue(0);
+        anim.opacity.setValue(0);
+        Animated.sequence([
+          Animated.delay(i * 90),
+          Animated.parallel([
+            Animated.spring(anim.scale, { toValue: 1.4, useNativeDriver: true, speed: 18, bounciness: 8 }),
+            Animated.timing(anim.opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+          ]),
+          Animated.timing(anim.opacity, { toValue: 0, duration: 500, delay: 150, useNativeDriver: true }),
+        ]).start();
+      });
+    }
+  }, [showIntroModal, starAnims]);
 
   // Issue #3 fix: Calculate progress using ActionStepsContext for real-time updates
   const calculateProgress = () => {
@@ -195,7 +278,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               {playbook.affirmations.map((affirmation: any, index: number) => (
                 <View key={index} style={styles.affirmationCard}>
                   <View style={styles.affirmationContent}>
-                    <Text style={styles.affirmationText}>{affirmation.text}</Text>
+                    <Text style={styles.affirmationText}>
+                      {typeof affirmation === 'string' ? affirmation : affirmation?.text || ''}
+                    </Text>
                   </View>
                 </View>
               ))}
@@ -248,7 +333,26 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const carouselCards = createCarouselCards();
 
+  // When user reaches the last card, start a delay then reveal the CTA.
+  // Once revealed, keep it visible even if the user navigates away from the last card.
+  useEffect(() => {
+    const isLast = currentIndex === carouselCards.length - 1;
+    if (isLast && !devotionalVisible && !devotionalTimerRef.current) {
+      devotionalTimerRef.current = setTimeout(() => {
+        setDevotionalVisible(true);
+        devotionalTimerRef.current = null;
+      }, 800); // delay in ms; adjust as desired
+    }
+  }, [currentIndex, carouselCards.length, devotionalVisible]);
+
   const toggleCardExpansion = (cardId: string) => {
+    // Smooth slow expand/collapse
+    LayoutAnimation.configureNext({
+      duration: 700,
+      update: { type: LayoutAnimation.Types.easeInEaseOut },
+      create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    });
     setExpandedCards(prev => {
       const newSet = new Set(prev);
       if (newSet.has(cardId)) {
@@ -258,10 +362,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       }
       return newSet;
     });
+    // Once the user taps to expand, permanently dismiss the hint for this card
+    setDismissedHints(prev => {
+      const d = new Set(prev);
+      d.add(cardId);
+      return d;
+    });
   };
 
   const renderCarouselCard = ({ item, index }: { item: PlaybookCard; index: number }) => {
     const isExpanded = expandedCards.has(item.id);
+    const COLLAPSED_HEIGHT = 380;
+    const measured = contentHeights[item.id] || 0;
+    const needsExpansion = measured > COLLAPSED_HEIGHT + 1; // only tappable if truncated when collapsed
 
     const inputRange = [
       (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
@@ -287,14 +400,32 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     return (
       <TouchableOpacity
         style={[styles.cardContainer, { width: ITEM_WIDTH, alignItems: 'center', marginHorizontal: 0 }]}
-        onPress={() => toggleCardExpansion(item.id)}
-        activeOpacity={0.9}
+        onPress={needsExpansion ? () => toggleCardExpansion(item.id) : undefined}
+        disabled={!needsExpansion}
+        activeOpacity={needsExpansion ? 0.9 : 1}
+        accessibilityRole={needsExpansion ? 'button' : undefined}
+        accessibilityHint={needsExpansion ? 'Tap to expand and read full content' : undefined}
       >
+        {/* Hidden measurement: render content unconstrained to capture intrinsic height once */}
+        {measured === 0 && (
+          <View
+            style={{ position: 'absolute', opacity: 0, zIndex: -1, left: -10000, right: 0 }}
+            onLayout={({ nativeEvent }) => {
+              const h = nativeEvent.layout.height;
+              if (h > 0 && h !== measured) {
+                setContentHeights((prev) => ({ ...prev, [item.id]: h }));
+              }
+            }}
+          >
+            <View style={{ width: ITEM_WIDTH }}>{item.component}</View>
+          </View>
+        )}
+
         <Animated.View
           style={[
             styles.cardContent,
             {
-              height: isExpanded ? 'auto' : 380,
+              height: isExpanded ? 'auto' : COLLAPSED_HEIGHT,
               width: ITEM_WIDTH,
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
               transform: [{ scale }, { translateY }],
@@ -303,6 +434,20 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           ]}
         >
           {item.component}
+
+          {/* In-card expand hint overlay */}
+          {item.id === 'truth' && needsExpansion && !isExpanded && !dismissedHints.has(item.id) && (
+            <TouchableOpacity
+              style={styles.expandHintButton}
+              onPress={() => toggleCardExpansion(item.id)}
+              activeOpacity={0.85}
+            >
+              <Animated.View style={[styles.expandHintRow, { transform: [{ scale: hintPulse }] }]}>
+                <MaterialCommunityIcons name="arrow-expand-all" size={18} color={Colors.hopeWhite} style={{ marginRight: 6 }} />
+                <Text style={styles.expandHintText}>Tap the Card to Expand</Text>
+              </Animated.View>
+            </TouchableOpacity>
+          )}
         </Animated.View>
       </TouchableOpacity>
     );
@@ -319,42 +464,96 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   return (
     <>
+      {/* Intro Modal */}
+      <Modal visible={showIntroModal} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            {/* Bursting Stars */}
+            <View style={styles.starsLayer} pointerEvents="none">
+              {starPositions.map((pos, idx) => (
+                <Animated.View
+                  key={idx}
+                  style={[
+                    styles.starItem,
+                    pos,
+                    {
+                      transform: [{ scale: starAnims[idx].scale }],
+                      opacity: starAnims[idx].opacity,
+                    },
+                  ]}
+                >
+                  <MaterialCommunityIcons name="star-four-points" size={14} color={Colors.hopeWhite} />
+                </Animated.View>
+              ))}
+            </View>
+            <Text style={styles.modalTitle}>Your Personalized{"\n"}Playbook is Ready</Text>
+            <Text style={styles.modalSubtitle}>Here's your first step toward clarity.</Text>
+            <View style={styles.warningContainer}>
+              <Ionicons name="heart" size={16} color={Colors.alertCoral} />
+              <Text style={styles.warningText}>
+                Some truths may be hard to hear, but they are shared in love to help you grow.
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.modalButton}
+              activeOpacity={0.9}
+              onPress={() => {
+                // Close modal first, then show notification slightly after so it's not under the modal layer
+                setShowIntroModal(false);
+                setTimeout(() => {
+                  try {
+                    const points = faithPointsService.getPointsForActivity('playbook_generated');
+                    notificationService.showPointsNotification(points, 'playbook_generated', 'center');
+                  } catch (e) {
+                    // Non-blocking: if anything fails, proceed silently
+                    console.warn('[OnboardingPlaybookReady] Failed to show points notification:', e);
+                  }
+                }, 150);
+              }}
+            >
+              <Text style={styles.modalButtonText}>Explore My First Playbook</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <View style={styles.container}>
         <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
         <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={[
             styles.scrollContent,
-            { paddingBottom: insets.bottom + 140, paddingTop: insets.top + 4 },
+            // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
+            { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={expandedCards.size > 0}
+          scrollEnabled={expandedCards.size > 0}
           bounces
           alwaysBounceVertical
           overScrollMode="always"
           contentInsetAdjustmentBehavior="never"
-          scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom }}
+          // Make the first child (header) sticky so content scrolls underneath it when expanded
+          stickyHeaderIndices={[0]}
+          // Match bottom inset to footer height; dynamic with expansion
+          scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80) }}
         >
-        {/* ONBOARDING-SPECIFIC HEADER */}
-        <View style={styles.headerRow}>
-          <Image
-            source={require('../../../assets/images/siFiaAppIcon.png')}
-            style={styles.logoSmall}
-            resizeMode="contain"
-          />
-          <Text style={[styles.mainTitle, styles.mainTitleInline]}>Your Personalized{"\n"}Playbook is Ready</Text>
-        </View>
-        <View style={styles.headerTextBlock}>
-          <Text style={styles.subtitle}>Here's your first step toward clarity.</Text>
-          <View style={styles.warningContainer}>
-            <Ionicons name="warning-outline" size={16} color={Colors.faithGold} />
-            <Text style={styles.warningText}>
-              This may be hard to hear, but truth spoken in love can set you free. Here's your personalized guide for the days ahead.
-            </Text>
-          </View>
-        </View>
+        {/* ONBOARDING-SPECIFIC HEADER REMOVED (moved to intro modal) */}
 
         {/* PLAYBOOK HEADER WITH CHEVRON TOGGLE */}
-        <View style={styles.playbookHeaderContainer}>
+        <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
+          styles.playbookHeaderContainer,
+          {
+            zIndex: 2,
+            elevation: 2,
+            backgroundColor: Colors.anchorBlue,
+            // Respect safe area so sticky header doesn't move under the status bar
+            paddingTop: insets.top + 4,
+            // Make header background span edge-to-edge while keeping inner content aligned
+            marginLeft: -16 - insets.left,
+            marginRight: -16 - insets.right,
+            paddingLeft: 16 + insets.left,
+            paddingRight: 16 + insets.right,
+          }
+        ]}>
           <TouchableOpacity style={styles.playbookTitleRow} onPress={toggleUserInput} activeOpacity={0.8}>
             <Text style={styles.playbookLabel}>PLAYBOOK</Text>
             <AnimatedRe.View style={[styles.chevronIcon, chevronStyle]}>
@@ -382,26 +581,29 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             </View>
             <Text style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</Text>
           </View>
+
+          {/* CAROUSEL INDICATORS - Moved inside sticky header */}
+          <View style={styles.dotsContainer}>
+            {carouselCards.map((_, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.dot,
+                  currentIndex === index && styles.activeDot,
+                ]}
+                onPress={() => {
+                  flatListRef.current?.scrollToIndex({ index, animated: true });
+                  setCurrentIndex(index);
+                }}
+              />
+            ))}
+          </View>
         </View>
 
-        {/* CAROUSEL INDICATORS - Moved to top */}
-        <View style={styles.dotsContainer}>
-          {carouselCards.map((_, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.dot,
-                currentIndex === index && styles.activeDot,
-              ]}
-              onPress={() => {
-                flatListRef.current?.scrollToIndex({ index, animated: true });
-                setCurrentIndex(index);
-              }}
-            />
-          ))}
-        </View>
+        
 
         {/* CAROUSEL CARDS */}
+        <View style={{ minHeight: availableHeight, justifyContent: 'center' }}>
         <View style={[
           styles.carouselContainer,
           {
@@ -423,8 +625,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             snapToInterval={ITEM_SIZE}
             decelerationRate="fast"
             bounces={false}
-            // compensate for the negative margins so items still center on screen
-            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) + 16 }}
+            // Center items precisely: use exact sidePadding (no extra compensation)
+            contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
             ItemSeparatorComponent={() => <View style={{ width: ITEM_SPACING }} />}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
@@ -449,8 +651,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           />
         </View>
 
-        {/* DEVOTIONAL BUTTON - Only show on last card */}
-        {currentIndex === carouselCards.length - 1 && (
+        {/* DEVOTIONAL BUTTON - delayed reveal and persistent */}
+        {devotionalVisible && (
           <TouchableOpacity
             style={styles.devotionalButton}
             onPress={handleCreateDevotional}
@@ -460,31 +662,35 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           </TouchableOpacity>
         )}
 
-        {/* SCROLLING HELPER TEXT */}
-        <Text style={styles.bottomText}>
-          This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.
-        </Text>
+        </View>
+
+        {/* Helper text moved back to footer to live with the CTA */}
         </ScrollView>
 
         {/* FIXED FOOTER (translucent so cards scroll behind) - Button only */}
-        <View style={[
+        <View onLayout={({ nativeEvent }) => setFooterH(nativeEvent.layout.height)} style={[
           styles.footer,
           {
             position: 'absolute',
             left: 0,
             right: 0,
             bottom: 0,
-            paddingTop: 0,
+            // Collapse top padding when helper text is hidden (cards expanded)
+            paddingTop: expandedCards.size === 0 ? 8 : 0,
             paddingBottom: insets.bottom + 8,
             backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
           }
         ]}>
+          {/* Helper text inside the footer, above the button (hidden when a card is expanded) */}
+          {expandedCards.size === 0 && (
+            <Text style={[styles.bottomText, { marginBottom: 10, textAlign: 'center' }]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</Text>
+          )}
           <TouchableOpacity 
             style={styles.continueButton}
             onPress={handleContinueJourney}
             activeOpacity={0.8}
           >
-            <Text style={styles.continueButtonText}>Continue My Journey</Text>
+            <Text style={styles.continueButtonText}>Begin My Journey</Text>
           </TouchableOpacity>
         </View>
 
@@ -500,6 +706,72 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 };
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 28,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: BorderRadii.cardXL,
+    padding: 24,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    position: 'relative',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 12,
+    lineHeight: 30,
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    opacity: 0.9,
+    marginBottom: 14,
+    lineHeight: 22,
+  },
+  modalBody: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalButton: {
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  // Stars animation layer in modal
+  starsLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 110,
+    alignItems: 'center',
+    justifyContent: 'center',
+    pointerEvents: 'none',
+  },
+  starItem: {
+    position: 'absolute',
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -561,21 +833,21 @@ const styles = StyleSheet.create({
   warningContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${Colors.faithGold}20`,
+    backgroundColor: `${Colors.alertCoral}20`,
     borderWidth: .4,
-    borderColor: Colors.faithGold,
-    padding: 8,
+    borderColor: Colors.alertCoral,
+    padding: 12,
     borderRadius: 12,
     marginHorizontal: 0,
     marginTop: 2,
-    marginBottom: 10,
+    marginBottom: 14,
   },
   warningText: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 14,
     color: Colors.hopeWhite,
     marginLeft: 8,
-    lineHeight: 14,
+    lineHeight: 18,
   },
   playbookHeaderContainer: {
     marginBottom: 6,
@@ -597,11 +869,11 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   playbookTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
     marginBottom: 8,
-    letterSpacing: 0.2,
+    letterSpacing: 0.5,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -614,12 +886,17 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 8,
+    overflow: 'hidden', // clip inner fill so left edge appears rounded
     marginRight: 10,
   },
   progressFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 2,
+    // Ensure left edge is rounded; right edge will round when 100%
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
   },
   progressText: {
     fontSize: 12,
@@ -764,6 +1041,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 0,
     height: 56,
     alignSelf: 'stretch',
@@ -773,6 +1051,24 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 16,
     fontWeight: '600',
+  },
+  expandHintButton: {
+    position: 'absolute',
+    bottom: 12,
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
+  expandHintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  expandHintText: {
+    color: Colors.hopeWhite,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
 

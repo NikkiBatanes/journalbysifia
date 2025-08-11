@@ -68,11 +68,30 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const contentFadeAnim = useRef(new Animated.Value(0)).current;
   const pulseValue = useRef(new Animated.Value(0.8)).current;
-  const breathingAnim = useRef(new Animated.Value(0.8)).current;
+  const breathingAnim = useRef(new Animated.Value(0.9)).current;
+  const textOpacity = useRef(new Animated.Value(0.8)).current;
+  const textPulse = useRef(new Animated.Value(1)).current;
+  const inWordsOpacity = useRef(new Animated.Value(1)).current;   // starts visible
+  const outWordsOpacity = useRef(new Animated.Value(0)).current;  // starts hidden
+
+  // Concentric Aura breathing values (three rings)
+  const aura1Scale = useRef(new Animated.Value(0.9)).current;
+  const aura2Scale = useRef(new Animated.Value(0.9)).current;
+  const aura3Scale = useRef(new Animated.Value(0.9)).current;
+  const aura1Opacity = useRef(new Animated.Value(0.35)).current;
+  const aura2Opacity = useRef(new Animated.Value(0.28)).current;
+  const aura3Opacity = useRef(new Animated.Value(0.20)).current;
+
+  // Scale breathing words subtly with the inner ring
+  const textScale = aura1Scale.interpolate({
+    inputRange: [0.85, 1.1],
+    outputRange: [0.97, 1.03],
+    extrapolate: 'clamp',
+  });
 
   // Breathing animation text
-  const [breathingText, setBreathingText] = useState('Breathe in peace...');
-  const [breathingPhase, setBreathingPhase] = useState<'in' | 'out'>('in');
+  const [breathingText, setBreathingText] = useState('Breathe in peace');
+  const [breathingPhase, setBreathingPhase] = useState<'in' | 'hold' | 'out'>('in');
   // No manual measurement: we'll use flex spacers and safe-area padding
 
   const generationSteps = [
@@ -157,30 +176,51 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 let playbook = null;
                 let error = null;
 
-                // Use direct playbook if we found one via fallback, otherwise fetch by resultId
+                // Always use getPlaybook function to ensure we get complete data with action steps and affirmations
                 if (playbookExists && directPlaybook) {
-                  console.log('✅ Using direct playbook from fallback detection');
-                  playbook = directPlaybook;
+                  console.log('✅ Found direct playbook from fallback, fetching complete data with getPlaybook...');
+                  // Use getPlaybook to get complete data including action steps and affirmations
+                  if (user?.id) {
+                    const { getPlaybook } = await import('../../services/modernPlaybookApi');
+                    const completePlaybook = await getPlaybook(user.id, directPlaybook.id);
+                    if (completePlaybook) {
+                      playbook = completePlaybook;
+                      console.log('✅ Complete playbook data fetched via fallback');
+                    } else {
+                      error = new Error('Failed to fetch complete playbook data via fallback');
+                    }
+                  } else {
+                    error = new Error('User ID not available for fallback fetch');
+                  }
                 } else {
-                  // Use the existing supabase client to fetch the playbook
-                  const { supabase } = await import('../../services/supabaseClient');
+                  // Use the proper getPlaybook function to fetch all related data
+                  const { getPlaybook } = await import('../../services/modernPlaybookApi');
 
                   console.log(`🔍 Attempting to fetch playbook with result_id: ${status.resultId}`);
 
-                  // Try fetching by result_id first
-                  let result = await supabase
-                    .from('playbooks')
-                    .select('*')
-                    .eq('id', status.resultId)
-                    .single();
-                  
-                  // If that fails, try fetching the most recent playbook for this user
-                  if (result.error && result.error.code === 'PGRST116') {
+                  // Try fetching by result_id first using the proper function
+                  try {
+                    if (!user?.id) {
+                      throw new Error('User ID not available');
+                    }
+                    if (!status.resultId) {
+                      throw new Error('Result ID not available');
+                    }
+                    const result = await getPlaybook(user.id, status.resultId);
+                    if (result) {
+                      playbook = result;
+                      console.log('✅ Playbook fetched with getPlaybook function');
+                    } else {
+                      throw new Error('Failed to fetch playbook');
+                    }
+                  } catch (fetchError) {
                     console.log('🔄 Result ID not found, trying to fetch most recent playbook...');
                     
+                    // Fallback: get the most recent playbook for this user
+                    const { supabase } = await import('../../services/supabaseClient');
                     const fallbackResult = await supabase
                       .from('playbooks')
-                      .select('*')
+                      .select('id, created_at')
                       .eq('user_id', user?.id)
                       .order('created_at', { ascending: false })
                       .limit(1)
@@ -190,36 +230,56 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       const playbookAge = Date.now() - new Date(fallbackResult.data.created_at).getTime();
                       // If playbook was created in the last 2 minutes, it's likely our generated one
                       if (playbookAge < 120000) {
-                        console.log('✅ Found recent playbook via fallback, using it');
-                        result = fallbackResult;
+                        console.log('✅ Found recent playbook via fallback, fetching with getPlaybook...');
+                        if (user?.id) {
+                          const fallbackPlaybookResult = await getPlaybook(user.id, fallbackResult.data.id);
+                          if (fallbackPlaybookResult) {
+                            playbook = fallbackPlaybookResult;
+                          } else {
+                            error = new Error('Failed to fetch fallback playbook');
+                          }
+                        } else {
+                          error = new Error('User ID not available for fallback fetch');
+                        }
                       }
+                    } else {
+                      error = new Error('No recent playbook found');
                     }
                   }
-                  
-                  playbook = result.data;
-                  error = result.error;
                 }
 
                 if (playbook && !error) {
                   console.log('✅ Real playbook fetched from database:', playbook.title);
+                  console.log('🔍 Action steps count:', playbook.actionSteps?.length || 0);
+                  console.log('🔍 Affirmations count:', playbook.affirmations?.length || 0);
 
-                  // Convert database playbook to UI format
-                  const realGeneratedPlaybook: GeneratedPlaybook = {
+                  // DEBUG: Log what we got from getPlaybook
+                  console.log('[DEBUG] OnboardingGeneration: Raw playbook from getPlaybook:', JSON.stringify(playbook, null, 2));
+                  console.log('[DEBUG] OnboardingGeneration: Action steps from getPlaybook:', playbook.actionSteps);
+                  console.log('[DEBUG] OnboardingGeneration: Affirmations from getPlaybook:', playbook.affirmations);
+                  
+                  // Convert database playbook to UI format - use any type to avoid TypeScript issues
+                  const realGeneratedPlaybook: any = {
                     id: playbook.id,
                     title: playbook.title,
-                    truthInLove: playbook.truth_in_love || playbook.content?.truthInLove || 'God loves you and is with you in this journey.',
-                    actionSteps: playbook.action_steps || playbook.content?.actionSteps || [],
-                    affirmations: playbook.affirmations || playbook.content?.affirmations || [
-                      'I am loved unconditionally by God',
-                      'God gives me strength for each challenge',
-                      'I can find peace in God\'s presence',
-                    ],
-                    bibleVerse: playbook.bible_verse || playbook.content?.bibleVerse || {
+                    truthInLove: playbook.truthInLove || 'God loves you and is with you in this journey.',
+                    actionSteps: playbook.actionSteps || [],
+                    affirmations: (playbook.affirmations && playbook.affirmations.length > 0) 
+                      ? playbook.affirmations.map((aff: any) => typeof aff === 'string' ? aff : aff.text || aff)
+                      : [
+                          'I am loved unconditionally by God',
+                          'God gives me strength for each challenge',
+                          'I can find peace in God\'s presence',
+                        ],
+                    bibleVerse: playbook.bibleVerse || {
                       text: 'Cast all your anxiety on him because he cares for you.',
                       reference: '1 Peter 5:7',
                     },
-                    directChallenge: playbook.direct_challenge || playbook.content?.directChallenge || 'Take one step forward in faith this week.',
+                    directChallenge: playbook.directChallenge || 'Take one step forward in faith this week.',
                   };
+                  
+                  // DEBUG: Log what we're passing to the ready screen
+                  console.log('[DEBUG] OnboardingGeneration: Passing to ready screen:', JSON.stringify(realGeneratedPlaybook, null, 2));
 
                   // First ensure progress bar is complete, then navigate immediately
                   return new Promise<void>((resolve) => {
@@ -284,47 +344,106 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     }
   }, [params, user, contentFadeAnim]);
 
-  // Breathing animation cycle
+  // Breathing animation cycle: Inhale (4s) → Hold (1s) → Exhale (4s)
   useEffect(() => {
-    const breathingCycle = () => {
-      // Breathe in phase
-      Animated.timing(breathingAnim, {
-        toValue: 1.1,
-        duration: 3000,
-        useNativeDriver: true,
-      }).start((finished) => {
-        if (!isMounted.current || !finished) return;
-        // Use setTimeout to avoid useInsertionEffect warning
-        setTimeout(() => {
-          if (isMounted.current) {
-            setBreathingText('Breathe out worry...');
-            setBreathingPhase('out');
-          }
-        }, 0);
+    let stopped = false;
 
-        // Breathe out phase
-        Animated.timing(breathingAnim, {
-          toValue: 0.8,
-          duration: 3000,
-          useNativeDriver: true,
-        }).start((animationFinished) => {
-          if (!isMounted.current || !animationFinished) return;
-          // Use setTimeout to avoid useInsertionEffect warning
-          setTimeout(() => {
-            if (isMounted.current) {
-              setBreathingText('Breathe in peace...');
-              setBreathingPhase('in');
-            }
-          }, 0);
+    const animateRing = (
+      scaleVal: Animated.Value,
+      opacityVal: Animated.Value,
+      startDelay: number
+    ) => {
+      const cycle = () => {
+        if (stopped) {return;}
+        // Inhale
+        Animated.sequence([
+          Animated.delay(startDelay),
+          Animated.parallel([
+            Animated.timing(scaleVal, { toValue: 1.1, duration: 4000, useNativeDriver: true }),
+            Animated.timing(opacityVal, { toValue: 0.55, duration: 4000, useNativeDriver: true }),
+          ]),
+          // Hold
+          Animated.parallel([
+            Animated.delay(1000),
+          ]),
+          // Exhale
+          Animated.parallel([
+            Animated.timing(scaleVal, { toValue: 0.85, duration: 4000, useNativeDriver: true }),
+            Animated.timing(opacityVal, { toValue: 0.22, duration: 4000, useNativeDriver: true }),
+          ]),
+        ]).start(({ finished }) => {
+          if (!finished || stopped) { return; }
+          cycle();
         });
-      });
+      };
+      cycle();
     };
 
-    const interval = setInterval(breathingCycle, 6000);
-    breathingCycle(); // Start immediately
+    const animateCore = () => {
+      const coreCycle = () => {
+        if (stopped) { return; }
+        // Inhale: update words and fade ellipsis in
+        setBreathingPhase('in');
+        Animated.parallel([
+          Animated.timing(breathingAnim, { toValue: 1.12, duration: 4000, useNativeDriver: true }),
+          Animated.timing(textOpacity, { toValue: 1.0, duration: 4000, useNativeDriver: true }),
+          Animated.timing(inWordsOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
+          Animated.timing(outWordsOpacity, { toValue: 0, duration: 900, useNativeDriver: true }),
+          // subtle bounce when switching to inhale words
+          Animated.sequence([
+            Animated.spring(textPulse, { toValue: 1.06, friction: 6, tension: 90, useNativeDriver: true }),
+            Animated.timing(textPulse, { toValue: 1.0, duration: 1200, useNativeDriver: true }),
+          ]),
+        ]).start(({ finished }) => {
+          if (!finished || stopped) { return; }
+          setBreathingPhase('hold');
+          // Hold: keep text nearly steady
+          Animated.parallel([
+            Animated.timing(textOpacity, { toValue: 0.95, duration: 300, useNativeDriver: true }),
+            Animated.delay(1000),
+          ]).start(() => {
+            if (stopped) { return; }
+            setBreathingPhase('out');
+            // Exhale: scale down arcs and dim text a bit
+            Animated.parallel([
+              Animated.timing(breathingAnim, { toValue: 0.88, duration: 4000, useNativeDriver: true }),
+              Animated.timing(textOpacity, { toValue: 0.6, duration: 4000, useNativeDriver: true }),
+              Animated.timing(inWordsOpacity, { toValue: 0, duration: 900, useNativeDriver: true }),
+              Animated.timing(outWordsOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
+              // gentle inward bounce when switching to exhale words
+              Animated.sequence([
+                Animated.spring(textPulse, { toValue: 0.94, friction: 6, tension: 90, useNativeDriver: true }),
+                Animated.timing(textPulse, { toValue: 1.0, duration: 1200, useNativeDriver: true }),
+              ]),
+            ]).start(({ finished: f2 }) => {
+              if (!f2 || stopped) { return; }
+              setBreathingPhase('in');
+              coreCycle();
+            });
+          });
+        });
+      };
+      coreCycle();
+    };
 
-    return () => clearInterval(interval);
-  }, [breathingAnim]);
+    // Start rings with slight phase offsets and start text sync
+    animateRing(aura1Scale, aura1Opacity, 0);
+    animateRing(aura2Scale, aura2Opacity, 250);
+    animateRing(aura3Scale, aura3Opacity, 500);
+    animateCore();
+
+    return () => {
+      stopped = true;
+      aura1Scale.stopAnimation();
+      aura2Scale.stopAnimation();
+      aura3Scale.stopAnimation();
+      aura1Opacity.stopAnimation();
+      aura2Opacity.stopAnimation();
+      aura3Opacity.stopAnimation();
+      breathingAnim.stopAnimation();
+      textOpacity.stopAnimation();
+    };
+  }, [breathingAnim, aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity, textOpacity, inWordsOpacity, outWordsOpacity]);
 
   useEffect(() => {
     // Start entrance animation
@@ -385,7 +504,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       (navigation as any).replace('OnboardingPlaybookReady', {
         playbook: generatedPlaybook,
         onboardingData: {
-          name: params?.userInput?.split(' ')[0] || 'Friend',
+          name: (user as any)?.user_metadata?.full_name || 'Friend',
           ageGroup: 'Adult',
           faithJourney: 'Growing in Faith',
           challenge: params?.challengeCategory || 'Personal Growth',
@@ -444,23 +563,14 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
           // Beautiful generation in progress with breathing animation
           <View style={styles.centerBlockContainer}>
             <View style={styles.centerBlock}>
-              {/* Logo with breathing animation */}
-              <Animated.View
-                style={[
-                  styles.logoContainer,
-                  {
-                    transform: [
-                      { scale: breathingAnim },
-                    ],
-                  },
-                ]}
-              >
+              {/* Logo (no aura here) */}
+              <View style={styles.logoContainer}>
                 <Image
                   source={require('../../../assets/images/siFiaAppIcon.png')}
                   style={styles.logo}
                   resizeMode="contain"
                 />
-              </Animated.View>
+              </View>
 
               {/* Title */}
               <Text style={styles.generationTitle}>Creating Your Playbook</Text>
@@ -493,13 +603,57 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   {generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title}
                 </Text>
               </ScrollView>
+              {/* Spacer to ensure sun and breathing text do not overlap step text */}
+              <View style={styles.sunSpacer} />
             </View>
           </View>
         ) : null}
-        {/* Breathing Text pinned to bottom of the screen */}
-        <Text style={[styles.breathingText, { bottom: insets.bottom + 24 }]}>
-          {breathingText}
-        </Text>
+         {/* Bottom Sun Rising Breathing Animation */}
+        <View style={[styles.sunContainer, { paddingBottom: Math.max(insets.bottom, 16) }]} pointerEvents="none">
+          {/* Big concentric semi-circles positioned at bottom */}
+          <Animated.View
+            style={[
+              styles.sunRing,
+              styles.sunRing1,
+              { transform: [{ scale: aura1Scale }], opacity: aura1Opacity },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.sunRing,
+              styles.sunRing2,
+              { transform: [{ scale: aura2Scale }], opacity: aura2Opacity },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.sunRing,
+              styles.sunRing3,
+              { transform: [{ scale: aura3Scale }], opacity: aura3Opacity },
+            ]}
+          />
+        </View>
+        {/* Breathing text overlay in front of sun (crossfade words + pulsing scale; ellipsis fades) */}
+        <Animated.Text
+          style={[
+            styles.breathingText,
+            { bottom: Math.max(insets.bottom + 28, 36), transform: [{ scale: textScale }, { scale: textPulse }], opacity: inWordsOpacity },
+          ]}
+          pointerEvents="none"
+        >
+          Breathe in peace
+          <Animated.Text style={{ opacity: textOpacity }}>{'...'}</Animated.Text>
+        </Animated.Text>
+        <Animated.Text
+          style={[
+            styles.breathingText,
+            { bottom: Math.max(insets.bottom + 28, 36), transform: [{ scale: textScale }, { scale: textPulse }], opacity: outWordsOpacity },
+          ]}
+          pointerEvents="none"
+        >
+          Breathe out worry
+          <Animated.Text style={{ opacity: textOpacity }}>{'...'}</Animated.Text>
+        </Animated.Text>
       </Animated.View>
     </SafeAreaView>
   );
@@ -520,6 +674,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+    zIndex: 2,
   },
   generationContainer: {
     flex: 1,
@@ -562,12 +718,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
+  auraWrapper: {
+    width: 220,
+    height: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  auraRing: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+    borderRadius: 9999,
+  },
+  auraRing1: {
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+  },
+  auraRing2: {
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+  },
+  auraRing3: {
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+  },
   logoContainer: {
-    width: 80,
-    height: 80,
+    width: 88,
+    height: 88,
     marginBottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 2,
   },
   logo: {
     width: '100%',
@@ -593,15 +777,52 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    fontStyle: 'italic',
+    fontWeight: '700',
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 32,
+    zIndex: 5,
+  },
+  sunContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -100,
+    height: 560,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    zIndex: 1,
+  },
+  sunRing: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  sunRing1: {
+    width: 800,
+    height: 800,
+    borderRadius: 400,
+    bottom: -540,
+  },
+  sunRing2: {
+    width: 980,
+    height: 980,
+    borderRadius: 490,
+    bottom: -620,
+  },
+  sunRing3: {
+    width: 1160,
+    height: 1160,
+    borderRadius: 580,
+    bottom: -720,
   },
   stepTextContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+  },
+  sunSpacer: {
+    height: 56,
   },
   currentStepText: {
     fontSize: 14,

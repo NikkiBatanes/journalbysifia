@@ -437,32 +437,47 @@ export class QueueService {
     const result = await response.json();
     console.log(`[QueueService] Generation result:`, result);
 
-    // Save the generated playbook to the database
+    // Save the generated playbook to the database using proper savePlaybook function
     console.log(`[QueueService] Saving playbook to database for user ${item.user_id}`);
     
-    const { data: savedPlaybook, error: saveError } = await this.supabase
-      .from('playbooks')
-      .insert({
+    try {
+      // Import and use the proper savePlaybook function that handles separate tables
+      const { savePlaybook } = await import('./modernPlaybookApi');
+      
+      // Transform result to proper Playbook format
+      const playbookToSave = {
         id: result.id,
-        user_id: item.user_id,
         title: result.title,
-        subtitle: result.subtitle,
-        truth_in_love: result.truthInLove,
-        action_steps: result.actionSteps,
-        affirmations: result.affirmations,
-        bible_verse: result.bibleVerse,
-        direct_challenge: result.directChallenge,
-        created_at: result.createdAt || new Date().toISOString(),
-        updated_at: result.updatedAt || new Date().toISOString(),
-      })
-      .select()
-      .single();
-
-    if (saveError) {
-      console.error(`[QueueService] Failed to save playbook to database:`, saveError);
+        userInput: item.user_input,
+        truthInLove: result.truthInLove,
+        actionSteps: result.actionSteps || [],
+        affirmations: result.affirmations || [],
+        bibleVerse: result.bibleVerse,
+        directChallenge: result.directChallenge,
+        challengeCTA: result.challengeCTA || '',
+        status: 'ongoing' as const,
+        createdAt: result.createdAt || new Date().toISOString(),
+        updatedAt: result.updatedAt || new Date().toISOString(),
+        // Add missing required properties
+        user_id: item.user_id,
+        progress: 0,
+        totalTasks: (result.actionSteps || []).length,
+      };
+      
+      console.log(`[QueueService] Using proper savePlaybook function with action steps:`, playbookToSave.actionSteps?.length || 0);
+      console.log(`[QueueService] Using proper savePlaybook function with affirmations:`, playbookToSave.affirmations?.length || 0);
+      
+      const saveResult = await savePlaybook(playbookToSave, item.user_id);
+      
+      if (saveResult.success) {
+        console.log(`[QueueService] Successfully saved playbook with proper function:`, playbookToSave.title);
+      } else {
+        console.error(`[QueueService] Failed to save playbook with proper function:`, saveResult.error);
+        // Don't throw error - the generation succeeded, just log the save issue
+      }
+    } catch (saveError) {
+      console.error(`[QueueService] Error using savePlaybook function:`, saveError);
       // Don't throw error - the generation succeeded, just log the save issue
-    } else {
-      console.log(`[QueueService] Successfully saved playbook to database:`, savedPlaybook?.title);
     }
 
     return {
