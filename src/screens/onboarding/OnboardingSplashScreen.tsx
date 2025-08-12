@@ -121,7 +121,8 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         userObject: user ? 'exists' : 'null',
       });
 
-      // 0) Immediate post-auth redirect to avoid splash flash after sign-up/login
+      // 0) Immediate post-auth redirect (early check)
+      // IMPORTANT: Do not clear the redirect if user session isn't ready yet; we'll re-check after resolving user below.
       try {
         const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
         if (redirectRaw) {
@@ -129,8 +130,6 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const target = redirect?.target as string | undefined;
           const params = redirect?.params || {};
 
-          // If user is authenticated and has completed onboarding, do NOT redirect
-          // to any onboarding routes even if a redirect exists (e.g., stale key).
           const onboardingRoutes = new Set([
             'TransformJourney',
             'OnboardingPersonalization',
@@ -144,7 +143,6 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
               if (hasCompleted) {
                 console.log('[SplashScreen] Ignoring stale onboarding redirect for completed user. Clearing key.');
                 try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
-                // Fall through to standard completed-user flow instead of early return
               } else {
                 console.log('[SplashScreen] Honoring onboarding redirect for user still in onboarding →', target, params);
                 try {
@@ -166,7 +164,6 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
                 navigation.navigate(target as any, params);
               }
             }
-            // Do not navigate here; continue to standard flow below
           } else if (user && target) {
             console.log('[SplashScreen] Found post_auth_redirect → navigating immediately to', target, params);
             try {
@@ -175,13 +172,12 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
               console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
               navigation.navigate(target as any, params);
             }
-            // Clear the flag so it doesn't fire again
             try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
             hasNavigatedRef.current = true;
             return true;
           } else {
-            // Malformed redirect – clear it
-            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+            // If user is not yet available, keep the redirect key for the later check after session resolves.
+            console.log('[SplashScreen] Redirect present but user not ready yet. Will re-check after session resolution.');
           }
         }
       } catch (e) {
@@ -214,6 +210,69 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         } catch (sessErr) {
           console.warn('[SplashScreen] ❌ Session recheck failed:', sessErr);
         }
+      }
+
+      // Re-check redirect AFTER resolving effective user so we can honor it reliably post-signup
+      try {
+        const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
+        if (redirectRaw) {
+          const redirect = JSON.parse(redirectRaw);
+          const target = redirect?.target as string | undefined;
+          const params = redirect?.params || {};
+          const onboardingRoutes = new Set([
+            'TransformJourney',
+            'OnboardingPersonalization',
+            'OnboardingWelcome',
+          ]);
+
+          if (effectiveUser && target) {
+            if (onboardingRoutes.has(target)) {
+              try {
+                const onboardingService = new OnboardingService();
+                const hasCompleted = await onboardingService.hasCompletedOnboarding(effectiveUser.id);
+                if (hasCompleted) {
+                  console.log('[SplashScreen] (post-user) Ignoring stale onboarding redirect for completed user. Clearing key.');
+                  try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+                } else {
+                  console.log('[SplashScreen] (post-user) Honoring onboarding redirect →', target, params);
+                  try {
+                    navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+                  } catch (navErr) {
+                    console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
+                    navigation.navigate(target as any, params);
+                  }
+                  try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+                  hasNavigatedRef.current = true;
+                  return true;
+                }
+              } catch (chkErr) {
+                console.warn('[SplashScreen] (post-user) Onboarding check failed. Proceeding to honor redirect:', chkErr);
+                try {
+                  navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+                } catch (navErr) {
+                  console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
+                  navigation.navigate(target as any, params);
+                }
+                try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+                hasNavigatedRef.current = true;
+                return true;
+              }
+            } else {
+              console.log('[SplashScreen] (post-user) Redirect to non-onboarding route →', target);
+              try {
+                navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+              } catch (navErr) {
+                console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
+                navigation.navigate(target as any, params);
+              }
+              try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+              hasNavigatedRef.current = true;
+              return true;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[SplashScreen] Error re-reading post_auth_redirect:', e);
       }
 
       // FLOW 1: No detected user → Splash > TransformJourney > Welcome
