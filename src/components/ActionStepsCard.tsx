@@ -805,6 +805,14 @@ export default function ActionStepsCard({
                         {step.title}
                       </Text>
                     </View>
+                    {/* Expand/Info Icon in upper right */}
+                    <TouchableOpacity style={styles.expandIcon}>
+                      <MaterialCommunityIcons
+                        name="information-outline"
+                        size={20}
+                        color="rgba(255, 255, 255, 0.7)"
+                      />
+                    </TouchableOpacity>
                   </View>
 
                   {subtasks.length > 0 && (
@@ -1189,6 +1197,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
     justifyContent: 'center',
     minWidth: 0,
+  },
+  expandIcon: {
+    padding: 8,
+    marginRight: 4,
   },
   stepDescription: {
     ...Typography.interRegular,

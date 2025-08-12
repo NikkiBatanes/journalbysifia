@@ -5,12 +5,10 @@ import { View, Text, StyleSheet } from 'react-native';
 import { NavigationProp } from '@react-navigation/native';
 import TruthInLoveCard from './TruthInLoveCard';
 import ActionStepsCard from './ActionStepsCard';
-import { EnhancedActionStepCard } from './EnhancedActionStepCard';
 import AffirmationCard from './AffirmationCard';
 import BibleVerseCard from './BibleVerseCard';
 import DirectChallengeCard from './DirectChallengeCard';
 import { Colors } from '../theme';
-import { useAuth } from '../context/IndustryStandardAuthContext';
 
 interface Affirmation {
   id: string;
@@ -43,7 +41,6 @@ interface DocumentCardViewProps {
 }
 
 const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation, playbookTitle, playbookId }) => {
-  const { user } = useAuth();
   if (card.type === 'truth') {
     return (
       <View style={styles.truthCardContainer}>
@@ -60,7 +57,6 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     );
   }
   if (card.type === 'action') {
-    // Use enhanced action step card for better expounding and export features
     const steps = card.steps ?? [];
     console.log('[DEBUG] DocumentCardView: Action card rendering:', {
       stepsCount: steps.length,
@@ -68,43 +64,13 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
     });
 
     return (
-      <View style={styles.actionCard}>
-        {steps.map((step, index) => (
-          <EnhancedActionStepCard
-            key={step.id || `step-${index}`}
-            actionStep={{
-              id: step.id || `step-${index}`,
-              text: step.text || '',
-              completed: step.completed || false,
-              orderIndex: index,
-              examples: step.examples,
-              subtasks: step.subtasks,
-            }}
-            playbookId={playbookId || ''}
-            playbookTitle={playbookTitle || ''}
-            userId={user?.id || ''}
-            onToggleComplete={(stepId) => {
-              // Handle step completion
-              console.log('Step completed:', stepId);
-            }}
-            onToggleSubtaskComplete={(stepId: string, subtaskId: string) => {
-              // Handle subtask completion
-              console.log('Subtask completed:', stepId, subtaskId);
-            }}
-          />
-        ))}
-
-        {/* Fallback to original card if no steps or enhanced features not needed */}
-        {steps.length === 0 && (
-          <ActionStepsCard
-            steps={card.steps ?? []}
-            style={styles.actionCard}
-            navigation={navigation}
-            playbookTitle={playbookTitle}
-            playbookId={playbookId}
-          />
-        )}
-      </View>
+      <ActionStepsCard
+        steps={steps}
+        style={styles.actionCard}
+        navigation={navigation}
+        playbookTitle={playbookTitle}
+        playbookId={playbookId}
+      />
     );
   }
   if (card.type === 'affirmation') {

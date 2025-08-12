@@ -139,6 +139,18 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
             {actionStep.text}
           </Text>
 
+          {/* Expand/Info Icon in upper right */}
+          <TouchableOpacity
+            style={styles.expandIcon}
+            onPress={toggleExpounding}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color="#9CA3AF"
+            />
+          </TouchableOpacity>
+
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
             {/* Expounding Button */}
@@ -180,8 +192,8 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
           </View>
         </View>
 
-        {/* Examples */}
-        {actionStep.examples && (
+        {/* Examples - Hidden in stack view, only show when expounding */}
+        {actionStep.examples && showExpounding && (
           <View style={styles.examplesContainer}>
             <Text style={styles.examplesLabel}>Examples:</Text>
             <Text style={styles.examplesText}>{actionStep.examples}</Text>
@@ -309,6 +321,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: '#1F2937',
     marginRight: 12,
+  },
+  expandIcon: {
+    padding: 4,
+    marginLeft: 8,
   },
   completedText: {
     textDecorationLine: 'line-through',
