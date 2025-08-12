@@ -21,8 +21,6 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { userApi } from '../services/userApi';
 import { subscriptionService } from '../services/subscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
-import { faithPointsService } from '../services/faithPointsService';
-import { supabase } from '../services/supabaseClient';
 import { UserProgress, Badge, UserPreferences } from '../types/auth';
 import { Subscription, UsageTracking } from '../interfaces/subscription';
 import { Colors } from '../theme/colors';
@@ -204,100 +202,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     setRefreshing(false);
   };
 
-  // Test faith points function
-  const testFaithPoints = async () => {
-    if (!user?.id) {return;}
-
-    try {
-      console.log('🧪 Testing faith points from profile screen...');
-
-      // Check if subscription tables exist
-      const { data: subscriptionCheck } = await supabase
-        .from('user_subscriptions')
-        .select('id')
-        .limit(1);
-
-      const { data: usageCheck } = await supabase
-        .from('usage_tracking')
-        .select('id')
-        .limit(1);
-
-      console.log('📊 Database Check:', {
-        subscription_table_exists: subscriptionCheck !== null,
-        usage_table_exists: usageCheck !== null,
-      });
-
-      const result = await faithPointsService.awardPoints(user.id, 'devotional_generated');
-      console.log('✅ Faith points awarded:', result);
-    } catch (error) {
-      console.error('❌ Faith points test failed:', error);
-    }
-  };
-
-  const testDatabaseDirect = async () => {
-    console.log('🔧 Testing direct database access...');
-    try {
-      // Test 1: Direct profile insert
-      console.log('Test 1: Attempting direct profile insert...');
-      if (!user?.id) {
-        console.error('❌ No user ID available for testing');
-        return;
-      }
-
-      const { data: insertResult, error: insertError } = await supabase
-        .from('faith_points_profiles')
-        .insert({
-          user_id: user.id,
-          total_points: 50,
-          current_level: 2,
-          current_streak: 1,
-          longest_streak: 1,
-          weekly_goal: 50,
-          weekly_progress: 50,
-        })
-        .select();
-
-      if (insertError) {
-        console.error('❌ Direct insert failed:', insertError);
-      } else {
-        console.log('✅ Direct insert succeeded:', insertResult);
-      }
-
-      // Test 2: Direct profile fetch
-      console.log('Test 2: Attempting direct profile fetch...');
-      const { data: fetchResult, error: fetchError } = await supabase
-        .from('faith_points_profiles')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (fetchError) {
-        console.error('❌ Direct fetch failed:', fetchError);
-      } else {
-        console.log('✅ Direct fetch succeeded:', fetchResult);
-      }
-
-      // Test 3: Direct transaction insert
-      console.log('Test 3: Attempting direct transaction insert...');
-      const { data: transactionResult, error: transactionError } = await supabase
-        .from('faith_points_log')
-        .insert({
-          user_id: user.id,
-          points: 10,
-          activity_type: 'test',
-          reason: 'direct_test',
-        })
-        .select();
-
-      if (transactionError) {
-        console.error('❌ Direct transaction insert failed:', transactionError);
-      } else {
-        console.log('✅ Direct transaction insert succeeded:', transactionResult);
-      }
-
-    } catch (error) {
-      console.error('❌ Database direct test failed:', error);
-    }
-  };
 
   const handleUpdateProfile = async () => {
     try {
@@ -794,24 +698,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       {renderEditProfileModal()}
       {renderSettingsModal()}
 
-      {/* Test Faith Points Button */}
-      <TouchableOpacity
-        style={styles.testButton}
-        onPress={testFaithPoints}
-      >
-        <Text style={styles.testButtonText}>
-          Test FP
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.testButton, styles.testButtonSecond]}
-        onPress={testDatabaseDirect}
-      >
-        <Text style={styles.testButtonText}>
-          Test DB
-        </Text>
-      </TouchableOpacity>
+      {/* Removed test buttons */}
     </SafeAreaView>
   );
 };
@@ -1201,25 +1088,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginRight: 8,
   },
-  testButton: {
-    position: 'absolute',
-    top: 100,
-    right: 20,
-    backgroundColor: Colors.faithGold,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    zIndex: 1000,
-  },
-  testButtonSecond: {
-    top: 140,
-    backgroundColor: Colors.alertCoral,
-  },
-  testButtonText: {
-    color: Colors.hopeWhite,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
+  // Removed test button styles
 });
 
 export default UserProfileScreen;

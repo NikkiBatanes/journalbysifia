@@ -234,37 +234,41 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           </Text>
         </TouchableOpacity>
 
-        {/* Playbook Counter - Available Usage */}
-        <TouchableOpacity
-          style={styles.counterBadge}
-          onPress={() => navigation.navigate('Playbooks')}
-        >
-          <Ionicons name="book-outline" size={16} color={Colors.anchorBlue} />
-          <Text style={styles.counterText}>
-            {(() => {
-              const limit = subscription?.limits?.playbooks;
-              const used = usage?.playbooks_generated || 0;
-              if (!limit || limit === -1) {return '∞';}
-              return Math.max(0, limit - used);
-            })()}
-          </Text>
-        </TouchableOpacity>
+        {/* Playbook Counter - hide entirely when unlimited */}
+        {(() => {
+          const limit = subscription?.limits?.playbooks;
+          const used = usage?.playbooks_generated || 0;
+          const isUnlimited = !limit || limit === -1;
+          if (isUnlimited) { return null; }
+          const remaining = Math.max(0, limit - used);
+          return (
+            <TouchableOpacity
+              style={styles.counterBadge}
+              onPress={() => navigation.navigate('Playbooks')}
+            >
+              <Ionicons name="book-outline" size={16} color={Colors.anchorBlue} />
+              <Text style={styles.counterText}>{remaining}</Text>
+            </TouchableOpacity>
+          );
+        })()}
 
-        {/* Devotional Counter - Available Usage */}
-        <TouchableOpacity
-          style={styles.counterBadge}
-          onPress={() => navigation.navigate('Devotionals')}
-        >
-          <Ionicons name="heart-outline" size={16} color={Colors.devotionalPurple} />
-          <Text style={styles.counterText}>
-            {(() => {
-              const limit = subscription?.limits?.devotionals;
-              const used = usage?.devotionals_generated || 0;
-              if (!limit || limit === -1) {return '∞';}
-              return Math.max(0, limit - used);
-            })()}
-          </Text>
-        </TouchableOpacity>
+        {/* Devotional Counter - hide entirely when unlimited */}
+        {(() => {
+          const limit = subscription?.limits?.devotionals;
+          const used = usage?.devotionals_generated || 0;
+          const isUnlimited = !limit || limit === -1;
+          if (isUnlimited) { return null; }
+          const remaining = Math.max(0, limit - used);
+          return (
+            <TouchableOpacity
+              style={styles.counterBadge}
+              onPress={() => navigation.navigate('Devotionals')}
+            >
+              <Ionicons name="heart-outline" size={16} color={Colors.devotionalPurple} />
+              <Text style={styles.counterText}>{remaining}</Text>
+            </TouchableOpacity>
+          );
+        })()}
 
         {/* Notifications */}
         <TouchableOpacity style={styles.iconButton}>
