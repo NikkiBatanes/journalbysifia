@@ -20,8 +20,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
-import { supabase } from '../services/supabaseClient';
-import { checkDatabaseTables } from '../utils/databaseCheck';
 import { dashboardNavigation } from '../services/NavigationManager';
 
 import DailyAffirmationCard from '../components/dashboard/DailyAffirmationCard';
@@ -134,87 +132,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     setTimeout(() => setRefreshing(false), 1000);
   };
 
-  // Test Faith Points System (temporary)
-  const handleTestFaithPoints = async () => {
-    if (!user?.id) {
-      console.log('❌ No user ID found!');
-      return;
-    }
-
-    console.log('🧪 Testing Faith Points System...');
-    console.log(`👤 User ID: ${user.id}`);
-
-    try {
-      // Step 0: Check database tables
-      console.log('💾 Step 0: Checking database tables...');
-      await checkDatabaseTables();
-
-      // Step 1: Check if user profile exists
-      console.log('🔍 Step 1: Checking user profile...');
-      const { data: existingProfile, error: profileError } = await supabase
-        .from('faith_points_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profileError) {
-        console.log('⚠️ Profile error:', profileError);
-      } else {
-        console.log('✅ Existing profile:', existingProfile);
-      }
-
-      // Step 2: Test faith points service directly
-      console.log('🎯 Step 2: Testing faith points service...');
-      const { faithPointsService } = await import('../services/faithPointsService');
-
-      const profile = await faithPointsService.getUserProfile(user.id);
-      console.log('📊 Current profile:', profile);
-
-      // Step 3: Award test points
-      console.log('🎆 Step 3: Awarding test points...');
-      const awardResult = await faithPointsService.awardPoints(user.id, 'devotional_generated');
-      console.log('🎉 Award result:', awardResult);
-
-      // Step 4: Check updated profile
-      console.log('🔄 Step 4: Checking updated profile...');
-      const updatedProfile = await faithPointsService.getUserProfile(user.id);
-      console.log('📊 Updated profile:', updatedProfile);
-
-      // Step 5: Check database directly
-      console.log('💾 Step 5: Checking database...');
-      const { data: dbProfile } = await supabase
-        .from('faith_points_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      console.log('💾 Database profile:', dbProfile);
-
-      const { data: transactions } = await supabase
-        .from('faith_points_log')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      console.log('📜 Recent transactions:', transactions);
-
-    } catch (error) {
-      console.error('❌ Test failed with error:', error);
-    }
-  };
-
-  // Check Database Tables
-  const handleCheckDatabase = async () => {
-    console.log('💾 Checking Database Tables...');
-    const result = await checkDatabaseTables();
-
-    if (result.profilesTable && result.logTable) {
-      console.log('✅ All faith points tables exist!');
-    } else {
-      console.log('❌ Missing tables detected!');
-      console.log('📝 Please run the SQL in database/faith_points_minimal.sql');
-      console.log('📝 Or check DATABASE_SETUP.md for instructions');
-    }
-  };
+  // (Removed) Test Faith Points and DB check helpers
 
   const renderHeader = () => (
     <View style={styles.header}>
@@ -336,25 +254,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     </Animated.View>
   );
 
-  const renderTestButton = () => (
-    <>
-      <TouchableOpacity
-        style={styles.testButton}
-        onPress={handleTestFaithPoints}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.testButtonText}>Test Faith Points</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.testButton, styles.dbTestButton]}
-        onPress={handleCheckDatabase}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.testButtonText}>Check DB</Text>
-      </TouchableOpacity>
-    </>
-  );
+  // (Removed) Test buttons UI
 
   return (
     <View style={styles.container}>
@@ -462,7 +362,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       </View>
 
       {renderFloatingButton()}
-      {renderTestButton()}
+      {/* Removed test buttons */}
     </View>
   );
 };
@@ -652,29 +552,7 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 100,
   },
-  testButton: {
-    position: 'absolute',
-    top: 100,
-    right: 20,
-    backgroundColor: Colors.spiritualPink,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  dbTestButton: {
-    top: 140,
-    backgroundColor: Colors.alertCoral,
-  },
-  testButtonText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-  },
+  // (Removed) styles for test buttons
 });
 
 export default DashboardHomeScreen;
