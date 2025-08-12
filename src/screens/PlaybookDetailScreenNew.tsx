@@ -322,6 +322,14 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const gestureTranslationY = useSharedValue(0);
   const gestureStartTime = useSharedValue(0);
 
+  // Previous card animation values
+  const previousCardTranslateY = useSharedValue(0); // No additional offset, follows current card
+  const previousCardOpacity = useSharedValue(0);
+  const showPreviousCard = useSharedValue(false);
+
+  // React state to track if previous card should be shown (for conditional rendering)
+  const [isPreviousCardVisible, setIsPreviousCardVisible] = useState(false);
+
   // 8. Constants
   const SWIPE_THRESHOLD = 120;
   const MIN_SWIPE_DISTANCE = 10;
@@ -343,6 +351,23 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     shadowOpacity: shadowOpacity.value,
     elevation: shadowElevation.value,
   }));
+
+  // Previous card animated style
+  const previousCardAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateY: previousCardTranslateY.value + translateY.value + nudgeY.value + bounceY.value,
+      },
+    ],
+    opacity: previousCardOpacity.value,
+    position: 'absolute',
+    top: -470, // Position directly above current card (card height + margin)
+    left: 0,
+    right: 0,
+    zIndex: showPreviousCard.value ? 150 : -1, // Lower z-index to appear behind current card
+  }));
+
+  // Back cards animated style (removed unused variable)
 
   // 10. Callback hooks
   const getCompletedStepsCount = useCallback(() => getTaskStats(actionSteps), [actionSteps]);
@@ -417,15 +442,24 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Navigation callbacks that depend on cardData
   const goToNextCard = useCallback(() => {
     if (currentCard < cardData.length - 1) {
-      setCurrentCard(prevCard => prevCard + 1);
+      const newIndex = currentCard + 1;
+      setCurrentCard(newIndex);
+      currentCardShared.value = newIndex;
     }
-  }, [currentCard, cardData.length]);
+  }, [currentCard, cardData.length, currentCardShared]);
 
   const goToPrevCard = useCallback(() => {
     if (currentCard > 0) {
-      setCurrentCard(prevCard => prevCard - 1);
+      const newIndex = currentCard - 1;
+      setCurrentCard(newIndex);
+      currentCardShared.value = newIndex;
     }
-  }, [currentCard]);
+  }, [currentCard, currentCardShared]);
+
+  // Keep shared value in sync with state
+  useEffect(() => {
+    currentCardShared.value = currentCard;
+  }, [currentCard, currentCardShared]);
 
   const { completed: completedTasksCount, total: totalTasksCount } = useMemo(() =>
     getCompletedStepsCount(), [getCompletedStepsCount]
@@ -462,6 +496,30 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
       if (gestureState.value.isSwiping) {
         translateY.value = gestureStartY.value + gestureTranslationY.value;
+
+        // Handle swipe down to show previous card (only if previous card exists)
+        if (gestureTranslationY.value > 0 && currentCardShared.value > 0) {
+          // Swiping down - show previous card that moves with current card
+          const progress = Math.min(1, gestureTranslationY.value / SWIPE_THRESHOLD);
+
+          if (progress > 0.1) {
+            showPreviousCard.value = true;
+            // Previous card stays in position relative to current card (no additional translateY)
+            previousCardTranslateY.value = 0; // No additional offset, follows current card
+            previousCardOpacity.value = Math.min(1, progress * 2);
+            runOnJS(setIsPreviousCardVisible)(true);
+          } else {
+            showPreviousCard.value = false;
+            previousCardOpacity.value = 0;
+            runOnJS(setIsPreviousCardVisible)(false);
+          }
+        } else {
+          // Swiping up or no previous card available - hide previous card
+          showPreviousCard.value = false;
+          previousCardOpacity.value = 0;
+          previousCardTranslateY.value = 0;
+          runOnJS(setIsPreviousCardVisible)(false);
+        }
 
         // Calculate fade and collapse based on scroll position
         const fadeThreshold = -SWIPE_THRESHOLD / 2;
@@ -500,11 +558,27 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           if (direction === 'up') {
             runOnJS(goToNextCard)();
           } else {
-            runOnJS(goToPrevCard)();
+            // Allow swipe down even on first card (bounce back)
+            // Hide previous card immediately before navigation
+            showPreviousCard.value = false;
+            previousCardOpacity.value = 0;
+            runOnJS(setIsPreviousCardVisible)(false);
+
+            // Navigate to previous card if not on first card
+            if (currentCardShared.value > 0) {
+              runOnJS(goToPrevCard)();
+            }
           }
 
           translateY.value = withSpring(0, { damping: 15, stiffness: 300 }, () => {
             isTransitioning.value = false;
+            // Clean up previous card state after transition
+            if (direction === 'down') {
+              previousCardTranslateY.value = 0;
+              previousCardOpacity.value = 0;
+              showPreviousCard.value = false;
+              runOnJS(setIsPreviousCardVisible)(false);
+            }
           });
 
           bounceY.value = withSpring(0, { damping: 10, stiffness: 200 });
@@ -517,14 +591,23 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             handleSwipe('down');
           }
         } else {
+          // Reset animations when gesture doesn't complete
           translateY.value = withSpring(gestureStartY.value, { damping: 15, stiffness: 300 }, () => {
             isTransitioning.value = false;
           });
+          previousCardTranslateY.value = withSpring(0, { damping: 15, stiffness: 300 });
+          previousCardOpacity.value = withSpring(0, { damping: 15, stiffness: 300 });
+          showPreviousCard.value = false;
+          runOnJS(setIsPreviousCardVisible)(false);
         }
       } else {
         translateY.value = withSpring(gestureStartY.value, { damping: 15, stiffness: 300 }, () => {
           isTransitioning.value = false;
         });
+        previousCardTranslateY.value = withSpring(0, { damping: 15, stiffness: 300 });
+        previousCardOpacity.value = withSpring(0, { damping: 15, stiffness: 300 });
+        showPreviousCard.value = false;
+        runOnJS(setIsPreviousCardVisible)(false);
       }
 
       gestureState.value = { isSwiping: false };
@@ -1080,16 +1163,62 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       );
     };
 
-    const backCards = Array.from({ length: visibleCardCount - 1 }).map((_item, i, arr) => {
+    // Render previous card if available and swiping down
+    const previousCard = currentCard > 0 ? cardData[currentCard - 1] : null;
+
+    // Restore original fanning effect - render multiple back cards when not showing previous card
+    const backCards = !isPreviousCardVisible ? Array.from({ length: visibleCardCount - 1 }).map((_item, i, arr) => {
       const stackIndex = arr.length - 1 - i + 1;
       const cardIndex = currentCard + stackIndex;
       return renderCard(cardIndex, stackIndex, (mode: 'stack' | 'document') => setViewMode(mode));
-    });
+    }) : [];
 
     return (
       <View style={styles.cardStackContainer}>
-        {backCards}
-        <Animated.View style={[animatedCardStyle, styles.cardWrapperStyle]}>
+        {/* Previous card - appears behind current card when swiping down */}
+        {previousCard && (
+          <Animated.View style={[previousCardAnimatedStyle, styles.cardWrapperStyle]}>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              style={styles.cardContentStyle}
+              onPress={() => {
+                handleCardPress(previousCard.type, previousCard);
+              }}
+            >
+              <View
+                style={[
+                  styles.stackCard,
+                  previousCard.type === 'affirmation'
+                    ? styles.affirmationCardStyle
+                    : styles.nonAffirmationCardStyle,
+                ]}
+              >
+                <DocumentCardView
+                  card={previousCard}
+                  styles={styles}
+                  currentUser={user ? {
+                    displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+                    firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+                    lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+                  } : undefined}
+                  navigation={rootNavigation}
+                  playbookTitle={playbook?.title}
+                  playbookId={playbook?.id}
+                />
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
+        {/* Back cards - only render when previous card is not visible */}
+        {backCards.length > 0 && (
+          <View>
+            {backCards}
+          </View>
+        )}
+
+        {/* Current card - appears on top */}
+        <Animated.View style={[animatedCardStyle, styles.cardWrapperStyle, styles.currentCardZIndex]}>
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.cardContentStyle}
@@ -1191,6 +1320,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 // ===== STYLES =====
 
 interface PlaybookDetailStyles {
+  arrowIcon: StyleProp<TextStyle>;
   container: ViewStyle;
   contentContainer: ViewStyle;
   loadingContainer: ViewStyle;
@@ -1266,6 +1396,7 @@ interface PlaybookDetailStyles {
   headerProgressBarBg: ViewStyle;
   headerProgressBarFill: ViewStyle;
   headerTasksText: TextStyle;
+  currentCardZIndex: ViewStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
@@ -1317,7 +1448,9 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     color: '#FFFFFF',
     fontFamily: Fonts.medium,
     fontSize: 16,
-    textAlign: 'center',
+  },
+  currentCardZIndex: {
+    zIndex: 200,
   },
   compactHeaderContainer: {
     backgroundColor: Colors.hopeWhite,
@@ -1733,4 +1866,7 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     fontWeight: '600',
     color: Colors.anchorBlue,
   },
+  affirmationsList: undefined,
+  affirmationsTitle: undefined,
+  affirmationCardStyle: undefined,
 });
