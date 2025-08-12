@@ -3,12 +3,13 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
+  StatusBar,
   TouchableOpacity,
   ScrollView,
   Switch,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
@@ -28,17 +29,32 @@ interface NotificationSetting {
 
 const OnboardingNotificationSetupScreen = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const route = useRoute();
   const { userType } = route.params as RouteParams;
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([
     {
+      id: 'playbooks',
+      title: 'Playbooks',
+      description: 'Reminders for action steps and challenges in your Playbooks',
+      icon: 'albums-outline',
+      enabled: true,
+    },
+    {
       id: 'daily_devotional',
-      title: 'Daily Devotionals',
-      description: 'Start your day with personalized spiritual guidance',
+      title: 'Devotionals',
+      description: 'Start your day with personalized guidance',
       icon: 'book-outline',
       enabled: true,
-      required: true,
+      required: false,
+    },
+    {
+      id: 'journal_reminders',
+      title: 'Journal Reminders',
+      description: 'Gentle prompts to help you reflect and write',
+      icon: 'create-outline',
+      enabled: true,
     },
     {
       id: 'prayer_reminders',
@@ -50,16 +66,9 @@ const OnboardingNotificationSetupScreen = () => {
     {
       id: 'progress_updates',
       title: 'Progress Updates',
-      description: 'Celebrate your spiritual growth milestones',
+      description: 'Celebrate your growth milestones',
       icon: 'trending-up-outline',
       enabled: true,
-    },
-    {
-      id: 'community_updates',
-      title: 'Community & Support',
-      description: 'Connect with others on their faith journey',
-      icon: 'people-outline',
-      enabled: false,
     },
     {
       id: 'trial_reminders',
@@ -139,7 +148,7 @@ const OnboardingNotificationSetupScreen = () => {
     switch (userType) {
       case 'trial':
         return {
-          title: 'Stay Connected During Your Trial',
+          title: 'Is it better to turn on trial reminders?',
           subtitle: 'Get the most out of your 3-day experience with timely reminders and guidance.',
         };
       case 'paid':
@@ -150,7 +159,7 @@ const OnboardingNotificationSetupScreen = () => {
       case 'freemium':
         return {
           title: 'Stay Motivated on Your Path',
-          subtitle: 'Receive encouragement and reminders to keep growing spiritually.',
+          subtitle: 'Receive encouragement and reminders to keep growing in your faith.',
         };
       default:
         return {
@@ -163,20 +172,28 @@ const OnboardingNotificationSetupScreen = () => {
   const welcomeData = getWelcomeMessage();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>siFia</Text>
-          <Text style={styles.logoHeart}>❤</Text>
-        </View>
+    <View style={styles.container}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header removed by request */}
 
         {/* Welcome Message */}
         <View style={styles.welcomeSection}>
           <View style={styles.iconContainer}>
             <Ionicons name="notifications-outline" size={48} color={Colors.alertCoral} />
           </View>
-          <Text style={styles.welcomeTitle}>{welcomeData.title}</Text>
+          <Text
+            style={[styles.welcomeTitle, userType === 'paid' ? styles.welcomeTitleSmall : null]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.9}
+          >
+            {welcomeData.title}
+          </Text>
           <Text style={styles.welcomeSubtitle}>{welcomeData.subtitle}</Text>
         </View>
 
@@ -211,18 +228,22 @@ const OnboardingNotificationSetupScreen = () => {
 
         {/* Benefits Section */}
         <View style={styles.benefitsSection}>
-          <Text style={styles.benefitsTitle}>Why enable notifications?</Text>
+          <Text style={styles.benefitsTitle}>Why turn on notifications?</Text>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <Text style={styles.benefitText}>Stay consistent with your spiritual practices</Text>
+            <Text style={styles.benefitText}>Stay on track with your action steps</Text>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <Text style={styles.benefitText}>Receive personalized encouragement</Text>
+            <Text style={styles.benefitText}>Get reminders for Playbook challenges</Text>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <Text style={styles.benefitText}>Never miss important spiritual moments</Text>
+            <Text style={styles.benefitText}>Timely nudges for devotionals, prayer, and journaling</Text>
+          </View>
+          <View style={styles.benefitItem}>
+            <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
+            <Text style={styles.benefitText}>Celebrate milestones and track your progress</Text>
           </View>
         </View>
 
@@ -240,7 +261,7 @@ const OnboardingNotificationSetupScreen = () => {
           🔒 We respect your privacy. You can change these settings anytime in your profile.
         </Text>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -283,6 +304,9 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 12,
+  },
+  welcomeTitleSmall: {
+    fontSize: 20,
   },
   welcomeSubtitle: {
     fontSize: 16,
@@ -373,6 +397,10 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     marginBottom: 12,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
   },
   enableButtonText: {
     fontSize: 18,
@@ -381,17 +409,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   skipButton: {
-    backgroundColor: 'transparent',
-    paddingVertical: 16,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 12,
-    marginBottom: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255,255,255,0.2)',
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   skipButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
+    fontSize: 16,
+    fontWeight: '500',
     textAlign: 'center',
   },
   privacyNote: {

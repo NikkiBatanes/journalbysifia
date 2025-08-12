@@ -27,17 +27,30 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string>('');
   const { signIn, loading } = useAuth();
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    // clear previous error
+    setError('');
+
+    const emailTrim = email.trim();
+
+    if (!emailTrim || !password) {
+      setError('Please fill in all fields');
       return;
     }
 
-    const { error } = await signIn(email, password);
-    if (error) {
-      Alert.alert('Login Failed', error.message || 'Please try again');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailTrim)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    const { error: signInError } = await signIn(emailTrim, password);
+    if (signInError) {
+      setError(signInError.message || 'Login failed. Please try again.');
+      return;
     }
   };
 
@@ -76,6 +89,14 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.subtitle}>Welcome back to siFia</Text>
         </View>
 
+        {/* Inline Error Banner */}
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={{ marginRight: 8 }} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
         {/* Form */}
         <View style={styles.formContainer}>
           <View style={styles.inputContainer}>
@@ -85,7 +106,10 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
               placeholder="Email"
               placeholderTextColor="rgba(255,255,255,0.5)"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => {
+                setEmail(t);
+                if (error) setError('');
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -99,7 +123,10 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
               placeholder="Password"
               placeholderTextColor="rgba(255,255,255,0.5)"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(t) => {
+                setPassword(t);
+                if (error) setError('');
+              }}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
@@ -185,6 +212,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.regular,
     color: 'rgba(255,255,255,0.8)',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,107,107,0.12)',
+    borderColor: 'rgba(255,107,107,0.6)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    flexShrink: 1,
   },
   formContainer: {
     marginBottom: 40,

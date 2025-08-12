@@ -156,8 +156,8 @@ class PricingService {
     current.optOutCount += 1;
     await saveDiscountState(current, userId);
 
-    // Show dynamic discount after 2nd opt-out (persisted rule)
-    return current.optOutCount >= 2 && !current.redeemed;
+    // Show dynamic discount after 1st opt-out
+    return current.optOutCount >= 1 && !current.redeemed;
   }
 
   /**
@@ -171,20 +171,37 @@ class PricingService {
     const current = (await loadDiscountState(userId)) || null;
     const optOuts = current?.optOutCount ?? this.userOptOutCount;
     const redeemed = current?.redeemed ?? false;
-    if (optOuts < 2 || redeemed) {return null;}
+    // Enable discount starting on the first opt-out
+    if (optOuts < 1 || redeemed) {return null;}
 
-    // Show-once per tier & billing gate
     const period = billing || 'any';
     const key = tierId ? `${tierId}-${period}` : `default-${period}`;
+
+    // If this exact combo was already shown, do not show again
     if (current?.shownByTier && current.shownByTier[key]) {
       return null;
     }
 
-    let percentage = 10;
-    if (optOuts >= 3) {percentage = 20;}
-    if (optOuts >= 4) {percentage = 30;}
+    // Determine base percentage from opt-outs
+    const baseFromOptOut = optOuts >= 4 ? 30 : optOuts >= 3 ? 20 : 10;
 
-    // Update last shown metadata (non-blocking semantics here)
+    // Cooldown logic: if a discount was offered recently, reuse that percent (no escalation)
+    const cooldownMinutes = 60; // avoid escalation within 60 minutes across plan/billing switches
+    let reuseLast = false;
+    if (current?.lastShownAt) {
+      const last = new Date(current.lastShownAt);
+      const now = new Date();
+      const diffMin = (now.getTime() - last.getTime()) / 60000;
+      if (diffMin <= cooldownMinutes && (current.lastDiscountPct ?? 0) > 0) {
+        reuseLast = true;
+      }
+    }
+
+    const percentage = reuseLast
+      ? (current?.lastDiscountPct as number)
+      : baseFromOptOut;
+
+    // Update last shown metadata and also mark this tier/billing as shown
     const next: DiscountState = {
       discountPolicyVersion: 1,
       optOutCount: optOuts,
@@ -198,7 +215,9 @@ class PricingService {
 
     return {
       percentage,
-      reason: 'Limited time offer for returning users',
+      reason: reuseLast
+        ? 'Limited time offer (reserved)'
+        : 'Limited time offer for returning users',
       expiresInMinutes: 15,
     };
   }

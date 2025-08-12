@@ -998,6 +998,42 @@ export class SubscriptionService {
   }
 
   /**
+   * Upgrade or set the user's subscription to a paid tier and return normalized Subscription
+   */
+  async upgradeToPaid(
+    userId: string,
+    tier: SubscriptionTier,
+    stripeSubscriptionId?: string,
+    priceId?: string
+  ): Promise<Subscription> {
+    try {
+      const nowIso = new Date().toISOString();
+      const payload: any = {
+        user_id: userId,
+        tier,
+        status: 'active',
+        updated_at: nowIso,
+      };
+      if (stripeSubscriptionId) payload.stripe_subscription_id = stripeSubscriptionId;
+      if (priceId) payload.price_id = priceId;
+
+      const { error } = await this.supabase
+        .from('user_subscriptions')
+        .upsert(payload, { onConflict: 'user_id' });
+
+      if (error) {
+        console.error('[SubscriptionService] Failed to upsert paid subscription:', error);
+        throw error;
+      }
+
+      return await this.getUserSubscription(userId);
+    } catch (err) {
+      console.error('[SubscriptionService] upgradeToPaid error:', err);
+      return this.createInMemorySubscription(userId);
+    }
+  }
+
+  /**
    * Get subscription analytics for user
    */
   async getSubscriptionAnalytics(userId: string) {

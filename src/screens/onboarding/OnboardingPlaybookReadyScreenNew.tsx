@@ -82,8 +82,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const availableHeight = Math.max(0, height - headerH - footerH);
   // Measured intrinsic heights for each card's content
   const [contentHeights, setContentHeights] = useState<Record<string, number>>({});
-  // Subtle grow animation for in-card expand hint
-  const hintPulse = useRef(new Animated.Value(1)).current;
+  // Animation for in-card expand hint (icon-only): stronger pulse + opacity
+  const hintPulse = useRef(new Animated.Value(1)).current; // scale
+  const hintOpacity = useRef(new Animated.Value(0.6)).current;
 
   // Carousel sizing: modern center-snap with spacing and narrower cards
   const ITEM_SPACING = 16;
@@ -97,16 +98,26 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
       UIManager.setLayoutAnimationEnabledExperimental(true);
     }
-    // Start a gentle pulsing animation for the hint (only visible when needed)
-    const pulse = Animated.loop(
+    // Start a more obvious pulsing animation for the hint (only visible when needed)
+    const scalePulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(hintPulse, { toValue: 1.06, duration: 900, useNativeDriver: true }),
-        Animated.timing(hintPulse, { toValue: 1.0, duration: 900, useNativeDriver: true }),
+        Animated.timing(hintPulse, { toValue: 1.18, duration: 650, useNativeDriver: true }),
+        Animated.timing(hintPulse, { toValue: 1.0, duration: 650, useNativeDriver: true }),
+        Animated.delay(200),
       ])
     );
-    pulse.start();
+    const opacityPulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(hintOpacity, { toValue: 1.0, duration: 650, useNativeDriver: true }),
+        Animated.timing(hintOpacity, { toValue: 0.6, duration: 650, useNativeDriver: true }),
+        Animated.delay(200),
+      ])
+    );
+    scalePulse.start();
+    opacityPulse.start();
     return () => {
       hintPulse.stopAnimation();
+      hintOpacity.stopAnimation();
       if (devotionalTimerRef.current) {clearTimeout(devotionalTimerRef.current);}
     };
   }, []);
@@ -230,7 +241,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               key="truth"
               truth={truthData.text}
               summary={truthData.summary}
-              expanded={true}
+              // expanded controlled at render time via cloneElement
+              expanded={false}
               style={{ backgroundColor: 'transparent' }}
               currentUser={{ displayName: onboardingData.name }}
             />
@@ -372,7 +384,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
   const renderCarouselCard = ({ item, index }: { item: PlaybookCard; index: number }) => {
     const isExpanded = expandedCards.has(item.id);
-    const COLLAPSED_HEIGHT = 380;
+    const COLLAPSED_HEIGHT = 400;
     const measured = contentHeights[item.id] || 0;
     const needsExpansion = measured > COLLAPSED_HEIGHT + 1; // only tappable if truncated when collapsed
 
@@ -433,18 +445,32 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             },
           ]}
         >
-          {item.component}
+          {item.id === 'truth'
+            ? (
+                <View style={[styles.carouselCard, { backgroundColor: '#274674', padding: 24 }]}>
+                  <TruthInLoveCard
+                    key="truth"
+                    truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
+                    summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
+                    expanded={isExpanded}
+                    style={{ backgroundColor: 'transparent' }}
+                    currentUser={{ displayName: onboardingData.name }}
+                  />
+                </View>
+              )
+            : item.component}
 
           {/* In-card expand hint overlay */}
           {item.id === 'truth' && needsExpansion && !isExpanded && !dismissedHints.has(item.id) && (
             <TouchableOpacity
-              style={styles.expandHintButton}
+              style={styles.expandHintIcon}
               onPress={() => toggleCardExpansion(item.id)}
-              activeOpacity={0.85}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Expand card"
             >
-              <Animated.View style={[styles.expandHintRow, { transform: [{ scale: hintPulse }] }]}>
-                <MaterialCommunityIcons name="arrow-expand-all" size={18} color={Colors.hopeWhite} style={{ marginRight: 6 }} />
-                <Text style={styles.expandHintText}>Tap the Card to Expand</Text>
+              <Animated.View style={{ transform: [{ scale: hintPulse }], opacity: hintOpacity }}>
+                <MaterialCommunityIcons name="arrow-expand" size={18} color={Colors.hopeWhite} style={{ opacity: 0.9 }} />
               </Animated.View>
             </TouchableOpacity>
           )}
@@ -582,7 +608,25 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <Text style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</Text>
           </View>
 
-          {/* CAROUSEL INDICATORS - Moved inside sticky header */}
+          {/* CAROUSEL INDICATORS moved out of header to sit above carousel */}
+        </View>
+
+
+
+        {/* Dot pagination moved into carousel container to sit just above cards */}
+
+        {/* CAROUSEL CARDS */}
+        <View style={{ minHeight: availableHeight, justifyContent: 'center' }}>
+        <View style={[
+          styles.carouselContainer,
+          {
+            backgroundColor: Colors.anchorBlue,
+            // bleed past ScrollView and safe-area paddings for true edge-to-edge
+            marginLeft: -16 - insets.left,
+            marginRight: -16 - insets.right,
+          },
+        ]}>
+          {/* Dots just above the cards, outside the card area */}
           <View style={styles.dotsContainer}>
             {carouselCards.map((_, index) => (
               <TouchableOpacity
@@ -598,21 +642,6 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               />
             ))}
           </View>
-        </View>
-
-
-
-        {/* CAROUSEL CARDS */}
-        <View style={{ minHeight: availableHeight, justifyContent: 'center' }}>
-        <View style={[
-          styles.carouselContainer,
-          {
-            backgroundColor: Colors.anchorBlue,
-            // bleed past ScrollView and safe-area paddings for true edge-to-edge
-            marginLeft: -16 - insets.left,
-            marginRight: -16 - insets.right,
-          },
-        ]}>
           <Animated.FlatList
             ref={flatListRef}
             data={carouselCards}
@@ -654,7 +683,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* DEVOTIONAL BUTTON - delayed reveal and persistent */}
         {devotionalVisible && (
           <TouchableOpacity
-            style={styles.devotionalButton}
+            style={[styles.devotionalButton, { width: ITEM_WIDTH, alignSelf: 'center', marginHorizontal: 0 }]}
             onPress={handleCreateDevotional}
             activeOpacity={0.8}
           >
@@ -723,12 +752,12 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 12,
-    lineHeight: 30,
+    lineHeight: 24,
   },
   modalSubtitle: {
     fontSize: 15,
@@ -949,7 +978,7 @@ const styles = StyleSheet.create({
   },
   carouselCard: {
     borderRadius: BorderRadii.cardXL,
-    minHeight: 380,
+    minHeight: 400,
   },
   affirmationsHeader: {
     padding: 16,
@@ -1066,9 +1095,26 @@ const styles = StyleSheet.create({
   expandHintRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   expandHintText: {
     color: Colors.hopeWhite,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  expandHintIcon: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 4,
+  },
+  expandHintChip: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
 });
 

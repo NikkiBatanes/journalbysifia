@@ -45,6 +45,7 @@ const SocialButton: React.FC<SocialButtonProps> = ({
 
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading, user } = useAuth();
+  const [error, setError] = React.useState<string>('');
 
   // Navigate to personalization screen after successful authentication
   React.useEffect(() => {
@@ -73,6 +74,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   }, [user, navigation]);
 
   const handleGoogleSignUp = async () => {
+    setError('');
     console.log('🔄 Starting Google sign up...');
 
     // TEMPORARY: For testing, let's simulate successful OAuth and navigate directly
@@ -94,17 +96,16 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     if (error) {
       console.error('❌ Google sign up failed:', error);
       console.error('❌ Full error details:', JSON.stringify(error, null, 2));
-      Alert.alert(
-        'Google Sign Up Failed',
-        `${error.message || 'Please try again'}\n\nError details: ${JSON.stringify(error, null, 2)}`
-      );
-    } else {
-      console.log('✅ Google sign up successful, waiting for auth state change...');
+      // Show inline banner and keep user on page
+      setError(error.message || 'Google sign up failed. Please try again.');
+      return;
     }
+    console.log('✅ Google sign up successful, waiting for auth state change...');
     // Navigation will be handled by useEffect when user state changes
   };
 
   const handleAppleSignUp = async () => {
+    setError('');
     console.log('🔄 Starting Apple sign up...');
 
     // TEMPORARY: For testing, let's simulate successful OAuth and navigate directly
@@ -124,13 +125,11 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     if (error) {
       console.error('❌ Apple sign up failed:', error);
       console.error('❌ Full error details:', JSON.stringify(error, null, 2));
-      Alert.alert(
-        'Apple Sign Up Failed',
-        `${error.message || 'Please try again'}\n\nError details: ${JSON.stringify(error, null, 2)}`
-      );
-    } else {
-      console.log('✅ Apple sign up successful, waiting for auth state change...');
+      // Show inline banner and keep user on page
+      setError(error.message || 'Apple sign up failed. Please try again.');
+      return;
     }
+    console.log('✅ Apple sign up successful, waiting for auth state change...');
     // Navigation will be handled by useEffect when user state changes
   };
 
@@ -169,6 +168,14 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Create an Account</Text>
         </View>
+
+        {/* Inline Error Banner */}
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={{ marginRight: 8 }} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
         {/* Social Buttons */}
         <View style={styles.buttonContainer}>
@@ -274,6 +281,22 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 10,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,107,107,0.12)',
+    borderColor: 'rgba(255,107,107,0.6)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    flexShrink: 1,
   },
   subtitle: {
     fontSize: 16,

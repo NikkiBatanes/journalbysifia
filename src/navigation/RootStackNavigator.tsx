@@ -7,6 +7,7 @@ import {
 } from '@react-navigation/native-stack';
 import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
 import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CommonActions } from '@react-navigation/native';
 
 
@@ -243,16 +244,31 @@ export default function RootStackNavigator({
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
   // Removed unused user variable from useAuth()
-  const [initialRoute, _setInitialRoute] = useState<string>('OnboardingSplash');
+  const [initialRoute, setInitialRoute] = useState<string>('OnboardingSplash');
   const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
 
   // Simplified: Always start with OnboardingSplash, let it handle the routing logic
   useEffect(() => {
-    // No complex onboarding checks needed here since splash screen handles it
-    console.log('[RootStackNavigator] Starting with OnboardingSplash screen');
-    // Set checking to false so the navigator renders
-    setIsCheckingOnboarding(false);
-  }, []);
+    (async () => {
+      try {
+        // Honor post-auth redirect as initial route to avoid splash flicker
+        const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
+        if (redirectRaw) {
+          const redirect = JSON.parse(redirectRaw);
+          const target = redirect?.target;
+          if (typeof target === 'string' && target.length > 0) {
+            console.log('[RootStackNavigator] Using post_auth_redirect as initial route:', target);
+            setInitialRoute(target);
+            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+          }
+        }
+      } catch (e) {
+        console.warn('[RootStackNavigator] Error reading post_auth_redirect:', e);
+      } finally {
+        setIsCheckingOnboarding(false);
+      }
+    })();
+  }, [isAuthenticated]);
 
   // Get screen options
   const playbookDetailOptions = getPlaybookDetailOptions();
@@ -330,7 +346,7 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="OnboardingPlaybookReady"
             component={OnboardingPlaybookReadyScreen as React.ComponentType}
-            options={OnboardingAnimations.smoothSlide}
+            options={OnboardingAnimations.crossDissolve}
           />
           <Stack.Screen
             name="OnboardingSalesOffer"

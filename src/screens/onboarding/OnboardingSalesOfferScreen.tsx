@@ -133,6 +133,15 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         onPress={() => setSelectedTier(tier.id)}
         activeOpacity={0.8}
       >
+        {isSelected && (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.selectedOverlay,
+              { backgroundColor: tier.id === 'growth' ? Colors.alertCoral : Colors.growthGreen },
+            ]}
+          />
+        )}
         {tier.isPopular && (
           <View style={styles.popularBadge}>
             <Text style={styles.popularText}>POPULAR</Text>
@@ -457,14 +466,24 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+    position: 'relative',
   },
   selectedCard: {
     borderColor: Colors.growthGreen,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    // base background remains; selection tint is provided by selectedOverlay
   },
   focusedCard: {
     borderColor: Colors.alertCoral,
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  selectedOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: 16,
+    opacity: 0.14,
   },
   popularBadge: {
     position: 'absolute',

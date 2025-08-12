@@ -32,6 +32,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
   const navigation = useNavigation();
   const { user } = useAuth();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const hasNavigatedRef = useRef(false);
 
   // Elegant loading dots animations
   const dot1Anim = useRef(new Animated.Value(0.4)).current;
@@ -105,20 +106,48 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       console.error('[SplashScreen] Error starting dot animations:', error);
     }
 
-    // Conditional navigation: decide based on auth + subscription status
-    const navigateToCorrectScreen = async () => {
+    // Conditional navigation: decide based on post-auth redirect, auth + subscription status
+    const navigateToCorrectScreen = async (): Promise<boolean> => {
+      if (hasNavigatedRef.current) {
+        console.log('[SplashScreen] Navigation already performed, skipping');
+        return true;
+      }
       console.log('[SplashScreen] Starting conditional navigation logic');
 
-      // Not authenticated → pre-onboarding
+      // 0) Immediate post-auth redirect to avoid splash flash after sign-up/login
+      try {
+        const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
+        if (redirectRaw) {
+          const redirect = JSON.parse(redirectRaw);
+          const target = redirect?.target;
+          const params = redirect?.params || {};
+          console.log('[SplashScreen] Found post_auth_redirect → navigating immediately to', target, params);
+          try {
+            navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+          } catch (navErr) {
+            console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
+            navigation.navigate(target as any, params);
+          }
+          // Clear the flag so it doesn't fire again
+          try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+          hasNavigatedRef.current = true;
+          return true;
+        }
+      } catch (e) {
+        console.warn('[SplashScreen] Error reading post_auth_redirect:', e);
+      }
+
+      // Not authenticated → go to TransformJourney (start of onboarding)
       if (!user) {
         const target = 'TransformJourney';
         console.log('[SplashScreen] No user →', target);
         try {
-          navigation.navigate(target as any);
-        } catch (e) {
           navigation.reset({ index: 0, routes: [{ name: target as any }] });
+        } catch (e) {
+          navigation.navigate(target as any);
         }
-        return;
+        hasNavigatedRef.current = true;
+        return true;
       }
 
       // Authenticated → prioritize onboarding completion check first
@@ -148,11 +177,12 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
           const target = 'OnboardingPersonalization';
           try {
-            navigation.navigate(target as any);
-          } catch (navErr) {
             navigation.reset({ index: 0, routes: [{ name: target as any }] });
+          } catch (navErr) {
+            navigation.navigate(target as any);
           }
-          return;
+          hasNavigatedRef.current = true;
+          return true;
         }
       } catch (obErr) {
         console.warn('[SplashScreen] Onboarding check failed, proceeding to subscription gate:', obErr);
@@ -172,30 +202,39 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         console.log('[SplashScreen] Subscription gate →', { status, tier, trialActive, target });
 
         try {
-          navigation.navigate(target as any);
+          navigation.reset({ index: 0, routes: [{ name: target as any }] });
           console.log(`[SplashScreen] Successfully navigated to ${target}`);
         } catch (navError) {
-          console.error('[SplashScreen] Error navigating:', navError);
-          navigation.reset({ index: 0, routes: [{ name: target as any }] });
+          console.error('[SplashScreen] Error navigating (reset):', navError);
+          navigation.navigate(target as any);
         }
+        hasNavigatedRef.current = true;
+        return true;
       } catch (subErr) {
         console.warn('[SplashScreen] Subscription check failed, defaulting to MainTabs:', subErr);
         const target = 'MainTabs';
         try {
-          navigation.navigate(target as any);
-        } catch {
           navigation.reset({ index: 0, routes: [{ name: target as any }] });
+        } catch {
+          navigation.navigate(target as any);
         }
+        hasNavigatedRef.current = true;
+        return true;
       }
+      return false;
     };
 
-    // Navigate after a short delay
-    console.log('[SplashScreen] Setting up navigation timeout for 1.5 seconds');
-    const navigationTimeout = setTimeout(() => {
-      console.log('[SplashScreen] Navigation timeout triggered after 1.5 seconds');
-      // Execute async navigation logic
-      navigateToCorrectScreen();
-    }, 1500); // Reduced to 1.5 seconds for faster navigation
+    // Attempt immediate navigation to honor post-auth redirect (avoids splash flash)
+    let navigationTimeout: ReturnType<typeof setTimeout> | null = null;
+    (async () => {
+      const redirected = await navigateToCorrectScreen();
+      if (!redirected) {
+        navigationTimeout = setTimeout(() => {
+          console.log('[SplashScreen] Navigation timeout triggered after 1.5 seconds');
+          navigateToCorrectScreen();
+        }, 1500);
+      }
+    })();
 
     // Cleanup function for both animations and timeout
     return () => {
@@ -203,7 +242,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       if (anim1) {anim1.stop();}
       if (anim2) {anim2.stop();}
       if (anim3) {anim3.stop();}
-      clearTimeout(navigationTimeout);
+      if (navigationTimeout) clearTimeout(navigationTimeout);
     };
   }, [dot1Anim, dot2Anim, dot3Anim, fadeAnim, navigation, user]); // Added missing dependencies
 

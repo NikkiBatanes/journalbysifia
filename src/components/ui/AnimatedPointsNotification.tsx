@@ -138,12 +138,8 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   };
 
   const getActivityColor = () => {
-    if (activityType.includes('devotional')) {return Colors.spiritualPink;}
-    if (activityType.includes('prayer')) {return Colors.anchorBlue;}
-    if (activityType.includes('journal')) {return Colors.growthGreen;}
-    if (activityType.includes('playbook')) {return Colors.modalBlue;}
-    if (activityType.includes('streak')) {return Colors.faithGold;}
-    return Colors.spiritualPink;
+    // Unify all Faith Points backgrounds to faithGold
+    return Colors.faithGold;
   };
 
   if (!visible) {return null;}
@@ -191,9 +187,7 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
           </View>
 
           <View style={styles.textContainer}>
-            <Text style={styles.pointsText}>
-              +{points} Faith Points
-            </Text>
+            <Text style={styles.pointsText}>+{points} FP</Text>
             <Text style={styles.activityText}>
               {activityType.replace('_', ' ').toUpperCase()}
             </Text>
@@ -277,7 +271,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   activityText: {
-    fontSize: 10,
+    fontSize: 9,
+    fontWeight: '700',
     color: Colors.hopeWhite,
     opacity: 0.9,
     textAlign: 'center',

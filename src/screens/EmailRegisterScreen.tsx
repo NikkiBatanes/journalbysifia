@@ -15,6 +15,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
@@ -30,47 +31,65 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string>('');
   const { signUp, loading } = useAuth(); // Removed unused user variable
 
   const handleRegister = async () => {
-    if (!firstName || !lastName || !email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    // Clear any previous error
+    setError('');
+
+    // Trim inputs to avoid trailing/leading spaces counting as valid
+    const first = firstName.trim();
+    const last = lastName.trim();
+    const emailTrim = email.trim();
+
+    if (!first || !last || !emailTrim || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailTrim)) {
+      setError('Please enter a valid email address');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      setError('Password must be at least 6 characters');
       return;
     }
 
     console.log('🔄 Starting email registration...');
-    const { error } = await signUp(email, password, {
-      firstName,
-      lastName,
+    const { error: signUpError } = await signUp(emailTrim, password, {
+      firstName: first,
+      lastName: last,
     });
 
-    if (error) {
-      console.error('❌ Email registration failed:', error);
-      Alert.alert('Registration Failed', error.message || 'Please try again');
-    } else {
-      console.log('✅ Email registration successful!');
-      // Navigate to personalization screen after successful registration
-      const displayName = firstName || email.split('@')[0] || '';
-      navigation.dispatch(
-        CommonActions.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'OnboardingPersonalization' as any,
-              params: {
-                name: displayName,
-                registrationMethod: 'email',
-              },
-            },
-          ],
+    if (signUpError) {
+      console.error('❌ Email registration failed:', signUpError);
+      // Stay on this page and show inline error so user can fix inputs
+      setError(signUpError.message || 'Registration failed. Please try again.');
+      return;
+    }
+
+    console.log('✅ Email registration successful!');
+    // Set a post-auth redirect so Root/Splash can route instantly without flicker
+    const displayName = first || emailTrim.split('@')[0] || '';
+    try {
+      await AsyncStorage.setItem(
+        'post_auth_redirect',
+        JSON.stringify({
+          target: 'OnboardingPersonalization',
+          params: { name: displayName, registrationMethod: 'email' },
         })
       );
+      console.log('🧭 Post-auth redirect set to OnboardingPersonalization');
+    } catch (e) {
+      console.warn('Could not set post-auth redirect flag:', e);
     }
+    // Do not navigate here; the auth state change will switch stacks and Splash will redirect immediately
+    return;
   };
 
   const handleBackToSocial = () => {
@@ -108,6 +127,14 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.subtitle}>Join siFia: Faith in Action</Text>
         </View>
 
+        {/* Inline Error Banner */}
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={{ marginRight: 8 }} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
         {/* Form */}
         <View style={styles.formContainer}>
           <View style={styles.nameRow}>
@@ -118,7 +145,10 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                 placeholder="First Name"
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={firstName}
-                onChangeText={setFirstName}
+                onChangeText={(t) => {
+                  setFirstName(t);
+                  if (error) setError('');
+                }}
                 autoCapitalize="words"
                 autoCorrect={false}
               />
@@ -131,7 +161,10 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                 placeholder="Last Name"
                 placeholderTextColor="rgba(255,255,255,0.5)"
                 value={lastName}
-                onChangeText={setLastName}
+                onChangeText={(t) => {
+                  setLastName(t);
+                  if (error) setError('');
+                }}
                 autoCapitalize="words"
                 autoCorrect={false}
               />
@@ -145,7 +178,10 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               placeholder="Email"
               placeholderTextColor="rgba(255,255,255,0.5)"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => {
+                setEmail(t);
+                if (error) setError('');
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -159,7 +195,10 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               placeholder="Password"
               placeholderTextColor="rgba(255,255,255,0.5)"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(t) => {
+                setPassword(t);
+                if (error) setError('');
+              }}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
@@ -241,6 +280,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: Fonts.regular,
     color: 'rgba(255,255,255,0.8)',
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,107,107,0.12)',
+    borderColor: 'rgba(255,107,107,0.6)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    flexShrink: 1,
   },
   formContainer: {
     marginBottom: 40,

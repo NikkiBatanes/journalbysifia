@@ -3,24 +3,13 @@
  * Multi-step personalization screen matching exact design
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useUserState } from '../../hooks/useUserState';
 import { supabase } from '../../services/supabaseClient';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  StatusBar,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Image,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar, KeyboardAvoidingView, Platform, TextInput, InteractionManager } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
@@ -207,7 +196,37 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [selectedFaithJourney, setSelectedFaithJourney] = useState<string>('');
   const [selectedChallenge, setSelectedChallenge] = useState<string>('');
   const [challengeDetails, setChallengeDetails] = useState('');
+  const detailsInputRef = useRef<TextInput>(null);
   const [scrollY, setScrollY] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const askBoxYRef = useRef(0);
+
+  const focusDetailsInput = () => {
+    InteractionManager.runAfterInteractions(() => {
+      // Small delay helps after layout/keyboard animations
+      setTimeout(() => {
+        detailsInputRef.current?.focus();
+        const y = Math.max(askBoxYRef.current - 140, 0);
+        scrollViewRef.current?.scrollTo({ y, animated: true });
+      }, 100);
+    });
+  };
+
+  // When the user changes challenge, clear details so the new placeholder is visible
+  React.useEffect(() => {
+    setChallengeDetails('');
+    // Keep focus on the details input when changing challenge while on this step
+    if (currentStep === (showNameStep ? 5 : 4)) {
+      focusDetailsInput();
+    }
+  }, [selectedChallenge]);
+
+  // Auto focus when entering the details step
+  React.useEffect(() => {
+    if (currentStep === (showNameStep ? 5 : 4)) {
+      focusDetailsInput();
+    }
+  }, [currentStep, showNameStep]);
 
   // Dynamic total steps based on whether we show name step
   const totalSteps = showNameStep ? 5 : 4; // Name + Age + Faith + Challenge + Details OR Age + Faith + Challenge + Details
@@ -439,6 +458,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         </View>
       )}
 
+      {/* Examples label */}
+      {challengeOptions.find(c => c.id === selectedChallenge)?.examples && (
+        <View style={styles.examplesLabelRow}>
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.hopeWhite} style={{ marginRight: 6, opacity: 0.9 }} />
+          <Text style={styles.examplesLabelText}>Suggested Prompts</Text>
+        </View>
+      )}
+
       <View style={styles.exampleTags}>
         {challengeOptions.find(c => c.id === selectedChallenge)?.examples?.map((example, index) => (
           <TouchableOpacity
@@ -451,11 +478,32 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         ))}
       </View>
 
-      <View style={styles.askBox}>
+      <View style={styles.askBox} onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}>
         <TextInput
+          ref={detailsInputRef}
           style={styles.askInput}
-          placeholder="Share more about your situation..."
+          placeholder={(
+            (() => {
+              const placeholders: Record<string, string> = {
+                relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
+                anxiety: "I feel overwhelmed by work and worry. Help me find peace and trust.",
+                purpose: "I'm unsure about my career path and want godly direction.",
+                forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
+                financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
+                spiritual: "I want to deepen prayer and Bible study habits.",
+                addiction: "I'm trying to break a habit and need support and scripture.",
+                grief: "I'm grieving a recent loss and need comfort and hope.",
+              };
+              if (selectedChallenge && placeholders[selectedChallenge]) {
+                return placeholders[selectedChallenge];
+              }
+              return 'Describe your situation for this challenge (optional)';
+            })()
+          )}
           placeholderTextColor="rgba(255, 255, 255, 0.5)"
+          cursorColor={Colors.hopeWhite}
+          selectionColor={Colors.hopeWhite}
+          autoFocus={currentStep === (showNameStep ? 5 : 4)}
           value={challengeDetails}
           onChangeText={setChallengeDetails}
           multiline
@@ -521,10 +569,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         </View>
 
         <ScrollView
+          ref={scrollViewRef}
           style={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Conditional rendering based on whether name step is shown */}
           {showNameStep && currentStep === 1 && renderNameStep()}
@@ -792,6 +842,21 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     opacity: 0.8,
   },
+  examplesLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+    paddingHorizontal: 0,
+    alignSelf: 'flex-start',
+  },
+  examplesLabelText: {
+    fontSize: 13,
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+    opacity: 0.85,
+    textAlign: 'left',
+  },
   challengeCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -911,7 +976,9 @@ const styles = StyleSheet.create({
   },
   continueButtonContainer: {
     backgroundColor: 'transparent',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    paddingTop: 10,
   },
   continueButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.3)',

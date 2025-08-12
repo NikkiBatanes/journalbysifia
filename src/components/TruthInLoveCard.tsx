@@ -61,7 +61,9 @@ export default function TruthInLoveCard({
           <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
           <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
         </View>
-        <Text style={[styles.content, styles.contentWithMargin, { color: textColor }]}>
+        <Text
+          style={[styles.content, styles.contentWithMargin, { color: textColor }]}
+        >
           <Text style={[styles.summary, { color: textColor }]}>{processedSummary}</Text>
         </Text>
       </View>

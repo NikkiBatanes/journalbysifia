@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { SubscriptionService } from '../../services/subscriptionService';
+import { SubscriptionTier } from '../../interfaces/subscription';
 
 interface RouteParams {
   userType: 'trial' | 'paid' | 'freemium';
@@ -20,14 +23,33 @@ const OnboardingPaymentConfirmationScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { userType, selectedTier } = route.params as RouteParams;
+  const { user } = useAuth();
+  const [saving, setSaving] = useState(false);
+  const didPersistRef = useRef(false);
 
   useEffect(() => {
-    // Here you would typically:
-    // 1. Update user subscription status in database
-    // 2. Grant access to features based on tier
-    // 3. Set up trial countdown if applicable
-    console.log(`✅ User subscription confirmed: ${userType}, tier: ${selectedTier}`);
-  }, [userType, selectedTier]);
+    // Persist paid subscription tier once
+    const persistUpgrade = async () => {
+      if (didPersistRef.current) return;
+      if (userType !== 'paid') return;
+      if (!user?.id) return;
+      if (!selectedTier) return;
+      didPersistRef.current = true;
+      setSaving(true);
+      try {
+        const service = new SubscriptionService();
+        const tier = selectedTier as SubscriptionTier;
+        await service.upgradeToPaid(user.id, tier);
+        console.log(`✅ Upgraded subscription for ${user.id} to ${tier}`);
+      } catch (err) {
+        console.error('❌ Failed to persist paid subscription:', err);
+        // Non-blocking; user can continue but will remain basic until retried
+      } finally {
+        setSaving(false);
+      }
+    };
+    persistUpgrade();
+  }, [userType, selectedTier, user?.id]);
 
   const handleContinue = () => {
     navigation.navigate('OnboardingNotificationSetup' as any, { userType });
@@ -149,8 +171,8 @@ const OnboardingPaymentConfirmationScreen = () => {
         </View>
 
         {/* Continue Button */}
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-          <Text style={styles.continueButtonText}>Continue Setup</Text>
+        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} disabled={saving}>
+          <Text style={styles.continueButtonText}>{saving ? 'Saving...' : 'Continue Setup'}</Text>
         </TouchableOpacity>
 
         {/* Support Note */}

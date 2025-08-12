@@ -28,20 +28,27 @@ async function getDeviceId(): Promise<string> {
   }
 }
 
-function storageKeyFor(userId?: string | null) {
+async function discountStateKey(userId?: string | null): Promise<string> {
   if (userId) {return `discount_state:user:${userId}`;}
-  return `discount_state:guest:${guestCacheDeviceId}`;
+  const deviceId = await getDeviceId();
+  return `discount_state:guest:${deviceId}`;
 }
-
-let guestCacheDeviceId = 'guest-unknown';
-(async () => {
-  guestCacheDeviceId = await getDeviceId();
-})();
 
 export async function loadDiscountState(userId?: string | null): Promise<DiscountState | null> {
   try {
-    const key = storageKeyFor(userId);
-    const raw = await AsyncStorage.getItem(key);
+    const key = await discountStateKey(userId);
+    let raw = await AsyncStorage.getItem(key);
+    // Migrate legacy guest key if present
+    if (!raw && !userId) {
+      const legacyKey = 'discount_state:guest:guest-unknown';
+      const legacyRaw = await AsyncStorage.getItem(legacyKey);
+      if (legacyRaw) {
+        await AsyncStorage.setItem(key, legacyRaw);
+        raw = legacyRaw;
+        // Optionally clean up legacy key (best-effort)
+        try { await AsyncStorage.removeItem(legacyKey); } catch {}
+      }
+    }
     return raw ? (JSON.parse(raw) as DiscountState) : null;
   } catch {
     return null;
@@ -50,7 +57,7 @@ export async function loadDiscountState(userId?: string | null): Promise<Discoun
 
 export async function saveDiscountState(state: DiscountState, userId?: string | null): Promise<void> {
   try {
-    const key = storageKeyFor(userId);
+    const key = await discountStateKey(userId);
     await AsyncStorage.setItem(key, JSON.stringify(state));
   } catch {
     // ignore
@@ -58,14 +65,15 @@ export async function saveDiscountState(state: DiscountState, userId?: string | 
 }
 
 // Trial opt-out persistence
-function trialOptOutKeyFor(userId?: string | null) {
+async function trialOptOutKeyFor(userId?: string | null) {
   if (userId) {return `trial_opt_out:user:${userId}`;}
-  return `trial_opt_out:guest:${guestCacheDeviceId}`;
+  const deviceId = await getDeviceId();
+  return `trial_opt_out:guest:${deviceId}`;
 }
 
 export async function setTrialOptOut(userId: string | null | undefined, optedOut: boolean): Promise<void> {
   try {
-    const key = trialOptOutKeyFor(userId || undefined);
+    const key = await trialOptOutKeyFor(userId || undefined);
     await AsyncStorage.setItem(key, optedOut ? '1' : '0');
   } catch {
     // ignore storage errors
@@ -74,8 +82,18 @@ export async function setTrialOptOut(userId: string | null | undefined, optedOut
 
 export async function getTrialOptOut(userId: string | null | undefined): Promise<boolean> {
   try {
-    const key = trialOptOutKeyFor(userId || undefined);
-    const val = await AsyncStorage.getItem(key);
+    const key = await trialOptOutKeyFor(userId || undefined);
+    let val = await AsyncStorage.getItem(key);
+    // Migrate legacy guest key if present
+    if (val == null && !userId) {
+      const legacyKey = 'trial_opt_out:guest:guest-unknown';
+      const legacyVal = await AsyncStorage.getItem(legacyKey);
+      if (legacyVal != null) {
+        await AsyncStorage.setItem(key, legacyVal);
+        val = legacyVal;
+        try { await AsyncStorage.removeItem(legacyKey); } catch {}
+      }
+    }
     return val === '1';
   } catch {
     return false;
@@ -84,8 +102,8 @@ export async function getTrialOptOut(userId: string | null | undefined): Promise
 
 export async function mergeGuestToUser(userId: string): Promise<void> {
   try {
-    const guestKey = storageKeyFor(null);
-    const userKey = storageKeyFor(userId);
+    const guestKey = await discountStateKey(null);
+    const userKey = await discountStateKey(userId);
     const guestRaw = await AsyncStorage.getItem(guestKey);
     if (!guestRaw) {return;}
 

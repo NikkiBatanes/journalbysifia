@@ -92,6 +92,9 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // Breathing animation text
   const [breathingText, setBreathingText] = useState('Breathe in peace');
   const [breathingPhase, setBreathingPhase] = useState<'in' | 'hold' | 'out'>('in');
+  // Typewriter suffix after the word "Breathe "
+  const [breathSuffix, setBreathSuffix] = useState('in peace');
+  const suffixIndexRef = useRef(0); // 0: 'in peace', 1: 'out worry'
   // No manual measurement: we'll use flex spacers and safe-area padding
 
   const generationSteps = [
@@ -445,6 +448,65 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     };
   }, [breathingAnim, aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity, textOpacity, inWordsOpacity, outWordsOpacity]);
 
+  // Type/erase loop for suffix after "Breathe "
+  useEffect(() => {
+    let stopped = false;
+    const targets = ['in peace...', 'out worry...'];
+    const typeSpeed = 110;   // ms per char (slower typing)
+    const eraseSpeed = 80;   // ms per char (slower erasing)
+    const holdFull = 2200;   // linger longer when fully typed
+    const holdEmpty = 600;   // linger longer when erased before next phrase
+
+    let timer: NodeJS.Timeout | null = null;
+
+    const clearTimer = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    const type = (target: string, from = '') => {
+      if (stopped) return;
+      if (from.length === target.length) {
+        timer = setTimeout(() => erase(target), holdFull);
+        return;
+      }
+      const next = target.slice(0, from.length + 1);
+      setBreathSuffix(next);
+      timer = setTimeout(() => type(target, next), typeSpeed);
+    };
+
+    const erase = (current: string) => {
+      if (stopped) return;
+      if (current.length === 0) {
+        // switch target
+        suffixIndexRef.current = (suffixIndexRef.current + 1) % targets.length;
+        const nextTarget = targets[suffixIndexRef.current];
+        timer = setTimeout(() => type(nextTarget, ''), holdEmpty);
+        return;
+      }
+      const next = current.slice(0, current.length - 1);
+      setBreathSuffix(next);
+      timer = setTimeout(() => erase(next), eraseSpeed);
+    };
+
+    // Start with current target based on index
+    const start = () => {
+      const target = targets[suffixIndexRef.current];
+      // Ensure we begin from full word on first mount
+      setBreathSuffix('');
+      type(target, '');
+    };
+
+    start();
+
+    return () => {
+      stopped = true;
+      clearTimer();
+    };
+  }, []);
+
   useEffect(() => {
     // Start entrance animation
     Animated.timing(fadeAnim, {
@@ -467,7 +529,11 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
 
           // Animate progress bar
           Animated.timing(progressAnim, {
-            toValue: (isLastStep ? generationSteps.length : nextStep) / generationSteps.length * 100,
+            // Cap interim progress at 95% so 100% is reserved for actual completion
+            toValue: Math.min(
+              ((isLastStep ? generationSteps.length : nextStep) / generationSteps.length) * 100,
+              95
+            ),
             duration: 1000, // Slightly longer for smoother animation
             useNativeDriver: false,
           }).start(() => {
@@ -633,26 +699,15 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             ]}
           />
         </View>
-        {/* Breathing text overlay in front of sun (crossfade words + pulsing scale; ellipsis fades) */}
+        {/* Breathing text; typewriter effect for suffix including ellipsis */}
         <Animated.Text
           style={[
             styles.breathingText,
-            { bottom: Math.max(insets.bottom + 28, 36), transform: [{ scale: textScale }, { scale: textPulse }], opacity: inWordsOpacity },
+            { bottom: Math.max(insets.bottom + 8, 16) },
           ]}
           pointerEvents="none"
         >
-          Breathe in peace
-          <Animated.Text style={{ opacity: textOpacity }}>{'...'}</Animated.Text>
-        </Animated.Text>
-        <Animated.Text
-          style={[
-            styles.breathingText,
-            { bottom: Math.max(insets.bottom + 28, 36), transform: [{ scale: textScale }, { scale: textPulse }], opacity: outWordsOpacity },
-          ]}
-          pointerEvents="none"
-        >
-          Breathe out worry
-          <Animated.Text style={{ opacity: textOpacity }}>{'...'}</Animated.Text>
+          {'Breathe '}{breathSuffix}
         </Animated.Text>
       </Animated.View>
     </SafeAreaView>
