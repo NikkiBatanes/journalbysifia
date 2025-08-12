@@ -18,9 +18,9 @@ export const API_RETRY_DELAY = 2000; // 2 seconds
 
 // Auth error messages (standardized)
 export const AUTH_ERROR_MESSAGES = {
-  NO_SESSION: 'No active session. Please sign in.',
-  SESSION_EXPIRED: 'Session expired. Please sign in again.',
-  INVALID_TOKEN: 'Invalid authentication token. Please sign in again.',
+  NO_SESSION: 'No active session. Please login.',
+  SESSION_EXPIRED: 'Session expired. Please login again.',
+  INVALID_TOKEN: 'Invalid authentication token. Please login again.',
   NETWORK_ERROR: 'Network error. Please check your connection.',
   UNKNOWN_ERROR: 'An unexpected error occurred. Please try again.',
 } as const;
@@ -29,6 +29,7 @@ export const AUTH_ERROR_MESSAGES = {
 export const AUTH_ERROR_PATTERNS = [
   'No active session',
   'Please sign in',
+  'Please login',
   'Session expired',
   'Invalid token',
   'Authentication required',

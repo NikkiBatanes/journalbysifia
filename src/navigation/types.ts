@@ -9,7 +9,7 @@ export type RootStackParamList = {
   // Onboarding Stack
   OnboardingSplash: undefined;
   OnboardingWelcome: undefined;
-  OnboardingFaithJourney: undefined;
+
   OnboardingPersonalProfile: undefined;
   OnboardingGoalsScreen: undefined;
   OnboardingPreferences: undefined;

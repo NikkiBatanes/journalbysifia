@@ -7,17 +7,16 @@
 import React, { useEffect, useRef } from 'react';
 import {
   View,
-
   StyleSheet,
   Animated,
   StatusBar,
   Platform,
-
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { subscriptionService } from '../../services/subscriptionService';
+import { supabase } from '../../services/supabaseClient';
+
 import { OnboardingService } from '../../services/onboardingService';
 
 import { Colors } from '../../theme/colors';
@@ -41,6 +40,8 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
   useEffect(() => {
     console.log('[SplashScreen] Component mounted, starting splash screen flow');
+    // Reset navigation state in case this is called after login
+    hasNavigatedRef.current = false;
 
     // Set status bar for splash
     try {
@@ -112,35 +113,114 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         console.log('[SplashScreen] Navigation already performed, skipping');
         return true;
       }
-      console.log('[SplashScreen] Starting conditional navigation logic');
+      console.log('[SplashScreen] 🚀 STARTING CONDITIONAL NAVIGATION LOGIC');
+      console.log('[SplashScreen] 👤 AUTH STATE:', {
+        user: !!user,
+        userId: user?.id,
+        email: user?.email,
+        userObject: user ? 'exists' : 'null',
+      });
 
       // 0) Immediate post-auth redirect to avoid splash flash after sign-up/login
       try {
         const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
         if (redirectRaw) {
           const redirect = JSON.parse(redirectRaw);
-          const target = redirect?.target;
+          const target = redirect?.target as string | undefined;
           const params = redirect?.params || {};
-          console.log('[SplashScreen] Found post_auth_redirect → navigating immediately to', target, params);
-          try {
-            navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
-          } catch (navErr) {
-            console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
-            navigation.navigate(target as any, params);
+
+          // If user is authenticated and has completed onboarding, do NOT redirect
+          // to any onboarding routes even if a redirect exists (e.g., stale key).
+          const onboardingRoutes = new Set([
+            'TransformJourney',
+            'OnboardingPersonalization',
+            'OnboardingWelcome',
+          ]);
+
+          if (user && target && onboardingRoutes.has(target)) {
+            try {
+              const onboardingService = new OnboardingService();
+              const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
+              if (hasCompleted) {
+                console.log('[SplashScreen] Ignoring stale onboarding redirect for completed user. Clearing key.');
+                try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+                // Fall through to standard completed-user flow instead of early return
+              } else {
+                console.log('[SplashScreen] Honoring onboarding redirect for user still in onboarding →', target, params);
+                try {
+                  navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+                } catch (navErr) {
+                  console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
+                  navigation.navigate(target as any, params);
+                }
+                try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+                hasNavigatedRef.current = true;
+                return true;
+              }
+            } catch (chkErr) {
+              console.warn('[SplashScreen] Onboarding completion check failed. Proceeding to honor redirect:', chkErr);
+              try {
+                navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+              } catch (navErr) {
+                console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
+                navigation.navigate(target as any, params);
+              }
+            }
+            // Do not navigate here; continue to standard flow below
+          } else if (user && target) {
+            console.log('[SplashScreen] Found post_auth_redirect → navigating immediately to', target, params);
+            try {
+              navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+            } catch (navErr) {
+              console.warn('[SplashScreen] reset failed, falling back to navigate:', navErr);
+              navigation.navigate(target as any, params);
+            }
+            // Clear the flag so it doesn't fire again
+            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+            hasNavigatedRef.current = true;
+            return true;
+          } else {
+            // Malformed redirect – clear it
+            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
           }
-          // Clear the flag so it doesn't fire again
-          try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
-          hasNavigatedRef.current = true;
-          return true;
         }
       } catch (e) {
         console.warn('[SplashScreen] Error reading post_auth_redirect:', e);
       }
 
-      // Not authenticated → go to TransformJourney (start of onboarding)
-      if (!user) {
+      // Not authenticated → re-check session quickly to avoid race after login
+      let effectiveUser = user as any;
+      console.log('[SplashScreen] 🔍 INITIAL USER CHECK:', {
+        hasUser: !!effectiveUser,
+        userId: effectiveUser?.id,
+        email: effectiveUser?.email,
+      });
+
+      if (!effectiveUser) {
+        console.log('[SplashScreen] ⏳ NO USER - Rechecking session...');
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          console.log('[SplashScreen] 📋 SESSION RECHECK RESULT:', {
+            hasSession: !!session,
+            hasUser: !!session?.user,
+            userId: session?.user?.id,
+            email: session?.user?.email,
+          });
+
+          if (session?.user) {
+            effectiveUser = session.user;
+            console.log('[SplashScreen] ✅ Found session user on recheck, proceeding as authenticated');
+          }
+        } catch (sessErr) {
+          console.warn('[SplashScreen] ❌ Session recheck failed:', sessErr);
+        }
+      }
+
+      // FLOW 1: No detected user → Splash > TransformJourney > Welcome
+      if (!effectiveUser) {
         const target = 'TransformJourney';
-        console.log('[SplashScreen] No user →', target);
+        console.log('[SplashScreen] 🚫 NO USER DETECTED → ROUTING TO', target);
+        console.log('[SplashScreen] 📋 FLOW: Splash > TransformJourney > Welcome');
         try {
           navigation.reset({ index: 0, routes: [{ name: target as any }] });
         } catch (e) {
@@ -150,32 +230,28 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         return true;
       }
 
-      // Authenticated → prioritize onboarding completion check first
+      // FLOW 2 & 3: Detected user → Check onboarding completion
+      console.log('[SplashScreen] 🔍 AUTHENTICATED USER DETECTED:', {
+        userId: effectiveUser.id,
+        email: effectiveUser.email,
+      });
+
       try {
         const onboardingService = new OnboardingService();
-        const hasCompleted = await onboardingService.hasCompletedOnboarding(user.id);
+        console.log('[SplashScreen] 📋 Checking onboarding completion...');
+        const hasCompleted = await onboardingService.hasCompletedOnboarding(effectiveUser.id);
 
-        // Look at local onboarding progress to avoid looping users back to personalization
-        let personalizationCompletedLocally = false;
-        try {
-          const stored = await AsyncStorage.getItem(`onboarding_progress_${user.id}`);
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            const steps: string[] = parsed?.completedSteps || [];
-            personalizationCompletedLocally = steps.includes('personalization_completed');
-          }
-        } catch {}
+        console.log('[SplashScreen] ✅ COMPLETION CHECK RESULT:', {
+          userId: effectiveUser.id,
+          hasCompleted,
+          decision: hasCompleted ? 'MainTabs' : 'OnboardingWelcome',
+        });
 
-        if (!hasCompleted && !personalizationCompletedLocally) {
-          console.log('[SplashScreen] Onboarding not completed → initializing (if needed) and navigating to OnboardingPersonalization');
-          try {
-            // Initialize onboarding session; ignore errors to avoid blocking
-            await onboardingService.initializeOnboarding(user.id);
-          } catch (initErr) {
-            console.warn('[SplashScreen] Onboarding initialization failed or not required:', initErr);
-          }
-
-          const target = 'OnboardingPersonalization';
+        if (hasCompleted) {
+          // FLOW 3: Detected user finished onboarding → Splash > Home/Dashboard
+          const target = 'MainTabs';
+          console.log('[SplashScreen] 🏠 ROUTING TO MAIN TABS - Onboarding completed');
+          console.log('[SplashScreen] 📋 FLOW: Splash > Home/Dashboard');
           try {
             navigation.reset({ index: 0, routes: [{ name: target as any }] });
           } catch (navErr) {
@@ -184,57 +260,50 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           hasNavigatedRef.current = true;
           return true;
         }
+
+        // FLOW 2: Detected user but did not finish onboarding → Splash > Welcome with Continue Setup
+        const target = 'OnboardingWelcome';
+        console.log('[SplashScreen] 👋 ROUTING TO WELCOME - Onboarding not completed');
+        console.log('[SplashScreen] 📋 FLOW: Splash > Welcome (Continue Setup) > Personalization');
+        try {
+          navigation.reset({ index: 0, routes: [{ name: target as any }] });
+        } catch (navErr) {
+          navigation.navigate(target as any);
+        }
+        hasNavigatedRef.current = true;
+        return true;
       } catch (obErr) {
-        console.warn('[SplashScreen] Onboarding check failed, proceeding to subscription gate:', obErr);
-      }
-
-      // Onboarding completed → check subscription to decide app access
-      try {
-        const sub = await subscriptionService.getUserSubscription(user.id);
-        const status = (sub as any)?.status || 'unknown';
-        const tier = (sub as any)?.tier || 'unknown';
-        const trialEnd = (sub as any)?.trial_end_date ? new Date((sub as any).trial_end_date) : null;
-        const trialActive = status === 'trialing' && trialEnd ? trialEnd > new Date() : false;
-
-        // Access granted if active/past_due or trial active; otherwise fallback to MainTabs with restricted features
-        const allowMain = status === 'active' || status === 'past_due' || trialActive || (tier && tier !== 'free_trial');
-        const target = allowMain ? 'MainTabs' : 'OnboardingPersonalization';
-        console.log('[SplashScreen] Subscription gate →', { status, tier, trialActive, target });
-
+        console.warn('[SplashScreen] ❌ ONBOARDING CHECK FAILED; defaulting to Welcome as safe fallback:', obErr);
+        const target = 'OnboardingWelcome';
         try {
           navigation.reset({ index: 0, routes: [{ name: target as any }] });
-          console.log(`[SplashScreen] Successfully navigated to ${target}`);
-        } catch (navError) {
-          console.error('[SplashScreen] Error navigating (reset):', navError);
-          navigation.navigate(target as any);
-        }
-        hasNavigatedRef.current = true;
-        return true;
-      } catch (subErr) {
-        console.warn('[SplashScreen] Subscription check failed, defaulting to MainTabs:', subErr);
-        const target = 'MainTabs';
-        try {
-          navigation.reset({ index: 0, routes: [{ name: target as any }] });
-        } catch {
+        } catch (navErr) {
           navigation.navigate(target as any);
         }
         hasNavigatedRef.current = true;
         return true;
       }
-      return false;
+
+
     };
 
-    // Attempt immediate navigation to honor post-auth redirect (avoids splash flash)
+    // Always show splash screen for minimum time before making routing decisions
     let navigationTimeout: ReturnType<typeof setTimeout> | null = null;
-    (async () => {
+
+    // Set a minimum splash display time of 3 seconds to allow auth state propagation
+    navigationTimeout = setTimeout(async () => {
+      console.log('[SplashScreen] ⏰ Minimum splash time elapsed, making routing decision...');
       const redirected = await navigateToCorrectScreen();
+      console.log('[SplashScreen] 📊 Navigation result:', { redirected });
+
       if (!redirected) {
-        navigationTimeout = setTimeout(() => {
-          console.log('[SplashScreen] Navigation timeout triggered after 1.5 seconds');
+        console.log('[SplashScreen] ⚠️ Navigation failed, retrying...');
+        // Retry after a short delay
+        setTimeout(() => {
           navigateToCorrectScreen();
-        }, 1500);
+        }, 500);
       }
-    })();
+    }, 3000);
 
     // Cleanup function for both animations and timeout
     return () => {

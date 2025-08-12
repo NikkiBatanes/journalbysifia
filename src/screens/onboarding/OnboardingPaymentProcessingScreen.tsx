@@ -80,7 +80,7 @@ const OnboardingPaymentProcessingScreen = () => {
     };
 
     processPayment();
-  }, []);
+  }, [navigation, processingSteps.length, route.params?.isAnnual, route.params?.selectedTier]);
 
   const getTierDisplayName = (tier: string) => {
     switch (tier) {

@@ -3,16 +3,15 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Image,
-  StatusBar,
+  TouchableOpacity,
+  TextInput,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
+  StatusBar,
+  Image,
 } from 'react-native';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -49,9 +48,23 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
     const { error: signInError } = await signIn(emailTrim, password);
     if (signInError) {
-      setError(signInError.message || 'Login failed. Please try again.');
+      // Map common auth errors to a friendly inline message
+      const raw = (signInError.message || '').toLowerCase();
+      const isRateLimit = raw.includes('too many') || raw.includes('rate limit');
+      const message = isRateLimit
+        ? 'Too many attempts. Please wait a moment and try again.'
+        : 'Incorrect email or password. Please try again.';
+
+      // Note: We intentionally avoid checking user_profiles here because many
+      // valid users may not have a profile row yet (or RLS may block reads).
+      // Supabase does not expose account-existence via public APIs for security.
+
+      setError(message);
       return;
     }
+
+    // Successful login - let the app's natural navigation flow handle routing
+    console.log('✅ Login successful, auth state will trigger navigation');
   };
 
   const handleBackToSocial = () => {
@@ -59,7 +72,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleSignUp = () => {
-    navigation.navigate('EmailRegister');
+    navigation.navigate('Register');
   };
 
   return (
@@ -89,16 +102,16 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.subtitle}>Welcome back to siFia</Text>
         </View>
 
-        {/* Inline Error Banner */}
-        {error ? (
-          <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={{ marginRight: 8 }} />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
         {/* Form */}
         <View style={styles.formContainer}>
+          {/* Inline Error (shown inside form) */}
+          {error ? (
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
+          {/* Removed inline Create Account CTA as requested */}
           <View style={styles.inputContainer}>
             <Ionicons name="mail" size={20} color="#FF6B6B" style={styles.inputIcon} />
             <TextInput
@@ -162,7 +175,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Sign Up Link */}
         <View style={styles.signUpContainer}>
-          <Text style={styles.signUpText}>Don't have an account? </Text>
+          <Text style={styles.signUpText}>Not yet a member? </Text>
           <TouchableOpacity onPress={handleSignUp}>
             <Text style={styles.signUpLink}>Sign Up</Text>
           </TouchableOpacity>
@@ -195,6 +208,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 140,
     height: 140,
+    transform: [{ translateY: -10 }],
   },
   titleContainer: {
     alignItems: 'center',
@@ -304,6 +318,9 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     fontWeight: '600',
     textDecorationLine: 'none',
+  },
+  errorIconMargin: {
+    marginRight: 8,
   },
 });
 

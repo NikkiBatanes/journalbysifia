@@ -61,7 +61,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     if (expandedCards.size > 0) {
       setExpandedCards(new Set());
     }
-  }, [isAnnual]);
+  }, [isAnnual, expandedCards.size]);
 
   const handleClose = async () => {
     // Track user opt-out and check if dynamic discount should be shown
@@ -182,7 +182,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               }
               return processed.map((feature, index) => (
                 <View key={index} style={styles.featureRow}>
-                  <Ionicons name="heart" size={16} color={Colors.alertCoral} style={{ marginRight: 8 }} />
+                  <Ionicons name="heart" size={16} color={Colors.alertCoral} style={styles.iconMarginRight} />
                   <Text style={styles.featureText}>{feature}</Text>
                 </View>
               ));
@@ -298,7 +298,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <ScrollView
           style={styles.pricingScroll}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 60 }}
+          contentContainerStyle={styles.scrollContentPadding}
           scrollIndicatorInsets={{ bottom: 60 }}
         >
           <View style={styles.cardsContainer}>{pricingTiers.map(renderPricingCard)}</View>
@@ -689,6 +689,12 @@ const styles = StyleSheet.create({
     color: Colors.faithGold,
     marginRight: 4,
     fontWeight: '500',
+  },
+  iconMarginRight: {
+    marginRight: 8,
+  },
+  scrollContentPadding: {
+    paddingBottom: 60,
   },
 });
 

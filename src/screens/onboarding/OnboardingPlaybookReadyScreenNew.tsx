@@ -1,15 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
-  Image,
   FlatList,
-  TouchableOpacity,
   Dimensions,
+  TouchableOpacity,
   Animated,
   StatusBar,
+  ScrollView,
   Modal,
   LayoutAnimation,
   Platform,
@@ -23,31 +22,19 @@ import { Colors } from '../../theme';
 import { BorderRadii } from '../../theme/styles';
 import { notificationService } from '../../services/notificationService';
 import { faithPointsService } from '../../services/faithPointsService';
-import { Playbook } from '../../interfaces/playbook';
+
 import { ActionStepsProvider, useActionSteps } from '../../context/ActionStepsContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Import individual card components for carousel
 import TruthInLoveCard from '../../components/TruthInLoveCard';
 import ActionStepsCard from '../../components/ActionStepsCard';
-import AffirmationCard from '../../components/AffirmationCard';
+// AffirmationCard import removed as it's not used
 import BibleVerseCard from '../../components/BibleVerseCard';
 import DirectChallengeCard from '../../components/DirectChallengeCard';
-import DevotionalButton from '../../components/DevotionalButton';
 import DevotionalModal from '../../components/DevotionalModal';
 
 const { width, height } = Dimensions.get('window');
-
-interface RouteParams {
-  playbook: Playbook;
-  onboardingData: {
-    name: string;
-    ageGroup: string;
-    faithJourney: string;
-    challenge: string;
-    challengeDetails: string;
-  };
-}
 
 interface PlaybookCard {
   id: string;
@@ -58,7 +45,7 @@ interface PlaybookCard {
 
 // Inner component that can access ActionStepsContext
 const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; specificChallenge: string; userInput: string }> = ({
-  playbook, challengeCategory, specificChallenge, userInput,
+  playbook, challengeCategory: _challengeCategory, specificChallenge: _specificChallenge, userInput,
 }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
@@ -120,7 +107,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       hintOpacity.stopAnimation();
       if (devotionalTimerRef.current) {clearTimeout(devotionalTimerRef.current);}
     };
-  }, []);
+  }, [hintOpacity, hintPulse]);
 
   // Chevron animation (match PlaybookDetail rotation behavior)
   const chevronAnim = useSharedValue(0);
@@ -180,7 +167,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [showIntroModal, starAnims]);
 
   // Issue #3 fix: Calculate progress using ActionStepsContext for real-time updates
-  const calculateProgress = () => {
+  const calculateProgress = useCallback(() => {
     let completed = 0;
     let total = 0;
 
@@ -203,12 +190,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       }
       return { completed, total, percentage };
     });
-  };
+  }, [getCompletedStepsCount]);
 
   // Update progress data when action steps change
   useEffect(() => {
     calculateProgress();
-  }, [actionSteps]);
+  }, [actionSteps, calculateProgress]);
 
   const toggleUserInput = () => {
     setShowUserInput(!showUserInput);
@@ -236,14 +223,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'truth',
         type: 'Truth in Love',
         component: (
-          <View style={[styles.carouselCard, { backgroundColor: '#274674', padding: 24 }]}>
+          <View style={[styles.carouselCard, styles.cardContainerLarge]}>
             <TruthInLoveCard
               key="truth"
               truth={truthData.text}
               summary={truthData.summary}
               // expanded controlled at render time via cloneElement
               expanded={false}
-              style={{ backgroundColor: 'transparent' }}
+              style={styles.transparentBackground}
               currentUser={{ displayName: onboardingData.name }}
             />
           </View>
@@ -258,11 +245,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         id: 'action',
         type: 'Action Steps',
         component: (
-          <View style={[styles.carouselCard, { backgroundColor: '#274674', padding: 16 }]}>
+          <View style={[styles.carouselCard, styles.cardContainerMedium]}>
             <ActionStepsCard
               key="action"
               steps={playbook.actionSteps}
-              style={{ backgroundColor: 'transparent' }}
+              style={styles.transparentBackground}
               playbookTitle={playbook.title}
               playbookId={playbook.id}
               navigation={navigation as any}
@@ -281,7 +268,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         component: (
           <View
             key="affirmations"
-            style={[styles.carouselCard, { backgroundColor: '#274674' }]}
+            style={[styles.carouselCard, styles.cardContainerMinimal]}
           >
             <View style={styles.affirmationsHeader}>
               <Text style={styles.affirmationsTitle}>Affirmations</Text>
@@ -344,6 +331,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   };
 
   const carouselCards = createCarouselCards();
+
+  // Stable ItemSeparator component to avoid react/no-unstable-nested-components warning
+  const ItemSeparator = React.useCallback(() => (
+    <View style={styles.itemSpacing} />
+  ), []);
 
   // When user reaches the last card, start a delay then reveal the CTA.
   // Once revealed, keep it visible even if the user navigates away from the last card.
@@ -409,9 +401,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       extrapolate: 'clamp',
     });
 
+    // Avoid inline-style object directly in JSX to satisfy lint
+    const cardDynamicStyle = { width: ITEM_WIDTH };
+
     return (
       <TouchableOpacity
-        style={[styles.cardContainer, { width: ITEM_WIDTH, alignItems: 'center', marginHorizontal: 0 }]}
+        style={[styles.cardContainer, styles.centeredContent, cardDynamicStyle]}
         onPress={needsExpansion ? () => toggleCardExpansion(item.id) : undefined}
         disabled={!needsExpansion}
         activeOpacity={needsExpansion ? 0.9 : 1}
@@ -421,7 +416,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* Hidden measurement: render content unconstrained to capture intrinsic height once */}
         {measured === 0 && (
           <View
-            style={{ position: 'absolute', opacity: 0, zIndex: -1, left: -10000, right: 0 }}
+            style={styles.hiddenOffscreen}
             onLayout={({ nativeEvent }) => {
               const h = nativeEvent.layout.height;
               if (h > 0 && h !== measured) {
@@ -429,6 +424,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               }
             }}
           >
+
             <View style={{ width: ITEM_WIDTH }}>{item.component}</View>
           </View>
         )}
@@ -436,10 +432,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         <Animated.View
           style={[
             styles.cardContent,
+            // eslint-disable-next-line react-native/no-inline-styles
             {
               height: isExpanded ? 'auto' : COLLAPSED_HEIGHT,
               width: ITEM_WIDTH,
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
+            },
+            {
               transform: [{ scale }, { translateY }],
               opacity,
             },
@@ -447,13 +446,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         >
           {item.id === 'truth'
             ? (
-                <View style={[styles.carouselCard, { backgroundColor: '#274674', padding: 24 }]}>
+                <View style={[styles.carouselCard, styles.cardContainerLarge]}>
                   <TruthInLoveCard
                     key="truth"
                     truth={typeof playbook.truthInLove === 'string' ? playbook.truthInLove : playbook.truthInLove.text}
                     summary={typeof playbook.truthInLove === 'string' ? '' : playbook.truthInLove.summary}
                     expanded={isExpanded}
-                    style={{ backgroundColor: 'transparent' }}
+                    style={styles.transparentBackground}
                     currentUser={{ displayName: onboardingData.name }}
                   />
                 </View>
@@ -469,12 +468,16 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               accessibilityRole="button"
               accessibilityLabel="Expand card"
             >
+              { }
+              { }
+              { }
               <Animated.View style={{ transform: [{ scale: hintPulse }], opacity: hintOpacity }}>
-                <MaterialCommunityIcons name="arrow-expand" size={18} color={Colors.hopeWhite} style={{ opacity: 0.9 }} />
+                <MaterialCommunityIcons name="arrow-expand" size={18} color={Colors.hopeWhite} style={styles.iconOpacity} />
               </Animated.View>
             </TouchableOpacity>
           )}
         </Animated.View>
+        { }
       </TouchableOpacity>
     );
   };
@@ -549,6 +552,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           contentContainerStyle={[
             styles.scrollContent,
             // Ensure content sits above fixed footer; top padding handled by sticky header to avoid sliding under status bar
+            // eslint-disable-next-line react-native/no-inline-styles
             { paddingBottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80), paddingTop: 0 },
           ]}
           showsVerticalScrollIndicator={expandedCards.size > 0}
@@ -565,6 +569,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* ONBOARDING-SPECIFIC HEADER REMOVED (moved to intro modal) */}
 
         {/* PLAYBOOK HEADER WITH CHEVRON TOGGLE */}
+        {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setHeaderH(nativeEvent.layout.height)} style={[
           styles.playbookHeaderContainer,
           {
@@ -603,6 +608,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
+              { }
               <View style={[styles.progressFill, { width: `${progressData.percentage}%` }]} />
             </View>
             <Text style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</Text>
@@ -616,7 +622,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* Dot pagination moved into carousel container to sit just above cards */}
 
         {/* CAROUSEL CARDS */}
-        <View style={{ minHeight: availableHeight, justifyContent: 'center' }}>
+        <View style={[styles.centeredJustified, { minHeight: availableHeight }] }>
         <View style={[
           styles.carouselContainer,
           {
@@ -656,7 +662,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             bounces={false}
             // Center items precisely: use exact sidePadding (no extra compensation)
             contentContainerStyle={{ paddingHorizontal: Math.round(sidePadding) }}
-            ItemSeparatorComponent={() => <View style={{ width: ITEM_SPACING }} />}
+            ItemSeparatorComponent={ItemSeparator}
             onScroll={Animated.event(
               [{ nativeEvent: { contentOffset: { x: scrollX } } }],
               { useNativeDriver: true }
@@ -683,7 +689,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         {/* DEVOTIONAL BUTTON - delayed reveal and persistent */}
         {devotionalVisible && (
           <TouchableOpacity
-            style={[styles.devotionalButton, { width: ITEM_WIDTH, alignSelf: 'center', marginHorizontal: 0 }]}
+            style={[styles.devotionalButton, styles.centeredSelfContent, { width: ITEM_WIDTH }]}
             onPress={handleCreateDevotional}
             activeOpacity={0.8}
           >
@@ -697,6 +703,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         </ScrollView>
 
         {/* FIXED FOOTER (translucent so cards scroll behind) - Button only */}
+        {/* eslint-disable react-native/no-inline-styles */}
         <View onLayout={({ nativeEvent }) => setFooterH(nativeEvent.layout.height)} style={[
           styles.footer,
           {
@@ -712,7 +719,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         ]}>
           {/* Helper text inside the footer, above the button (hidden when a card is expanded) */}
           {expandedCards.size === 0 && (
-            <Text style={[styles.bottomText, { marginBottom: 10, textAlign: 'center' }]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</Text>
+            <Text style={[styles.bottomText, styles.bottomTextCentered]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</Text>
           )}
           <TouchableOpacity
             style={styles.continueButton}
@@ -1115,6 +1122,66 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.25)',
+  },
+  transparentBackground: {
+    backgroundColor: 'transparent',
+  },
+  hiddenOffscreen: {
+    position: 'absolute',
+    opacity: 0,
+    zIndex: -1,
+    left: -10000,
+    right: 0,
+  },
+  iconOpacity: {
+    opacity: 0.9,
+  },
+  footerDynamic: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(26, 60, 109, 0.85)',
+  },
+  bottomTextCentered: {
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  cardContainerLarge: {
+    backgroundColor: '#274674',
+    padding: 24,
+  },
+  cardContainerMedium: {
+    backgroundColor: '#274674',
+    padding: 16,
+  },
+  cardContainerMinimal: {
+    backgroundColor: '#274674',
+  },
+  centeredContent: {
+    alignItems: 'center',
+    marginHorizontal: 0,
+  },
+  noPaddingTop: {
+    paddingTop: 0,
+  },
+  elevatedContent: {
+    zIndex: 2,
+    elevation: 2,
+  },
+  centeredJustified: {
+    justifyContent: 'center',
+  },
+  centeredSelfContent: {
+    alignSelf: 'center',
+    marginHorizontal: 0,
+  },
+  itemSpacing: {
+    // Using literal to avoid out-of-scope constant in StyleSheet; matches ITEM_SPACING
+    width: 16,
+  },
+  cardContentDynamic: {
+    // Dynamic styles will be applied inline for height, width, backgroundColor, transform, opacity
   },
 });
 

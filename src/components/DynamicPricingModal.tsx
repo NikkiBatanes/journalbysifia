@@ -3,9 +3,8 @@ import {
   View,
   Text,
   StyleSheet,
-  Modal,
   TouchableOpacity,
-  Dimensions,
+  Modal,
   Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -14,7 +13,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window'); // Unused, commented out
 
 interface DynamicPricingModalProps {
   visible: boolean;

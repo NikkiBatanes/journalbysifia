@@ -13,7 +13,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
-  ActivityIndicator,
+
   Alert,
   Animated,
 } from 'react-native';
@@ -74,7 +74,7 @@ const UserInputScreen: React.FC = () => {
   }, []);
 
   const { user } = useAuth();
-  const userId = user?.id;
+  // const userId = user?.id; // Unused, commented out
   const userName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
   const buttonScale = useRef(new Animated.Value(1)).current;

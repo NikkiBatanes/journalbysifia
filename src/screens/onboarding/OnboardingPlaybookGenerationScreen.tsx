@@ -22,8 +22,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { enhancedGenerationService } from '../../services/enhancedGenerationService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { useUserState } from '../../hooks/useUserState';
-import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
+// import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 
 interface RouteParams {
   challengeCategory: string;
@@ -53,21 +52,21 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
-  const { updateOnboardingStep } = useUserState();
+  // const { updateOnboardingStep } = useUserState(); // Unused for now
   const params = route.params as RouteParams;
-  const isMounted = useRef(true);
+  // const isMounted = useRef(true); // Unused, commented out
 
   const [isGenerating, setIsGenerating] = useState(true);
-  const [generatedPlaybook, setGeneratedPlaybook] = useState<GeneratedPlaybook | null>(null);
+  const [_generatedPlaybook, setGeneratedPlaybook] = useState<GeneratedPlaybook | null>(null);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, _setIsLoading] = useState(false);
 
   // Enhanced animations for better UI
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const contentFadeAnim = useRef(new Animated.Value(0)).current;
-  const pulseValue = useRef(new Animated.Value(0.8)).current;
+  // const contentFadeAnim = useRef(new Animated.Value(0)).current; // Unused, commented out
+  // const pulseValue = useRef(new Animated.Value(0.8)).current; // Unused, commented out
   const breathingAnim = useRef(new Animated.Value(0.9)).current;
   const textOpacity = useRef(new Animated.Value(0.8)).current;
   const textPulse = useRef(new Animated.Value(1)).current;
@@ -83,15 +82,15 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const aura3Opacity = useRef(new Animated.Value(0.20)).current;
 
   // Scale breathing words subtly with the inner ring
-  const textScale = aura1Scale.interpolate({
-    inputRange: [0.85, 1.1],
-    outputRange: [0.97, 1.03],
-    extrapolate: 'clamp',
-  });
+  // const textScale = aura1Scale.interpolate({
+  //   inputRange: [0.85, 1.1],
+  //   outputRange: [0.97, 1.03],
+  //   extrapolate: 'clamp',
+  // }); // Unused, commented out
 
   // Breathing animation text
-  const [breathingText, setBreathingText] = useState('Breathe in peace');
-  const [breathingPhase, setBreathingPhase] = useState<'in' | 'hold' | 'out'>('in');
+  const [_breathingText, _setBreathingText] = useState('Breathe in peace');
+  const [_breathingPhase, _setBreathingPhase] = useState<'in' | 'hold' | 'out'>('in');
   // Typewriter suffix after the word "Breathe "
   const [breathSuffix, setBreathSuffix] = useState('in peace');
   const suffixIndexRef = useRef(0); // 0: 'in peace', 1: 'out worry'
@@ -345,7 +344,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       setGenerationError('Unable to generate your playbook. Please try again.');
       setIsGenerating(false);
     }
-  }, [params, user, contentFadeAnim]);
+  }, [params, user, navigation, progressAnim]);
 
   // Breathing animation cycle: Inhale (4s) → Hold (1s) → Exhale (4s)
   useEffect(() => {
@@ -386,7 +385,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       const coreCycle = () => {
         if (stopped) { return; }
         // Inhale: update words and fade ellipsis in
-        setBreathingPhase('in');
+        _setBreathingPhase('in');
         Animated.parallel([
           Animated.timing(breathingAnim, { toValue: 1.12, duration: 4000, useNativeDriver: true }),
           Animated.timing(textOpacity, { toValue: 1.0, duration: 4000, useNativeDriver: true }),
@@ -399,14 +398,14 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
           ]),
         ]).start(({ finished }) => {
           if (!finished || stopped) { return; }
-          setBreathingPhase('hold');
+          _setBreathingPhase('hold');
           // Hold: keep text nearly steady
           Animated.parallel([
             Animated.timing(textOpacity, { toValue: 0.95, duration: 300, useNativeDriver: true }),
             Animated.delay(1000),
           ]).start(() => {
             if (stopped) { return; }
-            setBreathingPhase('out');
+            _setBreathingPhase('out');
             // Exhale: scale down arcs and dim text a bit
             Animated.parallel([
               Animated.timing(breathingAnim, { toValue: 0.88, duration: 4000, useNativeDriver: true }),
@@ -420,7 +419,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               ]),
             ]).start(({ finished: f2 }) => {
               if (!f2 || stopped) { return; }
-              setBreathingPhase('in');
+              _setBreathingPhase('in');
               coreCycle();
             });
           });
@@ -446,7 +445,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       breathingAnim.stopAnimation();
       textOpacity.stopAnimation();
     };
-  }, [breathingAnim, aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity, textOpacity, inWordsOpacity, outWordsOpacity]);
+  }, [breathingAnim, aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity, textOpacity, inWordsOpacity, outWordsOpacity, textPulse]);
 
   // Type/erase loop for suffix after "Breathe "
   useEffect(() => {
@@ -557,32 +556,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     }
   }, [isGenerating, generationSteps.length, progressAnim]);
 
-  const handleContinue = async () => {
-    setIsLoading(true);
-
-    try {
-      // Update onboarding progress
-      updateOnboardingStep('playbook_generated', 3);
-
-      console.log('📚 Playbook completed, proceeding directly to OnboardingPlaybookReady');
-
-      // Navigate directly to OnboardingPlaybookReady (skip intermediate screen)
-      (navigation as any).replace('OnboardingPlaybookReady', {
-        playbook: generatedPlaybook,
-        onboardingData: {
-          name: (user as any)?.user_metadata?.full_name || 'Friend',
-          ageGroup: 'Adult',
-          faithJourney: 'Growing in Faith',
-          challenge: params?.challengeCategory || 'Personal Growth',
-          challengeDetails: params?.specificChallenge || 'Seeking spiritual growth',
-        },
-      });
-    } catch (error) {
-      console.error('Error proceeding to playbook detail:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Unused function removed to fix linting issues
 
   const handleRetry = () => {
     setGenerationError(null);

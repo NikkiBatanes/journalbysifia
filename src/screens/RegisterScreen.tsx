@@ -5,7 +5,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Alert,
+
   Platform,
   // ActivityIndicator, // unused
   Image,
@@ -92,12 +92,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const { error } = await signInWithGoogle();
-    if (error) {
-      console.error('❌ Google sign up failed:', error);
-      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+    const { error: googleError } = await signInWithGoogle();
+    if (googleError) {
+      console.error('Google Sign-In Error:', googleError);
+      console.error('❌ Full error details:', JSON.stringify(googleError, null, 2));
       // Show inline banner and keep user on page
-      setError(error.message || 'Google sign up failed. Please try again.');
+      setError(googleError.message || 'Google sign up failed. Please try again.');
       return;
     }
     console.log('✅ Google sign up successful, waiting for auth state change...');
@@ -121,12 +121,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const { error } = await signInWithApple();
-    if (error) {
-      console.error('❌ Apple sign up failed:', error);
-      console.error('❌ Full error details:', JSON.stringify(error, null, 2));
+    const { error: appleError } = await signInWithApple();
+    if (appleError) {
+      console.error('Apple Sign-In Error:', appleError);
+      console.error('❌ Full error details:', JSON.stringify(appleError, null, 2));
       // Show inline banner and keep user on page
-      setError(error.message || 'Apple sign up failed. Please try again.');
+      setError(appleError.message || 'Apple sign up failed. Please try again.');
       return;
     }
     console.log('✅ Apple sign up successful, waiting for auth state change...');
@@ -172,7 +172,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Inline Error Banner */}
         {error ? (
           <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={{ marginRight: 8 }} />
+            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -212,7 +212,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Login Link */}
       <View style={styles.loginContainer}>
-        <Text style={styles.loginText}>Already have an account? </Text>
+        <Text style={styles.loginText}>Already a member? </Text>
         <TouchableOpacity onPress={handleSignIn}>
           <Text style={styles.loginLink}>Login</Text>
         </TouchableOpacity>
@@ -400,6 +400,9 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     fontWeight: '600',
     textDecorationLine: 'none',
+  },
+  errorIconMargin: {
+    marginRight: 8,
   },
 });
 

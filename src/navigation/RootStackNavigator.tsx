@@ -6,8 +6,6 @@ import {
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
-import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CommonActions } from '@react-navigation/native';
 
 
@@ -26,18 +24,15 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 // New Onboarding screens
 import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen';
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
-
-import OnboardingFaithJourneyScreen from '../screens/onboarding/OnboardingFaithJourneyScreen';
-import OnboardingChallengeSelectionScreen from '../screens/onboarding/OnboardingChallengeSelectionScreen';
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
 import OnboardingPlaybookNavigationScreen from '../screens/onboarding/OnboardingPlaybookNavigationScreen';
-import OnboardingInteractiveExplorationScreen from '../screens/onboarding/OnboardingInteractiveExplorationScreen';
-import OnboardingHandsOnDemoScreen from '../screens/onboarding/OnboardingHandsOnDemoScreen';
+
+
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
 import OnboardingPricingShowcaseScreen from '../screens/onboarding/OnboardingPricingShowcaseScreen';
 
-import OnboardingChallengeDetailsScreen from '../screens/onboarding/OnboardingChallengeDetailsScreen';
+
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
 
 // New Simplified Onboarding Flow Screens
@@ -243,50 +238,17 @@ export default function RootStackNavigator({
   AuthStack,
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
-  // Removed unused user variable from useAuth()
-  const [initialRoute, setInitialRoute] = useState<string>('OnboardingSplash');
-  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
-
-  // Simplified: Always start with OnboardingSplash, let it handle the routing logic
-  useEffect(() => {
-    (async () => {
-      try {
-        // Honor post-auth redirect as initial route to avoid splash flicker
-        const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
-        if (redirectRaw) {
-          const redirect = JSON.parse(redirectRaw);
-          const target = redirect?.target;
-          if (typeof target === 'string' && target.length > 0) {
-            console.log('[RootStackNavigator] Using post_auth_redirect as initial route:', target);
-            setInitialRoute(target);
-            try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
-          }
-        }
-      } catch (e) {
-        console.warn('[RootStackNavigator] Error reading post_auth_redirect:', e);
-      } finally {
-        setIsCheckingOnboarding(false);
-      }
-    })();
-  }, [isAuthenticated]);
+  // Always start with OnboardingSplash and let it handle all routing decisions
+  // including post_auth_redirect, completion checks, and authentication state
 
   // Get screen options
   const playbookDetailOptions = getPlaybookDetailOptions();
   const cardDetailOptions = getCardDetailOptions();
 
-  // Show loading while checking onboarding status
-  if (isCheckingOnboarding) {
-    return null; // Or a loading component
-  }
-
-  // Removed unused devotionalListOptions
-
-  // Note: renderMainTabs was removed since we're using component prop directly
-
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
-      initialRouteName={initialRoute as any}
+      initialRouteName="OnboardingSplash"
     >
 
       {/* PHASE 1: First Impression & Value Proposition (15%) */}
@@ -321,21 +283,9 @@ export default function RootStackNavigator({
       ) : (
         <>
           {/* PHASE 3: Challenge Selection & Playbook Generation (35%) */}
-          <Stack.Screen
-            name="OnboardingFaithJourney"
-            component={OnboardingFaithJourneyScreen as React.ComponentType}
-            options={OnboardingAnimations.smoothSlide}
-          />
-          <Stack.Screen
-            name="OnboardingChallengeSelection"
-            component={OnboardingChallengeSelectionScreen as React.ComponentType}
-            options={OnboardingAnimations.smoothSlide}
-          />
-          <Stack.Screen
-            name="OnboardingChallengeDetails"
-            component={OnboardingChallengeDetailsScreen as React.ComponentType}
-            options={OnboardingAnimations.smoothSlide}
-          />
+
+
+
           <Stack.Screen
             name="OnboardingPlaybookGeneration"
             component={OnboardingPlaybookGenerationScreen as React.ComponentType}
@@ -380,16 +330,8 @@ export default function RootStackNavigator({
             component={OnboardingPlaybookNavigationScreen as React.ComponentType}
             options={OnboardingAnimations.smoothSlide}
           />
-          <Stack.Screen
-            name="OnboardingInteractiveExploration"
-            component={OnboardingInteractiveExplorationScreen as React.ComponentType}
-            options={OnboardingAnimations.smoothSlide}
-          />
-          <Stack.Screen
-            name="OnboardingHandsOnDemo"
-            component={OnboardingHandsOnDemoScreen as React.ComponentType}
-            options={OnboardingAnimations.smoothSlide}
-          />
+
+
           <Stack.Screen
             name="OnboardingPricingShowcase"
             component={OnboardingPricingShowcaseScreen as React.ComponentType}

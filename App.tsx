@@ -81,9 +81,12 @@ import { useAuth } from './src/context/IndustryStandardAuthContext';
 
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
 
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, bootstrapping } = useAuth();
 
-  if (!fontsLoaded || loading) {
+  // Only block initial render while bootstrapping the initial session.
+  // Do NOT block on transient auth action loading to avoid navigator remounts
+  // that can reset to onboarding after failed logins.
+  if (!fontsLoaded || bootstrapping) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.anchorBlue} />

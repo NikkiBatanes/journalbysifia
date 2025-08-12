@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+
 import { loadDiscountState, saveDiscountState, mergeGuestToUser, type DiscountState } from './discountStorage';
 
 export interface PricingTier {
@@ -108,7 +108,9 @@ class PricingService {
     try {
       // In a real app, you would use a location service or IP geolocation
       // For now, we'll simulate this
+
       return 'US'; // Default to US, change to 'PH' for Philippines testing
+    // eslint-disable-next-line no-unreachable
     } catch (error) {
       console.error('Error getting user location:', error);
       return 'DEFAULT';
@@ -172,7 +174,9 @@ class PricingService {
     const optOuts = current?.optOutCount ?? this.userOptOutCount;
     const redeemed = current?.redeemed ?? false;
     // Enable discount starting on the first opt-out
-    if (optOuts < 1 || redeemed) {return null;}
+    if (optOuts < 1 || redeemed) {
+      return null;
+    }
 
     const period = billing || 'any';
     const key = tierId ? `${tierId}-${period}` : `default-${period}`;

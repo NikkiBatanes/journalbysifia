@@ -59,7 +59,7 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
           } catch (refreshError) {
             console.error('❌ Prayer API session refresh failed:', refreshError);
           }
-          throw new Error('No active session. Please sign in.');
+          throw new Error('No active session. Please login.');
         }
         await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
         continue;
@@ -73,7 +73,7 @@ async function getSessionWithRetry(retries = 3): Promise<any> {
     }
   }
 
-  throw new Error('No active session. Please sign in.');
+  throw new Error('No active session. Please login.');
 }
 
 // Helper function to ensure Supabase is authenticated with robust session handling
@@ -82,7 +82,7 @@ const ensureAuthenticated = async () => {
     const session = await getSessionWithRetry();
 
     if (!session?.access_token) {
-      throw new Error('Invalid authentication token. Please sign in again.');
+      throw new Error('Invalid authentication token. Please login again.');
     }
 
     console.log('✅ Prayer API authenticated for user:', session.user.id);

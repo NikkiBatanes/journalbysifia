@@ -554,7 +554,7 @@ export class QueueService {
 
       console.log(`[QueueService] Updating queue status for ${itemId} to ${status}:`, updateData);
 
-      const { data, error } = await this.supabase
+      const { error } = await this.supabase
         .from('generation_queue')
         .update(updateData)
         .eq('id', itemId);

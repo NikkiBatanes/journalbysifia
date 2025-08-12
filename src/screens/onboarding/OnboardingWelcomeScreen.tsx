@@ -187,7 +187,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
       <View style={styles.featuresList}>
         {item.features.map((feature, index) => (
           <View key={index} style={styles.featureItem}>
-            <Ionicons name="heart" size={24} color={Colors.alertCoral} style={{ marginTop: 2 }} />
+            <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.iconMarginTop} />
             <Text style={styles.featureText}>{feature}</Text>
           </View>
         ))}
@@ -382,6 +382,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   linkText: OnboardingStyles.linkText,
+  iconMarginTop: {
+    marginTop: 2,
+  },
 });
 
 export default OnboardingWelcomeScreen;

@@ -159,11 +159,11 @@ class SessionManager {
     }
 
     if (this.isSessionExpired()) {
-      return 'Your session has expired. Please sign in again.';
+      return 'Your session has expired. Please login again.';
     }
 
     if (this.sessionInfo.refreshAttempts >= this.MAX_REFRESH_ATTEMPTS) {
-      return 'Unable to refresh your session. Please sign in again.';
+      return 'Unable to refresh your session. Please login again.';
     }
 
     return 'Something went wrong. Please try again.';

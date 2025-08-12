@@ -34,7 +34,7 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
   const [tiers, setTiers] = useState<PricingTier[] | null>(null);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
   const [selectedTierId, setSelectedTierId] = useState<string>('growth');
-  const [isLoadingPricing, setIsLoadingPricing] = useState<boolean>(true);
+  const [_isLoadingPricing, setIsLoadingPricing] = useState<boolean>(true);
 
   // Track pricing viewed on component mount
   React.useEffect(() => {

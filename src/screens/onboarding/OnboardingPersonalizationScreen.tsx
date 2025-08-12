@@ -3,7 +3,7 @@
  * Multi-step personalization screen matching exact design
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -201,7 +201,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const scrollViewRef = useRef<ScrollView>(null);
   const askBoxYRef = useRef(0);
 
-  const focusDetailsInput = () => {
+  const focusDetailsInput = useCallback(() => {
     InteractionManager.runAfterInteractions(() => {
       // Small delay helps after layout/keyboard animations
       setTimeout(() => {
@@ -210,7 +210,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         scrollViewRef.current?.scrollTo({ y, animated: true });
       }, 100);
     });
-  };
+  }, []);
 
   // When the user changes challenge, clear details so the new placeholder is visible
   React.useEffect(() => {
@@ -219,14 +219,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     if (currentStep === (showNameStep ? 5 : 4)) {
       focusDetailsInput();
     }
-  }, [selectedChallenge]);
+  }, [selectedChallenge, currentStep, focusDetailsInput, showNameStep]);
 
   // Auto focus when entering the details step
   React.useEffect(() => {
     if (currentStep === (showNameStep ? 5 : 4)) {
       focusDetailsInput();
     }
-  }, [currentStep, showNameStep]);
+  }, [currentStep, showNameStep, focusDetailsInput]);
 
   // Dynamic total steps based on whether we show name step
   const totalSteps = showNameStep ? 5 : 4; // Name + Age + Faith + Challenge + Details OR Age + Faith + Challenge + Details
@@ -377,7 +377,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Where are you in your{`
 `}walk with God?</Text>
-      <Text style={[OnboardingStyles.subtitle, { textAlign: 'left', marginBottom: 20 }]}>
+      <Text
+        style={styles.stepSubtitle}>
         There's no wrong answer. {'\n'}He welcomes you exactly as you are.
       </Text>
       <View style={styles.optionsContainer}>
@@ -461,7 +462,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       {/* Examples label */}
       {challengeOptions.find(c => c.id === selectedChallenge)?.examples && (
         <View style={styles.examplesLabelRow}>
-          <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.hopeWhite} style={{ marginRight: 6, opacity: 0.9 }} />
+          <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.hopeWhite} style={styles.iconWithMarginAndOpacity} />
           <Text style={styles.examplesLabelText}>Suggested Prompts</Text>
         </View>
       )}
@@ -994,6 +995,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     fontWeight: '600',
     color: Colors.hopeWhite,
+  },
+  iconWithMarginAndOpacity: {
+    marginRight: 6,
+    opacity: 0.9,
   },
 });
 

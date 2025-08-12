@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
@@ -12,7 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing } from '../../services/pricingService';
 import { subscriptionService } from '../../services/subscriptionService';
-import DynamicPricingModal from '../../components/DynamicPricingModal';
+
 import { setTrialOptOut } from '../../services/discountStorage';
 import { supabase } from '../../services/supabaseClient';
 
@@ -22,11 +22,11 @@ const OnboardingTrialOfferScreen = () => {
   // Read selection from params; default to annual
   const initialTierId: string = route?.params?.selectedTierId || 'growth';
   const initialBilling: 'annual' | 'monthly' = route?.params?.billing || 'annual';
-  const [selectedTierId, setSelectedTierId] = useState<string>(initialTierId);
+  const [selectedTierId, _setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
-  const [wantsTrial, setWantsTrial] = useState(true);
-  const [showDynamicModal, setShowDynamicModal] = useState(false);
-  const [dynamicDiscount, setDynamicDiscount] = useState<any>(null);
+  const [_wantsTrial, _setWantsTrial] = useState(true);
+  const [_showDynamicModal, _setShowDynamicModal] = useState(false);
+  const [_dynamicDiscount, _setDynamicDiscount] = useState<any>(null);
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
 
@@ -197,7 +197,7 @@ const OnboardingTrialOfferScreen = () => {
         {/* Main Content */}
         <View style={styles.contentWrap}>
           {/* Spacer below header */}
-          <View style={{ height: 4 }} />
+          <View style={styles.spacerHeight} />
 
           {/* Intro Text */}
           <View style={styles.introSection}>
@@ -548,6 +548,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.8,
     marginBottom: 0,
+  },
+  spacerHeight: {
+    height: 4,
   },
 });
 

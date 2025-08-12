@@ -26,14 +26,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const handleGoogleLogin = async () => {
     const { error } = await signInWithGoogle();
     if (error) {
-      Alert.alert('Google Sign In Failed', error.message || 'Please try again');
+      Alert.alert('Google Login Failed', error.message || 'Please try again');
     }
   };
 
   const handleAppleLogin = async () => {
     const { error } = await signInWithApple();
     if (error) {
-      Alert.alert('Apple Sign In Failed', error.message || 'Please try again');
+      Alert.alert('Apple Login Failed', error.message || 'Please try again');
     }
   };
 
@@ -108,7 +108,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Sign Up Link */}
       <View style={styles.signUpContainer}>
-        <Text style={styles.signUpText}>Don't have an account? </Text>
+        <Text style={styles.signUpText}>Not yet a member? </Text>
         <TouchableOpacity onPress={handleSignUp}>
           <Text style={styles.signUpLink}>Sign Up</Text>
         </TouchableOpacity>

@@ -17,7 +17,7 @@ interface PleaseLoginScreenProps {
 
 const PleaseLoginScreen: React.FC<PleaseLoginScreenProps> = ({
   onLoginPress,
-  message = 'Please sign in to continue using siFia',
+  message = 'Please login to continue using siFia',
 }) => {
   return (
     <SafeAreaView style={styles.container}>
@@ -30,7 +30,7 @@ const PleaseLoginScreen: React.FC<PleaseLoginScreenProps> = ({
         <Text style={styles.message}>{message}</Text>
 
         <TouchableOpacity style={styles.loginButton} onPress={onLoginPress}>
-          <Text style={styles.loginButtonText}>Sign In</Text>
+          <Text style={styles.loginButtonText}>Login</Text>
         </TouchableOpacity>
 
         <Text style={styles.footerText}>

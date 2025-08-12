@@ -23,7 +23,7 @@ export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavig
       <Stack.Screen
         name="Login"
         component={LoginScreen}
-        options={{ title: 'Sign In' }}
+        options={{ title: 'Login' }}
       />
       <Stack.Screen
         name="Register"
@@ -33,7 +33,7 @@ export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavig
       <Stack.Screen
         name="EmailLogin"
         component={EmailLoginScreen}
-        options={{ title: 'Email Sign In' }}
+        options={{ title: 'Email Login' }}
       />
       <Stack.Screen
         name="EmailRegister"

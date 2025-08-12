@@ -6,17 +6,14 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Image,
-  StatusBar,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
+  KeyboardAvoidingView,
+  StatusBar,
 } from 'react-native';
-import { CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
@@ -130,7 +127,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Inline Error Banner */}
         {error ? (
           <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={{ marginRight: 8 }} />
+            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
             <Text style={styles.errorText}>{error}</Text>
           </View>
         ) : null}
@@ -230,7 +227,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Login Link */}
         <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>Already have an account? </Text>
+          <Text style={styles.loginText}>Already a member? </Text>
           <TouchableOpacity onPress={handleLogin}>
             <Text style={styles.loginLink}>Login</Text>
           </TouchableOpacity>
@@ -263,6 +260,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 140,
     height: 140,
+    transform: [{ translateY: -10 }],
   },
   titleContainer: {
     alignItems: 'center',
@@ -373,6 +371,9 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     fontWeight: '600',
     textDecorationLine: 'none',
+  },
+  errorIconMargin: {
+    marginRight: 8,
   },
 });
 

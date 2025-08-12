@@ -459,6 +459,22 @@ export class OnboardingService {
    */
   async hasCompletedOnboarding(userId: string): Promise<boolean> {
     try {
+      // 1) Primary source of truth: user_profiles.onboarding_completed
+      try {
+        const { data: profile, error: profErr } = await this.supabase
+          .from('user_profiles')
+          .select('onboarding_completed')
+          .eq('id', userId)
+          .single();
+
+        if (!profErr && profile && profile.onboarding_completed === true) {
+          return true;
+        }
+      } catch (e) {
+        // Non-fatal: fall back to onboarding_progress
+      }
+
+      // 2) Fallback: onboarding_progress.is_completed
       const progress = await this.getOnboardingProgress(userId);
       return progress?.is_completed || false;
     } catch (error) {

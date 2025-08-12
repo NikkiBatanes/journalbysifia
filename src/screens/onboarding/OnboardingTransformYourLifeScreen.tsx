@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
   Animated,
   StatusBar,
   Image,
-  Dimensions,
+
 } from 'react-native';
 import Lottie from 'lottie-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -22,15 +22,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
 
-interface Feature {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  color: string;
-}
+// Feature interface removed as it's not currently used in the component
 
-const features: Feature[] = [
+/* const features = [
   {
     id: 'playbooks',
     title: 'AI-powered playbooks for your unique challenges',
@@ -52,7 +46,7 @@ const features: Feature[] = [
     icon: 'pencil',
     color: Colors.alertCoral,
   },
-];
+]; */
 
 const OnboardingTransformYourLifeScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -132,23 +126,23 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         {/* Main Content */}
         <View style={styles.mainContent}>
           <View style={styles.textContainer}>
-            <Text style={[OnboardingStyles.mainTitle, styles.transformTitle, { textAlign: 'left', width: '100%' }]}>This is the start of something new.</Text>
+            <Text style={[OnboardingStyles.mainTitle, styles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</Text>
           </View>
 
           <View style={styles.textContainer}>
             <Text style={styles.mainText}>
             God has a way of meeting us right in the middle of our story, not when everything is perfect, but when our hearts are open.
             </Text>
-            <Text style={[styles.mainText, { marginTop: 20 }]}>
+            <Text style={[styles.mainText, styles.textWithMarginTop]}>
             Let's take the first step together.
             </Text>
           </View>
 
           {/* Features List - Temporarily Hidden */}
           <View style={styles.featuresList}>
-            <View style={[styles.featureItem, { opacity: 0, height: 0 }]} />
-            <View style={[styles.featureItem, { opacity: 0, height: 0 }]} />
-            <View style={[styles.featureItem, { opacity: 0, height: 0, marginBottom: 30 }]} />
+            <View style={[styles.featureItem, styles.hiddenFeature]} />
+            <View style={[styles.featureItem, styles.hiddenFeature]} />
+            <View style={[styles.featureItem, styles.hiddenFeatureWithMargin]} />
 
             {/* Button */}
             <TouchableOpacity
@@ -157,9 +151,17 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
               disabled={isLoading}
             >
               <Text style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
-                {isLoading ? 'Starting...' : 'Start my journey'}
+                {isLoading ? 'Starting...' : 'Start My Journey'}
               </Text>
             </TouchableOpacity>
+
+            {/* Sign in link */}
+            <View style={styles.signInRow}>
+              <Text style={styles.signInText}>Already a member? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Auth' as any, { screen: 'Login' })}>
+                <Text style={styles.signInLink}>Login</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -258,11 +260,42 @@ const styles = StyleSheet.create({
   startButtonText: {
     // Additional custom styling if needed
   },
+  signInRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  signInText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+  },
+  signInLink: {
+    color: Colors.alertCoral,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   trialText: {
     fontSize: 14,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginTop: 10,
+  },
+  titleLeftAlign: {
+    textAlign: 'left',
+    width: '100%',
+  },
+  textWithMarginTop: {
+    marginTop: 20,
+  },
+  hiddenFeature: {
+    opacity: 0,
+    height: 0,
+  },
+  hiddenFeatureWithMargin: {
+    opacity: 0,
+    height: 0,
+    marginBottom: 30,
   },
 
 });

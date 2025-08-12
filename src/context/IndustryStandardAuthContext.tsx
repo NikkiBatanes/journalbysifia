@@ -7,7 +7,10 @@ import SessionManager from '../utils/sessionManager';
 interface AuthState {
   user: User | null;
   session: Session | null;
+  // loading: true only for active auth actions (signIn/signUp/etc.)
   loading: boolean;
+  // bootstrapping: true only during initial session determination on app start
+  bootstrapping: boolean;
   isAuthenticated: boolean;
 }
 
@@ -33,7 +36,8 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     session: null,
-    loading: true,
+    loading: false,
+    bootstrapping: true,
     isAuthenticated: false,
   });
 
@@ -48,7 +52,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           console.error('❌ Error getting initial session:', error);
           // Don't immediately set isAuthenticated to false on error
           // Let the auth state change listener handle it
-          setAuthState(prev => ({ ...prev, loading: false }));
+          setAuthState(prev => ({ ...prev, bootstrapping: false }));
           return;
         }
 
@@ -63,6 +67,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           user: session?.user ?? null,
           session,
           loading: false,
+          bootstrapping: false,
           isAuthenticated: !!session?.user,
         });
 
@@ -75,7 +80,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         // Only set to unauthenticated if there's a real error
         setAuthState(prev => ({
           ...prev,
-          loading: false,
+          bootstrapping: false,
           // Don't immediately clear authentication on network errors
         }));
       }
@@ -107,16 +112,26 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
         console.log('📝 Creating new user profile for OAuth user');
 
-        // Extract name data for future use
-        // const userMetadata = user.user_metadata || {};
-        // const firstName = userMetadata.first_name || userMetadata.given_name || user.email?.split('@')[0] || '';
-        // const lastName = userMetadata.last_name || userMetadata.family_name || '';
+        // Determine onboarding_completed from onboarding_progress if available
+        let completed = false;
+        try {
+          const { data: progress, error: progressErr } = await supabase
+            .from('onboarding_progress')
+            .select('is_completed')
+            .eq('user_id', user.id)
+            .single();
+          if (!progressErr && progress?.is_completed === true) {
+            completed = true;
+          }
+        } catch (e) {
+          // ignore; default remains false
+        }
 
         // Create user profile matching actual database schema
         const userProfile = {
           id: user.id,
           email: user.email,
-          onboarding_completed: false,
+          onboarding_completed: completed,
         };
 
         const { error: insertError } = await supabase
@@ -158,6 +173,7 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           user: session?.user ?? null,
           session,
           loading: false,
+          bootstrapping: false,
           isAuthenticated: !!session?.user,
         });
 
