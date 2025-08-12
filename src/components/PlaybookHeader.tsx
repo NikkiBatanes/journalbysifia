@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'stretch',
     paddingTop: 5,
-    paddingBottom: 16,
+    paddingBottom: 4,
     paddingHorizontal: 22,
     backgroundColor: 'transparent',
     width: '100%',

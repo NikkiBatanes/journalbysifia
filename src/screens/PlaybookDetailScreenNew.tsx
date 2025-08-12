@@ -213,7 +213,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // Measure header height so we can place the card overlay precisely below it
   const [headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
-  const overlayTop = Math.max(insets.top, 24) + headerMeasuredHeight + playbookHeaderHeight;
+  const overlayTop = Math.max(insets.top, 10) + playbookHeaderHeight - 40;
   const HEADER_TOP_ADJUST = 12; // visually similar to previous -12 without negative margins
 
   // Animated collapse progress for smooth header transition (0 = expanded, 1 = collapsed)
