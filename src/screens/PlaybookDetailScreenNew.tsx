@@ -211,7 +211,7 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   const insets = useSafeAreaInsets();
   // Measure header height so we can place the card overlay precisely below it
-  const [headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
+  const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
   const overlayTop = Math.max(insets.top, 10) + playbookHeaderHeight - 40;
   const HEADER_TOP_ADJUST = 12; // visually similar to previous -12 without negative margins
@@ -382,6 +382,18 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   }));
 
   // Back cards animated style (removed unused variable)
+
+  // Header collapse and overlay animated styles
+  const headerCollapseStyle = useAnimatedStyle(() => ({
+    opacity: 1 - collapseProgress.value,
+    transform: [{ translateY: -16 * collapseProgress.value }],
+  }));
+
+  const overlayTopAnimatedStyle = useAnimatedStyle(() => ({
+    top: viewMode === 'document'
+      ? interpolate(collapseProgress.value, [0, 1], [overlayTop, 10])
+      : overlayTop,
+  }));
 
   // 10. Callback hooks
   const getCompletedStepsCount = useCallback(() => getTaskStats(actionSteps), [actionSteps]);
@@ -1027,22 +1039,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   // ===== RENDER FUNCTIONS =====
 
   const renderContent = () => {
-    if (!playbook) {
-      console.error('[PlaybookDetailScreen] renderContent called with null playbook!');
-      return null;
-    }
-
-    // Animated styles
-    const headerCollapseStyle = useAnimatedStyle(() => ({
-      opacity: 1 - collapseProgress.value,
-      transform: [{ translateY: -16 * collapseProgress.value }],
-    }));
-
-    const overlayTopAnimatedStyle = useAnimatedStyle(() => ({
-      top: viewMode === 'document'
-        ? interpolate(collapseProgress.value, [0, 1], [overlayTop, 10])
-        : overlayTop,
-    }));
+    // At this point playbook is guaranteed to exist due to JSX conditional check
+    const currentPlaybook = playbook!;
 
     return (
       <View style={styles.contentContainer}>
@@ -1050,10 +1048,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         {viewMode === 'stack' ? (
           <View onLayout={(e) => setPlaybookHeaderHeight(e.nativeEvent.layout.height)}>
             <PlaybookHeader
-              title={playbook.title}
+              title={currentPlaybook.title}
               subtitle={
-                playbook.createdAt
-                  ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+                currentPlaybook.createdAt
+                  ? new Date(currentPlaybook.createdAt).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
@@ -1071,7 +1069,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 setViewMode(mode);
               }}
               showUserInput={showUserInput}
-              userInput={playbook.userInput}
+              userInput={currentPlaybook.userInput}
               showTitle={false}
             />
           </View>
@@ -1079,10 +1077,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           <Animated.View style={headerCollapseStyle} pointerEvents={showCompactHeader ? 'none' : 'auto'}>
             <View onLayout={(e) => setPlaybookHeaderHeight(e.nativeEvent.layout.height)}>
               <PlaybookHeader
-                title={playbook.title}
+                title={currentPlaybook.title}
                 subtitle={
-                  playbook.createdAt
-                    ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+                  currentPlaybook.createdAt
+                    ? new Date(currentPlaybook.createdAt).toLocaleDateString('en-US', {
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -1100,7 +1098,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   setViewMode(mode);
                 }}
                 showUserInput={showUserInput}
-                userInput={playbook.userInput}
+                userInput={currentPlaybook.userInput}
                 showTitle={false}
               />
             </View>
@@ -1115,7 +1113,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 renderStackCards()
               ) : (
                 <DocumentCards
-                  playbook={playbook}
+                  playbook={currentPlaybook}
                   actionSteps={actionSteps}
                   styles={styles}
                   onScroll={handleScroll}
@@ -1353,8 +1351,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
         </View>
       ) : (
         <>
-          {renderContent()}
-          {viewMode === 'stack' && currentCard === 0 && !showUserInput && !hasReachedLastCard && (
+          {playbook && renderContent()}
+          {playbook && viewMode === 'stack' && currentCard === 0 && !showUserInput && !hasReachedLastCard && (
             <View style={styles.swipeUpIndicatorContainer}>
               <SwipeUpIndicator />
             </View>
