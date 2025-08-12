@@ -242,7 +242,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       if (anim1) {anim1.stop();}
       if (anim2) {anim2.stop();}
       if (anim3) {anim3.stop();}
-      if (navigationTimeout) clearTimeout(navigationTimeout);
+      if (navigationTimeout) {clearTimeout(navigationTimeout);}
     };
   }, [dot1Anim, dot2Anim, dot3Anim, fadeAnim, navigation, user]); // Added missing dependencies
 

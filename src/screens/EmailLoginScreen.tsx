@@ -108,7 +108,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
               value={email}
               onChangeText={(t) => {
                 setEmail(t);
-                if (error) setError('');
+                if (error) {setError('');}
               }}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -125,7 +125,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
               value={password}
               onChangeText={(t) => {
                 setPassword(t);
-                if (error) setError('');
+                if (error) {setError('');}
               }}
               secureTextEntry={!showPassword}
               autoCapitalize="none"

@@ -486,11 +486,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             (() => {
               const placeholders: Record<string, string> = {
                 relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
-                anxiety: "I feel overwhelmed by work and worry. Help me find peace and trust.",
+                anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
                 purpose: "I'm unsure about my career path and want godly direction.",
                 forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
                 financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
-                spiritual: "I want to deepen prayer and Bible study habits.",
+                spiritual: 'I want to deepen prayer and Bible study habits.',
                 addiction: "I'm trying to break a habit and need support and scripture.",
                 grief: "I'm grieving a recent loss and need comfort and hope.",
               };

@@ -147,7 +147,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                 value={firstName}
                 onChangeText={(t) => {
                   setFirstName(t);
-                  if (error) setError('');
+                  if (error) {setError('');}
                 }}
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -163,7 +163,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                 value={lastName}
                 onChangeText={(t) => {
                   setLastName(t);
-                  if (error) setError('');
+                  if (error) {setError('');}
                 }}
                 autoCapitalize="words"
                 autoCorrect={false}
@@ -180,7 +180,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               value={email}
               onChangeText={(t) => {
                 setEmail(t);
-                if (error) setError('');
+                if (error) {setError('');}
               }}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -197,7 +197,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               value={password}
               onChangeText={(t) => {
                 setPassword(t);
-                if (error) setError('');
+                if (error) {setError('');}
               }}
               secureTextEntry={!showPassword}
               autoCapitalize="none"

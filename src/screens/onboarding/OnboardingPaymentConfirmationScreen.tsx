@@ -30,10 +30,10 @@ const OnboardingPaymentConfirmationScreen = () => {
   useEffect(() => {
     // Persist paid subscription tier once
     const persistUpgrade = async () => {
-      if (didPersistRef.current) return;
-      if (userType !== 'paid') return;
-      if (!user?.id) return;
-      if (!selectedTier) return;
+      if (didPersistRef.current) {return;}
+      if (userType !== 'paid') {return;}
+      if (!user?.id) {return;}
+      if (!selectedTier) {return;}
       didPersistRef.current = true;
       setSaving(true);
       try {

@@ -467,7 +467,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     };
 
     const type = (target: string, from = '') => {
-      if (stopped) return;
+      if (stopped) {return;}
       if (from.length === target.length) {
         timer = setTimeout(() => erase(target), holdFull);
         return;
@@ -478,7 +478,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     };
 
     const erase = (current: string) => {
-      if (stopped) return;
+      if (stopped) {return;}
       if (current.length === 0) {
         // switch target
         suffixIndexRef.current = (suffixIndexRef.current + 1) % targets.length;

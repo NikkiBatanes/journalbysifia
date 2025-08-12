@@ -1014,8 +1014,8 @@ export class SubscriptionService {
         status: 'active',
         updated_at: nowIso,
       };
-      if (stripeSubscriptionId) payload.stripe_subscription_id = stripeSubscriptionId;
-      if (priceId) payload.price_id = priceId;
+      if (stripeSubscriptionId) {payload.stripe_subscription_id = stripeSubscriptionId;}
+      if (priceId) {payload.price_id = priceId;}
 
       const { error } = await this.supabase
         .from('user_subscriptions')
