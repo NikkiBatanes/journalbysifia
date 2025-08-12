@@ -11,8 +11,6 @@ import SmartJournalingReflectionModal from '../screens/SmartJournalingReflection
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
 import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
-import { StepByStepExpounding } from './StepByStepExpounding';
-import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { toLocalDateString } from '../utils/date';
 
 type SubTask = {
@@ -158,9 +156,6 @@ export default function ActionStepsCard({
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  
-  // Feature access for expounding
-  const expoundingAccess = useFeatureAccess({ feature: 'expounding_content' });
 
   // Smart Journaling Modal State
   type ActiveModalType = 'reflection' | 'gratitude' | 'prayer' | 'timeblock' | null;
@@ -954,17 +949,31 @@ export default function ActionStepsCard({
                   )}
 
                   {/* Step-by-Step Expounding */}
-                  {expandedSteps.has(step.id) && expoundingAccess.hasAccess && (
+                  {expandedSteps.has(step.id) && (
                     <View style={styles.expoundingContainer}>
-                      <StepByStepExpounding
-                        actionStepId={step.id}
-                        actionStepText={step.title}
-                        userId={user?.id || ''}
-                        onUpgrade={() => {
-                          // Handle upgrade navigation if needed
-                          console.log('Navigate to upgrade');
-                        }}
-                      />
+                      <View style={styles.expoundingHeader}>
+                        <Text style={styles.expoundingTitle}>Step Details</Text>
+                      </View>
+                      <View style={styles.expoundingContent}>
+                        {step.description && (
+                          <View style={styles.expoundingSection}>
+                            <Text style={styles.expoundingSectionTitle}>Description:</Text>
+                            <Text style={styles.expoundingSectionText}>{step.description}</Text>
+                          </View>
+                        )}
+                        <View style={styles.expoundingSection}>
+                          <Text style={styles.expoundingSectionTitle}>Purpose:</Text>
+                          <Text style={styles.expoundingSectionText}>
+                            This step helps you grow in your faith journey by providing practical guidance and spiritual insights.
+                          </Text>
+                        </View>
+                        <View style={styles.expoundingSection}>
+                          <Text style={styles.expoundingSectionTitle}>Reflection:</Text>
+                          <Text style={styles.expoundingSectionText}>
+                            Take a moment to consider how this step applies to your current situation and what God might be teaching you through it.
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                   )}
                 </View>
@@ -1263,5 +1272,33 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(255,255,255,0.2)',
     paddingLeft: 12,
+  },
+  expoundingHeader: {
+    marginBottom: 8,
+  },
+  expoundingTitle: {
+    ...Typography.interSemiBold,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  expoundingContent: {
+    paddingTop: 8,
+  },
+  expoundingSection: {
+    marginBottom: 12,
+  },
+  expoundingSectionTitle: {
+    ...Typography.interSemiBold,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
+  },
+  expoundingSectionText: {
+    ...Typography.interRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
 });
