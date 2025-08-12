@@ -12,12 +12,14 @@ import {
   ViewStyle,
   TextStyle,
   ImageStyle,
+  StatusBar,
 } from 'react-native';
 
 // Navigation & Gestures
 import { GestureDetector } from 'react-native-gesture-handler';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Animation
 import Animated, {
@@ -205,6 +207,13 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
 );
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
+  const insets = useSafeAreaInsets();
+  // Measure header height so we can place the card overlay precisely below it
+  const [headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
+  const OVERLAY_EXTRA_SPACING = 40; // extra space between header and stack overlay (raised stack more)
+  const overlayTop = Math.max(insets.top, 24) + headerMeasuredHeight + OVERLAY_EXTRA_SPACING;
+  const HEADER_TOP_ADJUST = 12; // visually similar to previous -12 without negative margins
+
   // ===== ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP =====
 
   // 1. Route and navigation data
@@ -846,7 +855,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       // Hide navigation elements during onboarding
       headerLeft: isFromOnboarding ? () => null : headerLeft,
       headerRight: isFromOnboarding ? () => null : headerRight,
-      headerShown: true,
+      headerShown: false, // hide native header; screen will control its own header/z-order
       headerTransparent: false,
       headerStyle: {
         backgroundColor: Colors.hopeWhite,
@@ -1046,27 +1055,30 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
           />
         )}
 
-        <GestureDetector gesture={panGesture}>
-          <View style={styles.mainContainer}>
-            {viewMode === 'stack' ? (
-              renderStackCards()
-            ) : (
-              <DocumentCards
-                playbook={playbook}
-                actionSteps={actionSteps}
-                styles={styles}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                onLastCardVisible={handleLastCardVisible}
-                currentUser={user ? {
-                  displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
-                  firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
-                  lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
-                } : undefined}
-              />
-            )}
-          </View>
-        </GestureDetector>
+        {/* Absolute overlay for the interactive card stack so it can pass over header and status bar */}
+        <View pointerEvents="box-none" style={[styles.cardOverlay, { top: overlayTop }]}>
+          <GestureDetector gesture={panGesture}>
+            <View style={styles.mainContainer}>
+              {viewMode === 'stack' ? (
+                renderStackCards()
+              ) : (
+                <DocumentCards
+                  playbook={playbook}
+                  actionSteps={actionSteps}
+                  styles={styles}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
+                  onLastCardVisible={handleLastCardVisible}
+                  currentUser={user ? {
+                    displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+                    firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+                    lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+                  } : undefined}
+                />
+              )}
+            </View>
+          </GestureDetector>
+        </View>
       </View>
     );
   };
@@ -1238,6 +1250,33 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   return (
     <View style={styles.container}>
+      {/* Make status bar translucent so stack can draw under it */}
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+
+      {/* In-screen header (replaces native header). Cards overlay will pass over this. */}
+      <View style={[styles.headerSafeArea, { paddingTop: Math.max(insets.top - HEADER_TOP_ADJUST, 0) }]}>
+        <View
+          style={styles.headerContainer}
+          onLayout={(e) => setHeaderMeasuredHeight(e.nativeEvent.layout.height)}
+        >
+          <HeaderLeft
+            navigation={navigation}
+            showUserInput={showUserInput}
+            setShowUserInput={setShowUserInput}
+            chevronStyle={chevronStyle}
+            showCompactHeader={showCompactHeader}
+            playbookTitle={playbook?.title}
+            completedTasksCount={completedTasksCount}
+            totalTasksCount={totalTasksCount}
+            progressPercentage={progress}
+            isFromOnboarding={isFromOnboarding}
+            onboardingNextStep={onboardingNextStep}
+          />
+          <View style={styles.headerRight}>
+            <ProfileButton user={user} navigation={navigation} />
+          </View>
+        </View>
+      </View>
       {!playbookId ? (
         <View style={styles.loadingContainer}>
           <Text style={styles.progressText}>No playbook ID provided</Text>
@@ -1320,7 +1359,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 // ===== STYLES =====
 
 interface PlaybookDetailStyles {
-  arrowIcon: StyleProp<TextStyle>;
+  arrowIcon: TextStyle;
   container: ViewStyle;
   contentContainer: ViewStyle;
   loadingContainer: ViewStyle;
@@ -1397,6 +1436,7 @@ interface PlaybookDetailStyles {
   headerProgressBarFill: ViewStyle;
   headerTasksText: TextStyle;
   currentCardZIndex: ViewStyle;
+  cardOverlay: ViewStyle;
 }
 
 const styles = StyleSheet.create<PlaybookDetailStyles>({
@@ -1420,11 +1460,11 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   cardStackContainer: {
     flex: 1,
     position: 'relative',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   swipeUpIndicatorContainer: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 12,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -1449,8 +1489,23 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     fontFamily: Fonts.medium,
     fontSize: 16,
   },
+  arrowIcon: {
+    marginLeft: 8,
+  },
   currentCardZIndex: {
     zIndex: 200,
+  },
+  cardOverlay: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    zIndex: 9999, // ensure above any in-screen header
+    // @ts-ignore elevation is Android-only but allowed in RN styles
+    elevation: 9999,
+    // Allow touches to pass through when outside children
+    // pointerEvents is set on the View usage; style kept purely for layout
   },
   compactHeaderContainer: {
     backgroundColor: Colors.hopeWhite,
@@ -1466,7 +1521,7 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   },
   bottomButtonContainer: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 16,
     left: 0,
     right: 0,
     alignItems: 'center',
@@ -1536,8 +1591,9 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 2,
     backgroundColor: Colors.hopeWhite,
+    marginBottom: -6,
   },
   backButton: {
     padding: 8,
@@ -1577,23 +1633,26 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   playbookHeader: {
     flexDirection: 'column',
     alignItems: 'center',
-    padding: 16,
+    paddingTop: 2,
+    paddingBottom: 4,
+    paddingHorizontal: 12,
   },
   headerTitleContainer: {
     width: '100%',
+    marginTop: -14,
   },
   headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
     color: Colors.textDark,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   playbookLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   playbookLabel: {
     fontFamily: Fonts.medium,

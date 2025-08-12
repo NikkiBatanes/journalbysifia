@@ -164,9 +164,10 @@ const Stack = createNativeStackNavigator();
 
 // Screen options functions
 const getPlaybookDetailOptions = (): NativeStackNavigationOptions => ({
-  headerShown: true,
+  headerShown: false, // Hide native header so screen controls z-order
   title: '',
   headerBackVisible: false,
+  // Keep the rest in case we toggle header back in future
   headerLeft: ({ navigation }: any) => <PlaybookHeaderLeft navigation={navigation} />,
   headerRight: ({ navigation }: any) => renderDefaultProfileImage({ navigation }),
   headerStyle: styles.headerStyle,
