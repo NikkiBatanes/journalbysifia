@@ -2,21 +2,20 @@
 import React, { useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text, StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
+import { StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
 
 import { Colors } from '../theme/colors';
-import { Spacing, FontSizes } from '../theme/styles';
+// Removed Spacing and FontSizes imports as they are no longer used
 import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
-import UserProfileScreen from '../screens/UserProfileScreen';
 
 import DevotionalsScreen from '../screens/DevotionalsScreen';
 import JournalScreen from '../screens/JournalScreen';
 import { MomentsScreen } from '../screens/MomentsScreen';
-import DashboardHomeScreen from '../screens/DashboardHomeScreen';
+import HomeStackNavigator from './HomeStackNavigator';
 
 const Tab = createBottomTabNavigator();
 
@@ -27,12 +26,6 @@ type CustomTabBarProps = {
   navigation: any;
 };
 
-// Logout button component
-const LogoutButton = ({ onPress }: { onPress: () => void }) => (
-  <Text style={styles.logoutButton} onPress={onPress}>
-    🚪
-  </Text>
-);
 
 // Custom tab bar component with proper TypeScript types
 const CustomTabBarComponent = ({
@@ -119,30 +112,13 @@ interface BottomTabNavigatorProps {
   onLogout: () => void;
 }
 
-// Memoized profile header component
-const ProfileHeader = React.memo(({ onLogout }: { onLogout: () => void }) => (
-  <LogoutButton onPress={onLogout} />
-));
-
-// Profile screen options with memoized header
-const useProfileScreenOptions = (onLogout: () => void) => {
-  return React.useMemo(
-    () => ({
-      tabBarLabel: 'Profile',
-      title: 'Profile',
-      headerRight: () => <ProfileHeader onLogout={onLogout} />,
-    }),
-    [onLogout]
-  );
-};
 
 // Create a context to share tab press handlers
 const TabPressContext = React.createContext<{
   onTabPress: (tabName: string) => void;
 }>({ onTabPress: () => {} });
 
-export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps) {
-  const profileScreenOptions = useProfileScreenOptions(onLogout);
+export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNavigatorProps) {
   const [currentTab, setCurrentTab] = React.useState<string>('UserInput');
   const journalScreenRef = React.useRef<JournalScreenRef>(null);
 
@@ -182,7 +158,7 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardHomeScreen}
+        component={HomeStackNavigator}
         options={{
           tabBarLabel: 'Home',
           headerShown: false,
@@ -222,14 +198,6 @@ export default function BottomTabNavigator({ onLogout }: BottomTabNavigatorProps
         options={{
           tabBarLabel: 'Moments',
           title: 'Moments',
-          headerShown: false,
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={UserProfileScreen}
-        options={{
-          ...profileScreenOptions,
           headerShown: false,
         }}
       />
@@ -281,10 +249,5 @@ const styles = StyleSheet.create({
     margin: 0,
     fontSize: 30,  // Slightly larger icons for better visibility without labels
   },
-  logoutButton: {
-    fontSize: FontSizes.profileLogout,
-    color: Colors.dangerRed,
-    marginRight: Spacing.profileLogoutMarginRight,
-    padding: 10,
-  },
+  // Removed profile header/logout button styles
 });

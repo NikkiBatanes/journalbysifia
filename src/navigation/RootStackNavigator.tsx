@@ -6,7 +6,7 @@ import {
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
 import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
-import { CommonActions } from '@react-navigation/native';
+// Removed CommonActions import as we navigate directly to UserProfile
 
 
 import { Colors } from '../theme';
@@ -69,43 +69,17 @@ const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation
   return (
     <TouchableOpacity
       onPress={() => {
-        console.log('Profile image pressed');
         if (navigation) {
-          console.log('Navigation object exists');
           try {
-            // Use CommonActions to reset navigation stack and go to Profile tab
-            navigation.dispatch(
-              CommonActions.reset({
-                index: 0,
-                routes: [
-                  {
-                    name: 'MainTabs',
-                    state: {
-                      routes: [
-                        { name: 'Home' },
-                        { name: 'Playbooks' },
-                        { name: 'Devotionals' },
-                        { name: 'Profile' },
-                      ],
-                      index: 3, // Profile tab index
-                    },
-                  },
-                ],
-              })
-            );
-            console.log('Navigation dispatch successful');
+            navigation.navigate('MainTabs', {
+              screen: 'Dashboard',
+              params: {
+                screen: 'UserProfile',
+              },
+            });
           } catch (error) {
-            console.log('Navigation error:', error);
-            // Fallback: just navigate to MainTabs
-            try {
-              navigation.navigate('MainTabs');
-              console.log('Fallback navigation successful');
-            } catch (fallbackError) {
-              console.log('Fallback navigation error:', fallbackError);
-            }
+            console.log('Navigation to nested UserProfile failed:', error);
           }
-        } else {
-          console.log('Navigation object is null/undefined');
         }
       }}
       style={[styles.profileImageContainer, containerStyle]}
@@ -285,7 +259,6 @@ export default function RootStackNavigator({
           {/* PHASE 3: Challenge Selection & Playbook Generation (35%) */}
 
 
-
           <Stack.Screen
             name="OnboardingPlaybookGeneration"
             component={OnboardingPlaybookGenerationScreen as React.ComponentType}
@@ -349,6 +322,8 @@ export default function RootStackNavigator({
             component={MainTabsScreen as React.ComponentType}
             options={{ headerShown: false }}
           />
+
+          {/* UserProfile is now nested under Dashboard (HomeStackNavigator) */}
 
           {/* Main App Detail Screens */}
           <Stack.Screen
