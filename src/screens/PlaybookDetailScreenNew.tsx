@@ -28,6 +28,7 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
+  interpolate,
 } from 'react-native-reanimated';
 import { Gesture } from 'react-native-gesture-handler';
 
@@ -35,6 +36,7 @@ import { Gesture } from 'react-native-gesture-handler';
 
 // Theme & Styling
 import { Colors, Fonts } from '../theme';
+import { Typography } from '../theme/typography';
 
 // Components
 import DocumentCardView from '../components/DocumentCardView';
@@ -210,9 +212,12 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const insets = useSafeAreaInsets();
   // Measure header height so we can place the card overlay precisely below it
   const [headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
-  const OVERLAY_EXTRA_SPACING = 40; // extra space between header and stack overlay (raised stack more)
-  const overlayTop = Math.max(insets.top, 24) + headerMeasuredHeight + OVERLAY_EXTRA_SPACING;
+  const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
+  const overlayTop = Math.max(insets.top, 24) + headerMeasuredHeight + playbookHeaderHeight;
   const HEADER_TOP_ADJUST = 12; // visually similar to previous -12 without negative margins
+
+  // Animated collapse progress for smooth header transition (0 = expanded, 1 = collapsed)
+  const collapseProgress = useSharedValue(0);
 
   // ===== ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP =====
 
@@ -1000,6 +1005,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     const scrollYValue = event.nativeEvent.contentOffset.y;
     const shouldShowCompactHeader = scrollYValue > 100;
 
+    // Smoothly map scrollY to collapse progress (approx threshold ~120px)
+    const t = Math.max(0, Math.min(scrollYValue / 120, 1));
+    collapseProgress.value = withTiming(t, { duration: 120 });
+
     if (shouldShowCompactHeader !== showCompactHeader) {
       setShowCompactHeader(shouldShowCompactHeader);
     }
@@ -1023,40 +1032,83 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       return null;
     }
 
+    // Animated styles
+    const headerCollapseStyle = useAnimatedStyle(() => ({
+      opacity: 1 - collapseProgress.value,
+      transform: [{ translateY: -16 * collapseProgress.value }],
+    }));
+
+    const overlayTopAnimatedStyle = useAnimatedStyle(() => ({
+      top: viewMode === 'document'
+        ? interpolate(collapseProgress.value, [0, 1], [overlayTop, 10])
+        : overlayTop,
+    }));
+
     return (
       <View style={styles.contentContainer}>
         {/* Main Header - Only show when not scrolled or in stack view */}
-        {(!showCompactHeader || viewMode === 'stack') && (
-          <PlaybookHeader
-            title={playbook.title}
-            subtitle={
-              playbook.createdAt
-                ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })
-                : ''
-            }
-            progress={progress}
-            completedTasks={completedTasksCount}
-            totalTasks={totalTasksCount}
-            showToggle={true}
-            viewMode={viewMode}
-            onToggleView={(mode: 'stack' | 'document') => {
-              setHasReachedLastCard(false);
-              setViewMode(mode);
-            }}
-            showUserInput={showUserInput}
-            userInput={playbook.userInput}
-            showTitle={false}
-
-          />
+        {viewMode === 'stack' ? (
+          <View onLayout={(e) => setPlaybookHeaderHeight(e.nativeEvent.layout.height)}>
+            <PlaybookHeader
+              title={playbook.title}
+              subtitle={
+                playbook.createdAt
+                  ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : ''
+              }
+              progress={progress}
+              completedTasks={completedTasksCount}
+              totalTasks={totalTasksCount}
+              showToggle={true}
+              viewMode={viewMode}
+              onToggleView={(mode: 'stack' | 'document') => {
+                setHasReachedLastCard(false);
+                setViewMode(mode);
+              }}
+              showUserInput={showUserInput}
+              userInput={playbook.userInput}
+              showTitle={false}
+            />
+          </View>
+        ) : (
+          <Animated.View style={headerCollapseStyle} pointerEvents={showCompactHeader ? 'none' : 'auto'}>
+            <View onLayout={(e) => setPlaybookHeaderHeight(e.nativeEvent.layout.height)}>
+              <PlaybookHeader
+                title={playbook.title}
+                subtitle={
+                  playbook.createdAt
+                    ? new Date(playbook.createdAt).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : ''
+                }
+                progress={progress}
+                completedTasks={completedTasksCount}
+                totalTasks={totalTasksCount}
+                showToggle={true}
+                viewMode={viewMode}
+                onToggleView={(mode: 'stack' | 'document') => {
+                  setHasReachedLastCard(false);
+                  setViewMode(mode);
+                }}
+                showUserInput={showUserInput}
+                userInput={playbook.userInput}
+                showTitle={false}
+              />
+            </View>
+          </Animated.View>
         )}
 
         {/* Absolute overlay for the interactive card stack so it can pass over header and status bar */}
-        <View pointerEvents="box-none" style={[styles.cardOverlay, { top: overlayTop }]}>
+        <Animated.View pointerEvents="box-none" style={[styles.cardOverlay, overlayTopAnimatedStyle]}>
           <GestureDetector gesture={panGesture}>
             <View style={styles.mainContainer}>
               {viewMode === 'stack' ? (
@@ -1078,7 +1130,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               )}
             </View>
           </GestureDetector>
-        </View>
+        </Animated.View>
       </View>
     );
   };
@@ -1679,7 +1731,7 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginBottom: 20,
+    marginBottom: 0,
   },
   progressContainer: {
     flex: 1,
@@ -1688,7 +1740,7 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 0,
   },
   progressBarBg: {
     height: 6,
@@ -1827,16 +1879,11 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   affirmationsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   icon: {
-    width: 24,
-    height: 24,
     marginRight: 8,
     opacity: 1,
-    position: 'absolute',
-    top: 0,
-    alignSelf: 'center',
   },
   nonAffirmationCardStyle: {
     opacity: 1,
@@ -1925,7 +1972,18 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     fontWeight: '600',
     color: Colors.anchorBlue,
   },
-  affirmationsList: undefined,
-  affirmationsTitle: undefined,
-  affirmationCardStyle: undefined,
+  affirmationsList: {
+    marginTop: 8,
+    gap: 8,
+  },
+  affirmationsTitle: {
+    ...Typography.interBold,
+    fontSize: 20,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+    textTransform: 'none',
+  },
+  affirmationCardStyle: {
+    backgroundColor: 'transparent',
+  },
 });

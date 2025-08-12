@@ -116,10 +116,10 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
       <View style={[propStyles.affirmationsCard, styles.affirmationsContainer]}>
         <View style={propStyles.affirmationsHeader}>
           <MaterialCommunityIcons
-            name="heart"
+            name="format-quote-close"
             size={24}
-            color="white"
-            style={propStyles.icon}
+            color={Colors.alertCoral}
+            style={[propStyles.icon, styles.affirmationIcon]}
           />
           <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
         </View>
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   },
   affirmationIcon: {
     marginRight: 8,
-    transform: [{ scaleY: -1 }],
+    transform: [{ scaleX: -1 }],
   },
 });
 
