@@ -11,6 +11,8 @@ import SmartJournalingReflectionModal from '../screens/SmartJournalingReflection
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
 import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
+import { StepByStepExpounding } from './StepByStepExpounding';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { toLocalDateString } from '../utils/date';
 
 type SubTask = {
@@ -156,12 +158,34 @@ export default function ActionStepsCard({
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Feature access for expounding
+  const expoundingAccess = useFeatureAccess({ feature: 'expounding_content' });
 
   // Smart Journaling Modal State
   type ActiveModalType = 'reflection' | 'gratitude' | 'prayer' | 'timeblock' | null;
   const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
   const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
+  
+  // Expounding State - track which steps are expanded
+  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  
+  // Toggle expounding for a specific step
+  const toggleExpounding = (stepId: string) => {
+    console.log('[ActionStepsCard] Toggling expounding for step:', stepId);
+    setExpandedSteps(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(stepId)) {
+        newSet.delete(stepId);
+        console.log('[ActionStepsCard] Collapsing step:', stepId);
+      } else {
+        newSet.add(stepId);
+        console.log('[ActionStepsCard] Expanding step:', stepId);
+      }
+      return newSet;
+    });
+  };
 
   // Query for existing reflection when a subtask is selected
   const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
@@ -806,9 +830,12 @@ export default function ActionStepsCard({
                       </Text>
                     </View>
                     {/* Expand/Info Icon in upper right */}
-                    <TouchableOpacity style={styles.expandIcon}>
+                    <TouchableOpacity 
+                      style={styles.expandIcon}
+                      onPress={() => toggleExpounding(step.id)}
+                    >
                       <MaterialCommunityIcons
-                        name="information-outline"
+                        name={expandedSteps.has(step.id) ? "chevron-up" : "information-outline"}
                         size={20}
                         color="rgba(255, 255, 255, 0.7)"
                       />
@@ -899,13 +926,13 @@ export default function ActionStepsCard({
                     </View>
                   )}
 
-                  {subtasks.length === 0 && step.description && (
+                  {subtasks.length === 0 && step.description && expandedSteps.has(step.id) && (
                     <Text style={styles.stepDescription}>
                       {step.description}
                     </Text>
                   )}
 
-                  {examples.length > 0 && (
+                  {examples.length > 0 && expandedSteps.has(step.id) && (
                     <View style={styles.examplesContainer}>
                       <Text
                         style={[
@@ -923,6 +950,21 @@ export default function ActionStepsCard({
                           {example.text}
                         </Text>
                       ))}
+                    </View>
+                  )}
+
+                  {/* Step-by-Step Expounding */}
+                  {expandedSteps.has(step.id) && expoundingAccess.hasAccess && (
+                    <View style={styles.expoundingContainer}>
+                      <StepByStepExpounding
+                        actionStepId={step.id}
+                        actionStepText={step.title}
+                        userId={user?.id || ''}
+                        onUpgrade={() => {
+                          // Handle upgrade navigation if needed
+                          console.log('Navigate to upgrade');
+                        }}
+                      />
                     </View>
                   )}
                 </View>
@@ -1214,5 +1256,12 @@ const styles = StyleSheet.create({
   noStepsText: {
     textAlign: 'center',
     opacity: 0.7,
+  },
+  expoundingContainer: {
+    marginTop: 12,
+    marginLeft: 28,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(255,255,255,0.2)',
+    paddingLeft: 12,
   },
 });
