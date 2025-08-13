@@ -1,6 +1,8 @@
 // src/navigation/BottomTabNavigator.tsx
 import React, { useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
@@ -94,12 +96,42 @@ const CustomTabBarComponent = ({
             onPress={onPress}
             style={styles.tab}
           >
-            <Ionicons
-              name={iconName}
-              size={28}
-              color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
-              style={styles.icon}
-            />
+            {route.name === 'Journal' ? (
+              <MaterialCommunityIcons
+                name={'notebook-edit'}
+                size={28}
+                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                style={styles.icon}
+              />
+            ) : route.name === 'Devotionals' ? (
+              <MaterialCommunityIcons
+                name={'book'}
+                size={30}
+                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                style={[styles.icon, { transform: [{ translateY: 1 }] }]}
+              />
+            ) : route.name === 'Playbooks' ? (
+              <MaterialCommunityIcons
+                name={'clipboard-text-play'}
+                size={28}
+                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                style={styles.icon}
+              />
+            ) : route.name === 'Dashboard' ? (
+              <MaterialIcons
+                name={'space-dashboard'}
+                size={28}
+                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                style={styles.icon}
+              />
+            ) : (
+              <Ionicons
+                name={iconName}
+                size={28}
+                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                style={styles.icon}
+              />
+            )}
           </TouchableOpacity>
         );
       })}

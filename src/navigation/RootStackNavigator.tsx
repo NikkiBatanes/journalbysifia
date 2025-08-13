@@ -358,8 +358,7 @@ export default function RootStackNavigator({
             name="UserInput"
             component={UserInputScreen as React.ComponentType}
             options={{
-              headerShown: true,
-              title: 'siFia AI Assistant',
+              headerShown: false,
               presentation: 'modal',
               animation: 'slide_from_bottom',
             }}

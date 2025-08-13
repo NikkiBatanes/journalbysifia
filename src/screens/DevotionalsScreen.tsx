@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Pencil } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {
   View,
   Text,
@@ -228,26 +228,38 @@ const DevotionalsScreen = () => {
         {/* Hero (centered card) */}
         <View style={styles.emptyHeroContainer}>
           <View style={styles.heroCard}>
-            <MaterialIcons
-              name="filter-center-focus"
+            <MaterialCommunityIcons
+              name="book"
               size={32}
               color="rgba(255,255,255,0.8)"
               style={styles.heroIcon}
             />
-            <Text style={styles.heroOverline}>DEVOTIONALS</Text>
+            <Text style={styles.heroOverline}>No Devotionals</Text>
             <Text style={styles.heroTitle}>Start with Scripture</Text>
             <Text style={styles.heroSubtitle}>
-              {hasPlaybooks
-                ? 'You already have playbooks—turn one into a daily devotional.'
-                : "Create a playbook for what you're facing, then build a daily devotional from it."}
+              {(() => {
+                const count = !isLoadingPlaybooks && Array.isArray(playbooks) ? playbooks.length : 0;
+                if (count > 0) {
+                  return count === 1
+                    ? 'You already have a playbook—turn it into a daily devotional.'
+                    : 'You already have playbooks—turn one into a daily devotional.';
+                }
+                return "Create a playbook for what you're facing, then build a daily devotional from it.";
+              })()}
             </Text>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Playbooks' as never)}
+              onPress={() => {
+                if (!hasPlaybooks) {
+                  navigation.navigate('UserInput' as never);
+                } else {
+                  navigation.navigate('Playbooks' as never);
+                }
+              }}
               activeOpacity={0.85}
               style={styles.heroOutlineButton}
             >
-              <Ionicons name="pencil" size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-              <Text style={styles.heroOutlineButtonText}>{hasPlaybooks ? 'Create Devotional' : 'Create Playbook'}</Text>
+              <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+              <Text style={styles.heroOutlineButtonText}>{hasPlaybooks ? 'Create a Devotional' : 'Create a Playbook'}</Text>
             </TouchableOpacity>
 
             {/* Guided steps */}
@@ -260,11 +272,11 @@ const DevotionalsScreen = () => {
                   </View>
                   <View style={styles.stepItem}>
                     <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
-                    <Text style={styles.stepText}>Create your Devotional</Text>
+                    <Text style={styles.stepText}>Create Your Devotional</Text>
                   </View>
                   <View style={styles.stepItem}>
                     <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
-                    <Text style={styles.stepText}>Walk with Scripture daily</Text>
+                    <Text style={styles.stepText}>Return each day—read, reflect, pray</Text>
                   </View>
                 </>
               ) : (
@@ -296,7 +308,11 @@ const DevotionalsScreen = () => {
 
             return (
               <View style={styles.carouselSection}>
-                <Text style={styles.carouselTitle}>Suggested from your Playbooks</Text>
+                <Text style={styles.carouselTitle}>
+                  {suggested.length === 1
+                    ? 'Start a devotional from this playbook'
+                    : 'Start a devotional from these playbooks'}
+                </Text>
                 <FlatList
                   data={suggested}
                   keyExtractor={(item) => item.id}
@@ -310,7 +326,7 @@ const DevotionalsScreen = () => {
                   renderItem={({ item }) => (
                     <View style={styles.card}>
                       <View style={styles.cardIconCircle}>
-                        <Ionicons name="book" size={28} color={Colors.hopeWhite} />
+                        <MaterialCommunityIcons name="clipboard-text-play" size={28} color={Colors.hopeWhite} />
                       </View>
                       <Text style={styles.cardTitle} numberOfLines={2}>{extractCleanTitle(item.title, 'Playbook')}</Text>
                       {item.truthInLove?.summary ? (
@@ -321,7 +337,7 @@ const DevotionalsScreen = () => {
                         activeOpacity={0.9}
                         onPress={() => handlePlaybookPress(item.id)}
                       >
-                        <Text style={styles.cardCTAText}>Create Devotional</Text>
+                        <Text style={styles.cardCTAText}>Create a Devotional</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -331,15 +347,7 @@ const DevotionalsScreen = () => {
           })()
         )}
 
-        {/* Secondary link */}
-        <View style={styles.linkContainer}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Playbooks' as never)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.emptySecondaryLink}>Browse Playbooks</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Secondary link removed per request */}
       </View>
     );
   };
@@ -351,9 +359,13 @@ const DevotionalsScreen = () => {
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top }]}> 
         <View style={styles.pageInner}>
-          <Text style={styles.headerTitle}>My Devotionals</Text>
+          {isEmpty ? (
+            <View style={styles.headerSpacer} />
+          ) : (
+            <Text style={styles.headerTitle}>Devotionals</Text>
+          )}
         </View>
       </View>
 
@@ -406,16 +418,24 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+    paddingVertical: 0,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 24,
+    fontFamily: Fonts.bold,
     color: Colors.anchorBlue,
+    marginBottom: 10,
+    marginTop: 10,
+    letterSpacing: 0.5,
+    fontWeight: '800',
+  },
+  headerSpacer: {
+    // keeps content pushed down similarly to when headerTitle is visible
+    height: 44,
+    marginTop: 10,
+    marginBottom: 10,
   },
   pageInner: {
     width: '100%',
@@ -423,12 +443,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   listContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: 2,
   },
   emptyListContent: {
     paddingHorizontal: 0,
-    paddingTop: 16,
+    paddingTop: 0,
     paddingBottom: 2,
   },
   devotionalCard: {
@@ -605,10 +626,10 @@ const styles = StyleSheet.create({
   },
   emptyStateContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'stretch',
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 8,
+    paddingBottom: 16,
     paddingHorizontal: 0,
     minHeight: 300,
   },
@@ -625,13 +646,13 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 720,
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
-    paddingVertical: 28,
+    borderRadius: 34,
+    paddingVertical: 32,
     paddingHorizontal: 20,
     alignItems: 'center',
   },
   heroIcon: {
-    marginBottom: 8,
+    marginBottom: 12,
     opacity: 0.8,
   },
   heroOverline: {
@@ -639,7 +660,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     color: 'rgba(255,255,255,0.9)',
     textTransform: 'uppercase',
-    marginBottom: 6,
+    marginBottom: 8,
     fontFamily: Fonts.semiBold,
     fontWeight: '600',
   },
@@ -657,9 +678,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     color: 'rgba(255,255,255,0.75)',
-    lineHeight: 20,
-    marginBottom: 24,
-    paddingHorizontal: 16,
+    lineHeight: 22,
+    marginBottom: 16,
+    paddingHorizontal: 20,
   },
   heroOutlineButton: {
     flexDirection: 'row',
@@ -672,6 +693,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 24,
     minWidth: 120,
+    marginBottom: 12,
   },
   heroButtonIcon: {
     marginRight: 8,
@@ -706,14 +728,16 @@ const styles = StyleSheet.create({
   },
   stepsContainer: {
     width: '100%',
-    marginTop: 12,
-    paddingHorizontal: 8,
-    gap: 6,
+    marginTop: 16,
+    paddingHorizontal: 12,
+    gap: 8,
+    alignItems: 'flex-start',
   },
   stepItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    marginBottom: 2,
   },
   stepBadge: {
     width: 20,
@@ -834,14 +858,14 @@ const styles = StyleSheet.create({
   },
   carouselSection: {
     width: '100%',
-    marginTop: 8,
-    marginBottom: 12,
+    marginTop: 24,
+    marginBottom: 16,
     paddingHorizontal: 16, // gutters for section title and spacing
   },
   carouselTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.textDark,
+    color: Colors.anchorBlue,
     marginBottom: 8,
     paddingLeft: 0,
   },
@@ -873,7 +897,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.textDark,
+    color: Colors.anchorBlue,
     marginBottom: 6,
   },
   cardSubtitle: {
