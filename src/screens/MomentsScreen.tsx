@@ -143,8 +143,9 @@ const styles = StyleSheet.create({
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
+    letterSpacing: 0.5,
     color: Colors.hopeWhite,
     fontFamily: Fonts.bold,
   },

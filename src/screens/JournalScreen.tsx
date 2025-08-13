@@ -1,9 +1,9 @@
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from 'react';
-// import Ionicons from 'react-native-vector-icons/Ionicons'; // unused
-import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
-import { Pencil, Check } from 'lucide-react-native';
+import { Pencil, Check, Feather, CalendarDays } from 'lucide-react-native';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
@@ -26,12 +26,14 @@ export type JournalScreenRef = {
 };
 
 const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
+  const navigation = useNavigation<any>();
   const { user } = useAuth();
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'carousel' | 'inline'>('carousel');
+  const [viewMode, setViewMode] = useState<'carousel' | 'inline' | 'moments'>('carousel');
   const [currentPage, setCurrentPage] = useState(0);
   const [triggerGlobalEdit, setTriggerGlobalEdit] = useState(false);
   const [isGlobalEditMode, setIsGlobalEditMode] = useState(false);
@@ -66,6 +68,32 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   }));
 
   const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(new Date().getDay());
+
+  // Configure calendar locale to show uppercase weekday headers (SUN, MON, ...)
+  // This affects all Calendar instances unless defaultLocale is changed later.
+  if (!LocaleConfig.locales.customUpper) {
+    LocaleConfig.locales.customUpper = {
+      monthNames: [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+      ],
+      monthNamesShort: [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      ],
+      dayNames: ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],
+      dayNamesShort: ['SUN','MON','TUE','WED','THU','FRI','SAT'],
+      today: 'TODAY',
+    } as any;
+  }
+  LocaleConfig.defaultLocale = 'customUpper';
+
+  // Ensure local YYYY-MM-DD formatting for calendar API (avoid UTC toISOString shifts)
+  const formatLocalYYYYMMDD = useCallback((d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
   // Track if we've handled the initial scroll
   const hasInitializedScroll = useRef(false);
@@ -470,6 +498,24 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                 ? format(currentDate, 'MMMM')
                 : format(currentDate, 'MMMM yyyy'))}
           </Text>
+          <View style={styles.headerIcons}>
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              onPress={() => navigation.navigate('JournalMoments')}
+              accessibilityRole="button"
+              accessibilityLabel="Add note"
+            >
+              <Feather size={24} color={Colors.anchorBlue} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.calendarIconButton}
+              onPress={() => setShowCalendarModal(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Open calendar"
+            >
+              <CalendarDays size={26} color={Colors.anchorBlue} />
+            </TouchableOpacity>
+          </View>
         </View>
         <Animated.View
           style={[
@@ -562,7 +608,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
             )}
           </ScrollView>
           </KeyboardAvoidingView>
-        ) : (
+        ) : viewMode === 'inline' ? (
           <PanGestureHandler onHandlerStateChange={handleSwipeDown}>
             <View style={styles.inlineViewContainer}>
               <KeyboardAvoidingView
@@ -687,8 +733,112 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
               </View>
             </View>
           </PanGestureHandler>
+        ) : (
+          <KeyboardAvoidingView
+            style={styles.keyboardAvoidingView}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <ScrollView
+              style={styles.tabContent}
+              contentContainerStyle={styles.scrollViewContent}
+              onScroll={handleContentScroll}
+              scrollEventThrottle={16}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+            >
+              <View style={styles.inlinePageContainer}>
+                <Text style={styles.inlinePageTitle}>Moments</Text>
+                <JournalSystem
+                  selectedDate={currentDate}
+                  viewMode="moments"
+                  categories={['plan', 'reflect', 'pray']}
+                  refreshKey={refreshKey}
+                  style={styles.journalSystemContainer}
+                />
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
         )}
       </View>
+
+      {/* Full Calendar Modal for quick date selection */}
+      <Modal
+        visible={showCalendarModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCalendarModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>SELECT DATE</Text>
+            <View style={styles.calendarWrapper}>
+              <Calendar
+                current={formatLocalYYYYMMDD(currentDate)}
+                renderHeader={(date) => (
+                  <Text style={styles.monthHeaderText}>{format(new Date(date as any), 'MMMM yyyy').toUpperCase()}</Text>
+                )}
+                style={styles.calendarCompact}
+                headerStyle={styles.calendarHeaderCompact}
+                onDayPress={(day) => {
+                  const [y, m, d] = day.dateString.split('-').map(n => parseInt(n, 10));
+                  const picked = new Date(y, (m - 1), d);
+                  setCurrentDate(picked);
+                  lastSelectedDate.current = picked;
+                  setShowCalendarModal(false);
+                }}
+                monthFormat="MMMM yyyy"
+                hideArrows={false}
+                hideExtraDays={false}
+                firstDay={0}
+                enableSwipeMonths={true}
+                theme={{
+                  calendarBackground: Colors.anchorBlue,
+                  textSectionTitleColor: Colors.hopeWhite,
+                  selectedDayBackgroundColor: Colors.alertCoral,
+                  selectedDayTextColor: Colors.hopeWhite,
+                  todayTextColor: Colors.alertCoral,
+                  dayTextColor: Colors.hopeWhite,
+                  textDisabledColor: 'rgba(255,255,255,0.35)',
+                  arrowColor: Colors.hopeWhite,
+                  monthTextColor: Colors.hopeWhite,
+                  textDayFontFamily: Fonts.medium,
+                  textMonthFontFamily: Fonts.bold,
+                  textDayHeaderFontFamily: Fonts.medium,
+                  // Compact sizing
+                  textDayFontSize: 13,
+                  textDayHeaderFontSize: 11,
+                }}
+                markingType="custom"
+                markedDates={(function(){
+                  const selectedStr = formatLocalYYYYMMDD(currentDate);
+                  const todayStr = formatLocalYYYYMMDD(new Date());
+                  const marked: any = {
+                    [selectedStr]: {
+                      selected: true,
+                      customStyles: {
+                        text: { fontFamily: Fonts.bold, fontWeight: '800', color: Colors.hopeWhite },
+                      },
+                    },
+                  };
+                  if (todayStr !== selectedStr) {
+                    marked[todayStr] = {
+                      customStyles: {
+                        text: { color: Colors.alertCoral, fontFamily: Fonts.bold, fontWeight: '700' },
+                      },
+                    };
+                  }
+                  return marked;
+                })()}
+              />
+            </View>
+            <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowCalendarModal(false)}>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 });
@@ -756,7 +906,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingLeft: 24,
+    paddingRight: 14,
   },
   viewModeContainer: {
     flexDirection: 'row',
@@ -795,6 +946,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.anchorBlue,
     paddingRight: 12,
+  },
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 'auto',
+    gap: 0,
+  },
+  headerIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  calendarIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 0,
   },
   carouselContainer: {
     marginBottom: 34,
@@ -850,7 +1023,8 @@ const styles = StyleSheet.create({
   },
   dayNameText: {
     fontFamily: Fonts.medium,
-    fontSize: 8,
+    fontSize: 10,
+    fontWeight: '600',
     color: 'rgba(26, 60, 109, 0.7)',
     marginBottom: 0,  // Removed margin
     letterSpacing: 0.1,
@@ -869,7 +1043,8 @@ const styles = StyleSheet.create({
   },
   dayNumberText: {
     fontFamily: Fonts.bold,
-    fontSize: 12,
+    fontSize: 14,
+    fontWeight: '600',
     color: Colors.anchorBlue,
     lineHeight: 14,
   },
@@ -1006,6 +1181,99 @@ const styles = StyleSheet.create({
   paginationDotActive: {
     backgroundColor: Colors.hopeWhite,
     width: 20,
+  },
+  // Calendar modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContainer: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 30,
+    padding: 20,
+    marginTop: 180,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: { elevation: 8 },
+    }),
+  },
+  modalTitle: {
+    fontSize: 14,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginBottom: 8,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  calendarWrapper: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 30,
+    overflow: 'hidden',
+    marginTop: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  // Cancel-style button matching Todos
+  modalButton: {
+    alignSelf: 'stretch',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  cancelButtonText: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+  },
+  monthHeaderText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textAlign: 'center',
+    paddingVertical: 4,
+  },
+  calendarCompact: {
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    margin: 0,
+  },
+  calendarHeaderCompact: {
+    paddingHorizontal: 0,
+    paddingVertical: 4,
+    marginBottom: 2,
   },
 });
 

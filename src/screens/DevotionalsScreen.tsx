@@ -359,7 +359,7 @@ const DevotionalsScreen = () => {
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}> 
+      <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.pageInner}>
           {isEmpty ? (
             <View style={styles.headerSpacer} />

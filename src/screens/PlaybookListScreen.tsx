@@ -10,9 +10,7 @@ import {
   SectionList,
   Animated,
   Pressable,
-  Button,
   TouchableOpacity,
-  RefreshControl,
 } from 'react-native';
 
 import { format } from 'date-fns';

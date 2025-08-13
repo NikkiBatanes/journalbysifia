@@ -925,7 +925,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Copy Incomplete To-Dos</Text>
+          <View style={styles.modalTitleRow}>
+            <Ionicons style={styles.modalTitleIcon} name="copy-outline" size={18} color={Colors.hopeWhite} />
+            <Text style={styles.modalTitle}>Copy Incomplete To-Dos</Text>
+          </View>
           <Text style={styles.modalSubtitle}>
             Copy {todos.filter(t => !t.completed).length} incomplete to-do{todos.filter(t => !t.completed).length === 1 ? '' : 's'} to a new date. Original to-dos will remain.
           </Text>
@@ -973,10 +976,14 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             {showCalendar && (
               <View style={styles.calendarWrapper}>
                 <Calendar
-                  current={copyTargetDate.toISOString().split('T')[0]}
-                  minDate={new Date().toISOString().split('T')[0]}
+                  current={`${copyTargetDate.getFullYear()}-${String(copyTargetDate.getMonth() + 1).padStart(2,'0')}-${String(copyTargetDate.getDate()).padStart(2,'0')}`}
+                  minDate={`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2,'0')}-${String(new Date().getDate()).padStart(2,'0')}`}
                   onDayPress={handleDayPress}
-                  monthFormat="MMMM yyyy"
+                  renderHeader={(date) => {
+                    const d = new Date(date as any);
+                    const label = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase();
+                    return <Text style={styles.monthHeaderText}>{label}</Text>;
+                  }}
                   hideArrows={false}
                   firstDay={1}
                   onPressArrowLeft={subtractMonth => subtractMonth()}
@@ -1001,6 +1008,31 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                     textMonthFontSize: 16,
                     textDayHeaderFontSize: 13,
                   }}
+                  markingType="custom"
+                  markedDates={(function(){
+                    const y = copyTargetDate.getFullYear();
+                    const m = String(copyTargetDate.getMonth() + 1).padStart(2,'0');
+                    const d = String(copyTargetDate.getDate()).padStart(2,'0');
+                    const selectedStr = `${y}-${m}-${d}`;
+                    const now = new Date();
+                    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                    const marked: any = {
+                      [selectedStr]: {
+                        selected: true,
+                        customStyles: {
+                          text: { fontFamily: Fonts.bold, fontWeight: '800', color: Colors.hopeWhite },
+                        },
+                      },
+                    };
+                    if (todayStr !== selectedStr) {
+                      marked[todayStr] = {
+                        customStyles: {
+                          text: { color: Colors.alertCoral, fontFamily: Fonts.bold, fontWeight: '700' },
+                        },
+                      };
+                    }
+                    return marked;
+                  })()}
                 />
               </View>
             )}
@@ -1340,7 +1372,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 16,
+    borderRadius: 30,
     padding: 28,
     width: '100%',
     maxWidth: 340,
@@ -1358,9 +1390,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
-    textAlign: 'center',
+    textAlign: 'left',
     paddingHorizontal: 4,
     marginBottom: 12,
+  },
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    justifyContent: 'flex-start',
+  },
+  modalTitleIcon: {
+    marginTop: -10,
   },
   modalSubtitle: {
     fontFamily: Fonts.regular,
@@ -1488,5 +1529,14 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     letterSpacing: 0.2,
+  },
+  monthHeaderText: {
+    fontSize: 16,
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    letterSpacing: 1,
+    textAlign: 'center',
+    paddingVertical: 4,
   },
 });

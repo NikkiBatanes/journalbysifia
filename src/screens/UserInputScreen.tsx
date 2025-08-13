@@ -75,7 +75,7 @@ const UserInputScreen: React.FC = () => {
     };
 
     const typeNext = () => {
-      if (!isMounted) return;
+      if (!isMounted) {return;}
       const current = prompts[promptIndex];
       if (charIndex <= current.length) {
         setPlaceholderText(current.slice(0, charIndex));
@@ -85,7 +85,7 @@ const UserInputScreen: React.FC = () => {
         // Pause, then erase and move to next prompt
         typingTimer.current = setTimeout(() => {
           const erase = () => {
-            if (!isMounted) return;
+            if (!isMounted) {return;}
             if (charIndex >= 0) {
               setPlaceholderText(current.slice(0, charIndex));
               charIndex -= 1;
@@ -286,9 +286,9 @@ const UserInputScreen: React.FC = () => {
         </View>
 
         {/* Fixed footer input anchored to safe area */}
-        <View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 8 }]}>  
+        <View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 8 }]}>
           <View style={styles.inputContainer}>
-            <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}> 
+            <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
               <Animated.View style={[styles.askBox, { borderWidth: inputBorderWidth }]}>
                 <TextInput
                   ref={inputRef}
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 8,
   },
-  
+
   inputContainer: {
     paddingBottom: 24,
     marginBottom: Platform.OS === 'ios' ? 0 : 20, // Add some bottom margin on Android
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '45deg' }],
     borderRadius: 3,
     borderWidth: 0,
-    borderColor: 'transparent'
+    borderColor: 'transparent',
   },
   tooltipClose: {
     position: 'absolute',

@@ -318,11 +318,7 @@ export default function RootStackNavigator({
           />
 
           {/* Main App */}
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabsScreen as React.ComponentType}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="MainTabs" component={MainTabsScreen} />
 
           {/* UserProfile is now nested under Dashboard (HomeStackNavigator) */}
 

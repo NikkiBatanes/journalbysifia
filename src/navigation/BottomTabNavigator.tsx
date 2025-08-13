@@ -16,7 +16,7 @@ import PlaybookListScreen from '../screens/PlaybookListScreen';
 
 import DevotionalsScreen from '../screens/DevotionalsScreen';
 import JournalScreen from '../screens/JournalScreen';
-import { MomentsScreen } from '../screens/MomentsScreen';
+import JournalStackNavigator from './JournalStackNavigator';
 import HomeStackNavigator from './HomeStackNavigator';
 
 const Tab = createBottomTabNavigator();
@@ -216,20 +216,10 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
       />
       <Tab.Screen
         name="Journal"
+        component={JournalStackNavigator}
         options={{
           tabBarLabel: 'Journal',
           title: 'Journal',
-          headerShown: false,
-        }}
-      >
-        {() => <JournalScreen ref={journalScreenRef} />}
-      </Tab.Screen>
-      <Tab.Screen
-        name="Moments"
-        component={MomentsScreen}
-        options={{
-          tabBarLabel: 'Moments',
-          title: 'Moments',
           headerShown: false,
         }}
       />
