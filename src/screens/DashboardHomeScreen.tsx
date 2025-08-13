@@ -3,7 +3,7 @@
  * Enterprise-grade dashboard home screen with comprehensive faith-based features
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,9 @@ import {
   Animated,
   RefreshControl,
   PanResponder,
+  Image,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
@@ -62,10 +64,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
 
   const floatingButtonScale = useRef(new Animated.Value(1)).current;
+  const floatingButtonOpacity = useRef(new Animated.Value(0)).current;
+
+  // Collapsing Playbook label
+  const playbookWidth = useRef(new Animated.Value(0)).current;
+  const [playbookMeasuredWidth, setPlaybookMeasuredWidth] = useState(0);
+
+  // Simple expandable button
+  const buttonWidth = useRef(new Animated.Value(56)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const hasExpanded = useRef(false);
 
 
   // Draggable floating button
-  const pan = useRef(new Animated.ValueXY({ x: width - 76, y: height - 200 })).current;
+  const pan = useRef(new Animated.ValueXY({ x: -20, y: height - 200 })).current;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -82,8 +94,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       ),
       onPanResponderRelease: () => {
         pan.flattenOffset();
-        // Snap to edges
-        const snapToEdge = (pan.x as any)._value > width / 2 ? width - 76 : 20;
+        // Snap to edges (adjusted for right-anchored container)
+        const currentX = (pan.x as any)._value;
+        const snapToEdge = currentX < -width / 2 ? -width + 76 : -20;
         Animated.spring(pan.x, {
           toValue: snapToEdge,
           useNativeDriver: false,
@@ -106,26 +119,95 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     setCurrentMotivationalText(textIndex);
   }, []);
 
-  // Floating button animation
-  useEffect(() => {
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatingButtonScale, {
-          toValue: 1.1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatingButtonScale, {
-          toValue: 1,
-          duration: 1500,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulseAnimation.start();
+  // Animate when screen is focused (dashboard opened)
+  // Expandable animation that repeats
+  const expandButton = useCallback(() => {
+    let animationCount = 0;
+    const maxAnimations = 3; // Animate 3 times
 
-    return () => pulseAnimation.stop();
-  }, [floatingButtonScale]);
+    const runAnimation = () => {
+      if (animationCount >= maxAnimations) return;
+      animationCount++;
+
+      // Expand to show text
+      Animated.parallel([
+        Animated.timing(buttonWidth, {
+          toValue: 220,
+          duration: 400,
+          useNativeDriver: false,
+        }),
+        Animated.timing(textOpacity, {
+          toValue: 1,
+          duration: 300,
+          delay: 150,
+          useNativeDriver: false,
+        }),
+      ]).start(() => {
+        // Hold for 2.5 seconds then collapse
+        setTimeout(() => {
+          Animated.parallel([
+            Animated.timing(textOpacity, {
+              toValue: 0,
+              duration: 250,
+              useNativeDriver: false,
+            }),
+            Animated.timing(buttonWidth, {
+              toValue: 56,
+              duration: 350,
+              useNativeDriver: false,
+            }),
+          ]).start(() => {
+            // Wait 3 seconds before next animation
+            if (animationCount < maxAnimations) {
+              setTimeout(() => {
+                runAnimation();
+              }, 3000);
+            }
+          });
+        }, 2500);
+      });
+    };
+
+    runAnimation();
+  }, [buttonWidth, textOpacity]);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset state
+      floatingButtonOpacity.setValue(0);
+      floatingButtonScale.setValue(1);
+      buttonWidth.setValue(56);
+      textOpacity.setValue(0);
+
+      // Simple entrance: just fade in
+      Animated.timing(floatingButtonOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false,
+      }).start(() => {
+        // Wait a moment then expand
+        setTimeout(() => {
+          expandButton();
+        }, 1000);
+      });
+
+      // Collapsing Playbook label
+      if (playbookMeasuredWidth > 0) {
+        playbookWidth.setValue(playbookMeasuredWidth);
+        Animated.timing(playbookWidth, { toValue: 0, duration: 400, useNativeDriver: false }).start();
+      }
+    }, [
+      playbookMeasuredWidth,
+      floatingButtonOpacity,
+      floatingButtonScale,
+      playbookWidth,
+      buttonWidth,
+      textOpacity,
+      expandButton,
+    ])
+  );
+
+
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -238,20 +320,34 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           transform: [
             { translateX: pan.x },
             { translateY: pan.y },
-            { scale: floatingButtonScale },
           ],
+          opacity: floatingButtonOpacity,
         },
       ]}
       {...panResponder.panHandlers}
     >
-      <TouchableOpacity
-        style={styles.floatingButtonInner}
-        onPress={() => navigation.navigate('UserInput')}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.floatingButtonText}>siFia</Text>
-        <Ionicons name="sparkles" size={16} color={Colors.hopeWhite} />
-      </TouchableOpacity>
+      <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
+        <TouchableOpacity
+          style={styles.expandableButtonTouchable}
+          onPress={() => navigation.navigate('UserInput')}
+          activeOpacity={0.8}
+        >
+          <View style={styles.crystalIconBackground}>
+  <Image
+    source={require('../../assets/icons/siFiaHeartWhiteTransparent.png')}
+    style={styles.floatingButtonIcon}
+    resizeMode="contain"
+    accessibilityLabel="siFia"
+  />
+</View>
+          <Animated.Text
+            style={[styles.expandText, { opacity: textOpacity }]}
+            numberOfLines={1}
+          >
+            Create a Playbook
+          </Animated.Text>
+        </TouchableOpacity>
+      </Animated.View>
     </Animated.View>
   );
 
@@ -293,6 +389,25 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           onInsightPress={() => dashboardNavigation.toAIInsights()}
           onActionPress={() => dashboardNavigation.toAIInsights()}
         />
+
+        {/* Collapsing Playbook label */}
+        <View style={styles.playbookLabelContainer}>
+          <Animated.View
+            style={[styles.playbookLabelClip, { width: playbookWidth }]}
+          >
+            <Text
+              onLayout={(e) => {
+                const w = e.nativeEvent.layout.width;
+                if (w !== playbookMeasuredWidth) {
+                  setPlaybookMeasuredWidth(w);
+                }
+              }}
+              style={styles.playbookLabel}
+            >
+              Playbook
+            </Text>
+          </Animated.View>
+        </View>
 
         <PlaybookCarousel
           onPlaybookPress={(playbook) => dashboardNavigation.toPlaybook(playbook.id)}
@@ -532,31 +647,59 @@ const styles = StyleSheet.create({
   floatingButton: {
     position: 'absolute',
     top: 0,
-    left: 0,
+    right: 0, // Changed from left: 0 to right: 0 for rightward anchoring
     zIndex: 1000,
   },
-  floatingButtonInner: {
-    backgroundColor: Colors.anchorBlue,
+  expandableButton: {
+    backgroundColor: Colors.hopeWhite, // Crystal glassy background
     borderRadius: 28,
-    width: 56,
     height: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
     shadowColor: Colors.cardShadow,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    flexDirection: 'row',
-    gap: 4,
+    alignSelf: 'flex-end', // Anchor to right so it expands left
   },
-  floatingButtonText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
+  expandableButtonTouchable: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center', // Center contents for proper icon centering when collapsed
+    paddingLeft: 8, // Slightly less left padding to center icon better
+    paddingRight: -8, // Normal right padding
+    minWidth: 56, // Ensure touchable area is always a circle when collapsed
+  },
+  expandText: {
+    color: Colors.anchorBlue,
+    fontFamily: Fonts.medium,
+    fontSize: 14, // Increased from 12 to 14
+    fontWeight: '700',
+    marginLeft: 8, // Space between icon and text (icon comes before text)
+    letterSpacing: 0.3,
+    flex: 1, // Take up available space
+  },
+  floatingButtonIcon: {
+    width: 40,
+    height: 40,
+    alignSelf: 'center',
   },
   bottomSpacing: {
     height: 100,
+  },
+  playbookLabelContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 8,
+  },
+  playbookLabelClip: {
+    overflow: 'hidden',
+  },
+  playbookLabel: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.bold,
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   // (Removed) styles for test buttons
 });
