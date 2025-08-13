@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from 'react-native';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
+import { SimplifiedCardInsight } from './SimplifiedCardInsight';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 
 type TruthInLoveCardProps = {
   truth: string;
@@ -18,6 +21,8 @@ type TruthInLoveCardProps = {
     firstName?: string;
     lastName?: string;
   };
+  playbookTitle?: string;
+  userInput?: string;
 };
 
 export default function TruthInLoveCard({
@@ -30,7 +35,12 @@ export default function TruthInLoveCard({
   numberOfLines = 5,
   ellipsizeMode = 'tail' as const,
   currentUser,
+  playbookTitle,
+  userInput,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
+  const { user } = useAuth();
+  const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
+  const [showInsight, setShowInsight] = useState(false);
   // Replace [User's Name] placeholders with current user's name
   console.log('[TruthInLoveCard] Debug Info:', {
     originalTruth: truth,
@@ -60,6 +70,16 @@ export default function TruthInLoveCard({
         <View style={styles.headingContainer}>
           <Ionicons name="heart" size={24} color="#FF6B6B" style={styles.heartIcon} />
           <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
+          <TouchableOpacity
+            style={styles.expandIcon}
+            onPress={() => setShowInsight(!showInsight)}
+          >
+            <Ionicons
+              name={showInsight ? 'chevron-up' : 'information-outline'}
+              size={20}
+              color={textColor}
+            />
+          </TouchableOpacity>
         </View>
         <Text
           style={[styles.content, styles.contentWithMargin, { color: textColor }]}
@@ -86,6 +106,18 @@ export default function TruthInLoveCard({
           </Text>
         </View>
       </View>
+
+      {/* Simplified Card Insight */}
+      {showInsight && (
+        <SimplifiedCardInsight
+          userId={user?.id || ''}
+          cardType="truth"
+          cardContent={processedTruth}
+          playbookTitle={playbookTitle || ''}
+          userOriginalInput={userInput}
+          hasAccess={expoundingAccess.hasAccess}
+        />
+      )}
     </View>
   );
 }
@@ -156,9 +188,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
-    opacity: 0.8,
-    marginTop: 2,
-    flexShrink: 1, // Allow text to shrink if needed
+  },
+  expandIcon: {
+    padding: 4,
+    marginLeft: 8,
   },
 
 });

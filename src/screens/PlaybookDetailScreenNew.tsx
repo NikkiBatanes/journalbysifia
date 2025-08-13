@@ -1220,6 +1220,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             navigation={rootNavigation}
             playbookTitle={playbook?.title}
             playbookId={playbook?.id}
+            userInput={playbook?.userInput}
           />
         </TouchableOpacity>
       );
@@ -1266,6 +1267,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   navigation={rootNavigation}
                   playbookTitle={playbook?.title}
                   playbookId={playbook?.id}
+                  userInput={playbook?.userInput}
                 />
               </View>
             </TouchableOpacity>

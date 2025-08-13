@@ -38,9 +38,10 @@ interface DocumentCardViewProps {
   navigation?: NavigationProp<any>;
   playbookTitle?: string;
   playbookId?: string;
+  userInput?: string;
 }
 
-const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation, playbookTitle, playbookId }) => {
+const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation, playbookTitle, playbookId, userInput }) => {
   if (card.type === 'truth') {
     return (
       <View style={styles.truthCardContainer}>
@@ -52,6 +53,8 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
           numberOfLines={5}
           ellipsizeMode="tail"
           currentUser={currentUser}
+          playbookTitle={playbookTitle}
+          userInput={userInput}
         />
       </View>
     );
@@ -103,6 +106,8 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
                   id={affirmation.id}
                   text={affirmation.text}
                   completed={affirmation.completed}
+                  playbookTitle={playbookTitle}
+                  userInput={userInput}
                 />
               ))
           ) : (
@@ -119,6 +124,8 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
           text: card.verse?.text ?? 'No verse text available',
           reference: card.verse?.reference ?? 'Unknown',
         }}
+        playbookTitle={playbookTitle}
+        userInput={userInput}
       />
     );
   }
@@ -128,6 +135,8 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
         <DirectChallengeCard
           challenge={typeof card.challenge === 'string' ? card.challenge : card.challenge?.text ?? ''}
           challengeCTA={card.challengeCTA ?? ''}
+          playbookTitle={playbookTitle}
+          userInput={userInput}
         />
       </View>
     );

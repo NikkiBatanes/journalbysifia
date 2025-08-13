@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, StyleSheet } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { formatBibleVerse } from '../utils/textFormatting';
+import { SimplifiedCardInsight } from './SimplifiedCardInsight';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 
 import { BibleVerse } from '../interfaces/playbook';
 
@@ -13,9 +17,14 @@ type BibleVerseCardProps = {
   style?: any;
   textColor?: string;
   backgroundColor?: string;
+  playbookTitle?: string;
+  userInput?: string;
 };
 
-export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = Colors.anchorBlue }: BibleVerseCardProps) {
+export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = Colors.anchorBlue, playbookTitle, userInput }: BibleVerseCardProps) {
+  const { user } = useAuth();
+  const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
+  const [showInsight, setShowInsight] = useState(false);
   return (
     <View style={[styles.container, style, { backgroundColor }]}>
       <View style={styles.headerContainer}>
@@ -26,6 +35,16 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
           style={styles.icon}
         />
         <Text style={[styles.heading, { color: textColor }]}>Bible Verse</Text>
+        <TouchableOpacity
+          style={styles.expandIcon}
+          onPress={() => setShowInsight(!showInsight)}
+        >
+          <Icon
+            name={showInsight ? 'chevron-up' : 'information-outline'}
+            size={20}
+            color={textColor}
+          />
+        </TouchableOpacity>
       </View>
       <View style={styles.contentContainer}>
         <Text style={[styles.verseText, { color: textColor }]}>{formatBibleVerse(verse.text)}</Text>
@@ -33,6 +52,18 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
           <Text style={[styles.reference, { color: Colors.alertCoral }]}>{verse.reference}</Text>
         </View>
       </View>
+
+      {/* Simplified Card Insight */}
+      {showInsight && (
+        <SimplifiedCardInsight
+          userId={user?.id || ''}
+          cardType="bible"
+          cardContent={`${verse.text} - ${verse.reference}`}
+          playbookTitle={playbookTitle || ''}
+          userOriginalInput={userInput}
+          hasAccess={expoundingAccess.hasAccess}
+        />
+      )}
     </View>
   );
 }
@@ -87,6 +118,10 @@ const styles = StyleSheet.create({
     color: Colors.alertCoral,
     paddingBottom: 5,
     opacity: 0.9,
+  },
+  expandIcon: {
+    padding: 4,
+    marginLeft: 8,
     textAlign: 'right',
     marginRight: 8, // Match the left padding of the verse text
   },

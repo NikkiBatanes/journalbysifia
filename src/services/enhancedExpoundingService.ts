@@ -150,9 +150,11 @@ class EnhancedExpoundingService {
   async generateStepByStepExpounding(
     userId: string,
     actionStepId: string,
-    _actionStepText: string,
+    actionStepText: string,
     subtaskId?: string,
-    subtaskText?: string
+    subtaskText?: string,
+    userOriginalInput?: string, // User's original struggle/context for personalized faith guidance
+    playbookTitle?: string // Additional context for Christian coaching
   ): Promise<StepExpounding[]> {
     try {
       // Check access first
@@ -161,36 +163,56 @@ class EnhancedExpoundingService {
         throw new Error('User does not have access to expounding features');
       }
 
-      const expoundingSteps: StepExpounding[] = [];
-      const targetText = subtaskText || _actionStepText;
+      // Track user engagement (Phase 4 feature)
+      this.trackUserEngagement(userId, 'expounding');
 
-      for (const template of this.stepTemplates) {
-        const stepContent = await this.generateStepContent(
-          targetText,
-          template,
-          _actionStepText
-        );
+      // Use Supabase Edge Function for AI generation (consistent with generate playbook/devotional)
+      const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
 
-        const stepExpounding: StepExpounding = {
-          id: `${actionStepId}_${subtaskId || 'main'}_step_${template.stepNumber}`,
-          actionStepId,
-          subtaskId,
-          stepNumber: template.stepNumber,
-          stepTitle: template.title,
-          contentType: template.contentType as any,
-          content: stepContent.mainContent,
-          scriptureReferences: stepContent.scriptureReferences,
-          practicalSteps: stepContent.practicalSteps,
-          reflectionQuestions: stepContent.reflectionQuestions,
-          aiGenerated: true,
-          userId,
-          isPublic: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-
-        expoundingSteps.push(stepExpounding);
+      if (sessionError || !session) {
+        console.error('[EnhancedExpoundingService] Session error:', sessionError);
+        throw new Error('No valid session found');
       }
+
+      const functionUrl = `${process.env.SUPABASE_URL || 'https://aesmrjinczhknchlrsmt.supabase.co'}/functions/v1/generate-expounding`;
+
+      console.log('[EnhancedExpoundingService] Calling Supabase Edge Function for AI generation...');
+      console.log('[EnhancedExpoundingService] Function URL:', functionUrl);
+      console.log('[EnhancedExpoundingService] Request payload:', {
+        actionStepId,
+        actionStepText,
+        subtaskId,
+        subtaskText,
+        userId,
+      });
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlc21yamluY3poa25jaGxyc210Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzE0NzEsImV4cCI6MjA1MDU0NzQ3MX0.Uy4Tz2Vy8Hs7Qg8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8Qs8',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          actionStepId,
+          actionStepText,
+          subtaskId,
+          subtaskText,
+          userId,
+          userOriginalInput,
+          playbookTitle,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[EnhancedExpoundingService] Supabase function error:', response.status, errorText);
+        throw new Error(`Failed to generate expounding: ${response.status}`);
+      }
+
+      const expoundingSteps: StepExpounding[] = await response.json();
+
+      console.log('[EnhancedExpoundingService] AI-generated expounding received, saving to database...');
 
       // Save to database
       await this.saveStepExpounding(expoundingSteps);
@@ -198,7 +220,29 @@ class EnhancedExpoundingService {
       return expoundingSteps;
     } catch (error) {
       console.error('[EnhancedExpoundingService] Error generating step expounding:', error);
-      throw error;
+
+      // Return fallback content instead of throwing error to prevent UI from getting stuck
+      console.log('[EnhancedExpoundingService] Providing fallback content...');
+
+      const fallbackSteps: StepExpounding[] = this.stepTemplates.map(template => ({
+        id: `${actionStepId}_${subtaskId || 'main'}_step_${template.stepNumber}`,
+        actionStepId,
+        subtaskId,
+        stepNumber: template.stepNumber,
+        stepTitle: template.title,
+        contentType: template.contentType as any,
+        content: `${template.template} for: "${actionStepText}"`,
+        scriptureReferences: this.getRelevantScriptures(template.contentType),
+        practicalSteps: this.generatePracticalSteps(actionStepText, template.stepNumber),
+        reflectionQuestions: this.generateReflectionQuestions(actionStepText, template.stepNumber),
+        aiGenerated: false, // Mark as not AI generated since it's fallback
+        userId,
+        isPublic: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+
+      return fallbackSteps;
     }
   }
 
@@ -340,22 +384,20 @@ class EnhancedExpoundingService {
   // =============================================
 
   /**
-   * Generate content for a specific step
+   * Generate content using Supabase Edge Function (consistent with generate playbook/devotional)
    */
   private async generateStepContent(
     targetText: string,
     template: ExpoundingTemplate,
-    // actionStepText is currently not used but kept for future implementation
-    _actionStepText?: string
+    actionStepText?: string
   ): Promise<{
     mainContent: string;
     scriptureReferences: string[];
     practicalSteps: string[];
     reflectionQuestions: string[];
   }> {
-    // In production, this would call AI service
-    // For now, return template-based content
-
+    // This method is now handled by the Supabase Edge Function
+    // Return fallback content as this will be replaced by the full function call
     const stepContent = {
       mainContent: `${template.template} for: "${targetText}"`,
       scriptureReferences: this.getRelevantScriptures(template.contentType),
@@ -367,7 +409,7 @@ class EnhancedExpoundingService {
   }
 
   /**
-   * Generate AI response to user question
+   * Generate AI response to user question using dedicated Supabase Edge Function
    */
   private async generateQuestionResponse(
     question: string,
@@ -376,13 +418,47 @@ class EnhancedExpoundingService {
     response: string;
     type: 'clarification' | 'deeper_insight' | 'practical_help' | 'biblical_guidance';
   }> {
-    // In production, this would call AI service with context
-    // For now, return template response
+    try {
+      console.log('[EnhancedExpoundingService] Generating AI response for question:', question);
 
-    const responseType = this.categorizeQuestion(question);
-    const response = this.generateTemplateResponse(question, context, responseType);
+      // Get current session for authenticated API calls
+      const { data: { session } } = await this.supabase.auth.getSession();
 
-    return { response, type: responseType };
+      if (!session) {
+        throw new Error('No authenticated session found');
+      }
+
+      // Call dedicated Supabase Edge Function for user questions
+      const { data, error } = await this.supabase.functions.invoke('answer-user-question', {
+        body: {
+          question: question,
+          context: context,
+          userId: session.user.id,
+        },
+      });
+
+      if (error) {
+        console.error('[EnhancedExpoundingService] Supabase function error:', error);
+        throw error;
+      }
+
+      if (data && data.response) {
+        const responseType = this.categorizeQuestion(question);
+        console.log('[EnhancedExpoundingService] AI response generated successfully');
+        return { response: data.response, type: responseType };
+      }
+
+      throw new Error('No response received from AI service');
+
+    } catch (error) {
+      console.error('[EnhancedExpoundingService] AI question generation failed, using fallback:', error);
+
+      // Fallback to template response if AI fails
+      const responseType = this.categorizeQuestion(question);
+      const response = this.generateTemplateResponse(question, context, responseType);
+
+      return { response, type: responseType };
+    }
   }
 
   /**
@@ -596,6 +672,607 @@ class EnhancedExpoundingService {
     };
 
     return templates[type] || `Thank you for your question about "${question}". Let me help you understand this better...`;
+  }
+
+  // =============================================
+  // OPENAI INTEGRATION METHODS (consistent with generate playbook/devotional)
+  // =============================================
+
+  /**
+   * Call OpenAI API for expounding content generation
+   */
+  private async callOpenAIForExpounding(
+    targetText: string,
+    template: ExpoundingTemplate
+  ): Promise<string | null> {
+    try {
+      const prompt = this.buildExpoundingPrompt(targetText, template);
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a wise spiritual advisor helping Christians grow in their faith through practical action steps. Provide biblical, encouraging, and actionable guidance.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 1000,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('OpenAI API Error:', response.status, response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || null;
+    } catch (error) {
+      console.error('[EnhancedExpoundingService] OpenAI API call failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Call OpenAI API for user question responses
+   */
+  private async callOpenAIForQuestion(
+    question: string,
+    context: string
+  ): Promise<string | null> {
+    try {
+      const prompt = this.buildQuestionPrompt(question, context);
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a compassionate spiritual mentor answering questions about Christian faith and spiritual growth. Provide personalized, biblical, and encouraging responses.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.8,
+          max_tokens: 800,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('OpenAI API Error:', response.status, response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content || null;
+    } catch (error) {
+      console.error('[EnhancedExpoundingService] OpenAI question API call failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get personalized context for different content types
+   */
+  private getPersonalizedContext(contentType: string): string {
+    const contextMap: Record<string, string> = {
+      'spiritual_insight': 'Understanding God\'s heart behind this action and how it transforms us',
+      'practical_guidance': 'Concrete steps that fit into daily life and spiritual disciplines',
+      'biblical_context': 'Scripture that speaks directly to this situation with practical application',
+      'reflection_questions': 'Deep questions that reveal heart motivations and spiritual growth areas',
+    };
+
+    return contextMap[contentType] || 'Personal spiritual growth and practical application';
+  }
+
+  /**
+   * Build enhanced prompt for expounding content generation (personalized, no caching)
+   */
+  private buildExpoundingPrompt(targetText: string, template: ExpoundingTemplate): string {
+    const personalizedContext = this.getPersonalizedContext(template.contentType);
+
+    return `
+You are a wise, compassionate spiritual mentor helping someone grow in their Christian faith. This person is working on: "${targetText}"
+
+Context: ${template.title} - ${template.contentType}
+Focus: ${personalizedContext}
+
+Please provide a deeply personal and encouraging response that includes:
+
+1. **Spiritual Insight** (2-3 sentences): 
+   - Connect this action to God's heart and character
+   - Explain why this matters for spiritual growth
+   - Make it personal and relatable
+
+2. **Biblical Foundation**:
+   - One specific, relevant Bible verse with reference
+   - Brief explanation of how it applies to this situation
+   - Connect to God's promises or character
+
+3. **Practical Steps** (3-4 actionable items):
+   - Specific, concrete actions they can take today
+   - Include prayer, reflection, or community elements
+   - Make each step achievable and meaningful
+
+4. **Reflection Questions** (2-3 thoughtful questions):
+   - Help them examine their heart and motivations
+   - Connect to their relationship with God
+   - Encourage deeper spiritual introspection
+
+Write as if you're speaking directly to someone you care about. Be encouraging, biblical, practical, and deeply personal. Avoid generic advice - make it specific to their spiritual journey.
+    `.trim();
+  }
+
+  /**
+   * Build enhanced prompt for user question responses (personalized, no caching)
+   */
+  private buildQuestionPrompt(question: string, context: string): string {
+    const questionType = this.categorizeQuestion(question);
+    const personalizedGuidance = this.getPersonalizedQuestionGuidance(questionType);
+
+    return `
+You are a caring spiritual mentor responding to someone's personal question about their faith journey.
+
+**Their Situation**: They're working on "${context}" and have asked: "${question}"
+
+**Question Type**: ${questionType}
+**Focus**: ${personalizedGuidance}
+
+Please provide a deeply personal, encouraging response that:
+
+1. **Acknowledges their heart**: Show you understand their struggle or curiosity
+2. **Provides biblical wisdom**: Share relevant Scripture or biblical principles naturally
+3. **Offers practical steps**: Give 2-3 specific actions they can take
+4. **Encourages their journey**: Remind them of God's love and their growth
+
+**Tone**: Warm, understanding, and encouraging - like a trusted mentor who genuinely cares
+**Length**: 3-4 sentences that feel personal and actionable
+**Avoid**: Generic advice, overly complex theology, or judgment
+
+Remember: This person is courageously seeking to grow spiritually. Meet them with grace, wisdom, and hope.
+    `.trim();
+  }
+
+  /**
+   * Get personalized guidance based on question type
+   */
+  private getPersonalizedQuestionGuidance(questionType: string): string {
+    const guidanceMap: Record<string, string> = {
+      'clarification': 'Help them understand clearly with practical examples and gentle explanation',
+      'deeper_insight': 'Explore the spiritual significance and God\'s heart behind this situation',
+      'practical_help': 'Provide concrete, actionable steps they can implement immediately',
+      'biblical_guidance': 'Connect relevant Scripture to their specific situation with application',
+    };
+
+    return guidanceMap[questionType] || 'Provide encouraging, practical spiritual guidance';
+  }
+
+  /**
+   * Parse OpenAI response for expounding content with advanced content extraction
+   */
+  private parseOpenAIExpoundingResponse(
+    aiResponse: string,
+    template: ExpoundingTemplate
+  ): {
+    mainContent: string;
+    scriptureReferences: string[];
+    practicalSteps: string[];
+    reflectionQuestions: string[];
+  } {
+    try {
+      // Enhanced parsing with section detection
+      const sections = this.extractContentSections(aiResponse);
+
+      return {
+        mainContent: sections.mainContent || this.extractMainInsight(aiResponse),
+        scriptureReferences: sections.scriptureReferences.length > 0
+          ? sections.scriptureReferences
+          : this.extractBiblicalReferences(aiResponse),
+        practicalSteps: sections.practicalSteps.length > 0
+          ? sections.practicalSteps
+          : this.extractPracticalSteps(aiResponse),
+        reflectionQuestions: sections.reflectionQuestions.length > 0
+          ? sections.reflectionQuestions
+          : this.extractReflectionQuestions(aiResponse),
+      };
+    } catch (error) {
+      console.error('[EnhancedExpoundingService] Error parsing OpenAI response:', error);
+
+      // Intelligent fallback with content analysis
+      return this.createIntelligentFallback(aiResponse, template);
+    }
+  }
+
+  /**
+   * Extract content sections using advanced pattern matching
+   */
+  private extractContentSections(aiResponse: string): {
+    mainContent: string;
+    scriptureReferences: string[];
+    practicalSteps: string[];
+    reflectionQuestions: string[];
+  } {
+    const lines = aiResponse.split('\n').filter(line => line.trim());
+
+    let mainContent = '';
+    const scriptureReferences: string[] = [];
+    const practicalSteps: string[] = [];
+    const reflectionQuestions: string[] = [];
+
+    let currentSection = 'main';
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+
+      // Section headers detection
+      if (this.isSectionHeader(trimmedLine)) {
+        currentSection = this.determineSectionType(trimmedLine);
+        continue;
+      }
+
+      // Content classification
+      if (this.isBiblicalReference(trimmedLine)) {
+        scriptureReferences.push(this.cleanBiblicalReference(trimmedLine));
+      } else if (this.isPracticalStep(trimmedLine)) {
+        practicalSteps.push(this.cleanPracticalStep(trimmedLine));
+      } else if (this.isReflectionQuestion(trimmedLine)) {
+        reflectionQuestions.push(this.cleanReflectionQuestion(trimmedLine));
+      } else if (currentSection === 'main' && trimmedLine.length > 10) {
+        mainContent += trimmedLine + ' ';
+      }
+    }
+
+    return {
+      mainContent: mainContent.trim(),
+      scriptureReferences,
+      practicalSteps,
+      reflectionQuestions,
+    };
+  }
+
+  /**
+   * Advanced content extraction helpers
+   */
+  private isSectionHeader(line: string): boolean {
+    const headers = ['spiritual insight', 'biblical foundation', 'practical steps', 'reflection questions'];
+    return headers.some(header => line.toLowerCase().includes(header)) && line.includes('**');
+  }
+
+  private determineSectionType(line: string): string {
+    const lowerLine = line.toLowerCase();
+    if (lowerLine.includes('practical') || lowerLine.includes('steps')) {return 'practical';}
+    if (lowerLine.includes('reflection') || lowerLine.includes('questions')) {return 'questions';}
+    if (lowerLine.includes('biblical') || lowerLine.includes('scripture')) {return 'biblical';}
+    return 'main';
+  }
+
+  private isBiblicalReference(line: string): boolean {
+    return /\b\d+:\d+/.test(line) ||
+           line.includes('Bible') ||
+           line.includes('Scripture') ||
+           /\b(Genesis|Exodus|Matthew|John|Romans|Corinthians|Ephesians|Philippians|Colossians|Timothy|Hebrews|James|Peter|Revelation)\b/.test(line);
+  }
+
+  private isPracticalStep(line: string): boolean {
+    return /^\d+\./.test(line) ||
+           line.startsWith('•') ||
+           line.startsWith('-') ||
+           line.toLowerCase().includes('step') ||
+           line.toLowerCase().includes('action');
+  }
+
+  private isReflectionQuestion(line: string): boolean {
+    return line.includes('?') &&
+           (line.toLowerCase().includes('how') ||
+            line.toLowerCase().includes('what') ||
+            line.toLowerCase().includes('why') ||
+            line.toLowerCase().includes('reflect'));
+  }
+
+  private cleanBiblicalReference(line: string): string {
+    return line.replace(/^\d+\.\s*/, '').replace(/^[•-]\s*/, '').trim();
+  }
+
+  private cleanPracticalStep(line: string): string {
+    return line.replace(/^\d+\.\s*/, '').replace(/^[•-]\s*/, '').trim();
+  }
+
+  private cleanReflectionQuestion(line: string): string {
+    return line.replace(/^\d+\.\s*/, '').replace(/^[•-]\s*/, '').trim();
+  }
+
+  /**
+   * Extract main insight from unstructured content
+   */
+  private extractMainInsight(aiResponse: string): string {
+    const sentences = aiResponse.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    return sentences.slice(0, 3).join('. ').trim() + '.';
+  }
+
+  /**
+   * Extract biblical references with pattern matching
+   */
+  private extractBiblicalReferences(aiResponse: string): string[] {
+    const biblicalPattern = /([A-Z][a-z]+\s+\d+:\d+(?:-\d+)?)/g;
+    const matches = aiResponse.match(biblicalPattern) || [];
+    return matches.length > 0 ? matches : this.getRelevantScriptures('spiritual_insight');
+  }
+
+  /**
+   * Extract practical steps from content
+   */
+  private extractPracticalSteps(aiResponse: string): string[] {
+    const stepPatterns = [
+      /\d+\.\s*([^.!?]+)/g,
+      /•\s*([^.!?]+)/g,
+      /-\s*([^.!?]+)/g,
+    ];
+
+    for (const pattern of stepPatterns) {
+      const matches = Array.from(aiResponse.matchAll(pattern));
+      if (matches.length >= 2) {
+        return matches.map(match => match[1].trim()).slice(0, 4);
+      }
+    }
+
+    return this.generatePracticalSteps('', 1);
+  }
+
+  /**
+   * Extract reflection questions from content
+   */
+  private extractReflectionQuestions(aiResponse: string): string[] {
+    const questionPattern = /([^.!?]*\?)/g;
+    const matches = Array.from(aiResponse.matchAll(questionPattern));
+    const questions = matches
+      .map(match => match[1].trim())
+      .filter(q => q.length > 10 && q.length < 200)
+      .slice(0, 3);
+
+    return questions.length > 0 ? questions : this.generateReflectionQuestions('', 1);
+  }
+
+  /**
+   * Create intelligent fallback content
+   */
+  private createIntelligentFallback(aiResponse: string, template: ExpoundingTemplate): {
+    mainContent: string;
+    scriptureReferences: string[];
+    practicalSteps: string[];
+    reflectionQuestions: string[];
+  } {
+    return {
+      mainContent: aiResponse.length > 200 ? aiResponse.substring(0, 200) + '...' : aiResponse,
+      scriptureReferences: this.getRelevantScriptures(template.contentType),
+      practicalSteps: this.generatePracticalSteps('', template.stepNumber),
+      reflectionQuestions: this.generateReflectionQuestions('', template.stepNumber),
+    };
+  }
+  // Phase 4: Advanced Features - Analytics & Tracking
+  private userEngagementMetrics: Map<string, {
+    expoundingRequests: number;
+    questionsAsked: number;
+    lastInteraction: Date;
+    favoriteContentTypes: string[];
+    averageReadTime: number;
+  }> = new Map();
+
+  /**
+   * Track user engagement with expounding features
+   */
+  private trackUserEngagement(userId: string, action: 'expounding' | 'question', contentType?: string): void {
+    const current = this.userEngagementMetrics.get(userId) || {
+      expoundingRequests: 0,
+      questionsAsked: 0,
+      lastInteraction: new Date(),
+      favoriteContentTypes: [],
+      averageReadTime: 0,
+    };
+
+    if (action === 'expounding') {
+      current.expoundingRequests++;
+      if (contentType && !current.favoriteContentTypes.includes(contentType)) {
+        current.favoriteContentTypes.push(contentType);
+      }
+    } else if (action === 'question') {
+      current.questionsAsked++;
+    }
+
+    current.lastInteraction = new Date();
+    this.userEngagementMetrics.set(userId, current);
+  }
+
+  /**
+   * Generate contextual follow-up questions based on user's spiritual journey
+   */
+  async generateFollowUpQuestions(
+    userId: string,
+    actionStepText: string,
+    currentStepNumber: number
+  ): Promise<string[]> {
+    const userMetrics = this.userEngagementMetrics.get(userId);
+    const personalizedContext = userMetrics?.favoriteContentTypes.join(', ') || 'spiritual growth';
+
+    try {
+      const prompt = `
+You are a wise spiritual mentor helping someone grow in their faith journey.
+
+Context: They're working on "${actionStepText}" (Step ${currentStepNumber})
+Their interests: ${personalizedContext}
+
+Generate 3 thoughtful follow-up questions that would help them go deeper in their spiritual growth. Make each question:
+1. Personal and introspective
+2. Actionable and practical
+3. Connected to their current step
+
+Format as a simple list, one question per line.
+      `.trim();
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a compassionate spiritual advisor helping people grow in their Christian faith.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 300,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.choices[0]?.message?.content || '';
+
+      return aiResponse
+        .split('\n')
+        .filter(line => line.trim().length > 10)
+        .map(line => line.replace(/^\d+\.\s*/, '').trim())
+        .slice(0, 3);
+
+    } catch (error) {
+      console.error('[EnhancedExpoundingService] Error generating follow-up questions:', error);
+
+      // Fallback questions based on step number
+      const fallbackQuestions = [
+        'How is God speaking to you through this step?',
+        'What practical changes will you make this week?',
+        'How can you invite others into this part of your journey?',
+      ];
+
+      return fallbackQuestions;
+    }
+  }
+
+  /**
+   * Analyze content connections between steps for better user experience
+   */
+  analyzeStepConnections(steps: StepExpounding[]): {
+    connections: Array<{
+      fromStep: number;
+      toStep: number;
+      connectionType: 'builds_on' | 'contrasts_with' | 'complements';
+      description: string;
+    }>;
+    suggestedOrder: number[];
+  } {
+    const connections: Array<{
+      fromStep: number;
+      toStep: number;
+      connectionType: 'builds_on' | 'contrasts_with' | 'complements';
+      description: string;
+    }> = [];
+
+    // Analyze content relationships
+    for (let i = 0; i < steps.length; i++) {
+      for (let j = i + 1; j < steps.length; j++) {
+        const step1 = steps[i];
+        const step2 = steps[j];
+
+        // Check for content type relationships
+        if (step1.contentType === 'spiritual_insight' && step2.contentType === 'practical_guidance') {
+          connections.push({
+            fromStep: step1.stepNumber,
+            toStep: step2.stepNumber,
+            connectionType: 'builds_on',
+            description: 'Spiritual insight leads to practical application',
+          });
+        }
+
+        if (step1.contentType === 'biblical_context' && step2.contentType === 'reflection_questions') {
+          connections.push({
+            fromStep: step1.stepNumber,
+            toStep: step2.stepNumber,
+            connectionType: 'complements',
+            description: 'Biblical foundation supports deeper reflection',
+          });
+        }
+      }
+    }
+
+    // Suggest optimal reading order
+    const suggestedOrder = [1, 2, 3, 4]; // Default progressive order
+
+    return {
+      connections,
+      suggestedOrder,
+    };
+  }
+
+  /**
+   * Get user engagement analytics
+   */
+  getUserEngagementAnalytics(userId: string): {
+    totalInteractions: number;
+    favoriteContentTypes: string[];
+    engagementLevel: 'low' | 'medium' | 'high';
+    lastActive: Date;
+    suggestedContent: string[];
+  } {
+    const metrics = this.userEngagementMetrics.get(userId);
+
+    if (!metrics) {
+      return {
+        totalInteractions: 0,
+        favoriteContentTypes: [],
+        engagementLevel: 'low',
+        lastActive: new Date(),
+        suggestedContent: ['spiritual_insight'],
+      };
+    }
+
+    const totalInteractions = metrics.expoundingRequests + metrics.questionsAsked;
+    let engagementLevel: 'low' | 'medium' | 'high' = 'low';
+
+    if (totalInteractions > 10) {engagementLevel = 'high';}
+    else if (totalInteractions > 3) {engagementLevel = 'medium';}
+
+    // Suggest content based on what they haven't explored much
+    const allContentTypes = ['spiritual_insight', 'practical_guidance', 'biblical_context', 'reflection_questions'];
+    const suggestedContent = allContentTypes.filter(
+      type => !metrics.favoriteContentTypes.includes(type)
+    );
+
+    return {
+      totalInteractions,
+      favoriteContentTypes: metrics.favoriteContentTypes,
+      engagementLevel,
+      lastActive: metrics.lastInteraction,
+      suggestedContent: suggestedContent.length > 0 ? suggestedContent : ['spiritual_insight'],
+    };
   }
 }
 

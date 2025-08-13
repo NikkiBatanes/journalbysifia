@@ -1,17 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, StyleSheet } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BorderRadii } from '../theme/styles';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
+import { SimplifiedCardInsight } from './SimplifiedCardInsight';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 
 type DirectChallengeCardProps = {
   challenge: string;
   challengeCTA?: string;
+  playbookTitle?: string;
+  userInput?: string;
 };
 
-export default function DirectChallengeCard({ challenge, challengeCTA }: DirectChallengeCardProps) {
+export default function DirectChallengeCard({ challenge, challengeCTA, playbookTitle, userInput }: DirectChallengeCardProps) {
+  const { user } = useAuth();
+  const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
+  const [showInsight, setShowInsight] = useState(false);
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
@@ -22,12 +31,34 @@ export default function DirectChallengeCard({ challenge, challengeCTA }: DirectC
           style={styles.icon}
         />
         <Text style={styles.heading}>Rise in Faith</Text>
+        <TouchableOpacity
+          style={styles.expandIcon}
+          onPress={() => setShowInsight(!showInsight)}
+        >
+          <Icon
+            name={showInsight ? 'chevron-up' : 'information-outline'}
+            size={20}
+            color={Colors.hopeWhite}
+          />
+        </TouchableOpacity>
       </View>
       <Text style={styles.text}>
         {challenge}
       </Text>
       {challengeCTA && (
         <Text style={styles.cta}>{challengeCTA}</Text>
+      )}
+
+      {/* Simplified Card Insight */}
+      {showInsight && (
+        <SimplifiedCardInsight
+          userId={user?.id || ''}
+          cardType="challenge"
+          cardContent={challenge + (challengeCTA ? ` ${challengeCTA}` : '')}
+          playbookTitle={playbookTitle || ''}
+          userOriginalInput={userInput}
+          hasAccess={expoundingAccess.hasAccess}
+        />
       )}
     </View>
   );
@@ -77,5 +108,9 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     width: '100%',
     marginTop: 16,
+  },
+  expandIcon: {
+    padding: 4,
+    marginLeft: 8,
   },
 });

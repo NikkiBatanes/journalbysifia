@@ -1,7 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, TextStyle } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextStyle, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { BorderRadii } from '../theme/styles';
 import { Typography } from '../theme/typography';
+import { SimplifiedCardInsight } from './SimplifiedCardInsight';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
 
 interface AffirmationCardProps {
   id: string;
@@ -9,13 +13,20 @@ interface AffirmationCardProps {
   completed: boolean;
   color?: string;
   containerStyle?: any;
+  playbookTitle?: string;
+  userInput?: string;
 }
 
 const AffirmationCard: React.FC<AffirmationCardProps> = ({
   text,
   color = 'white',
   containerStyle = {},
+  playbookTitle,
+  userInput,
 }) => {
+  const { user } = useAuth();
+  const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
+  const [showInsight, setShowInsight] = useState(false);
   const textStyle: TextStyle = {
     ...Typography.interSemiBold,
     fontSize: 16,
@@ -28,9 +39,33 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
 
   return (
     <View style={[styles.card, containerStyle]}>
-      <Text style={textStyle}>
-        {text}
-      </Text>
+      <View style={styles.headerContainer}>
+        <Text style={textStyle}>
+          {text}
+        </Text>
+        <TouchableOpacity
+          style={styles.expandIcon}
+          onPress={() => setShowInsight(!showInsight)}
+        >
+          <Icon
+            name={showInsight ? 'chevron-up' : 'information-outline'}
+            size={20}
+            color={color}
+          />
+        </TouchableOpacity>
+      </View>
+
+      {/* Simplified Card Insight */}
+      {showInsight && (
+        <SimplifiedCardInsight
+          userId={user?.id || ''}
+          cardType="affirmation"
+          cardContent={text}
+          playbookTitle={playbookTitle || ''}
+          userOriginalInput={userInput}
+          hasAccess={expoundingAccess.hasAccess}
+        />
+      )}
     </View>
   );
 };
@@ -43,6 +78,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     width: '100%',
     minHeight: 80, // Ensure minimum height for visibility
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  expandIcon: {
+    padding: 4,
+    marginLeft: 8,
   },
 });
 

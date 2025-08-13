@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextInput } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
@@ -11,6 +13,7 @@ import SmartJournalingReflectionModal from '../screens/SmartJournalingReflection
 import SmartJournalingGratitudeModal from '../screens/SmartJournalingGratitudeModal';
 import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
+import { InteractiveCoachingModal } from './InteractiveCoachingModal';
 import { toLocalDateString } from '../utils/date';
 
 type SubTask = {
@@ -42,6 +45,8 @@ type ActionStepsCardProps = {
   // Smart Journaling Metadata
   playbookTitle?: string;
   playbookId?: string;
+  // User Context for Personalized Christian Coaching
+  userInput?: string; // User's original struggle/context when creating playbook
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -143,32 +148,44 @@ const processSteps = (steps: ActionStep[]): ActionStep[] => {
 };
 
 export default function ActionStepsCard({
-  steps: propSteps,
+  steps: propSteps = [],
   navigation,
   style,
-  textColor,
-  solidCardBackground,
+  textColor = Colors.hopeWhite,
+  solidCardBackground = false,
   checkboxColor,
   stepCircleBackground,
   playbookTitle,
   playbookId,
+  userInput, // User's original struggle/context for personalized Christian coaching
 }: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Feature access for expounding
+  const expoundingAccess = useFeatureAccess({ feature: 'expounding_content' });
 
   // Smart Journaling Modal State
   type ActiveModalType = 'reflection' | 'gratitude' | 'prayer' | 'timeblock' | null;
   const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
   const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
-  
-  // Expounding State - track which steps are expanded
+
+  // Interactive Coaching Modal State (Phase 3)
+  const [showInteractiveCoaching, setShowInteractiveCoaching] = useState(false);
+  const [coachingStepData, setCoachingStepData] = useState<{
+    stepId: string;
+    stepText: string;
+    subtaskId?: string;
+  } | null>(null);
+
+  // Simplified expounding state - track which steps show insights
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
-  
-  // Toggle expounding for a specific step
-  const toggleExpounding = (stepId: string) => {
-    console.log('[ActionStepsCard] Toggling expounding for step:', stepId);
+
+  // Toggle simplified insight for a specific step
+  const toggleInsight = (stepId: string) => {
+    console.log('[ActionStepsCard] Toggling insight for step:', stepId);
     setExpandedSteps(prev => {
       const newSet = new Set(prev);
       if (newSet.has(stepId)) {
@@ -182,10 +199,12 @@ export default function ActionStepsCard({
     });
   };
 
+
+
   // Query for existing reflection when a subtask is selected
   const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
     user?.id || '',
-    selectedSubtask?.id || ''
+    selectedSubtask?.id ?? ''
   );
 
   // Debug: Log reflection query results
@@ -824,16 +843,19 @@ export default function ActionStepsCard({
                         {step.title}
                       </Text>
                     </View>
-                    {/* Expand/Info Icon in upper right */}
-                    <TouchableOpacity 
-                      style={styles.expandIcon}
-                      onPress={() => toggleExpounding(step.id)}
+                    {/* Original Expounding Button */}
+                    <TouchableOpacity
+                      style={styles.expoundButton}
+                      onPress={() => toggleInsight(step.id)}
                     >
                       <MaterialCommunityIcons
-                        name={expandedSteps.has(step.id) ? "chevron-up" : "information-outline"}
-                        size={20}
-                        color="rgba(255, 255, 255, 0.7)"
+                        name="lightbulb-outline"
+                        size={16}
+                        color="rgba(255, 255, 255, 0.8)"
                       />
+                      <Text style={styles.expoundButtonText}>
+                        {expandedSteps.has(step.id) ? 'Hide Insight' : 'Get Insight'}
+                      </Text>
                     </TouchableOpacity>
                   </View>
 
@@ -948,33 +970,16 @@ export default function ActionStepsCard({
                     </View>
                   )}
 
-                  {/* Step-by-Step Expounding */}
+                  {/* Simplified Card Insight */}
                   {expandedSteps.has(step.id) && (
-                    <View style={styles.expoundingContainer}>
-                      <View style={styles.expoundingHeader}>
-                        <Text style={styles.expoundingTitle}>Step Details</Text>
-                      </View>
-                      <View style={styles.expoundingContent}>
-                        {step.description && (
-                          <View style={styles.expoundingSection}>
-                            <Text style={styles.expoundingSectionTitle}>Description:</Text>
-                            <Text style={styles.expoundingSectionText}>{step.description}</Text>
-                          </View>
-                        )}
-                        <View style={styles.expoundingSection}>
-                          <Text style={styles.expoundingSectionTitle}>Purpose:</Text>
-                          <Text style={styles.expoundingSectionText}>
-                            This step helps you grow in your faith journey by providing practical guidance and spiritual insights.
-                          </Text>
-                        </View>
-                        <View style={styles.expoundingSection}>
-                          <Text style={styles.expoundingSectionTitle}>Reflection:</Text>
-                          <Text style={styles.expoundingSectionText}>
-                            Take a moment to consider how this step applies to your current situation and what God might be teaching you through it.
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
+                    <SimplifiedCardInsight
+                      userId={user?.id || ''}
+                      cardType="action"
+                      cardContent={step.title}
+                      playbookTitle={playbookTitle || ''}
+                      userOriginalInput={userInput}
+                      hasAccess={expoundingAccess.hasAccess}
+                    />
                   )}
                 </View>
               );
@@ -1249,9 +1254,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 0,
   },
-  expandIcon: {
-    padding: 8,
-    marginRight: 4,
+  expoundButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  expoundButtonText: {
+    ...Typography.interRegular,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginLeft: 4,
   },
   stepDescription: {
     ...Typography.interRegular,
@@ -1300,5 +1316,201 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.7)',
+  },
+  questionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+  },
+  questionButtonText: {
+    ...Typography.interSemiBold,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginLeft: 4,
+  },
+  loadingContainer: {
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...Typography.interRegular,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontStyle: 'italic',
+  },
+  biblicalText: {
+    ...Typography.interSemiBold,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255, 215, 0, 0.9)',
+    fontStyle: 'italic',
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    padding: 8,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: 'rgba(255, 215, 0, 0.5)',
+  },
+  listItem: {
+    ...Typography.interRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 4,
+    paddingLeft: 8,
+  },
+  userQuestionText: {
+    ...Typography.interSemiBold,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontStyle: 'italic',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  questionInputContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  questionInput: {
+    ...Typography.interRegular,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 6,
+    padding: 12,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  questionActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    gap: 8,
+  },
+  submitButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  submitButtonText: {
+    ...Typography.interSemiBold,
+    fontSize: 13,
+    color: '#FFFFFF',
+  },
+  cancelButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  cancelButtonText: {
+    ...Typography.interSemiBold,
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  accessRequiredContainer: {
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+  },
+  accessRequiredText: {
+    ...Typography.interRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  upgradeButton: {
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  upgradeButtonText: {
+    ...Typography.interSemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  // Streamlined Single-Insight UI Styles
+  streamlinedInsightContainer: {
+    marginTop: 12,
+  },
+  focusedInsightCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 12,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.faithGold,
+  },
+  insightIcon: {
+    fontSize: 20,
+    marginBottom: 8,
+  },
+  focusedInsightText: {
+    ...Typography.interRegular,
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.hopeWhite,
+    marginBottom: 12,
+  },
+  scriptureQuote: {
+    ...Typography.interRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.faithGold,
+    fontStyle: 'italic',
+    marginBottom: 12,
+    paddingLeft: 12,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(255, 215, 0, 0.3)',
+  },
+  actionStepContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 8,
+  },
+  actionStepLabel: {
+    ...Typography.interSemiBold,
+    fontSize: 12,
+    color: Colors.faithGold,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  actionStepText: {
+    ...Typography.interRegular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.hopeWhite,
+  },
+  followUpContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  followUpPrompt: {
+    ...Typography.interRegular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontStyle: 'italic',
   },
 });
