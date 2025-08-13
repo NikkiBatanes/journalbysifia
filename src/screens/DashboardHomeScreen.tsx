@@ -20,6 +20,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
+import { Fonts } from '../theme';
 import { dashboardNavigation } from '../services/NavigationManager';
 
 import DailyAffirmationCard from '../components/dashboard/DailyAffirmationCard';
@@ -209,7 +210,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const renderGreeting = () => (
     <View style={styles.greetingSection}>
-      <Text style={styles.greeting}>Hello, {firstName}</Text>
+      <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Hello, {firstName}</Text>
       <Text style={styles.motivationalText}>
         {MOTIVATIONAL_TEXTS[currentMotivationalText]}
       </Text>
@@ -384,18 +385,23 @@ const styles = StyleSheet.create({
   greetingSection: {
     backgroundColor: Colors.hopeWhite,
     paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
   },
   greeting: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: Fonts.bold,
+    fontWeight: '800',
+    letterSpacing: 0.5,
     color: Colors.anchorBlue,
+    marginTop: 10,
     marginBottom: 0,
   },
   motivationalText: {
     fontSize: 14,
     color: Colors.darkerGray,
     opacity: 0.8,
+    marginTop: 0,
   },
   headerRight: {
     flexDirection: 'row',
@@ -466,7 +472,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
     paddingBottom: 120,
-    paddingTop: 40,
+    paddingTop: 16,
   },
   row: {
     flexDirection: 'row',

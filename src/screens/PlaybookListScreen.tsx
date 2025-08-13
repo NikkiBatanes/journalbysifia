@@ -1,5 +1,7 @@
 import { useRef, useCallback, useState, useEffect, useMemo, createRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Pencil } from 'lucide-react-native';
 import {
   View,
   Text,
@@ -7,15 +9,16 @@ import {
   Alert,
   SectionList,
   Animated,
-  SafeAreaView,
   Pressable,
   Button,
+  TouchableOpacity,
   RefreshControl,
 } from 'react-native';
 
 import { format } from 'date-fns';
 
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import PlaybookCard from '../components/PlaybookCard';
 import { Colors, Fonts } from '../theme';
@@ -75,6 +78,7 @@ const formatDate = (date: Date): string => {
 const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   // Get user info with fallback mechanisms
   const { user, session, isAuthenticated } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // Multiple fallback mechanisms for userId
   const userId = user?.id || session?.user?.id;
@@ -467,9 +471,11 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
       isAuthenticated,
     });
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={[styles.container, styles.centered]}>
-          <PlaybookSkeleton />
+      <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
+        <View style={styles.container}>
+          <View style={[styles.listContent, styles.pageInner]}>
+            <PlaybookSkeleton />
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -480,26 +486,80 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
   if (playbooks.length === 0 && !isLoading && userId) {
     console.log('[PlaybookListScreen] Showing empty state');
     return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={[styles.container, styles.centered]}>
-          <Text style={styles.header}>Playbooks</Text>
-          <Text>No playbooks found. Pull to refresh or create a new playbook.</Text>
-          <Button
-            title="Refresh"
-            onPress={() => {
-              console.log('[PlaybookListScreen] Manual refresh triggered');
-              refetch();
-            }}
-          />
+      <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
+        <View style={[styles.container, styles.containerEmpty]}>
+          <View style={[styles.headerBar, { paddingTop: insets.top }]}>
+            <View style={styles.pageInner}>
+              {/* Hide header when empty; keep layout with spacer (match Devotionals) */}
+              <View style={styles.headerSpacer} />
+            </View>
+          </View>
+
+          {/* Empty state hero */}
+          <View style={styles.emptyStateContainer}>
+            <View style={styles.emptyHeroContainer}>
+              <View style={styles.heroCard}>
+              <MaterialCommunityIcons
+                name="clipboard-text-play"
+                size={32}
+                color="rgba(255,255,255,0.8)"
+                style={styles.heroIcon}
+              />
+              <Text style={styles.heroOverline}>No Playbooks</Text>
+              <Text style={styles.heroTitle}>Create a New Playbook</Text>
+              <Text style={styles.heroSubtitle}>
+                Share what you're going through in detail. The more context, the better we can help.
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => navigation.navigate('UserInput')}
+                activeOpacity={0.85}
+                style={styles.heroOutlineButton}
+              >
+                <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                <Text style={styles.heroOutlineButtonText}>Create a Playbook</Text>
+              </TouchableOpacity>
+
+                {/* Hint before bullets */}
+                <Text style={styles.stepsHint}>Helpful details to include:</Text>
+
+                {/* Guided steps */}
+                <View style={styles.stepsContainer}>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
+                  <Text style={styles.stepText}>What happened</Text>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
+                  <Text style={styles.stepText}>Your pain</Text>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
+                  <Text style={styles.stepText}>A situation or struggle</Text>
+                </View>
+                <View style={styles.stepItem}>
+                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>4</Text></View>
+                  <Text style={styles.stepText}>A decision you need to make</Text>
+                </View>
+                </View>
+                {/* Subtle deliverable hint below bullets */}
+                <Text style={styles.stepsFootnote}>We’ll turn this into a personalized playbook.</Text>
+              </View>
+            </View>
+          </View>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
       <View style={styles.container}>
-        <Text style={styles.header}>Playbooks</Text>
+        <View style={[styles.headerBar, { paddingTop: insets.top }]}>
+          <View style={styles.pageInner}>
+            <Text style={styles.headerTitle}>Playbooks</Text>
+          </View>
+        </View>
         {/* Filter Tabs */}
         <View style={styles.filterTabs}>
           {(['all', 'ongoing', 'completed'] as const).map((tab) => (
@@ -523,8 +583,10 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
             </Pressable>
           ))}
         </View>
-        {isLoading ? (
-          <PlaybookSkeleton />
+        {isLoading || isFetching ? (
+          <View style={[styles.listContent, styles.pageInner]}>
+            <PlaybookSkeleton />
+          </View>
         ) : (
           <SectionList
             key={`${filter}-${sections.length}`}
@@ -534,21 +596,10 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
             renderSectionHeader={({ section: { title } }) => (
               <View style={styles.sectionHeader}><Text style={styles.sectionHeaderText}>{title}</Text></View>
             )}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, styles.pageInner]}
             stickySectionHeadersEnabled
             showsVerticalScrollIndicator={false}
             extraData={filter}
-            refreshControl={
-              <RefreshControl
-                refreshing={isFetching}
-                onRefresh={() => {
-                  console.log('[PlaybookListScreen] Pull to refresh triggered');
-                  refetch();
-                }}
-                tintColor={Colors.anchorBlue}
-                colors={[Colors.anchorBlue]}
-              />
-            }
           />
         )}
       </View>
@@ -593,18 +644,165 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
-    padding: 16,
   },
-  header: {
+  pageInner: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
+  containerEmpty: {
+    // Remove default container padding so heroCard width matches Devotionals (90% of screen)
+    paddingHorizontal: 0,
+    paddingTop: 0,
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 0,
+  },
+  headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
     color: Colors.anchorBlue,
-    marginBottom: 20,
+    marginBottom: 10,
     marginTop: 10,
     letterSpacing: 0.5,
     fontWeight: '800',
   },
+  headerSpacer: {
+    height: 44,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    paddingTop: 8,
+    paddingBottom: 16,
+    paddingHorizontal: 0,
+    minHeight: 300,
+  },
+  // Empty state styles (mirroring Devotionals)
+  emptyHeroContainer: {
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroCard: {
+    width: '90%',
+    maxWidth: 720,
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 34,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  heroIcon: {
+    marginBottom: 12,
+    opacity: 0.8,
+  },
+  heroOverline: {
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.9)',
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+  },
+  heroTitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    lineHeight: 24,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 22,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  heroOutlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    minWidth: 120,
+    marginBottom: 12,
+  },
+  heroOutlineButtonText: {
+    color: Colors.hopeWhite,
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    letterSpacing: 0.5,
+  },
+  heroButtonIcon: {
+    marginRight: 8,
+  },
+  stepsHint: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    marginTop: 14,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+  },
+  stepsFootnote: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontFamily: Fonts.medium,
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+  },
+  stepsContainer: {
+    width: '100%',
+    marginTop: 16,
+    paddingHorizontal: 12,
+    gap: 8,
+    alignItems: 'flex-start',
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    marginBottom: 2,
+  },
+  stepBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  stepBadgeText: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+  },
+  stepText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+  },
   listContent: {
+    paddingHorizontal: 16,
     paddingBottom: 20,
   },
   filterTabs: {
