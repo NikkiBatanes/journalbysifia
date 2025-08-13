@@ -6,7 +6,9 @@ import {
   SafeAreaView,
   RefreshControl,
   StatusBar,
+  TouchableOpacity,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { DateFilterBar, DateRange, FilterType } from '../components/moments/DateFilterBar';
@@ -15,14 +17,15 @@ import { EnhancedMomentsRenderer } from '../systems/journal/renderers/EnhancedMo
 import { getAllPlugins } from '../systems/journal/plugins/registry';
 
 export const MomentsScreen: React.FC = () => {
-  // Date filtering state
+  // Date filtering state - Default to show all dates
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedRange, setSelectedRange] = useState<DateRange>({
-    startDate: new Date(),
-    endDate: new Date(),
-    label: 'Today',
+    startDate: new Date(2000, 0, 1), // Start from a very early date to show all entries
+    endDate: new Date(2030, 11, 31), // End date far in the future to catch all entries
+    label: 'All Time',
   });
-  const [filterType, setFilterType] = useState<FilterType>('single');
+  const [filterType, setFilterType] = useState<FilterType>('range');
+  const [showFilters, setShowFilters] = useState(false);
 
   // Grouping and search state
   const [groupBy, setGroupBy] = useState<GroupingType>('date');
@@ -82,21 +85,30 @@ export const MomentsScreen: React.FC = () => {
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Moments</Text>
+        <View style={styles.headerTopRow}>
+          <Text style={styles.headerTitle}>Moments</Text>
+          {/* Single filter toggle icon on same row as title */}
+          <TouchableOpacity
+            style={[styles.filterToggleButton, showFilters && styles.filterToggleButtonActive]}
+            onPress={() => setShowFilters(prev => !prev)}
+            accessibilityLabel={showFilters ? 'Hide filters' : 'Show filters'}
+            accessibilityRole="button"
+          >
+            <Ionicons
+              name="options"
+              size={20}
+              color={Colors.hopeWhite}
+            />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.headerSubtitle}>
           Your journal entries and memories
         </Text>
       </View>
 
-      {/* Enhanced Moments Renderer - now handles its own scrolling */}
-      <EnhancedMomentsRenderer
-        plugins={plugins}
-        dateRange={getCurrentDateRange()}
-        groupBy={groupBy}
-        sortBy={sortBy}
-        searchQuery={searchQuery}
-        style={styles.momentsRenderer}
-        headerComponents={[
+      {/* Fixed inline filters panel (does not scroll) */}
+      {showFilters && (
+        <View style={styles.filterPanel}>
           <DateFilterBar
             key="date-filter"
             selectedDate={selectedDate}
@@ -105,7 +117,7 @@ export const MomentsScreen: React.FC = () => {
             filterType={filterType}
             onFilterTypeChange={handleFilterTypeChange}
             selectedRange={selectedRange}
-          />,
+          />
           <GroupingControls
             key="grouping-controls"
             groupBy={groupBy}
@@ -116,8 +128,19 @@ export const MomentsScreen: React.FC = () => {
             onSearchChange={setSearchQuery}
             showSearch={showSearch}
             onToggleSearch={() => setShowSearch(!showSearch)}
-          />,
-        ]}
+          />
+        </View>
+      )}
+
+      {/* Enhanced Moments Renderer - now handles its own scrolling */}
+      <EnhancedMomentsRenderer
+        plugins={plugins}
+        dateRange={getCurrentDateRange()}
+        groupBy={groupBy}
+        sortBy={sortBy}
+        searchQuery={searchQuery}
+        style={styles.momentsRenderer}
+        headerComponents={[]}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -139,8 +162,11 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   headerTitle: {
     fontSize: 24,
@@ -164,5 +190,44 @@ const styles = StyleSheet.create({
   momentsRenderer: {
     flex: 1,
     minHeight: 400,
+  },
+  filterPanel: {
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    gap: 12,
+  },
+  // New single-toggle styles
+  filterToggle: {
+    alignSelf: 'flex-end',
+    marginTop: 16,
+  },
+  filterToggleButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterToggleButtonActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    marginTop: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    padding: 2,
+  },
+  filterTab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activeFilterTab: {
+    backgroundColor: Colors.hopeWhite,
   },
 });
