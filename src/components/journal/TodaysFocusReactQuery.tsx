@@ -19,6 +19,7 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
 import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import { isToday, isYesterday, isAfter, startOfDay, startOfToday } from 'date-fns';
 
 interface PriorityItem {
   id: string;
@@ -38,9 +39,20 @@ interface TodaysFocusProps {
   viewMode?: 'carousel' | 'inline' | 'moments';
   expanded?: boolean;
   onExpand?: () => void;
+  planningEnabled?: boolean;
 }
 
-export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode, expanded, onExpand }) => {
+type FocusCTA = 'begin' | 'update' | 'revisit' | 'plan' | 'editPlan';
+
+interface FocusCardState {
+  eyebrow: string;
+  title: string;
+  subtitle: string;
+  ctaLabel: string;
+  ctaAction: FocusCTA;
+}
+
+export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate = new Date(), variant = 'carousel', viewMode, expanded, onExpand, planningEnabled = true }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -127,6 +139,98 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     originalData.current = { ...initialData };
     setIsEditing(false);
   }, [dateStr, initialData]);
+
+  // Determine whether an entry has meaningful content (used for copy/CTA)
+  const hasEntry: boolean = useMemo(() => {
+    if (!existingEntry) return false;
+    try {
+      const content = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content || '{}') : (existingEntry.content || {});
+      const hasFocus = typeof content.focus === 'string' && content.focus.trim().length > 0;
+      const hasPriorities = Array.isArray(content.priorities) && content.priorities.some((p: any) => typeof p?.text === 'string' && p.text.trim().length > 0);
+      return hasFocus || hasPriorities;
+    } catch {
+      return false;
+    }
+  }, [existingEntry]);
+
+  const today = startOfToday();
+  const day = startOfDay(selectedDate);
+  const future = isAfter(day, today);
+
+  const hasPlan = future && hasEntry; // treat any existing future entry as a saved plan
+
+  const focusState: FocusCardState = useMemo(() => {
+    if (isToday(day)) {
+      return {
+        eyebrow: "Today’s Focus",
+        title: "Today’s Focus",
+        subtitle: hasEntry
+          ? 'Stay focused on what matters today.'
+          : 'Set your focus and priorities to make today count in faith and action—then begin.',
+        ctaLabel: hasEntry ? 'Update Focus' : 'Begin',
+        ctaAction: hasEntry ? 'update' : 'begin',
+      };
+    }
+    if (isYesterday(day)) {
+      return hasEntry
+        ? {
+            eyebrow: "Yesterday’s Focus",
+            title: "What I Focused On",
+            subtitle: "How God led you and what counted.",
+            ctaLabel: 'Revisit',
+            ctaAction: 'revisit',
+          }
+        : {
+          eyebrow: "Yesterday’s Focus",
+          title: "Revisit Yesterday",
+          subtitle: "Reflect on how you made that day count in faith and action.",
+          ctaLabel: 'Revisit',
+          ctaAction: 'revisit',
+        };
+    }
+    if (future) {
+      if (!planningEnabled) {
+        return {
+          eyebrow: "Upcoming Focus",
+          title: "Plan Ahead in Faith",
+          subtitle: "Planning is currently disabled.",
+          ctaLabel: 'Plan Focus',
+          ctaAction: 'plan',
+        };
+      }
+      return hasPlan
+        ? {
+            eyebrow: "Upcoming Focus",
+            title: "Planned Focus",
+            subtitle: shouldShowEditingMode ? "Edit your plan" : "Planned in faith, ready to begin.",
+            ctaLabel: 'Edit Plan',
+            ctaAction: 'editPlan',
+          }
+        : {
+            eyebrow: "Upcoming Focus",
+            title: "Plan in Faith Ahead",
+            subtitle: shouldShowEditingMode ? "Set your focus" : "Prayerfully set what matters so this day can count.",
+            ctaLabel: 'Pray & Set',
+            ctaAction: 'plan',
+          };
+    }
+    // Earlier past (before yesterday)
+    return hasEntry
+      ? {
+          eyebrow: "Previous Focus",
+          title: "What I Focused On",
+          subtitle: "What counted in faith on this day.",
+          ctaLabel: 'Revisit',
+          ctaAction: 'revisit',
+        }
+      : {
+          eyebrow: "Previous Focus",
+          title: "Revisit This Day",
+          subtitle: "Capture what mattered and how God was at work—so it counts in faith and action.",
+          ctaLabel: 'Revisit',
+          ctaAction: 'revisit',
+        };
+  }, [day, hasEntry, hasPlan, planningEnabled]);
 
   // Handle global edit mode activation
   React.useEffect(() => {
@@ -381,8 +485,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const hasContent = data.focus.trim() || data.priorities.some(p => p.text.trim());
   const canSave = hasContent && (createMutation.isPending || updateMutation.isPending) === false;
 
-  // Hide empty component in inline and moments view, but always show in carousel
-  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !hasContent) {
+  // Hide empty component in inline view for all date buckets
+  if (viewMode === 'inline' && !isLoading && !hasContent) {
     return null;
   }
 
@@ -473,8 +577,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             color={Colors.alertCoral}
           />
         ) : undefined}
-        title={hasContent || shouldShowEditingMode ? "TODAY'S FOCUS" : undefined}
-        subtitle={hasContent || shouldShowEditingMode ? 'Your daily focus and priorities' : undefined}
+        title={(hasContent || shouldShowEditingMode) ? focusState.eyebrow.toUpperCase() : undefined}
+        subtitle={(hasContent || shouldShowEditingMode) ? focusState.subtitle : undefined}
         showAddButton={(hasContent || shouldShowEditingMode) ? !shouldShowEditingMode : false}
         onAdd={toggleEditing}
         isAdding={shouldShowEditingMode}
@@ -488,13 +592,13 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ? (
             <View style={styles.editContainer}>
               {!globalEditMode?.isGlobalEditMode && (
-                <Text style={styles.sectionHeaderWithBottomMargin}>TODAY'S FOCUS</Text>
+                <Text style={styles.sectionHeaderWithBottomMargin}>{focusState.eyebrow.toUpperCase()}</Text>
               )}
               <TextInput
                 style={[styles.input, styles.focusInput]}
                 value={data.focus}
                 onChangeText={updateFocus}
-                placeholder="What's your main focus today?"
+                placeholder={isToday(day) ? "What's your main focus today?" : focusState.title}
                 placeholderTextColor={Colors.mediumGray}
                 autoFocus
                 accessibilityLabel="Today's focus input"
@@ -640,7 +744,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                       color={Colors.mediumGray}
                       style={styles.emptyStateIcon}
                     />
-                    <Text style={styles.sectionLabel} accessibilityRole="text">TODAY'S FOCUS</Text>
+                    <Text style={styles.sectionLabel} accessibilityRole="text">{focusState.eyebrow.toUpperCase()}</Text>
                   </View>
                   <View style={styles.titleContainer}>
                     <Text
@@ -649,20 +753,18 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                       numberOfLines={1}
                       ellipsizeMode="tail"
                     >
-                      Get Ready for a Great Day
+                      {focusState.title}
                     </Text>
                   </View>
-                  <Text style={styles.emptyStateSubtext} accessibilityRole="text">
-                    Set your focus and priorities to make today count in faith and action.
-                  </Text>
+                  <Text style={styles.emptyStateSubtext} accessibilityRole="text">{focusState.subtitle}</Text>
                   <TouchableOpacity
                     style={styles.emptyStateButton}
                     onPress={toggleEditing}
                     accessibilityRole="button"
-                    accessibilityLabel="Begin setting today's focus"
+                    accessibilityLabel={focusState.ctaLabel}
                   >
                     <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                    <Text style={styles.emptyStateButtonText}>Begin</Text>
+                    <Text style={styles.emptyStateButtonText}>{focusState.ctaLabel}</Text>
                   </TouchableOpacity>
                 </View>
               )

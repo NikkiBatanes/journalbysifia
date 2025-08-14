@@ -14,6 +14,7 @@ import { toLocalDateString } from '../../utils/date';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { TimeBlockSkeleton } from '../SkeletonLoader/TimeBlockSkeleton';
 import { analytics } from '../../utils/analytics';
+import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay, startOfToday } from 'date-fns';
 import {
   useTimeBlockData,
   useCreateTimeBlock,
@@ -529,6 +530,32 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     setNewBlock(prev => ({ ...prev, isAllDay: !prev.isAllDay }));
   };
 
+  // Date bucket logic
+  const isToday = isTodayFn(selectedDate);
+  const isYesterday = isYesterdayFn(selectedDate);
+  const future = isAfter(startOfDay(selectedDate), startOfToday());
+  const hasItems = timeBlocks.length > 0;
+
+  // Singular/plural helper
+  const sp = (singular: string, plural: string, count: number) => (count === 1 ? singular : plural);
+
+  // Header copy (shown when there are items or adding)
+  const headerTitle = useMemo(() => {
+    if (!hasItems && !shouldShowAddingMode) {return undefined;}
+    if (future) {return sp('PLANNED TIME BLOCK', 'PLANNED TIME BLOCKS', timeBlocks.length);}
+    if (isToday) {return sp('TIME BLOCK', 'TIME BLOCKS', timeBlocks.length);}
+    if (isYesterday) {return sp("YESTERDAY’S TIME BLOCK", "YESTERDAY’S TIME BLOCKS", timeBlocks.length);}
+    return sp('TIME BLOCK ON THIS DAY', 'TIME BLOCKS ON THIS DAY', timeBlocks.length);
+  }, [hasItems, shouldShowAddingMode, future, isToday, isYesterday, timeBlocks.length]);
+
+  const headerSubtitle = useMemo(() => {
+    if (!hasItems && !shouldShowAddingMode) {return undefined;}
+    if (future) {return 'Planned in faith, ready to begin.';}
+    if (isToday) {return 'Align your time with what matters.';}
+    if (isYesterday) {return 'How you spent your time.';}
+    return 'What filled your time on this day.';
+  }, [hasItems, shouldShowAddingMode, future, isToday, isYesterday]);
+
   // Analytics and error tracking
   useEffect(() => {
     if (!isLoading && !error && timeBlockEntries) {
@@ -682,35 +709,24 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     );
   }
 
-  // Hide empty component in inline and moments view
-  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && timeBlocks.length === 0) {
+  // Hide empty component in inline view for all date buckets
+  if (viewMode === 'inline' && !isLoading && timeBlocks.length === 0) {
     return null;
   }
 
   return (
     <JournalCard
-      icon={timeBlocks.length > 0 ? <MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} /> : undefined}
-      title={timeBlocks.length > 0 ? (timeBlocks.length === 1 ? 'TIME BLOCK' : 'TIME BLOCKS') : undefined}
-      subtitle={timeBlocks.length > 0 ? 'Schedule and organize your day' : undefined}
-      showAddButton={timeBlocks.length > 0 && !shouldShowAddingMode}
+      icon={(hasItems || shouldShowAddingMode) ? <MaterialCommunityIcons name="timeline-text-outline" size={24} color={Colors.alertCoral} /> : undefined}
+      title={headerTitle}
+      subtitle={headerSubtitle}
+      showAddButton={hasItems && !shouldShowAddingMode}
       onAdd={startAdding}
       isAdding={shouldShowAddingMode}
       variant={variant}
       viewMode={viewMode}
       expanded={expanded}
       onExpand={onExpand}
-      headerRight={
-        globalEditMode?.isGlobalEditMode && timeBlocks.length > 0 ? (
-          <TouchableOpacity
-            onPress={startAdding}
-            style={styles.addButton}
-            accessibilityRole="button"
-            accessibilityLabel="Add time block"
-          >
-            <Ionicons name="add" size={16} color={Colors.trustGrey} />
-          </TouchableOpacity>
-        ) : null
-      }
+      headerRight={undefined}
     >
       {/* Show empty state or time blocks */}
       {timeBlocks.length === 0 ? (
@@ -724,17 +740,75 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             />
             <Text style={styles.sectionLabel}>TIME BLOCKS</Text>
           </View>
-          <Text style={styles.emptyStateTitle}>Plan Your Day with Purpose</Text>
-          <Text style={styles.emptyStateText}>Schedule timeblocks to align your time with God's calling</Text>
-          <TouchableOpacity
-            style={styles.emptyStateButton}
-            onPress={startAdding}
-            accessibilityRole="button"
-            accessibilityLabel="Begin planning your day"
-          >
-            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>Begin</Text>
-          </TouchableOpacity>
+          {/* Empty state copy varies by date bucket */}
+          {isToday && (
+            <>
+              <Text style={styles.emptyStateTitle}>Plan Your Day with Purpose</Text>
+              <Text style={styles.emptyStateText}>Schedule timeblocks to align your time with God's calling</Text>
+              {!shouldShowAddingMode && (
+                <TouchableOpacity
+                  style={styles.emptyStateButton}
+                  onPress={startAdding}
+                  accessibilityRole="button"
+                  accessibilityLabel="Begin planning your day"
+                >
+                  <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                  <Text style={styles.emptyStateButtonText}>Begin</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+          {isYesterday && (
+            <>
+              <Text style={styles.emptyStateTitle}>Revisit Yesterday</Text>
+              <Text style={styles.emptyStateText}>Capture how you spent your time</Text>
+              {!shouldShowAddingMode && (
+                <TouchableOpacity
+                  style={styles.emptyStateButton}
+                  onPress={startAdding}
+                  accessibilityRole="button"
+                  accessibilityLabel="Revisit yesterday's time blocks"
+                >
+                  <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                  <Text style={styles.emptyStateButtonText}>Revisit</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+          {!isToday && !isYesterday && !future && (
+            <>
+              <Text style={styles.emptyStateTitle}>Revisit This Day</Text>
+              <Text style={styles.emptyStateText}>Note what filled your time on this day</Text>
+              {!shouldShowAddingMode && (
+                <TouchableOpacity
+                  style={styles.emptyStateButton}
+                  onPress={startAdding}
+                  accessibilityRole="button"
+                  accessibilityLabel="Revisit this day's time blocks"
+                >
+                  <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                  <Text style={styles.emptyStateButtonText}>Revisit</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
+          {future && (
+            <>
+              <Text style={styles.emptyStateTitle}>Plan Schedule Ahead</Text>
+              <Text style={styles.emptyStateText}>Prayerfully plan how you’ll spend this day</Text>
+              {!shouldShowAddingMode && (
+                <TouchableOpacity
+                  style={styles.emptyStateButton}
+                  onPress={startAdding}
+                  accessibilityRole="button"
+                  accessibilityLabel="Plan time blocks for this future day"
+                >
+                  <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                  <Text style={styles.emptyStateButtonText}>Pray & Plan</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
       ) : (
         <View
