@@ -72,17 +72,17 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   useImperativeHandle(ref, () => ({
     resetToCurrentDate: () => {
       const now = new Date();
-
+      
       setCurrentDate(prevDate => {
-        // If we have a last selected date and it's different from now
-        if (lastSelectedDate.current && !isSameDay(lastSelectedDate.current, now)) {
+        // If already on today's date, toggle to last selected date if available
+        if (isSameDay(prevDate, now) && lastSelectedDate.current && !isSameDay(lastSelectedDate.current, now)) {
           const prev = new Date(lastSelectedDate.current);
           lastSelectedDate.current = null;
-          return prev; // Return the last selected date
+          return prev;
         } else {
-          // Save current date before switching to now
+          // Save current date as last selected and go to today
           lastSelectedDate.current = new Date(prevDate);
-          return now; // Return current date
+          return now;
         }
       });
     },
@@ -119,14 +119,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Track if we've handled the initial scroll
   const hasInitializedScroll = useRef(false);
 
-  // Reset scroll position when screen comes into focus
+  // Reset to today's date when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      if (!hasInitializedScroll.current) {
-        const today = new Date();
-        setCurrentDate(today);
-        hasInitializedScroll.current = true;
-      }
+      const today = new Date();
+      setCurrentDate(today);
+      hasInitializedScroll.current = true;
     }, [])
   );
   // Unused state variable - keeping for potential future use
