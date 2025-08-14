@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay, startOfToday } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
@@ -65,13 +66,26 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
+  const isSelectedToday = isTodayFn(selectedDate);
+  const isSelectedYesterday = isYesterdayFn(selectedDate);
+  const future = isAfter(startOfDay(selectedDate), startOfToday());
 
-  // Generate a meaningful subtitle based on the number of entries
-  const getReflectionSubtitle = (count: number): string => {
-    if (count === 0) {return 'Start reflecting today';}
-    if (count === 1) {return '1 reflection today';}
-    if (count < 5) {return `${count} reflections today`;}
-    return `You've shared ${count} reflections today`;
+  // Generate a meaningful subtitle based on the number of entries and date bucket
+  const getReflectionSubtitle = (count: number): string | undefined => {
+    if (count <= 0) {return undefined;}
+    if (isSelectedToday) {
+      if (count === 1) {return '1 reflection today';}
+      if (count < 5) {return `${count} reflections today`;}
+      return `You’ve shared ${count} reflections today`;
+    }
+    if (isSelectedYesterday) {
+      if (count === 1) {return '1 reflection yesterday';}
+      if (count < 5) {return `${count} reflections yesterday`;}
+      return `You shared ${count} reflections yesterday`;
+    }
+    // Earlier past
+    if (count === 1) {return '1 reflection on this day';}
+    return `${count} reflections on this day`;
   };
 
   const loadStartTime = useRef(Date.now());
@@ -358,12 +372,37 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
     console.log('🔍 Filtered entries for date:', dateStr, 'count:', filteredEntries.length);
 
-    // TEMPORARY: Show all entries for debugging
-    const entriesToShow = filteredEntries.length > 0 ? filteredEntries : entries;
+    // Show only entries for the selected date
+    const entriesToShow = filteredEntries;
     console.log('🔍 Entries to show:', entriesToShow.length);
 
     // Return empty state when there are no entries to show
     if (entriesToShow.length === 0) {
+      // Do not show empty state for future dates
+      if (future) {
+        return null;
+      }
+      // Hide empty states in inline view
+      if (viewMode === 'inline') {
+        return null;
+      }
+
+      // Date-aware empty-state copy
+      const emptyEyebrow = 'REFLECTION';
+      let emptyTitle = 'Open Your Heart';
+      let emptySubtitle = 'Reflect on your emotions and faith to grow closer to God.';
+      let emptyCTA = 'Begin';
+
+      if (isSelectedYesterday) {
+        emptyTitle = 'Revisit God’s Lessons';
+        emptySubtitle = 'Reflect on what you felt and learned yesterday.';
+        emptyCTA = 'Revisit';
+      } else if (!isSelectedToday && !isSelectedYesterday && !future) {
+        emptyTitle = 'Revisit God’s Lessons';
+        emptySubtitle = 'Capture any thoughts you want to remember from this day.';
+        emptyCTA = 'Reflect';
+      }
+
       return (
         <View style={styles.emptyStateContainer}>
           <View style={styles.iconContainer}>
@@ -373,7 +412,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               color={Colors.mediumGray}
               style={styles.emptyStateIcon}
             />
-            <Text style={styles.sectionLabel} accessibilityRole="text">REFLECTION</Text>
+            <Text style={styles.sectionLabel} accessibilityRole="text">{emptyEyebrow}</Text>
           </View>
           <View style={styles.titleContainer}>
             <Text
@@ -382,35 +421,35 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              Open Your Heart
+              {emptyTitle}
             </Text>
           </View>
-          <Text style={styles.emptyStateSubtext} accessibilityRole="text">
-            Reflect on your emotions and faith to grow closer to God.
-          </Text>
-          <TouchableOpacity
-            style={styles.emptyStateButton}
-            onPress={() => {
-              setNewEntry({
-                title: '',
-                content: '',
-                type: 'free',
-                prompt: '',
-                tags: [],
-                location: '',
-                source: undefined,
-              });
-              setSelectedPrompt('');
-              setIsAdding(true);
-              setEditingId(null);
-              setSelectedEntry(null);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Begin reflection"
-          >
-            <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>Begin</Text>
-          </TouchableOpacity>
+          <Text style={styles.emptyStateSubtext} accessibilityRole="text">{emptySubtitle}</Text>
+          {!globalEditMode?.isGlobalEditMode && (
+            <TouchableOpacity
+              style={styles.emptyStateButton}
+              onPress={() => {
+                setNewEntry({
+                  title: '',
+                  content: '',
+                  type: 'free',
+                  prompt: '',
+                  tags: [],
+                  location: '',
+                  source: undefined,
+                });
+                setSelectedPrompt('');
+                setIsAdding(true);
+                setEditingId(null);
+                setSelectedEntry(null);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`${emptyCTA} reflection`}
+            >
+              <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+              <Text style={styles.emptyStateButtonText}>{emptyCTA}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       );
     }
@@ -626,20 +665,21 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }
 
-  // Determine if there's content
-  const hasContent = entries.length > 0;
+  // Determine if there's content for the selected date
+  const hasContentForSelectedDate = React.useMemo(() => entries.some(e => e.selected_date === dateStr), [entries, dateStr]);
 
-  // Hide empty component in inline and moments view
-  if ((viewMode === 'inline' || viewMode === 'moments') && !isLoading && !error && entries.length === 0) {
-    return null;
+  // Hide empty component in inline view always; hide for future in any view
+  if (!isLoading && !error) {
+    if (future) {return null;}
+    if (viewMode === 'inline' && !hasContentForSelectedDate) {return null;}
   }
 
   return (
     <JournalCard
-      icon={hasContent ? <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={Colors.alertCoral} /> : undefined}
-      title={hasContent ? 'HEART JOURNAL' : undefined}
-      subtitle={hasContent ? getReflectionSubtitle(entries?.length || 0) : undefined}
-      showAddButton={hasContent}
+      icon={hasContentForSelectedDate ? <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={Colors.alertCoral} /> : undefined}
+      title={hasContentForSelectedDate ? 'HEART JOURNAL' : undefined}
+      subtitle={hasContentForSelectedDate ? getReflectionSubtitle(entries.filter(e => e.selected_date === dateStr).length) : undefined}
+      showAddButton={hasContentForSelectedDate && !globalEditMode?.isGlobalEditMode}
       onAdd={() => {
         setNewEntry({
           title: '',
