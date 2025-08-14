@@ -367,7 +367,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
               },
             ]}
           >
-            <Ionicons name="checkmark-circle" size={64} color={Colors.growthGreen || '#4BB543'}/>
+            <Ionicons name="checkmark-circle" size={64} color={Colors.growthGreen}/>
           </Animated.View>
           <Text style={styles.loadingText}>Devotional Created!</Text>
         </>

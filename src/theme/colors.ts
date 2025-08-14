@@ -1,20 +1,12 @@
 // src/theme/colors.ts
+import { defaultTheme } from './themes/default';
 
-export const Colors = {
-  // Brand Colors
-  anchorBlue: '#1a3c6d',
-  anchorBlueLight: '#E8EDFF', // Lighter version of anchorBlue
-  modalBlue: '#274674', // Modal and content background
-  faithGold: '#F5A623',
-  growthGreen: '#4CAF50',
-  alertCoral: '#FF6B6B',
-  devotionalPurple: '#6A0DAD',
-  spiritualPink: '#E91E63', // New pink color
-  playbookBlue: '#2196F3', // Blue for playbooks
-  successGreen: '#4CAF50', // Success/completion color
-  lightPurple: '#F3E5F5', // Light purple background
+// EMERGENCY FIX: Restore stable Colors export
+// Export default theme colors directly to fix broken theme system
+export const Colors = defaultTheme.colors;
 
-  // Standard UI Colors (for consistency)
+// Standard UI Colors (for consistency)
+export const standardColors = {
   primary: '#1a3c6d', // Maps to anchorBlue
   text: '#1A1A1A', // Maps to darkerGray
   gray: '#9E9E9E', // Maps to mediumGray

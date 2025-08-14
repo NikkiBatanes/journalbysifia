@@ -22,6 +22,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
 import { dashboardNavigation } from '../services/NavigationManager';
 
 import DailyAffirmationCard from '../components/dashboard/DailyAffirmationCard';
@@ -58,6 +59,8 @@ interface DashboardHomeScreenProps {
 }
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
+  const theme = useTheme();
+  
   // Limit FAB visibility to at most 2 shows across sessions
   const [showFab, setShowFab] = useState(false);
   const FAB_SHOW_KEY = 'dashboard_fab_shown_count';

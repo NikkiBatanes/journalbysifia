@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, Touchab
 import { format } from 'date-fns';
 import { Playbook } from '../interfaces/playbook';
 import { Colors, Fonts } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
 import { progressBarStyles } from '../styles/ProgressBarStyles';
 import { getCompletedStepsCount } from '../utils/taskUtils';
 
@@ -32,6 +33,8 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
   style,
   ...props
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const formattedDate = format(new Date(playbook.createdAt || ''), 'EEEE, MMM d, yyyy').toUpperCase();
   // Use shared utility for task stats (matches detail screen)
   const { completed, total } = useMemo(() => getCompletedStepsCount(playbook.actionSteps), [playbook.actionSteps]);
@@ -85,9 +88,9 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   card: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: theme.colors.primary,
     borderRadius: 16,
     padding: 12,
     width: '100%',

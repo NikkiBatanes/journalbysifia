@@ -72,14 +72,14 @@ const getJournalTypeIcon = (journalType?: string): string => {
 
 const getJournalTypeColor = (journalType?: string): string => {
   switch (journalType) {
-    case 'prayer': return '#9B59B6'; // Purple
-    case 'reflection': return '#3498DB'; // Blue
-    case 'gratitude': return '#E74C3C'; // Red/Pink
-    case 'win': return '#F39C12'; // Orange/Gold
-    case 'timeblock': return '#2ECC71'; // Green
-    case 'financial_budgeting': return '#27AE60'; // Green
-    case 'financial_tithing': return '#8E44AD'; // Purple
-    case 'financial_debt': return '#C0392B'; // Dark Red
+    case 'prayer': return Colors.prayerPurple; // Spiritual connection
+    case 'reflection': return Colors.reflectionBlue; // Wisdom and depth
+    case 'gratitude': return Colors.gratitudeRed; // Love and warmth
+    case 'win': return Colors.winGold; // Celebration and joy
+    case 'timeblock': return Colors.timeblockGreen; // Growth and management
+    case 'financial_budgeting': return Colors.budgetingGreen; // Financial stewardship
+    case 'financial_tithing': return Colors.tithingPurple; // Spiritual giving
+    case 'financial_debt': return Colors.debtRed; // Financial urgency
     case 'none': return 'transparent';
     default: return 'transparent';
   }
@@ -1090,7 +1090,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.hopeWhite,
   },
   solidStepCard: {
-    backgroundColor: '#d9dfe7',
+    backgroundColor: Colors.actionBackground,
     borderRadius: 24,
     padding: 22,
     marginBottom: 20,
@@ -1397,7 +1397,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   submitButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.adminPrimary,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
@@ -1405,7 +1405,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     ...Typography.interSemiBold,
     fontSize: 13,
-    color: '#FFFFFF',
+    color: Colors.white,
   },
   cancelButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -1435,7 +1435,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   upgradeButton: {
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.adminPrimary,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,
@@ -1443,7 +1443,7 @@ const styles = StyleSheet.create({
   upgradeButtonText: {
     ...Typography.interSemiBold,
     fontSize: 14,
-    color: '#FFFFFF',
+    color: Colors.white,
   },
   // Streamlined Single-Insight UI Styles
   streamlinedInsightContainer: {

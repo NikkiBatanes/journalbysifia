@@ -17,6 +17,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { ContentItem, InteractiveStep } from '../interfaces/contentCurationTypes';
+import { useTheme } from '../theme/ThemeContext';
 
 interface MultiModalContentPlayerProps {
   visible: boolean;
@@ -42,6 +43,8 @@ export const MultiModalContentPlayer: React.FC<MultiModalContentPlayerProps> = (
   onComplete,
   onProgress,
 }) => {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -343,7 +346,7 @@ export const MultiModalContentPlayer: React.FC<MultiModalContentPlayerProps> = (
             </Text>
           </View>
           <View style={styles.headerRight}>
-            <Ionicons name="heart" size={20} color="#D4AF37" />
+            <Ionicons name="heart" size={20} color={theme.colors.goldAccent} />
           </View>
         </View>
 
@@ -357,10 +360,11 @@ export const MultiModalContentPlayer: React.FC<MultiModalContentPlayerProps> = (
   );
 };
 
-const styles = {
+// Convert to dynamic styles function that uses theme
+const createStyles = (theme: any) => ({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.lightBackground,
   },
   header: {
     flexDirection: 'row' as const,
@@ -368,9 +372,9 @@ const styles = {
     justifyContent: 'space-between' as const,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e5e9',
+    borderBottomColor: theme.colors.borderLight,
     paddingTop: 50,
   },
   closeButton: {

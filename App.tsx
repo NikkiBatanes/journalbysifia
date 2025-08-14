@@ -16,13 +16,13 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { Colors } from './src/theme/colors';
+import { ThemeProvider } from './src/theme/ThemeContext';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 
 import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
 import { UserProvider } from './src/context/UserContext';
 import AuthStackNavigator from './src/navigation/AuthStackNavigator';
 import { LogoutContext } from './src/context/LogoutContext';
-// import { DevotionalProvider } from './src/context/DevotionalContext'; // Removed - migrated to React Query
 import { ScrollProvider } from './src/context/ScrollContext';
 
 import IndustryStandardAuthProvider from './src/context/IndustryStandardAuthContext';
@@ -100,13 +100,14 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
 
 
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-        <ScrollProvider>
-          <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
-            <UserProvider>
-              <OnboardingProvider>
-                <PointsNotificationProvider>
-                  <LogoutContext.Provider value={{ onLogout: async () => {} }}>
-                    <AuthStateMonitor>
+        <ThemeProvider>
+          <ScrollProvider>
+            <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
+              <UserProvider>
+                <OnboardingProvider>
+                  <PointsNotificationProvider>
+                    <LogoutContext.Provider value={{ onLogout: async () => {} }}>
+                      <AuthStateMonitor>
                       {/* OnboardingIntegration temporarily disabled to fix email registration flow */}
                       {/* <OnboardingIntegration> */}
                         <RootStackNavigator
@@ -118,13 +119,14 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
                         />
                         <NetworkStatus />
                       {/* </OnboardingIntegration> */}
-                    </AuthStateMonitor>
-                  </LogoutContext.Provider>
-                </PointsNotificationProvider>
-              </OnboardingProvider>
-            </UserProvider>
-          </ActionStepsProviderWrapper>
-        </ScrollProvider>
+                      </AuthStateMonitor>
+                    </LogoutContext.Provider>
+                  </PointsNotificationProvider>
+                </OnboardingProvider>
+              </UserProvider>
+            </ActionStepsProviderWrapper>
+          </ScrollProvider>
+        </ThemeProvider>
       </GestureHandlerRootView>
     </NavigationContainer>
   );

@@ -20,6 +20,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import PlaybookCard from '../components/PlaybookCard';
 import { Colors, Fonts } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
 import type { Playbook } from '../interfaces/playbook';
 import { deletePlaybook, getPlaybooks } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -73,9 +74,11 @@ const formatDate = (date: Date): string => {
   return format(date, 'MMMM yyyy');
 };
 
-const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
+const PlaybookListScreen = ({ navigation }: any) => {
   // Get user info with fallback mechanisms
   const { user, session, isAuthenticated } = useAuth();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
 
   // Multiple fallback mechanisms for userId
@@ -607,7 +610,7 @@ const PlaybookListScreen = ({ navigation }: { navigation: any }) => {
 
 export default PlaybookListScreen;
 
-const styles = StyleSheet.create({
+const createStyles = (theme: any) => StyleSheet.create({
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -620,7 +623,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     height: 88, // Fixed height to match card
-    backgroundColor: Colors.anchorBlue, // Match card background color
+    backgroundColor: theme.colors.primary, // Use theme primary color for instant switching
   },
   cardTouchable: {
     width: '100%',
@@ -637,11 +640,11 @@ const styles = StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: theme.colors.hopeWhite,
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: theme.colors.hopeWhite,
   },
   pageInner: {
     width: '100%',
@@ -663,7 +666,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
+    color: theme.colors.anchorBlue,
     marginBottom: 10,
     marginTop: 10,
     letterSpacing: 0.5,
@@ -692,7 +695,7 @@ const styles = StyleSheet.create({
   heroCard: {
     width: '90%',
     maxWidth: 720,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: theme.colors.anchorBlue,
     borderRadius: 34,
     paddingVertical: 32,
     paddingHorizontal: 20,

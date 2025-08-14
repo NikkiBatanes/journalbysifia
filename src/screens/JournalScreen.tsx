@@ -8,6 +8,8 @@ import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date
 import type { Day } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { useTheme } from '../theme/ThemeContext';
+import { Typography } from '../theme/typography';
 // import LinearGradient from 'react-native-linear-gradient'; // unused
 // import { AnimationUtils } from '../utils/AnimationUtils'; // unused
 import { useScroll } from '../context/ScrollContext';
@@ -26,9 +28,9 @@ export type JournalScreenRef = {
   resetToCurrentDate: () => void;
 };
 
-const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
-  const navigation = useNavigation<any>();
+const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, ref) => {
   const { user } = useAuth();
+  const theme = useTheme();
   // Get week start preference from user metadata
   const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
     | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;

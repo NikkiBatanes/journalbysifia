@@ -35,6 +35,7 @@ import { Gesture } from 'react-native-gesture-handler';
 
 // Theme & Styling
 import { Colors, Fonts } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
 import { Typography } from '../theme/typography';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 
@@ -87,7 +88,7 @@ interface CardData {
 }
 
 // Header left component extracted to fix linter warning
-const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, onboardingNextStep }: {
+const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, onboardingNextStep, styles }: {
   navigation: any;
   showUserInput: boolean;
   setShowUserInput: (show: boolean) => void;
@@ -99,6 +100,7 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
   progressPercentage: number;
   isFromOnboarding?: boolean;
   onboardingNextStep?: string;
+  styles: any;
 }) => (
   <View style={styles.headerLeftContainer}>
     <TouchableOpacity
@@ -163,7 +165,7 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
 );
 
 // Profile button component extracted to fix linter warning
-const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => (
+const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: any; styles: any }) => (
   <TouchableOpacity
     onPress={() => {
       console.log('Profile image pressed from PlaybookDetail');
@@ -205,6 +207,8 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
 );
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   // Status bar: force dark icons (black) on white header background
   useScreenStatusBar('dark', Colors.hopeWhite);
@@ -656,12 +660,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       progressPercentage={progress}
       isFromOnboarding={isFromOnboarding}
       onboardingNextStep={onboardingNextStep}
+      styles={styles}
     />
   ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress, isFromOnboarding, onboardingNextStep]);
 
   // Header right component
   const headerRight = React.useCallback(() => (
-    <ProfileButton user={user} navigation={navigation} />
+    <ProfileButton user={user} navigation={navigation} styles={styles} />
   ), [user, navigation]);
 
   // ===== EFFECT HOOKS =====
@@ -1489,10 +1494,10 @@ interface PlaybookDetailStyles {
   cardOverlay: ViewStyle;
 }
 
-const styles = StyleSheet.create<PlaybookDetailStyles>({
+const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: theme.colors.hopeWhite,
     position: 'relative',
   },
   contentContainer: {
@@ -1523,12 +1528,12 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
   progressText: {
     fontFamily: Fonts.medium,
     fontSize: 16,
-    color: Colors.textDark,
+    color: theme.colors.textDark,
     textAlign: 'center',
     marginBottom: 16,
   },
   navButton: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: theme.colors.anchorBlue,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,

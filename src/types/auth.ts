@@ -61,7 +61,8 @@ export interface UserPreferences {
   };
 
   // Appearance
-  theme: 'light' | 'dark' | 'system';
+  theme: 'default' | 'dark' | 'coral' | 'sunshine' | 'mystic' | 'system';
+  font?: 'system' | 'lexend' | 'poppins' | 'nunito' | 'lora';
   fontSize: 'small' | 'medium' | 'large' | 'extra_large';
   colorScheme: 'default' | 'blue' | 'green' | 'purple' | 'pink' | 'warm';
 

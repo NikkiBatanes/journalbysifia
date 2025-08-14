@@ -10,6 +10,7 @@ import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 
 
 import { Colors } from '../theme';
+import { useTheme } from '../theme/ThemeContext';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
 import CardDetailScreen from '../screens/CardDetailScreen';
@@ -171,27 +172,26 @@ const MainTabsScreen: React.FC = React.memo(() => {
 const Stack = createNativeStackNavigator();
 
 // Screen options functions
-const getPlaybookDetailOptions = (): NativeStackNavigationOptions => ({
-  headerShown: false, // Hide native header so screen controls z-order
+const getPlaybookDetailOptions = (theme: any): NativeStackNavigationOptions => ({
+  headerShown: true,
   title: '',
   headerBackVisible: false,
-  // Keep the rest in case we toggle header back in future
   headerLeft: ({ navigation }: any) => <PlaybookHeaderLeft navigation={navigation} />,
   headerRight: ({ navigation }: any) => renderDefaultProfileImage({ navigation }),
-  headerStyle: styles.headerStyle,
+  headerStyle: { backgroundColor: theme.colors.hopeWhite },
   headerTitleAlign: 'center' as const,
-  headerTitleStyle: styles.headerTitle,
+  headerTitleStyle: { color: theme.colors.anchorBlue },
   headerShadowVisible: false,
 });
 
-const getCardDetailOptions = (): NativeStackNavigationOptions => ({
+const getCardDetailOptions = (theme: any): NativeStackNavigationOptions => ({
   headerShown: true,
   title: '',
   headerBackVisible: false,
   headerLeft: ({ navigation }: any) => <CardHeaderLeft navigation={navigation} />,
   headerRight: ({ navigation }: any) => renderWhiteProfileImage({ navigation }),
-  headerStyle: styles.darkHeaderStyle,
-  headerTintColor: Colors.hopeWhite,
+  headerStyle: { backgroundColor: theme.colors.anchorBlue },
+  headerTintColor: theme.colors.hopeWhite,
   headerShadowVisible: false,
 });
 
@@ -221,12 +221,13 @@ export default function RootStackNavigator({
   AuthStack,
   onLogin: _onLogin, // Prefix with underscore to indicate intentionally unused
 }: RootStackNavigatorProps) {
+  const theme = useTheme();
   // Always start with OnboardingSplash and let it handle all routing decisions
   // including post_auth_redirect, completion checks, and authentication state
 
-  // Get screen options
-  const playbookDetailOptions = getPlaybookDetailOptions();
-  const cardDetailOptions = getCardDetailOptions();
+  // Get screen options with dynamic theme colors
+  const playbookDetailOptions = getPlaybookDetailOptions(theme);
+  const cardDetailOptions = getCardDetailOptions(theme);
 
   return (
     <Stack.Navigator

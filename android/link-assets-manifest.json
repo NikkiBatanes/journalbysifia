@@ -1,4 +1,57 @@
 {
   "migIndex": 1,
-  "data": []
+  "data": [
+    {
+      "path": "assets/fonts/Lexend/Lexend-Bold.ttf",
+      "sha1": "df3c3feab8ac51ab6f8d6a01f3b3a0e19dc88d03"
+    },
+    {
+      "path": "assets/fonts/Lexend/Lexend-Medium.ttf",
+      "sha1": "d607ea1e392b925d5229569cd3a8c9bdfcac1eaf"
+    },
+    {
+      "path": "assets/fonts/Lexend/Lexend-Regular.ttf",
+      "sha1": "dd3cee6e434d8debb7699473bd61918cfb54798d"
+    },
+    {
+      "path": "assets/fonts/Lexend/Lexend-SemiBold.ttf",
+      "sha1": "2a080dd36278ff2755d5976317cbeeecbcf6cc62"
+    },
+    {
+      "path": "assets/fonts/Lora/Lora-Bold.ttf",
+      "sha1": "e24126e8c27fdd834acb1ccf27054aeeb90ef492"
+    },
+    {
+      "path": "assets/fonts/Lora/Lora-Medium.ttf",
+      "sha1": "1eb9610f2d31ed20319568b516e8328de69c5b2a"
+    },
+    {
+      "path": "assets/fonts/Lora/Lora-Regular.ttf",
+      "sha1": "2f0de70df8ae30d4e64fffcb8850fc9b111365c3"
+    },
+    {
+      "path": "assets/fonts/Lora/Lora-SemiBold.ttf",
+      "sha1": "7850da50ade64e68ce01cd318716b0b2927a8b9b"
+    },
+    {
+      "path": "assets/fonts/NunitoSans/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf",
+      "sha1": "f0b973155b2836a02d172a742fb780a5abaf2c08"
+    },
+    {
+      "path": "assets/fonts/Poppins/Poppins-Bold.ttf",
+      "sha1": "875cf0cecd647bcf22e79d633d868c1b1ec98dfa"
+    },
+    {
+      "path": "assets/fonts/Poppins/Poppins-Medium.ttf",
+      "sha1": "283f21b44efbdbf276ba802be2d949a36bbc4233"
+    },
+    {
+      "path": "assets/fonts/Poppins/Poppins-Regular.ttf",
+      "sha1": "fdd3002e7d814ee47c1c1b8487c72c6bbb3a2d00"
+    },
+    {
+      "path": "assets/fonts/Poppins/Poppins-SemiBold.ttf",
+      "sha1": "8a4ace9392d06bcb7f8ea2f5169b07e4c383a90d"
+    }
+  ]
 }

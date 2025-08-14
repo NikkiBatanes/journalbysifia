@@ -1,5 +1,5 @@
 // src/navigation/BottomTabNavigator.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -10,7 +10,7 @@ import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
 
 import { Colors } from '../theme/colors';
-// Removed Spacing and FontSizes imports as they are no longer used
+import { useTheme } from '../theme/ThemeContext';
 import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 
@@ -36,6 +36,7 @@ const CustomTabBarComponent = ({
   navigation,
 }: CustomTabBarProps) => {
   const { showTabBar } = useScroll();
+  const theme = useTheme();
   const translateY = React.useRef(new Animated.Value(0)).current;
   const opacity = React.useRef(new Animated.Value(1)).current;
 
@@ -63,6 +64,8 @@ const CustomTabBarComponent = ({
         {
           transform: [{ translateY }],
           opacity,
+          backgroundColor: theme.colors.anchorBlue,
+          borderTopColor: theme.colors.cardBorder,
         },
       ]}
     >
@@ -106,35 +109,35 @@ const CustomTabBarComponent = ({
               <MaterialCommunityIcons
                 name={'notebook-edit'}
                 size={28}
-                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             ) : route.name === 'Devotionals' ? (
               <MaterialCommunityIcons
                 name={'book'}
                 size={30}
-                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={[styles.icon, { transform: [{ translateY: 1 }] }]}
               />
             ) : route.name === 'Playbooks' ? (
               <MaterialCommunityIcons
                 name={'clipboard-text-play'}
                 size={28}
-                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             ) : route.name === 'Dashboard' ? (
               <MaterialIcons
                 name={'space-dashboard'}
                 size={28}
-                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             ) : (
               <Ionicons
                 name={iconName}
                 size={28}
-                color={isFocused ? Colors.alertCoral : Colors.anchorBlueLight}
+                color={isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight}
                 style={styles.icon}
               />
             )}
@@ -157,6 +160,7 @@ const TabPressContext = React.createContext<{
 }>({ onTabPress: () => {} });
 
 export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNavigatorProps) {
+  const theme = useTheme();
   const [currentTab, setCurrentTab] = React.useState<string>('UserInput');
   const journalScreenRef = React.useRef<JournalScreenRef>(null);
 
@@ -186,11 +190,11 @@ export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNav
         headerShown: true,
         headerShadowVisible: false,
         headerStyle: {
-          backgroundColor: Colors.anchorBlue,
+          backgroundColor: theme.colors.anchorBlue,
         },
-        headerTintColor: Colors.hopeWhite,
+        headerTintColor: theme.colors.hopeWhite,
         headerTitleStyle: {
-          color: Colors.hopeWhite,
+          color: theme.colors.hopeWhite,
         },
       }}
     >
