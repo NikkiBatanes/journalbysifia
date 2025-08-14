@@ -161,14 +161,15 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     const generateWeeks = () => {
       const weeksArray: Date[][] = [];
 
-      // Get the first day of the current month
-      const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      // Generate weeks spanning 3 months (previous, current, next) for smooth scrolling
+      const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
 
-      // Get the first day to show (previous Sunday from the 1st of the month)
-      let currentWeekStart = startOfWeek(firstDayOfMonth, { weekStartsOn });
+      // Get the first day to show (start from previous month)
+      let currentWeekStart = startOfWeek(prevMonth, { weekStartsOn });
 
-      // Generate 6 weeks to ensure we have enough weeks to display
-      for (let i = 0; i < 6; i++) {
+      // Generate enough weeks to cover 3 months (approximately 12-15 weeks)
+      for (let i = 0; i < 15; i++) {
         const week: Date[] = [];
         // Generate 7 days for this week
         for (let j = 0; j < 7; j++) {
@@ -257,6 +258,19 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
             console.log('📅 Date swipe: updating to', format(targetDay, 'yyyy-MM-dd'));
             // Update the date immediately for better UX
             setCurrentDate(new Date(targetDay.getTime()));
+          }
+          
+          // Check if we need to regenerate weeks for smooth scrolling across months
+          // If we're near the edges (first 2 or last 2 weeks), regenerate with the new target date as center
+          if (weekIndex <= 2 || weekIndex >= weeks.length - 3) {
+            const targetMonth = targetDay.getMonth();
+            const currentMonth = currentDate.getMonth();
+            
+            // Only regenerate if we've moved to a different month
+            if (targetMonth !== currentMonth) {
+              console.log('📅 Regenerating weeks for month transition:', format(targetDay, 'yyyy-MM'));
+              // The useEffect will trigger regeneration when currentDate changes
+            }
           }
         }
       }
