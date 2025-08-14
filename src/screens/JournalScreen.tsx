@@ -29,10 +29,13 @@ export type JournalScreenRef = {
 const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  // Get week start preference from user metadata
+  const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
+    | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
+
   // Map preferences.weekStart to date-fns weekStartsOn (0=Sun ... 6=Sat)
   const weekStartsOn: Day = useMemo((): Day => {
-    const key = (user as any)?.user_metadata?.preferences?.weekStart as
-      | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
+    const key = weekStartPreference;
     const map: Record<string, Day> = {
       sunday: 0,
       monday: 1,
@@ -43,7 +46,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
       saturday: 6,
     };
     return key ? (map[key] ?? 0) : 0; // default Sunday
-  }, [(user as any)?.user_metadata?.preferences?.weekStart]);
+  }, [weekStartPreference]);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showCalendarModal, setShowCalendarModal] = useState(false);

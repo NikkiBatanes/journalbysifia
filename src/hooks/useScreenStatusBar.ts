@@ -5,16 +5,16 @@ import { useFocusEffect } from '@react-navigation/native';
 export type StatusBarStylePref = 'light' | 'dark' | 'auto';
 
 function hexToRgb(hex?: string): { r: number; g: number; b: number } | null {
-  if (!hex) return null;
+  if (!hex) {return null;}
   const cleaned = hex.replace('#', '').trim();
   const full = cleaned.length === 3
     ? cleaned.split('').map((c) => c + c).join('')
     : cleaned;
-  if (full.length !== 6) return null;
+  if (full.length !== 6) {return null;}
   const r = parseInt(full.slice(0, 2), 16);
   const g = parseInt(full.slice(2, 4), 16);
   const b = parseInt(full.slice(4, 6), 16);
-  if ([r, g, b].some((v) => Number.isNaN(v))) return null;
+  if ([r, g, b].some((v) => Number.isNaN(v))) {return null;}
   return { r, g, b };
 }
 
@@ -29,7 +29,7 @@ function getLuminance(rgb: { r: number; g: number; b: number }): number {
 
 function chooseStyleFromColor(backgroundColor?: string): 'light' | 'dark' {
   const rgb = hexToRgb(backgroundColor);
-  if (!rgb) return 'dark'; // default to dark-content on invalid color (safe for light UIs)
+  if (!rgb) {return 'dark';} // default to dark-content on invalid color (safe for light UIs)
   const lum = getLuminance(rgb);
   // Threshold: if background is dark (low luminance), use light-content
   return lum < 0.5 ? 'light' : 'dark';

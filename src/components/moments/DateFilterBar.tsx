@@ -73,9 +73,10 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
   selectedRange,
 }) => {
   const { user } = useAuth();
+  const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
+    | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
   const weekStartsOn = useMemo(() => {
-    const key = (user as any)?.user_metadata?.preferences?.weekStart as
-      | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
+    const key = weekStartPreference;
     const map: Record<string, number> = {
       sunday: 0,
       monday: 1,
@@ -86,7 +87,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
       saturday: 6,
     };
     return key ? map[key] ?? 0 : 0;
-  }, [(user as any)?.user_metadata?.preferences?.weekStart]);
+  }, [weekStartPreference]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [tempRange, setTempRange] = useState<{ start?: Date; end?: Date }>({});

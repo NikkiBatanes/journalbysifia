@@ -47,7 +47,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
     ];
     const current = levels.find(l => l.level === level);
     const next = levels.find(l => l.level === level + 1);
-    if (!current || !next) return level >= 10 ? 1 : 0;
+    if (!current || !next) {return level >= 10 ? 1 : 0;}
     const span = next.pointsRequired - current.pointsRequired;
     const inLevel = points - current.pointsRequired;
     return Math.max(0, Math.min(1, inLevel / span));
@@ -72,7 +72,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
             } else {
               try {
                 // Lazy import to avoid new dependency here; Alert exists in React Native
-                // eslint-disable-next-line @typescript-eslint/no-var-requires
+
                 const { Alert } = require('react-native');
                 Alert.alert('Avatar', 'Press received, but no handler provided.');
               } catch (_) {}
@@ -97,7 +97,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                 const { Alert } = require('react-native');
                 Alert.alert('Avatar', 'Camera icon pressed');
               } catch (_) {}
-              if (onEditAvatar) onEditAvatar();
+              if (onEditAvatar) {onEditAvatar();}
             }}
             accessibilityRole="button"
             accessibilityLabel="Change profile photo"

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SectionList, RefreshControlProps, ScrollView, Dimensions, FlatList } from 'react-native';
+import { View, Text, StyleSheet, SectionList, RefreshControlProps, Dimensions, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
@@ -52,7 +52,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const [_loading, setLoading] = React.useState(true);
 
   // Fetch real journal entries from user interactions - NOT generated content
   const fetchRealEntries = React.useCallback(async () => {
@@ -66,7 +66,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     console.log('🔍 [MomentsRenderer] Date range filter:', {
       startDate: dateRange.startDate,
       endDate: dateRange.endDate,
-      label: dateRange.label
+      label: dateRange.label,
     });
     console.log('🔍 [MomentsRenderer] Available plugins:', plugins.map(p => ({ id: p.id, title: p.title, category: p.category })));
 
@@ -83,14 +83,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        console.log('📊 [MomentsRenderer] Journal entries query result:', { 
-          error: journalEntriesError, 
+        console.log('📊 [MomentsRenderer] Journal entries query result:', {
+          error: journalEntriesError,
           count: journalEntries?.length || 0,
-          sample: journalEntries?.slice(0, 3).map(e => ({ 
-            content_type: e.content_type, 
+          sample: journalEntries?.slice(0, 3).map(e => ({
+            content_type: e.content_type,
             created_at: e.created_at,
-            hasContent: !!e.content 
-          }))
+            hasContent: !!e.content,
+          })),
         });
 
         // Check specifically for July 31 entries in raw data
@@ -98,20 +98,20 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           const july31RawEntries = journalEntries.filter(entry => {
             const selectedDate = entry.selected_date ? new Date(entry.selected_date) : null;
             const createdDate = new Date(entry.created_at);
-            
+
             const selectedIsJuly31 = selectedDate && selectedDate.getMonth() === 6 && selectedDate.getDate() === 31;
             const createdIsJuly31 = createdDate.getMonth() === 6 && createdDate.getDate() === 31;
-            
+
             return selectedIsJuly31 || createdIsJuly31;
           });
-          
+
           if (july31RawEntries.length > 0) {
             console.log('🗓️ [MomentsRenderer] Found July 31 raw entries in database:', july31RawEntries.map(e => ({
               content_type: e.content_type,
               selected_date: e.selected_date,
               created_at: e.created_at,
               hasContent: !!e.content,
-              content: typeof e.content === 'string' ? e.content.substring(0, 50) + '...' : 'object'
+              content: typeof e.content === 'string' ? e.content.substring(0, 50) + '...' : 'object',
             })));
           } else {
             console.log('🗓️ [MomentsRenderer] No July 31 entries found in raw database results (checked both selected_date and created_at)');
@@ -122,7 +122,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           console.log('🔍 [MomentsRenderer] Processing', journalEntries.length, 'journal entries...');
           let processedCount = 0;
           let skippedCount = 0;
-          
+
           journalEntries.forEach(entry => {
             // Check if entry has meaningful content (or is a devotional marker)
             const hasTextContent = entry.content && (
@@ -157,19 +157,19 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               hasTextContent,
               isDevotionalJE,
               contentType: typeof entry.content,
-              contentPreview: typeof entry.content === 'string' ? entry.content.substring(0, 30) + '...' : 'object'
+              contentPreview: typeof entry.content === 'string' ? entry.content.substring(0, 30) + '...' : 'object',
             });
-            
+
             if (hasContent) {
-              console.log('🔍 [MomentsRenderer] Processing journal entry:', { 
-                content_type: entry.content_type, 
+              console.log('🔍 [MomentsRenderer] Processing journal entry:', {
+                content_type: entry.content_type,
                 created_at: entry.created_at,
-                content: typeof entry.content === 'string' ? entry.content.substring(0, 50) + '...' : 'object'
+                content: typeof entry.content === 'string' ? entry.content.substring(0, 50) + '...' : 'object',
               });
 
               // Find appropriate plugin based on content_type
               let plugin = null;
-              
+
               // Map content types to plugin searches - focus on plan/reflect/pray/devo plugins
               const contentTypeMap: Record<string, string[]> = {
                 'gratitude': ['gratitude', 'reflect', 'journal'],
@@ -180,13 +180,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 'prayed_devotional': ['devotional', 'devo', 'prayer', 'journal'],
                 'devotional': ['devotional', 'devo', 'journal'],
               };
-              
+
               const searchTerms = contentTypeMap[entry.content_type] || (isDevotionalJE ? ['devotional', 'devo'] : ['journal']);
-              
+
               console.log('🔍 [MomentsRenderer] Searching for plugin with terms:', searchTerms);
-              
+
               for (const term of searchTerms) {
-                plugin = plugins.find((p: JournalPlugin) => 
+                plugin = plugins.find((p: JournalPlugin) =>
                   p.title.toLowerCase().includes(term.toLowerCase())
                 );
                 if (plugin) {
@@ -194,7 +194,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   break;
                 }
               }
-              
+
               // Final fallback - use any available plugin
               if (!plugin && plugins.length > 0) {
                 plugin = plugins[0];
@@ -212,7 +212,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   'prayed_devotional': 'Prayed Devotional',
                   'devotional': 'Devotional',
                 };
-                
+
                 // Prefer a Prayer plugin for devotional journal entries so they appear under Prayer Journal.
                 // Fallback to a Devotional plugin if no prayer plugin exists.
                 const prayerPluginFromJE =
@@ -234,7 +234,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   category: isDevotionalJE ? 'Prayer' : 'Journal',
                   type: isDevotionalJE ? 'Prayed Devotional' : (typeNames[entry.content_type] || entry.content_type || 'Journal Entry'),
                 };
-                
+
                 console.log('✅ [MomentsRenderer] Adding journal entry:', momentEntry);
                 entries.push(momentEntry);
                 processedCount++;
@@ -247,18 +247,18 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               skippedCount++;
             }
           });
-          
+
           console.log('📊 [MomentsRenderer] Journal entries processing summary:', {
             total: journalEntries.length,
             processed: processedCount,
             skipped: skippedCount,
-            successRate: `${Math.round((processedCount / journalEntries.length) * 100)}%`
+            successRate: `${Math.round((processedCount / journalEntries.length) * 100)}%`,
           });
         } else {
           console.log('⚠️ [MomentsRenderer] No journal entries found or error occurred:', {
             error: journalEntriesError,
             hasData: !!journalEntries,
-            count: journalEntries?.length || 0
+            count: journalEntries?.length || 0,
           });
         }
 
@@ -270,34 +270,34 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           .order('created_at', { ascending: false });
 
         if (!prayersError && prayers && prayers.length > 0) {
-          console.log('📊 [MomentsRenderer] Prayers query result:', { 
-            error: prayersError, 
+          console.log('📊 [MomentsRenderer] Prayers query result:', {
+            error: prayersError,
             count: prayers?.length || 0,
-            sample: prayers?.slice(0, 3).map(p => ({ 
+            sample: prayers?.slice(0, 3).map(p => ({
               created_at: p.created_at,
               selected_date: p.selected_date,
-              hasContent: !!(p.content || p.prayer_text)
-            }))
+              hasContent: !!(p.content || p.prayer_text),
+            })),
           });
 
           // Check specifically for August 1-2 prayer entries
           const august12Prayers = prayers.filter(prayer => {
             const selectedDate = prayer.selected_date ? new Date(prayer.selected_date) : null;
             const createdDate = new Date(prayer.created_at);
-            
+
             const selectedIsAugust12 = selectedDate && selectedDate.getMonth() === 7 && (selectedDate.getDate() === 1 || selectedDate.getDate() === 2);
             const createdIsAugust12 = createdDate.getMonth() === 7 && (createdDate.getDate() === 1 || createdDate.getDate() === 2);
-            
+
             return selectedIsAugust12 || createdIsAugust12;
           });
-          
+
           if (august12Prayers.length > 0) {
             console.log('🗓️ [MomentsRenderer] Found August 1-2 prayer entries:', august12Prayers.map(p => ({
               selected_date: p.selected_date,
               created_at: p.created_at,
               hasContent: !!(p.content || p.prayer_text),
               content: p.content || p.prayer_text,
-              journal_category: p.journal_category
+              journal_category: p.journal_category,
             })));
           } else {
             console.log('🗓️ [MomentsRenderer] No August 1-2 prayer entries found in raw database results');
@@ -329,9 +329,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             found: !!prayerPlugin,
             pluginTitle: prayerPlugin?.title,
             devoPlugin: devoPlugin?.title,
-            availablePlugins: plugins.map(p => p.title)
+            availablePlugins: plugins.map(p => p.title),
           });
-          
+
           if (prayerPlugin) {
             let devoCount = 0;
             prayers.forEach(prayer => {
@@ -361,7 +361,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   const s = (v || '').toLowerCase();
                   return s.includes('devo') || s.includes('devotional') || s.includes('devotion');
                 }) || devoBooleans.some(Boolean);
-              if (isDevotional) devoCount++;
+              if (isDevotional) {devoCount++;}
               const hasUserContent = hasText || hasObjectContent || hasPeopleList || hasPrayerList || !!(prayer as any).journal_category || isDevotional;
 
               console.log('🔍 [MomentsRenderer] Processing prayer entry:', {
@@ -420,36 +420,36 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           .order('created_at', { ascending: false });
 
         if (!reflectionsError && reflections && reflections.length > 0) {
-          console.log('📊 [MomentsRenderer] Reflections query result:', { 
-            error: reflectionsError, 
+          console.log('📊 [MomentsRenderer] Reflections query result:', {
+            error: reflectionsError,
             count: reflections?.length || 0,
-            sample: reflections?.slice(0, 3).map(r => ({ 
+            sample: reflections?.slice(0, 3).map(r => ({
               created_at: r.created_at,
               selected_date: r.selected_date,
-              hasContent: !!(r.content && r.content.trim().length > 0)
-            }))
+              hasContent: !!(r.content && r.content.trim().length > 0),
+            })),
           });
 
           const reflectionPlugin = plugins.find((p: JournalPlugin) => p.title.toLowerCase().includes('reflection'));
           console.log('🔍 [MomentsRenderer] Reflection plugin search result:', {
             found: !!reflectionPlugin,
             pluginTitle: reflectionPlugin?.title,
-            availablePlugins: plugins.map(p => p.title)
+            availablePlugins: plugins.map(p => p.title),
           });
-          
+
           if (reflectionPlugin) {
             reflections.forEach(reflection => {
               // Filter out generated reflections - only include user-created heart journal entries
-              const isUserCreated = !reflection.source || 
+              const isUserCreated = !reflection.source ||
                 (reflection.source !== 'devotional' && reflection.source !== 'playbook');
-              const isUserType = !reflection.type || 
+              const isUserType = !reflection.type ||
                 (reflection.type !== 'devotional' && reflection.type !== 'playbook');
-              
+
               // Check if reflection has user-created content - be more flexible with content validation
-              const hasUserContent = reflection.content && 
-                (typeof reflection.content === 'string' ? reflection.content.trim().length > 0 : 
+              const hasUserContent = reflection.content &&
+                (typeof reflection.content === 'string' ? reflection.content.trim().length > 0 :
                  typeof reflection.content === 'object' ? Object.keys(reflection.content).length > 0 : true);
-              
+
               console.log('🔍 [MomentsRenderer] Processing reflection entry:', {
                 created_at: reflection.created_at,
                 selected_date: reflection.selected_date,
@@ -458,9 +458,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                 isUserType,
                 type: reflection.type,
                 source: reflection.source,
-                contentPreview: reflection.content ? reflection.content.substring(0, 50) + '...' : 'null'
+                contentPreview: reflection.content ? reflection.content.substring(0, 50) + '...' : 'null',
               });
-              
+
               if (hasUserContent && isUserCreated && isUserType) {
                 const reflectionEntry = {
                   plugin: reflectionPlugin,
@@ -468,7 +468,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   category: 'Reflection',
                   type: reflection.type || 'Reflection',
                 };
-                
+
                 console.log('✅ [MomentsRenderer] Adding reflection entry:', reflectionEntry);
                 entries.push(reflectionEntry);
               } else {
@@ -478,7 +478,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                   contentType: typeof reflection.content,
                   contentLength: reflection.content ? reflection.content.length : 0,
                   source: reflection.source,
-                  type: reflection.type
+                  type: reflection.type,
                 });
               }
             });
@@ -495,26 +495,26 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           .order('created_at', { ascending: false });
 
         if (!timeBlocksError && timeBlocks && timeBlocks.length > 0) {
-          console.log('📊 [MomentsRenderer] Time blocks query result:', { 
-            error: timeBlocksError, 
+          console.log('📊 [MomentsRenderer] Time blocks query result:', {
+            error: timeBlocksError,
             count: timeBlocks?.length || 0,
-            sample: timeBlocks?.slice(0, 3).map(tb => ({ 
+            sample: timeBlocks?.slice(0, 3).map(tb => ({
               created_at: tb.created_at,
               selected_date: tb.selected_date,
-              hasContent: !!(tb.title || tb.description)
-            }))
+              hasContent: !!(tb.title || tb.description),
+            })),
           });
 
           timeBlocks.forEach(timeBlock => {
             // Check if time block has meaningful user content
             if (timeBlock.title && timeBlock.title.trim().length > 0) {
               // Find appropriate plugin
-              let plugin = plugins.find((p: JournalPlugin) => 
-                p.title.toLowerCase().includes('schedule') || 
+              let plugin = plugins.find((p: JournalPlugin) =>
+                p.title.toLowerCase().includes('schedule') ||
                 p.title.toLowerCase().includes('time') ||
                 p.title.toLowerCase().includes('plan')
               );
-              
+
               // Fallback to a generic plugin
               if (!plugin && plugins.length > 0) {
                 plugin = plugins[0];
@@ -552,7 +552,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       }, {} as Record<string, Array<{ index: number; plugin: string; date: Date; type: string; category: string }>>);
 
       const duplicates = Object.entries(duplicateCheck).filter(([_, list]) => list.length > 1);
-      
+
       if (duplicates.length > 0) {
         console.log('⚠️ [MomentsRenderer] Found duplicates (by day + plugin + type):', duplicates.map(([key, dupEntries]) => ({
           key,
@@ -560,7 +560,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           dates: dupEntries.map(e => e.date.toISOString()),
           plugins: dupEntries.map(e => e.plugin),
           types: dupEntries.map(e => e.type),
-          categories: dupEntries.map(e => e.category)
+          categories: dupEntries.map(e => e.category),
         })));
 
         // For each day+plugin+type, keep the most recent entry only
@@ -569,7 +569,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           const day = format(entry.date, 'yyyy-MM-dd');
           const pluginId = (entry.plugin as any).id || entry.plugin.title;
           const key = `${day}::${pluginId}::${entry.type}`;
-          if (!groupedByKey[key]) groupedByKey[key] = [];
+          if (!groupedByKey[key]) {groupedByKey[key] = [];}
           groupedByKey[key].push(entry);
         });
 
@@ -604,20 +604,20 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         byPlugin: entries.reduce((acc, entry) => {
           acc[entry.plugin.title] = (acc[entry.plugin.title] || 0) + 1;
           return acc;
-        }, {} as Record<string, number>)
+        }, {} as Record<string, number>),
       });
-      
+
       // Check specifically for July 31 entries
       const july31Entries = entries.filter(entry => {
         const entryDate = entry.date;
         return entryDate.getMonth() === 6 && entryDate.getDate() === 31; // July is month 6 (0-indexed)
       });
-      
+
       if (july31Entries.length > 0) {
         console.log('🗓️ [MomentsRenderer] Found July 31 entries:', july31Entries.map(e => ({
           type: e.type,
           date: e.date.toISOString(),
-          plugin: e.plugin.title
+          plugin: e.plugin.title,
         })));
       } else {
         console.log('🗓️ [MomentsRenderer] No July 31 entries found in final results');
@@ -628,18 +628,18 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         const entryDate = entry.date;
         return entryDate.getMonth() === 7 && (entryDate.getDate() === 1 || entryDate.getDate() === 2); // August is month 7 (0-indexed)
       });
-      
+
       if (august12Entries.length > 0) {
         console.log('🗓️ [MomentsRenderer] Found August 1-2 entries:', august12Entries.map(e => ({
           type: e.type,
           date: e.date.toISOString(),
           plugin: e.plugin.title,
-          category: e.category
+          category: e.category,
         })));
       } else {
         console.log('🗓️ [MomentsRenderer] No August 1-2 entries found in final results');
       }
-      
+
       setRealEntries(entries);
     } catch (error) {
       console.error('❌ [MomentsRenderer] Error fetching journal entries:', error);
@@ -647,7 +647,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     } finally {
       setLoading(false);
     }
-  }, [user, plugins]);
+  }, [user, plugins, dateRange.startDate, dateRange.endDate, dateRange.label]);
 
   // Fetch entries when component mounts or dependencies change
   React.useEffect(() => {
@@ -658,50 +658,50 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   const generateMomentEntries = React.useMemo(() => {
     console.log('🔍 [MomentsRenderer] Filtering entries with dateRange:', dateRange);
     console.log('🔍 [MomentsRenderer] Raw entries count:', realEntries.length);
-    
+
     // First filter by date range
     let filteredEntries = realEntries.filter(entry => {
       const entryDate = entry.date;
       const startDate = new Date(dateRange.startDate);
       const endDate = new Date(dateRange.endDate);
-      
+
       // Set times to handle date comparison properly
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(23, 59, 59, 999);
-      
+
       const isInRange = entryDate >= startDate && entryDate <= endDate;
-      
+
       if (!isInRange) {
         console.log('🔍 [MomentsRenderer] Entry filtered out by date:', {
           entryDate: entryDate.toISOString(),
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
           type: entry.type,
-          category: entry.category
+          category: entry.category,
         });
       } else {
         // Log entries that pass date filtering, especially for July 31 and August 1-2
         const isJuly31 = entryDate.getMonth() === 6 && entryDate.getDate() === 31;
         const isAugust12 = entryDate.getMonth() === 7 && (entryDate.getDate() === 1 || entryDate.getDate() === 2);
-        
+
         if (isJuly31 || isAugust12) {
           console.log('✅ [MomentsRenderer] Special date entry passed filtering:', {
             entryDate: entryDate.toISOString(),
             type: entry.type,
             category: entry.category,
-            plugin: entry.plugin.title
+            plugin: entry.plugin.title,
           });
         }
       }
-      
+
       return isInRange;
     });
-    
+
     console.log('🔍 [MomentsRenderer] After date filtering:', filteredEntries.length);
-    
+
     // Then filter by search query if provided
     if (searchQuery.trim()) {
-      filteredEntries = filteredEntries.filter(entry => 
+      filteredEntries = filteredEntries.filter(entry =>
         entry.plugin.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         entry.category.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -744,7 +744,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     if (groupBy === 'none') {
       // For 'none' grouping, create carousel groups by type within the single section
       const typeGroups: Record<string, MomentEntry[]> = {};
-      
+
       sortedEntries.forEach((entry) => {
         const typeKey = entry.type;
         if (!typeGroups[typeKey]) {
@@ -754,7 +754,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       });
 
       const carouselData = Object.values(typeGroups);
-      
+
       return [{
         title: 'All Moments',
         data: carouselData,
@@ -798,10 +798,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       if (groupBy === 'date') {
         // Collect ALL entries per type for the date
         const typeGroups: Record<string, MomentEntry[]> = {};
-        
+
         entries.forEach((entry) => {
           const typeKey = entry.type;
-          if (!typeGroups[typeKey]) typeGroups[typeKey] = [];
+          if (!typeGroups[typeKey]) {typeGroups[typeKey] = [];}
           typeGroups[typeKey].push(entry);
         });
 
@@ -820,27 +820,27 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         const ordered = groupEntries.sort((a, b) => {
           const order = (t: string) => {
             const s = (t || '').toLowerCase();
-            if (s.includes("today's focus") || s.includes('todays focus')) return 0; // highest priority
-            if (s === 'todo' || s.includes('todo')) return 1;
+            if (s.includes("today's focus") || s.includes('todays focus')) {return 0;} // highest priority
+            if (s === 'todo' || s.includes('todo')) {return 1;}
             return 2;
           };
           const oa = order(a.type);
           const ob = order(b.type);
-          if (oa !== ob) return oa - ob;
+          if (oa !== ob) {return oa - ob;}
           // fallback by recency
           return b.repr.date.getTime() - a.repr.date.getTime();
         });
 
         // Finally, map into carouselData (each item is an array; devotional arrays can have multiple slides)
         const carouselData = ordered.map(group => group.items);
-        
+
         // Get proper title for date grouping
         if (entries.length > 0) {
           const firstEntry = entries[0];
           const isCurrentYear = firstEntry.date.getFullYear() === new Date().getFullYear();
           title = format(firstEntry.date, isCurrentYear ? 'EEEE, MMMM d' : 'EEEE, MMMM d, yyyy');
         }
-        
+
         return {
           title,
           data: carouselData,
@@ -864,7 +864,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
             break;
         }
       }
-      
+
       return {
         title,
         data: [entries],
@@ -897,14 +897,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   );
 
   // Render carousel item (group of entries of the same type)
-  const renderCarouselItem = ({ item: carouselGroup, index }: { item: MomentEntry[]; index: number }) => {
-    if (!carouselGroup || carouselGroup.length === 0) return null;
+  const renderCarouselItem = ({ item: carouselGroup }: { item: MomentEntry[]; index: number }) => {
+    if (!carouselGroup || carouselGroup.length === 0) {return null;}
 
     const firstEntry = carouselGroup[0];
     const isDevotional =
       (firstEntry.category && firstEntry.category.toLowerCase().includes('devotional')) ||
       (firstEntry.type && firstEntry.type.toLowerCase().includes('devotional'));
-    
+
     // Special full-bleed carousel for Devotional
     if (isDevotional) {
       const { width } = Dimensions.get('window');
@@ -950,11 +950,11 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
               ListFooterComponent={<View style={{ width: rightBreakout }} />}
               contentContainerStyle={{}}
               snapToOffsets={carouselGroup.map((_, i) => leftBreakout + i * ITEM_WIDTH)}
-              getItemLayout={(_, index) => ({ length: ITEM_WIDTH, offset: ITEM_WIDTH * index, index })}
-              renderItem={({ item: entry, index: entryIndex }) => (
+              getItemLayout={(_, itemIndex) => ({ length: ITEM_WIDTH, offset: ITEM_WIDTH * itemIndex, index: itemIndex })}
+              renderItem={({ item: entry }) => (
                 <View style={[
                   styles.devoCarouselItem,
-                  { width: ITEM_WIDTH + leftBreakout + rightBreakout, marginLeft: -leftBreakout }
+                  { width: ITEM_WIDTH + leftBreakout + rightBreakout, marginLeft: -leftBreakout },
                 ]}>
                   <View style={styles.devoFullWidthCard}>
                     <PluginRenderer
@@ -1023,13 +1023,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       ...section,
       data: section.data.filter(carouselGroup => {
         // Filter out empty carousel groups
-        if (!carouselGroup || carouselGroup.length === 0) return false;
-        
+        if (!carouselGroup || carouselGroup.length === 0) {return false;}
+
         // Show all entries that have valid plugins - don't filter by specific plugin IDs
-        return carouselGroup.some(entry => 
+        return carouselGroup.some(entry =>
           entry && entry.plugin && entry.plugin.id && entry.plugin.title
         );
-      })
+      }),
     })).filter(section => section.data.length > 0);
   }, [groupedSections]);
 

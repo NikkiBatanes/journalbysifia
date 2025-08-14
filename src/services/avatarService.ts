@@ -7,7 +7,7 @@ export async function pickImageLocal(): Promise<{ uri: string; name: string; typ
   // Dynamically require to avoid bundling if not installed yet
   let launch: any;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+
     const mod = require('react-native-image-picker');
     launch = (mod && mod.launchImageLibrary) || (mod?.default && mod.default.launchImageLibrary);
   } catch (_) {
@@ -27,10 +27,10 @@ export async function pickImageLocal(): Promise<{ uri: string; name: string; typ
   } as any;
 
   const response = await launch(options);
-  if (response?.didCancel) return null;
-  if (response?.errorCode) throw new Error(response.errorMessage || 'Image picker error');
+  if (response?.didCancel) {return null;}
+  if (response?.errorCode) {throw new Error(response.errorMessage || 'Image picker error');}
   const asset = response?.assets?.[0];
-  if (!asset?.uri) throw new Error('No image selected');
+  if (!asset?.uri) {throw new Error('No image selected');}
   const fileName = asset.fileName || `avatar_${Date.now()}.jpg`;
   const type = asset.type || 'image/jpeg';
   return { uri: asset.uri, name: fileName, type };

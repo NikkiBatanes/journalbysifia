@@ -70,14 +70,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           const raw = await AsyncStorage.getItem(FAB_SHOW_KEY);
           const count = raw ? parseInt(raw, 10) : 0;
           if (count < 2) {
-            if (isActive) setShowFab(true);
+            if (isActive) {setShowFab(true);}
             await AsyncStorage.setItem(FAB_SHOW_KEY, String(count + 1));
           } else {
-            if (isActive) setShowFab(false);
+            if (isActive) {setShowFab(false);}
           }
         } catch (e) {
           // On error, default to hiding the FAB to avoid over-showing
-          if (isActive) setShowFab(false);
+          if (isActive) {setShowFab(false);}
         }
       })();
       return () => {
@@ -160,7 +160,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     const maxAnimations = 3; // Animate 3 times
 
     const runAnimation = () => {
-      if (animationCount >= maxAnimations) return;
+      if (animationCount >= maxAnimations) {return;}
       animationCount++;
 
       // Expand to show text

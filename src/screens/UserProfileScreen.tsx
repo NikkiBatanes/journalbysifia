@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Image,
   Dimensions,
   RefreshControl,
   Alert,
@@ -82,7 +81,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
       const picked = await pickImageLocal();
       console.log('[Avatar] Picker result:', picked ? 'asset selected' : 'cancelled');
-      if (!picked) return; // user cancelled
+      if (!picked) {return;} // user cancelled
 
       const url = await uploadAvatar(user, picked);
       console.log('[Avatar] Uploaded URL:', url);
@@ -300,45 +299,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
         },
       ]
     );
-  };
-
-  const getLevelProgress = () => {
-    if (!profileStats) {return 0;}
-
-    // Use the actual faith points level system
-    const levels = [
-      { level: 1, pointsRequired: 0 },
-      { level: 2, pointsRequired: 100 },
-      { level: 3, pointsRequired: 300 },
-      { level: 4, pointsRequired: 600 },
-      { level: 5, pointsRequired: 1000 },
-      { level: 6, pointsRequired: 1500 },
-      { level: 7, pointsRequired: 2500 },
-      { level: 8, pointsRequired: 4000 },
-      { level: 9, pointsRequired: 6000 },
-      { level: 10, pointsRequired: 10000 },
-    ];
-
-    const currentLevel = levels.find(l => l.level === profileStats.level);
-    const nextLevel = levels.find(l => l.level === profileStats.level + 1);
-
-    if (!currentLevel || !nextLevel) {
-      return profileStats.level >= 10 ? 1 : 0; // Max level or no data
-    }
-
-    const currentLevelPoints = currentLevel.pointsRequired;
-    const nextLevelPoints = nextLevel.pointsRequired;
-    const progress = (profileStats.faithPoints - currentLevelPoints) / (nextLevelPoints - currentLevelPoints);
-
-    console.log('📊 Progress calculation:', {
-      faithPoints: profileStats.faithPoints,
-      currentLevel: profileStats.level,
-      currentLevelPoints,
-      nextLevelPoints,
-      progress: Math.max(0, Math.min(1, progress)),
-    });
-
-    return Math.max(0, Math.min(1, progress));
   };
 
   const renderProfileHeader = () => (
