@@ -46,6 +46,57 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
   const dateStr = toLocalDateString(selectedDate);
 
+  // ----- Date category and copy helpers -----
+  const toLocalYMD = (d: Date) => {
+    return { y: d.getFullYear(), m: d.getMonth(), d: d.getDate() };
+  };
+  const isSameLocalDay = (a: Date, b: Date) => {
+    const A = toLocalYMD(a);
+    const B = toLocalYMD(b);
+    return A.y === B.y && A.m === B.m && A.d === B.d;
+  };
+  const addDaysLocal = (d: Date, delta: number) => {
+    const nd = new Date(d);
+    nd.setDate(d.getDate() + delta);
+    return nd;
+  };
+  const getDateCategory = (d: Date): 'today' | 'yesterday' | 'earlier' => {
+    const today = new Date();
+    if (isSameLocalDay(d, today)) return 'today';
+    if (isSameLocalDay(d, addDaysLocal(today, -1))) return 'yesterday';
+    return 'earlier';
+  };
+  const pluralizeCount = (count: number, one: string, many: (n: number) => string) =>
+    count === 1 ? one : many(count);
+  const getCopy = (category: 'today' | 'yesterday' | 'earlier', count: number) => {
+    if (category === 'today') {
+      return {
+        header: "TODAY'S WIN",
+        subtitle: "What's your biggest win today?",
+        emptySubtext: 'Share a moment where faith led to triumph today.',
+      } as const;
+    }
+    if (category === 'yesterday') {
+      return {
+        header: "YESTERDAY'S WIN",
+        subtitle:
+          count === 0
+            ? 'No wins yet from yesterday. Share a moment where faith led to triumph.'
+            : pluralizeCount(count, '1 win from yesterday.', (n) => `${n} wins from yesterday.`),
+        emptySubtext: 'No wins yet from yesterday. Share a moment where faith led to triumph.',
+      } as const;
+    }
+    // earlier
+    return {
+      header: 'EARLIER WINS',
+      subtitle:
+        count === 0
+          ? 'No wins yet on this day. Share a moment where faith led to triumph.'
+          : pluralizeCount(count, '1 win on this day.', (n) => `${n} wins on this day.`),
+      emptySubtext: 'No wins yet on this day. Share a moment where faith led to triumph.',
+    } as const;
+  };
+
   // Determine if we should show adding mode
   const shouldShowAddingMode = isAdding || isEditing;
 
@@ -479,8 +530,25 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
   return (
     <JournalCard
-      title={displayWin || shouldShowAddingMode ? "TODAY'S WIN" : undefined}
-      subtitle={displayWin || shouldShowAddingMode ? "What's your biggest win today?" : undefined}
+      title={(() => {
+        if (!(displayWin || shouldShowAddingMode)) return undefined;
+        const category = getDateCategory(selectedDate);
+        const copy = getCopy(category, entries.length);
+        return copy.header;
+      })()}
+      subtitle={(() => {
+        if (!(displayWin || shouldShowAddingMode)) return undefined;
+        const category = getDateCategory(selectedDate);
+        // In edit/adding mode, use shorter subtitle for yesterday/earlier
+        if (shouldShowAddingMode) {
+          if (category === 'yesterday') return 'Your win from yesterday.';
+          if (category === 'earlier') return 'Your win on this day.';
+          // today keeps existing
+          return "What's your biggest win today?";
+        }
+        const copy = getCopy(category, entries.length);
+        return copy.subtitle;
+      })()}
       icon={displayWin || shouldShowAddingMode ? <Ionicons name="trophy" size={24} color={Colors.alertCoral} /> : undefined}
       showAddButton={false}
       onAdd={startAdding}
@@ -591,7 +659,13 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                   size={32}
                   color={Colors.mediumGray}
                 />
-                <Text style={styles.sectionLabel} accessibilityRole="text">TODAY'S WIN</Text>
+                <Text style={styles.sectionLabel} accessibilityRole="text">
+                  {(() => {
+                    const category = getDateCategory(selectedDate);
+                    const copy = getCopy(category, entries.length);
+                    return copy.header;
+                  })()}
+                </Text>
               </View>
               <View style={styles.titleContainer}>
                 <Text
@@ -604,7 +678,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                 </Text>
               </View>
               <Text style={styles.emptyStateSubtext} accessibilityRole="text">
-                Share a moment where faith led to triumph today.
+                {(() => {
+                  const category = getDateCategory(selectedDate);
+                  const copy = getCopy(category, entries.length);
+                  return copy.emptySubtext;
+                })()}
               </Text>
               <TouchableOpacity
                 style={styles.emptyStateButton}
