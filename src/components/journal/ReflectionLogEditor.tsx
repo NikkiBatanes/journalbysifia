@@ -889,7 +889,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               <TextInput
                 ref={contentInputRef}
                 style={[styles.entryInput, styles.entryContentInput]}
-                placeholder="Write your reflection..."
+                placeholder="Pour out your thoughts..."
                 placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 value={newEntry.content}
                 onChangeText={(text) => {
