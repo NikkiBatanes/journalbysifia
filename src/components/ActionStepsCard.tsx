@@ -47,6 +47,8 @@ type ActionStepsCardProps = {
   playbookId?: string;
   // User Context for Personalized Christian Coaching
   userInput?: string; // User's original struggle/context when creating playbook
+  // Date for reflection (from journal screen)
+  selectedDate?: Date;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -158,6 +160,7 @@ export default function ActionStepsCard({
   playbookTitle,
   playbookId,
   userInput, // User's original struggle/context for personalized Christian coaching
+  selectedDate, // Date for reflection (from journal screen)
 }: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const { user } = useAuth();
@@ -1001,6 +1004,7 @@ export default function ActionStepsCard({
           actionStepNumber={selectedActionStep?.stepNumber}
           actionStepTitle={selectedActionStep?.stepTitle}
           existingReflection={existingReflection}
+          selectedDate={selectedDate}
           onSave={handleReflectionSave}
           onCancel={() => {
             setActiveModal(null);

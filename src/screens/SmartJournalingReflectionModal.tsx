@@ -23,6 +23,7 @@ interface SmartJournalingReflectionModalProps {
   actionStepNumber?: number;
   actionStepTitle?: string;
   existingReflection?: any; // For editing existing reflections
+  selectedDate?: Date; // Date to use for reflection (defaults to current date)
   onSave: (entry: any) => void;
   onCancel: () => void;
 }
@@ -37,6 +38,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   actionStepNumber,
   actionStepTitle,
   existingReflection,
+  selectedDate,
   onSave,
   onCancel,
 }) => {
@@ -84,7 +86,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     () => onCancel(), // onDone: close the modal
     () => handleEditFocus() // onEdit: focus input for editing
   );
-  const dateStr = toLocalDateString(new Date()); // Use local date for consistency
+  // Use selectedDate if provided (from journal screen), otherwise use current date
+  const dateToUse = selectedDate || new Date();
+  const dateStr = toLocalDateString(dateToUse); // Use selected date for consistency
   const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
 
   // Debug: Log existing reflection prop
