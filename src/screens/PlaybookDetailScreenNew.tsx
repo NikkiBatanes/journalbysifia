@@ -662,7 +662,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       onboardingNextStep={onboardingNextStep}
       styles={styles}
     />
-  ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress, isFromOnboarding, onboardingNextStep]);
+  ), [navigation, showUserInput, chevronStyle, showCompactHeader, playbook?.title, completedTasksCount, totalTasksCount, progress, isFromOnboarding, onboardingNextStep, styles]);
 
   // Header right component
   const headerRight = React.useCallback(() => (
@@ -1325,9 +1325,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             progressPercentage={progress}
             isFromOnboarding={isFromOnboarding}
             onboardingNextStep={onboardingNextStep}
+            styles={styles}
           />
           <View style={styles.headerRight}>
-            <ProfileButton user={user} navigation={navigation} />
+            <ProfileButton user={user} navigation={navigation} styles={styles} />
           </View>
         </View>
       </View>
