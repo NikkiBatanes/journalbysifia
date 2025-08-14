@@ -5,7 +5,7 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
-import { TouchableOpacity, View, Image, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 // Removed CommonActions import as we navigate directly to UserProfile
 
 
@@ -65,6 +65,14 @@ interface ProfileImageProps {
 
 const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation }) => {
   const { user } = useAuth();
+  const meta: any = (user as any)?.user_metadata || {};
+  const displayName =
+    (user as any)?.displayName ||
+    meta.full_name ||
+    [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() ||
+    (user as any)?.email ||
+    'User';
+  const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
   return (
     <TouchableOpacity
@@ -92,8 +100,8 @@ const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation
           resizeMode="cover"
         />
       ) : (
-        <View style={[styles.profileImage, styles.defaultProfileImage]}>
-          <Ionicons name="person" size={16} color="#fff" />
+        <View style={[styles.profileImage, styles.initialAvatar]}>
+          <Text style={styles.initialLetter}>{initialLetter}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -341,7 +349,12 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="DevotionalDetail"
             component={DevotionalDetailScreen as React.ComponentType}
-            options={{ headerShown: true }}
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
           />
           <Stack.Screen
             name="Journal"
@@ -388,10 +401,15 @@ const styles = StyleSheet.create({
     height: 32,
     borderRadius: 16,
   },
-  defaultProfileImage: {
-    backgroundColor: '#666',
+  initialAvatar: {
+    backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  initialLetter: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '700',
   },
   headerTitle: {
     fontSize: 18,

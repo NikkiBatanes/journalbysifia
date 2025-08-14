@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
 import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, Modal, Platform } from 'react-native';
@@ -79,6 +79,20 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   // Auth and date context
   const { user } = useAuth();
+  const weekStartsOn = useMemo(() => {
+    const key = (user as any)?.user_metadata?.preferences?.weekStart as
+      | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
+    const map: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    return key ? map[key] ?? 0 : 0;
+  }, [(user as any)?.user_metadata?.preferences?.weekStart]);
   const dateStr = toLocalDateString(selectedDate); // 'YYYY-MM-DD'
 
   // React Query hooks with enhanced retry logic
@@ -985,7 +999,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                     return <Text style={styles.monthHeaderText}>{label}</Text>;
                   }}
                   hideArrows={false}
-                  firstDay={1}
+                  firstDay={weekStartsOn}
                   onPressArrowLeft={subtractMonth => subtractMonth()}
                   onPressArrowRight={addMonth => addMonth()}
                   theme={{

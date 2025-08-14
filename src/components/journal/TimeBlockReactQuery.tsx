@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -61,7 +61,12 @@ const formatTime = (date: Date): string => {
 };
 
 // Helper function to format repeat text
-const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[], customFrequency?: { value: number, unit: string }): string => {
+const formatRepeatText = (
+  frequency: RepeatFrequency,
+  customDays?: number[],
+  customFrequency?: { value: number, unit: string },
+  weekStart: number = 0,
+): string => {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   switch (frequency) {
@@ -81,7 +86,10 @@ const formatRepeatText = (frequency: RepeatFrequency, customDays?: number[], cus
       if (customFrequency) {
         const unit = customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1) + (customFrequency.value > 1 ? 's' : '');
         if (customDays && customDays.length > 0 && customFrequency.unit === 'week') {
-          const days = customDays.map(day => dayNames[day]).join(', ');
+          const ordered = customDays
+            .slice()
+            .sort((a, b) => ((a - weekStart + 7) % 7) - ((b - weekStart + 7) % 7));
+          const days = ordered.map(day => dayNames[day]).join(', ');
           return `Every ${customFrequency.value} ${unit} on ${days}`;
         }
         return `Every ${customFrequency.value} ${unit}`;
@@ -108,6 +116,20 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   const globalEditMode = useEditModeSafe();
 
   const { user } = useAuth();
+  const weekStartsOn = useMemo(() => {
+    const key = (user as any)?.user_metadata?.preferences?.weekStart as
+      | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
+    const map: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    return key ? map[key] ?? 0 : 0;
+  }, [user]);
   const dateStr = toLocalDateString(selectedDate);
 
   console.log('🔍 TimeBlockReactQuery: Fetching for date:', dateStr, 'user:', user?.id);
@@ -903,7 +925,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 style={styles.repeatIcon}
               />
               <Text style={styles.repeatText}>
-                {formatRepeatText(newBlock.repeat.frequency, newBlock.repeat.customDays, customFrequency)}{newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}
+                {formatRepeatText(newBlock.repeat.frequency, newBlock.repeat.customDays, customFrequency, weekStartsOn)}{newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}
               </Text>
               <Ionicons
                 name={showRepeatOptions ? 'chevron-up' : 'chevron-down'}
@@ -1063,25 +1085,28 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   <View style={styles.customDaysContainer}>
                     <Text style={styles.customDaysLabel}>On days:</Text>
                     <View style={styles.daysOfWeekContainer}>
-                      {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
-                        const isSelected = newBlock.repeat.customDays?.includes(index);
+                      {Array.from({ length: 7 }).map((_, i) => {
+                        const dayIndex = (i + weekStartsOn) % 7; // 0=Sun..6=Sat, rotated by preference
+                        const label = ['S', 'M', 'T', 'W', 'T', 'F', 'S'][dayIndex];
+                        const isSelected = newBlock.repeat.customDays?.includes(dayIndex);
                         return (
                           <TouchableOpacity
-                            key={index}
+                            key={dayIndex}
                             style={[
                               styles.dayButton,
                               isSelected && styles.dayButtonSelected,
                             ]}
                             onPress={() => {
                               const updatedDays = newBlock.repeat.customDays || [];
-                              const newDays = updatedDays.includes(index)
-                                ? updatedDays.filter(d => d !== index)
-                                : [...updatedDays, index];
+                              const newDays = updatedDays.includes(dayIndex)
+                                ? updatedDays.filter(d => d !== dayIndex)
+                                : [...updatedDays, dayIndex];
 
                               setNewBlock({
                                 ...newBlock,
                                 repeat: {
                                   ...newBlock.repeat,
+                                  // Keep stored indices in natural 0=Sun..6 order; sort numerically
                                   customDays: newDays.sort((a, b) => a - b),
                                 },
                               });
@@ -1091,7 +1116,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                               styles.dayButtonText,
                               isSelected && styles.dayButtonTextSelected,
                             ]}>
-                              {day}
+                              {label}
                             </Text>
                           </TouchableOpacity>
                         );

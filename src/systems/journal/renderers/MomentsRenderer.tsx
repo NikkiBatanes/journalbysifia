@@ -27,7 +27,12 @@ export const MomentsRenderer: React.FC<MomentsRendererProps> = ({
         {showDateHeader && (
           <View style={styles.dateHeader}>
             <Text style={styles.dateText}>
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+              {format(
+                selectedDate,
+                selectedDate.getFullYear() === new Date().getFullYear()
+                  ? 'EEEE, MMMM d'
+                  : 'EEEE, MMMM d, yyyy'
+              )}
             </Text>
             <Text style={styles.noEntriesText}>No entries for this date</Text>
           </View>
@@ -41,7 +46,12 @@ export const MomentsRenderer: React.FC<MomentsRendererProps> = ({
       {showDateHeader && (
         <View style={styles.dateHeader}>
           <Text style={styles.dateText}>
-            {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+            {format(
+              selectedDate,
+              selectedDate.getFullYear() === new Date().getFullYear()
+                ? 'EEEE, MMMM d'
+                : 'EEEE, MMMM d, yyyy'
+            )}
           </Text>
           <Text style={styles.entriesCountText}>
             {pluginsWithData.length} {pluginsWithData.length === 1 ? 'entry' : 'entries'}

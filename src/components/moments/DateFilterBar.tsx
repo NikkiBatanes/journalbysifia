@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -12,6 +12,7 @@ import { Calendar } from 'react-native-calendars';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths } from 'date-fns';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 export type DateRange = {
   startDate: Date;
@@ -71,6 +72,21 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
   onFilterTypeChange,
   selectedRange,
 }) => {
+  const { user } = useAuth();
+  const weekStartsOn = useMemo(() => {
+    const key = (user as any)?.user_metadata?.preferences?.weekStart as
+      | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
+    const map: Record<string, number> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    return key ? map[key] ?? 0 : 0;
+  }, [(user as any)?.user_metadata?.preferences?.weekStart]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
   const [tempRange, setTempRange] = useState<{ start?: Date; end?: Date }>({});
@@ -214,6 +230,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
             <Calendar
               onDayPress={handleDateSelect}
               markedDates={getMarkedDates()}
+              firstDay={weekStartsOn}
               theme={{
                 backgroundColor: Colors.anchorBlue,
                 calendarBackground: Colors.anchorBlue,

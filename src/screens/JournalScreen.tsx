@@ -5,6 +5,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Anima
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Pencil, Check, Feather, CalendarDays } from 'lucide-react-native';
 import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
+import type { Day } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 // import LinearGradient from 'react-native-linear-gradient'; // unused
@@ -28,6 +29,21 @@ export type JournalScreenRef = {
 const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   const navigation = useNavigation<any>();
   const { user } = useAuth();
+  // Map preferences.weekStart to date-fns weekStartsOn (0=Sun ... 6=Sat)
+  const weekStartsOn: Day = useMemo((): Day => {
+    const key = (user as any)?.user_metadata?.preferences?.weekStart as
+      | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
+    const map: Record<string, Day> = {
+      sunday: 0,
+      monday: 1,
+      tuesday: 2,
+      wednesday: 3,
+      thursday: 4,
+      friday: 5,
+      saturday: 6,
+    };
+    return key ? (map[key] ?? 0) : 0; // default Sunday
+  }, [(user as any)?.user_metadata?.preferences?.weekStart]);
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showCalendarModal, setShowCalendarModal] = useState(false);
@@ -110,7 +126,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
   );
   // Unused state variable - keeping for potential future use
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_, setWeekStart] = useState(startOfWeek(new Date()));
+  const [_, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn }));
   const [weeks, setWeeks] = useState<Date[][]>([]);
   const scrollViewRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
@@ -142,7 +158,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
       const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
 
       // Get the first day to show (previous Sunday from the 1st of the month)
-      let currentWeekStart = startOfWeek(firstDayOfMonth);
+      let currentWeekStart = startOfWeek(firstDayOfMonth, { weekStartsOn });
 
       // Generate 6 weeks to ensure we have enough weeks to display
       for (let i = 0; i < 6; i++) {
@@ -161,7 +177,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
     };
 
     setWeeks(generateWeeks());
-  }, [currentDate]);
+  }, [currentDate, weekStartsOn]);
 
   // Store the current week index separately to maintain position
   const currentWeekIndex = useRef<number>(0);
@@ -790,7 +806,7 @@ const JournalScreen = forwardRef<JournalScreenRef>((props, ref) => {
                 monthFormat="MMMM yyyy"
                 hideArrows={false}
                 hideExtraDays={false}
-                firstDay={0}
+                firstDay={weekStartsOn}
                 enableSwipeMonths={true}
                 theme={{
                   calendarBackground: Colors.anchorBlue,

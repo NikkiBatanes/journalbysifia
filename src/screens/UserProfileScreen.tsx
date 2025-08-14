@@ -19,11 +19,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { userApi } from '../services/userApi';
+import ProfileHeader from '../components/profile/ProfileHeader';
+import StatsGrid from '../components/profile/StatsGrid';
+import MetricsExplainer from '../components/profile/MetricsExplainer';
+import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { subscriptionService } from '../services/subscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { UserProgress, Badge, UserPreferences } from '../types/auth';
 import { Subscription, UsageTracking } from '../interfaces/subscription';
 import { Colors } from '../theme/colors';
+import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 
 const { width } = Dimensions.get('window');
 
@@ -44,6 +49,8 @@ interface ProfileStats {
 
 const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   const { user, signOut, updateProfile, updatePreferences } = useAuth();
+  // Status bar: dark icons on white header area
+  useScreenStatusBar('dark', Colors.hopeWhite);
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
@@ -60,10 +67,43 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
   // Form states
   const [profileForm, setProfileForm] = useState({
-    full_name: (user as any)?.user_metadata?.full_name || '',
-    bio: (user as any)?.user_metadata?.bio || '',
-    location: (user as any)?.user_metadata?.location || '',
+    firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name || '',
+    lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name || '',
   });
+
+  const handleEditAvatar = async () => {
+    try {
+      console.log('[Avatar] Edit tapped');
+      Alert.alert('Avatar', 'Opening photo library...');
+      if (!user) {
+        Alert.alert('Not signed in', 'Please sign in to update your profile photo.');
+        return;
+      }
+
+      const picked = await pickImageLocal();
+      console.log('[Avatar] Picker result:', picked ? 'asset selected' : 'cancelled');
+      if (!picked) return; // user cancelled
+
+      const url = await uploadAvatar(user, picked);
+      console.log('[Avatar] Uploaded URL:', url);
+      const result = await updateProfile({ avatar_url: url });
+      if (result?.success === false) {
+        throw new Error(result?.error?.message || 'Failed to update profile');
+      }
+      Alert.alert('Profile Updated', 'Your profile photo has been updated.');
+    } catch (e: any) {
+      const msg = e?.message || 'Unknown error';
+      console.error('[Avatar] Error:', e);
+      if (msg.includes('image-picker')) {
+        Alert.alert(
+          'Image Picker Missing',
+          'Please install react-native-image-picker to enable selecting a photo.'
+        );
+      } else {
+        Alert.alert('Avatar Update Failed', msg);
+      }
+    }
+  };
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     notifications: {
@@ -81,6 +121,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     theme: 'light',
     fontSize: 'medium',
     colorScheme: 'default',
+    weekStart: 'sunday',
     privacy: {
       profileVisibility: 'public',
       shareProgress: true,
@@ -179,14 +220,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     };
   }, [loadProfileData]);
 
-  // Sync profile form with user metadata
+  // Sync profile form with user data
   useEffect(() => {
     if (user) {
-      setProfileForm({
-        full_name: (user as any)?.user_metadata?.full_name || '',
-        bio: (user as any)?.user_metadata?.bio || '',
-        location: (user as any)?.user_metadata?.location || '',
-      });
+      const meta = (user as any)?.user_metadata || {};
+      const uFirst = (user as any)?.firstName || meta.first_name || '';
+      const uLast = (user as any)?.lastName || meta.last_name || '';
+      // Fallback: derive from full_name if first/last missing
+      let firstName = uFirst;
+      let lastName = uLast;
+      if ((!firstName || !lastName) && meta.full_name) {
+        const parts = String(meta.full_name).trim().split(/\s+/);
+        firstName = firstName || parts[0] || '';
+        lastName = lastName || (parts.slice(1).join(' ') || '');
+      }
+      setProfileForm({ firstName, lastName });
 
       // Load preferences from user metadata if available
       const userPreferences = (user as any)?.user_metadata?.preferences;
@@ -205,7 +253,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
   const handleUpdateProfile = async () => {
     try {
-      const result = await updateProfile(profileForm);
+      const full_name = `${(profileForm as any).firstName || ''} ${
+        (profileForm as any).lastName || ''
+      }`.trim();
+      const result = await updateProfile({ full_name });
       if (result.success) {
         setEditProfileModal(false);
         Alert.alert('Success', 'Profile updated successfully');
@@ -291,93 +342,25 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   };
 
   const renderProfileHeader = () => (
-    <View style={styles.headerGradient}>
-      <View style={styles.profileHeader}>
-        <View style={styles.avatarContainer}>
-          {(user as any)?.user_metadata?.avatar_url ? (
-            <Image
-              source={{ uri: (user as any).user_metadata.avatar_url }}
-              style={styles.avatar}
-            />
-          ) : (
-            <View style={[styles.avatar, styles.defaultAvatar]}>
-              <Ionicons name="person" size={40} color="#fff" />
-            </View>
-          )}
-          <TouchableOpacity style={styles.editAvatarButton}>
-            <Ionicons name="camera" size={16} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.profileInfo}>
-          <Text style={styles.userName}>{(user as any)?.user_metadata?.full_name || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email}</Text>
-          {(user as any)?.user_metadata?.bio && <Text style={styles.userBio}>{(user as any).user_metadata.bio}</Text>}
-
-          <View style={styles.levelContainer}>
-            <Text style={styles.levelText}>Level {profileStats?.level || 1}</Text>
-            <View style={styles.progressBar}>
-              <View
-                style={[styles.progressFill, { width: `${getLevelProgress() * 100}%` }]}
-              />
-            </View>
-            <Text style={styles.faithPointsText}>
-              {profileStats?.faithPoints || 0} FaithPoints
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => setEditProfileModal(true)}
-        >
-          <Ionicons name="pencil" size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
-    </View>
+    <ProfileHeader
+      user={user}
+      stats={{ faithPoints: profileStats?.faithPoints ?? 0, level: profileStats?.level ?? 1 }}
+      onEditPress={() => setEditProfileModal(true)}
+      onEditAvatar={handleEditAvatar}
+    />
   );
 
   const renderStatsGrid = () => (
-    <View style={styles.statsContainer}>
-      <Text style={styles.sectionTitle}>Your Journey</Text>
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Ionicons name="trophy" size={24} color={Colors.primary} />
-          <Text style={styles.statNumber}>{profileStats?.totalBadges || 0}</Text>
-          <Text style={styles.statLabel}>Badges</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Ionicons name="flame" size={24} color={Colors.faithGold} />
-          <Text style={styles.statNumber}>{profileStats?.currentStreak || 0}</Text>
-          <Text style={styles.statLabel}>Day Streak</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
-          <Text style={styles.statNumber}>{profileStats?.goalsCompleted || 0}</Text>
-          <Text style={styles.statLabel}>Goals</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Ionicons name="book" size={24} color={Colors.devotionalPurple} />
-          <Text style={styles.statNumber}>{profileStats?.devotionalsFinished || 0}</Text>
-          <Text style={styles.statLabel}>Devotionals</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Ionicons name="heart" size={24} color={Colors.error} />
-          <Text style={styles.statNumber}>{profileStats?.prayerSessions || 0}</Text>
-          <Text style={styles.statLabel}>Prayers</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Ionicons name="journal" size={24} color={Colors.warning} />
-          <Text style={styles.statNumber}>{profileStats?.journalEntries || 0}</Text>
-          <Text style={styles.statLabel}>Journal</Text>
-        </View>
-      </View>
-    </View>
+    <StatsGrid
+      stats={{
+        totalBadges: profileStats?.totalBadges ?? 0,
+        currentStreak: profileStats?.currentStreak ?? 0,
+        goalsCompleted: profileStats?.goalsCompleted ?? 0,
+        devotionalsFinished: profileStats?.devotionalsFinished ?? 0,
+        prayerSessions: profileStats?.prayerSessions ?? 0,
+        journalEntries: profileStats?.journalEntries ?? 0,
+      }}
+    />
   );
 
   const renderSubscriptionInfo = () => {
@@ -567,34 +550,22 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
         <ScrollView style={styles.modalContent}>
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Full Name</Text>
+            <Text style={styles.inputLabel}>First Name</Text>
             <TextInput
               style={styles.input}
-              value={profileForm.full_name}
-              onChangeText={(text) => setProfileForm({ ...profileForm, full_name: text })}
-              placeholder="Enter your full name"
+              value={(profileForm as any).firstName}
+              onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
+              placeholder="Enter your first name"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Bio</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={profileForm.bio}
-              onChangeText={(text) => setProfileForm({ ...profileForm, bio: text })}
-              placeholder="Tell us about yourself"
-              multiline
-              numberOfLines={3}
-            />
-          </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Location</Text>
+            <Text style={styles.inputLabel}>Last Name</Text>
             <TextInput
               style={styles.input}
-              value={profileForm.location}
-              onChangeText={(text) => setProfileForm({ ...profileForm, location: text })}
-              placeholder="Your location"
+              value={(profileForm as any).lastName}
+              onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
+              placeholder="Enter your last name"
             />
           </View>
         </ScrollView>
@@ -660,6 +631,40 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
           </View>
 
           <View style={styles.settingGroup}>
+            <Text style={styles.settingTitle}>Calendar</Text>
+
+            <View style={styles.settingItemColumn}>
+              <Text style={styles.settingLabel}>Week Start</Text>
+              <View style={styles.settingChipsRow}>
+                {(
+                  [
+                    { key: 'sunday', label: 'Sun' },
+                    { key: 'monday', label: 'Mon' },
+                    { key: 'tuesday', label: 'Tue' },
+                    { key: 'wednesday', label: 'Wed' },
+                    { key: 'thursday', label: 'Thu' },
+                    { key: 'friday', label: 'Fri' },
+                    { key: 'saturday', label: 'Sat' },
+                  ] as const
+                ).map((d) => {
+                  const active = preferences.weekStart === d.key;
+                  return (
+                    <TouchableOpacity
+                      key={d.key}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setPreferences({ ...preferences, weekStart: d.key })}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Set week start to ${d.label}`}
+                    >
+                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{d.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.settingGroup}>
             <Text style={styles.settingTitle}>Appearance</Text>
 
             <View style={styles.settingItem}>
@@ -682,23 +687,28 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {renderProfileHeader()}
-        {renderStatsGrid()}
-        {renderSubscriptionInfo()}
-        {renderRecentBadges()}
-        {renderMenuOptions()}
-      </ScrollView>
+      {/* Fixed white header area */}
+      {renderProfileHeader()}
+
+      {/* Body with rounded top; only its content scrolls */}
+      <View style={styles.bodyContainer}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {renderStatsGrid()}
+          <MetricsExplainer />
+          {renderSubscriptionInfo()}
+          {renderRecentBadges()}
+          {renderMenuOptions()}
+        </ScrollView>
+      </View>
 
       {renderEditProfileModal()}
       {renderSettingsModal()}
-
-      {/* Removed test buttons */}
     </SafeAreaView>
   );
 };
@@ -706,7 +716,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: Colors.hopeWhite,
   },
   loadingContainer: {
     flex: 1,
@@ -715,6 +725,46 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 32,
+  },
+  bodyContainer: {
+    marginTop: 0,
+    backgroundColor: Colors.anchorBlue,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+    flex: 1,
+  },
+  // Settings modal additions (chips)
+  settingItemColumn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  settingChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+  },
+  chipActive: {
+    backgroundColor: Colors.alertCoral,
+  },
+  chipText: {
+    color: Colors.darkerGray,
+    fontWeight: '600',
+  },
+  chipTextActive: {
+    color: Colors.hopeWhite,
   },
   headerGradient: {
     paddingBottom: 20,

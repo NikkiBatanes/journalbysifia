@@ -12,13 +12,12 @@ import {
   ViewStyle,
   TextStyle,
   ImageStyle,
-  StatusBar,
 } from 'react-native';
 
 // Navigation & Gestures
 import { GestureDetector } from 'react-native-gesture-handler';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-import { CommonActions } from '@react-navigation/native';
+// import { CommonActions } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Animation
@@ -37,6 +36,7 @@ import { Gesture } from 'react-native-gesture-handler';
 // Theme & Styling
 import { Colors, Fonts } from '../theme';
 import { Typography } from '../theme/typography';
+import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 
 // Components
 import DocumentCardView from '../components/DocumentCardView';
@@ -168,25 +168,12 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
     onPress={() => {
       console.log('Profile image pressed from PlaybookDetail');
       try {
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [
-              {
-                name: 'MainTabs',
-                state: {
-                  routes: [
-                    { name: 'Home' },
-                    { name: 'Playbooks' },
-                    { name: 'Devotionals' },
-                    { name: 'Profile' },
-                  ],
-                  index: 3,
-                },
-              },
-            ],
-          })
-        );
+        navigation.navigate('MainTabs', {
+          screen: 'Dashboard',
+          params: {
+            screen: 'UserProfile',
+          },
+        });
       } catch (navigationError) {
         console.log('Navigation error:', navigationError);
       }
@@ -201,8 +188,17 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
         resizeMode="cover"
       />
     ) : (
-      <View style={styles.profilePlaceholder}>
-        <Ionicons name="person" size={16} color="#fff" />
+      <View style={styles.initialAvatar}>
+        <Text style={styles.initialLetter}>{(() => {
+          const meta: any = (user as any)?.user_metadata || {};
+          const displayName =
+            (user as any)?.displayName ||
+            meta.full_name ||
+            [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() ||
+            (user as any)?.email ||
+            'User';
+          return (displayName || 'U').trim().charAt(0).toUpperCase();
+        })()}</Text>
       </View>
     )}
   </TouchableOpacity>
@@ -210,6 +206,8 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
 
 export default function PlaybookDetailScreen({ route, navigation }: PlaybookScreenProps) {
   const insets = useSafeAreaInsets();
+  // Status bar: force dark icons (black) on white header background
+  useScreenStatusBar('dark', Colors.hopeWhite);
   // Measure header height so we can place the card overlay precisely below it
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
@@ -1302,8 +1300,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   return (
     <View style={styles.container}>
-      {/* Make status bar translucent so stack can draw under it */}
-      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      {/* Status bar handled by useScreenStatusBar */}
 
       {/* In-screen header (replaces native header). Cards overlay will pass over this. */}
       <View style={[styles.headerSafeArea, { paddingTop: Math.max(insets.top - HEADER_TOP_ADJUST, 0) }]}>
@@ -1481,7 +1478,8 @@ interface PlaybookDetailStyles {
   chevronIcon: ViewStyle;
   profileButton: ViewStyle;
   profileImage: ImageStyle;
-  profilePlaceholder: ViewStyle;
+  initialAvatar: ViewStyle;
+  initialLetter: TextStyle;
   headerProgressContainer: ViewStyle;
   headerProgressRow: ViewStyle;
   headerProgressBarBg: ViewStyle;
@@ -1938,13 +1936,18 @@ const styles = StyleSheet.create<PlaybookDetailStyles>({
     height: 32,
     borderRadius: 16,
   },
-  profilePlaceholder: {
+  initialAvatar: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#666',
+    backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  initialLetter: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '700' as const,
   },
   headerProgressContainer: {
     marginLeft: 12,

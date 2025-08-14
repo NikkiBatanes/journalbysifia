@@ -11,7 +11,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  StatusBar,
   Animated,
   RefreshControl,
   PanResponder,
@@ -35,7 +34,8 @@ import QuickActionCard from '../components/dashboard/QuickActionCard';
 import StreakTracker from '../components/dashboard/StreakTracker';
 import WeeklyInsights from '../components/dashboard/WeeklyInsights';
 import AIInsights from '../components/dashboard/AIInsights';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 
 const { width, height } = Dimensions.get('window');
 
@@ -58,10 +58,40 @@ interface DashboardHomeScreenProps {
 }
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
+  // Limit FAB visibility to at most 2 shows across sessions
+  const [showFab, setShowFab] = useState(false);
+  const FAB_SHOW_KEY = 'dashboard_fab_shown_count';
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      (async () => {
+        try {
+          const raw = await AsyncStorage.getItem(FAB_SHOW_KEY);
+          const count = raw ? parseInt(raw, 10) : 0;
+          if (count < 2) {
+            if (isActive) setShowFab(true);
+            await AsyncStorage.setItem(FAB_SHOW_KEY, String(count + 1));
+          } else {
+            if (isActive) setShowFab(false);
+          }
+        } catch (e) {
+          // On error, default to hiding the FAB to avoid over-showing
+          if (isActive) setShowFab(false);
+        }
+      })();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
   const { user } = useAuth();
   const { subscription, usage } = useSubscription();
   const [refreshing, setRefreshing] = useState(false);
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
+
+  // Status bar: auto-detect from background
+  useScreenStatusBar('auto', '#F2F5F7');
 
   const floatingButtonScale = useRef(new Animated.Value(1)).current;
   const floatingButtonOpacity = useRef(new Animated.Value(0)).current;
@@ -105,11 +135,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     })
   ).current;
 
-  // Get user's first name
-  const firstName = user?.user_metadata?.first_name ||
-                   user?.user_metadata?.given_name ||
-                   user?.email?.split('@')[0] ||
-                   'Friend';
+  // Get user's first name with robust fallbacks
+  const firstName =
+    (user as any)?.firstName ||
+    user?.user_metadata?.first_name ||
+    (user?.user_metadata?.full_name ? String(user.user_metadata.full_name).trim().split(/\s+/)[0] : undefined) ||
+    (user as any)?.displayName?.split?.(' ')?.[0] ||
+    user?.user_metadata?.given_name ||
+    user?.email?.split('@')[0] ||
+    'Friend';
 
   // Set daily motivational text based on current date
   useEffect(() => {
@@ -283,8 +317,28 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         <TouchableOpacity
           style={styles.profileButton}
           onPress={() => navigation.navigate('UserProfile')}
+          activeOpacity={0.7}
         >
-          <Ionicons name="person-circle-outline" size={28} color={Colors.anchorBlue} />
+          {user?.user_metadata?.avatar_url ? (
+            <Image
+              source={{ uri: user.user_metadata.avatar_url }}
+              style={styles.profileImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.initialAvatar}>
+              <Text style={styles.initialLetter}>{(() => {
+                const meta: any = (user as any)?.user_metadata || {};
+                const displayName =
+                  (user as any)?.displayName ||
+                  meta.full_name ||
+                  [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() ||
+                  (user as any)?.email ||
+                  'User';
+                return (displayName || 'U').trim().charAt(0).toUpperCase();
+              })()}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -355,7 +409,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       {renderHeader()}
       {renderGreeting()}
@@ -477,7 +530,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         </ScrollView>
       </View>
 
-      {renderFloatingButton()}
+      {showFab ? renderFloatingButton() : null}
       {/* Removed test buttons */}
     </View>
   );
@@ -573,6 +626,24 @@ const styles = StyleSheet.create({
   },
   profileButton: {
     padding: 2,
+  },
+  profileImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  initialAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.alertCoral,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialLetter: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontWeight: '700' as const,
   },
   content: {
     flex: 1,
@@ -683,6 +754,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     alignSelf: 'center',
+  },
+  crystalIconBackground: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.anchorBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bottomSpacing: {
     height: 100,

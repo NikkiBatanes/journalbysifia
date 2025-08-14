@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, ScrollView, StyleSheet, StatusBar, Text, TouchableOpacity, Image } from 'react-native';
+import { View, ScrollView, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
 
 import { useFocusEffect } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
-import { CommonActions } from '@react-navigation/native';
+// import { CommonActions } from '@react-navigation/native';
+import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import PlaybookHeader from '../components/PlaybookHeader';
 import { Colors } from '../theme';
 import TruthInLoveCard from '../components/TruthInLoveCard';
@@ -61,25 +62,10 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
     onPress={() => {
       console.log('Profile image pressed from CardDetail');
       try {
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [
-              {
-                name: 'MainTabs',
-                state: {
-                  routes: [
-                    { name: 'Home' },
-                    { name: 'Playbooks' },
-                    { name: 'Devotionals' },
-                    { name: 'Profile' },
-                  ],
-                  index: 3,
-                },
-              },
-            ],
-          })
-        );
+        navigation.navigate('MainTabs', {
+          screen: 'Dashboard',
+          params: { screen: 'UserProfile' },
+        });
       } catch (error) {
         console.log('Navigation error:', error);
       }
@@ -94,14 +80,24 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
         resizeMode="cover"
       />
     ) : (
-      <View style={styles.profilePlaceholder}>
-        <Ionicons name="person" size={16} color="#fff" />
+      <View style={styles.initialAvatar}>
+        <Text style={styles.initialLetter}>{(() => {
+          const meta: any = (user as any)?.user_metadata || {};
+          const displayName =
+            (user as any)?.displayName ||
+            meta.full_name ||
+            [meta.first_name, meta.last_name].filter(Boolean).join(' ').trim() ||
+            (user as any)?.email ||
+            'User';
+          return (displayName || 'U').trim().charAt(0).toUpperCase();
+        })()}</Text>
       </View>
     )}
   </TouchableOpacity>
 );
 
 export default function CardDetailScreen({ route, navigation }: StackScreenProps<RootStackParamList, 'CardDetail'>) {
+  useScreenStatusBar('auto', Colors.anchorBlue);
   const [headerHeight, setHeaderHeight] = useState(150); // Default header height
   const {
     cardType,
@@ -254,7 +250,7 @@ export default function CardDetailScreen({ route, navigation }: StackScreenProps
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      {/* Status bar handled by useScreenStatusBar */}
 
       {/* Fixed Header */}
       <View
@@ -447,8 +443,6 @@ const styles = StyleSheet.create({
   },
   profileButton: {
     marginRight: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
     borderRadius: 16,
     overflow: 'hidden',
   },
@@ -464,6 +458,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#666',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  initialAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.alertCoral,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  initialLetter: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '700' as const,
   },
 
 });

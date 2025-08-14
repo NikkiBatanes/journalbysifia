@@ -65,6 +65,9 @@ export interface UserPreferences {
   fontSize: 'small' | 'medium' | 'large' | 'extra_large';
   colorScheme: 'default' | 'blue' | 'green' | 'purple' | 'pink' | 'warm';
 
+  // Calendar
+  weekStart?: 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+
   // Privacy
   privacy: {
     profileVisibility: 'public' | 'private';

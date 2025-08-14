@@ -79,8 +79,14 @@ const CustomTabBarComponent = ({
           // Notify parent component about tab press
           onTabPress(route.name);
 
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
+          if (!event.defaultPrevented) {
+            if (route.name === 'Dashboard') {
+              // Always route Home tab to the DashboardHome screen
+              navigation.navigate('Dashboard', { screen: 'DashboardHome' });
+            } else {
+              // Default behavior for other tabs
+              navigation.navigate(route.name);
+            }
           }
         };
 

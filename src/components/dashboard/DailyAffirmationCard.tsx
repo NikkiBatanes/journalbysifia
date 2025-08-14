@@ -211,7 +211,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: Colors.modalBlue,
+    backgroundColor: Colors.anchorBlue,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,

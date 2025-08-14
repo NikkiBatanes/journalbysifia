@@ -420,6 +420,22 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
         return { success: false, error };
       }
 
+      // Locally update auth state so UI reflects changes immediately (e.g., avatar_url)
+      try {
+        setAuthState(prev => {
+          if (!prev.user) return prev;
+          const mergedMeta = {
+            ...((prev.user as any).user_metadata || {}),
+            ...profileData,
+          };
+          const updatedUser = { ...(prev.user as any), user_metadata: mergedMeta } as User;
+          console.log('✅ Auth state user_metadata updated:', Object.keys(profileData));
+          return { ...prev, user: updatedUser };
+        });
+      } catch (e) {
+        console.warn('Could not update local auth state after profile update', e);
+      }
+
       return { success: true };
     } catch (error) {
       console.error('Update profile error:', error);
@@ -457,6 +473,18 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       if (error) {
         console.error('Update preferences error:', error);
         return { success: false, error };
+      }
+      // Optimistically update local auth state so UI reflects preference changes immediately
+      try {
+        setAuthState(prev => {
+          if (!prev.user) return prev;
+          const prevMeta = (prev.user as any).user_metadata || {};
+          const mergedMeta = { ...prevMeta, preferences };
+          const updatedUser = { ...(prev.user as any), user_metadata: mergedMeta } as User;
+          return { ...prev, user: updatedUser };
+        });
+      } catch (e) {
+        console.warn('Could not update local auth state after preferences update', e);
       }
 
       return { success: true };
