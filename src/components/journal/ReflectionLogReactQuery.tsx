@@ -850,11 +850,11 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             questionNumber={editingId && selectedEntry ? selectedEntry.question_number : undefined}
             styles={reflectionLogStyles}
             dateString={(() => {
-              const now = new Date();
-              const year = now.getFullYear();
-              const todayString = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-              const todayStringWithYear = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-              return year === new Date().getFullYear() ? todayString : todayStringWithYear;
+              const dateToUse = selectedDate; // Use the selected date from journal
+              const year = dateToUse.getFullYear();
+              const dateString = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+              const dateStringWithYear = dateToUse.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+              return year === new Date().getFullYear() ? dateString : dateStringWithYear;
             })()}
           />
       </Modal>

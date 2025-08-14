@@ -636,7 +636,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       title: newEntry.title.trim(),
       content: newEntry.content.trim(),
       tags: newEntry.tags,
-      date: new Date(),
+      date: dateString ? new Date(dateString) : new Date(), // Use dateString if provided, fallback to current date
       type: entryType,  // Use the determined type
       ...(selectedPrompt && { prompt: selectedPrompt }),
       ...(source && { source }),
