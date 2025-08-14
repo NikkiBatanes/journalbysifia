@@ -194,6 +194,8 @@ const generateWeeklyBreakdown = (transactions: any[]) => {
   transactions
     .filter(t => new Date(t.created_at) >= oneWeekAgo)
     .forEach(t => {
+      // Use raw getDay() for now - this maintains existing behavior
+      // TODO: Consider user's week start preference for future enhancement
       const dayIndex = new Date(t.created_at).getDay();
       breakdown[dayIndex].points += t.points || 0;
       breakdown[dayIndex].activities += 1;

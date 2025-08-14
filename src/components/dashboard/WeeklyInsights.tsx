@@ -47,8 +47,13 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
 
       // Calculate current week and previous week dates
       const now = new Date();
+      // TODO: Get user's week start preference from user settings
+      const weekStartsOn = 0; // Default to Sunday for now
       const currentWeekStart = new Date(now);
-      currentWeekStart.setDate(now.getDate() - now.getDay());
+      const dayOfWeek = now.getDay();
+      const adjustedDayIndex = dayOfWeek - weekStartsOn;
+      const daysToSubtract = adjustedDayIndex < 0 ? adjustedDayIndex + 7 : adjustedDayIndex;
+      currentWeekStart.setDate(now.getDate() - daysToSubtract);
       currentWeekStart.setHours(0, 0, 0, 0);
 
       const currentWeekEnd = new Date(currentWeekStart);

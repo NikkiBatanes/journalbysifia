@@ -4,7 +4,8 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Pencil, Check, Feather, CalendarDays } from 'lucide-react-native';
-import { format, addDays, startOfWeek, isSameDay, addWeeks, isToday } from 'date-fns';
+import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
+import { adjustDayIndexForWeekStart, getRawDayIndexFromAdjusted } from '../utils/weekStartUtils';
 import type { Day } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
@@ -88,7 +89,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     },
   }));
 
-  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(new Date().getDay());
+  const [selectedDayOfWeek, setSelectedDayOfWeek] = useState(
+    adjustDayIndexForWeekStart(new Date().getDay(), weekStartsOn)
+  );
 
   // Configure calendar locale to show uppercase weekday headers (SUN, MON, ...)
   // This affects all Calendar instances unless defaultLocale is changed later.
@@ -230,8 +233,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   // Always keep selectedDayOfWeek in sync with currentDate
   useEffect(() => {
-    setSelectedDayOfWeek(currentDate.getDay());
-  }, [currentDate]);
+    setSelectedDayOfWeek(adjustDayIndexForWeekStart(currentDate.getDay(), weekStartsOn));
+  }, [currentDate, weekStartsOn]);
 
   // Track scroll position and update current date based on visible week
   const handleScroll = (event: any) => {
@@ -265,7 +268,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
     // Update the current date and the selected day of week
     setCurrentDate(newDate);
-    setSelectedDayOfWeek(newDate.getDay());
+    setSelectedDayOfWeek(adjustDayIndexForWeekStart(newDate.getDay(), weekStartsOn));
 
     // Find which week this date is in
     const weekIndex = weeks.findIndex(week =>

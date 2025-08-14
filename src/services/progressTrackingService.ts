@@ -183,8 +183,13 @@ class ProgressTrackingService {
     try {
       const progress = await this.getUserProgress(userId);
       const now = new Date();
+      // TODO: Get user's week start preference from user settings
+      const weekStartsOn = 0; // Default to Sunday for now
       const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - now.getDay()); // Start of current week
+      const dayOfWeek = now.getDay();
+      const adjustedDayIndex = dayOfWeek - weekStartsOn;
+      const daysToSubtract = adjustedDayIndex < 0 ? adjustedDayIndex + 7 : adjustedDayIndex;
+      weekStart.setDate(now.getDate() - daysToSubtract); // Start of current week
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6); // End of current week
 
