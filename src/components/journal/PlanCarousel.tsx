@@ -6,6 +6,7 @@ import { Colors } from '../../theme/colors';
 import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
 import { TodosReactQuery } from './TodosReactQuery';
 import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from './TimeBlockReactQuery';
+import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
@@ -26,6 +27,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
+  const globalEditMode = useEditModeSafe();
 
 
 
@@ -130,12 +132,13 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
-                  // Only handle component tap navigation, expansion is handled by scroll
-                  if (onComponentTap) {
+                  // Only handle component tap navigation when not in edit mode
+                  if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
                     onComponentTap(item.id);
                   }
                 }}
                 style={styles.touchableComponent}
+                disabled={globalEditMode?.isGlobalEditMode}
               >
                 {React.cloneElement(item.component as React.ReactElement<any>, {
                   expanded: expandedIndex === i,

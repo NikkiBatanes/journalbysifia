@@ -14,6 +14,7 @@ import { Fonts } from '../../theme/fonts';
 import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
 import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
+import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8;
@@ -40,6 +41,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
+  const globalEditMode = useEditModeSafe();
 
   const handleScrollFeedback = useCallback(() => {
     try {
@@ -143,11 +145,12 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
-                  // Only handle component tap navigation, expansion is handled by scroll
-                  if (onComponentTap) {
+                  // Only handle component tap navigation when not in edit mode
+                  if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
                     onComponentTap(item.id);
                   }
                 }}
+                disabled={globalEditMode?.isGlobalEditMode}
                 style={styles.touchableComponent}
               >
                 {React.cloneElement(item.component as React.ReactElement<any>, {

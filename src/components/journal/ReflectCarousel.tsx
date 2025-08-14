@@ -15,6 +15,7 @@ import { ReflectionLogReactQuery } from './ReflectionLogReactQuery';
 import { GratitudeListReactQuery } from './GratitudeListReactQuery';
 import { TodayWinReactQuery } from './TodayWinReactQuery';
 import { LookingForwardReactQuery } from './LookingForwardReactQuery';
+import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
@@ -42,6 +43,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
+  const globalEditMode = useEditModeSafe();
 
   // Handle scroll feedback with sound
   const handleScrollFeedback = useCallback(() => {
@@ -149,11 +151,12 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => {
-                  // Only handle component tap navigation, expansion is handled by scroll
-                  if (onComponentTap) {
+                  // Only handle component tap navigation when not in edit mode
+                  if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
                     onComponentTap(item.id);
                   }
                 }}
+                disabled={globalEditMode?.isGlobalEditMode}
                 style={styles.touchableComponent}
               >
                 {React.cloneElement(item.component as React.ReactElement<any>, {
