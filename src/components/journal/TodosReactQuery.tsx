@@ -41,6 +41,38 @@ interface TodosProps {
   onExpand?: () => void;
 }
 
+// Helper to categorize the selected date
+const getDateCategory = (
+  targetDate: Date
+): 'today' | 'yesterday' | 'earlier' | 'future' => {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+  const diffMs = startOfToday.getTime() - startOfTarget.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'yesterday';
+  if (diffDays > 1) return 'earlier';
+  return 'future';
+};
+
+// Date-aware empty state copy for Todos (Today remains unchanged in render)
+const TODOS_EMPTY_COPY: Record<'yesterday' | 'earlier' | 'future', { title: string; subtitle: string }> = {
+  yesterday: {
+    title: 'Tasks from Yesterday',
+    subtitle: 'What tasks were you intending to do yesterday?',
+  },
+  earlier: {
+    title: 'Tasks from This Day',
+    subtitle: 'Recall the tasks\nyou intended to do then',
+  },
+  future: {
+    title: 'Tasks for This Day',
+    subtitle: 'Plan your steps and trust His leading',
+  },
+};
+
 const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel', viewMode, expanded, onExpand }) => {
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
@@ -592,6 +624,19 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
 
   // Custom empty state for Todos - show header and input when empty and not adding
   if (!isLoading && !error && todos.length === 0 && !shouldShowAddingMode) {
+    const dateCategory = getDateCategory(selectedDate);
+    const emptyTitle =
+      dateCategory === 'today'
+        ? 'Live Your Faith Through Action'
+        : TODOS_EMPTY_COPY[dateCategory as 'yesterday' | 'earlier' | 'future'].title;
+    const emptySubtitle =
+      dateCategory === 'today'
+        ? 'Add tasks to organize your day and walk in purpose.'
+        : TODOS_EMPTY_COPY[dateCategory as 'yesterday' | 'earlier' | 'future'].subtitle;
+    const buttonLabel =
+      dateCategory === 'future' ? 'Pray & List' :
+      (dateCategory === 'yesterday' || dateCategory === 'earlier') ? 'Revisit' :
+      'Begin';
     return (
       <JournalCard
         // Hide header icon/title/subtitle in empty state
@@ -621,18 +666,18 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              Live Your Faith Through Action
+              {emptyTitle}
             </Text>
           </View>
-          <Text style={styles.emptyStateSubtext} accessibilityRole="text">Add tasks to organize your day and walk in purpose.</Text>
+          <Text style={styles.emptyStateSubtext} accessibilityRole="text">{emptySubtitle}</Text>
           <TouchableOpacity
             style={styles.emptyStateButton}
             onPress={startAdding}
             accessibilityRole="button"
-            accessibilityLabel="Begin adding todos"
+            accessibilityLabel={`${buttonLabel} adding todos`}
           >
             <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>Begin</Text>
+            <Text style={styles.emptyStateButtonText}>{buttonLabel}</Text>
           </TouchableOpacity>
         </View>
       </JournalCard>
@@ -649,17 +694,45 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     console.log('getSubtitle called', { variant, showHeader, todosLength: todos.length });
     if (!showHeader) {return undefined;}
     if (variant === 'carousel' || variant === 'inline') {
-      if (todos.length === 0) {return 'Track your daily tasks';}
+      const category = getDateCategory(selectedDate);
+      if (todos.length === 0) {
+        if (shouldShowAddingMode) {
+          if (category === 'yesterday') return 'Revisit tasks you intended to do';
+          if (category === 'earlier') return 'Revisit tasks from this day';
+          if (category === 'future') return 'Pray & list tasks for this day';
+        }
+        return 'Track your daily tasks';
+      }
+      // Build the count phrase, respecting Today's existing wording
+      const countOnlyIncomplete = () =>
+        category === 'today'
+          ? `${todos.length} to-do${todos.length === 1 ? '' : 's'}`
+          : `${todos.length} task${todos.length === 1 ? '' : 's'}`;
+
+      const countAllCompleted = () =>
+        category === 'today'
+          ? `${completedCount} completed`
+          : `${completedCount} completed`;
+
+      const countMixed = () =>
+        category === 'today'
+          ? `${uncompletedCount} pending • ${completedCount} done`
+          : `${uncompletedCount} pending • ${completedCount} done`;
+
+      let base = '';
       if (completedCount === 0) {
-        // Only incomplete todos
-        return `${todos.length} to-do${todos.length === 1 ? '' : 's'}`;
+        base = countOnlyIncomplete();
+      } else if (uncompletedCount === 0) {
+        base = countAllCompleted();
+      } else {
+        base = countMixed();
       }
-      if (uncompletedCount === 0) {
-        // All completed
-        return `${completedCount} completed`;
-      }
-      // Both pending and done exist
-      return `${uncompletedCount} pending • ${completedCount} done`;
+
+      // Prefix category label for non-today
+      if (category === 'yesterday') return `Yesterday • ${base}`;
+      if (category === 'earlier') return `This day • ${base}`;
+      if (category === 'future') return `Future • ${base}`;
+      return base;
     }
     return 'Track your daily tasks';
   };

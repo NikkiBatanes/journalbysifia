@@ -47,6 +47,55 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   const dateStr = toLocalDateString(selectedDate);
   const userId = user?.id || '';
 
+  // Date category helpers (Today / Yesterday / Earlier)
+  const getDateCategory = (date: Date): 'today' | 'yesterday' | 'earlier' => {
+    const todayStr = toLocalDateString(new Date());
+    const targetStr = toLocalDateString(date);
+    if (targetStr === todayStr) { return 'today'; }
+    // compute yesterday by subtracting one day from today in local time
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = toLocalDateString(yesterday);
+    if (targetStr === yesterdayStr) { return 'yesterday'; }
+    return 'earlier';
+  };
+
+  const dateCategory = getDateCategory(selectedDate);
+
+  // Copy maps based on date category
+  const getDisplaySubtitle = (): string => {
+    switch (dateCategory) {
+      case 'today':
+        return 'Tomorrow in His Hands';
+      case 'yesterday':
+        return 'Yesterday in His Care';
+      default:
+        return 'This Day in His Plan';
+    }
+  };
+
+  const getEmptySubtitle = (): string => {
+    switch (dateCategory) {
+      case 'today':
+        return "Write what you're excited for, trusting in God's plan";
+      case 'yesterday':
+        return 'What were you looking forward to yesterday?';
+      default:
+        return 'Recall the anticipation from this day';
+    }
+  };
+
+  const getEditShortSubtitle = (): string | undefined => {
+    switch (dateCategory) {
+      case 'yesterday':
+        return 'Yesterday’s hope';
+      case 'earlier':
+        return 'Hope from then';
+      default:
+        return undefined; // Today unchanged
+    }
+  };
+
   // Determine if we should be in adding mode
   const shouldShowAddingMode = isAdding || isEditing || (viewMode === 'inline' && globalEditMode?.isGlobalEditMode);
 
@@ -418,10 +467,15 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     return null;
   }
 
+  // Determine subtitle for header: in adding/editing mode use short edit subtitle for non-today; otherwise display subtitle
+  const headerSubtitle = (hasContent || shouldShowAddingMode)
+    ? (shouldShowAddingMode && getEditShortSubtitle() ? getEditShortSubtitle()! : getDisplaySubtitle())
+    : undefined;
+
   return (
     <JournalCard
       title={hasContent || shouldShowAddingMode ? 'LOOKING FORWARD TO' : undefined}
-      subtitle={hasContent || shouldShowAddingMode ? 'Tomorrow\'s hope and anticipation' : undefined}
+      subtitle={headerSubtitle}
       icon={hasContent || shouldShowAddingMode ? <MaterialCommunityIcons name="white-balance-sunny" size={24} color={Colors.alertCoral} /> : undefined}
       showAddButton={hasContent ? !shouldShowAddingMode : false}
       onAdd={displayEntry ? editEntry : startAdding}
@@ -538,20 +592,22 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              Hope for Tomorrow
+              {getDisplaySubtitle()}
             </Text>
           </View>
           <Text style={styles.emptyStateSubtext} accessibilityRole="text">
-            Write what you're excited for, trusting in God's plan.
+            {getEmptySubtitle()}
           </Text>
           <TouchableOpacity
             style={styles.emptyStateButton}
             onPress={startAdding}
             accessibilityRole="button"
-            accessibilityLabel="Begin looking forward"
+            accessibilityLabel={dateCategory === 'today' ? 'Begin looking forward' : 'Revisit looking forward'}
           >
             <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>Begin</Text>
+            <Text style={styles.emptyStateButtonText}>
+              {dateCategory === 'today' ? 'Begin' : 'Revisit'}
+            </Text>
           </TouchableOpacity>
         </View>
       )}

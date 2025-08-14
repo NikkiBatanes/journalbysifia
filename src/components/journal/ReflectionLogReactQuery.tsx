@@ -390,16 +390,16 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       // Date-aware empty-state copy
       const emptyEyebrow = 'REFLECTION';
       let emptyTitle = 'Open Your Heart';
-      let emptySubtitle = 'Reflect on your emotions and faith to grow closer to God.';
+      let emptySubtitle = 'Reflect on your emotions and faith to grow closer to God';
       let emptyCTA = 'Begin';
 
       if (isSelectedYesterday) {
         emptyTitle = 'Revisit God’s Lessons';
-        emptySubtitle = 'Reflect on what you felt and learned yesterday.';
+        emptySubtitle = 'Reflect on what you\nfelt and learned yesterday';
         emptyCTA = 'Revisit';
       } else if (!isSelectedToday && !isSelectedYesterday && !future) {
         emptyTitle = 'Revisit God’s Lessons';
-        emptySubtitle = 'Capture any thoughts you want to remember from this day.';
+        emptySubtitle = 'Capture any thoughts you want to remember from this day';
         emptyCTA = 'Reflect';
       }
 

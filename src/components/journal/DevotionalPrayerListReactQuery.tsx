@@ -79,6 +79,30 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
 
   const sortedDates = Object.keys(groupedPrayers).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
+  // Determine date category for empty-state subtitle copy
+  const getDateCategory = (targetDate: Date): 'today' | 'yesterday' | 'earlier' | 'future' => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const diffMs = startOfToday.getTime() - startOfTarget.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return 'yesterday';
+    if (diffDays > 1) return 'earlier';
+    return 'future';
+  };
+
+  const getEmptySubtitle = () => {
+    if (hasContent) return undefined;
+    const category = getDateCategory(selectedDate);
+    if (category === 'today') return 'Shows after completing\ntoday’s devotional and tapping Pray';
+    if (category === 'yesterday') return 'Shows after completing\nyesterday’s devotional and tapping Pray';
+    if (category === 'earlier') return 'Shows after completing\nthis day’s devotional and tapping Pray';
+    // Future or fallback
+    return 'Complete devotionals to see your prayers here';
+  };
+
   const renderDevotionalPrayers = () => {
     const allPrayers = sortedDates.flatMap(date => groupedPrayers[date]);
 
@@ -254,9 +278,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
             </View>
             <View style={styles.titleContainer}>
               <Text style={styles.emptyStateTitle}>No Devotional Prayers</Text>
-              <Text style={styles.emptyStateSubtitle}>
-                Complete devotionals to see your prayers here
-              </Text>
+              <Text style={styles.emptyStateSubtitle}>{getEmptySubtitle()}</Text>
             </View>
           </View>
         )}
@@ -375,22 +397,28 @@ const styles = StyleSheet.create({
   },
   emptyStateContainer: {
     alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 12,
   },
   iconContainer: {
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   emptyStateIcon: {
     marginBottom: 8,
   },
   sectionLabel: {
-    fontSize: 10,
+    fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
+    fontSize: 12,
     color: Colors.mediumGray,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     textAlign: 'center',
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
   },
   titleContainer: {
     alignItems: 'center',

@@ -73,7 +73,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       return {
         header: "TODAY'S WIN",
         subtitle: "What's your biggest win today?",
-        emptySubtext: 'Share a moment where faith led to triumph today.',
+        emptySubtext: 'Share a moment where faith led to triumph today',
       } as const;
     }
     if (category === 'yesterday') {
@@ -81,9 +81,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         header: "YESTERDAY'S WIN",
         subtitle:
           count === 0
-            ? 'No wins yet from yesterday. Share a moment where faith led to triumph.'
-            : pluralizeCount(count, '1 win from yesterday.', (n) => `${n} wins from yesterday.`),
-        emptySubtext: 'No wins yet from yesterday. Share a moment where faith led to triumph.',
+            ? 'No wins yet from yesterday, share a moment where faith led to triumph'
+            : 'Your win from yesterday',
+        emptySubtext: 'No wins yet from yesterday, share a moment where faith led to triumph',
       } as const;
     }
     // earlier
@@ -91,9 +91,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       header: 'EARLIER WINS',
       subtitle:
         count === 0
-          ? 'No wins yet on this day. Share a moment where faith led to triumph.'
-          : pluralizeCount(count, '1 win on this day.', (n) => `${n} wins on this day.`),
-      emptySubtext: 'No wins yet on this day. Share a moment where faith led to triumph.',
+          ? 'No wins yet on this day, share a moment where faith led to triumph'
+          : 'Your win on this day',
+      emptySubtext: 'No wins yet on this day, share a moment where faith led to triumph',
     } as const;
   };
 
@@ -541,8 +541,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         const category = getDateCategory(selectedDate);
         // In edit/adding mode, use shorter subtitle for yesterday/earlier
         if (shouldShowAddingMode) {
-          if (category === 'yesterday') return 'Your win from yesterday.';
-          if (category === 'earlier') return 'Your win on this day.';
+          if (category === 'yesterday') return 'Your win from yesterday';
+          if (category === 'earlier') return 'Your win on this day';
           // today keeps existing
           return "What's your biggest win today?";
         }
@@ -688,10 +688,18 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                 style={styles.emptyStateButton}
                 onPress={startAdding}
                 accessibilityRole="button"
-                accessibilityLabel="Begin today's win"
+                accessibilityLabel={(() => {
+                  const category = getDateCategory(selectedDate);
+                  return category === 'today' ? "Begin today's win" : 'Revisit wins';
+                })()}
               >
                 <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                <Text style={styles.emptyStateButtonText}>Begin</Text>
+                <Text style={styles.emptyStateButtonText}>
+                  {(() => {
+                    const category = getDateCategory(selectedDate);
+                    return category === 'today' ? 'Begin' : 'Revisit';
+                  })()}
+                </Text>
               </TouchableOpacity>
             </View>
           );

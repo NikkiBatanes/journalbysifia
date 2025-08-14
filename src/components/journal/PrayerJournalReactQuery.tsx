@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 
 import { Colors } from '../../theme/colors';
@@ -66,6 +67,36 @@ const PRAYER_TYPES = [
   },
 ];
 
+// Determine date category relative to local time
+const getDateCategory = (targetDate: Date): 'today' | 'yesterday' | 'earlier' => {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+
+  const diffMs = startOfToday.getTime() - startOfTarget.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'yesterday';
+  return 'earlier';
+};
+
+// Dynamic empty-state copy by date category
+const PRAYER_EMPTY_COPY: Record<'today' | 'yesterday' | 'earlier', { title: string; subtitle: string }> = {
+  today: {
+    title: 'Draw Near in Prayer',
+    subtitle: 'Share your heart with the\nLord today',
+  },
+  yesterday: {
+    title: 'Prayers from Yesterday',
+    subtitle: 'Reflect on what you brought before God yesterday',
+  },
+  earlier: {
+    title: 'Prayers from This Day',
+    subtitle: 'Recall the prayers you offered\non this day',
+  },
+};
+
 // Helper function to format answered date
 const formatAnsweredDate = (dateString: string | null | undefined): string => {
   if (!dateString) {
@@ -121,6 +152,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
+  const dateCategory = getDateCategory(selectedDate);
 
   // React Query hooks
   const { data: prayerEntries = [] } = useACTSPrayerData(user?.id || '', dateStr);
@@ -481,8 +513,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     <ErrorBoundary>
       <JournalCard
         icon={hasContent || isEditing ? (
-          <Ionicons
-            name="hand-left-outline"
+          <MaterialCommunityIcons
+            name="hands-pray"
             size={24}
             color={Colors.alertCoral}
           />
@@ -508,8 +540,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         ) : (viewMode === 'inline' || viewMode === 'moments') ? null : (
           <View style={styles.emptyStateContainer}>
             <View style={styles.iconContainer}>
-              <Ionicons
-                name="hand-left-outline"
+              <MaterialCommunityIcons
+                name="hands-pray"
                 size={32}
                 color={Colors.mediumGray}
                 style={styles.emptyStateIcon}
@@ -525,18 +557,20 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                Connect with God in Prayer
+                {PRAYER_EMPTY_COPY[dateCategory].title}
               </Text>
             </View>
             <Text style={styles.emptyStateSubtext}>
-              Offer your personal prayers to deepen your faith.
+              {PRAYER_EMPTY_COPY[dateCategory].subtitle}
             </Text>
             <TouchableOpacity
               style={styles.emptyStateButton}
               onPress={toggleEditing}
             >
               <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-              <Text style={styles.emptyStateButtonText}>Begin</Text>
+              <Text style={styles.emptyStateButtonText}>
+                {dateCategory === 'today' ? 'Begin' : 'Revisit'}
+              </Text>
             </TouchableOpacity>
           </View>
         )}
@@ -730,7 +764,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     lineHeight: 24,
     letterSpacing: 0.1,
-    fontStyle: 'italic',
   },
   markAnsweredButton: {
     flexDirection: 'row',
@@ -787,7 +820,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,

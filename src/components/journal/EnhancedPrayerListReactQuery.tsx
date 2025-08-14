@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   View,
   Text,
@@ -75,30 +76,63 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const [isNotesFocused, setIsNotesFocused] = useState(false);
   const [inputKey, setInputKey] = useState(0);
   const [currentRequestedBy, setCurrentRequestedBy] = useState<string | undefined>(undefined);
+  // Auto-grow heights for multiline inputs
+  const [prayerHeight, setPrayerHeight] = useState(140);
+  const [notesHeight, setNotesHeight] = useState(60);
 
   const prayerInputRef = useRef<TextInput>(null);
 
   // Computed values
   const hasContent = peoplePrayers.length > 0;
-  const prayerRequests = peoplePrayers.filter(p => p.is_prayer_request === true);
+  // Only count requests that are not yet prayed
+  const prayerRequests = peoplePrayers.filter(p => p.is_prayer_request === true && p.prayed !== true);
   const personalPrayers = peoplePrayers.filter(p => p.is_prayer_request !== true);
+
+  // Counts should be by unique people, not entries
+  const toName = (p: PersonPrayer) => (p.person_name || '').trim();
+  const uniqueRequests = new Set(prayerRequests.map(toName));
+  const uniquePersonal = new Set(personalPrayers.map(toName));
+  const uniqueTotal = new Set<string>([...uniqueRequests, ...uniquePersonal]);
+
+  // Helper: categorize selected date
+  const getDateCategory = (targetDate: Date): 'today' | 'yesterday' | 'earlier' | 'future' => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const diffMs = startOfToday.getTime() - startOfTarget.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return 'yesterday';
+    if (diffDays > 1) return 'earlier';
+    return 'future';
+  };
+
+  const category = getDateCategory(selectedDate);
+  const isPast = category === 'yesterday' || category === 'earlier';
+  const pastEmptyTitle = 'No People in Prayer List';
+  const pastEmptySubtitle = category === 'yesterday'
+    ? 'Appears when people were prayed for or prayer requests were added yesterday'
+    : 'Appears when people were prayed for or prayer requests were added on this day';
 
   // Get dynamic subtitle based on context
   const getSubtitle = () => {
     if (isEditing) {
-      return activeTab === 'mine' ? 'Add prayer for someone' : 'Add prayer request';
+      return activeTab === 'mine' ? 'Write prayer for someone' : 'Write prayer request';
     }
     if (hasContent) {
-      const totalCount = peoplePrayers.length;
+      const totalCount = uniqueTotal.size;
       let subtitle = totalCount === 1 ? '1 Person in your prayer list' : `${totalCount} People in your prayer list`;
 
       // Add breakdown on new line with requests first
-      if (prayerRequests.length > 0 && personalPrayers.length > 0) {
-        subtitle += `\n${prayerRequests.length} Requests • ${personalPrayers.length} Prayed for`;
-      } else if (prayerRequests.length > 0) {
-        subtitle += `\n${prayerRequests.length} Request${prayerRequests.length > 1 ? 's' : ''}`;
-      } else if (personalPrayers.length > 0) {
-        subtitle += `\n${personalPrayers.length} Prayed for`;
+      const reqCount = uniqueRequests.size;
+      const prayedForCount = uniquePersonal.size;
+      if (reqCount > 0 && prayedForCount > 0) {
+        subtitle += `\n${reqCount} Request${reqCount > 1 ? 's' : ''} • ${prayedForCount} Prayed for`;
+      } else if (reqCount > 0) {
+        subtitle += `\n${reqCount} Request${reqCount > 1 ? 's' : ''}`;
+      } else if (prayedForCount > 0) {
+        subtitle += `\n${prayedForCount} Prayed for`;
       }
 
       return subtitle;
@@ -290,48 +324,57 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         <View style={[styles.inputContainer, isNameFocused && styles.inputFocused]}>
           <TextInput
             key={`name-${inputKey}`}
-            style={styles.input}
+            style={[styles.input, styles.singleLineInput]}
             placeholder={activeTab === 'mine' ? 'Who are you praying for?' : 'Who is requesting prayer?'}
-            placeholderTextColor={Colors.trustGrey}
+            placeholderTextColor={Colors.mediumGray}
             value={name}
             onChangeText={setName}
             onFocus={() => setIsNameFocused(true)}
             onBlur={() => setIsNameFocused(false)}
             autoCapitalize="words"
+            textAlignVertical="center"
             keyboardAppearance="dark"
           />
         </View>
 
-        <View style={[styles.prayerInputContainer, (isPrayerFocused || isNotesFocused) && styles.inputFocused]}>
+        <View style={[styles.prayerInputContainer, isPrayerFocused && styles.inputFocused]}>
           <TextInput
             key={`prayer-${inputKey}`}
             ref={prayerInputRef}
-            style={[styles.input, styles.prayerInput]}
+            style={[
+              styles.input,
+              styles.prayerInput,
+              { height: Math.max(140, prayerHeight) },
+            ]}
             placeholder={activeTab === 'mine' ? 'What would you like to pray for them?' : 'What is the prayer request?'}
-            placeholderTextColor={Colors.trustGrey}
+            placeholderTextColor={Colors.mediumGray}
             value={prayer}
             onChangeText={setPrayer}
             onFocus={() => setIsPrayerFocused(true)}
             onBlur={() => setIsPrayerFocused(false)}
             multiline
+            scrollEnabled={false}
             textAlignVertical="top"
+            onContentSizeChange={e => setPrayerHeight(e.nativeEvent.contentSize.height)}
             keyboardAppearance="dark"
           />
           {/* Integrated Notes Section - Only show in 'Mine' tab */}
           {activeTab === 'mine' && (
             <View style={styles.notesSection}>
-              <Text style={styles.notesLabel}>Notes (optional):</Text>
+              <Text style={styles.notesLabel}>{currentRequestedBy ? 'Prayer Request:' : 'Notes (optional):'}</Text>
               <TextInput
                 key={`notes-${inputKey}`}
-                style={styles.notesInput}
+                style={[styles.notesInput, { height: Math.max(60, notesHeight) }]}
                 placeholder="Add any additional notes here..."
-                placeholderTextColor={Colors.trustGrey}
+                placeholderTextColor={Colors.mediumGray}
                 value={notes}
                 onChangeText={setNotes}
                 onFocus={() => setIsNotesFocused(true)}
                 onBlur={() => setIsNotesFocused(false)}
                 multiline
+                scrollEnabled={false}
                 textAlignVertical="top"
+                onContentSizeChange={e => setNotesHeight(e.nativeEvent.contentSize.height)}
                 keyboardAppearance="dark"
               />
             </View>
@@ -376,11 +419,12 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   // Render existing prayers
   const renderExistingPrayers = () => {
     // Split prayers into categories
-    const localPrayerRequests = peoplePrayers.filter(item => item.is_prayer_request === true);
+    // Show only unprayed requests in the Requests section
+    const localPrayerRequests = peoplePrayers.filter(item => item.is_prayer_request === true && item.prayed !== true);
     const prayedForPrayers = peoplePrayers.filter(item => item.is_prayer_request !== true);
 
     const renderPrayerItem = (item: PersonPrayer) => (
-      <TouchableOpacity key={item.id} style={styles.prayerItem} onPress={() => {}}>
+      <View key={item.id} style={styles.prayerItem}>
         <View style={styles.prayerHeader}>
           <View style={styles.prayerHeaderLeft}>
             <View style={styles.prayerTypeIndicator}>
@@ -414,12 +458,22 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           <Text style={styles.prayerText}>
             {item.content || item.notes}
           </Text>
-          {/* Show Prayer Request notes when user wrote their own prayer AND there's a request */}
-          {(item.requested_by || item.metadata?.requested_by) && item.notes && item.content && (
-            <Text style={styles.notesText} numberOfLines={3}>
-              <Text style={styles.notesLabel}>Prayer Request: </Text>
-              {item.notes}
-            </Text>
+          {/* Show Prayer Request label (and notes if present) for personal prayers that came from a request */}
+          {(item.requested_by || item.metadata?.requested_by) && item.content && (
+            <View style={styles.notesBox}>
+              <Ionicons
+                name="mail-unread"
+                size={12}
+                color={Colors.alertCoral}
+                style={styles.prayedRequestIcon}
+              />
+              <Text style={[styles.notesText, styles.notesTextInside]} numberOfLines={3}>
+                <Text style={styles.notesLabel}>
+                  {`Prayer Request${item.notes ? ': ' : ''}`}
+                </Text>
+                {item.notes ?? ''}
+              </Text>
+            </View>
           )}
           {/* Show regular notes for personal prayers (not from requests) */}
           {!(item.requested_by || item.metadata?.requested_by) && item.notes && item.content && (
@@ -444,15 +498,14 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             <Text style={styles.addButtonText}>{`Pray for ${item.person_name} now`}</Text>
           </TouchableOpacity>
         )}
-      </TouchableOpacity>
+      </View>
     );
 
     return (
-      <ScrollView
+      <View
         style={[styles.prayerList, styles.scrollViewFlex]}
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={false}
       >
+        <View style={styles.scrollViewContent}>
         {/* Prayer Requests Section */}
         <View>
           {localPrayerRequests.length > 0 && (
@@ -477,7 +530,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             </>
           )}
         </View>
-      </ScrollView>
+        </View>
+      </View>
     );
   };
 
@@ -494,20 +548,12 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   return (
     <ErrorBoundary>
       <JournalCard
-        icon={hasContent || isEditing ? (
-          <View style={styles.headerIconContainer}>
-            <Ionicons
-              name="people"
-              size={24}
-              color={Colors.alertCoral}
-            />
-            <Ionicons
-              name="heart"
-              size={10}
-              color={Colors.alertCoral}
-              style={styles.heartOverlay}
-            />
-          </View>
+        icon={(hasContent || isEditing) ? (
+          <MaterialCommunityIcons
+            name="account-heart-outline"
+            size={24}
+            color={Colors.alertCoral}
+          />
         ) : undefined}
         title={hasContent || isEditing ? 'PRAYER LIST FOR PEOPLE' : undefined}
         subtitle={hasContent || isEditing ? getSubtitle() : undefined}
@@ -528,17 +574,11 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           <View style={styles.emptyStateContainer}>
             <View style={styles.emptyIconContainer}>
               <View style={styles.iconContainer}>
-                <Ionicons
-                  name="people"
+                <MaterialCommunityIcons
+                  name="account-heart-outline"
                   size={32}
                   color={Colors.mediumGray}
-                  style={styles.emptyStateIcon}
-                />
-                <Ionicons
-                  name="heart"
-                  size={14}
-                  color={Colors.mediumGray}
-                  style={styles.heartOverlay}
+                  style={[styles.emptyStateIcon, styles.flippedIcon]}
                 />
               </View>
               <Text style={styles.sectionLabel} accessibilityRole="text">
@@ -552,21 +592,25 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                Start your prayer list
+                {isPast ? pastEmptyTitle : 'Start your prayer list'}
               </Text>
             </View>
             <Text style={styles.emptyStateSubtext} accessibilityRole="text">
-              Add people you'd like to pray for or prayer requests from others
+              {isPast
+                ? pastEmptySubtitle
+                : "Add people you'd like to pray for or prayer requests from others"}
             </Text>
-            <TouchableOpacity
-              style={styles.emptyStateButton}
-              onPress={toggleEditing}
-              accessibilityRole="button"
-              accessibilityLabel="Begin creating prayer list"
-            >
-              <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-              <Text style={styles.emptyStateButtonText}>Begin</Text>
-            </TouchableOpacity>
+            {!isPast && (
+              <TouchableOpacity
+                style={styles.emptyStateButton}
+                onPress={toggleEditing}
+                accessibilityRole="button"
+                accessibilityLabel="Begin creating prayer list"
+              >
+                <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                <Text style={styles.emptyStateButtonText}>Begin</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </JournalCard>
@@ -606,6 +650,9 @@ const styles = StyleSheet.create({
   emptyStateIcon: {
     marginBottom: 8,
     opacity: 0.8,
+  },
+  flippedIcon: {
+    transform: [{ scaleX: -1 }],
   },
   sectionLabel: {
     fontFamily: Fonts.semiBold,
@@ -765,7 +812,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: 'rgba(255, 255, 255, 0.7)',
     fontFamily: Fonts.medium,
-    fontSize: 14,
+    fontSize: 12,
   },
   activeTabText: {
     color: Colors.hopeWhite,
@@ -781,34 +828,40 @@ const styles = StyleSheet.create({
   // Inputs
   inputContainer: {
     marginBottom: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'transparent',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   inputFocused: {
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   input: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    padding: 14,
+    padding: 16,
     fontFamily: Fonts.regular,
+    lineHeight: 24,
+  },
+  singleLineInput: {
+    height: 48,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    lineHeight: 20,
   },
   prayerInputContainer: {
     marginBottom: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'transparent',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     minHeight: 180,
-    padding: 4,
+    padding: 0,
   },
   prayerInput: {
-    padding: 14,
+    padding: 16,
     textAlignVertical: 'top',
-    minHeight: 100,
-    paddingBottom: 10,
+    minHeight: 140,
   },
   notesSection: {
     borderTopWidth: 1,
@@ -944,6 +997,29 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     padding: 8,
     borderRadius: 8,
+  },
+  notesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginTop: 8,
+  },
+  prayedRequestIcon: {
+    marginTop: 0,
+  },
+  notesBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  notesTextInside: {
+    backgroundColor: 'transparent',
+    padding: 0,
+    marginTop: 0,
   },
   addButton: {
     flexDirection: 'row',

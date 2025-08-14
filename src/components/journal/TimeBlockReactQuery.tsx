@@ -550,10 +550,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
   const headerSubtitle = useMemo(() => {
     if (!hasItems && !shouldShowAddingMode) {return undefined;}
-    if (future) {return 'Planned in faith, ready to begin.';}
-    if (isToday) {return 'Align your time with what matters.';}
-    if (isYesterday) {return 'How you spent your time.';}
-    return 'What filled your time on this day.';
+    if (future) {return 'Planned in faith, ready to begin';}
+    if (isToday) {return 'Align your time with what matters';}
+    if (isYesterday) {return 'How you spent your time';}
+    return 'What filled your time on this day';
   }, [hasItems, shouldShowAddingMode, future, isToday, isYesterday]);
 
   // Analytics and error tracking
@@ -761,7 +761,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           {isYesterday && (
             <>
               <Text style={styles.emptyStateTitle}>Revisit Yesterday</Text>
-              <Text style={styles.emptyStateText}>Capture how you spent your time</Text>
+              <Text style={styles.emptyStateText}>Capture how you spent your time yesterday</Text>
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}

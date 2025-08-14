@@ -468,19 +468,21 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           </View>
           <Text style={styles.emptyStateSubtext} accessibilityRole="text">
             {isYesterday
-              ? 'Pause to notice what God did yesterday.'
+              ? 'Pause to notice what God did yesterday'
               : isEarlier
-                ? 'Note ways God was present on this day.'
-                : 'Note blessings to cultivate a heart of gratitude.'}
+                ? 'Note ways God was present\non this day'
+                : 'Note blessings to\ncultivate a heart of gratitude'}
           </Text>
           <TouchableOpacity
             style={styles.emptyStateButton}
             onPress={startAdding}
             accessibilityRole="button"
-            accessibilityLabel="Begin gratitude list"
+            accessibilityLabel={(isYesterday || isEarlier) ? 'Revisit gratitude list' : 'Begin gratitude list'}
           >
             <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>Begin</Text>
+            <Text style={styles.emptyStateButtonText}>
+              {(isYesterday || isEarlier) ? 'Revisit' : 'Begin'}
+            </Text>
           </TouchableOpacity>
         </View>
       );
@@ -645,12 +647,16 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     ? ((hasContent && (isYesterday || isEarlier))
         ? (isYesterday
             ? (count === 1
-                ? '1 moment of gratitude yesterday.'
-                : `You gave thanks ${count} time${pluralS(count)} yesterday.`)
+                ? '1 moment of gratitude yesterday'
+                : `You gave thanks ${count} time${pluralS(count)} yesterday`)
             : (count === 1
-                ? '1 moment remembered on this day.'
-                : `${count} moments remembered on this day.`))
-        : "Reflect on your gratitude today")
+                ? '1 moment remembered on this day'
+                : `${count} moments remembered on this day`))
+        : (isYesterday
+            ? 'Reflect on your gratitude yesterday'
+            : (isEarlier
+                ? 'Reflect on your gratitude on this day'
+                : 'Reflect on your gratitude today')))
     : undefined;
 
   return (
