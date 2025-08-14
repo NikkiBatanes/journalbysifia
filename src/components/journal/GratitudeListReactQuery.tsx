@@ -23,6 +23,10 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { GratitudeSkeleton } from '../SkeletonLoader/GratitudeSkeleton';
 import { analytics } from '../../utils/analytics';
 
+// Pluralization helpers
+const pluralS = (count: number) => (count === 1 ? '' : 's');
+const entryWord = (count: number) => (count === 1 ? 'entry' : 'entries');
+
 interface GratitudeItem {
   id: string;
   text: string;
@@ -56,6 +60,16 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Auth and date context
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
+
+  // Determine date category: today, yesterday, earlier
+  const now = new Date();
+  const todayStr = toLocalDateString(now);
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const yesterdayStr = toLocalDateString(yesterday);
+  const isToday = dateStr === todayStr;
+  const isYesterday = dateStr === yesterdayStr;
+  const isEarlier = !isToday && !isYesterday;
 
   // React Query hooks with performance tracking
   const loadStartTime = React.useRef<number>(Date.now());
@@ -449,11 +463,15 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               numberOfLines={1}
               ellipsizeMode="tail"
             >
-              Give Thanks Today
+              {isYesterday ? 'Gratitude for Yesterday' : isEarlier ? 'Gratitude on This Day' : 'Give Thanks Today'}
             </Text>
           </View>
           <Text style={styles.emptyStateSubtext} accessibilityRole="text">
-            Note blessings to cultivate a heart of gratitude.
+            {isYesterday
+              ? 'Pause to notice what God did yesterday.'
+              : isEarlier
+                ? 'Note ways God was present on this day.'
+                : 'Note blessings to cultivate a heart of gratitude.'}
           </Text>
           <TouchableOpacity
             style={styles.emptyStateButton}
@@ -474,6 +492,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
     return (
       <View style={styles.itemsContainer}>
+        {/* Removed inline summary bar and 'Add another' CTA; summary now shown in header subtitle */}
         {visibleItems.map((item, index) => (
         <View
           key={item.id}
@@ -596,7 +615,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             />
           }
           title="GRATITUDE LIST"
-          subtitle="Reflect on what you're thankful for"
+          subtitle="Reflect on your gratitude today"
           showAddButton={true}
           onAdd={() => {}} // Disabled during loading
         >
@@ -620,25 +639,39 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     return null;
   }
 
+  // Dynamic subtitle: show count summary for Yesterday/Earlier when there is content
+  const count = gratitudeItems.length;
+  const dynamicSubtitle = (hasContent || shouldShowAddingMode)
+    ? ((hasContent && (isYesterday || isEarlier))
+        ? (isYesterday
+            ? (count === 1
+                ? '1 moment of gratitude yesterday.'
+                : `You gave thanks ${count} time${pluralS(count)} yesterday.`)
+            : (count === 1
+                ? '1 moment remembered on this day.'
+                : `${count} moments remembered on this day.`))
+        : "Reflect on your gratitude today")
+    : undefined;
+
   return (
     <ErrorBoundary name="GratitudeListReactQuery">
       <JournalCard
-      icon={(hasContent || shouldShowAddingMode) ? (
-        <MaterialCommunityIcons
-          name="heart-circle-outline"
-          size={24}
-          color={Colors.alertCoral}
-        />
-      ) : undefined}
-      title={(hasContent || shouldShowAddingMode) ? 'GRATITUDE LIST' : undefined}
-      subtitle={(hasContent || shouldShowAddingMode) ? "Reflect on what you're thankful for" : undefined}
-      showAddButton={hasContent ? !shouldShowAddingMode : false}
-      onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
-      isAdding={shouldShowAddingMode}
-      viewMode={viewMode}
-      expanded={expanded}
-      onExpand={onExpand}
-    >
+        icon={(hasContent || shouldShowAddingMode) ? (
+          <MaterialCommunityIcons
+            name="heart-circle-outline"
+            size={24}
+            color={Colors.alertCoral}
+          />
+        ) : undefined}
+        title={(hasContent || shouldShowAddingMode) ? 'GRATITUDE LIST' : undefined}
+        subtitle={dynamicSubtitle}
+        showAddButton={hasContent ? !shouldShowAddingMode : false}
+        onAdd={gratitudeItems.length > 0 ? startEditing : startAdding}
+        isAdding={shouldShowAddingMode}
+        viewMode={viewMode}
+        expanded={expanded}
+        onExpand={onExpand}
+      >
       <View
         accessibilityRole="list"
         accessibilityLabel={`Gratitude list with ${gratitudeItems.length} items`}

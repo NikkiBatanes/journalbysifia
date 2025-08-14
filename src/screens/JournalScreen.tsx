@@ -1,7 +1,7 @@
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, RefreshControl, StatusBar, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Pencil, Check, Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
@@ -24,6 +24,7 @@ import { JournalSystem } from '../systems/journal';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
+import { supabase } from '../services/supabaseClient';
 
 export type JournalScreenRef = {
   resetToCurrentDate: () => void;
@@ -480,31 +481,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     }, 1000);
   }, [isHeaderCollapsed, scrollY, setShowTabBar]);
 
-  // Pull-to-refresh function
-  const handleRefresh = useCallback(async () => {
-    if (!user || isRefreshing) {return;}
-
-    setIsRefreshing(true);
-
-    try {
-      console.log('Starting pull-to-refresh for all journal data...');
-
-      // Force refresh all journal data (gratitude, todos, today_win, looking_forward)
-      await forceRefreshAllJournalData(user.id, currentDate);
-
-      // Force refresh reflection entries
-      await forceRefreshReflectionEntries(user.id, currentDate);
-
-      // Increment refresh key to trigger re-render of all components
-      setRefreshKey(prev => prev + 1);
-
-      console.log('Pull-to-refresh completed successfully');
-    } catch (error) {
-      console.error('Error during pull-to-refresh:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [user, currentDate, isRefreshing]);
+  // Pull-to-refresh REMOVED - using skeleton loading instead to prevent logout issues
 
   return (
     <View style={styles.container}>
@@ -579,14 +556,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               scrollEventThrottle={16}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
-            refreshControl={
-              <RefreshControl
-                refreshing={isRefreshing}
-                onRefresh={handleRefresh}
-                tintColor={Colors.alertCoral}
-                colors={[Colors.alertCoral]}
-              />
-            }
           >
             <View style={styles.carouselContainer}>
               <PlanCarousel
@@ -657,14 +626,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                   contentContainerStyle={styles.scrollViewContent}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={isRefreshing}
-                      onRefresh={handleRefresh}
-                      tintColor={Colors.alertCoral}
-                      colors={[Colors.alertCoral]}
-                    />
-                  }
                   onScroll={handleContentScroll}
                   scrollEventThrottle={16}
                 >
@@ -907,7 +868,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   scrollViewContent: {
-    paddingTop: 4, // vertical padding only
+    paddingTop: 24, // vertical padding only (increased to restore spacing)
     paddingBottom: 100,
     paddingHorizontal: 0,
     gap: 0, // Add gap between carousel items

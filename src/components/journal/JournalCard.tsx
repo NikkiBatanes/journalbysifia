@@ -353,6 +353,8 @@ const styles = StyleSheet.create({
   icon: {
     position: 'absolute',
     left: 0,
+    top: 0,
+    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
     width: 24, // Fixed width for consistent spacing
