@@ -402,26 +402,22 @@ const styles = StyleSheet.create({
   },
   // Skeleton styles
   skeletonPill: {
-    backgroundColor: Colors.faithGold,
-    opacity: 0.3,
+    backgroundColor: '#E5E7EB', // light gray
   },
   skeletonText: {
     height: 12,
     width: 80,
-    backgroundColor: Colors.faithGold,
-    opacity: 0.5,
+    backgroundColor: '#D1D5DB', // gray-300
     borderRadius: 6,
     alignSelf: 'center',
   },
   skeletonUsagePill: {
-    backgroundColor: Colors.faithGold,
-    opacity: 0.2,
+    backgroundColor: '#F1F5F9', // very light gray
   },
   skeletonUsageItem: {
     height: 10,
     width: 24,
-    backgroundColor: Colors.faithGold,
-    opacity: 0.4,
+    backgroundColor: '#D1D5DB', // gray-300
     borderRadius: 5,
   },
 });
