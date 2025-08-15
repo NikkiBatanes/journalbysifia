@@ -185,10 +185,16 @@ export const useSubscription = (): UseSubscriptionResult => {
   const getSubscriptionLimits = (tier: string) => {
     const limitsMap: Record<string, any> = {
       free_trial: { playbooks: 2, devotionals: 2, intelligenceEnabled: false },
+      seeker: { playbooks: 2, devotionals: 2, intelligenceEnabled: false },
+      spark: { playbooks: 8, devotionals: 8, intelligenceEnabled: false },
+      growth: { playbooks: 20, devotionals: 20, intelligenceEnabled: true },
+      transformation: { playbooks: -1, devotionals: -1, intelligenceEnabled: true },
+      family: { playbooks: -1, devotionals: -1, intelligenceEnabled: true },
+      // Legacy support
+      basic: { playbooks: 2, devotionals: 2, intelligenceEnabled: false },
       starter: { playbooks: 8, devotionals: 8, intelligenceEnabled: false },
       lite: { playbooks: 20, devotionals: 20, intelligenceEnabled: true },
       pro: { playbooks: -1, devotionals: -1, intelligenceEnabled: true },
-      family: { playbooks: -1, devotionals: -1, intelligenceEnabled: true },
       enterprise: { playbooks: -1, devotionals: -1, intelligenceEnabled: true },
     };
     return limitsMap[tier] || limitsMap.free_trial;

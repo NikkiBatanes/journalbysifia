@@ -3,27 +3,30 @@
  * Enterprise-grade dashboard home screen with comprehensive faith-based features
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
   Animated,
-  RefreshControl,
   PanResponder,
+  Dimensions,
+  Alert,
+  RefreshControl,
+  Platform,
+  StyleSheet,
   Image,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { Colors } from '../theme/colors';
-import { Fonts } from '../theme';
-import { useTheme } from '../theme/ThemeContext';
-import { dashboardNavigation } from '../services/NavigationManager';
+import { useTheme } from '../hooks/useTheme';
+import { intelligenceService } from '../services/intelligenceService';
+import { subscriptionService } from '../services/subscriptionService';
 
 import DailyAffirmationCard from '../components/dashboard/DailyAffirmationCard';
 import DailyBibleVerseCard from '../components/dashboard/DailyBibleVerseCard';
@@ -60,6 +63,290 @@ interface DashboardHomeScreenProps {
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
   const theme = useTheme();
+  const Colors = theme.colors;
+  const Fonts = theme.typography;
+
+  // Create styles using theme values
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: Colors.hopeWhite,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      paddingHorizontal: 20,
+      paddingTop: 60,
+      paddingBottom: 12,
+      backgroundColor: Colors.hopeWhite,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: Colors.primary,
+    },
+    subscriptionBadge: {
+      backgroundColor: Colors.faithGold,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 16,
+      marginLeft: 12,
+    },
+    subscriptionText: {
+      color: Colors.hopeWhite,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    profileButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: Colors.lightGray,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    scrollContainer: {
+      flex: 1,
+    },
+    content: {
+      flex: 1,
+      backgroundColor: Colors.anchorBlue,
+      borderTopLeftRadius: 32,
+      borderTopRightRadius: 32,
+      overflow: 'hidden',
+      // Increase overlap so rounded corners are clearly visible
+      marginTop: -20,
+      paddingTop: 0,
+      position: 'relative',
+      zIndex: 2,
+      // subtle top elevation so corners are visible
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 6,
+    },
+    sectionHeader: {
+      marginTop: 24,
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: Colors.text,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 16,
+    },
+    playbookLabelContainer: {
+      marginTop: 24,
+      marginBottom: 16,
+      overflow: 'hidden',
+    },
+    playbookLabelClip: {
+      overflow: 'hidden',
+    },
+    playbookLabel: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: Colors.text,
+    },
+    bottomSpacing: {
+      height: 100,
+    },
+    floatingButton: {
+      position: 'absolute',
+      bottom: 30,
+      right: 20,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: Colors.spiritualPink,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: Colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    floatingButtonText: {
+      color: Colors.hopeWhite,
+      fontSize: 24,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+    counterBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.hopeWhite,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      gap: 4,
+      // Remove elevation/shadow; use subtle border instead
+      borderWidth: 1,
+      borderColor: Colors.faithGold,
+    },
+    counterText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: Colors.anchorBlue,
+    },
+    iconButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'transparent',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    notificationBadge: {
+      position: 'absolute',
+      top: -2,
+      right: -2,
+      backgroundColor: Colors.alertCoral,
+      borderRadius: 10,
+      minWidth: 20,
+      height: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    notificationCount: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: Colors.hopeWhite,
+    },
+    profileImage: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: Colors.lightGray,
+    },
+    initialAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: Colors.alertCoral,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    initialLetter: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: Colors.hopeWhite,
+    },
+    greetingSection: {
+      backgroundColor: Colors.hopeWhite,
+      paddingHorizontal: 20,
+      paddingTop: 0,
+      paddingBottom: 16,
+    },
+    greeting: {
+      fontSize: 24,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+      color: Colors.anchorBlue,
+      marginTop: 0,
+      marginBottom: 2,
+    },
+    motivationalText: {
+      fontSize: 14,
+      color: Colors.anchorBlue,
+      fontWeight: '600',
+      opacity: 1,
+      marginTop: 0,
+      marginBottom: 12,
+    },
+    placeholderCard: {
+      backgroundColor: Colors.cardBackground,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+      shadowColor: Colors.cardShadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      borderWidth: 1,
+      borderColor: Colors.cardBorder,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 12,
+      gap: 8,
+    },
+    cardTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: Colors.text,
+    },
+    cardSubtitle: {
+      fontSize: 14,
+      color: Colors.secondary,
+      marginBottom: 8,
+    },
+    comingSoonBadge: {
+      backgroundColor: Colors.faithGold,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    comingSoonText: {
+      fontSize: 10,
+      fontWeight: '600',
+      color: Colors.hopeWhite,
+    },
+    scrollView: {
+      flex: 1,
+      backgroundColor: 'transparent',
+    },
+    scrollContent: {
+      paddingHorizontal: 20,
+      paddingBottom: 0,
+      paddingTop: 0,
+    },
+    expandableButton: {
+      backgroundColor: Colors.cardBackground,
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+    },
+    expandableButtonTouchable: {
+      borderRadius: 12,
+    },
+    crystalIconBackground: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: Colors.spiritualPink,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    floatingButtonIcon: {
+      width: 24,
+      height: 24,
+      tintColor: Colors.hopeWhite,
+    },
+    expandText: {
+      fontSize: 14,
+      color: Colors.text,
+      fontWeight: '600',
+    },
+  });
 
   // Limit FAB visibility to at most 2 shows across sessions
   const [showFab, setShowFab] = useState(false);
@@ -89,7 +376,40 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     }, [])
   );
   const { user } = useAuth();
-  const { subscription, usage } = useSubscription();
+  const { subscription, usage, loading: subscriptionLoading } = useSubscription();
+  const queryClient = useQueryClient();
+  
+  // Add direct subscription fetch for debugging
+  const [directSubscription, setDirectSubscription] = useState<any>(null);
+  
+  useEffect(() => {
+    const fetchDirectSubscription = async () => {
+      if (user?.id) {
+        try {
+          const { subscriptionService } = await import('../services/subscriptionService');
+          const directData = await subscriptionService.getUserSubscription(user.id);
+          setDirectSubscription(directData);
+          console.log('🔄 Direct subscription fetch:', {
+            directTier: directData?.tier,
+            directStatus: directData?.status,
+            cachedTier: subscription?.tier,
+            cachedStatus: subscription?.status,
+            dataMatch: directData?.tier === subscription?.tier,
+            timestamp: new Date().toISOString()
+          });
+          
+          // If data doesn't match, invalidate React Query cache
+          if (directData?.tier !== subscription?.tier && subscription?.tier) {
+            console.log('🔄 Cache mismatch detected, invalidating React Query cache');
+            queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
+          }
+        } catch (error) {
+          console.error('Direct subscription fetch failed:', error);
+        }
+      }
+    };
+    fetchDirectSubscription();
+  }, [user?.id, subscription?.tier, queryClient]); // Re-run when cached subscription changes
   const [refreshing, setRefreshing] = useState(false);
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
 
@@ -256,6 +576,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const renderHeader = () => (
     <View style={styles.header}>
+      {/* Right side - Subscription and Profile */}
       <View style={styles.headerRight}>
         {/* Subscription Status */}
         <TouchableOpacity
@@ -264,9 +585,52 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         >
           <Text style={styles.subscriptionText}>
             {(() => {
-              const tier = subscription?.tier || 'seeker';
-              if (tier === 'seeker') {return 'SEEKER';}
-              if (tier === 'free_trial') {return 'TRIAL';}
+              // Use direct subscription if available and different from cached
+              const activeSubscription = (directSubscription && directSubscription.tier !== subscription?.tier) 
+                ? directSubscription 
+                : subscription;
+              
+              const tier = activeSubscription?.tier || 'seeker';
+              const status = activeSubscription?.status || 'active';
+              const tierBase = tier.replace(/_annual$/, '');
+              
+              // Test all possible tier combinations
+              const tierMappings = {
+                // Free tier
+                'free_trial': 'TRIAL',
+                
+                // Seeker (free forever)
+                'seeker': 'SEEKER',
+                'basic': 'SEEKER',
+                
+                // Spark (entry paid)
+                'spark': 'SPARK',
+                'spark_annual': 'SPARK',
+                'starter': 'SPARK',
+                'starter_annual': 'SPARK',
+                
+                // Growth (mid tier)
+                'growth': 'GROWTH',
+                'growth_annual': 'GROWTH',
+                
+                // Transformation (premium)
+                'transformation': 'TRANSFORMATION',
+                'transformation_annual': 'TRANSFORMATION',
+                
+                // Family (top tier)
+                'family': 'FAMILY',
+                'family_annual': 'FAMILY'
+              };
+              
+              const displayName = tierMappings[tier as keyof typeof tierMappings] || tierMappings[tierBase as keyof typeof tierMappings];
+              
+              if (displayName) {
+                console.log(`✅ Dashboard: Mapped ${tier} -> ${displayName} (using ${directSubscription && directSubscription.tier !== subscription?.tier ? 'direct' : 'cached'} data)`);
+                return displayName;
+              }
+              
+              // Fallback with debug info
+              console.log('⚠️ Dashboard: Unknown tier, falling back to PREMIUM:', { tier, tierBase });
               return 'PREMIUM';
             })()}
           </Text>
@@ -284,7 +648,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={styles.counterBadge}
               onPress={() => navigation.navigate('Playbooks')}
             >
-              <Ionicons name="book-outline" size={16} color={Colors.anchorBlue} />
+              <MaterialCommunityIcons name="clipboard-text-play" size={18} color={Colors.faithGold} />
               <Text style={styles.counterText}>{remaining}</Text>
             </TouchableOpacity>
           );
@@ -302,7 +666,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={styles.counterBadge}
               onPress={() => navigation.navigate('Devotionals')}
             >
-              <Ionicons name="heart-outline" size={16} color={Colors.devotionalPurple} />
+              <MaterialCommunityIcons name="book" size={18} color={Colors.faithGold} />
               <Text style={styles.counterText}>{remaining}</Text>
             </TouchableOpacity>
           );
@@ -316,17 +680,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           </View>
         </TouchableOpacity>
 
-        {/* User Profile */}
+        {/* Profile Avatar with Notification */}
         <TouchableOpacity
           style={styles.profileButton}
           onPress={() => navigation.navigate('UserProfile')}
-          activeOpacity={0.7}
         >
           {user?.user_metadata?.avatar_url ? (
             <Image
               source={{ uri: user.user_metadata.avatar_url }}
               style={styles.profileImage}
-              resizeMode="cover"
             />
           ) : (
             <View style={styles.initialAvatar}>
@@ -420,6 +782,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          contentInsetAdjustmentBehavior="never"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -431,19 +794,18 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
         </View>
 
-        {/* Row 2: Progress Carousels */}
+        {/* Row 2: Progress Tracking */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Your Journey</Text>
         </View>
 
-        <DailyBibleVerseCard onVersePress={(verse) => dashboardNavigation.toVerseDetail(verse)} />
-        <StreakTracker onStreakPress={(streak) => dashboardNavigation.toStreakDetail(streak.type)} />
-        <WeeklyInsights onInsightPress={() => dashboardNavigation.toAnalytics()} />
+        <StreakTracker onStreakPress={(streak) => navigation.navigate('StreakDetail', { type: streak.type })} />
+        <WeeklyInsights onInsightPress={() => navigation.navigate('Analytics')} />
 
         {/* AI Insights */}
         <AIInsights
-          onInsightPress={() => dashboardNavigation.toAIInsights()}
-          onActionPress={() => dashboardNavigation.toAIInsights()}
+          onInsightPress={() => navigation.navigate('AIInsights')}
+          onActionPress={() => navigation.navigate('AIInsights')}
         />
 
         {/* Collapsing Playbook label */}
@@ -466,7 +828,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         </View>
 
         <PlaybookCarousel
-          onPlaybookPress={(playbook) => dashboardNavigation.toPlaybook(playbook.id)}
+          onPlaybookPress={(playbook) => navigation.navigate('Playbook', { id: playbook.id })}
           onViewAll={() => {
             // Navigate to playbooks list
             console.log('Navigate to playbooks list');
@@ -498,7 +860,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             console.log('Navigate to all action steps');
           }}
         />
-        {renderPlaceholderCard('Reflection Questions', 'Guided spiritual growth', 'bulb')}
+        
+        {/* Reflection Questions Card */}
+        {renderPlaceholderCard('Reflection Questions', 'Guided spiritual growth', 'bulb-outline')}
+        
+        {/* Prayer Requests Section */}
+        {renderPlaceholderCard('Prayer Requests', 'Share and track prayers', 'heart-outline')}
+        
+        {/* Community Section */}
+        {renderPlaceholderCard('Faith Community', 'Connect with others', 'people-outline')}
 
         {/* Row 4: Quick Actions */}
         <View style={styles.sectionHeader}>
@@ -510,280 +880,59 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             title="Journal"
             description="Capture your thoughts"
             icon="journal"
-            onPress={() => {
-              // Navigate to journal screen
-              console.log('Navigate to journal');
-            }}
+            onPress={() => navigation.navigate('Journal')}
             accentColor={Colors.faithGold}
           />
           <QuickActionCard
             title="Prayer"
             description="Connect with God"
             icon="hands-up"
-            onPress={() => {
-              // Navigate to prayer screen
-              console.log('Navigate to prayer');
-            }}
+            onPress={() => navigation.navigate('Prayer')}
             accentColor={Colors.spiritualPink}
           />
         </View>
 
-        {/* Bottom spacing for floating button */}
-        <View style={styles.bottomSpacing} />
+        <View style={styles.row}>
+          <QuickActionCard
+            title="Scripture"
+            description="Read and study"
+            icon="book-outline"
+            onPress={() => navigation.navigate('Scripture')}
+            accentColor={Colors.anchorBlue}
+          />
+          <QuickActionCard
+            title="Worship"
+            description="Songs and praise"
+            icon="musical-notes-outline"
+            onPress={() => navigation.navigate('Worship')}
+            accentColor={Colors.devotionalPurple}
+          />
+        </View>
+
+        {/* Growth Tracking Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Growth & Progress</Text>
+        </View>
+
+        {renderPlaceholderCard('Faith Milestones', 'Track your spiritual journey', 'trophy-outline')}
+        {renderPlaceholderCard('Reading Plan', 'Bible reading progress', 'library-outline')}
+        
+        {/* Community & Sharing */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Community</Text>
+        </View>
+
+        {renderPlaceholderCard('Prayer Circle', 'Join prayer groups', 'people-circle-outline')}
+        {renderPlaceholderCard('Testimonies', 'Share your story', 'megaphone-outline')}
+
+        {/* Bottom spacing for floating button (only when visible) */}
+        {showFab ? <View style={styles.bottomSpacing} /> : null}
         </ScrollView>
       </View>
 
       {showFab ? renderFloatingButton() : null}
-      {/* Removed test buttons */}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.hopeWhite,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 0,
-    backgroundColor: Colors.hopeWhite,
-  },
-  greetingSection: {
-    backgroundColor: Colors.hopeWhite,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 20,
-  },
-  greeting: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    color: Colors.anchorBlue,
-    marginTop: 10,
-    marginBottom: 0,
-  },
-  motivationalText: {
-    fontSize: 14,
-    color: Colors.darkerGray,
-    opacity: 0.8,
-    marginTop: 0,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  subscriptionBadge: {
-    backgroundColor: Colors.faithGold,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  subscriptionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-    textTransform: 'uppercase',
-  },
-  counterBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.cardBackground,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: Colors.lightGray,
-  },
-  counterText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.darkerGray,
-  },
-  iconButton: {
-    position: 'relative',
-    padding: 4,
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    backgroundColor: Colors.alertCoral,
-    borderRadius: 8,
-    minWidth: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationCount: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-  },
-  profileButton: {
-    padding: 2,
-  },
-  profileImage: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-  },
-  initialAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.alertCoral,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  initialLetter: {
-    color: Colors.hopeWhite,
-    fontSize: 12,
-    fontWeight: '700' as const,
-  },
-  content: {
-    flex: 1,
-    backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    overflow: 'hidden',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 120,
-    paddingTop: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-  },
-  placeholderCard: {
-    flex: 1,
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: Colors.cardShadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 8,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.darkerGray,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: Colors.mediumGray,
-    marginBottom: 12,
-  },
-  comingSoonBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.anchorBlueLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  comingSoonText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.anchorBlue,
-  },
-  floatingButton: {
-    position: 'absolute',
-    top: 0,
-    right: 0, // Changed from left: 0 to right: 0 for rightward anchoring
-    zIndex: 1000,
-  },
-  expandableButton: {
-    backgroundColor: Colors.hopeWhite, // Crystal glassy background
-    borderRadius: 28,
-    height: 56,
-    shadowColor: Colors.cardShadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    alignSelf: 'flex-end', // Anchor to right so it expands left
-  },
-  expandableButtonTouchable: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center', // Center contents for proper icon centering when collapsed
-    paddingLeft: 8, // Slightly less left padding to center icon better
-    paddingRight: -8, // Normal right padding
-    minWidth: 56, // Ensure touchable area is always a circle when collapsed
-  },
-  expandText: {
-    color: Colors.anchorBlue,
-    fontFamily: Fonts.medium,
-    fontSize: 14, // Increased from 12 to 14
-    fontWeight: '700',
-    marginLeft: 8, // Space between icon and text (icon comes before text)
-    letterSpacing: 0.3,
-    flex: 1, // Take up available space
-  },
-  floatingButtonIcon: {
-    width: 40,
-    height: 40,
-    alignSelf: 'center',
-  },
-  crystalIconBackground: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.anchorBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bottomSpacing: {
-    height: 100,
-  },
-  playbookLabelContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 8,
-  },
-  playbookLabelClip: {
-    overflow: 'hidden',
-  },
-  playbookLabel: {
-    color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  // (Removed) styles for test buttons
-});
 
 export default DashboardHomeScreen;

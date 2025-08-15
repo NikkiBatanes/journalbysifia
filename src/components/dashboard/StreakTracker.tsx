@@ -211,10 +211,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   const renderStreakCard = (streak: Streak) => (
     <TouchableOpacity
       key={streak.id}
-      style={[
-        styles.streakCard,
-        { borderLeftColor: getStreakColor(streak.currentStreak) },
-      ]}
+      style={styles.streakCard}
       onPress={() => onStreakPress?.(streak)}
       activeOpacity={0.8}
     >
@@ -320,7 +317,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     width: 160,
-    borderLeftWidth: 4,
+    borderLeftWidth: 0,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },

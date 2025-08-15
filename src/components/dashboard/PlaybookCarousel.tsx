@@ -14,6 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
@@ -255,7 +256,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Ionicons name="library" size={24} color={Colors.alertCoral} />
+          <MaterialCommunityIcons name="clipboard-text-play" size={24} color={Colors.alertCoral} />
           <Text style={styles.title}>Your Playbooks</Text>
         </View>
         <View style={styles.loadingContainer}>
@@ -269,7 +270,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="library" size={24} color={Colors.alertCoral} />
+        <MaterialCommunityIcons name="clipboard-text-play" size={24} color={Colors.alertCoral} />
         <Text style={styles.title}>Your Playbooks</Text>
         {playbooks.length > 0 && (
           <TouchableOpacity onPress={onViewAll} style={styles.viewAllButton}>

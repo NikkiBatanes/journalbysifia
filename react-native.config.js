@@ -3,11 +3,11 @@ module.exports = {
     ios: {},
     android: {},
   },
-  assets: ['assets/fonts/'],
+  assets: ['./assets/fonts/'],
   dependencies: {
-    'react-native-config': {
+    'react-native-vector-icons': {
       platforms: {
-        ios: null, // disable iOS platform, other platforms will still autolink if provided
+        ios: null, // disable iOS platform
       },
     },
   },

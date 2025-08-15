@@ -216,7 +216,7 @@ const AIValueDemonstration: React.FC<AIValueDemonstrationProps> = ({
           <Text style={styles.upgradeMessage}>{currentFeature.upgradeMessage}</Text>
           <TouchableOpacity style={styles.upgradeButton} onPress={onUpgrade}>
             <Text style={styles.upgradeButtonText}>
-              {userState.tier === 'basic' ? 'Start Free Trial' : 'Upgrade Now'}
+              {(userState.tier === 'basic' || userState.tier === 'seeker') ? 'Start Free Trial' : 'Upgrade Now'}
             </Text>
             <Ionicons name="arrow-forward" size={16} color={Colors.hopeWhite} />
           </TouchableOpacity>

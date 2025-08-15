@@ -102,13 +102,24 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
   };
 
   const getTierDisplayName = (tierName: string) => {
-    switch (tierName) {
-      case 'starter': return 'Starter';
-      case 'growth': return 'Growth';
-      case 'transformation': return 'Transformation';
-      case 'family': return 'Family';
-      default: return 'Growth';
-    }
+    const tierMappings = {
+      // Legacy and new tier names
+      'seeker': 'siFia SEEKER',
+      'basic': 'siFia SEEKER',
+      'spark': 'siFia SPARK',
+      'spark_annual': 'siFia SPARK',
+      'starter': 'siFia SPARK',
+      'starter_annual': 'siFia SPARK',
+      'growth': 'siFia GROWTH',
+      'growth_annual': 'siFia GROWTH',
+      'transformation': 'siFia TRANSFORMATION',
+      'transformation_annual': 'siFia TRANSFORMATION',
+      'family': 'siFia FAMILY',
+      'family_annual': 'siFia FAMILY',
+      'free_trial': 'Free Trial'
+    };
+    
+    return tierMappings[tierName as keyof typeof tierMappings] || tierName;
   };
 
   return (

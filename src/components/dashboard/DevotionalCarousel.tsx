@@ -14,6 +14,7 @@ import {
   Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
@@ -271,15 +272,20 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   );
 
   const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="book-outline" size={48} color={Colors.lightGray} />
-      <Text style={styles.emptyTitle}>No Devotionals Yet</Text>
-      <Text style={styles.emptyDescription}>
-        Start your daily devotional practice with inspiring content
-      </Text>
-      <TouchableOpacity style={styles.createButton} onPress={onViewAll}>
-        <Text style={styles.createButtonText}>Explore Devotionals</Text>
-      </TouchableOpacity>
+    <View style={styles.emptyStateContainer}>
+      <View style={styles.heroCard}>
+        <MaterialCommunityIcons
+          name="book"
+          size={32}
+          color="rgba(255,255,255,0.85)"
+          style={styles.heroIcon}
+        />
+        <Text style={styles.heroOverline}>No Devotionals</Text>
+        <Text style={styles.heroTitle}>Start with Scripture</Text>
+        <Text style={styles.heroSubtitle}>
+          Create a playbook for what you're facing, then build a daily devotional from it.
+        </Text>
+      </View>
     </View>
   );
 
@@ -287,8 +293,8 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Ionicons name="book" size={24} color={Colors.alertCoral} />
-          <Text style={styles.title}>Daily Devotionals</Text>
+          <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
+          <Text style={styles.title}>Your Devotionals</Text>
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={Colors.alertCoral} />
@@ -301,8 +307,8 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="book" size={24} color={Colors.alertCoral} />
-        <Text style={styles.title}>Daily Devotionals</Text>
+        <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
+        <Text style={styles.title}>Your Devotionals</Text>
         {devotionals.length > 0 && (
           <TouchableOpacity onPress={onViewAll} style={styles.viewAllButton}>
             <Text style={styles.viewAllText}>View All</Text>
@@ -463,35 +469,47 @@ const styles = StyleSheet.create({
     color: Colors.mediumGray,
     fontStyle: 'italic',
   },
-  emptyContainer: {
-    height: 200,
+  emptyStateContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    gap: 12,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  createButton: {
-    backgroundColor: Colors.alertCoral,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 8,
-    marginTop: 8,
   },
-  createButtonText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
+  heroCard: {
+    width: '100%',
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  heroIcon: {
+    marginBottom: 8,
+    opacity: 0.9,
+  },
+  heroOverline: {
+    fontSize: 12,
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.9)',
+    textTransform: 'uppercase',
+    marginBottom: 6,
     fontWeight: '600',
+  },
+  heroTitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: Colors.hopeWhite,
+    fontWeight: '700',
+    lineHeight: 24,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 20,
+    marginBottom: 12,
+    paddingHorizontal: 6,
   },
   errorContainer: {
     height: 200,

@@ -84,11 +84,14 @@ const OnboardingPaymentProcessingScreen = () => {
 
   const getTierDisplayName = (tier: string) => {
     switch (tier) {
-      case 'spark': return 'siFia SPARK';
+      case 'seeker':
+      case 'basic': return 'siFia SEEKER';
+      case 'spark':
+      case 'starter': return 'siFia SPARK';
       case 'growth': return 'siFia GROWTH';
       case 'transformation': return 'siFia TRANSFORMATION';
       case 'family': return 'siFia FAMILY';
-      default: return 'Growth';
+      default: return tier;
     }
   };
 

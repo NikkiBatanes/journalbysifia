@@ -20,49 +20,65 @@ const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
   const featureLimits = getFeatureLimits();
 
   const getTierDisplayName = () => {
-    switch (tier) {
-      case 'seeker':
-        return 'siFia SEEKER';
-      case 'free_trial':
-        return 'Free Trial';
-      case 'spark':
-      case 'spark_annual':
-        return 'siFia SPARK';
-      case 'growth':
-      case 'growth_annual':
-        return 'siFia GROWTH';
-      case 'transformation':
-      case 'transformation_annual':
-        return 'siFia TRANSFORMATION';
-      case 'family':
-      case 'family_annual':
-        return 'siFia FAMILY';
-      default:
-        return 'Unknown';
-    }
+    const tierMappings = {
+      // Free tier
+      'free_trial': 'Free Trial',
+      
+      // Seeker (free forever)
+      'seeker': 'siFia SEEKER',
+      'basic': 'siFia SEEKER',
+      
+      // Spark (entry paid)
+      'spark': 'siFia SPARK',
+      'spark_annual': 'siFia SPARK',
+      'starter': 'siFia SPARK',
+      'starter_annual': 'siFia SPARK',
+      
+      // Growth (mid tier)
+      'growth': 'siFia GROWTH',
+      'growth_annual': 'siFia GROWTH',
+      
+      // Transformation (premium)
+      'transformation': 'siFia TRANSFORMATION',
+      'transformation_annual': 'siFia TRANSFORMATION',
+      
+      // Family (top tier)
+      'family': 'siFia FAMILY',
+      'family_annual': 'siFia FAMILY'
+    };
+    
+    return tierMappings[tier as keyof typeof tierMappings] || 'Unknown';
   };
 
   const getTierColor = () => {
-    switch (tier) {
-      case 'seeker':
-        return Colors.textGray;
-      case 'free_trial':
-        return Colors.faithGold;
-      case 'spark':
-      case 'spark_annual':
-        return Colors.anchorBlue;
-      case 'growth':
-      case 'growth_annual':
-        return Colors.growthGreen;
-      case 'transformation':
-      case 'transformation_annual':
-        return Colors.faithGold;
-      case 'family':
-      case 'family_annual':
-        return Colors.alertCoral;
-      default:
-        return Colors.textGray;
-    }
+    const tierColors = {
+      // Free tier
+      'free_trial': Colors.faithGold,
+      
+      // Seeker (free forever)
+      'seeker': Colors.textGray,
+      'basic': Colors.textGray,
+      
+      // Spark (entry paid)
+      'spark': Colors.anchorBlue,
+      'spark_annual': Colors.anchorBlue,
+      'starter': Colors.anchorBlue,
+      'starter_annual': Colors.anchorBlue,
+      
+      // Growth (mid tier)
+      'growth': Colors.growthGreen,
+      'growth_annual': Colors.growthGreen,
+      
+      // Transformation (premium)
+      'transformation': Colors.faithGold,
+      'transformation_annual': Colors.faithGold,
+      
+      // Family (top tier)
+      'family': Colors.alertCoral,
+      'family_annual': Colors.alertCoral
+    };
+    
+    return tierColors[tier as keyof typeof tierColors] || Colors.textGray;
   };
 
   const handleManageSubscription = () => {
