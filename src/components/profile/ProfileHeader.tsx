@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   planText: {
-    fontSize: 12,
+    fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '700',
     letterSpacing: 0.8,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8 as any,
+    gap: 4 as any,
   },
   faithPointsPill: {
     marginLeft: 0,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   usageItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6 as any,
+    gap: 4 as any,
   },
   usageText: {
     fontSize: 12,
