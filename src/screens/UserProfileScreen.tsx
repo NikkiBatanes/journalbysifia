@@ -1057,7 +1057,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       <View
         style={[
           styles.headerWrapper,
-          { paddingTop: (insets?.top || 0) + 16, backgroundColor: theme.colors.hopeWhite },
+          { paddingTop: 14, backgroundColor: theme.colors.hopeWhite },
         ]}
       >
         {renderProfileHeader()}
@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
   },
   headerWrapper: {
     // extra space so the header isn't cut by the notch
-    paddingTop: 20,
+    paddingTop: 14,
   },
   // Settings modal additions (chips)
   settingItemColumn: {
