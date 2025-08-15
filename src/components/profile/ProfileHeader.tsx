@@ -402,22 +402,25 @@ const styles = StyleSheet.create({
   },
   // Skeleton styles
   skeletonPill: {
-    backgroundColor: '#CBD5E1', // darker light gray (slate-300)
+    // Use theme: slightly darker neutral to show on white background
+    backgroundColor: Colors.actionBackground,
   },
   skeletonText: {
     height: 12,
     width: 80,
-    backgroundColor: '#9CA3AF', // gray-400
+    // Use theme medium gray for bars
+    backgroundColor: Colors.mediumGray,
     borderRadius: 6,
     alignSelf: 'center',
   },
   skeletonUsagePill: {
-    backgroundColor: '#E2E8F0', // slate-200
+    // Lighter neutral for inner pills
+    backgroundColor: Colors.adminSecondary,
   },
   skeletonUsageItem: {
     height: 10,
     width: 24,
-    backgroundColor: '#9CA3AF', // gray-400
+    backgroundColor: Colors.trustGrey,
     borderRadius: 5,
   },
 });
