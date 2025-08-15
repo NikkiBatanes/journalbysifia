@@ -111,7 +111,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                 <View style={styles.pillsRow}>
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="clipboard-text-play" size={14} color={Colors.hopeWhite} />
                       <Text style={styles.usageText}>
                         {usage.playbooks.used}
                         {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
@@ -120,7 +120,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                   </View>
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="book" size={14} color={Colors.hopeWhite} />
                       <Text style={styles.usageText}>
                         {usage.devotionals.used}
                         {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
@@ -130,19 +130,19 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                   {/* Move FP, Streak, Badges inside Growth container */}
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="star-four-points" size={12} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="star-four-points" size={14} color={Colors.hopeWhite} />
                       <Text style={styles.usageText}>{points} FP</Text>
                     </View>
                   </View>
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="fire" size={12} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="fire" size={14} color={Colors.hopeWhite} />
                       <Text style={styles.usageText}>{streakDays}</Text>
                     </View>
                   </View>
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
-                      <MaterialCommunityIcons name="trophy" size={12} color={Colors.hopeWhite} />
+                      <MaterialCommunityIcons name="trophy" size={14} color={Colors.hopeWhite} />
                       <Text style={styles.usageText}>{badgesCount}</Text>
                     </View>
                   </View>
@@ -285,9 +285,9 @@ const styles = StyleSheet.create({
   },
   planPill: {
     marginLeft: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 22,
     backgroundColor: Colors.faithGold,
     flexDirection: 'column',
     alignItems: 'flex-start',
@@ -300,19 +300,19 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   planText: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.hopeWhite,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginRight: 4,
     alignSelf: 'center',
     textAlign: 'center',
   },
   usagePill: {
     marginLeft: 0,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
     // Transparent with visible border
     backgroundColor: 'transparent',
     borderWidth: 1,
@@ -340,10 +340,10 @@ const styles = StyleSheet.create({
   usageItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4 as any,
+    gap: 6 as any,
   },
   usageText: {
-    fontSize: 10,
+    fontSize: 12,
     color: Colors.hopeWhite,
     fontWeight: '700',
   },
