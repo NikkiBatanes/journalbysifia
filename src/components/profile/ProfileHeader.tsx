@@ -402,25 +402,26 @@ const styles = StyleSheet.create({
   },
   // Skeleton styles
   skeletonPill: {
-    // Neutral light background for container
-    backgroundColor: Colors.adminSecondary,
+    // Darker container background than inner elements
+    backgroundColor: Colors.adminGray,
   },
   skeletonText: {
     height: 12,
     width: 80,
-    // Darker neutral for stronger contrast
-    backgroundColor: Colors.adminGray,
+    // Lighter than container for contrast
+    backgroundColor: Colors.trustGrey,
     borderRadius: 6,
     alignSelf: 'center',
   },
   skeletonUsagePill: {
-    // Slightly darker than container for separation
-    backgroundColor: Colors.adminBorder,
+    // Lighter than container to create depth
+    backgroundColor: Colors.adminSecondary,
   },
   skeletonUsageItem: {
     height: 10,
     width: 24,
-    backgroundColor: Colors.adminGray,
+    // Medium-light to stand out on inner pill
+    backgroundColor: Colors.trustGrey,
     borderRadius: 5,
   },
 });
