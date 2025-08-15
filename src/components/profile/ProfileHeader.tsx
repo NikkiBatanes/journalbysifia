@@ -414,14 +414,14 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   skeletonUsagePill: {
-    // Lighter than container to create depth
-    backgroundColor: Colors.adminSecondary,
+    // Much lighter to mimic progress bar background
+    backgroundColor: Colors.lightBackground,
   },
   skeletonUsageItem: {
     height: 10,
     width: 24,
-    // Medium-light to stand out on inner pill
-    backgroundColor: Colors.trustGrey,
+    // Very light bar like 'no fill' progress
+    backgroundColor: Colors.borderLight,
     borderRadius: 5,
   },
 });
