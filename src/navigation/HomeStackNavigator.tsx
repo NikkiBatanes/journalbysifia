@@ -10,7 +10,16 @@ export default function HomeStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DashboardHome" component={DashboardHomeScreen as React.ComponentType} />
-      <Stack.Screen name="UserProfile" component={UserProfileScreen as React.ComponentType} />
+      <Stack.Screen
+        name="UserProfile"
+        component={UserProfileScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+          gestureEnabled: true,
+        }}
+      />
     </Stack.Navigator>
   );
 }
