@@ -1050,11 +1050,18 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       edges={['top']}
       style={[
         styles.container,
-        { backgroundColor: theme.colors.anchorBlue },
+        { backgroundColor: theme.colors.hopeWhite },
       ]}
     >
-      {/* Fixed white header area */}
-      {renderProfileHeader()}
+      {/* Fixed white header area with extra padding */}
+      <View
+        style={[
+          styles.headerWrapper,
+          { paddingTop: (insets?.top || 0) + 16, backgroundColor: theme.colors.hopeWhite },
+        ]}
+      >
+        {renderProfileHeader()}
+      </View>
 
       {/* Body with rounded top; only its content scrolls */}
       <View style={[styles.bodyContainer, { backgroundColor: theme.colors.anchorBlue }]}>
@@ -1085,7 +1092,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
   },
   loadingContainer: {
     flex: 1,
@@ -1108,6 +1115,10 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: 0,
     flex: 1,
+  },
+  headerWrapper: {
+    // extra space so the header isn't cut by the notch
+    paddingTop: 20,
   },
   // Settings modal additions (chips)
   settingItemColumn: {
