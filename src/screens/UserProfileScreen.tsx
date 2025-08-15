@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -12,22 +12,22 @@ import {
   TextInput,
   Modal,
   Switch,
+  Image,
 } from 'react-native';
+import { Pencil } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { supabase } from '../services/supabaseClient';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
-import StatsGrid from '../components/profile/StatsGrid';
-import MetricsExplainer from '../components/profile/MetricsExplainer';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
 import { subscriptionService } from '../services/subscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { UserProgress, Badge, UserPreferences } from '../types/auth';
 import { Subscription, UsageTracking } from '../interfaces/subscription';
 import { Colors } from '../theme/colors';
-import { Fonts } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 
@@ -48,8 +48,8 @@ interface ProfileStats {
   journalEntries: number;
 }
 
-const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
-  const { user, signOut, updatePreferences } = useAuth();
+const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
+  const { user, signOut, updatePreferences, updateProfile } = useAuth();
   const theme = useTheme();
   // Status bar: dark icons on white header area
   useScreenStatusBar('dark', Colors.hopeWhite);
@@ -57,26 +57,36 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
   const [recentBadges, setRecentBadges] = useState<Badge[]>([]);
+  const [allBadges, setAllBadges] = useState<Badge[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [usage, setUsage] = useState<UsageTracking | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Modal states
-  const [editProfileModal, setEditProfileModal] = useState(false);
-  const [settingsModal, setSettingsModal] = useState(false);
-  const [_badgesModal, setBadgesModal] = useState(false);
-
   // Form states
   const [profileForm, setProfileForm] = useState({
     firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name || '',
     lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name || '',
   });
+  const avatarUrl = (user as any)?.user_metadata?.avatar_url as string | undefined;
+  const initialLetter = useMemo(() => {
+    const first = (profileForm as any)?.firstName || (user as any)?.user_metadata?.first_name || '';
+    const last = (profileForm as any)?.lastName || (user as any)?.user_metadata?.last_name || '';
+    const fallback = (user as any)?.user_metadata?.full_name || (user as any)?.email || 'U';
+    const name = [first, last].filter(Boolean).join(' ') || fallback;
+    return String(name).trim().charAt(0).toUpperCase();
+  }, [profileForm, user]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Modal states
+  const [editProfileModal, setEditProfileModal] = useState(false);
+  // Personalization toggles
+  const [hapticsEnabled, setHapticsEnabled] = useState(true);
+  const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [settingsModal, setSettingsModal] = useState(false);
+  const [_badgesModal, setBadgesModal] = useState(false);
 
   const handleEditAvatar = async () => {
     try {
       console.log('[Avatar] Edit tapped');
-      Alert.alert('Avatar', 'Opening photo library...');
       if (!user) {
         Alert.alert('Not signed in', 'Please sign in to update your profile photo.');
         return;
@@ -155,10 +165,39 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         setProfileStats(statsResponse.data);
       }
 
-      // Load recent badges
+      // Load badges
       const badgesResponse = await userApi.getRecentBadges(user?.id || '', 5);
       if (badgesResponse.success && badgesResponse.data) {
         setRecentBadges(badgesResponse.data);
+      }
+
+      const allBadgesResponse = await userApi.getAllUserBadges(user?.id || '');
+      if (allBadgesResponse.success && allBadgesResponse.data) {
+        setAllBadges(allBadgesResponse.data);
+        console.log('✅ Loaded user_badges count:', allBadgesResponse.data.length);
+      }
+
+      // Fallback: legacy storage uses user_profiles.badges JSON array
+      if ((!allBadgesResponse.success || !allBadgesResponse.data || allBadgesResponse.data.length === 0) && user?.id) {
+        const { data: profileRow, error: profileErr } = await supabase
+          .from('user_profiles')
+          .select('badges')
+          .eq('id', user.id)
+          .single();
+        if (!profileErr) {
+          const profileBadges = (profileRow?.badges || []) as any[];
+          const mapped: Badge[] = profileBadges.map((b: any) => ({
+            id: b.id,
+            name: b.name,
+            description: b.description,
+            icon: b.icon,
+            rarity: b.rarity || 'common',
+            category: b.category || 'achievement',
+            unlockedAt: b.unlockedAt,
+          }));
+          setAllBadges(mapped);
+          console.log('✅ Loaded user_profiles.badges count:', mapped.length);
+        }
       }
 
       // Load subscription and usage data
@@ -267,14 +306,25 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleUpdateProfile = async () => {
     try {
-      const full_name = `${(profileForm as any).firstName || ''} ${
-        (profileForm as any).lastName || ''
-      }`.trim();
-      // Temporarily skip profile update until updateProfile is implemented
+      const first = (profileForm as any).firstName?.trim() || '';
+      const last = (profileForm as any).lastName?.trim() || '';
+      const full = [first, last].filter(Boolean).join(' ').trim();
+
+      // Persist to Supabase auth user_metadata via context
+      const result = await (updateProfile as any)({
+        full_name: full || undefined,
+        first_name: first || undefined,
+        last_name: last || undefined,
+      });
+
+      if (result?.success === false) {
+        throw new Error(result?.error?.message || 'Failed to update profile');
+      }
+
+      // Close modal
       setEditProfileModal(false);
-      Alert.alert('Success', 'Profile updated successfully');
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update profile');
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'Failed to update profile');
     }
   };
 
@@ -296,7 +346,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleThemeChange = async (newTheme: string) => {
     const updatedPreferences = { ...preferences, theme: newTheme as any };
     setPreferences(updatedPreferences);
-    
+
     // Update user metadata immediately for live preview
     try {
       await updatePreferences(updatedPreferences);
@@ -310,7 +360,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const handleFontChange = async (newFont: string) => {
     const updatedPreferences = { ...preferences, font: newFont as any };
     setPreferences(updatedPreferences);
-    
+
     // Update user metadata immediately for live preview
     try {
       await updatePreferences(updatedPreferences);
@@ -338,36 +388,73 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const renderProfileHeader = () => (
-    <ProfileHeader
-      user={user}
-      stats={{ faithPoints: profileStats?.faithPoints ?? 0, level: profileStats?.level ?? 1 }}
-      onEditPress={() => setEditProfileModal(true)}
-      onEditAvatar={handleEditAvatar}
-    />
-  );
+  const renderProfileHeader = () => {
+    // Determine plan label for header pill (siFia-branded)
+    let planLabel: string | undefined;
+    if (subscription) {
+      const rawTier = subscription.tier || '';
+      const tierBase = rawTier.replace(/_annual$/, '');
+      const branded = (() => {
+        switch (tierBase) {
+          // Legacy IDs
+          case 'basic':
+            return 'siFia SEEKER';
+          case 'starter':
+            return 'siFia SPARK';
+          case 'seeker':
+            return 'siFia SEEKER';
+          case 'spark':
+            return 'siFia SPARK';
+          case 'growth':
+            return 'siFia GROWTH';
+          case 'transformation':
+            return 'siFia TRANSFORMATION';
+          case 'family':
+            return 'siFia FAMILY';
+          case 'free_trial':
+            return 'Free Trial';
+          default:
+            return undefined;
+        }
+      })();
 
-  const renderStatsGrid = () => (
-    <StatsGrid
-      stats={{
-        totalBadges: profileStats?.totalBadges ?? 0,
-        currentStreak: profileStats?.currentStreak ?? 0,
-        goalsCompleted: profileStats?.goalsCompleted ?? 0,
-        devotionalsFinished: profileStats?.devotionalsFinished ?? 0,
-        prayerSessions: profileStats?.prayerSessions ?? 0,
-        journalEntries: profileStats?.journalEntries ?? 0,
-      }}
-    />
-  );
+      // If canceled, user effectively falls back to free tier presentation
+      planLabel = subscription.status === 'canceled' ? 'siFia SEEKER' : (branded || 'siFia SEEKER');
+    }
+    return (
+      <ProfileHeader
+        user={user}
+        stats={{
+          faithPoints: profileStats?.faithPoints ?? 0,
+          level: profileStats?.level ?? 1,
+          streakDays: profileStats?.currentStreak ?? 0,
+          badgesCount: profileStats?.totalBadges ?? 0,
+        }}
+        onEditPress={() => setEditProfileModal(true)}
+        onEditAvatar={handleEditAvatar}
+        plan={planLabel}
+        usage={usageSummary}
+      />
+    );
+  };
 
-  const renderSubscriptionInfo = () => {
+  // Removed compact stats cards (flame/trophy) per design update
+
+  const usageSummary = useMemo(() => {
+    if (!subscription || !usage) {return null;}
+    const playbookLimitNum = subscription.limits?.playbooks === -1 ? -1 : (subscription.limits?.playbooks || 0);
+    const devotionalLimitNum = subscription.limits?.devotionals === -1 ? -1 : (subscription.limits?.devotionals || 0);
+    return {
+      playbooks: { used: usage.playbooks_generated || 0, limit: playbookLimitNum },
+      devotionals: { used: usage.devotionals_generated || 0, limit: devotionalLimitNum },
+    } as const;
+  }, [subscription, usage]);
+
+  const renderUsageCounters = () => {
     if (!subscription || !usage) {return null;}
 
     const isTrialing = subscription.status === 'trialing';
     const isCanceled = subscription.status === 'canceled';
-    const trialDaysLeft = (subscription.trialEndDate && !isCanceled)
-      ? Math.max(0, Math.ceil((new Date(subscription.trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
-      : 0;
 
     console.log('🔍 Subscription Debug:', {
       tier: subscription.tier,
@@ -384,67 +471,29 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     const playbookUsed = usage.playbooks_generated || 0;
     const devotionalUsed = usage.devotionals_generated || 0;
+    const playbookPct = typeof playbookLimit === 'number' && playbookLimit > 0 ? Math.min(1, playbookUsed / playbookLimit) : 0;
+    const devotionalPct = typeof devotionalLimit === 'number' && devotionalLimit > 0 ? Math.min(1, devotionalUsed / devotionalLimit) : 0;
 
     return (
-      <View style={styles.subscriptionContainer}>
-        <Text style={styles.sectionTitle}>Your Plan</Text>
-
-        {/* Subscription Status */}
-        <View style={[styles.subscriptionCard, isTrialing && styles.trialCard]}>
-          <View style={styles.subscriptionHeader}>
-            <View style={styles.subscriptionTitleRow}>
-              <Ionicons
-                name={isCanceled ? 'close-circle' : (isTrialing ? 'time' : 'checkmark-circle')}
-                size={24}
-                color={isCanceled ? Colors.error : (isTrialing ? Colors.warning : Colors.success)}
-              />
-              <Text style={styles.subscriptionTitle}>
-                {isCanceled ? 'BASIC (FREEMIUM)' : subscription.tier.replace('_', ' ').toUpperCase()}
-              </Text>
+      <View style={styles.countersContainer}>
+        <View style={styles.countersRow}>
+          <View style={styles.counterCard}>
+            <View style={styles.counterHeader}>
+              <Ionicons name="book-outline" size={18} color={Colors.primary} />
             </View>
-            {isTrialing && trialDaysLeft > 0 && (
-              <View style={styles.trialBadge}>
-                <Text style={styles.trialBadgeText}>{trialDaysLeft} days left</Text>
-              </View>
-            )}
+            <Text style={styles.counterNumbers}>{playbookUsed} / {playbookLimit}</Text>
+            <View style={styles.progressTrack}><View style={[styles.progressValue, { width: `${playbookPct * 100}%` }]} /></View>
           </View>
-
-          <Text style={styles.subscriptionStatus}>
-            {isCanceled
-              ? 'Trial cancelled - You now have basic access'
-              : (isTrialing
-                ? `Your free trial expires in ${trialDaysLeft} days`
-                : `Active since ${new Date(subscription.startDate).toLocaleDateString()}`)
-            }
-          </Text>
-        </View>
-
-        {/* Usage Statistics */}
-        <View style={styles.usageGrid}>
-          <View style={styles.usageCard}>
-            <View style={styles.usageHeader}>
-              <Ionicons name="book-outline" size={20} color={Colors.primary} />
-              <Text style={styles.usageTitle}>Playbooks</Text>
+          <View style={styles.counterCard}>
+            <View style={styles.counterHeader}>
+              <Ionicons name="heart-outline" size={18} color={Colors.devotionalPurple} />
             </View>
-            <Text style={styles.usageNumbers}>
-              {playbookUsed} / {playbookLimit}
-            </Text>
-            <Text style={styles.usageLabel}>Generated this month</Text>
-          </View>
-
-          <View style={styles.usageCard}>
-            <View style={styles.usageHeader}>
-              <Ionicons name="heart-outline" size={20} color={Colors.devotionalPurple} />
-              <Text style={styles.usageTitle}>Devotionals</Text>
-            </View>
-            <Text style={styles.usageNumbers}>
-              {devotionalUsed} / {devotionalLimit}
-            </Text>
-            <Text style={styles.usageLabel}>Generated this month</Text>
+            <Text style={styles.counterNumbers}>{devotionalUsed} / {devotionalLimit}</Text>
+            <View style={styles.progressTrack}><View style={[styles.progressValueAlt, { width: `${devotionalPct * 100}%` }]} /></View>
           </View>
         </View>
 
-        {isTrialing && (
+        {isTrialing && !isCanceled && (
           <TouchableOpacity style={styles.upgradeButton}>
             <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
             <Ionicons name="arrow-forward" size={16} color="#fff" />
@@ -454,77 +503,315 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     );
   };
 
-  const renderRecentBadges = () => (
+  const renderAllBadges = () => (
     <View style={styles.badgesContainer}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Badges</Text>
-        <TouchableOpacity onPress={() => setBadgesModal(true)}>
-          <Text style={styles.viewAllText}>View All</Text>
-        </TouchableOpacity>
+        <Text style={[styles.sectionTitle, { color: Colors.hopeWhite }]}>Badges</Text>
+        {!!recentBadges.length && (
+          <TouchableOpacity onPress={() => setBadgesModal(true)}>
+            <Text style={styles.viewAllText}>Recent</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.badgesList}>
-          {recentBadges.map((badge, index) => (
-            <View key={index} style={styles.badgeItem}>
-              <View style={styles.badgeIcon}>
-                <Text style={styles.badgeEmoji}>{badge.icon}</Text>
-              </View>
-              <Text style={styles.badgeName}>{badge.name}</Text>
-              <Text style={styles.badgePoints}>+{(badge as any).faith_points_reward || 0}</Text>
+      {!!(allBadges && allBadges.length) && (
+        <Text style={styles.badgesSubtitle} numberOfLines={2}>
+          You have {allBadges.length} badges: {allBadges.map(b => b.name).join(', ')}
+        </Text>
+      )}
+
+      {/* Full-bleed horizontal scroller */}
+      <View style={styles.fullBleedContainer}>
+        {((allBadges && allBadges.length) || (recentBadges && recentBadges.length)) ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fullBleedContent}>
+            <View style={styles.badgesList}>
+              {(allBadges.length ? allBadges : recentBadges).map((badge, index) => {
+                const iconStr = String((badge as any).icon || '').trim();
+                const isIonicon = /^[a-z0-9-]+$/i.test(iconStr);
+                return (
+                  <View key={`${badge.id}-${index}`} style={styles.badgeItem}>
+                    <View style={styles.badgeIcon}>
+                      {isIonicon && iconStr ? (
+                        <Ionicons name={iconStr as any} size={22} color={Colors.hopeWhite} />
+                      ) : iconStr ? (
+                        <Text style={[styles.badgeEmoji, { color: Colors.hopeWhite }]}>{iconStr}</Text>
+                      ) : (
+                        <Ionicons name="medal" size={22} color={Colors.hopeWhite} />
+                      )}
+                    </View>
+                    <Text style={[styles.badgeName, { color: Colors.hopeWhite }]}>{badge.name}</Text>
+                    <Text style={[styles.badgePoints, { color: Colors.hopeWhite }]}>+{(badge as any).faith_points_reward || 0}</Text>
+                  </View>
+                );
+              })}
             </View>
-          ))}
-        </View>
-      </ScrollView>
+          </ScrollView>
+        ) : (
+          <Text style={[styles.badgesSubtitle, { textAlign: 'center' }]}>No badges yet</Text>
+        )}
+      </View>
+    </View>
+  );
+
+  const renderCommunitySection = () => (
+    <View>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>COMMUNITY</Text>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="share-social" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Share with Friends</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="star" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Leave a Review</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="logo-instagram" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Instagram</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="logo-facebook" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>FB</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Text style={{ color: Colors.anchorBlue, fontSize: 16, fontWeight: '800' }}>X</Text>
+          </View>
+          <Text style={styles.menuText}>X</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderLegalPrivacySection = () => (
+    <View>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>LEGAL & PRIVACY</Text>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="document-text" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Terms of Service</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="lock-closed" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Privacy Policy</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderHelpSupportSection = () => (
+    <View>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>HELP & SUPPORT</Text>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="help-circle" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>FAQ</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="bulb" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Suggest a Feature</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="bug" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Report a Bug</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderAppBehaviorSection = () => (
+    <View>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>PERMISSIONS</Text>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="notifications" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Notifications</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="shield-checkmark" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>System Permissions</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
   const renderMenuOptions = () => (
-    <View style={styles.menuContainer}>
-      <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => Alert.alert('Coming Soon', 'Goals feature is coming soon!')}
-      >
-        <Ionicons name="flag" size={24} color={Colors.primary} />
-        <Text style={styles.menuText}>My Goals</Text>
-        <Ionicons name="chevron-forward" size={20} color={Colors.mediumGray} />
-      </TouchableOpacity>
+    <View>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>PERSONALIZATION</Text>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="book" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Bible Version</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => Alert.alert('Coming Soon', 'Challenges feature is coming soon!')}
-      >
-        <Ionicons name="trophy" size={24} color={Colors.faithGold} />
-        <Text style={styles.menuText}>Challenges</Text>
-        <Ionicons name="chevron-forward" size={20} color={Colors.mediumGray} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="calendar" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Week Start</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.85)'} />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => setBadgesModal(true)}
-      >
-        <Ionicons name="medal" size={24} color={Colors.success} />
-        <Text style={styles.menuText}>All Badges</Text>
-        <Ionicons name="chevron-forward" size={20} color={Colors.mediumGray} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="color-palette" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Appearance</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.85)'} />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.menuItem}
-        onPress={() => setSettingsModal(true)}
-      >
-        <Ionicons name="settings" size={24} color={Colors.mediumGray} />
-        <Text style={styles.menuText}>Settings</Text>
-        <Ionicons name="chevron-forward" size={20} color={Colors.mediumGray} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="text" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Font</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.menuItem, styles.logoutItem]}
-        onPress={handleLogout}
-      >
-        <Ionicons name="log-out" size={24} color={Colors.error} />
-        <Text style={[styles.menuText, styles.logoutText]}>Logout</Text>
-        <Ionicons name="chevron-forward" size={20} color={Colors.error} />
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="pulse" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Haptics</Text>
+          <Switch
+            value={hapticsEnabled}
+            onValueChange={setHapticsEnabled}
+            thumbColor={hapticsEnabled ? Colors.hopeWhite : '#f4f3f4'}
+            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => setSettingsModal(true)}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="volume-high" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={styles.menuText}>Sounds</Text>
+          <Switch
+            value={soundsEnabled}
+            onValueChange={setSoundsEnabled}
+            thumbColor={soundsEnabled ? Colors.hopeWhite : '#f4f3f4'}
+            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
+          />
+        </TouchableOpacity>
+
+        
+      </View>
+    </View>
+  );
+
+  const renderLogoutSection = () => (
+    <View>
+      <View style={styles.menuContainer}>
+        <TouchableOpacity
+          style={[styles.menuItem, styles.logoutItem]}
+          onPress={handleLogout}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="log-out" size={18} color={Colors.alertCoral} />
+          </View>
+          <Text style={[styles.menuText, styles.logoutText]}>Logout</Text>
+          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -536,8 +823,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => setEditProfileModal(false)}>
-            <Text style={styles.cancelText}>Cancel</Text>
+          <TouchableOpacity onPress={() => setEditProfileModal(false)} accessibilityRole="button" accessibilityLabel="Go back">
+            <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Edit Profile</Text>
           <TouchableOpacity onPress={handleUpdateProfile}>
@@ -546,24 +833,47 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <ScrollView style={styles.modalContent}>
-          <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>First Name</Text>
-            <TextInput
-              style={styles.input}
-              value={(profileForm as any).firstName}
-              onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
-              placeholder="Enter your first name"
-            />
+          {/* Avatar with edit inside Edit Profile */}
+          <View style={styles.modalAvatarSection}>
+            <View style={styles.modalAvatarContainer}>
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.modalAvatar} />
+              ) : (
+                <View style={[styles.modalAvatar, styles.modalInitialAvatar]}>
+                  <Text style={styles.modalInitialLetter}>{initialLetter}</Text>
+                </View>
+              )}
+              <TouchableOpacity
+                style={styles.modalEditAvatarButton}
+                onPress={handleEditAvatar}
+                accessibilityRole="button"
+                accessibilityLabel="Change profile photo"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Pencil size={16} color={Colors.alertCoral} strokeWidth={2} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Last Name</Text>
-            <TextInput
-              style={styles.input}
-              value={(profileForm as any).lastName}
-              onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
-              placeholder="Enter your last name"
-            />
+            <Text style={styles.sectionLabel}>NAME</Text>
+            <View style={styles.nameContainer}>
+              <TextInput
+                style={styles.nameField}
+                value={(profileForm as any).firstName}
+                onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
+                placeholder="First name"
+                placeholderTextColor={Colors.mediumGray}
+              />
+              <View style={styles.nameDivider} />
+              <TextInput
+                style={styles.nameField}
+                value={(profileForm as any).lastName}
+                onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
+                placeholder="Last name"
+                placeholderTextColor={Colors.mediumGray}
+              />
+            </View>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -748,11 +1058,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {renderStatsGrid()}
-          <MetricsExplainer />
-          {renderSubscriptionInfo()}
-          {renderRecentBadges()}
+          {/* Badges removed from main container */}
           {renderMenuOptions()}
+          {renderAppBehaviorSection()}
+          {renderCommunitySection()}
+          {renderHelpSupportSection()}
+          {renderLegalPrivacySection()}
+          {renderLogoutSection()}
         </ScrollView>
       </View>
 
@@ -776,6 +1088,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
+    paddingTop: 50,
     paddingBottom: 32,
   },
   bodyContainer: {
@@ -784,26 +1097,25 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 0,
     paddingBottom: 24,
     flex: 1,
   },
   // Settings modal additions (chips)
   settingItemColumn: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: '#f0f0f0',
   },
   settingChipsRow: {
     flexDirection: 'row',
+    gap: 8 as any,
     flexWrap: 'wrap',
-    gap: 8,
     marginTop: 8,
   },
   chip: {
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: '#f0f0f0',
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: '#e9ecef',
   },
   chipActive: {
     backgroundColor: Colors.alertCoral,
@@ -846,16 +1158,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editAvatarButton: {
+  modalEditAvatarButton: {
     position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
+    bottom: -2,
+    right: -2,
+    backgroundColor: Colors.hopeWhite,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   profileInfo: {
     flex: 1,
@@ -947,6 +1259,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
+  fullBleedContainer: {
+    marginHorizontal: -20,
+  },
+  fullBleedContent: {
+    paddingHorizontal: 0,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -955,8 +1273,15 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
-    color: Colors.primary,
+    color: Colors.hopeWhite,
     fontWeight: '600',
+  },
+  badgesSubtitle: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+    marginBottom: 8,
+    paddingHorizontal: 20,
   },
   badgesList: {
     flexDirection: 'row',
@@ -964,24 +1289,26 @@ const styles = StyleSheet.create({
   badgeItem: {
     alignItems: 'center',
     marginRight: 16,
-    width: 80,
+    width: 72,
   },
   badgeIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#fff',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.modalBlue,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 2,
   },
   badgeEmoji: {
-    fontSize: 24,
+    fontSize: 20,
   },
   badgeName: {
     fontSize: 12,
@@ -996,59 +1323,138 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   menuContainer: {
-    backgroundColor: '#fff',
-    marginHorizontal: 20,
-    borderRadius: 12,
+    marginHorizontal: 0,
+    borderRadius: 20,
     marginBottom: 20,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+    overflow: 'visible',
+    width: '100%',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
+  },
+  menuItemSpaced: {
+    paddingVertical: 14,
   },
   menuText: {
     flex: 1,
     fontSize: 16,
-    color: Colors.text,
-    marginLeft: 12,
+    color: Colors.hopeWhite,
+    marginLeft: 10,
+  },
+  menuIconBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   logoutItem: {
     borderBottomWidth: 0,
   },
   logoutText: {
-    color: Colors.error,
+    color: Colors.alertCoral,
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.anchorBlue,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.text,
+    color: Colors.hopeWhite,
   },
   cancelText: {
     fontSize: 16,
-    color: Colors.mediumGray,
+    color: Colors.hopeWhite,
+    opacity: 0.8,
   },
   saveText: {
     fontSize: 16,
-    color: Colors.primary,
+    color: Colors.hopeWhite,
     fontWeight: '600',
   },
   modalContent: {
     flex: 1,
     padding: 20,
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: 8,
+    marginTop: 16,
+    letterSpacing: 0.6,
+  },
+  sectionLabelRight: {
+    textAlign: 'left',
+    marginLeft: 20,
+    marginBottom: 8,
+  },
+  nameContainer: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 20,
+  },
+  nameField: {
+    width: '100%',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  nameDivider: {
+    height: StyleSheet.hairlineWidth,
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  // Edit Profile modal avatar styles
+  modalAvatarSection: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  modalAvatarContainer: {
+    width: 96,
+    height: 96,
+    position: 'relative',
+  },
+  modalAvatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#ccc',
+  },
+  modalInitialAvatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.alertCoral,
+  },
+  modalInitialLetter: {
+    fontSize: 40,
+    fontWeight: '700',
+    color: Colors.hopeWhite,
   },
   inputGroup: {
     marginBottom: 20,
@@ -1056,16 +1462,17 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text,
+    color: Colors.hopeWhite,
     marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
-    color: Colors.text,
+    color: Colors.hopeWhite,
   },
   textArea: {
     height: 80,
@@ -1192,6 +1599,104 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginRight: 8,
+  },
+  // Compact stats (Streak & Badges only)
+  compactStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  compactStatCard: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.modalBlue,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    flex: 0.48,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  compactStatContent: {
+    marginLeft: 0,
+    marginTop: 6,
+    alignItems: 'center',
+  },
+  compactStatNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.hopeWhite,
+  },
+  compactStatLabel: {
+    fontSize: 12,
+    color: Colors.mediumGray,
+    marginTop: 2,
+  },
+  // Modern counters for Playbooks/Devotionals
+  countersContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  countersRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  counterCard: {
+    backgroundColor: Colors.modalBlue,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 14,
+    flex: 0.48,
+    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  counterHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  counterTitle: {
+    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+  },
+  counterNumbers: {
+    marginTop: 6,
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.hopeWhite,
+  },
+  progressTrack: {
+    height: 8,
+    backgroundColor: Colors.lightPurple,
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginTop: 8,
+    width: '82%',
+    alignSelf: 'center',
+  },
+  progressValue: {
+    height: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 6,
+  },
+  progressValueAlt: {
+    height: 8,
+    backgroundColor: Colors.devotionalPurple,
+    borderRadius: 6,
   },
   // Removed test button styles
 });

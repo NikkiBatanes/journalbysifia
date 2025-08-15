@@ -62,8 +62,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   };
   const getDateCategory = (d: Date): 'today' | 'yesterday' | 'earlier' => {
     const today = new Date();
-    if (isSameLocalDay(d, today)) return 'today';
-    if (isSameLocalDay(d, addDaysLocal(today, -1))) return 'yesterday';
+    if (isSameLocalDay(d, today)) {return 'today';}
+    if (isSameLocalDay(d, addDaysLocal(today, -1))) {return 'yesterday';}
     return 'earlier';
   };
   const pluralizeCount = (count: number, one: string, many: (n: number) => string) =>
@@ -531,18 +531,18 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   return (
     <JournalCard
       title={(() => {
-        if (!(displayWin || shouldShowAddingMode)) return undefined;
+        if (!(displayWin || shouldShowAddingMode)) {return undefined;}
         const category = getDateCategory(selectedDate);
         const copy = getCopy(category, entries.length);
         return copy.header;
       })()}
       subtitle={(() => {
-        if (!(displayWin || shouldShowAddingMode)) return undefined;
+        if (!(displayWin || shouldShowAddingMode)) {return undefined;}
         const category = getDateCategory(selectedDate);
         // In edit/adding mode, use shorter subtitle for yesterday/earlier
         if (shouldShowAddingMode) {
-          if (category === 'yesterday') return 'Your win from yesterday';
-          if (category === 'earlier') return 'Your win on this day';
+          if (category === 'yesterday') {return 'Your win from yesterday';}
+          if (category === 'earlier') {return 'Your win on this day';}
           // today keeps existing
           return "What's your biggest win today?";
         }

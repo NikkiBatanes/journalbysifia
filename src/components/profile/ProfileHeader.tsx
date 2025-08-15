@@ -1,22 +1,47 @@
 import React, { useMemo } from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil as LuPencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 
 export interface ProfileStatsLite {
   faithPoints: number;
   level: number;
+  // Optional extras for top-row chips
+  streakDays?: number;
+  badgesCount?: number;
 }
+
+interface UsageSummary {
+  playbooks: { used: number; limit: number };
+  devotionals: { used: number; limit: number };
+}
+
+// Map level number to title (kept in sync with faithPointsService LEVELS)
+const LEVEL_TITLES: Record<number, string> = {
+  1: 'Seeker',
+  2: 'Believer',
+  3: 'Disciple',
+  4: 'Servant',
+  5: 'Leader',
+  6: 'Teacher',
+  7: 'Mentor',
+  8: 'Elder',
+  9: 'Steward',
+  10: 'Ambassador',
+};
 
 interface Props {
   user: any | null;
   stats: ProfileStatsLite | null;
   onEditPress?: () => void;
   onEditAvatar?: () => void;
+  plan?: string; // e.g., 'Starter', 'Growth', 'Premium', 'Basic'
+  usage?: UsageSummary | null;
 }
 
-const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar }) => {
+const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage }) => {
   const displayName = useMemo(() => {
     const meta = (user as any)?.user_metadata || {};
     return (
@@ -30,6 +55,8 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
   const level = stats?.level ?? 1;
   const points = stats?.faithPoints ?? 0;
+  const streakDays = (stats as any)?.streakDays ?? (user as any)?.streakDays ?? 0;
+  const badgesCount = (stats as any)?.badgesCount ?? (user as any)?.badgesCount ?? 0;
 
   const progress = useMemo(() => {
     // Mirror logic from screen: linear progress between levels
@@ -58,28 +85,87 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
   return (
     <View style={styles.headerGradient}>
+      {(!!plan || !!usage) && (
+        <View style={styles.planAndUsageRow}>
+          {!!plan && (
+            <View style={styles.planPill}>
+              <Text style={styles.planText}>{String(plan).toUpperCase()}</Text>
+              {!!usage && (
+                <View style={styles.pillsRow}>
+                  <View style={styles.usagePill}>
+                    <View style={styles.usageItemRow}>
+                      <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
+                      <Text style={styles.usageText}>
+                        {usage.playbooks.used}
+                        {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.usagePill}>
+                    <View style={styles.usageItemRow}>
+                      <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
+                      <Text style={styles.usageText}>
+                        {usage.devotionals.used}
+                        {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
+                      </Text>
+                    </View>
+                  </View>
+                  {/* Move FP, Streak, Badges inside Growth container */}
+                  <View style={styles.usagePill}>
+                    <View style={styles.usageItemRow}>
+                      <MaterialCommunityIcons name="star-four-points" size={12} color={Colors.hopeWhite} />
+                      <Text style={styles.usageText}>{points} FP</Text>
+                    </View>
+                  </View>
+                  <View style={styles.usagePill}>
+                    <View style={styles.usageItemRow}>
+                      <MaterialCommunityIcons name="fire" size={12} color={Colors.hopeWhite} />
+                      <Text style={styles.usageText}>{streakDays}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.usagePill}>
+                    <View style={styles.usageItemRow}>
+                      <MaterialCommunityIcons name="trophy" size={12} color={Colors.hopeWhite} />
+                      <Text style={styles.usageText}>{badgesCount}</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+          {!plan && !!usage && (
+            <>
+              <View style={styles.usagePill}>
+                <View style={styles.usageItemRow}>
+                  <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
+                  <Text style={styles.usageText}>
+                    {usage.playbooks.used}
+                    {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.usagePill}>
+                <View style={styles.usageItemRow}>
+                  <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
+                  <Text style={styles.usageText}>
+                    {usage.devotionals.used}
+                    {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
+                  </Text>
+                </View>
+              </View>
+            </>
+          )}
+        </View>
+      )}
       <View style={styles.profileHeader}>
         <TouchableOpacity
           style={styles.avatarContainer}
           onPress={() => {
             console.log('[ProfileHeader] Avatar pressed');
-            try {
-              const { Alert } = require('react-native');
-              Alert.alert('Avatar', 'Avatar area pressed');
-            } catch (_) {}
-            if (onEditAvatar) {
-              onEditAvatar();
-            } else {
-              try {
-                // Lazy import to avoid new dependency here; Alert exists in React Native
-
-                const { Alert } = require('react-native');
-                Alert.alert('Avatar', 'Press received, but no handler provided.');
-              } catch (_) {}
-            }
+            if (onEditPress) { onEditPress(); }
           }}
           accessibilityRole="button"
-          accessibilityLabel="Edit profile photo"
+          accessibilityLabel="Edit profile"
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           {avatarUrl ? (
@@ -92,37 +178,32 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
           <TouchableOpacity
             style={styles.editAvatarButton}
             onPress={() => {
-              console.log('[ProfileHeader] Camera icon pressed');
-              try {
-                const { Alert } = require('react-native');
-                Alert.alert('Avatar', 'Camera icon pressed');
-              } catch (_) {}
-              if (onEditAvatar) {onEditAvatar();}
+              console.log('[ProfileHeader] Pencil overlay pressed');
+              if (onEditPress) { onEditPress(); }
             }}
             accessibilityRole="button"
-            accessibilityLabel="Change profile photo"
+            accessibilityLabel="Edit profile"
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="camera" size={16} color="#fff" />
+            <LuPencil size={14} color={Colors.alertCoral} />
           </TouchableOpacity>
         </TouchableOpacity>
 
         <View style={styles.profileInfo}>
-          <Text style={styles.userName}>{displayName}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.userName}>{displayName}</Text>
+          </View>
           {!!user?.email && <Text style={styles.userEmail}>{user.email}</Text>}
 
           <View style={styles.levelContainer}>
-            <Text style={styles.levelText}>Level {level}</Text>
+            <Text style={styles.levelText}>Level {level}: {LEVEL_TITLES[level] || ''}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
             </View>
-            <Text style={styles.faithPointsText}>{points} Faith Points</Text>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.editButton} onPress={onEditPress}>
-          <LuPencil size={20} color={Colors.alertCoral} />
-        </TouchableOpacity>
+        {/* Right-side edit pencil removed per request */}
       </View>
     </View>
   );
@@ -132,7 +213,7 @@ const styles = StyleSheet.create({
   headerGradient: {
     backgroundColor: Colors.hopeWhite,
     paddingTop: 0,
-    paddingBottom: 16,
+    paddingBottom: 40,
   },
   profileHeader: {
     flexDirection: 'row',
@@ -162,56 +243,144 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -2,
-    backgroundColor: Colors.primary,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    backgroundColor: Colors.hopeWhite,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#fff',
+    borderWidth: 0,
   },
   profileInfo: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8 as any,
+  },
   userName: {
     fontSize: 20,
     fontWeight: '700',
-    color: Colors.darkerGray,
+    color: Colors.anchorBlue,
+    marginBottom: 4,
+  },
+  planPill: {
+    marginLeft: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 18,
+    backgroundColor: Colors.faithGold,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 8 as any,
+    // subtle floating shadow
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  planText: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginRight: 4,
+    alignSelf: 'center',
+    textAlign: 'center',
+  },
+  usagePill: {
+    marginLeft: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 18,
+    // Transparent with visible border
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(242, 245, 247, 0.45)',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8 as any,
+  },
+  faithPointsPill: {
+    marginLeft: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 18,
+    backgroundColor: Colors.faithGold,
+    borderWidth: 1,
+    borderColor: Colors.faithGold,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  usageItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4 as any,
+  },
+  usageText: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    fontWeight: '700',
+  },
+  usageDivider: {
+    width: 1,
+    height: 12,
+    backgroundColor: Colors.cardBorder,
+    marginHorizontal: 6,
   },
   userEmail: {
     fontSize: 12,
     color: Colors.mediumGray,
     marginTop: 2,
+    marginBottom: 6,
+  },
+  planAndUsageRow: {
+    position: 'absolute',
+    top: 105,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    width: '100%',
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8 as any,
   },
   levelContainer: {
-    marginTop: 8,
+    marginTop: 0,
   },
   levelText: {
-    fontSize: 12,
-    color: Colors.darkerGray,
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.anchorBlue,
     opacity: 0.9,
   },
   progressBar: {
-    height: 8,
+    height: 12,
     backgroundColor: 'rgba(0,0,0,0.1)',
     borderRadius: 6,
     marginTop: 6,
     overflow: 'hidden',
   },
   progressFill: {
-    height: 8,
+    height: 12,
     backgroundColor: Colors.alertCoral,
     borderRadius: 6,
   },
   faithPointsText: {
     fontSize: 12,
-    color: Colors.mediumGray,
+    fontWeight: '500',
+    color: Colors.anchorBlue,
     marginTop: 4,
-  },
-  editButton: {
-    marginLeft: 8,
-    padding: 8,
   },
 });
 

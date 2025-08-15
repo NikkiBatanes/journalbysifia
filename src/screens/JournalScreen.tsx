@@ -74,7 +74,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   useImperativeHandle(ref, () => ({
     resetToCurrentDate: () => {
       const now = new Date();
-      
+
       setCurrentDate(prevDate => {
         // If already on today's date, toggle to last selected date if available
         if (isSameDay(prevDate, now) && lastSelectedDate.current && !isSameDay(lastSelectedDate.current, now)) {
@@ -259,13 +259,13 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
             // Update the date immediately for better UX
             setCurrentDate(new Date(targetDay.getTime()));
           }
-          
+
           // Check if we need to regenerate weeks for smooth scrolling across months
           // If we're near the edges (first 2 or last 2 weeks), regenerate with the new target date as center
           if (weekIndex <= 2 || weekIndex >= weeks.length - 3) {
             const targetMonth = targetDay.getMonth();
             const currentMonth = currentDate.getMonth();
-            
+
             // Only regenerate if we've moved to a different month
             if (targetMonth !== currentMonth) {
               console.log('📅 Regenerating weeks for month transition:', format(targetDay, 'yyyy-MM'));

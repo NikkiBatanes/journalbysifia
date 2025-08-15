@@ -21,22 +21,22 @@ const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
 
   const getTierDisplayName = () => {
     switch (tier) {
-      case 'basic':
-        return 'Basic';
+      case 'seeker':
+        return 'siFia SEEKER';
       case 'free_trial':
         return 'Free Trial';
-      case 'starter':
-      case 'starter_annual':
-        return 'Starter';
+      case 'spark':
+      case 'spark_annual':
+        return 'siFia SPARK';
       case 'growth':
       case 'growth_annual':
-        return 'Growth';
+        return 'siFia GROWTH';
       case 'transformation':
       case 'transformation_annual':
-        return 'Transformation';
+        return 'siFia TRANSFORMATION';
       case 'family':
       case 'family_annual':
-        return 'Family';
+        return 'siFia FAMILY';
       default:
         return 'Unknown';
     }
@@ -44,12 +44,12 @@ const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
 
   const getTierColor = () => {
     switch (tier) {
-      case 'basic':
+      case 'seeker':
         return Colors.textGray;
       case 'free_trial':
         return Colors.faithGold;
-      case 'starter':
-      case 'starter_annual':
+      case 'spark':
+      case 'spark_annual':
         return Colors.anchorBlue;
       case 'growth':
       case 'growth_annual':
@@ -66,7 +66,7 @@ const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
   };
 
   const handleManageSubscription = () => {
-    if (tier === 'basic') {
+    if (tier === 'seeker') {
       navigation.navigate('OnboardingPricingShowcase' as never);
     } else {
       navigation.navigate('SubscriptionManagement' as never);
@@ -136,7 +136,7 @@ const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
 
         <TouchableOpacity style={styles.manageButton} onPress={handleManageSubscription}>
           <Text style={styles.manageButtonText}>
-            {tier === 'basic' ? 'Upgrade' : 'Manage'}
+            {tier === 'seeker' ? 'Upgrade' : 'Manage'}
           </Text>
           <Ionicons name="chevron-forward" size={16} color={Colors.hopeWhite} />
         </TouchableOpacity>
@@ -190,7 +190,7 @@ const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
         </View>
       )}
 
-      {tier === 'basic' && (
+      {tier === 'seeker' && (
         <View style={styles.upgradePrompt}>
           <Text style={styles.upgradeTitle}>Unlock Premium Features</Text>
           <Text style={styles.upgradeDescription}>

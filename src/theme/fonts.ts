@@ -63,8 +63,8 @@ export const FontFamilyMap = {
 // Get font family based on key and weight
 export const getFontFamily = (fontKey: string, weight: 'regular' | 'medium' | 'semiBold' | 'bold' = 'regular'): string => {
   const fontFamily = FontFamilyMap[fontKey as keyof typeof FontFamilyMap];
-  if (!fontFamily) return 'System';
-  
+  if (!fontFamily) {return 'System';}
+
   return fontFamily[weight] || fontFamily.regular;
 };
 

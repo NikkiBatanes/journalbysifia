@@ -35,13 +35,13 @@ class TierRestrictionService {
     // Export features
     {
       feature: 'export_pdf',
-      requiredTier: 'starter',
+      requiredTier: 'spark',
       usageType: 'exports',
       featureFlag: 'intelligenceEnabled',
     },
     {
       feature: 'export_docx',
-      requiredTier: 'starter',
+      requiredTier: 'spark',
       usageType: 'exports',
       featureFlag: 'intelligenceEnabled',
     },
@@ -96,7 +96,7 @@ class TierRestrictionService {
     },
     {
       feature: 'unlimited_devotionals',
-      requiredTier: 'starter',
+      requiredTier: 'spark',
       usageType: 'devotionals',
     },
 
@@ -126,7 +126,7 @@ class TierRestrictionService {
     try {
       // Get user subscription and limits
       const subscription = await subscriptionService.getUserSubscription(userId);
-      const limits = subscriptionService.getSubscriptionLimits(subscription?.tier || 'basic');
+      const limits = subscriptionService.getSubscriptionLimits(subscription?.tier || 'seeker');
 
       // Find restriction for this feature
       const restriction = this.restrictions.find(r => r.feature === feature);
@@ -136,7 +136,7 @@ class TierRestrictionService {
       }
 
       // Check tier requirement
-      if (!this.hasTierAccess(subscription?.tier || 'basic', restriction.requiredTier)) {
+      if (!this.hasTierAccess(subscription?.tier || 'seeker', restriction.requiredTier)) {
         return {
           hasAccess: false,
           reason: 'tier_restriction',
@@ -245,10 +245,10 @@ class TierRestrictionService {
    */
   private hasTierAccess(currentTier: SubscriptionTier, requiredTier: SubscriptionTier): boolean {
     const tierHierarchy: Record<SubscriptionTier, number> = {
-      'basic': 0,
+      'seeker': 0,
       'free_trial': 1,
-      'starter': 2,
-      'starter_annual': 2,
+      'spark': 2,
+      'spark_annual': 2,
       'growth': 3,
       'growth_annual': 3,
       'transformation': 4,
@@ -341,16 +341,16 @@ class TierRestrictionService {
     };
 
     const tierNames: Record<SubscriptionTier, string> = {
-      'basic': 'Basic',
+      'seeker': 'siFia SEEKER',
       'free_trial': 'Free Trial',
-      'starter': 'Starter',
-      'starter_annual': 'Starter Annual',
-      'growth': 'Growth',
-      'growth_annual': 'Growth Annual',
-      'transformation': 'Transformation',
-      'transformation_annual': 'Transformation Annual',
-      'family': 'Family',
-      'family_annual': 'Family Annual',
+      'spark': 'siFia SPARK',
+      'spark_annual': 'siFia SPARK Annual',
+      'growth': 'siFia GROWTH',
+      'growth_annual': 'siFia GROWTH Annual',
+      'transformation': 'siFia TRANSFORMATION',
+      'transformation_annual': 'siFia TRANSFORMATION Annual',
+      'family': 'siFia FAMILY',
+      'family_annual': 'siFia FAMILY Annual',
     };
 
     const featureName = featureNames[feature] || feature;

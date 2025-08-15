@@ -51,9 +51,9 @@ const getDateCategory = (
   const diffMs = startOfToday.getTime() - startOfTarget.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return 'today';
-  if (diffDays === 1) return 'yesterday';
-  if (diffDays > 1) return 'earlier';
+  if (diffDays === 0) {return 'today';}
+  if (diffDays === 1) {return 'yesterday';}
+  if (diffDays > 1) {return 'earlier';}
   return 'future';
 };
 
@@ -697,9 +697,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       const category = getDateCategory(selectedDate);
       if (todos.length === 0) {
         if (shouldShowAddingMode) {
-          if (category === 'yesterday') return 'Revisit tasks you intended to do';
-          if (category === 'earlier') return 'Revisit tasks from this day';
-          if (category === 'future') return 'Pray & list tasks for this day';
+          if (category === 'yesterday') {return 'Revisit tasks you intended to do';}
+          if (category === 'earlier') {return 'Revisit tasks from this day';}
+          if (category === 'future') {return 'Pray & list tasks for this day';}
         }
         return 'Track your daily tasks';
       }
@@ -729,9 +729,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       }
 
       // Prefix category label for non-today
-      if (category === 'yesterday') return `Yesterday • ${base}`;
-      if (category === 'earlier') return `This day • ${base}`;
-      if (category === 'future') return `Future • ${base}`;
+      if (category === 'yesterday') {return `Yesterday • ${base}`;}
+      if (category === 'earlier') {return `This day • ${base}`;}
+      if (category === 'future') {return `Future • ${base}`;}
       return base;
     }
     return 'Track your daily tasks';

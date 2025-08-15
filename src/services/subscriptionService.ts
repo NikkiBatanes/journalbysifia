@@ -78,7 +78,7 @@ export class SubscriptionService {
             } catch (e) {
               console.warn('[SubscriptionService] Failed to expire trial in DB. Continuing with in-memory Basic.', e);
             }
-            return this.createBasicFreemiumSubscription(userId);
+            return this.createSeekerFreemiumSubscription(userId);
           }
         } catch (e) {
           console.warn('[SubscriptionService] Opt-out recheck failed while existing sub present.', e);
@@ -143,24 +143,24 @@ export class SubscriptionService {
   }
 
   /**
-   * Create an in-memory Basic (freemium) subscription respecting trial opt-out
+   * Create an in-memory Seeker (freemium) subscription respecting trial opt-out
    */
-  private createBasicFreemiumSubscription(userId: string): Subscription {
-    const limits = this.getSubscriptionLimits('basic');
+  private createSeekerFreemiumSubscription(userId: string): Subscription {
+    const limits = this.getSubscriptionLimits('seeker');
     const now = new Date().toISOString();
     return {
-      id: 'basic-' + userId,
+      id: 'seeker-' + userId,
       userId,
-      tier: 'basic',
+      tier: 'seeker',
       status: 'active',
-      priceId: 'basic-free',
+      priceId: 'seeker-free',
       startDate: now,
       endDate: now,
       limits,
       currentUsage: {
-        id: 'usage-basic-' + userId,
+        id: 'usage-seeker-' + userId,
         user_id: userId,
-        subscription_id: 'basic-' + userId,
+        subscription_id: 'seeker-' + userId,
         playbooks_generated: 0,
         devotionals_generated: 0,
         journal_entries: 0,
@@ -195,16 +195,16 @@ export class SubscriptionService {
 
       if (error || !data) {
         // Create usage record if doesn't exist - match actual database schema
-        const basicUsage = {
+        const seekerUsage = {
           user_id: userId,
           playbooks_generated: 0,
           devotionals_generated: 0,
           created_at: new Date().toISOString(),
         };
 
-        // Try full schema first, fallback to basic
+        // Try full schema first, fallback to seeker
         const newUsage = {
-          ...basicUsage,
+          ...seekerUsage,
           journal_entries: 0,
           smart_journal_entries: 0,
           openai_tokens_used: 0,
@@ -225,17 +225,17 @@ export class SubscriptionService {
 
         if (createError) {
           console.error('[SubscriptionService] Error creating usage record:', createError);
-          // If schema mismatch, try with basic fields only
+          // If schema mismatch, try with seeker fields only
           if (createError.code === 'PGRST204') {
-            console.log('[SubscriptionService] Schema mismatch, trying basic usage fields');
-            const { data: basicCreated, error: basicCreateError } = await this.supabase
+            console.log('[SubscriptionService] Schema mismatch, trying seeker usage fields');
+            const { data: seekerCreated, error: seekerCreateError } = await this.supabase
               .from('usage_tracking')
-              .insert(basicUsage)
+              .insert(seekerUsage)
               .select()
               .single();
 
-            if (basicCreateError) {
-              console.error('[SubscriptionService] Basic usage insert also failed:', basicCreateError);
+            if (seekerCreateError) {
+              console.error('[SubscriptionService] Seeker usage insert also failed:', seekerCreateError);
               // Return default usage to prevent crashes
               return {
                 userId: userId,
@@ -249,16 +249,16 @@ export class SubscriptionService {
               };
             }
 
-            // Convert basic usage to full usage tracking format
+            // Convert seeker usage to full usage tracking format
             return {
-              userId: basicCreated.user_id,
-              period: basicCreated.period,
-              playbooks_used: basicCreated.playbooks_used || 0,
-              devotionals_used: basicCreated.devotionals_used || 0,
+              userId: seekerCreated.user_id,
+              period: seekerCreated.period,
+              playbooks_used: seekerCreated.playbooks_used || 0,
+              devotionals_used: seekerCreated.devotionals_used || 0,
               ai_tokens_used: 0,
               ai_cost_cents: 0,
               api_calls_made: 0,
-              lastUpdated: basicCreated.created_at || new Date().toISOString(),
+              lastUpdated: seekerCreated.created_at || new Date().toISOString(),
             };
           }
           throw createError;
@@ -495,6 +495,38 @@ export class SubscriptionService {
         advancedAnalytics: false,
         prioritySupport: false,
       },
+      seeker: {
+        playbooks: 1,
+        devotionals: 0,
+        exports: 0,
+        apiCalls: 0,
+        familyMembers: 0,
+        intelligenceEnabled: false,
+        smartJournalingEnabled: false,  // Restricted for seeker
+        calendarSyncEnabled: false,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: false,
+        answeredPrayerTrackingEnabled: false,
+        maxLevel: 3,
+        advancedAnalytics: false,
+        prioritySupport: false,
+      },
+      spark: {
+        playbooks: 8,
+        devotionals: 8,
+        exports: 10,
+        apiCalls: 0,
+        familyMembers: 0,
+        intelligenceEnabled: true,
+        smartJournalingEnabled: true,
+        calendarSyncEnabled: true,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: true,
+        answeredPrayerTrackingEnabled: true,
+        maxLevel: 2,
+        advancedAnalytics: false,
+        prioritySupport: false,
+      },
       starter: {
         playbooks: 8,
         devotionals: 8,
@@ -560,7 +592,7 @@ export class SubscriptionService {
         prioritySupport: true,
       },
       // Annual plans have same limits as monthly
-      starter_annual: {
+      spark_annual: {
         playbooks: 8,
         devotionals: 8,
         exports: 10,
@@ -626,7 +658,7 @@ export class SubscriptionService {
       },
     };
 
-    return limitsMap[tier] || limitsMap.basic;
+    return limitsMap[tier] || limitsMap.seeker;
   }
 
   /**
@@ -652,7 +684,7 @@ export class SubscriptionService {
       family: 2,
       pro: 3,
       lite: 4,
-      starter: 5,
+      spark: 5,
       free_trial: 6,     // Lowest priority
     };
 
@@ -797,8 +829,8 @@ export class SubscriptionService {
       const trialEndDate = new Date();
       trialEndDate.setDate(trialEndDate.getDate() + 7); // 7-day trial
 
-      // Try to insert basic subscription data that matches actual database schema
-      const basicSubscriptionData = {
+      // Try to insert seeker subscription data that matches actual database schema
+      const seekerSubscriptionData = {
         user_id: userId,
         status: 'trialing',
         tier: 'free_trial',
@@ -809,7 +841,7 @@ export class SubscriptionService {
 
       const { data, error } = await this.supabase
         .from('user_subscriptions')
-        .insert(basicSubscriptionData)
+        .insert(seekerSubscriptionData)
         .select()
         .single();
 
@@ -832,7 +864,7 @@ export class SubscriptionService {
         return this.createInMemorySubscription(userId);
       }
 
-      console.log('[SubscriptionService] Created basic subscription for user:', userId);
+      console.log('[SubscriptionService] Created seeker subscription for user:', userId);
       // Convert database result to full subscription object
       return this.convertToFullSubscription(data, userId);
     } catch (error) {
@@ -881,7 +913,7 @@ export class SubscriptionService {
   }
 
   /**
-   * Convert basic database subscription to full subscription object
+   * Convert seeker database subscription to full subscription object
    */
   private convertToFullSubscription(dbData: any, userId: string): Subscription {
     const trialEndDate = new Date(dbData.trial_end_date || Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -979,18 +1011,18 @@ export class SubscriptionService {
    */
   async cancelSubscription(userId: string): Promise<void> {
     try {
-      // When users cancel or opt out, they become basic (freemium) users
+      // When users cancel or opt out, they become seeker (freemium) users
       await this.supabase
         .from('user_subscriptions')
         .update({
-          tier: 'basic',  // Move to freemium tier
+          tier: 'seeker',  // Move to freemium tier
           status: 'canceled',
           canceled_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('user_id', userId);
 
-      console.log('[SubscriptionService] Canceled subscription for user:', userId, '- moved to basic (freemium) tier');
+      console.log('[SubscriptionService] Canceled subscription for user:', userId, '- moved to seeker (freemium) tier');
     } catch (error) {
       console.error('[SubscriptionService] Error canceling subscription:', error);
       throw error;

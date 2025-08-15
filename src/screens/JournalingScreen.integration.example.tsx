@@ -24,7 +24,7 @@ export const JournalingScreen = () => {
   const { hasAccess: hasAllTemplates } = useFeatureAccess('journalTemplatesAccess');
 
   // Mock data - replace with your actual data
-  const basicTemplates = [
+  const freeTemplates = [
     { id: 1, name: 'Daily Gratitude', isPremium: false },
     { id: 2, name: 'Simple Prayer', isPremium: false },
     { id: 3, name: 'Bible Reflection', isPremium: false },
@@ -90,16 +90,16 @@ export const JournalingScreen = () => {
           </Text>
           {hasExpired && !hasSmartJournaling && (
             <Text style={styles.upgradePrompt}>
-              Upgrade to Starter to unlock smart journaling
+              Upgrade to siFia SPARK to unlock smart journaling
             </Text>
           )}
         </TouchableOpacity>
       </View>
 
-      {/* Basic Templates - Always Available */}
+      {/* Free Templates - Always Available */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Free Templates</Text>
-        {basicTemplates.map(template => (
+        {freeTemplates.map(template => (
           <TemplateCard
             key={template.id}
             template={template}

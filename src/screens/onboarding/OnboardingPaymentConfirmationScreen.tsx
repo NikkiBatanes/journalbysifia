@@ -43,7 +43,7 @@ const OnboardingPaymentConfirmationScreen = () => {
         console.log(`✅ Upgraded subscription for ${user.id} to ${tier}`);
       } catch (err) {
         console.error('❌ Failed to persist paid subscription:', err);
-        // Non-blocking; user can continue but will remain basic until retried
+        // Non-blocking; user can continue but will remain seeker until retried
       } finally {
         setSaving(false);
       }
@@ -87,9 +87,9 @@ const OnboardingPaymentConfirmationScreen = () => {
   const getFeaturesList = () => {
     if (userType === 'freemium') {
       return [
-        'Access to basic spiritual content',
+        'Access to essential spiritual content',
         'Daily affirmations and verses',
-        'Basic journaling features',
+        'Essential journaling features',
         'Community support',
       ];
     }

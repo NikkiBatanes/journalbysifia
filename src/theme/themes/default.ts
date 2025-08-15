@@ -70,7 +70,7 @@ export const defaultTheme: Theme = {
 
     // ActionStepsCard colors (preserving exact spiritual meanings)
     prayerPurple: '#9B59B6',        // Prayer - spiritual connection
-    reflectionBlue: '#3498DB',      // Reflection - wisdom and depth  
+    reflectionBlue: '#3498DB',      // Reflection - wisdom and depth
     gratitudeRed: '#E74C3C',        // Gratitude - love and warmth
     winGold: '#F39C12',             // Wins - celebration and joy
     timeblockGreen: '#2ECC71',      // Time management - growth

@@ -87,18 +87,18 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
     const diffMs = startOfToday.getTime() - startOfTarget.getTime();
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 0) return 'today';
-    if (diffDays === 1) return 'yesterday';
-    if (diffDays > 1) return 'earlier';
+    if (diffDays === 0) {return 'today';}
+    if (diffDays === 1) {return 'yesterday';}
+    if (diffDays > 1) {return 'earlier';}
     return 'future';
   };
 
   const getEmptySubtitle = () => {
-    if (hasContent) return undefined;
+    if (hasContent) {return undefined;}
     const category = getDateCategory(selectedDate);
-    if (category === 'today') return 'Shows after completing\ntoday’s devotional and tapping Pray';
-    if (category === 'yesterday') return 'Shows after completing\nyesterday’s devotional and tapping Pray';
-    if (category === 'earlier') return 'Shows after completing\nthis day’s devotional and tapping Pray';
+    if (category === 'today') {return 'Shows after completing\ntoday’s devotional and tapping Pray';}
+    if (category === 'yesterday') {return 'Shows after completing\nyesterday’s devotional and tapping Pray';}
+    if (category === 'earlier') {return 'Shows after completing\nthis day’s devotional and tapping Pray';}
     // Future or fallback
     return 'Complete devotionals to see your prayers here';
   };

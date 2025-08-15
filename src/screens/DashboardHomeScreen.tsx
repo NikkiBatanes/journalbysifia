@@ -60,7 +60,7 @@ interface DashboardHomeScreenProps {
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
   const theme = useTheme();
-  
+
   // Limit FAB visibility to at most 2 shows across sessions
   const [showFab, setShowFab] = useState(false);
   const FAB_SHOW_KEY = 'dashboard_fab_shown_count';
@@ -264,8 +264,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         >
           <Text style={styles.subscriptionText}>
             {(() => {
-              const tier = subscription?.tier || 'basic';
-              if (tier === 'basic') {return 'BASIC';}
+              const tier = subscription?.tier || 'seeker';
+              if (tier === 'seeker') {return 'SEEKER';}
               if (tier === 'free_trial') {return 'TRIAL';}
               return 'PREMIUM';
             })()}

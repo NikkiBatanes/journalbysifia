@@ -142,7 +142,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
 
   // Determine whether an entry has meaningful content (used for copy/CTA)
   const hasEntry: boolean = useMemo(() => {
-    if (!existingEntry) return false;
+    if (!existingEntry) {return false;}
     try {
       const content = typeof existingEntry.content === 'string' ? JSON.parse(existingEntry.content || '{}') : (existingEntry.content || {});
       const hasFocus = typeof content.focus === 'string' && content.focus.trim().length > 0;
@@ -162,8 +162,8 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   const focusState: FocusCardState = useMemo(() => {
     if (isToday(day)) {
       return {
-        eyebrow: "Today’s Focus",
-        title: "Get Ready for a Great Day",
+        eyebrow: 'Today’s Focus',
+        title: 'Get Ready for a Great Day',
         subtitle: shouldShowEditingMode
           ? (hasEntry ? 'Update your focus and priorities' : 'Set your focus and priorities')
           : (hasEntry
@@ -176,16 +176,16 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     if (isYesterday(day)) {
       return hasEntry
         ? {
-            eyebrow: "Yesterday’s Focus",
-            title: "What I Focused On",
-            subtitle: "How God led you and what counted",
+            eyebrow: 'Yesterday’s Focus',
+            title: 'What I Focused On',
+            subtitle: 'How God led you and what counted',
             ctaLabel: 'Revisit',
             ctaAction: 'revisit',
           }
         : {
-          eyebrow: "Yesterday’s Focus",
-          title: "Revisit Yesterday",
-          subtitle: shouldShowEditingMode ? "Reflect on what counted" : "Reflect on how you made this day count in faith and action",
+          eyebrow: 'Yesterday’s Focus',
+          title: 'Revisit Yesterday',
+          subtitle: shouldShowEditingMode ? 'Reflect on what counted' : 'Reflect on how you made this day count in faith and action',
           ctaLabel: 'Revisit',
           ctaAction: 'revisit',
         };
@@ -193,25 +193,25 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     if (future) {
       if (!planningEnabled) {
         return {
-          eyebrow: "Upcoming Focus",
-          title: "Plan Ahead in Faith",
-          subtitle: "Planning is currently disabled",
+          eyebrow: 'Upcoming Focus',
+          title: 'Plan Ahead in Faith',
+          subtitle: 'Planning is currently disabled',
           ctaLabel: 'Plan Focus',
           ctaAction: 'plan',
         };
       }
       return hasPlan
         ? {
-            eyebrow: "Upcoming Focus",
-            title: "Planned Focus",
-            subtitle: shouldShowEditingMode ? "Edit your focus and priorities" : "Planned in faith, ready to begin",
+            eyebrow: 'Upcoming Focus',
+            title: 'Planned Focus',
+            subtitle: shouldShowEditingMode ? 'Edit your focus and priorities' : 'Planned in faith, ready to begin',
             ctaLabel: 'Edit Plan',
             ctaAction: 'editPlan',
           }
         : {
-            eyebrow: "Upcoming Focus",
-            title: "Plan in Faith Ahead",
-            subtitle: shouldShowEditingMode ? "Set your focus and priorities" : "Prayerfully set what matters so this day can count",
+            eyebrow: 'Upcoming Focus',
+            title: 'Plan in Faith Ahead',
+            subtitle: shouldShowEditingMode ? 'Set your focus and priorities' : 'Prayerfully set what matters so this day can count',
             ctaLabel: 'Pray & Set',
             ctaAction: 'plan',
           };
@@ -219,16 +219,16 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
     // Earlier past (before yesterday)
     return hasEntry
       ? {
-          eyebrow: "Previous Focus",
-          title: "What I Focused On",
-          subtitle: "What counted in faith on this day",
+          eyebrow: 'Previous Focus',
+          title: 'What I Focused On',
+          subtitle: 'What counted in faith on this day',
           ctaLabel: 'Revisit',
           ctaAction: 'revisit',
         }
       : {
-          eyebrow: "Previous Focus",
-          title: "Revisit This Day",
-          subtitle: shouldShowEditingMode ? "Capture what mattered" : "Capture what mattered and how God was at work",
+          eyebrow: 'Previous Focus',
+          title: 'Revisit This Day',
+          subtitle: shouldShowEditingMode ? 'Capture what mattered' : 'Capture what mattered and how God was at work',
           ctaLabel: 'Revisit',
           ctaAction: 'revisit',
         };

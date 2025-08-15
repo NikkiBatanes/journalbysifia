@@ -42,8 +42,8 @@ interface SubscriptionTier {
 
 const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   {
-    id: 'starter',
-    name: 'Starter',
+    id: 'spark',
+    name: 'siFia SPARK',
     price: '$4.99',
     period: '/month',
     playbooks: 8,
@@ -59,8 +59,8 @@ const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     ],
   },
   {
-    id: 'lite',
-    name: 'Lite',
+    id: 'growth',
+    name: 'siFia GROWTH',
     price: '$9.99',
     period: '/month',
     playbooks: 20,
@@ -78,8 +78,8 @@ const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     ],
   },
   {
-    id: 'pro',
-    name: 'Pro',
+    id: 'transformation',
+    name: 'siFia TRANSFORMATION',
     price: '$19.99',
     period: '/month',
     playbooks: 'Unlimited',
@@ -98,7 +98,7 @@ const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
   },
   {
     id: 'family',
-    name: 'Family',
+    name: 'siFia FAMILY',
     price: '$29.99',
     period: '/month',
     playbooks: 'Unlimited',
@@ -125,7 +125,7 @@ export const UpgradeModal: React.FC<UpgradeModalProps> = ({
 }) => {
   const { subscription } = useSubscription();
   const { upgradeFlow } = useSubscriptionUpgrade();
-  const [selectedTier, setSelectedTier] = useState(suggestedTier || 'lite');
+  const [selectedTier, setSelectedTier] = useState(suggestedTier || 'growth');
   const [upgrading, setUpgrading] = useState(false);
 
   const handleUpgrade = async (tierId: string) => {

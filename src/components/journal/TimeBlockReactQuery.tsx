@@ -544,7 +544,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
     if (!hasItems && !shouldShowAddingMode) {return undefined;}
     if (future) {return sp('PLANNED TIME BLOCK', 'PLANNED TIME BLOCKS', timeBlocks.length);}
     if (isToday) {return sp('TIME BLOCK', 'TIME BLOCKS', timeBlocks.length);}
-    if (isYesterday) {return sp("YESTERDAY’S TIME BLOCK", "YESTERDAY’S TIME BLOCKS", timeBlocks.length);}
+    if (isYesterday) {return sp('YESTERDAY’S TIME BLOCK', 'YESTERDAY’S TIME BLOCKS', timeBlocks.length);}
     return sp('TIME BLOCK ON THIS DAY', 'TIME BLOCKS ON THIS DAY', timeBlocks.length);
   }, [hasItems, shouldShowAddingMode, future, isToday, isYesterday, timeBlocks.length]);
 

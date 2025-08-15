@@ -45,16 +45,16 @@ const OnboardingTrialOfferScreen = () => {
     } catch (e) {
       // ignore
     }
-    // User becomes basic (freemium) user
+    // User becomes seeker (freemium) user
     navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
   };
 
   const getTierDisplayName = (tierName: string) => {
     switch (tierName) {
-      case 'starter': return 'Starter';
-      case 'growth': return 'Growth';
-      case 'transformation': return 'Transformation';
-      case 'family': return 'Family';
+      case 'spark': return 'siFia SPARK';
+      case 'growth': return 'siFia GROWTH';
+      case 'transformation': return 'siFia TRANSFORMATION';
+      case 'family': return 'siFia FAMILY';
       default: return 'Growth';
     }
   };

@@ -76,8 +76,8 @@ const getDateCategory = (targetDate: Date): 'today' | 'yesterday' | 'earlier' =>
   const diffMs = startOfToday.getTime() - startOfTarget.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return 'today';
-  if (diffDays === 1) return 'yesterday';
+  if (diffDays === 0) {return 'today';}
+  if (diffDays === 1) {return 'yesterday';}
   return 'earlier';
 };
 

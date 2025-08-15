@@ -669,8 +669,30 @@ class UserApiService {
 
       const goalsCompleted = playbooksCompleted + actionStepsCompleted;
 
-      // Calculate badges based on achievements (simplified for now)
-      const totalBadges = Math.floor(profile.totalPoints / 50); // 1 badge per 50 points
+      // Calculate badges from actual sources
+      let totalBadges = 0;
+      try {
+        const { data: ubRows, error: ubErr } = await supabase
+          .from('user_badges')
+          .select('badge_id')
+          .eq('user_id', userId);
+        if (!ubErr && Array.isArray(ubRows)) {
+          totalBadges = ubRows.length;
+        }
+      } catch {}
+      // Fallback to legacy JSON array on user_profiles.badges
+      if (totalBadges === 0) {
+        try {
+          const { data: profileRow, error: profErr } = await supabase
+            .from('user_profiles')
+            .select('badges')
+            .eq('id', userId)
+            .single();
+          if (!profErr && profileRow) {
+            totalBadges = Array.isArray(profileRow.badges) ? profileRow.badges.length : 0;
+          }
+        } catch {}
+      }
 
       const profileStats = {
         faithPoints: profile.totalPoints,

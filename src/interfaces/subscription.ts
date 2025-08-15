@@ -3,7 +3,7 @@
  * Handles all subscription tiers, limits, and billing
  */
 
-export type SubscriptionTier = 'free_trial' | 'basic' | 'starter' | 'growth' | 'transformation' | 'family' | 'starter_annual' | 'growth_annual' | 'transformation_annual' | 'family_annual';
+export type SubscriptionTier = 'free_trial' | 'seeker' | 'spark' | 'growth' | 'transformation' | 'family' | 'spark_annual' | 'growth_annual' | 'transformation_annual' | 'family_annual';
 
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'unpaid' | 'trialing' | 'expired';
 
@@ -109,7 +109,7 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     advancedAnalytics: false,
     prioritySupport: false,
   },
-  basic: {
+  seeker: {
     playbooks: 0,
     devotionals: 0,
     exports: 0,
@@ -127,7 +127,7 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     advancedAnalytics: false,
     prioritySupport: false,
   },
-  starter: {
+  spark: {
     playbooks: 8,
     devotionals: 8,
     exports: 0,
@@ -199,7 +199,7 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
     advancedAnalytics: true,
     prioritySupport: true,
   },
-  starter_annual: {
+  spark_annual: {
     playbooks: 4,
     devotionals: 4,
     exports: 0,
@@ -276,12 +276,12 @@ export const SUBSCRIPTION_CONFIGS: Record<SubscriptionTier, SubscriptionLimits> 
 // US Market Pricing (USD)
 export const PRICING_US: Record<SubscriptionTier, { amount: number; currency: string; interval: 'month' | 'year' }> = {
   free_trial: { amount: 0, currency: 'usd', interval: 'month' },
-  basic: { amount: 0, currency: 'usd', interval: 'month' }, // FREE freemium
-  starter: { amount: 699, currency: 'usd', interval: 'month' }, // $6.99
+  seeker: { amount: 0, currency: 'usd', interval: 'month' }, // FREE freemium
+  spark: { amount: 699, currency: 'usd', interval: 'month' }, // $6.99
   growth: { amount: 1299, currency: 'usd', interval: 'month' }, // $12.99
   transformation: { amount: 2499, currency: 'usd', interval: 'month' }, // $24.99
   family: { amount: 3499, currency: 'usd', interval: 'month' }, // $34.99
-  starter_annual: { amount: 4999, currency: 'usd', interval: 'year' }, // $49.99 (17% off)
+  spark_annual: { amount: 4999, currency: 'usd', interval: 'year' }, // $49.99 (17% off)
   growth_annual: { amount: 12999, currency: 'usd', interval: 'year' }, // $129.99 (17% off)
   transformation_annual: { amount: 24999, currency: 'usd', interval: 'year' }, // $249.99 (17% off)
   family_annual: { amount: 34999, currency: 'usd', interval: 'year' }, // $349.99 (17% off)
@@ -290,12 +290,12 @@ export const PRICING_US: Record<SubscriptionTier, { amount: number; currency: st
 // Philippines Market Pricing (PHP) - Profitable & Affordable
 export const PRICING_PH: Record<SubscriptionTier, { amount: number; currency: string; interval: 'month' | 'year' }> = {
   free_trial: { amount: 0, currency: 'php', interval: 'month' },
-  basic: { amount: 0, currency: 'php', interval: 'month' }, // FREE freemium
-  starter: { amount: 19900, currency: 'php', interval: 'month' }, // ₱199 (~$3.58 USD equivalent)
+  seeker: { amount: 0, currency: 'php', interval: 'month' }, // FREE freemium
+  spark: { amount: 19900, currency: 'php', interval: 'month' }, // ₱199 (~$3.58 USD equivalent)
   growth: { amount: 39900, currency: 'php', interval: 'month' }, // ₱399 (~$7.18 USD equivalent)
   transformation: { amount: 69900, currency: 'php', interval: 'month' }, // ₱699 (~$12.58 USD equivalent)
   family: { amount: 99900, currency: 'php', interval: 'month' }, // ₱999 (~$17.98 USD equivalent)
-  starter_annual: { amount: 199900, currency: 'php', interval: 'year' }, // ₱1,999 (17% off)
+  spark_annual: { amount: 199900, currency: 'php', interval: 'year' }, // ₱1,999 (17% off)
   growth_annual: { amount: 399900, currency: 'php', interval: 'year' }, // ₱3,999 (17% off)
   transformation_annual: { amount: 699900, currency: 'php', interval: 'year' }, // ₱6,999 (17% off)
   family_annual: { amount: 999900, currency: 'php', interval: 'year' }, // ₱9,999 (17% off)

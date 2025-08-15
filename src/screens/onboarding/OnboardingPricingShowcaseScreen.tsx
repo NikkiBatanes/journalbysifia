@@ -151,7 +151,7 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
-  const handleContinueAsBasic = () => {
+  const handleContinueAsSeeker = () => {
     navigation.navigate('OnboardingComplete');
   };
 
@@ -256,9 +256,9 @@ const OnboardingPricingShowcaseScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Continue as Basic */}
-        <TouchableOpacity style={styles.basicButton} onPress={handleContinueAsBasic}>
-          <Text style={styles.basicButtonText}>Continue with Basic (Free Forever)</Text>
+        {/* Continue as Seeker */}
+        <TouchableOpacity style={styles.seekerButton} onPress={handleContinueAsSeeker}>
+          <Text style={styles.seekerButtonText}>Continue with siFia SEEKER (Free Forever)</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -445,12 +445,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.hopeWhite,
   },
-  basicButton: {
+  seekerButton: {
     marginHorizontal: 24,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  basicButtonText: {
+  seekerButtonText: {
     fontSize: 16,
     color: Colors.textGray,
     textDecorationLine: 'underline',
