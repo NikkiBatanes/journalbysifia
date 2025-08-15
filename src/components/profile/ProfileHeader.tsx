@@ -403,25 +403,25 @@ const styles = StyleSheet.create({
   // Skeleton styles
   skeletonPill: {
     // Darker container background than inner elements
-    backgroundColor: Colors.adminGray,
+    backgroundColor: Colors.trustGrey,
   },
   skeletonText: {
     height: 12,
-    width: 80,
+    width: 140,
     // Lighter than container for contrast
-    backgroundColor: Colors.trustGrey,
+    backgroundColor: Colors.borderLight,
     borderRadius: 6,
     alignSelf: 'center',
   },
   skeletonUsagePill: {
     // Much lighter to mimic progress bar background
-    backgroundColor: Colors.lightBackground,
+    backgroundColor: Colors.borderLight,
   },
   skeletonUsageItem: {
     height: 10,
-    width: 24,
+    width: 40,
     // Very light bar like 'no fill' progress
-    backgroundColor: Colors.borderLight,
+    backgroundColor: Colors.trustGrey,
     borderRadius: 5,
   },
 });
