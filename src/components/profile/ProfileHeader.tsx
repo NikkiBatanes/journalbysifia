@@ -402,22 +402,22 @@ const styles = StyleSheet.create({
   },
   // Skeleton styles
   skeletonPill: {
-    backgroundColor: '#E5E7EB', // light gray
+    backgroundColor: '#CBD5E1', // darker light gray (slate-300)
   },
   skeletonText: {
     height: 12,
     width: 80,
-    backgroundColor: '#D1D5DB', // gray-300
+    backgroundColor: '#9CA3AF', // gray-400
     borderRadius: 6,
     alignSelf: 'center',
   },
   skeletonUsagePill: {
-    backgroundColor: '#F1F5F9', // very light gray
+    backgroundColor: '#E2E8F0', // slate-200
   },
   skeletonUsageItem: {
     height: 10,
     width: 24,
-    backgroundColor: '#D1D5DB', // gray-300
+    backgroundColor: '#9CA3AF', // gray-400
     borderRadius: 5,
   },
 });
