@@ -39,9 +39,10 @@ interface Props {
   onEditAvatar?: () => void;
   plan?: string; // e.g., 'Starter', 'Growth', 'Premium', 'Basic'
   usage?: UsageSummary | null;
+  isLoading?: boolean; // Add loading state
 }
 
-const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage }) => {
+const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage, isLoading = false }) => {
   const displayName = useMemo(() => {
     const meta = (user as any)?.user_metadata || {};
     return (
@@ -83,9 +84,25 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
   const avatarUrl = (user as any)?.user_metadata?.avatar_url as string | undefined;
   const initialLetter = (displayName || 'U').trim().charAt(0).toUpperCase();
 
+  // Skeleton loading component
+  const renderSkeleton = () => (
+    <View style={styles.planAndUsageRow}>
+      <View style={[styles.planPill, styles.skeletonPill]}>
+        <View style={styles.skeletonText} />
+        <View style={styles.pillsRow}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={[styles.usagePill, styles.skeletonUsagePill]}>
+              <View style={styles.skeletonUsageItem} />
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.headerGradient}>
-      {(!!plan || !!usage) && (
+      {isLoading ? renderSkeleton() : (!!plan || !!usage) && (
         <View style={styles.planAndUsageRow}>
           {!!plan && (
             <View style={styles.planPill}>
@@ -382,6 +399,26 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Colors.anchorBlue,
     marginTop: 4,
+  },
+  // Skeleton styles
+  skeletonPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  skeletonText: {
+    height: 12,
+    width: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 6,
+    alignSelf: 'center',
+  },
+  skeletonUsagePill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  skeletonUsageItem: {
+    height: 10,
+    width: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 5,
   },
 });
 

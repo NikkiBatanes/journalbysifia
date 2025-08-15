@@ -423,6 +423,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
         onEditAvatar={handleEditAvatar}
         plan={planLabel}
         usage={usageSummary}
+        isLoading={loading || !subscription || !usage}
       />
     );
   };
