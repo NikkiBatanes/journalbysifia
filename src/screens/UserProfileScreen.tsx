@@ -15,7 +15,7 @@ import {
   Image,
 } from 'react-native';
 import { Pencil } from 'lucide-react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -50,6 +50,7 @@ interface ProfileStats {
 
 const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   const { user, signOut, updatePreferences, updateProfile } = useAuth();
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   // Status bar: dark icons on white header area
   useScreenStatusBar('dark', Colors.hopeWhite);
@@ -1045,7 +1046,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.hopeWhite }]}>
+    <SafeAreaView
+      edges={['top']}
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.anchorBlue },
+      ]}
+    >
       {/* Fixed white header area */}
       {renderProfileHeader()}
 
@@ -1053,7 +1060,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       <View style={[styles.bodyContainer, { backgroundColor: theme.colors.anchorBlue }]}>
         <ScrollView
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentInsetAdjustmentBehavior="never"
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: (insets?.bottom || 0) + 16 }]}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -1077,7 +1085,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   loadingContainer: {
     flex: 1,
@@ -1089,7 +1097,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 50,
-    paddingBottom: 32,
+    paddingBottom: 0,
   },
   bodyContainer: {
     marginTop: 0,
@@ -1098,7 +1106,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 0,
-    paddingBottom: 24,
+    paddingBottom: 0,
     flex: 1,
   },
   // Settings modal additions (chips)
