@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   },
   skeletonText: {
     height: 12,
-    width: 140,
+    width: 100,
     // Lighter than container for contrast
     backgroundColor: Colors.borderLight,
     borderRadius: 6,
