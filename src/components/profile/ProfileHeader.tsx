@@ -407,7 +407,7 @@ const styles = StyleSheet.create({
   },
   skeletonText: {
     height: 12,
-    width: 100,
+    width: 90,
     // Lighter than container for contrast
     backgroundColor: Colors.borderLight,
     borderRadius: 6,
@@ -419,7 +419,7 @@ const styles = StyleSheet.create({
   },
   skeletonUsageItem: {
     height: 10,
-    width: 40,
+    width: 34,
     // Very light bar like 'no fill' progress
     backgroundColor: Colors.trustGrey,
     borderRadius: 5,
