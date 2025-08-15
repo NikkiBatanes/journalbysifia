@@ -586,7 +586,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-facebook" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>FB</Text>
+          <Text style={styles.menuText}>Facebook</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
