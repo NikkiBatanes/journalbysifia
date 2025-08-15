@@ -371,22 +371,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            // Navigation will be handled automatically by auth state change
-          },
-        },
-      ]
-    );
+  const handleLogout = async () => {
+    // Immediate logout without confirmation
+    await signOut();
+    // Navigation will be handled automatically by auth state change
   };
 
   const renderProfileHeader = () => {
@@ -1057,7 +1045,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       <View
         style={[
           styles.headerWrapper,
-          { paddingTop: 18, backgroundColor: theme.colors.hopeWhite },
+          { paddingTop: 22, backgroundColor: theme.colors.hopeWhite },
         ]}
       >
         {renderProfileHeader()}
