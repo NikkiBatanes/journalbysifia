@@ -1025,13 +1025,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     </Modal>
   );
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <Text>Loading profile...</Text>
-      </SafeAreaView>
-    );
-  }
+  // Remove loading gate; render UI immediately
 
   return (
     <SafeAreaView
