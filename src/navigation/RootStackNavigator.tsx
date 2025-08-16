@@ -19,6 +19,7 @@ import DevotionalDetailScreen from '../screens/DevotionalDetailScreen';
 import JournalScreen from '../screens/JournalScreen';
 import UserInputScreen from '../screens/UserInputScreen';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import UserProfileScreen from '../screens/UserProfileScreen';
 
 
 
@@ -80,12 +81,7 @@ const ProfileImage = React.memo<ProfileImageProps>(({ containerStyle, navigation
       onPress={() => {
         if (navigation) {
           try {
-            navigation.navigate('MainTabs', {
-              screen: 'Dashboard',
-              params: {
-                screen: 'UserProfile',
-              },
-            });
+            navigation.navigate('UserProfileModal');
           } catch (error) {
             console.log('Navigation to nested UserProfile failed:', error);
           }
@@ -330,6 +326,17 @@ export default function RootStackNavigator({
           <Stack.Screen name="MainTabs" component={MainTabsScreen} />
 
           {/* UserProfile is now nested under Dashboard (HomeStackNavigator) */}
+          {/* Root-level modal alias for UserProfile to guarantee modal presentation from detail screens */}
+          <Stack.Screen
+            name="UserProfileModal"
+            component={UserProfileScreen as React.ComponentType}
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+              gestureEnabled: true,
+            }}
+          />
 
           {/* Main App Detail Screens */}
           <Stack.Screen

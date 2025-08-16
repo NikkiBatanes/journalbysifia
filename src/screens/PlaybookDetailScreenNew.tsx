@@ -12,6 +12,10 @@ import {
   ViewStyle,
   TextStyle,
   ImageStyle,
+  ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
 
 // Navigation & Gestures
@@ -170,12 +174,7 @@ const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: an
     onPress={() => {
       console.log('Profile image pressed from PlaybookDetail');
       try {
-        navigation.navigate('MainTabs', {
-          screen: 'Dashboard',
-          params: {
-            screen: 'UserProfile',
-          },
-        });
+        navigation.navigate('UserProfileModal');
       } catch (navigationError) {
         console.log('Navigation error:', navigationError);
       }
@@ -999,21 +998,56 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     };
   }, [playbook?.id, actionSteps, saveActionSteps]);
 
+  // ===== EXPANSION STATE =====
+
+  const [expandedCardIndex, setExpandedCardIndex] = useState<number | null>(null);
+  const [contentHeights, setContentHeights] = useState<Record<number, number>>({});
+  const [isScrolling, setIsScrolling] = useState(false);
+
+  // Enable LayoutAnimation on Android
+  React.useEffect(() => {
+    if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+      UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
+  }, []);
+
+  // Collapse expanded state when changing view mode or navigating to another card
+  useEffect(() => {
+    setExpandedCardIndex(null);
+  }, [currentCard, viewMode]);
+
   // ===== HANDLER FUNCTIONS =====
 
-  const handleCardPress = (cardType: CardType, cardItem: CardData) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { tappable, ...serializableCardData } = cardItem;
-    const { completed: completedTasks, total: totalTasks } = getCompletedStepsCount();
-    navigation.navigate('CardDetail', {
-      cardType,
-      cardData: serializableCardData,
-      playbook,
-      progress,
-      completedTasks,
-      totalTasks,
-      viewMode,
-    });
+  const handleCardPress = (index: number) => {
+    console.log('[PlaybookDetail] handleCardPress toggle expand for index:', index, 'viewMode:', viewMode, 'isScrolling:', isScrolling);
+    console.log('[PlaybookDetail] Current expandedCardIndex:', expandedCardIndex);
+    console.log('[PlaybookDetail] Content heights:', contentHeights);
+    // Block expansion for Affirmations and Bible Verse cards
+    const tappedType = cardData[index]?.type as CardType | undefined;
+    if (tappedType === 'affirmation' || tappedType === 'bible') {
+      console.log('[PlaybookDetail] Expansion disabled for card type:', tappedType);
+      return;
+    }
+    
+    // In stack view, toggle expand/collapse of the tapped card in-place
+    if (viewMode === 'stack' && !isScrolling) {
+      console.log('[PlaybookDetail] Conditions met, toggling expansion');
+      // Smooth expand/collapse animation
+      LayoutAnimation.configureNext({
+        duration: 400,
+        update: { type: LayoutAnimation.Types.easeInEaseOut },
+        create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+        delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+      });
+      setExpandedCardIndex(prev => {
+        const newValue = prev === index ? null : index;
+        console.log('[PlaybookDetail] Setting expandedCardIndex from', prev, 'to', newValue);
+        return newValue;
+      });
+      return;
+    }
+    console.log('[PlaybookDetail] Conditions not met for expansion');
+    // In document view, do nothing on tap (no navigation to CardDetail)
   };
 
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -1167,65 +1201,177 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       const opacity = isLastCard && !isCurrentCard ? 1 : 1;
       const isTopCard = stackIndex === 0;
       const extraStyle = isTopCard ? animatedCardStyle : {};
+      const disableExpansionForType = card.type === 'affirmation' || card.type === 'bible';
+      const isExpanded = isTopCard && expandedCardIndex === cardIndex && !disableExpansionForType;
+      const measuredHeight = contentHeights[cardIndex] || 0;
+      const COLLAPSED_HEIGHT = 450;
+      // For now, allow all cards to expand for testing
+      const needsExpansion = !disableExpansionForType && true; // measuredHeight > COLLAPSED_HEIGHT + 50;
+      
+      console.log(`[DEBUG] Card ${cardIndex} - measuredHeight: ${measuredHeight}, needsExpansion: ${needsExpansion}, isExpanded: ${isExpanded}, isTopCard: ${isTopCard}`);
+
+      const cardContent = (
+        <DocumentCardView
+          card={card}
+          styles={styles}
+          currentUser={user ? {
+            displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+            firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+            lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+          } : undefined}
+          navigation={rootNavigation}
+          playbookTitle={playbook?.title}
+          playbookId={playbook?.id}
+          userInput={playbook?.userInput}
+          expanded={isExpanded}
+        />
+      );
 
       return (
-        <TouchableOpacity
-          key={`${cardIndex}-${stackIndex}`}
-          activeOpacity={1}
-          onPress={() => isTopCard && handleCardPress(card.type, card)}
-          onPressIn={() => {
-            if (isTopCard) {
-              cardScale.value = withTiming(0.98, { duration: 100 });
-              shadowElevation.value = withTiming(8, { duration: 100 });
-              shadowOpacity.value = withTiming(0.25, { duration: 100 });
-            }
-          }}
-          onPressOut={() => {
-            if (isTopCard) {
-              cardScale.value = withTiming(1, { duration: 100 });
-              shadowElevation.value = withTiming(4, { duration: 100 });
-              shadowOpacity.value = withTiming(0.15, { duration: 100 });
-            }
-          }}
-          style={[
-            styles.stackCard,
-            card.type === 'affirmation'
-              ? [
-                  styles.affirmationCardStyle,
+        <View key={`${cardIndex}-${stackIndex}`}>
+          {/* Hidden measurement view to capture content height */}
+          {measuredHeight === 0 && (
+            <View
+              style={styles.hiddenMeasurement}
+              onLayout={({ nativeEvent }) => {
+                const h = nativeEvent.layout.height;
+                console.log(`[DEBUG] Measuring card ${cardIndex} height: ${h}`);
+                if (h > 0 && h !== measuredHeight) {
+                  setContentHeights(prev => {
+                    const newHeights = { ...prev, [cardIndex]: h };
+                    console.log(`[DEBUG] Updated content heights:`, newHeights);
+                    return newHeights;
+                  });
+                }
+              }}
+            >
+              <View style={{ width: SCREEN_WIDTH - 80 }}>{cardContent}</View>
+            </View>
+          )}
+
+          {isExpanded ? (
+            <ScrollView
+              style={[
+                styles.stackCardScrollContainer,
+                {
+                  width: SCREEN_WIDTH - 80,
+                  alignSelf: 'center',
+                  borderRadius: 28,
+                  backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : 'transparent',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.2,
+                  shadowRadius: 12,
+                  shadowOffset: { width: 0, height: 6 },
+                  elevation: 8,
+                }
+              ]}
+              showsVerticalScrollIndicator={true}
+              bounces={true}
+              onScrollBeginDrag={() => setIsScrolling(true)}
+              onScrollEndDrag={() => setIsScrolling(false)}
+              onMomentumScrollBegin={() => setIsScrolling(true)}
+              onMomentumScrollEnd={() => setIsScrolling(false)}
+              scrollEventThrottle={16}
+              contentContainerStyle={{
+                flexGrow: 1,
+                backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : Colors.anchorBlue,
+                borderRadius: 28,
+                overflow: 'hidden',
+                minHeight: 450,
+              }}
+            >
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => {
+                  console.log(`[DEBUG] Card ${cardIndex} tapped - isTopCard: ${isTopCard}, needsExpansion: ${needsExpansion}`);
+                  if (isTopCard) {
+                    console.log(`[DEBUG] Top card tapped, calling handleCardPress`);
+                    handleCardPress(cardIndex);
+                  } else {
+                    console.log(`[DEBUG] Non-top card tapped, ignoring`);
+                  }
+                }}
+                onPressIn={() => {
+                  if (isTopCard) {
+                    cardScale.value = withTiming(0.98, { duration: 100 });
+                    shadowElevation.value = withTiming(8, { duration: 100 });
+                    shadowOpacity.value = withTiming(0.25, { duration: 100 });
+                  }
+                }}
+                onPressOut={() => {
+                  if (isTopCard) {
+                    cardScale.value = withTiming(1, { duration: 100 });
+                    shadowElevation.value = withTiming(4, { duration: 100 });
+                    shadowOpacity.value = withTiming(0.15, { duration: 100 });
+                  }
+                }}
+                style={[
                   {
-                    transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
-                    zIndex,
-                    opacity: !isTopCard ? opacity : 1,
-                    position: stackIndex === 0 ? 'relative' : 'absolute',
-                  },
-                ]
-              : [
-                  styles.nonAffirmationCardStyle,
-                  {
-                    transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
-                    zIndex,
-                    opacity: !isTopCard ? opacity : 1,
-                    position: stackIndex === 0 ? 'relative' : 'absolute',
-                    elevation: 5 - stackIndex,
-                  },
-                ],
-            extraStyle,
-          ]}
-        >
-          <DocumentCardView
-            card={card}
-            styles={styles}
-            currentUser={user ? {
-              displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
-              firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
-              lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
-            } : undefined}
-            navigation={rootNavigation}
-            playbookTitle={playbook?.title}
-            playbookId={playbook?.id}
-            userInput={playbook?.userInput}
-          />
-        </TouchableOpacity>
+                    borderRadius: 28,
+                    overflow: 'hidden',
+                    minHeight: 450,
+                    backgroundColor: 'transparent',
+                  }
+                ]}
+              >
+                {cardContent}
+              </TouchableOpacity>
+            </ScrollView>
+          ) : (
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => {
+                console.log(`[DEBUG] Card ${cardIndex} tapped - isTopCard: ${isTopCard}, needsExpansion: ${needsExpansion}`);
+                if (isTopCard) {
+                  console.log(`[DEBUG] Top card tapped, calling handleCardPress`);
+                  handleCardPress(cardIndex);
+                } else {
+                  console.log(`[DEBUG] Non-top card tapped, ignoring`);
+                }
+              }}
+              onPressIn={() => {
+                if (isTopCard) {
+                  cardScale.value = withTiming(0.98, { duration: 100 });
+                  shadowElevation.value = withTiming(8, { duration: 100 });
+                  shadowOpacity.value = withTiming(0.25, { duration: 100 });
+                }
+              }}
+              onPressOut={() => {
+                if (isTopCard) {
+                  cardScale.value = withTiming(1, { duration: 100 });
+                  shadowElevation.value = withTiming(4, { duration: 100 });
+                  shadowOpacity.value = withTiming(0.15, { duration: 100 });
+                }
+              }}
+              style={[
+                styles.stackCard,
+                card.type === 'affirmation'
+                  ? [
+                      styles.affirmationCardStyle,
+                      {
+                        transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
+                        zIndex,
+                        opacity: !isTopCard ? opacity : 1,
+                        position: stackIndex === 0 ? 'relative' : 'absolute',
+                      },
+                    ]
+                  : [
+                      styles.nonAffirmationCardStyle,
+                      {
+                        transform: !isTopCard ? [{ scaleX }, { scaleY }, { translateY: cardTranslateY }] : undefined,
+                        zIndex,
+                        opacity: !isTopCard ? opacity : 1,
+                        position: stackIndex === 0 ? 'relative' : 'absolute',
+                        elevation: 5 - stackIndex,
+                      },
+                    ],
+                extraStyle,
+              ]}
+            >
+              {cardContent}
+            </TouchableOpacity>
+          )}
+        </View>
       );
     };
 
@@ -1248,7 +1394,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               activeOpacity={0.85}
               style={styles.cardContentStyle}
               onPress={() => {
-                handleCardPress(previousCard.type, previousCard);
+                // Optional: bring previous card to top by updating currentCard externally if supported.
+                // For now, ignore tap to avoid navigating to CardDetail.
               }}
             >
               <View
@@ -1286,16 +1433,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
         {/* Current card - appears on top */}
         <Animated.View style={[animatedCardStyle, styles.cardWrapperStyle, styles.currentCardZIndex]}>
-          <TouchableOpacity
-            activeOpacity={0.85}
-            style={styles.cardContentStyle}
-            onPress={() => {
-              const card = cardData[currentCard];
-              handleCardPress(card.type, card);
-            }}
-          >
-            {renderCard(currentCard, 0, (mode: 'stack' | 'document') => setViewMode(mode))}
-          </TouchableOpacity>
+          {renderCard(currentCard, 0, (mode: 'stack' | 'document') => setViewMode(mode))}
         </Animated.View>
       </View>
     );
@@ -1433,6 +1571,9 @@ interface PlaybookDetailStyles {
   cardWrapperStyle: ViewStyle;
   cardContentStyle: ViewStyle;
   stackCard: ViewStyle;
+  stackCardExpanded: ViewStyle;
+  stackCardScrollContainer: ViewStyle;
+  hiddenMeasurement: ViewStyle;
   noAffirmationsText: TextStyle;
   headerSafeArea: ViewStyle;
   headerContainer: ViewStyle;
@@ -1631,6 +1772,20 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     elevation: 8,
     padding: 0,
     overflow: 'hidden',
+  },
+  stackCardExpanded: {
+    height: 'auto',
+    maxHeight: Dimensions.get('window').height * 0.8,
+  },
+  stackCardScrollContainer: {
+    maxHeight: Dimensions.get('window').height * 0.8,
+  },
+  hiddenMeasurement: {
+    position: 'absolute',
+    opacity: 0,
+    zIndex: -1,
+    left: -10000,
+    right: 0,
   },
   noAffirmationsText: {
     fontFamily: Fonts.regular,
@@ -1993,6 +2148,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     textTransform: 'none',
   },
   affirmationCardStyle: {
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.anchorBlue,
   },
 });

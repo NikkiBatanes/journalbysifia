@@ -50,6 +50,7 @@ export type RootStackParamList = {
 
   // Main App
   MainTabs: undefined;
+  UserProfileModal: undefined;
   PlaybookDetail: {
     playbook: Playbook;
     isFromOnboarding?: boolean;

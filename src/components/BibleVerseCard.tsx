@@ -19,9 +19,11 @@ type BibleVerseCardProps = {
   backgroundColor?: string;
   playbookTitle?: string;
   userInput?: string;
+  expanded?: boolean;
+  collapsedLines?: number;
 };
 
-export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = Colors.anchorBlue, playbookTitle, userInput }: BibleVerseCardProps) {
+export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = Colors.anchorBlue, playbookTitle, userInput, expanded = true, collapsedLines = 4 }: BibleVerseCardProps) {
   const { user } = useAuth();
   const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
   const [showInsight, setShowInsight] = useState(false);
@@ -47,7 +49,13 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         </TouchableOpacity>
       </View>
       <View style={styles.contentContainer}>
-        <Text style={[styles.verseText, { color: textColor }]}>{formatBibleVerse(verse.text)}</Text>
+        <Text
+          style={[styles.verseText, { color: textColor }]}
+          numberOfLines={expanded ? undefined : collapsedLines}
+          ellipsizeMode={expanded ? 'clip' : 'tail'}
+        >
+          {formatBibleVerse(verse.text)}
+        </Text>
         <View style={styles.referenceContainer}>
           <Text style={[styles.reference, { color: Colors.alertCoral }]}>{verse.reference}</Text>
         </View>

@@ -39,19 +39,20 @@ interface DocumentCardViewProps {
   playbookTitle?: string;
   playbookId?: string;
   userInput?: string;
+  expanded?: boolean;
 }
 
-const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation, playbookTitle, playbookId, userInput }) => {
+const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation, playbookTitle, playbookId, userInput, expanded = false }) => {
   if (card.type === 'truth') {
     return (
       <View style={styles.truthCardContainer}>
         <TruthInLoveCard
           truth={card.truth ?? ''}
           summary={card.summary ?? ''}
-          expanded={false} // Set to false for stack view
+          expanded={expanded}
           style={styles.truthCardContent}
-          numberOfLines={5}
-          ellipsizeMode="tail"
+          numberOfLines={expanded ? undefined : 5}
+          ellipsizeMode={expanded ? undefined : 'tail'}
           currentUser={currentUser}
           playbookTitle={playbookTitle}
           userInput={userInput}
@@ -124,6 +125,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
           text: card.verse?.text ?? 'No verse text available',
           reference: card.verse?.reference ?? 'Unknown',
         }}
+        expanded={expanded}
         playbookTitle={playbookTitle}
         userInput={userInput}
       />

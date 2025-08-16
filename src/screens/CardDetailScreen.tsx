@@ -62,10 +62,7 @@ const ProfileButton = ({ user, navigation }: { user: any; navigation: any }) => 
     onPress={() => {
       console.log('Profile image pressed from CardDetail');
       try {
-        navigation.navigate('MainTabs', {
-          screen: 'Dashboard',
-          params: { screen: 'UserProfile' },
-        });
+        navigation.navigate('UserProfileModal');
       } catch (error) {
         console.log('Navigation error:', error);
       }

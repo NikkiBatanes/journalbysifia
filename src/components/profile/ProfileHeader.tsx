@@ -1,5 +1,5 @@
-import React, { useMemo, useEffect, useRef } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil as LuPencil } from 'lucide-react-native';
@@ -43,26 +43,6 @@ interface Props {
 }
 
 const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage, isLoading = false }) => {
-  // Skeleton pulse animation
-  const pulse = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
-      ])
-    );
-    if (isLoading) {
-      loop.start();
-    }
-    return () => {
-      loop.stop();
-    };
-  }, [isLoading, pulse]);
-
-  const animatedOpacity = {
-    opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }),
-  } as const;
   const displayName = useMemo(() => {
     const meta = (user as any)?.user_metadata || {};
     return (
@@ -107,16 +87,16 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
   // Skeleton loading component
   const renderSkeleton = () => (
     <View style={styles.planAndUsageRow}>
-      <Animated.View style={[styles.planPill, styles.skeletonPill, animatedOpacity]}>
-        <Animated.View style={[styles.skeletonText, animatedOpacity]} />
+      <View style={[styles.planPill, styles.skeletonPill]}>
+        <View style={styles.skeletonText} />
         <View style={styles.pillsRow}>
           {[1, 2, 3, 4, 5].map((i) => (
-            <Animated.View key={i} style={[styles.usagePill, styles.skeletonUsagePill, animatedOpacity]}>
-              <Animated.View style={[styles.skeletonUsageItem, animatedOpacity]} />
-            </Animated.View>
+            <View key={i} style={[styles.usagePill, styles.skeletonUsagePill]}>
+              <View style={styles.skeletonUsageItem} />
+            </View>
           ))}
         </View>
-      </Animated.View>
+      </View>
     </View>
   );
 
