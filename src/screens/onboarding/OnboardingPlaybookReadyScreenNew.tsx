@@ -49,7 +49,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { getCompletedStepsCount, actionSteps } = useActionSteps(); // Use context for dynamic progress
+  const { getCompletedStepsCount, actionSteps, setActionSteps } = useActionSteps(); // Use context for dynamic progress
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
@@ -192,6 +192,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     });
   }, [getCompletedStepsCount]);
 
+  // Initialize action steps from playbook data (similar to PlaybookDetailScreen)
+  useEffect(() => {
+    if (playbook?.actionSteps) {
+      console.log('[OnboardingPlaybookReady] Syncing action steps from playbook:', playbook.actionSteps.length, 'steps');
+      setActionSteps(playbook.actionSteps);
+    }
+  }, [playbook?.actionSteps, setActionSteps]);
+
   // Update progress data when action steps change
   useEffect(() => {
     calculateProgress();
@@ -240,6 +248,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     }
 
     // Action Steps card
+    console.log('[OnboardingPlaybookReady] Action Steps Check:', {
+      hasActionSteps: !!(playbook.actionSteps && playbook.actionSteps.length > 0),
+      actionStepsLength: playbook?.actionSteps?.length || 0,
+      actionStepsData: playbook?.actionSteps || [],
+      firstStep: playbook?.actionSteps?.[0] || null,
+    });
+    
     if (playbook.actionSteps && playbook.actionSteps.length > 0) {
       cards.push({
         id: 'action',
@@ -248,7 +263,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           <View style={[styles.carouselCard, styles.cardContainerMedium]}>
             <ActionStepsCard
               key="action"
-              steps={playbook.actionSteps}
+              steps={actionSteps || playbook.actionSteps || []}
               style={styles.transparentBackground}
               playbookTitle={playbook.title}
               playbookId={playbook.id}
@@ -258,6 +273,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         ),
         backgroundColor: undefined,
       });
+    } else {
+      console.log('[OnboardingPlaybookReady] No action steps found - card will not be created');
     }
 
     // Affirmations card - single card with all affirmations
@@ -1189,6 +1206,16 @@ const styles = StyleSheet.create({
 const OnboardingPlaybookReadyScreenNew: React.FC = () => {
   const route = useRoute();
   const { playbook, challengeCategory, specificChallenge, userInput } = route.params as any;
+
+  // Debug logging to check action steps data
+  console.log('[OnboardingPlaybookReady] Debug Info:', {
+    hasPlaybook: !!playbook,
+    playbookKeys: playbook ? Object.keys(playbook) : [],
+    actionStepsLength: playbook?.actionSteps?.length || 0,
+    actionStepsData: playbook?.actionSteps || [],
+    truthInLoveData: playbook?.truthInLove || null,
+    fullPlaybookData: playbook,
+  });
 
   return (
     <ActionStepsProvider initialSteps={playbook.actionSteps || []}>

@@ -88,7 +88,8 @@ const getJournalTypeColor = (journalType?: string): string => {
 };
 
 const shouldShowJournalIcon = (journalType?: string): boolean => {
-  return journalType !== 'none' && journalType !== undefined && journalType !== '';
+  // Always show subtasks - journal icons are optional enhancement
+  return true;
 };
 
 const parseJournalTypes = (journalType?: string): string[] => {

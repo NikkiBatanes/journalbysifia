@@ -42,31 +42,11 @@ LogBox.ignoreAllLogs(); // Ignore all log notifications
 
 // Main App Component
 function App(): React.JSX.Element {
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontsLoaded, setFontsLoaded] = useState(true); // Vector icons are auto-linked
   const [playbook] = useState<{ actionSteps: any[] }>({ actionSteps: [] });
 
-  // Load custom fonts and icon fonts
-  useEffect(() => {
-    let isMounted = true;
-    const loadFonts = async () => {
-      try {
-        await Promise.all([
-          Ionicons.loadFont(),
-          MaterialCommunityIcons.loadFont(),
-        ]);
-      } catch (error) {
-        console.warn('Error loading fonts:', error);
-      } finally {
-        if (isMounted) {
-          setFontsLoaded(true);
-        }
-      }
-    };
-    loadFonts();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  // Vector icons are automatically loaded through native linking in modern versions
+  // No need for manual font loading
 
   return (
     <QueryProvider>
