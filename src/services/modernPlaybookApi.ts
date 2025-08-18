@@ -510,8 +510,8 @@ export function calculateTaskStats(actionSteps: any[]) {
   actionSteps?.forEach((step: any) => {
     total++;
     if (step.completed) {completed++;}
-    if (Array.isArray(step.subtasks)) {
-      step.subtasks.forEach((sub: any) => {
+    if (Array.isArray(step.subTasks)) {
+      step.subTasks.forEach((sub: any) => {
         total++;
         if (sub.completed) {completed++;}
       });
@@ -689,6 +689,7 @@ export async function getPlaybook(
           id: subTask.id,
           text: subTask.text,
           completed: subTask.completed || false,
+          detected_journal_type: subTask.detected_journal_type || undefined,
         }));
 
       return {

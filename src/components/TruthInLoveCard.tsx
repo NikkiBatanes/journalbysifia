@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from 'react-native';
 
@@ -41,6 +41,12 @@ export default function TruthInLoveCard({
   const { user } = useAuth();
   const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
   const [showInsight, setShowInsight] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!!expanded);
+
+  // Keep internal state in sync if parent changes the expanded prop
+  useEffect(() => {
+    setIsExpanded(!!expanded);
+  }, [expanded]);
   // Replace [User's Name] placeholders with current user's name
   console.log('[TruthInLoveCard] Debug Info:', {
     originalTruth: truth,
@@ -88,15 +94,22 @@ export default function TruthInLoveCard({
         </Text>
       </View>
 
-      <View style={[styles.contentWrapper, debugStyle]}>
+      <TouchableOpacity
+        style={[styles.contentWrapper, debugStyle]}
+        activeOpacity={0.9}
+        onPress={() => setIsExpanded(prev => !prev)}
+        accessibilityRole="button"
+        accessibilityLabel={isExpanded ? 'Collapse truth content' : 'Expand truth content'}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
         <View style={styles.textContainer}>
           <Text
             style={[styles.truth, {
               color: textColor,
               // Remove flex from text style as it's now on the container
             }]}
-            numberOfLines={expanded ? undefined : numberOfLines}
-            ellipsizeMode={expanded ? 'clip' : ellipsizeMode}
+            numberOfLines={isExpanded ? undefined : numberOfLines}
+            ellipsizeMode={isExpanded ? 'clip' : ellipsizeMode}
             // Add these props to ensure proper text measurement
             textBreakStrategy="highQuality"
             allowFontScaling={true}
@@ -105,7 +118,7 @@ export default function TruthInLoveCard({
             {processedTruth}
           </Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Simplified Card Insight */}
       {showInsight && (

@@ -49,6 +49,10 @@ type ActionStepsCardProps = {
   userInput?: string; // User's original struggle/context when creating playbook
   // Date for reflection (from journal screen)
   selectedDate?: Date;
+  // Onboarding-only: show "Example:" subtasks inline with regular subtasks
+  showExampleSubtasksInline?: boolean;
+  // Onboarding-only: force using prop steps to bypass context if it is out-of-sync
+  preferPropSteps?: boolean;
 };
 
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -162,6 +166,8 @@ export default function ActionStepsCard({
   playbookId,
   userInput, // User's original struggle/context for personalized Christian coaching
   selectedDate, // Date for reflection (from journal screen)
+  showExampleSubtasksInline = false,
+  preferPropSteps = false,
 }: ActionStepsCardProps) {
   const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const { user } = useAuth();
@@ -225,8 +231,10 @@ export default function ActionStepsCard({
   }, [selectedSubtask, existingReflection, isReflectionLoading, reflectionError, user?.id]);
 
   const steps = useMemo(() => {
-    // Prioritize context steps over prop steps to ensure UI reflects latest state
-    const rawSteps = (contextSteps && contextSteps.length > 0) ? contextSteps : (propSteps ?? []);
+    // In onboarding, we may prefer prop steps to avoid context race conditions
+    const rawSteps = preferPropSteps
+      ? (propSteps ?? [])
+      : ((contextSteps && contextSteps.length > 0) ? contextSteps : (propSteps ?? []));
 
     console.log('[ActionStepsCard] Steps source debug:', {
       usingContextSteps: !!(contextSteps && contextSteps.length > 0),
@@ -276,7 +284,7 @@ export default function ActionStepsCard({
     })));
 
     return processedSteps;
-  }, [propSteps, contextSteps]);
+  }, [propSteps, contextSteps, preferPropSteps]);
 
   // Debug: Track when ActionStepsCard re-renders and what completion states it shows
   React.useEffect(() => {
@@ -811,10 +819,15 @@ export default function ActionStepsCard({
                     text: st.text.replace(/^Example:/i, '').trim(),
                   }));
               }
-              const subtasks = (step.subTasks || [])
-                .filter(
-                  (st) => typeof st.text === 'string' && !st.text.toLowerCase().startsWith('example:')
-                );
+              // If we want examples inline (onboarding), don't filter them out and also clear examples list to avoid duplication
+              if (showExampleSubtasksInline) {
+                examples = [];
+              }
+              const subtasks = (step.subTasks || []).filter((st) => {
+                if (typeof st.text !== 'string') return false;
+                if (showExampleSubtasksInline) return true; // include everything inline
+                return !st.text.toLowerCase().startsWith('example:');
+              });
 
               return (
                 <View
@@ -953,7 +966,7 @@ export default function ActionStepsCard({
                     </Text>
                   )}
 
-                  {examples.length > 0 && expandedSteps.has(step.id) && (
+                  {!showExampleSubtasksInline && examples.length > 0 && expandedSteps.has(step.id) && (
                     <View style={styles.examplesContainer}>
                       <Text
                         style={[

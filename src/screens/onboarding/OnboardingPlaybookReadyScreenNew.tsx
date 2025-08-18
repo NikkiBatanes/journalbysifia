@@ -15,6 +15,7 @@ import {
   UIManager,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
 import AnimatedRe, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -25,6 +26,8 @@ import { faithPointsService } from '../../services/faithPointsService';
 
 import { ActionStepsProvider, useActionSteps } from '../../context/ActionStepsContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+ import { useAuth } from '../../context/IndustryStandardAuthContext';
+ import { getPlaybook } from '../../services/apiIntegration';
 
 // Import individual card components for carousel
 import TruthInLoveCard from '../../components/TruthInLoveCard';
@@ -52,7 +55,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const { getCompletedStepsCount, actionSteps, setActionSteps } = useActionSteps(); // Use context for dynamic progress
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['action']));
   const [dismissedHints, setDismissedHints] = useState<Set<string>>(new Set());
   const [showUserInput, setShowUserInput] = useState(false);
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
@@ -256,6 +259,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     });
     
     if (playbook.actionSteps && playbook.actionSteps.length > 0) {
+      try {
+        // Debug: log subtask counts for steps 3-5 (0-based indices 2-4)
+        const dbg = (playbook.actionSteps || []).slice(0, 5).map((s: any, i: number) => ({
+          stepIndex: i,
+          id: s?.id,
+          title: s?.title,
+          subTasksCount: Array.isArray(s?.subTasks) ? s.subTasks.length : 0,
+          lastSubtaskText: Array.isArray(s?.subTasks) && s.subTasks.length > 0 ? (s.subTasks[s.subTasks.length - 1]?.text) : undefined,
+        }));
+        console.log('[OnboardingPlaybookReady] Action steps pre-render debug (first 5 steps):', dbg);
+      } catch (e) {
+        console.warn('[OnboardingPlaybookReady] Debug logging failed:', e);
+      }
       cards.push({
         id: 'action',
         type: 'Action Steps',
@@ -263,11 +279,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           <View style={[styles.carouselCard, styles.cardContainerMedium]}>
             <ActionStepsCard
               key="action"
-              steps={actionSteps || playbook.actionSteps || []}
+              steps={playbook.actionSteps || []}
               style={styles.transparentBackground}
               playbookTitle={playbook.title}
               playbookId={playbook.id}
               navigation={navigation as any}
+              showExampleSubtasksInline={true}
+              preferPropSteps={true}
             />
           </View>
         ),
@@ -395,7 +413,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     const isExpanded = expandedCards.has(item.id);
     const COLLAPSED_HEIGHT = 400;
     const measured = contentHeights[item.id] || 0;
-    const needsExpansion = measured > COLLAPSED_HEIGHT + 1; // only tappable if truncated when collapsed
+    const isTruthCard = item.id === 'truth';
+    const isActionCard = item.id === 'action';
+    // Truth and Action cards can expand/collapse. Only allow tap-to-expand when currently collapsed and overflowing.
+    const needsExpansionTruth = isTruthCard && (measured > COLLAPSED_HEIGHT + 1) && !isExpanded;
+    const needsExpansionAction = isActionCard && (measured > COLLAPSED_HEIGHT + 1) && !isExpanded;
+    const needsExpansion = needsExpansionTruth || needsExpansionAction;
 
     const inputRange = [
       (index - 1) * (ITEM_WIDTH + ITEM_SPACING),
@@ -421,14 +444,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Avoid inline-style object directly in JSX to satisfy lint
     const cardDynamicStyle = { width: ITEM_WIDTH };
 
+    // Wrapper: only make card tappable when collapsed and needs expansion (so expanded cards won't intercept child taps)
+    const Wrapper: React.ComponentType<any> = needsExpansion ? TouchableOpacity : View;
+
     return (
-      <TouchableOpacity
+      <Wrapper
         style={[styles.cardContainer, styles.centeredContent, cardDynamicStyle]}
-        onPress={needsExpansion ? () => toggleCardExpansion(item.id) : undefined}
-        disabled={!needsExpansion}
-        activeOpacity={needsExpansion ? 0.9 : 1}
-        accessibilityRole={needsExpansion ? 'button' : undefined}
-        accessibilityHint={needsExpansion ? 'Tap to expand and read full content' : undefined}
+        {...(needsExpansion ? {
+          onPress: () => toggleCardExpansion(item.id),
+          disabled: false,
+          activeOpacity: 0.9,
+          accessibilityRole: 'button',
+          accessibilityHint: 'Tap to expand and read full content',
+        } : {})}
       >
         {/* Hidden measurement: render content unconstrained to capture intrinsic height once */}
         {measured === 0 && (
@@ -451,6 +479,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             styles.cardContent,
             // eslint-disable-next-line react-native/no-inline-styles
             {
+              // Collapse by default; expand when toggled
               height: isExpanded ? 'auto' : COLLAPSED_HEIGHT,
               width: ITEM_WIDTH,
               backgroundColor: item.backgroundColor ?? 'rgba(255, 255, 255, 0.1)',
@@ -477,7 +506,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             : item.component}
 
           {/* In-card expand hint overlay */}
-          {item.id === 'truth' && needsExpansion && !isExpanded && !dismissedHints.has(item.id) && (
+          {(isTruthCard || isActionCard) && needsExpansion && !isExpanded && !dismissedHints.has(item.id) && (
             <TouchableOpacity
               style={styles.expandHintIcon}
               onPress={() => toggleCardExpansion(item.id)}
@@ -495,7 +524,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           )}
         </Animated.View>
         { }
-      </TouchableOpacity>
+      </Wrapper>
     );
   };
 
@@ -1205,10 +1234,55 @@ const styles = StyleSheet.create({
 // Main component wrapper that provides ActionStepsContext
 const OnboardingPlaybookReadyScreenNew: React.FC = () => {
   const route = useRoute();
-  const { playbook, challengeCategory, specificChallenge, userInput } = route.params as any;
+  const { user } = useAuth();
+
+  const {
+    playbook: routePlaybook,
+    challengeCategory,
+    specificChallenge,
+    userInput,
+  } = route.params as any;
+
+  const userId = user?.id;
+  const playbookId = routePlaybook?.id;
+  const isFullPlaybook = !!routePlaybook && typeof routePlaybook === 'object' && 'title' in routePlaybook && 'actionSteps' in routePlaybook;
+
+  // Determine if the route playbook has complete subtasks data
+  const routeHasFullSubtasks = Array.isArray((routePlaybook as any)?.actionSteps)
+    ? (routePlaybook as any).actionSteps.every((s: any) => Array.isArray(s?.subTasks) && s.subTasks.length > 0)
+    : false;
+
+  // Fetch if route object isn't full OR its subtasks are incomplete
+  const shouldFetchFromDB = !!playbookId && !!userId && (!isFullPlaybook || !routeHasFullSubtasks);
+
+  const { data: fetchedPlaybook, isLoading, error } = useQuery<any | null>({
+    queryKey: ['playbook', playbookId],
+    queryFn: async () => {
+      try {
+        return await getPlaybook(userId || '', playbookId);
+      } catch (err) {
+        console.error('[OnboardingPlaybookReady] getPlaybook failed:', err);
+        throw err;
+      }
+    },
+    enabled: shouldFetchFromDB,
+    staleTime: 0,
+    gcTime: 0,
+  });
+
+  // Prefer fetched data when available (we may have fetched due to incomplete subtasks
+  // even if the route object looked "full").
+  const playbook = fetchedPlaybook ?? (isFullPlaybook ? routePlaybook : routePlaybook);
+  const dataSource = fetchedPlaybook ? 'fetched' : (isFullPlaybook ? 'route-full' : 'route-partial');
 
   // Debug logging to check action steps data
   console.log('[OnboardingPlaybookReady] Debug Info:', {
+    isFullPlaybook,
+    routeHasFullSubtasks,
+    shouldFetchFromDB,
+    isLoading,
+    error: (error as any)?.message || error,
+    dataSource,
     hasPlaybook: !!playbook,
     playbookKeys: playbook ? Object.keys(playbook) : [],
     actionStepsLength: playbook?.actionSteps?.length || 0,
@@ -1218,7 +1292,7 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
   });
 
   return (
-    <ActionStepsProvider initialSteps={playbook.actionSteps || []}>
+    <ActionStepsProvider initialSteps={playbook?.actionSteps || []}>
       <PlaybookContent
         playbook={playbook}
         challengeCategory={challengeCategory}
