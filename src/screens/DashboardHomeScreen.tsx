@@ -168,19 +168,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     floatingButton: {
       position: 'absolute',
-      bottom: 30,
+      bottom: 110, // Above bottom navigation
       right: 20,
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: Colors.spiritualPink,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: Colors.primary,
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
-      elevation: 8,
+      zIndex: 1000,
     },
     floatingButtonText: {
       color: Colors.hopeWhite,
@@ -320,61 +310,48 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingTop: 0,
     },
     expandableButton: {
-      backgroundColor: Colors.cardBackground,
-      borderRadius: 12,
-      padding: 16,
-      marginBottom: 16,
+      backgroundColor: Colors.hopeWhite, 
+      borderRadius: 28, 
+      height: 56,
+      shadowColor: Colors.cardShadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+      alignSelf: 'flex-end', 
     },
     expandableButtonTouchable: {
-      borderRadius: 12,
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-start', // keep content anchored left; icon container provides centering
+      paddingHorizontal: 0,
+      minWidth: 56, // ensures perfect circle when collapsed
     },
-    crystalIconBackground: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: Colors.spiritualPink,
+    fabIconContainer: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
       justifyContent: 'center',
       alignItems: 'center',
     },
     floatingButtonIcon: {
-      width: 24,
-      height: 24,
-      tintColor: Colors.hopeWhite,
+      width: 40,
+      height: 40,
+      alignSelf: 'center',
     },
     expandText: {
+      color: Colors.anchorBlue,
       fontSize: 14,
-      color: Colors.text,
-      fontWeight: '600',
+      fontWeight: '700',
+      marginLeft: 8,
+      letterSpacing: 0.3,
+      // Do not use flex here; it pushes the icon off-center when collapsed
     },
   });
 
-  // Limit FAB visibility to at most 2 shows across sessions
-  const [showFab, setShowFab] = useState(false);
-  const FAB_SHOW_KEY = 'dashboard_fab_shown_count';
-
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-      (async () => {
-        try {
-          const raw = await AsyncStorage.getItem(FAB_SHOW_KEY);
-          const count = raw ? parseInt(raw, 10) : 0;
-          if (count < 2) {
-            if (isActive) {setShowFab(true);}
-            await AsyncStorage.setItem(FAB_SHOW_KEY, String(count + 1));
-          } else {
-            if (isActive) {setShowFab(false);}
-          }
-        } catch (e) {
-          // On error, default to hiding the FAB to avoid over-showing
-          if (isActive) {setShowFab(false);}
-        }
-      })();
-      return () => {
-        isActive = false;
-      };
-    }, [])
-  );
+  // Always show FAB for easy access to UserInput screen
+  const [showFab, setShowFab] = useState(true);
   const { user } = useAuth();
   const { subscription, usage, loading: subscriptionLoading } = useSubscription();
   const queryClient = useQueryClient();
@@ -426,11 +403,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Simple expandable button
   const buttonWidth = useRef(new Animated.Value(56)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
+  // When collapsed, keep text width at 0 so the icon stays perfectly centered
+  const textWidth = textOpacity.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 180], // max width for the label when expanded
+  });
   const hasExpanded = useRef(false);
 
 
-  // Draggable floating button
-  const pan = useRef(new Animated.ValueXY({ x: -20, y: height - 200 })).current;
+  // Draggable floating button - positioned above bottom navigation
+  const pan = useRef(new Animated.ValueXY({ x: -20, y: height - 280 })).current;
 
   const panResponder = useRef(
     PanResponder.create({
@@ -480,7 +462,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Expandable animation that repeats
   const expandButton = useCallback(() => {
     let animationCount = 0;
-    const maxAnimations = 3; // Animate 3 times
+    const maxAnimations = 2; // Animate 2 times
 
     const runAnimation = () => {
       if (animationCount >= maxAnimations) {return;}
@@ -531,22 +513,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   useFocusEffect(
     useCallback(() => {
       // Reset state
-      floatingButtonOpacity.setValue(0);
-      floatingButtonScale.setValue(1);
       buttonWidth.setValue(56);
       textOpacity.setValue(0);
 
-      // Simple entrance: just fade in
-      Animated.timing(floatingButtonOpacity, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: false,
-      }).start(() => {
-        // Wait a moment then expand
-        setTimeout(() => {
-          expandButton();
-        }, 1000);
-      });
+      // Wait a moment then start expanding animation
+      setTimeout(() => {
+        expandButton();
+      }, 1000);
 
       // Collapsing Playbook label
       if (playbookMeasuredWidth > 0) {
@@ -555,8 +528,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       }
     }, [
       playbookMeasuredWidth,
-      floatingButtonOpacity,
-      floatingButtonScale,
       playbookWidth,
       buttonWidth,
       textOpacity,
@@ -736,14 +707,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       style={[
         styles.floatingButton,
         {
-          transform: [
-            { translateX: pan.x },
-            { translateY: pan.y },
-          ],
-          opacity: floatingButtonOpacity,
+          opacity: 1, // Always visible, no animation dependency
         },
       ]}
-      {...panResponder.panHandlers}
     >
       <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
         <TouchableOpacity
@@ -751,16 +717,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           onPress={() => navigation.navigate('UserInput')}
           activeOpacity={0.8}
         >
-          <View style={styles.crystalIconBackground}>
-  <Image
-    source={require('../../assets/icons/siFiaHeartWhiteTransparent.png')}
-    style={styles.floatingButtonIcon}
-    resizeMode="contain"
-    accessibilityLabel="siFia"
-  />
-</View>
+          <View style={styles.fabIconContainer}>
+            <Image
+              source={require('../../assets/icons/siFiaHeartWhiteTransparent.png')}
+              style={styles.floatingButtonIcon}
+              resizeMode="contain"
+              accessibilityLabel="siFia"
+            />
+          </View>
           <Animated.Text
-            style={[styles.expandText, { opacity: textOpacity }]}
+            style={[styles.expandText, { opacity: textOpacity, width: textWidth }]}
             numberOfLines={1}
           >
             Create a Playbook
