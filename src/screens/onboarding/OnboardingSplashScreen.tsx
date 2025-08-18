@@ -320,24 +320,40 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           return true;
         }
 
-        // FLOW 2: Detected user but did not finish onboarding → Splash > Welcome with Continue Setup
-        const target = 'OnboardingWelcome';
-        console.log('[SplashScreen] 👋 ROUTING TO WELCOME - Onboarding not completed');
-        console.log('[SplashScreen] 📋 FLOW: Splash > Welcome (Continue Setup) > Personalization');
+        // FLOW 2: Detected user but did not finish onboarding → Splash > Personalization directly
+        const target = 'OnboardingPersonalization';
+        const displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
+        const params = { 
+          name: displayName, 
+          registrationMethod: 'email' 
+        };
+        console.log('[SplashScreen] 👋 ROUTING TO PERSONALIZATION - Onboarding not completed');
+        console.log('[SplashScreen] 📋 FLOW: Splash > Personalization (skip Welcome)');
         try {
-          navigation.reset({ index: 0, routes: [{ name: target as any }] });
+          navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
         } catch (navErr) {
-          navigation.navigate(target as any);
+          navigation.navigate(target as any, params);
         }
         hasNavigatedRef.current = true;
         return true;
       } catch (obErr) {
-        console.warn('[SplashScreen] ❌ ONBOARDING CHECK FAILED; defaulting to Welcome as safe fallback:', obErr);
-        const target = 'OnboardingWelcome';
+        console.warn('[SplashScreen] ❌ ONBOARDING CHECK FAILED. Applying safer fallback based on auth state:', obErr);
+        // If we have an authenticated user, prefer going straight to Personalization rather than Welcome
         try {
-          navigation.reset({ index: 0, routes: [{ name: target as any }] });
-        } catch (navErr) {
-          navigation.navigate(target as any);
+          const target = effectiveUser ? 'OnboardingPersonalization' : 'OnboardingWelcome';
+          const displayName = effectiveUser?.user_metadata?.first_name || effectiveUser?.email?.split('@')[0] || '';
+          const params = effectiveUser
+            ? { name: displayName, registrationMethod: 'email' }
+            : undefined;
+          console.log('[SplashScreen] 🛟 Fallback routing to', target, params || {});
+          try {
+            navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+          } catch (navErr) {
+            console.warn('[SplashScreen] reset failed during fallback, falling back to navigate:', navErr);
+            navigation.navigate(target as any, params as any);
+          }
+        } catch (finalNavErr) {
+          console.warn('[SplashScreen] Final fallback navigation error:', finalNavErr);
         }
         hasNavigatedRef.current = true;
         return true;

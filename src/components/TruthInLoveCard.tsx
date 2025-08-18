@@ -23,6 +23,7 @@ type TruthInLoveCardProps = {
   };
   playbookTitle?: string;
   userInput?: string;
+  onToggleExpand?: () => void;
 };
 
 export default function TruthInLoveCard({
@@ -37,6 +38,7 @@ export default function TruthInLoveCard({
   currentUser,
   playbookTitle,
   userInput,
+  onToggleExpand,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
   const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
@@ -74,11 +76,25 @@ export default function TruthInLoveCard({
     <View style={[styles.container, style]}>
       <View style={styles.headerContainer}>
         <View style={styles.headingContainer}>
-          <Ionicons name="heart" size={24} color={Colors.heartRed} style={styles.heartIcon} />
-          <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
+          {/* Make the left header area (heart + title) toggle expansion */}
+          <TouchableOpacity
+            onPress={() => (onToggleExpand ? onToggleExpand() : setIsExpanded(prev => !prev))}
+            activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel={isExpanded ? 'Collapse truth content' : 'Expand truth content'}
+            style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="heart" size={24} color={Colors.heartRed} style={styles.heartIcon} />
+            <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
+          </TouchableOpacity>
+          {/* Keep the info/insight button as a separate tap target */}
           <TouchableOpacity
             style={styles.expandIcon}
             onPress={() => setShowInsight(!showInsight)}
+            accessibilityRole="button"
+            accessibilityLabel={showInsight ? 'Hide insight' : 'Show insight'}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
               name={showInsight ? 'chevron-up' : 'information-outline'}
@@ -97,7 +113,7 @@ export default function TruthInLoveCard({
       <TouchableOpacity
         style={[styles.contentWrapper, debugStyle]}
         activeOpacity={0.9}
-        onPress={() => setIsExpanded(prev => !prev)}
+        onPress={() => (onToggleExpand ? onToggleExpand() : setIsExpanded(prev => !prev))}
         accessibilityRole="button"
         accessibilityLabel={isExpanded ? 'Collapse truth content' : 'Expand truth content'}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

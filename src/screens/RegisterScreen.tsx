@@ -47,10 +47,10 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading, user } = useAuth();
   const [error, setError] = React.useState<string>('');
 
-  // Navigate to personalization screen after successful authentication
+  // Set post-auth redirect for splash screen to handle navigation
   React.useEffect(() => {
     if (user) {
-      console.log('✅ User authenticated, navigating to personalization screen');
+      console.log('✅ User authenticated via OAuth, setting post-auth redirect');
       // Extract name from user metadata or email
       let displayName = '';
       if (user.user_metadata) {
@@ -66,10 +66,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         displayName = user.email?.split('@')[0] || '';
       }
 
-      navigation.navigate('OnboardingPersonalization' as any, {
-        name: displayName,
-        registrationMethod: 'oauth', // Flag to indicate OAuth registration
-      });
+      // Let splash screen handle navigation to avoid conflicts
+      console.log('🧭 OAuth user detected, splash screen will route to personalization');
+      // No direct navigation - let the auth state change trigger splash screen routing
     }
   }, [user, navigation]);
 
@@ -277,7 +276,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.system.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 10,
@@ -300,7 +299,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.system.regular,
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
   },
@@ -362,7 +361,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.system.medium,
     marginLeft: 12,
     fontWeight: '500',
   },
@@ -379,7 +378,7 @@ const styles = StyleSheet.create({
   },
   socialButtonText: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.system.medium,
     marginLeft: 12,
   },
   loginContainer: {
@@ -392,12 +391,12 @@ const styles = StyleSheet.create({
   loginText: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.system.regular,
   },
   loginLink: {
     color: '#FF6B6B',
     fontSize: 16,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.system.bold,
     fontWeight: '600',
     textDecorationLine: 'none',
   },

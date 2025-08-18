@@ -21,6 +21,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
@@ -106,6 +107,48 @@ const OnboardingWelcomeScreen: React.FC = () => {
       }),
     ]).start();
   }, [fadeAnim, slideAnim]);
+
+  // If we landed on Welcome but user is already authenticated and a post-auth redirect exists,
+  // honor it immediately to avoid timing issues where Splash routed too early.
+  useEffect(() => {
+    let isActive = true;
+    const unsubscribe = (navigation as any).addListener?.('focus', async () => {
+      try {
+        if (!isAuthenticated) return;
+        const redirectRaw = await AsyncStorage.getItem('post_auth_redirect');
+        if (redirectRaw) {
+          const redirect = JSON.parse(redirectRaw);
+          const target = redirect?.target as string | undefined;
+          const params = redirect?.params || {};
+
+          if (!isActive || !target) return;
+
+          try {
+            (navigation as any).reset?.({ index: 0, routes: [{ name: target, params }] });
+          } catch {
+            (navigation as any).navigate(target as any, params);
+          }
+          try { await AsyncStorage.removeItem('post_auth_redirect'); } catch {}
+          return;
+        }
+
+        // No redirect key present; if authenticated, forward to personalization by default
+        const displayName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || '';
+        try {
+          (navigation as any).reset?.({ index: 0, routes: [{ name: 'OnboardingPersonalization', params: { name: displayName, registrationMethod: 'email' } }] });
+        } catch {
+          (navigation as any).navigate('OnboardingPersonalization' as any, { name: displayName, registrationMethod: 'email' });
+        }
+      } catch (e) {
+        // Non-fatal: ignore
+      }
+    });
+
+    return () => {
+      isActive = false;
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [isAuthenticated, navigation]);
 
   // Auto slideshow
   useEffect(() => {
@@ -371,7 +414,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.system.medium,
     marginLeft: 12,
     fontWeight: '500',
   },

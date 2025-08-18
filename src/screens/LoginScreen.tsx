@@ -173,14 +173,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.system.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.system.regular,
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
   },
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.medium,
+    fontFamily: Fonts.system.medium,
     marginLeft: 12,
     fontWeight: '500',
   },
@@ -256,12 +256,12 @@ const styles = StyleSheet.create({
   signUpText: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.system.regular,
   },
   signUpLink: {
     color: '#FF6B6B',
     fontSize: 16,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.system.bold,
     fontWeight: '600',
     textDecorationLine: 'none',
   },

@@ -500,6 +500,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                     expanded={isExpanded}
                     style={styles.transparentBackground}
                     currentUser={{ displayName: onboardingData.name }}
+                    onToggleExpand={() => toggleCardExpansion('truth')}
                   />
                 </View>
               )
