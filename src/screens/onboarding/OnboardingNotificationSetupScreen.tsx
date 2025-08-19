@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
+import { useNewSubscription } from '../../hooks/useNewSubscription';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 interface RouteParams {
   userType: 'trial' | 'paid' | 'freemium';
+  tier?: string;
 }
 
 interface NotificationSetting {
@@ -31,8 +34,20 @@ const OnboardingNotificationSetupScreen = () => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const route = useRoute();
-  const { userType } = route.params as RouteParams;
+  const { user } = useAuth();
+  const { subscription, refreshSubscription } = useNewSubscription(user?.id || '');
+  const { userType, tier } = (route.params as RouteParams) || {};
+  
+  useEffect(() => {
+    // Refresh subscription data when screen loads
+    if (user?.id) {
+      refreshSubscription();
+    }
+  }, [user?.id, refreshSubscription]);
 
+  // Determine effective user type from subscription or route params
+  const effectiveUserType = userType || (subscription?.tier === 'free_trial' ? 'trial' : 'freemium');
+  
   const [notificationSettings, setNotificationSettings] = useState<NotificationSetting[]>([
     {
       id: 'playbooks',
@@ -75,8 +90,8 @@ const OnboardingNotificationSetupScreen = () => {
       title: 'Trial Reminders',
       description: 'Important updates about your trial status',
       icon: 'time-outline',
-      enabled: userType === 'trial',
-      required: userType === 'trial',
+      enabled: effectiveUserType === 'trial',
+      required: effectiveUserType === 'trial',
     },
   ]);
 
@@ -145,26 +160,45 @@ const OnboardingNotificationSetupScreen = () => {
   };
 
   const getWelcomeMessage = () => {
-    switch (userType) {
-      case 'trial':
+    const currentTier = subscription?.tier || tier || 'seeker';
+    
+    switch (currentTier) {
+      case 'free_trial':
         return {
-          title: 'Is it better to turn on trial reminders?',
-          subtitle: 'Get the most out of your 3-day experience with timely reminders and guidance.',
+          title: 'Make the Most of Your Free Trial',
+          subtitle: 'Get timely reminders for your 2 playbooks and 2 devotionals over the next 3 days.',
+          badge: '3-Day Trial Active'
         };
-      case 'paid':
+      case 'spark':
         return {
-          title: 'Stay Connected on Your Journey',
-          subtitle: 'Let us support and encourage you with personalized notifications.',
+          title: 'Welcome to siFia SPARK',
+          subtitle: 'Stay connected with notifications for your 8 monthly playbooks, devotionals, and smart journaling.',
+          badge: 'SPARK Subscriber'
         };
-      case 'freemium':
+      case 'growth':
         return {
-          title: 'Stay Motivated on Your Path',
-          subtitle: 'Receive encouragement and reminders to keep growing in your faith.',
+          title: 'Welcome to siFia GROWTH',
+          subtitle: 'Maximize your 20 monthly resources with personalized notification reminders.',
+          badge: 'GROWTH Subscriber'
         };
+      case 'transformation':
+        return {
+          title: 'Welcome to siFia TRANSFORMATION',
+          subtitle: 'Enjoy unlimited access with gentle reminders to support your spiritual journey.',
+          badge: 'TRANSFORMATION Subscriber'
+        };
+      case 'family':
+        return {
+          title: 'Welcome to siFia FAMILY',
+          subtitle: 'Keep your family connected with notifications for unlimited spiritual resources.',
+          badge: 'FAMILY Subscriber'
+        };
+      case 'seeker':
       default:
         return {
-          title: 'Stay Connected',
-          subtitle: 'Receive personalized guidance and encouragement.',
+          title: 'Welcome, Seeker',
+          subtitle: 'Stay motivated on your spiritual path with gentle reminders and encouragement.',
+          badge: 'Seeker (Freemium)'
         };
     }
   };
@@ -183,11 +217,16 @@ const OnboardingNotificationSetupScreen = () => {
 
         {/* Welcome Message */}
         <View style={styles.welcomeSection}>
+          {/* Subscription Badge */}
+          <View style={styles.badgeContainer}>
+            <Text style={styles.badgeText}>{welcomeData.badge}</Text>
+          </View>
+          
           <View style={styles.iconContainer}>
             <Ionicons name="notifications-outline" size={48} color={Colors.alertCoral} />
           </View>
           <Text
-            style={[styles.welcomeTitle, userType === 'paid' ? styles.welcomeTitleSmall : null]}
+            style={[styles.welcomeTitle, effectiveUserType === 'paid' ? styles.welcomeTitleSmall : null]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.9}
@@ -432,11 +471,27 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   privacyNote: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    textAlign: 'center',
+    marginTop: 16,
+    paddingHorizontal: 24,
+    lineHeight: 16,
+  },
+  badgeContainer: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  badgeText: {
     fontSize: 14,
+    fontWeight: '600',
     color: Colors.hopeWhite,
     textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 40,
   },
 });
 

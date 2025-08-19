@@ -101,8 +101,8 @@ export class MarketPricingService {
    */
   getAllPricing(market: Market): Record<SubscriptionTier, MarketPricing> {
     const tiers: SubscriptionTier[] = [
-      'free_trial', 'starter', 'growth', 'transformation', 'family',
-      'starter_annual', 'growth_annual', 'transformation_annual', 'family_annual',
+      'free_trial', 'spark', 'growth', 'transformation', 'family',
+      'spark_annual', 'growth_annual', 'transformation_annual', 'family_annual',
     ];
 
     const result = {} as Record<SubscriptionTier, MarketPricing>;
@@ -202,28 +202,28 @@ export class MarketPricingService {
   }
 
   /**
-   * Get A/B test pricing (for testing $4.99 vs $6.99 starter)
+   * Get A/B test pricing (for testing $4.99 vs $6.99 spark)
    */
   getABTestPricing(_market: Market, _variant: 'control' | 'variant'): Record<SubscriptionTier, MarketPricing> {
     const basePricing = this.getAllPricing(_market);
 
     if (_variant === 'control') {
-      // Control: Original $4.99 starter pricing
+      // Control: Original $4.99 spark pricing
       if (_market === 'US') {
-        basePricing.starter = {
+        basePricing.spark = {
           amount: 499, // $4.99
           currency: 'usd',
           interval: 'month',
           displayPrice: '$4.99',
         };
-        basePricing.starter_annual = {
+        basePricing.spark_annual = {
           amount: 4199, // $41.99 (17% off)
           currency: 'usd',
           interval: 'year',
           displayPrice: '$41.99',
         };
       } else {
-        basePricing.starter = {
+        basePricing.spark = {
           amount: 19900, // ₱199
           currency: 'php',
           interval: 'month',

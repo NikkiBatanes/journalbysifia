@@ -14,6 +14,7 @@ export interface QueueRequest {
   userInput: string;
   userName: string;
   additionalParams?: any;
+  isOnboarding?: boolean;
 }
 
 export interface QueueItem {
@@ -28,6 +29,7 @@ export interface QueueItem {
   intelligence_level: 'basic' | 'enhanced' | 'advanced';
   user_profile_data: any;
   personalization_enabled: boolean;
+  is_onboarding?: boolean;
   started_at?: string;
   completed_at?: string;
   failed_at?: string;
@@ -108,6 +110,7 @@ export class QueueService {
         intelligence_level: intelligenceLevel,
         user_profile_data: userProfileData,
         personalization_enabled: personalizationEnabled,
+        is_onboarding: request.isOnboarding || false,
         retry_count: 0,
         max_retries: 3,
         tokens_used: 0,
@@ -346,7 +349,8 @@ export class QueueService {
       await subscriptionService.trackUsage(
         item.user_id,
         item.type,
-        result.tokensUsed || 0
+        result.tokensUsed || 0,
+        item.is_onboarding || false
       );
 
       // Track behavior for intelligence system
@@ -605,7 +609,7 @@ export class QueueService {
   private getIntelligenceLevel(tier: string): 'basic' | 'enhanced' | 'advanced' {
     const intelligenceLevels: Record<string, 'basic' | 'enhanced' | 'advanced'> = {
       'free_trial': 'basic',
-      'starter': 'basic',
+      'spark': 'basic',
       'lite': 'enhanced',
       'pro': 'advanced',
       'family': 'advanced',

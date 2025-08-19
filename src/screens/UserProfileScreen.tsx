@@ -388,8 +388,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
           // Legacy IDs
           case 'basic':
             return 'siFia SEEKER';
-          case 'starter':
-            return 'siFia SPARK';
           case 'seeker':
             return 'siFia SEEKER';
           case 'spark':
@@ -463,6 +461,17 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
     const devotionalUsed = usage.devotionals_generated || 0;
     const playbookPct = typeof playbookLimit === 'number' && playbookLimit > 0 ? Math.min(1, playbookUsed / playbookLimit) : 0;
     const devotionalPct = typeof devotionalLimit === 'number' && devotionalLimit > 0 ? Math.min(1, devotionalUsed / devotionalLimit) : 0;
+
+    // Debug logging
+    console.log('🔍 Profile Usage Counter:', {
+      playbookLimit,
+      devotionalLimit,
+      playbookUsed,
+      devotionalUsed,
+      subscription_tier: subscription?.tier,
+      usage_object: usage,
+      subscription_limits: subscription?.limits
+    });
 
     return (
       <View style={styles.countersContainer}>

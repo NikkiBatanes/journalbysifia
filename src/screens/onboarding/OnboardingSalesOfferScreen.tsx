@@ -12,6 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing, PricingTier as ServicePricingTier } from '../../services/pricingService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { useNewSubscription } from '../../hooks/useNewSubscription';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 
 // removed Dimensions width as unused
@@ -22,6 +23,7 @@ type PricingTier = ServicePricingTier;
 const OnboardingSalesOfferScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { upgradeSubscription } = useNewSubscription(user?.id || '');
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTier, setSelectedTier] = useState('growth');
   const [showDynamicModal, setShowDynamicModal] = useState(false);
@@ -86,13 +88,31 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     });
   };
 
-  const handleUnlockPlan = () => {
-    // Navigate to payment processing
-    navigation.navigate('OnboardingPaymentProcessing' as any, {
-      selectedTier,
-      isAnnual,
-      price: getCurrentPrice(),
-    });
+  const handleUnlockPlan = async () => {
+    try {
+      // For local testing, simulate payment success and upgrade directly
+      await upgradeSubscription({
+        target_tier: selectedTier as any,
+        platform: 'local_test',
+        is_family_upgrade: selectedTier === 'family'
+      });
+      
+      // Navigate to payment confirmation
+      navigation.navigate('OnboardingPaymentConfirmation' as any, {
+        selectedTier,
+        isAnnual,
+        price: getCurrentPrice(),
+        success: true
+      });
+    } catch (error) {
+      console.error('Failed to upgrade subscription:', error);
+      // Navigate to payment processing for real payment flow
+      navigation.navigate('OnboardingPaymentProcessing' as any, {
+        selectedTier,
+        isAnnual,
+        price: getCurrentPrice(),
+      });
+    }
   };
 
   const getCurrentPrice = () => {

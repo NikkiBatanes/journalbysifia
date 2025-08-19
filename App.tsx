@@ -17,6 +17,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 
 import { Colors } from './src/theme/colors';
 import { ThemeProvider } from './src/theme/ThemeContext';
+import AppNavigator from './src/navigation/AppNavigator';
 import RootStackNavigator from './src/navigation/RootStackNavigator';
 
 import ActionStepsProviderWrapper from './src/context/ActionStepsProviderWrapper';
@@ -34,7 +35,11 @@ import { OnboardingProvider } from './src/context/OnboardingContext';
 // import { OnboardingIntegration } from './src/components/onboarding/OnboardingIntegration'; // unused
 import { PointsNotificationProvider } from './src/context/PointsNotificationContext';
 
-// Stack navigator removed as it's not currently used
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import ErrorBoundary from './src/components/ErrorBoundary/ErrorBoundary';
+import { queryClient } from './src/config/queryClientConfig';
+import { trialExpiryService } from './src/services/TrialExpiryService';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
@@ -49,11 +54,13 @@ function App(): React.JSX.Element {
   // No need for manual font loading
 
   return (
-    <QueryProvider>
+    <QueryClientProvider client={queryClient}>
       <IndustryStandardAuthProvider>
-        <AppWithAuth fontsLoaded={fontsLoaded} playbook={playbook} />
+        <SafeAreaProvider>
+          <AppWithAuth fontsLoaded={fontsLoaded} playbook={playbook} />
+        </SafeAreaProvider>
       </IndustryStandardAuthProvider>
-    </QueryProvider>
+    </QueryClientProvider>
   );
 }
 
@@ -62,6 +69,15 @@ import { useAuth } from './src/context/IndustryStandardAuthContext';
 function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook: { actionSteps: any[] } }) {
 
   const { isAuthenticated, bootstrapping } = useAuth();
+
+  useEffect(() => {
+    // Initialize app-level services
+    console.log(' siFia App initialized');
+    
+    // Start trial expiry monitoring
+    trialExpiryService.checkAndHandleExpiredTrials();
+    trialExpiryService.scheduleTrialExpiryCheck();
+  }, []);
 
   // Only block initial render while bootstrapping the initial session.
   // Do NOT block on transient auth action loading to avoid navigator remounts

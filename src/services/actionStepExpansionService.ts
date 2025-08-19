@@ -109,7 +109,7 @@ export class ActionStepExpansionService {
     'family': 'advanced',
     'transformation': 'enhanced',
     'growth': 'enhanced',
-    'starter': 'basic',
+    'spark': 'basic',
     'free_trial': 'basic',
   };
 

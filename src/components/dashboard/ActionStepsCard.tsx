@@ -69,16 +69,20 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         return;
       }
 
-      const { error: userProgressError } = await supabase
-        .from('user_progress')
-        .select('*');
+      // Transform the data to match ActionStep interface
+      const transformedSteps: ActionStep[] = __progressData.map((step: any) => ({
+        id: step.id,
+        title: step.title || step.step_title || 'Untitled Step',
+        description: step.description || step.step_description,
+        playbookTitle: step.playbook?.title || 'Unknown Playbook',
+        playbookId: step.playbook_id,
+        stepIndex: step.step_index || 0,
+        isCompleted: step.completed || false,
+        dueDate: step.due_date,
+        priority: step.priority || 'medium'
+      }));
 
-      if (userProgressError) {
-        console.error('Error fetching action steps:', userProgressError);
-        throw userProgressError;
-      }
-
-      setActionSteps(__progressData || []);
+      setActionSteps(transformedSteps);
 
     } catch (fetchError) {
       console.error('Error fetching action steps:', fetchError);

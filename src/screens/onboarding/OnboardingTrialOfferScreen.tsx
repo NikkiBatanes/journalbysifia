@@ -11,42 +11,45 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing } from '../../services/pricingService';
-import { subscriptionService } from '../../services/subscriptionService';
-
-import { setTrialOptOut } from '../../services/discountStorage';
+import { useNewSubscription } from '../../hooks/useNewSubscription';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
   const route = useRoute<any>();
+  const { user } = useAuth();
+  const { startTrial } = useNewSubscription(user?.id || '');
+  
   // Read selection from params; default to annual
   const initialTierId: string = route?.params?.selectedTierId || 'growth';
   const initialBilling: 'annual' | 'monthly' = route?.params?.billing || 'annual';
   const [selectedTierId, _setSelectedTierId] = useState<string>(initialTierId);
   const [isAnnual, setIsAnnual] = useState(initialBilling === 'annual');
-  const [_wantsTrial, _setWantsTrial] = useState(true);
-  const [_showDynamicModal, _setShowDynamicModal] = useState(false);
-  const [_dynamicDiscount, _setDynamicDiscount] = useState<any>(null);
   const [pricingTiers, setPricingTiers] = useState<any[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
 
   const handleClose = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      await setTrialOptOut(user?.id || null, true);
-      // Force-refresh subscription to honor opt-out immediately
-      if (user?.id) {
-        try {
-          await subscriptionService.getUserSubscription(user.id);
-        } catch (e) {
-          // non-blocking
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
-    // User becomes seeker (freemium) user
+    // User declines trial and remains as seeker (freemium)
     navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+  };
+
+  const handleStartTrial = async () => {
+    try {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      // Start 3-day free trial with new subscription system
+      await startTrial({ user_id: user.id, duration_days: 3 });
+
+      // Navigate to notification setup with trial user type
+      navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'trial' });
+    } catch (error) {
+      console.error('Error starting trial:', error);
+      // Fallback: continue as freemium user
+      navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+    }
   };
 
   const getTierDisplayName = (tierName: string) => {
@@ -96,16 +99,7 @@ const OnboardingTrialOfferScreen = () => {
     return (t.annualPrice / 12);
   };
 
-  const handleStartTrial = () => {
-    // Navigate to payment processing for trial
-    navigation.navigate('OnboardingPaymentProcessing' as any, {
-      selectedTier: selectedTierId,
-      isAnnual,
-      isTrial: true,
-      trialDays: 3,
-      price: 0, // Free trial
-    });
-  };
+  // Removed duplicate handleStartTrial function
 
   // Helpers for local date computations
   const addDays = (date: Date, days: number) => {

@@ -29,8 +29,8 @@ export interface DynamicDiscount {
 class PricingService {
   private baseUSDPricing: PricingTier[] = [
     {
-      id: 'starter',
-      name: 'Starter',
+      id: 'spark',
+      name: 'Spark',
       duration: '12 months',
       description: 'For consistent encouragement',
       features: [

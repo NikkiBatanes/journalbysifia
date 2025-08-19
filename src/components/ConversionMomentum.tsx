@@ -122,8 +122,8 @@ const ConversionMomentum: React.FC<ConversionMomentumProps> = ({
   }
 
   const handleUpgrade = () => {
-    if (userState.tier === 'basic') {
-      navigation.navigate('OnboardingPricingShowcase' as never);
+    if (userState.tier === 'seeker') {
+      navigation.navigate('OnboardingSalesOffer' as never);
     } else {
       navigation.navigate('SubscriptionManagement' as never);
     }

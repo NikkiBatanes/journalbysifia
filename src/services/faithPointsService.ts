@@ -145,20 +145,31 @@ export class FaithPointsService {
   async awardPoints(
     userId: string,
     activity: keyof typeof this.POINTS_SYSTEM,
-    _metadata?: { suppressNotification?: boolean } & any
+    _metadata?: { suppressNotification?: boolean; isOnboarding?: boolean } & any
   ): Promise<{ pointsAwarded: number; newLevel?: number; newBadges?: Badge[] }> {
 
     try {
       const pointsAwarded = this.POINTS_SYSTEM[activity];
-      console.log(`[FaithPointsService] Awarding ${pointsAwarded} points for ${activity} to user ${userId}`);
+      const isOnboarding = _metadata?.isOnboarding || false;
+      
+      console.log(`[FaithPointsService] Awarding ${pointsAwarded} points for ${activity} to user ${userId}${isOnboarding ? ' (onboarding)' : ''}`);
 
-      const profile = await this.getUserProfile(userId);
+      // Ensure profile exists before awarding points
+      let profile = await this.getUserProfile(userId);
+      
+      // If profile creation failed, try again with more robust error handling
+      if (!profile || profile.totalPoints === undefined) {
+        console.log('[FaithPointsService] Profile missing or invalid, creating new profile...');
+        profile = await this.createUserProfile(userId);
+      }
+
       const newTotalPoints = profile.totalPoints + pointsAwarded;
 
       console.log('[FaithPointsService] Current profile:', {
         totalPoints: profile.totalPoints,
         newTotalPoints,
         pointsAwarded,
+        isOnboarding,
       });
 
       // Check for level up
@@ -172,42 +183,75 @@ export class FaithPointsService {
       // Update streak if daily activity
       const updatedStreak = await this.updateStreak(userId, activity);
 
-      // Update profile in database
+      // Update profile in database with retry logic for onboarding
       console.log('[FaithPointsService] Updating profile with:', {
         total_points: newTotalPoints,
         current_level: newLevel,
         userId,
+        isOnboarding,
       });
 
-      // First, let's check if the profile exists
-      const { data: existingProfile, error: checkError } = await supabase
-        .from('faith_points_profiles')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('[FaithPointsService] Error checking existing profile:', checkError);
+      let updateResult;
+      let updateError;
+      
+      // Try upsert for onboarding to handle race conditions
+      if (isOnboarding) {
+        const { data: upsertResult, error: upsertError } = await supabase
+          .from('faith_points_profiles')
+          .upsert({
+            user_id: userId,
+            total_points: newTotalPoints,
+            current_level: newLevel,
+            points_to_next_level: this.getPointsToNextLevel(newTotalPoints),
+            current_streak: updatedStreak,
+            longest_streak: Math.max(profile.longestStreak || 0, updatedStreak),
+            weekly_goal: profile.weeklyGoal || 50,
+            weekly_progress: profile.weeklyProgress || 0,
+            last_activity_date: new Date().toISOString(),
+            created_at: profile.createdAt || new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id'
+          })
+          .select();
+          
+        updateResult = upsertResult;
+        updateError = upsertError;
+        
+        if (upsertError) {
+          console.error('[FaithPointsService] Upsert failed, trying regular update:', upsertError);
+        } else {
+          console.log('[FaithPointsService] Upsert successful for onboarding:', upsertResult);
+        }
       }
+      
+      // Fallback to regular update if upsert failed or not onboarding
+      if (!updateResult || updateError) {
+        const { data: regularUpdateResult, error: regularUpdateError } = await supabase
+          .from('faith_points_profiles')
+          .update({
+            total_points: newTotalPoints,
+            current_level: newLevel,
+            points_to_next_level: this.getPointsToNextLevel(newTotalPoints),
+            current_streak: updatedStreak,
+            last_activity_date: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .select();
 
-      console.log('[FaithPointsService] Existing profile before update:', existingProfile);
-
-      const { data: updateResult, error: updateError } = await supabase
-        .from('faith_points_profiles')
-        .update({
-          total_points: newTotalPoints,
-          current_level: newLevel,
-          points_to_next_level: this.getPointsToNextLevel(newTotalPoints),
-          current_streak: updatedStreak,
-          last_activity_date: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId)
-        .select();
+        updateResult = regularUpdateResult;
+        updateError = regularUpdateError;
+      }
 
       if (updateError) {
         console.error('[FaithPointsService] Profile update failed:', updateError);
-        throw updateError;
+        // For onboarding, don't throw error - log and continue
+        if (isOnboarding) {
+          console.warn('[FaithPointsService] Onboarding faith points update failed, but continuing...');
+        } else {
+          throw updateError;
+        }
       }
 
       console.log('[FaithPointsService] Profile updated successfully:', updateResult);
@@ -222,6 +266,14 @@ export class FaithPointsService {
           .eq('user_id', userId)
           .maybeSingle();
         console.log('[FaithPointsService] Profile state after update attempt:', afterUpdate);
+        
+        // For onboarding, try to create profile if it doesn't exist
+        if (isOnboarding && !afterUpdate) {
+          console.log('[FaithPointsService] Creating profile for onboarding user...');
+          await this.createUserProfile(userId);
+          // Retry the points award
+          return this.awardPoints(userId, activity, { ..._metadata, isOnboarding: false });
+        }
       }
 
       // Record transaction AFTER profile update (non-blocking)

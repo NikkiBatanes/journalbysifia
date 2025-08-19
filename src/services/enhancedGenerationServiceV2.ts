@@ -80,7 +80,7 @@ export class EnhancedGenerationServiceV2 {
     'family': 'advanced',
     'transformation': 'enhanced',
     'growth': 'enhanced',
-    'starter': 'basic',
+    'spark': 'basic',
     'free_trial': 'basic',
   };
 
@@ -89,7 +89,7 @@ export class EnhancedGenerationServiceV2 {
     'family': 0.9,        // 90% context influence
     'transformation': 0.8, // 80% context influence
     'growth': 0.7,        // 70% context influence
-    'starter': 0.5,       // 50% context influence
+    'spark': 0.5,       // 50% context influence
     'free_trial': 0.3,     // 30% context influence
   };
 

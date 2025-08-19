@@ -12,10 +12,8 @@ export type RootStackParamList = {
 
   OnboardingPersonalProfile: undefined;
   OnboardingGoalsScreen: undefined;
-  OnboardingPreferences: undefined;
   OnboardingTrialSetup: undefined;
   OnboardingPersonalization: { name?: string; registrationMethod?: 'email' | 'oauth' } | undefined;
-  OnboardingPlaybookNavigation: { generatedPlaybook: Playbook } | undefined;
   OnboardingNotificationPermission: { playbook?: Playbook } | undefined;
   OnboardingComplete: { playbook?: Playbook } | undefined;
 

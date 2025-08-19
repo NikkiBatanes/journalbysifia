@@ -3,8 +3,8 @@ import { AppState, AppStateStatus } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { subscriptionService } from '../services/subscriptionService';
-import { Subscription, SubscriptionTier } from '../interfaces/subscription';
+import { useNewSubscription } from './useNewSubscription';
+import { Subscription, SubscriptionTier } from '../types/subscription';
 
 export interface UserState {
   tier: SubscriptionTier;
@@ -23,8 +23,9 @@ export interface OnboardingProgress {
 
 export const useUserState = () => {
   const { user } = useAuth();
+  const { subscription, isLoading: subscriptionLoading, startTrial } = useNewSubscription(user?.id || '');
   const [userState, setUserState] = useState<UserState>({
-    tier: 'basic',
+    tier: 'seeker',
     subscription: null,
     isLoading: true,
     onboardingProgress: {
@@ -36,7 +37,7 @@ export const useUserState = () => {
     },
   });
 
-  // Use the imported subscriptionService instance
+  // Using new subscription system
 
   const loadOnboardingProgress = useCallback(async (): Promise<OnboardingProgress> => {
     try {
@@ -58,28 +59,26 @@ export const useUserState = () => {
   }, [user]);
 
   const loadUserState = useCallback(async () => {
-    if (!user) {return;}
+    if (!user?.id) return;
 
     try {
       setUserState(prev => ({ ...prev, isLoading: true }));
 
-      // Get user subscription
-      const subscription = await subscriptionService.getUserSubscription(user.id);
-
       // Load onboarding progress from AsyncStorage
       const onboardingProgress = await loadOnboardingProgress();
 
-      setUserState({
-        tier: subscription.tier,
+      setUserState(prev => ({
+        ...prev,
+        tier: subscription?.tier || 'seeker',
         subscription,
         isLoading: false,
         onboardingProgress,
-      });
+      }));
     } catch (error) {
       console.error('Error loading user state:', error);
       setUserState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [user, loadOnboardingProgress]);
+  }, [user?.id, subscription, loadOnboardingProgress]);
 
   useEffect(() => {
     if (user) {
@@ -159,30 +158,34 @@ export const useUserState = () => {
     await saveOnboardingProgress(updates);
   };
 
-  const activateFreeTrial = async (): Promise<boolean> => {
-    if (!user) {return false;}
+  const activateFreeTrial = useCallback(async () => {
+    if (!user?.id) {
+      throw new Error('User not authenticated');
+    }
 
     try {
       setUserState(prev => ({ ...prev, isLoading: true }));
 
-      const subscription = await subscriptionService.activateFreeTrial(user.id);
+      await startTrial({ user_id: user.id });
 
       setUserState(prev => ({
         ...prev,
-        tier: 'free_trial',
-        subscription,
-        isLoading: false,
+        onboardingProgress: {
+          ...prev.onboardingProgress,
+          hasStartedTrial: true,
+        },
       }));
 
-      updateOnboardingStep('trial_started');
+      // Update onboarding progress in AsyncStorage
+      await updateOnboardingStep('trial_activated', 3);
 
-      return true;
+      return subscription;
     } catch (error) {
       console.error('Error activating free trial:', error);
       setUserState(prev => ({ ...prev, isLoading: false }));
-      return false;
+      throw error;
     }
-  };
+  }, [user?.id, startTrial, subscription, updateOnboardingStep]);
 
   const getPhaseProgress = (): number => {
     const { currentPhase, completedSteps } = userState.onboardingProgress;
@@ -206,75 +209,99 @@ export const useUserState = () => {
       : 0;
   };
 
-  const canAccessFeature = (feature: string): boolean => {
-    const { tier, subscription } = userState;
-
-    if (!subscription) {return false;}
-
-    const limits = subscription.limits;
-
-    // Check specific feature access based on subscription limits
-    switch (feature) {
-      case 'playbooks':
-        return limits.playbooks === -1 || limits.playbooks > 0;
-      case 'devotionals':
-        return limits.devotionals === -1 || limits.devotionals > 0;
-      case 'exports':
-        return limits.exports === -1 || limits.exports > 0;
-      case 'intelligence':
-        return limits.intelligenceEnabled;
-      case 'smart_journaling':
-        return limits.smartJournalingEnabled;
-      case 'calendar_sync':
-        return limits.calendarSyncEnabled;
-      case 'expounding':
-        return limits.expoundingEnabled;
-      case 'copy_incomplete_todos':
-        return limits.copyIncompleteTodosEnabled;
-      case 'answered_prayer_tracking':
-        return limits.answeredPrayerTrackingEnabled;
-      case 'advanced_analytics':
-        return limits.advancedAnalytics;
-      case 'priority_support':
-        return limits.prioritySupport;
-      case 'family_sharing':
-        return limits.familyMembers > 0;
-      default:
-        // For basic features, allow access for all tiers except basic
-        return tier !== 'basic';
-    }
-  };
-
-  const checkUsageLimit = (feature: 'playbooks' | 'devotionals' | 'exports'): { canUse: boolean; remaining: number; limit: number } => {
-    const { subscription } = userState;
-
+  const getSubscriptionLimits = useCallback(() => {
     if (!subscription) {
-      return { canUse: false, remaining: 0, limit: 0 };
+      return {
+        playbooks: { used: 0, total: 0 },
+        devotionals: { used: 0, total: 0 },
+        exports: { used: 0, total: 0 },
+        intelligenceEnabled: false,
+        smartJournalingEnabled: false,
+        calendarSyncEnabled: false,
+        expoundingEnabled: false,
+        copyIncompleteTodosEnabled: false,
+        answeredPrayerTrackingEnabled: false,
+        advancedAnalytics: false,
+        prioritySupport: false,
+        familyMembers: 0,
+      };
     }
 
-    const limits = subscription.limits;
-    const limit = limits[feature];
-
-    // Unlimited access
-    if (limit === -1) {
-      return { canUse: true, remaining: -1, limit: -1 };
-    }
-
-    // Get current usage (this would typically come from the subscription service)
-    // For now, we'll assume 0 usage - this should be integrated with actual usage tracking
-    const currentUsage = 0;
-    const remaining = Math.max(0, limit - currentUsage);
+    const isUnlimited = subscription.tier === 'transformation' || subscription.tier === 'family';
 
     return {
-      canUse: remaining > 0,
-      remaining,
-      limit,
+      playbooks: { 
+        used: subscription.playbooks_used, 
+        total: isUnlimited ? -1 : subscription.playbooks_limit 
+      },
+      devotionals: { 
+        used: subscription.devotionals_used, 
+        total: isUnlimited ? -1 : subscription.devotionals_limit 
+      },
+      exports: { used: 0, total: -1 }, // No export limits in new system
+      intelligenceEnabled: subscription.tier !== 'seeker',
+      smartJournalingEnabled: subscription.smart_journaling_enabled,
+      calendarSyncEnabled: subscription.tier !== 'seeker',
+      expoundingEnabled: subscription.tier !== 'seeker',
+      copyIncompleteTodosEnabled: subscription.tier !== 'seeker',
+      answeredPrayerTrackingEnabled: subscription.tier !== 'seeker',
+      advancedAnalytics: subscription.tier === 'transformation' || subscription.tier === 'family',
+      prioritySupport: subscription.tier === 'transformation' || subscription.tier === 'family',
+      familyMembers: subscription.tier === 'family' ? 6 : 0,
+    };
+  }, [subscription]);
+
+  const canUseFeature = useCallback((feature: 'playbooks' | 'devotionals' | 'exports') => {
+    if (!subscription) return false;
+    
+    const isUnlimited = subscription.tier === 'transformation' || subscription.tier === 'family';
+    
+    switch (feature) {
+      case 'playbooks':
+        return isUnlimited || subscription.playbooks_used < subscription.playbooks_limit;
+      case 'devotionals':
+        return isUnlimited || subscription.devotionals_used < subscription.devotionals_limit;
+      case 'exports':
+        return true; // No export limits in new system
+      default:
+        return false;
+    }
+  }, [subscription]);
+
+  const hasFeatureAccess = useCallback((feature: string) => {
+    if (!subscription) return false;
+    
+    switch (feature) {
+      case 'intelligence':
+        return subscription.tier !== 'seeker';
+      case 'smartJournaling':
+        return subscription.smart_journaling_enabled;
+      case 'calendarSync':
+        return subscription.tier !== 'seeker';
+      case 'expounding':
+        return subscription.tier !== 'seeker';
+      case 'advancedAnalytics':
+        return subscription.tier === 'transformation' || subscription.tier === 'family';
+      case 'prioritySupport':
+        return subscription.tier === 'transformation' || subscription.tier === 'family';
+      case 'familyMembers':
+        return subscription.tier === 'family';
+      default:
+        return false;
+    }
+  }, [subscription]);
+
+  const checkUsageLimit = (feature: 'playbooks' | 'devotionals' | 'exports'): { canUse: boolean; remaining: number; limit: number } => {
+    const { used, total } = getSubscriptionLimits()[feature];
+
+    return {
+      canUse: canUseFeature(feature),
+      remaining: total === -1 ? -1 : total - used,
+      limit: total,
     };
   };
 
   const getFeatureLimits = () => {
-    const { subscription } = userState;
-
     if (!subscription) {return null;}
 
     return {
@@ -282,13 +309,13 @@ export const useUserState = () => {
       devotionals: checkUsageLimit('devotionals'),
       exports: checkUsageLimit('exports'),
       features: {
-        intelligence: subscription.limits.intelligenceEnabled,
-        smartJournaling: subscription.limits.smartJournalingEnabled,
-        calendarSync: subscription.limits.calendarSyncEnabled,
-        expounding: subscription.limits.expoundingEnabled,
-        advancedAnalytics: subscription.limits.advancedAnalytics,
-        prioritySupport: subscription.limits.prioritySupport,
-        familySharing: subscription.limits.familyMembers > 0,
+        intelligence: hasFeatureAccess('intelligence'),
+        smartJournaling: hasFeatureAccess('smartJournaling'),
+        calendarSync: hasFeatureAccess('calendarSync'),
+        expounding: hasFeatureAccess('expounding'),
+        advancedAnalytics: hasFeatureAccess('advancedAnalytics'),
+        prioritySupport: hasFeatureAccess('prioritySupport'),
+        familySharing: hasFeatureAccess('familyMembers'),
       },
     };
   };
@@ -298,7 +325,7 @@ export const useUserState = () => {
     updateOnboardingStep,
     activateFreeTrial,
     getPhaseProgress,
-    canAccessFeature,
+    canAccessFeature: hasFeatureAccess,
     checkUsageLimit,
     getFeatureLimits,
     refreshUserState: loadUserState,

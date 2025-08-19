@@ -1,185 +1,167 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
-  ScrollView,
+  Dimensions,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Colors } from '../../theme';
+import { Colors } from '../../theme/colors';
+import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
-import { SubscriptionService } from '../../services/subscriptionService';
-import { SubscriptionTier } from '../../interfaces/subscription';
 
-interface RouteParams {
-  userType: 'trial' | 'paid' | 'freemium';
-  selectedTier?: string;
+const { width, height } = Dimensions.get('window');
+
+interface OnboardingPaymentConfirmationScreenProps {
+  route?: {
+    params?: {
+      tier?: string;
+      platform?: string;
+      transactionId?: string;
+    };
+  };
 }
 
-const OnboardingPaymentConfirmationScreen = () => {
+const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmationScreenProps> = ({ route }) => {
   const navigation = useNavigation();
-  const route = useRoute();
-  const { userType, selectedTier } = route.params as RouteParams;
   const { user } = useAuth();
-  const [saving, setSaving] = useState(false);
-  const didPersistRef = useRef(false);
+  const { subscription, refreshSubscription } = useNewSubscription(user?.id ?? '');
+  const params = route?.params || {};
+  const { tier = 'spark', platform = 'local_test', transactionId } = params;
 
   useEffect(() => {
-    // Persist paid subscription tier once
-    const persistUpgrade = async () => {
-      if (didPersistRef.current) {return;}
-      if (userType !== 'paid') {return;}
-      if (!user?.id) {return;}
-      if (!selectedTier) {return;}
-      didPersistRef.current = true;
-      setSaving(true);
-      try {
-        const service = new SubscriptionService();
-        const tier = selectedTier as SubscriptionTier;
-        await service.upgradeToPaid(user.id, tier);
-        console.log(`✅ Upgraded subscription for ${user.id} to ${tier}`);
-      } catch (err) {
-        console.error('❌ Failed to persist paid subscription:', err);
-        // Non-blocking; user can continue but will remain seeker until retried
-      } finally {
-        setSaving(false);
-      }
-    };
-    persistUpgrade();
-  }, [userType, selectedTier, user?.id]);
+    // Refresh subscription data to get the latest status
+    refreshSubscription();
+  }, [refreshSubscription]);
 
   const handleContinue = () => {
-    navigation.navigate('OnboardingNotificationSetup' as any, { userType });
+    // Navigate to notification setup
+    navigation.navigate('OnboardingNotificationSetup' as never);
   };
 
-  const getWelcomeMessage = () => {
-    switch (userType) {
-      case 'trial':
-        return {
-          title: 'Welcome to Your 3-Day Journey!',
-          subtitle: 'Your free trial has started. Experience the full power of siFia.',
-          icon: '🎉',
-        };
-      case 'paid':
-        return {
-          title: 'Welcome to the siFia Family!',
-          subtitle: 'Thank you for joining us. Your spiritual growth journey begins now.',
-          icon: '🙏',
-        };
-      case 'freemium':
-        return {
-          title: 'Welcome to siFia!',
-          subtitle: 'Start your spiritual journey with our free features.',
-          icon: '✨',
-        };
+  const handleSkipToApp = () => {
+    // Skip notification setup and go directly to main app
+    navigation.navigate('MainTabs' as never);
+  };
+
+  const getTierDisplayName = (tierName: string) => {
+    switch (tierName.toLowerCase()) {
+      case 'spark':
+        return 'Spark';
+      case 'growth':
+        return 'Growth';
+      case 'transformation':
+        return 'Transformation';
+      case 'family':
+        return 'Family';
       default:
-        return {
-          title: 'Welcome to siFia!',
-          subtitle: 'Your spiritual growth journey begins now.',
-          icon: '🌟',
-        };
+        return 'Premium';
     }
   };
 
-  const getFeaturesList = () => {
-    if (userType === 'freemium') {
-      return [
-        'Access to essential spiritual content',
-        'Daily affirmations and verses',
-        'Essential journaling features',
-        'Community support',
-      ];
+  const getTierBenefits = (tierName: string) => {
+    switch (tierName.toLowerCase()) {
+      case 'spark':
+        return [
+          '8 Playbooks & Devotionals per month',
+          'Smart Journaling with AI insights',
+          'Personalized spiritual guidance',
+          'Priority customer support'
+        ];
+      case 'growth':
+        return [
+          '20 Playbooks & Devotionals per month',
+          'Smart Journaling with AI insights',
+          'Advanced spiritual analytics',
+          'Priority customer support',
+          'Exclusive content library'
+        ];
+      case 'transformation':
+        return [
+          'Unlimited Playbooks & Devotionals',
+          'Smart Journaling with AI insights',
+          'Advanced spiritual analytics',
+          'Priority customer support',
+          'Exclusive content library',
+          'Personal spiritual coach access'
+        ];
+      case 'family':
+        return [
+          'Unlimited access for up to 6 members',
+          'Family spiritual dashboard',
+          'Shared prayer requests',
+          'Family devotional plans',
+          'All premium features included'
+        ];
+      default:
+        return [
+          'Premium spiritual content',
+          'Enhanced features',
+          'Priority support'
+        ];
     }
-
-    return [
-      'Unlimited personalized playbooks',
-      'AI-powered devotionals',
-      'Advanced smart journaling',
-      'Progress tracking & insights',
-      'Priority customer support',
-      'Exclusive spiritual content',
-    ];
   };
-
-  const welcomeData = getWelcomeMessage();
-  const features = getFeaturesList();
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>siFia</Text>
-          <Text style={styles.logoHeart}>❤</Text>
-        </View>
-
+      <View style={styles.content}>
         {/* Success Icon */}
-        <View style={styles.iconContainer}>
-          <Text style={styles.successIcon}>{welcomeData.icon}</Text>
+        <View style={styles.successIconContainer}>
+          <Ionicons name="checkmark-circle" size={80} color={Colors.successGreen} />
         </View>
 
-        {/* Welcome Message */}
-        <Text style={styles.welcomeTitle}>{welcomeData.title}</Text>
-        <Text style={styles.welcomeSubtitle}>{welcomeData.subtitle}</Text>
+        {/* Success Message */}
+        <Text style={styles.title}>Payment Successful!</Text>
+        <Text style={styles.subtitle}>
+          Welcome to siFia {getTierDisplayName(tier)}
+        </Text>
 
-        {/* Access Granted Section */}
-        <View style={styles.accessSection}>
-          <View style={styles.accessHeader}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.growthGreen} />
-            <Text style={styles.accessTitle}>Access Granted</Text>
-          </View>
-          <Text style={styles.accessDescription}>
-            You now have full access to the features in your {userType === 'freemium' ? 'free' : selectedTier || 'selected'} plan.
+        {/* Subscription Details */}
+        <View style={styles.subscriptionCard}>
+          <Text style={styles.subscriptionTitle}>Your Subscription</Text>
+          <Text style={styles.tierName}>{getTierDisplayName(tier)} Plan</Text>
+          
+          {transactionId && (
+            <Text style={styles.transactionId}>
+              Transaction ID: {transactionId}
+            </Text>
+          )}
+          
+          <Text style={styles.platformInfo}>
+            Platform: {platform === 'local_test' ? 'Local Test' : platform}
           </Text>
         </View>
 
-        {/* Features List */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.featuresTitle}>What's included:</Text>
-          {features.map((feature, index) => (
-            <View key={index} style={styles.featureItem}>
-              <Ionicons name="checkmark" size={20} color={Colors.growthGreen} />
-              <Text style={styles.featureText}>{feature}</Text>
+        {/* Benefits List */}
+        <View style={styles.benefitsContainer}>
+          <Text style={styles.benefitsTitle}>What's included:</Text>
+          {getTierBenefits(tier).map((benefit, index) => (
+            <View key={index} style={styles.benefitItem}>
+              <Ionicons name="checkmark" size={20} color={Colors.successGreen} />
+              <Text style={styles.benefitText}>{benefit}</Text>
             </View>
           ))}
         </View>
 
-        {/* Trial Specific Info */}
-        {userType === 'trial' && (
-          <View style={styles.trialInfo}>
-            <View style={styles.trialHeader}>
-              <Ionicons name="time" size={20} color={Colors.alertCoral} />
-              <Text style={styles.trialTitle}>Trial Reminder</Text>
-            </View>
-            <Text style={styles.trialText}>
-              Your 3-day free trial will automatically convert to a paid subscription unless cancelled.
-              We'll send you a reminder before it ends.
-            </Text>
-          </View>
-        )}
-
-        {/* Subscription Management */}
-        <View style={styles.managementSection}>
-          <Text style={styles.managementTitle}>Subscription Management</Text>
-          <Text style={styles.managementText}>
-            You can manage or cancel your subscription anytime through your device's subscription settings
-            or in the app's account section.
-          </Text>
+        {/* Action Buttons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
+            <Text style={styles.primaryButtonText}>Set Up Notifications</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleSkipToApp}>
+            <Text style={styles.secondaryButtonText}>Skip for Now</Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Continue Button */}
-        <TouchableOpacity style={styles.continueButton} onPress={handleContinue} disabled={saving}>
-          <Text style={styles.continueButtonText}>{saving ? 'Saving...' : 'Continue Setup'}</Text>
-        </TouchableOpacity>
-
-        {/* Support Note */}
-        <Text style={styles.supportNote}>
-          Need help? We're here to support you on your spiritual journey.
+        {/* Footer */}
+        <Text style={styles.footerText}>
+          You can manage your subscription anytime in Settings
         </Text>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -187,158 +169,113 @@ const OnboardingPaymentConfirmationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
   },
-  scrollContainer: {
+  content: {
     flex: 1,
     paddingHorizontal: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    paddingTop: 40,
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 40,
   },
-  logo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
+  successIconContainer: {
+    marginBottom: 32,
   },
-  logoHeart: {
-    fontSize: 16,
-    color: Colors.alertCoral,
-    marginLeft: 2,
-  },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  successIcon: {
-    fontSize: 64,
-  },
-  welcomeTitle: {
+  title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
+    fontWeight: '800',
+    color: Colors.anchorBlue,
     textAlign: 'center',
-    marginBottom: 12,
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginBottom: 32,
-    opacity: 0.9,
-    lineHeight: 24,
-  },
-  accessSection: {
-    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.3)',
-  },
-  accessHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  accessTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-    marginLeft: 8,
-  },
-  accessDescription: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    lineHeight: 24,
-    opacity: 0.9,
-  },
-  featuresSection: {
-    marginBottom: 24,
-  },
-  featuresTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-    marginBottom: 16,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureText: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    marginLeft: 12,
-    flex: 1,
-    lineHeight: 22,
-  },
-  trialInfo: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 107, 107, 0.3)',
-  },
-  trialHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  trialTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-    marginLeft: 8,
-  },
-  trialText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    lineHeight: 20,
-    opacity: 0.9,
-  },
-  managementSection: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 32,
-  },
-  managementTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
     marginBottom: 8,
   },
-  managementText: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
-    lineHeight: 20,
-    opacity: 0.8,
+  subtitle: {
+    fontSize: 18,
+    color: Colors.textGray,
+    textAlign: 'center',
+    marginBottom: 32,
   },
-  continueButton: {
-    backgroundColor: Colors.alertCoral,
-    paddingVertical: 16,
-    borderRadius: 12,
+  subscriptionCard: {
+    backgroundColor: Colors.lightGray,
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+    marginBottom: 32,
+    alignItems: 'center',
+  },
+  subscriptionTitle: {
+    fontSize: 16,
+    color: Colors.textGray,
+    marginBottom: 8,
+  },
+  tierName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: Colors.anchorBlue,
+    marginBottom: 8,
+  },
+  transactionId: {
+    fontSize: 12,
+    color: Colors.textGray,
+    marginBottom: 4,
+  },
+  platformInfo: {
+    fontSize: 12,
+    color: Colors.textGray,
+  },
+  benefitsContainer: {
+    width: '100%',
+    marginBottom: 32,
+  },
+  benefitsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.anchorBlue,
     marginBottom: 16,
   },
-  continueButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-    textAlign: 'center',
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  supportNote: {
-    fontSize: 14,
+  benefitText: {
+    fontSize: 16,
+    color: Colors.text,
+    marginLeft: 12,
+    flex: 1,
+  },
+  buttonContainer: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  primaryButton: {
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  primaryButtonText: {
     color: Colors.hopeWhite,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
+  },
+  secondaryButtonText: {
+    color: Colors.textGray,
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  footerText: {
+    fontSize: 14,
+    color: Colors.textGray,
     textAlign: 'center',
-    opacity: 0.7,
-    marginBottom: 40,
+    paddingHorizontal: 20,
   },
 });
 

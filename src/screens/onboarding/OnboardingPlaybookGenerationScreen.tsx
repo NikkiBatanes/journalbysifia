@@ -61,6 +61,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [_isLoading, _setIsLoading] = useState(false);
+  const [shouldNavigate, setShouldNavigate] = useState(false);
+  const [navigationData, setNavigationData] = useState<GeneratedPlaybook | null>(null);
 
   // Enhanced animations for better UI
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -103,6 +105,19 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     { title: 'Equipping you for the journey…', description: '' },
     { title: 'Finalizing Your Playbook', description: '' },
   ];
+
+  // Handle navigation after animation completes
+  useEffect(() => {
+    if (shouldNavigate && navigationData) {
+      console.log('🚀 Navigating to OnboardingPlaybookReady screen...');
+      (navigation as any).replace('OnboardingPlaybookReady', {
+        playbook: navigationData,
+        challengeCategory: params.challengeCategory,
+        specificChallenge: params.specificChallenge,
+        userInput: params.userInput,
+      });
+    }
+  }, [shouldNavigate, navigationData, navigation, params]);
 
   const generatePlaybook = useCallback(async () => {
     try {
@@ -291,18 +306,11 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       duration: 800,
                       useNativeDriver: false,
                     }).start(() => {
-                      // Keep isGenerating true to avoid blank state, navigate immediately
+                      // Keep isGenerating true to avoid blank state, set navigation data
                       setGeneratedPlaybook(realGeneratedPlaybook);
-                      console.log('✅ Real playbook generation completed. Navigating to Ready screen...');
-
-                      // Use replace to avoid brief blank flash and back-stack flicker
-                      (navigation as any).replace('OnboardingPlaybookReady', {
-                        playbook: realGeneratedPlaybook,
-                        challengeCategory: params.challengeCategory,
-                        specificChallenge: params.specificChallenge,
-                        userInput: params.userInput,
-                      });
-
+                      setNavigationData(realGeneratedPlaybook);
+                      setShouldNavigate(true);
+                      console.log('✅ Real playbook generation completed. Setting navigation flag...');
                       resolve();
                     });
                   });

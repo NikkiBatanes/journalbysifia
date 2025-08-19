@@ -108,8 +108,6 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
       'basic': 'siFia SEEKER',
       'spark': 'siFia SPARK',
       'spark_annual': 'siFia SPARK',
-      'starter': 'siFia SPARK',
-      'starter_annual': 'siFia SPARK',
       'growth': 'siFia GROWTH',
       'growth_annual': 'siFia GROWTH',
       'transformation': 'siFia TRANSFORMATION',

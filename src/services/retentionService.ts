@@ -51,7 +51,7 @@ export interface DynamicPricingConfig {
   };
   tierMultipliers: {
     basic: number;
-    starter: number;
+    spark: number;
     growth: number;
     transformation: number;
     family: number;
@@ -76,7 +76,7 @@ export class RetentionService {
     },
     tierMultipliers: {
       basic: 1.5, // Higher discounts for basic users
-      starter: 1.2, // Moderate increase
+      spark: 1.2, // Moderate increase
       growth: 1.0, // Standard rate
       transformation: 0.8, // Lower discounts (premium users)
       family: 0.7, // Lowest discounts (highest value)
@@ -590,7 +590,7 @@ export class RetentionService {
     const tierScores: Record<string, number> = {
       'free_trial': 0,
       'basic': 2,
-      'starter': 4,
+      'spark': 4,
       'growth': 6,
       'transformation': 8,
       'family': 10,

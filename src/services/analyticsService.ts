@@ -10,7 +10,7 @@
 // For now, we'll assume supabase is available globally or imported elsewhere
 declare const supabase: any;
 // Using existing subscription tier type from database
-type SubscriptionTier = 'free_trial' | 'starter' | 'growth' | 'transformation' | 'family';
+type SubscriptionTier = 'free_trial' | 'spark' | 'growth' | 'transformation' | 'family';
 
 export interface AnalyticsEvent {
   event_name: string;

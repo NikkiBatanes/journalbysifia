@@ -3,95 +3,117 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
-  Alert,
+  SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
-
-interface RouteParams {
-  selectedTier: string;
-  isAnnual: boolean;
-  price: number;
-  isTrial?: boolean;
-  trialDays?: number;
-}
+import { useNewSubscription } from '../../hooks/useNewSubscription';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 const OnboardingPaymentProcessingScreen = () => {
   const navigation = useNavigation();
-  const route = useRoute();
-  const { selectedTier, isAnnual, price, isTrial, trialDays } = route.params as RouteParams;
+  const route = useRoute<any>();
+  const { user } = useAuth();
+  const { upgradeSubscription, startTrial } = useNewSubscription(user?.id || '');
+  
+  const [isProcessing, setIsProcessing] = useState(true);
+  const [processingStatus, setProcessingStatus] = useState('Initializing payment...');
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
-  const [processingStep, setProcessingStep] = useState(0);
-
-  const processingSteps = [
-    'Securing your payment...',
-    'Setting up your account...',
-    'Preparing your spiritual journey...',
-    'Almost ready...',
-  ];
+  // Get parameters from navigation
+  const selectedTier = route?.params?.selectedTier || 'spark';
+  const isAnnual = route?.params?.isAnnual || true;
+  const isTrial = route?.params?.isTrial || false;
+  const trialDays = route?.params?.trialDays || 3;
+  const price = route?.params?.price || 0;
 
   useEffect(() => {
-    const processPayment = async () => {
-      try {
-        // Simulate payment processing steps
-        for (let i = 0; i < processingSteps.length; i++) {
-          setProcessingStep(i);
-          await new Promise(resolve => setTimeout(resolve, 1500));
-        }
-
-        const handlePayment = async () => {
-          // Apple will handle the actual payment processing
-          // This is just UI simulation for the flow
-          setProcessingStep(1);
-
-          setTimeout(() => {
-            setProcessingStep(2);
-            setTimeout(() => {
-              setProcessingStep(3);
-              setTimeout(() => {
-                // Navigate to confirmation
-                // In real implementation, this would be triggered by Apple's payment success callback
-                navigation.navigate('OnboardingPaymentConfirmation' as any, {
-                  userType: 'paid',
-                  selectedTier: route.params?.selectedTier || 'growth',
-                  isAnnual: route.params?.isAnnual || false,
-                });
-              }, 1000);
-            }, 1000);
-          }, 1500);
-        };
-        handlePayment();
-
-      } catch (error) {
-        console.error('Payment processing error:', error);
-        Alert.alert(
-          'Payment Error',
-          'There was an issue processing your payment. Please try again.',
-          [
-            {
-              text: 'Try Again',
-              onPress: () => navigation.goBack(),
-            },
-          ]
-        );
-      }
-    };
-
     processPayment();
-  }, [navigation, processingSteps.length, route.params?.isAnnual, route.params?.selectedTier]);
+  }, []);
+
+  const processPayment = async () => {
+    try {
+      setProcessingStatus('Processing payment...');
+      
+      // Simulate payment processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      if (isTrial) {
+        // Process free trial
+        setProcessingStatus('Activating free trial...');
+        await startTrial({ 
+          user_id: user?.id || '', 
+          duration_days: trialDays 
+        });
+        
+        setProcessingStatus('Trial activated successfully!');
+        setPaymentSuccess(true);
+        
+        // Navigate to success after delay
+        setTimeout(() => {
+          navigation.navigate('OnboardingNotificationSetup' as any, { 
+            userType: 'trial',
+            tier: 'free_trial'
+          });
+        }, 1500);
+        
+      } else {
+        // Process paid subscription
+        setProcessingStatus('Activating subscription...');
+        
+        // For local testing, simulate successful payment
+        await upgradeSubscription({
+          platform: 'local_test', // Will be 'apple_pay' or 'google_play' in production
+          target_tier: selectedTier as any,
+          billing_cycle: isAnnual ? 'annual' : 'monthly',
+          subscription_start_date: new Date().toISOString()
+        });
+        
+        setProcessingStatus('Subscription activated successfully!');
+        setPaymentSuccess(true);
+        
+        // Navigate to success after delay
+        setTimeout(() => {
+          navigation.navigate('OnboardingNotificationSetup' as any, { 
+            userType: 'paid',
+            tier: selectedTier
+          });
+        }, 1500);
+      }
+      
+      setIsProcessing(false);
+      
+    } catch (error) {
+      console.error('Payment processing error:', error);
+      setPaymentError('Payment failed. Please try again.');
+      setProcessingStatus('Payment failed');
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRetry = () => {
+    setIsProcessing(true);
+    setPaymentError(null);
+    setPaymentSuccess(false);
+    processPayment();
+  };
+
+  const handleCancel = () => {
+    navigation.goBack();
+  };
 
   const getTierDisplayName = (tier: string) => {
     switch (tier) {
-      case 'seeker':
-      case 'basic': return 'siFia SEEKER';
-      case 'spark':
-      case 'starter': return 'siFia SPARK';
+      case 'seeker': return 'siFia SEEKER';
+      case 'spark': return 'siFia SPARK';
       case 'growth': return 'siFia GROWTH';
       case 'transformation': return 'siFia TRANSFORMATION';
       case 'family': return 'siFia FAMILY';
-      default: return tier;
+      default: return tier.toUpperCase();
     }
   };
 
@@ -100,56 +122,82 @@ const OnboardingPaymentProcessingScreen = () => {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>siFia</Text>
-          <Text style={styles.logoHeart}>❤</Text>
+          <Text style={styles.title}>
+            {isTrial ? 'Starting Free Trial' : 'Processing Payment'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isTrial 
+              ? `Activating your ${trialDays}-day free trial`
+              : `Subscribing to ${getTierDisplayName(selectedTier)}`
+            }
+          </Text>
         </View>
 
         {/* Processing Animation */}
         <View style={styles.processingContainer}>
-          <ActivityIndicator size="large" color={Colors.alertCoral} />
-          <Text style={styles.processingTitle}>
-            {isTrial ? 'Starting Your Free Trial' : 'Processing Payment'}
-          </Text>
-          <Text style={styles.processingStep}>
-            {processingSteps[processingStep]}
-          </Text>
-        </View>
-
-        {/* Order Summary */}
-        <View style={styles.orderSummary}>
-          <Text style={styles.summaryTitle}>Order Summary</Text>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Plan:</Text>
-            <Text style={styles.summaryValue}>{getTierDisplayName(selectedTier)}</Text>
-          </View>
-
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Billing:</Text>
-            <Text style={styles.summaryValue}>{isAnnual ? 'Annual' : 'Monthly'}</Text>
-          </View>
-
-          {isTrial && trialDays && (
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Trial Period:</Text>
-              <Text style={styles.summaryValue}>{trialDays} days free</Text>
+          {isProcessing && (
+            <ActivityIndicator 
+              size="large" 
+              color={Colors.primary} 
+              style={styles.spinner}
+            />
+          )}
+          
+          {paymentSuccess && (
+            <View style={styles.successIcon}>
+              <Ionicons name="checkmark-circle" size={80} color={Colors.success} />
             </View>
           )}
-
-          <View style={[styles.summaryRow, styles.totalRow]}>
-            <Text style={styles.totalLabel}>
-              {isTrial ? 'Today\'s Charge:' : 'Total:'}
-            </Text>
-            <Text style={styles.totalValue}>
-              {isTrial ? '$0.00' : `$${price.toFixed(2)}`}
-            </Text>
-          </View>
+          
+          {paymentError && (
+            <View style={styles.errorIcon}>
+              <Ionicons name="close-circle" size={80} color={Colors.error} />
+            </View>
+          )}
         </View>
 
-        {/* Security Note */}
-        <Text style={styles.securityNote}>
-          🔒 Your payment is secured with industry-standard encryption
-        </Text>
+        {/* Status Text */}
+        <View style={styles.statusContainer}>
+          <Text style={[
+            styles.statusText,
+            paymentSuccess && styles.successText,
+            paymentError && styles.errorText
+          ]}>
+            {processingStatus}
+          </Text>
+          
+          {!isTrial && price > 0 && (
+            <Text style={styles.priceText}>
+              ${price.toFixed(2)} {isAnnual ? 'annually' : 'monthly'}
+            </Text>
+          )}
+        </View>
+
+        {/* Action Buttons */}
+        {paymentError && (
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={styles.retryButton} 
+              onPress={handleRetry}
+            >
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.cancelButton} 
+              onPress={handleCancel}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Loading Message */}
+        {isProcessing && (
+          <Text style={styles.loadingMessage}>
+            Please don't close this screen while we process your {isTrial ? 'trial activation' : 'payment'}...
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -158,98 +206,104 @@ const OnboardingPaymentProcessingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.hopeWhite,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 24,
     justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 60,
   },
-  logo: {
-    fontSize: 32,
+  title: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.hopeWhite,
-  },
-  logoHeart: {
-    fontSize: 20,
-    color: Colors.alertCoral,
-    marginLeft: 4,
-  },
-  processingContainer: {
-    alignItems: 'center',
-    marginBottom: 60,
-  },
-  processingTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
+    color: Colors.text,
     textAlign: 'center',
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  processingStep: {
-    fontSize: 16,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    opacity: 0.8,
-  },
-  orderSummary: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 32,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 12,
   },
-  summaryLabel: {
+  subtitle: {
     fontSize: 16,
-    color: Colors.hopeWhite,
-    opacity: 0.8,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    lineHeight: 24,
   },
-  summaryValue: {
+  processingContainer: {
+    height: 120,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  spinner: {
+    transform: [{ scale: 1.5 }],
+  },
+  successIcon: {
+    alignItems: 'center',
+  },
+  errorIcon: {
+    alignItems: 'center',
+  },
+  statusContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  statusText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  successText: {
+    color: Colors.success,
+  },
+  errorText: {
+    color: Colors.error,
+  },
+  priceText: {
     fontSize: 16,
-    color: Colors.hopeWhite,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    width: '100%',
+    gap: 16,
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontSize: 16,
     fontWeight: '600',
   },
-  totalRow: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.2)',
-    paddingTop: 16,
-    marginTop: 8,
-    marginBottom: 0,
+  cancelButton: {
+    backgroundColor: 'transparent',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.lightGray,
   },
-  totalLabel: {
-    fontSize: 18,
-    color: Colors.hopeWhite,
-    fontWeight: 'bold',
+  cancelButtonText: {
+    color: Colors.text,
+    fontSize: 16,
+    fontWeight: '600',
   },
-  totalValue: {
-    fontSize: 18,
-    color: Colors.alertCoral,
-    fontWeight: 'bold',
-  },
-  securityNote: {
+  loadingMessage: {
     fontSize: 14,
-    color: Colors.hopeWhite,
+    color: Colors.mediumGray,
     textAlign: 'center',
-    opacity: 0.7,
+    fontStyle: 'italic',
+    marginTop: 20,
   },
 });
 

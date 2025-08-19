@@ -25,8 +25,9 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { useTheme } from '../hooks/useTheme';
-import { intelligenceService } from '../services/intelligenceService';
-import { subscriptionService } from '../services/subscriptionService';
+import { getTierShortName, normalizeTierInput } from '../utils/tierDisplayUtils';
+import { SubscriptionTier } from '../interfaces/subscription';
+// Removed unused imports to reduce lint noise
 
 import DailyAffirmationCard from '../components/dashboard/DailyAffirmationCard';
 import DailyBibleVerseCard from '../components/dashboard/DailyBibleVerseCard';
@@ -353,7 +354,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Always show FAB for easy access to UserInput screen
   const [showFab, setShowFab] = useState(true);
   const { user } = useAuth();
-  const { subscription, usage, loading: subscriptionLoading } = useSubscription();
+  const { subscription, usage, loading: subscriptionLoading, refreshSubscription } = useSubscription();
   const queryClient = useQueryClient();
   
   // Add direct subscription fetch for debugging
@@ -372,7 +373,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             cachedTier: subscription?.tier,
             cachedStatus: subscription?.status,
             dataMatch: directData?.tier === subscription?.tier,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            userId: user.id,
+            subscriptionId: directData?.id
           });
           
           // If data doesn't match, invalidate React Query cache
@@ -392,9 +395,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   // Status bar: auto-detect from background
   useScreenStatusBar('auto', '#F2F5F7');
-
-  const floatingButtonScale = useRef(new Animated.Value(1)).current;
-  const floatingButtonOpacity = useRef(new Animated.Value(0)).current;
 
   // Collapsing Playbook label
   const playbookWidth = useRef(new Animated.Value(0)).current;
@@ -516,6 +516,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       buttonWidth.setValue(56);
       textOpacity.setValue(0);
 
+      // Refresh subscription data when screen comes into focus
+      refreshSubscription();
+
       // Wait a moment then start expanding animation
       setTimeout(() => {
         expandButton();
@@ -539,8 +542,23 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // TODO: Refresh all dashboard data
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      const userId = user?.id;
+      // Invalidate key dashboard queries (subscription, usage, analytics, playbooks, devotionals, intelligence)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['subscription', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['usage', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['subscription-analytics', userId] }),
+        queryClient.invalidateQueries({ queryKey: ['intelligence-recommendations', userId] }),
+        // Broad invalidations to cover differing key factories
+        queryClient.invalidateQueries({ queryKey: ['playbooks'] }),
+        queryClient.invalidateQueries({ queryKey: ['devotionals'] }),
+      ]);
+    } catch (e) {
+      console.warn('Dashboard refresh error:', e);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   // (Removed) Test Faith Points and DB check helpers
@@ -550,62 +568,50 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       {/* Right side - Subscription and Profile */}
       <View style={styles.headerRight}>
         {/* Subscription Status */}
-        <TouchableOpacity
-          style={styles.subscriptionBadge}
-          onPress={() => navigation.navigate('UserProfile')}
-        >
-          <Text style={styles.subscriptionText}>
-            {(() => {
-              // Use direct subscription if available and different from cached
-              const activeSubscription = (directSubscription && directSubscription.tier !== subscription?.tier) 
-                ? directSubscription 
-                : subscription;
-              
-              const tier = activeSubscription?.tier || 'seeker';
-              const status = activeSubscription?.status || 'active';
-              const tierBase = tier.replace(/_annual$/, '');
-              
-              // Test all possible tier combinations
-              const tierMappings = {
-                // Free tier
-                'free_trial': 'TRIAL',
-                
-                // Seeker (free forever)
-                'seeker': 'SEEKER',
-                'basic': 'SEEKER',
-                
-                // Spark (entry paid)
-                'spark': 'SPARK',
-                'spark_annual': 'SPARK',
-                'starter': 'SPARK',
-                'starter_annual': 'SPARK',
-                
-                // Growth (mid tier)
-                'growth': 'GROWTH',
-                'growth_annual': 'GROWTH',
-                
-                // Transformation (premium)
-                'transformation': 'TRANSFORMATION',
-                'transformation_annual': 'TRANSFORMATION',
-                
-                // Family (top tier)
-                'family': 'FAMILY',
-                'family_annual': 'FAMILY'
-              };
-              
-              const displayName = tierMappings[tier as keyof typeof tierMappings] || tierMappings[tierBase as keyof typeof tierMappings];
-              
-              if (displayName) {
-                console.log(`✅ Dashboard: Mapped ${tier} -> ${displayName} (using ${directSubscription && directSubscription.tier !== subscription?.tier ? 'direct' : 'cached'} data)`);
-                return displayName;
-              }
-              
-              // Fallback with debug info
-              console.log('⚠️ Dashboard: Unknown tier, falling back to PREMIUM:', { tier, tierBase });
-              return 'PREMIUM';
-            })()}
-          </Text>
-        </TouchableOpacity>
+        {(() => {
+          // Use direct subscription if available and different from cached
+          const activeSubscription = (directSubscription && directSubscription.tier !== subscription?.tier)
+            ? directSubscription
+            : subscription;
+
+          const tier = activeSubscription?.tier || 'seeker';
+          const normalizedTier = normalizeTierInput(tier) || (tier as SubscriptionTier);
+
+          // Hide tier badge for Transformation and Family tiers in dashboard
+          if (
+            tier === 'transformation' || tier === 'transformation_annual' ||
+            tier === 'family' || tier === 'family_annual'
+          ) {
+            return null;
+          }
+
+          const displayName = getTierShortName(normalizedTier as SubscriptionTier);
+
+          console.log(
+            `🔎 Dashboard: Tier mapping ${tier} -> ${displayName} (normalized: ${normalizedTier}) using ${
+              directSubscription && directSubscription.tier !== subscription?.tier ? 'direct' : 'cached'
+            } data`,
+            {
+              originalTier: tier,
+              normalizedTier,
+              displayName,
+              subscriptionStatus: activeSubscription?.status,
+              subscriptionId: activeSubscription?.id,
+              limits: activeSubscription?.limits
+            }
+          );
+
+          if (!displayName) { return null; }
+
+          return (
+            <TouchableOpacity
+              style={styles.subscriptionBadge}
+              onPress={() => navigation.navigate('UserProfile')}
+            >
+              <Text style={styles.subscriptionText}>{displayName}</Text>
+            </TouchableOpacity>
+          );
+        })()}
 
         {/* Playbook Counter - hide entirely when unlimited */}
         {(() => {
@@ -614,6 +620,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           const isUnlimited = !limit || limit === -1;
           if (isUnlimited) { return null; }
           const remaining = Math.max(0, limit - used);
+          
+          // Debug logging
+          console.log('🔍 Dashboard Playbook Counter:', {
+            limit,
+            used,
+            remaining,
+            subscription_tier: subscription?.tier,
+            usage_object: usage
+          });
+          
           return (
             <TouchableOpacity
               style={styles.counterBadge}

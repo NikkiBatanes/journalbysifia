@@ -81,6 +81,7 @@ export class EnhancedGenerationService {
         type: 'playbook',
         userInput: request.userInput,
         userName: request.userName,
+        isOnboarding: request.isOnboarding,
       });
 
       // 5. Get queue status for user feedback

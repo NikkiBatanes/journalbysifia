@@ -51,7 +51,7 @@ export class EnhancedQueueService {
     'family': 1,        // Highest priority
     'transformation': 2,
     'growth': 3,
-    'starter': 4,
+    'spark': 4,
     'free_trial': 5,     // Lowest priority
   };
 

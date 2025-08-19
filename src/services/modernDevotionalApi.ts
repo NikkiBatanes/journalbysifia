@@ -12,6 +12,7 @@ interface DevotionalGenerationParams {
   duration: number;
   playbookId?: string;
   userInput?: string;
+  isOnboarding?: boolean;
 }
 
 
@@ -27,7 +28,7 @@ export async function generateDevotional(
   params: DevotionalGenerationParams,
   maxRetries: number = API_RETRY_ATTEMPTS
 ): Promise<GeneratedDevotional> {
-  const { duration, playbookId, userInput } = params;
+  const { duration, playbookId, userInput, isOnboarding } = params;
 
   // Get fresh session directly from Supabase
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -121,7 +122,7 @@ export async function generateDevotional(
       try {
         const { subscriptionService } = await import('./subscriptionService');
         if (session.user?.id) {
-          await subscriptionService.trackUsage(session.user.id, 'devotional');
+          await subscriptionService.trackUsage(session.user.id, 'devotional', 0, isOnboarding || false);
           console.log('[ModernDevotionalApi] Usage tracked for devotional generation');
         }
       } catch (trackingError) {

@@ -9,6 +9,7 @@ import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { faithPointsService } from '../services/faithPointsService';
+import { subscriptionService } from '../services/subscriptionService';
 
 
 
@@ -122,7 +123,10 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             const pointsResult = await faithPointsService.awardPoints(
               user.id,
               'playbook_generated',
-              { suppressNotification: !!isFromOnboarding }
+              { 
+                suppressNotification: !!isFromOnboarding,
+                isOnboarding: !!isFromOnboarding
+              }
             );
             console.log('[GeneratingPlaybook] Faith points awarded:', pointsResult);
           } catch (pointsError) {
@@ -132,8 +136,13 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
 
           // Track usage for subscription service
           try {
-            // Note: trackUsage method needs to be implemented in subscriptionService
-            console.log('[GeneratingPlaybook] Usage tracking placeholder - user:', user.id);
+            await subscriptionService.trackUsage(
+              user.id,
+              'playbook',
+              0, // tokens used - will be updated by generation service
+              !!isFromOnboarding
+            );
+            console.log('[GeneratingPlaybook] Usage tracked for user:', user.id, 'isOnboarding:', !!isFromOnboarding);
           } catch (usageError) {
             console.error('[GeneratingPlaybook] Failed to track usage:', usageError);
             // Don't fail the whole generation if usage tracking fails

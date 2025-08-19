@@ -142,6 +142,22 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           console.error('❌ Error creating user profile:', insertError);
         } else {
           console.log('✅ User profile created successfully');
+          
+          // Create default Seeker subscription for new user
+          try {
+            const { error: subscriptionError } = await supabase
+              .rpc('create_default_seeker_subscription', { 
+                target_user_id: user.id 
+              });
+            
+            if (subscriptionError) {
+              console.error('❌ Error creating default subscription:', subscriptionError);
+            } else {
+              console.log('✅ Default Seeker subscription created');
+            }
+          } catch (e) {
+            console.error('💥 Failed to create default subscription:', e);
+          }
         }
       } catch (error) {
         console.error('💥 Unexpected error creating user profile:', error);

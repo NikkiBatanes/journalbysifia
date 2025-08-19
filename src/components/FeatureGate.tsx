@@ -38,9 +38,9 @@ const FeatureGate: React.FC<FeatureGateProps> = ({
   }
 
   const handleUpgrade = () => {
-    if (userState.tier === 'basic') {
-      // Navigate to pricing screen to start trial
-      navigation.navigate('OnboardingPricingShowcase' as never);
+    if (userState.tier === 'seeker') {
+      // Navigate to sales offer screen for upgrade
+      navigation.navigate('OnboardingSalesOffer' as never);
     } else {
       // Navigate to subscription management
       navigation.navigate('SubscriptionManagement' as never);

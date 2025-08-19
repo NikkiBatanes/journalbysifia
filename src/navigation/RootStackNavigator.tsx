@@ -28,11 +28,9 @@ import OnboardingSplashScreen from '../screens/onboarding/OnboardingSplashScreen
 import OnboardingWelcomeScreen from '../screens/onboarding/OnboardingWelcomeScreen';
 import OnboardingPlaybookGenerationScreen from '../screens/onboarding/OnboardingPlaybookGenerationScreen';
 import OnboardingTransformYourLifeScreen from '../screens/onboarding/OnboardingTransformYourLifeScreen';
-import OnboardingPlaybookNavigationScreen from '../screens/onboarding/OnboardingPlaybookNavigationScreen';
 
 
 import OnboardingPersonalizationScreen from '../screens/onboarding/OnboardingPersonalizationScreen';
-import OnboardingPricingShowcaseScreen from '../screens/onboarding/OnboardingPricingShowcaseScreen';
 
 
 import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteScreen';
@@ -304,18 +302,8 @@ export default function RootStackNavigator({
           />
 
           {/* OLD SCREENS - KEEPING FOR NOW, WILL REMOVE LATER */}
-          <Stack.Screen
-            name="OnboardingPlaybookNavigation"
-            component={OnboardingPlaybookNavigationScreen as React.ComponentType}
-            options={OnboardingAnimations.smoothSlide}
-          />
 
 
-          <Stack.Screen
-            name="OnboardingPricingShowcase"
-            component={OnboardingPricingShowcaseScreen as React.ComponentType}
-            options={OnboardingAnimations.pushFromBottom}
-          />
           <Stack.Screen
             name="OnboardingComplete"
             component={OnboardingCompleteScreen as React.ComponentType}

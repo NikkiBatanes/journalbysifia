@@ -1,0 +1,92 @@
+{
+  "timestamp": "2025-08-19T17:04:51.850Z",
+  "summary": {
+    "totalTests": 3,
+    "passedTests": 3,
+    "failedTests": 0
+  },
+  "results": [
+    {
+      "name": "Spark Monthly Subscription Flow",
+      "success": true,
+      "error": null,
+      "duration": 511,
+      "details": {
+        "userId": "user_1755623087724_fcldta78a",
+        "tier": "spark",
+        "limits": {
+          "playbooks": 8,
+          "devotionals": 8
+        },
+        "subscription": {
+          "id": "sub_1755623087731",
+          "user_id": "user_1755623087724_fcldta78a",
+          "tier": "spark",
+          "status": "active",
+          "intelligence_enabled": true,
+          "advanced_analytics": false,
+          "priority_support": false,
+          "created_at": "2025-08-19T17:04:47.731Z",
+          "updated_at": "2025-08-19T17:04:47.731Z",
+          "limits": {
+            "playbooks": 8,
+            "devotionals": 8,
+            "exports": 5,
+            "apiCalls": 200,
+            "familyMembers": 0,
+            "intelligenceEnabled": true,
+            "advancedAnalytics": false,
+            "prioritySupport": false
+          }
+        }
+      }
+    },
+    {
+      "name": "Spark Annual Subscription Flow",
+      "success": true,
+      "error": null,
+      "duration": 506,
+      "details": {
+        "userId": "user_1755623089238_uofw71w48",
+        "tier": "spark_annual",
+        "limits": {
+          "playbooks": 8,
+          "devotionals": 8
+        },
+        "subscription": {
+          "id": "sub_1755623089239",
+          "user_id": "user_1755623089238_uofw71w48",
+          "tier": "spark_annual",
+          "status": "active",
+          "intelligence_enabled": true,
+          "advanced_analytics": false,
+          "priority_support": false,
+          "created_at": "2025-08-19T17:04:49.239Z",
+          "updated_at": "2025-08-19T17:04:49.239Z",
+          "limits": {
+            "playbooks": 8,
+            "devotionals": 8,
+            "exports": 5,
+            "apiCalls": 200,
+            "familyMembers": 0,
+            "intelligenceEnabled": true,
+            "advancedAnalytics": false,
+            "prioritySupport": false
+          }
+        }
+      }
+    },
+    {
+      "name": "Race Condition Scenario",
+      "success": true,
+      "error": null,
+      "duration": 102,
+      "details": {
+        "userId": "user_1755623090747_d2wqivncz",
+        "tier": "spark",
+        "status": "active",
+        "raceConditionPrevented": true
+      }
+    }
+  ]
+}
