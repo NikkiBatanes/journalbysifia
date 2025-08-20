@@ -9,8 +9,15 @@ import {
   View,
   ActivityIndicator,
   Dimensions,
+  Image,
+  ImageBackground,
   ScrollView,
   Vibration,
+  Easing,
+  Platform,
+  Linking,
+  Alert,
+  NativeModules,
 } from 'react-native';
 import { FlatList, Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -86,12 +93,22 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const heartIdRef = useRef(0);
 
   const triggerLightHaptic = () => {
-    // Bare RN fallback: short vibration as light impact surrogate
-    // Keep very short to feel like "light"
+    // Use subtle OS-like selection haptic if native module is linked
     try {
-      Vibration.vibrate(10);
-    } catch (e) {
-      // no-op
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return; // no-op if not linked
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        // Slightly stronger than 'selection' but still subtle
+        triggerFn('impactLight', {
+          enableVibrateFallback: false,
+          ignoreAndroidSystemSettings: false,
+        });
+      }
+    } catch {
+      // silent no-op
     }
   };
 
@@ -130,9 +147,22 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }, 1200);
   };
 
+  const prayCooldownRef = useRef<number>(0);
   const onPrayPress = () => {
-    triggerLightHaptic();
-    startHeartBurst();
+    // Block if mutation in-flight or within cooldown window
+    const now = Date.now();
+    if (createDevotionalPrayerMutation.isPending) {return;}
+    if (now - prayCooldownRef.current < 800) {return;}
+    prayCooldownRef.current = now;
+
+    // Determine next state to decide if we should animate
+    const prayerKey = `${devotional?.id}-${currentDayIndex}`;
+    const nextIsPrayed = !prayedDays[prayerKey];
+
+    if (nextIsPrayed) {
+      triggerLightHaptic();
+      startHeartBurst();
+    }
     togglePrayed();
   };
 
@@ -730,7 +760,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
                     : 'No prayer for today.'}
                 </Text>
-                <View>
+                <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
                   {/* Heart burst layer above the button, anchored near its position */}
                   {heartParticles.length > 0 && (
                     <View pointerEvents="none" style={styles.prayerBurstLayer}>
@@ -778,8 +808,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                   style={[
                     styles.prayerButton,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
+                    createDevotionalPrayerMutation.isPending && { opacity: 0.6 },
                   ]}
                   onPress={onPrayPress}
+                  disabled={createDevotionalPrayerMutation.isPending}
                 >
                   <Ionicons
                     name="heart"
@@ -1084,15 +1116,15 @@ const styles = StyleSheet.create({
   prayerContainer: {
     marginTop: 8,
     position: 'relative',
-    paddingBottom: 64, // Increased space for the prayer button
+    paddingBottom: 96, // Reserve more space so content doesn't overlap the button
     padding: CARD_CONTENT_PADDING,
     backgroundColor: 'rgba(26,60,109,0.08)',
     borderRadius: 12,
   },
   prayerButton: {
     position: 'absolute',
-    right: 0,
-    bottom: -16, // Raised button up from card edge
+    right: 16,
+    bottom: 16, // Inside lower-right corner of the card
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 8,
@@ -1107,6 +1139,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
+    zIndex: 6,
   },
   prayerButtonActive: {
     backgroundColor: 'rgba(255, 59, 48, 0.1)',
@@ -1128,9 +1161,9 @@ const styles = StyleSheet.create({
   // Overlay layer anchored near the Pray button to render heart particles
   prayerBurstLayer: {
     position: 'absolute',
-    // Slightly offset to center particles around the heart icon
-    right: -6,
-    bottom: -32,
+    // Anchor to the same corner as the button
+    right: 16,
+    bottom: 16,
     width: 120,
     height: 120,
     alignItems: 'center',
@@ -1138,6 +1171,10 @@ const styles = StyleSheet.create({
     zIndex: 5,
     // Allow particles to overflow outside the layer if needed
     overflow: 'visible',
+  },
+  prayerButtonWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 4,
   },
   heartParticle: {
     position: 'absolute',
