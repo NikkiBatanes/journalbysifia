@@ -111,11 +111,11 @@ export class AppleStoreKitService {
 
       return products.map((product: Subscription) => ({
         productId: product.productId,
-        price: product.price,
-        currency: product.currency,
-        localizedPrice: product.localizedPrice,
-        title: product.title,
-        description: product.description,
+        price: (product as any).price || '0',
+        currency: (product as any).currency || 'USD',
+        localizedPrice: (product as any).localizedPrice || '$0.00',
+        title: product.title || '',
+        description: product.description || '',
       }));
     } catch (error) {
       console.error('[StoreKit] Failed to get products:', error);
@@ -203,7 +203,7 @@ export class AppleStoreKitService {
           password: 'your-app-store-shared-secret', // Replace with actual shared secret
         };
         
-        const result = await validateReceiptIos(receiptBody, false);
+        const result = await validateReceiptIos({ receiptBody, isTest: false });
         return result && result.status === 0;
       } else {
         // Android validation will be handled by GooglePlayBillingService

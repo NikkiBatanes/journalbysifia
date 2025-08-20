@@ -52,7 +52,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
 }) => {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
-  const { getCompletedStepsCount, actionSteps, setActionSteps } = useActionSteps(); // Use context for dynamic progress
+  const { getCompletedStepsCount, actionSteps, setActionSteps, saveActionSteps } = useActionSteps(); // Use context for dynamic progress
+  const { user } = useAuth();
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['action']));
@@ -216,7 +217,18 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     setShowDevotionalModal(true);
   };
 
-  const handleContinueJourney = () => {
+  const handleContinueJourney = async () => {
+    // Save action steps to database before continuing onboarding
+    if (playbook?.id) {
+      try {
+        console.log('[OnboardingPlaybookReady] Saving action steps before continuing journey');
+        await saveActionSteps(playbook.id);
+        console.log('[OnboardingPlaybookReady] Action steps saved successfully');
+      } catch (error) {
+        console.error('[OnboardingPlaybookReady] Failed to save action steps:', error);
+        // Continue anyway - don't block the user
+      }
+    }
     navigation.navigate('OnboardingSalesOffer' as any);
   };
 
@@ -285,7 +297,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               playbookId={playbook.id}
               navigation={navigation as any}
               showExampleSubtasksInline={true}
-              preferPropSteps={true}
+              preferPropSteps={false}
             />
           </View>
         ),
@@ -444,18 +456,19 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
     // Avoid inline-style object directly in JSX to satisfy lint
     const cardDynamicStyle = { width: ITEM_WIDTH };
 
-    // Wrapper: only make card tappable when collapsed and needs expansion (so expanded cards won't intercept child taps)
-    const Wrapper: React.ComponentType<any> = needsExpansion ? TouchableOpacity : View;
+    // Wrapper: make card tappable when it can expand OR when it's expanded (for collapse)
+    const canToggle = (isTruthCard || isActionCard) && (measured > COLLAPSED_HEIGHT + 1);
+    const Wrapper: React.ComponentType<any> = canToggle ? TouchableOpacity : View;
 
     return (
       <Wrapper
         style={[styles.cardContainer, styles.centeredContent, cardDynamicStyle]}
-        {...(needsExpansion ? {
+        {...(canToggle ? {
           onPress: () => toggleCardExpansion(item.id),
           disabled: false,
           activeOpacity: 0.9,
           accessibilityRole: 'button',
-          accessibilityHint: 'Tap to expand and read full content',
+          accessibilityHint: isExpanded ? 'Tap to collapse content' : 'Tap to expand and read full content',
         } : {})}
       >
         {/* Hidden measurement: render content unconstrained to capture intrinsic height once */}
@@ -576,13 +589,32 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               onPress={() => {
                 // Close modal first, then show notification slightly after so it's not under the modal layer
                 setShowIntroModal(false);
-                setTimeout(() => {
+                setTimeout(async () => {
                   try {
-                    const points = faithPointsService.getPointsForActivity('playbook_generated');
-                    notificationService.showPointsNotification(points, 'playbook_generated', 'center');
+                    // Award faith points to user's account during onboarding
+                    if (user?.id) {
+                      console.log('[OnboardingPlaybookReady] Awarding faith points for playbook generation');
+                      await faithPointsService.awardPoints(user.id, 'playbook_generated', { 
+                        isOnboarding: true,
+                        suppressNotification: false 
+                      });
+                      console.log('[OnboardingPlaybookReady] Faith points awarded successfully');
+                    } else {
+                      console.warn('[OnboardingPlaybookReady] No user ID available for faith points');
+                      // Still show notification even if we can't award points
+                      const points = faithPointsService.getPointsForActivity('playbook_generated');
+                      notificationService.showPointsNotification(points, 'playbook_generated', 'center');
+                    }
                   } catch (e) {
                     // Non-blocking: if anything fails, proceed silently
-                    console.warn('[OnboardingPlaybookReady] Failed to show points notification:', e);
+                    console.warn('[OnboardingPlaybookReady] Failed to award faith points:', e);
+                    // Show notification anyway
+                    try {
+                      const points = faithPointsService.getPointsForActivity('playbook_generated');
+                      notificationService.showPointsNotification(points, 'playbook_generated', 'center');
+                    } catch (notificationError) {
+                      console.warn('[OnboardingPlaybookReady] Failed to show points notification:', notificationError);
+                    }
                   }
                 }, 150);
               }}

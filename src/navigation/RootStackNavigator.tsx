@@ -39,8 +39,8 @@ import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteSc
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
 import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
 import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
-import OnboardingPaymentProcessingScreen from '../screens/onboarding/OnboardingPaymentProcessingScreen';
-import OnboardingPaymentConfirmationScreen from '../screens/onboarding/OnboardingPaymentConfirmationScreen';
+// import OnboardingPaymentProcessingScreen from '../screens/onboarding/OnboardingPaymentProcessingScreen';
+// import OnboardingPaymentConfirmationScreen from '../screens/onboarding/OnboardingPaymentConfirmationScreen';
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
@@ -285,6 +285,7 @@ export default function RootStackNavigator({
             component={OnboardingTrialOfferScreen as React.ComponentType}
             options={OnboardingAnimations.pushFromBottom}
           />
+          {/* Payment screens temporarily disabled due to missing implementations
           <Stack.Screen
             name="OnboardingPaymentProcessing"
             component={OnboardingPaymentProcessingScreen as React.ComponentType}
@@ -295,6 +296,7 @@ export default function RootStackNavigator({
             component={OnboardingPaymentConfirmationScreen as React.ComponentType}
             options={{ headerShown: false }}
           />
+          */}
           <Stack.Screen
             name="OnboardingNotificationSetup"
             component={OnboardingNotificationSetupScreen as React.ComponentType}
@@ -366,6 +368,30 @@ export default function RootStackNavigator({
               headerShown: false,
               presentation: 'modal',
               animation: 'slide_from_bottom',
+            }}
+          />
+
+          {/* Family Subscription Screens */}
+          <Stack.Screen
+            name="FamilyAdminDashboard"
+            component={require('../screens/FamilyAdminDashboardScreen').default as React.ComponentType}
+            options={{
+              headerShown: true,
+              title: 'Family Management',
+              headerStyle: { backgroundColor: Colors.hopeWhite },
+              headerTitleStyle: { color: Colors.anchorBlue },
+              headerBackVisible: true,
+            }}
+          />
+          <Stack.Screen
+            name="FamilyInvitation"
+            component={require('../screens/FamilyInvitationScreen').default as React.ComponentType}
+            options={{
+              headerShown: true,
+              title: 'Join Family',
+              headerStyle: { backgroundColor: Colors.hopeWhite },
+              headerTitleStyle: { color: Colors.anchorBlue },
+              headerBackVisible: true,
             }}
           />
         </>

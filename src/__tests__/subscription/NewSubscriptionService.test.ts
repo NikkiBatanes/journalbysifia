@@ -2,7 +2,7 @@ import { NewSubscriptionService } from '../../services/NewSubscriptionService';
 import { supabase } from '../../services/supabaseClient';
 
 // Mock Supabase client
-jest.mock('../../config/supabaseClient', () => ({
+jest.mock('../../services/supabaseClient', () => ({
   supabase: {
     from: jest.fn(),
   },
@@ -127,6 +127,7 @@ describe('NewSubscriptionService', () => {
 
       const result = await NewSubscriptionService.upgradeSubscription('user-123', {
         target_tier: 'spark',
+        platform: 'local_test',
       });
 
       expect(result.tier).toBe('spark');
@@ -170,6 +171,7 @@ describe('NewSubscriptionService', () => {
 
       await NewSubscriptionService.upgradeSubscription('user-123', {
         target_tier: 'spark',
+        platform: 'local_test',
       });
 
       expect(mockUpdate).toHaveBeenCalledWith(expect.objectContaining({

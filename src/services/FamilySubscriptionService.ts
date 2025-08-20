@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabaseClient';
+import { supabase } from './supabaseClient';
 import { NewSubscriptionService } from './NewSubscriptionService';
 
 export interface FamilyGroup {

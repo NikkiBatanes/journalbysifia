@@ -1,9 +1,9 @@
 import { DiscountCodeService } from '../../services/DiscountCodeService';
 import { NewSubscriptionService } from '../../services/NewSubscriptionService';
-import { supabase } from '../../config/supabaseClient';
+import { supabase } from '../../services/supabaseClient';
 
 // Mock dependencies
-jest.mock('../../config/supabaseClient', () => ({
+jest.mock('../../services/supabaseClient', () => ({
   supabase: {
     from: jest.fn(),
   },

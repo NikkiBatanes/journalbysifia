@@ -169,6 +169,8 @@ export interface SubscriptionUpgradeOptions {
   target_tier?: SubscriptionTier;
   billing_cycle?: 'monthly' | 'annual';
   subscription_start_date?: string;
+  platform_subscription_id?: string;
+  platform_transaction_id?: string;
 }
 
 export interface TrialStartOptions {

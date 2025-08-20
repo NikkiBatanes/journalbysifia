@@ -23,13 +23,28 @@ import { supabase } from '../services/supabaseClient';
 import { userApi } from '../services/userApi';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import { pickImageLocal, uploadAvatar } from '../services/avatarService';
-import { subscriptionService } from '../services/subscriptionService';
+import { NewSubscriptionService } from '../services/NewSubscriptionService';
 import { faithPointsEvents, FAITH_POINTS_EVENTS } from '../services/faithPointsEvents';
 import { UserProgress, Badge, UserPreferences } from '../types/auth';
-import { Subscription, UsageTracking } from '../interfaces/subscription';
+// Types for subscription - using inline types to avoid import issues
+interface Subscription {
+  id: string;
+  tier: string;
+  status: string;
+  limits?: {
+    playbooks: number;
+    devotionals: number;
+  };
+}
+
+interface UsageTracking {
+  playbooks_generated: number;
+  devotionals_generated: number;
+}
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
+import { useFamilySubscription } from '../hooks/useFamilySubscription';
 
 const { width } = Dimensions.get('window');
 
@@ -48,12 +63,23 @@ interface ProfileStats {
   journalEntries: number;
 }
 
-const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
+const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, signOut, updatePreferences, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   // Status bar: dark icons on white header area
   useScreenStatusBar('dark', Colors.hopeWhite);
+  
+  // Family subscription hook
+  const {
+    familyGroup,
+    loading: familyLoading,
+    createFamilyGroup,
+    inviteMember,
+    removeMember,
+    cancelInvitation,
+    refreshFamilyData,
+  } = useFamilySubscription();
   // TODO: Add updateProfile and updatePreferences to IndustryStandardAuthContext
   const [_userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [profileStats, setProfileStats] = useState<ProfileStats | null>(null);
@@ -204,10 +230,13 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
       // Load subscription and usage data
       if (user?.id) {
         try {
-          const subscriptionData = await subscriptionService.getUserSubscription(user.id);
-          setSubscription(subscriptionData);
+          const subscriptionData = await NewSubscriptionService.getUserSubscription(user.id);
+          setSubscription(subscriptionData as any);
 
-          const usageData = await subscriptionService.getCurrentUsage(user.id);
+          const usageData = {
+            playbooks_generated: subscriptionData.playbooks_used || 0,
+            devotionals_generated: subscriptionData.devotionals_used || 0,
+          };
           setUsage(usageData);
 
           console.log('📊 Subscription loaded:', subscriptionData.tier, subscriptionData.status);
@@ -791,11 +820,77 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
             trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
           />
         </TouchableOpacity>
-
-        
       </View>
     </View>
   );
+
+  const renderFamilyManagementSection = () => {
+    // Only show family management if user has family subscription or can create one
+    const canManageFamily = Boolean(familyGroup) || subscription?.tier === 'family' || subscription?.tier === 'transformation';
+    const isAdmin = familyGroup?.admin_user_id === user?.id;
+    
+    if (!canManageFamily) return null;
+
+    return (
+      <View>
+        <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>FAMILY SUBSCRIPTION</Text>
+        <View style={styles.menuContainer}>
+          {familyGroup ? (
+            <>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => navigation.navigate('FamilyAdminDashboard')}
+              >
+                <View style={styles.menuIconBox}>
+                  <Ionicons name="people" size={18} color={Colors.anchorBlue} />
+                </View>
+                <Text style={styles.menuText}>
+                  {isAdmin ? 'Manage Family' : 'Family Group'}
+                </Text>
+                <View style={styles.trialBadge}>
+                  <Text style={styles.trialBadgeText}>
+                    {familyGroup.current_members}/{familyGroup.max_members}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+              </TouchableOpacity>
+              
+              {isAdmin && (
+                <TouchableOpacity
+                  style={styles.menuItem}
+                  onPress={() => navigation.navigate('FamilyInvitation')}
+                >
+                  <View style={styles.menuIconBox}>
+                    <Ionicons name="person-add" size={18} color={Colors.anchorBlue} />
+                  </View>
+                  <Text style={styles.menuText}>Invite Members</Text>
+                  <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={async () => {
+                try {
+                  await createFamilyGroup(`${user?.email?.split('@')[0] || 'Family'}'s Group`, 'family-sub-id');
+                  await refreshFamilyData();
+                } catch (error) {
+                  console.error('Failed to create family group:', error);
+                }
+              }}
+            >
+              <View style={styles.menuIconBox}>
+                <Ionicons name="add-circle" size={18} color={Colors.anchorBlue} />
+              </View>
+              <Text style={styles.menuText}>Create Family Group</Text>
+              <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    );
+  };
 
   const renderLogoutSection = () => (
     <View>
@@ -1067,6 +1162,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation: _navigation }) => {
         >
           {/* Badges removed from main container */}
           {renderMenuOptions()}
+          {renderFamilyManagementSection()}
           {renderAppBehaviorSection()}
           {renderCommunitySection()}
           {renderHelpSupportSection()}
