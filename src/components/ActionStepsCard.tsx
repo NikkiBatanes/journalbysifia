@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextInput } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
@@ -963,16 +964,16 @@ export default function ActionStepsCard({
                     </Text>
                   )}
 
-                  {!showExampleSubtasksInline && examples.length > 0 && expandedSteps.has(step.id) && (
+                  {!showExampleSubtasksInline && examples.length > 0 && (
                     <View style={styles.examplesContainer}>
-                      <Text
-                        style={[
-                          styles.examplesTitle,
-                          solidCardBackground && { color: Colors.anchorBlue },
-                        ]}
-                      >
-                        {examples.length === 1 ? 'EXAMPLE:' : 'EXAMPLES:'}
-                      </Text>
+                      <View style={styles.examplesHeader}>
+                        <Ionicons
+                          name="chatbubble-ellipses-outline"
+                          size={14}
+                          color={solidCardBackground ? Colors.anchorBlue : 'rgba(255,255,255,0.8)'}
+                          style={styles.examplesIcon}
+                        />
+                      </View>
                       {examples.map((example: { id: string; text: string }) => (
                         <Text
                           key={example.id}
@@ -1261,6 +1262,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  examplesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  examplesIcon: {
+    // Visual spacing if we later decide to add a label next to the icon
+    marginRight: 4,
   },
   titleContainer: {
     flex: 1,

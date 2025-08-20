@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.hopeWhite,
-    paddingTop: 0,
+    paddingTop: 8,
   },
   title: {
     fontSize: 16,

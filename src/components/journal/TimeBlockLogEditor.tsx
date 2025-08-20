@@ -83,7 +83,7 @@ const defaultStyles = {
   title: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.hopeWhite + 'e6', // hopeWhite with ~90% opacity
+    color: Colors.anchorBlue,
   },
   modeIconsContainer: {
     flexDirection: 'row',
@@ -574,7 +574,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
     actionStepTitle,
     isLoading = false,
     styles,
-    dateString,
+    dateString, // kept for backward-compat but not used for header formatting
     existingTimeBlock,
   },
   ref
@@ -723,13 +723,29 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
     }
   };
 
+  // Header date: Day, Month Day (and Year only if not current year)
+  const headerDate = React.useMemo(() => {
+    // If a specific date needs to be shown in the future, wire it here.
+    const d = new Date();
+    const nowYear = new Date().getFullYear();
+    const opts: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    };
+    if (d.getFullYear() !== nowYear) {
+      opts.year = 'numeric';
+    }
+    return d.toLocaleDateString('en-US', opts);
+  }, []);
+
   return (
     <View style={s.container}>
 
       <StatusBar hidden />
       <View style={s.backgroundContainer} />
       <View style={s.header}>
-        <Text style={s.title}>{dateString?.replace(/,\s*\d{4}$/, '')}</Text>
+        <Text style={s.title}>{headerDate}</Text>
         <View style={s.modeToggle}>
           <TouchableOpacity style={s.modeButton}>
             <Pencil

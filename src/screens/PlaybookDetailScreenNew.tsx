@@ -215,7 +215,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
   const overlayTop = Math.max(insets.top, 10) + playbookHeaderHeight - 40;
-  const HEADER_TOP_ADJUST = 12; // visually similar to previous -12 without negative margins
+  // Reduce top adjust to allow more natural safe area padding; we'll also add a small extra pad
+  const HEADER_TOP_ADJUST = 0;
 
   // Animated collapse progress for smooth header transition (0 = expanded, 1 = collapsed)
   const collapseProgress = useSharedValue(0);
@@ -1446,9 +1447,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       {/* Status bar handled by useScreenStatusBar */}
 
       {/* In-screen header (replaces native header). Cards overlay will pass over this. */}
-      <View style={[styles.headerSafeArea, { paddingTop: Math.max(insets.top - HEADER_TOP_ADJUST, 0) }]}>
+      <View style={[styles.headerSafeArea, { paddingTop: Math.max(insets.top - HEADER_TOP_ADJUST + 6, 0) }]}>
         <View
-          style={styles.headerContainer}
+          style={[styles.headerContainer, showCompactHeader && styles.headerContainerCompact]}
           onLayout={(e) => setHeaderMeasuredHeight(e.nativeEvent.layout.height)}
         >
           <HeaderLeft
@@ -1575,6 +1576,7 @@ interface PlaybookDetailStyles {
   noAffirmationsText: TextStyle;
   headerSafeArea: ViewStyle;
   headerContainer: ViewStyle;
+  headerContainerCompact: ViewStyle;
   backButton: ViewStyle;
   headerRight: ViewStyle;
   docContainer: ViewStyle;
@@ -1794,6 +1796,8 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   headerSafeArea: {
     backgroundColor: Colors.hopeWhite,
+    // Ensure children can visually overflow without being clipped
+    overflow: 'visible',
   },
   headerContainer: {
     flexDirection: 'row',
@@ -1803,6 +1807,11 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     paddingVertical: 2,
     backgroundColor: Colors.hopeWhite,
     marginBottom: -6,
+    // Allow profile to render above any overlapping elements
+    overflow: 'visible',
+  },
+  headerContainerCompact: {
+    paddingTop: 6,
   },
   backButton: {
     padding: 8,
@@ -1810,6 +1819,11 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    position: 'relative',
+    // Make header right content (profile) stack above other header elements
+    zIndex: 3000,
+    // @ts-ignore Android elevation for z-ordering
+    elevation: 12,
   },
   docContainer: {
     flex: 1,
@@ -2089,11 +2103,17 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     borderColor: 'rgba(255,255,255,0.3)',
     borderRadius: 16,
     overflow: 'hidden',
+    position: 'relative',
+    // Ensure the avatar stays on top during header fade/overlap
+    zIndex: 4000,
+    // @ts-ignore Android elevation for z-ordering
+    elevation: 14,
   },
   profileImage: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    zIndex: 4001,
   },
   initialAvatar: {
     width: 32,
@@ -2102,6 +2122,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 4001,
   },
   initialLetter: {
     color: Colors.hopeWhite,
