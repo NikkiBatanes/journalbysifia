@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing, ActivityIndicator } from 'react-native';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { Colors, defaultFontFamily } from '../theme';
 
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
@@ -69,8 +71,35 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const contentRef = React.useRef<View>(null);
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
 
+  // Haptics
+  const hapticOptions = React.useMemo(() => ({
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  }), []);
+  const triggerLightHaptic = React.useCallback(() => {
+    try { ReactNativeHapticFeedback.trigger('impactLight', hapticOptions); } catch {}
+  }, [hapticOptions]);
+
   // Success state and checkmark animation
   const [isSuccess, setIsSuccess] = useState(false);
+
+  // Generating UI state (progress bar, shimmering step text, animated dots)
+  const progressAnim = React.useRef(new Animated.Value(0)).current; // 0..100
+  const shimmerOpacity = React.useRef(new Animated.Value(0.85)).current;
+  const [dotCount, setDotCount] = useState(0);
+  const [dotsWidth, setDotsWidth] = useState<number | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const generationSteps = React.useMemo(() => ([
+    { title: 'Centering your heart…', description: '' },
+    { title: "Listening to your story…", description: '' },
+    { title: "Finding Scripture for each day…", description: '' },
+    { title: 'Preparing reflections and prompts…', description: '' },
+    { title: 'Crafting daily prayers…', description: '' },
+    { title: 'Organizing your day-by-day journey…', description: '' },
+    { title: 'Finalizing your devotional', description: '' },
+  ]), []);
+  const currentTitle = generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title || '';
+  const baseTitle = React.useMemo(() => currentTitle.replace(/(…|\.{1,3})\s*$/, '').trimEnd(), [currentTitle]);
 
   // Debug logging
   React.useEffect(() => {
@@ -79,6 +108,49 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   // Animation for the overlay (fade in/out)
   // Fade animation for backdrop dim
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  // Shimmer loop while creating
+  React.useEffect(() => {
+    let mounted = true;
+    const loop = () => {
+      Animated.sequence([
+        Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+      ]).start(({ finished }) => {
+        if (finished && mounted && isCreating && !isSuccess) loop();
+      });
+    };
+    if (isCreating && !isSuccess) loop();
+    return () => {
+      mounted = false;
+      shimmerOpacity.stopAnimation();
+    };
+  }, [isCreating, isSuccess, shimmerOpacity]);
+
+  // Animated dots while creating
+  React.useEffect(() => {
+    if (!isCreating || isSuccess) { return; }
+    const id = setInterval(() => setDotCount(prev => (prev + 1) % 4), 500);
+    return () => clearInterval(id);
+  }, [isCreating, isSuccess]);
+
+  // Step advancement and progress bar animation while creating (cap at 95%)
+  React.useEffect(() => {
+    if (!isCreating || isSuccess) { return; }
+    const stepInterval = setInterval(() => {
+      setCurrentStep(prev => {
+        const nextStep = prev + 1;
+        const isLast = nextStep >= generationSteps.length;
+        Animated.timing(progressAnim, {
+          toValue: Math.min(((isLast ? generationSteps.length : nextStep) / generationSteps.length) * 100, 95),
+          duration: 1000,
+          useNativeDriver: false,
+        }).start();
+        return isLast ? prev : nextStep;
+      });
+    }, 3000);
+    return () => clearInterval(stepInterval);
+  }, [isCreating, isSuccess, generationSteps.length, progressAnim]);
 
   const measureContent = () => {
     if (contentRef.current) {
@@ -204,24 +276,25 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
         if (devotional && onDevotionalCreated) {
           setIsSuccess(true);
+          // Subtle haptic when success check appears
+          try { triggerLightHaptic(); } catch {}
           Animated.timing(checkmarkAnim, {
-          toValue: 1,
-          duration: 280,
-          useNativeDriver: true,
-        }).start();
-        setTimeout(() => {
-          // Delay before modal swipes down
+            toValue: 1,
+            duration: 280,
+            useNativeDriver: true,
+          }).start();
+          // After the checkmark animation, wait a bit more, then close the modal.
           setTimeout(() => {
-            handleClose(); // Starts sliding down (150ms duration)
-            // Navigate immediately after modal starts closing
-            onDevotionalCreated(devotional.id);
-            // Reset animation state after navigation
             setTimeout(() => {
-              setIsSuccess(false);
-              checkmarkAnim.setValue(0);
-            }, 150); // Match slide down duration
-          }, 350); // Wait 350ms before starting close
-        }, 280); // Checkmark animates in for 280ms
+              handleClose(() => {
+                // Navigate only after the modal has fully closed
+                onDevotionalCreated(devotional.id);
+                // Reset animation state after navigation
+                setIsSuccess(false);
+                checkmarkAnim.setValue(0);
+              });
+            }, 350);
+          }, 280);
         }
       }
     } catch (err) {
@@ -234,7 +307,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     }
   };
 
-  const handleClose = () => {
+  const handleClose = (afterClose?: () => void) => {
     // Calculate the distance to slide down (full screen height + modal height + some extra)
     const slideDownDistance = Dimensions.get('window').height + 100; // Ensure it goes completely off screen
 
@@ -242,12 +315,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 0,
-        duration: 100, // Very fast fade out
+        duration: 200, // Fade aligned with slide
         useNativeDriver: true,
       }),
       Animated.timing(translateY, {
         toValue: slideDownDistance,
-        duration: 150, // Faster slide down duration
+        duration: 300, // Clear, perceivable slide down
         useNativeDriver: true,
         easing: Easing.out(Easing.quad),
       }),
@@ -256,6 +329,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         onClose();
         // Reset translateY for next open
         translateY.setValue(SCREEN_HEIGHT);
+        // Invoke optional callback after close completes
+        if (afterClose) { afterClose(); }
       }
     });
   };
@@ -272,7 +347,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       visible={isVisible}
       transparent={true}
       animationType="none"
-      onRequestClose={handleClose}
+      onRequestClose={() => handleClose()}
     >
       <View style={styles.modalOverlay}>
         <Animated.View
@@ -284,7 +359,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           <TouchableOpacity
             style={StyleSheet.absoluteFill}
             activeOpacity={1}
-            onPress={handleClose}
+            onPress={() => { triggerLightHaptic(); handleClose(); }}
           />
         </Animated.View>
         <Animated.View
@@ -296,10 +371,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           onLayout={measureContent}
         >
           <View style={styles.headerContainer}>
-            <View style={styles.handle} />
             <TouchableOpacity
               style={styles.closeButton}
-              onPress={handleClose}
+              onPress={() => { triggerLightHaptic(); handleClose(); }}
               hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
             >
               <Ionicons name="close" size={24} color={Colors.hopeWhite} />
@@ -321,7 +395,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 <View style={styles.playbookInfoContainer}>
                   <TouchableOpacity
                     style={styles.playbookInfoHeader}
-                    onPress={togglePlaybookInfo}
+                    onPress={() => { triggerLightHaptic(); togglePlaybookInfo(); }}
                     activeOpacity={0.8}
                   >
                     <Text style={styles.playbookInfoLabel}>WHAT YOU SHARED</Text>
@@ -348,13 +422,49 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   <Text style={styles.durationPrompt}>Select a devotional duration:</Text>
                 )}
                 {(isCreating || isSuccess) ? (
-    <View style={styles.loadingContainer}>
+    <View style={styles.generatingContainer}>
       {!isSuccess ? (
         <>
-          <ActivityIndicator size="large" color={Colors.hopeWhite} />
-          <Text style={styles.loadingText}>
-            {selectedDuration ? `Creating your ${selectedDuration}-day devotional${ellipsis}` : `Creating your devotional${ellipsis}`}
-          </Text>
+          <View style={styles.generationTitleRow}>
+            <MaterialCommunityIcons name="book" size={24} color={Colors.hopeWhite} style={styles.generationTitleIcon} />
+            <Text style={styles.generationTitle}>
+              {`Creating Your ${selectedDuration ? `${selectedDuration}-day` : ''}${selectedDuration ? ' ' : ''}Devotional`}
+            </Text>
+          </View>
+          <View style={styles.progressBarContainer}>
+            <View style={styles.progressBarBackground}>
+              <Animated.View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%'],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                ]}
+              />
+            </View>
+          </View>
+          <View style={styles.stepRow}>
+            <Animated.Text style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]}>
+              {baseTitle}
+            </Animated.Text>
+            <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
+              <Text style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
+                {'.'.repeat(dotCount)}
+              </Text>
+            </View>
+            {dotsWidth == null && (
+              <Text
+                style={[styles.currentStepText, styles.hiddenMeasure]}
+                onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
+              >
+                ...
+              </Text>
+            )}
+          </View>
         </>
       ) : (
         <>
@@ -378,7 +488,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       <Text style={styles.errorText}>{error?.message || 'An error occurred'}</Text>
       <TouchableOpacity
         style={styles.retryButton}
-        onPress={handleClose}
+        onPress={() => handleClose()}
       >
         <Text style={styles.retryButtonText}>Try Again</Text>
       </TouchableOpacity>
@@ -389,7 +499,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         <TouchableOpacity
           key={option.days}
           style={styles.optionButton}
-          onPress={() => handleSelectDuration(option.days)}
+          onPress={() => { triggerLightHaptic(); handleSelectDuration(option.days); }}
           disabled={isCreating}
         >
           <Text style={styles.optionDays}>{option.days} DAY</Text>
@@ -455,15 +565,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 12,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 2,
-    marginTop: 8,
-    marginBottom: 16,
-    alignSelf: 'center',
-  },
   closeButton: {
     position: 'absolute',
     right: 0,
@@ -475,6 +576,7 @@ const styles = StyleSheet.create({
     fontFamily: defaultFontFamily.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 12,
+    marginTop: 12,
     textAlign: 'center',
     fontWeight: '800',
     letterSpacing: 0.2,
@@ -609,12 +711,81 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
     marginVertical: 10,
   },
+  generatingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginVertical: 10,
+  },
   loadingText: {
     color: Colors.hopeWhite,
     fontFamily: defaultFontFamily.semiBold,
     fontSize: 16,
     marginTop: 16,
     textAlign: 'center',
+  },
+  generationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 0,
+    includeFontPadding: false,
+  },
+  generationTitleRow: {
+    width: '100%',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generationTitleIcon: {
+    marginBottom: 8,
+  },
+  progressBarContainer: {
+    width: '80%',
+    marginBottom: 18,
+  },
+  progressBarBackground: {
+    width: '100%',
+    height: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: Colors.growthGreen,
+    borderRadius: 6,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currentStepText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    fontWeight: '500',
+    paddingHorizontal: 8,
+    includeFontPadding: false,
+  },
+  dotsContainer: {
+    marginLeft: 0,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  hiddenMeasure: {
+    position: 'absolute',
+    opacity: 0,
+    height: 0,
+    width: undefined as unknown as number,
   },
   errorContainer: {
     alignItems: 'center',

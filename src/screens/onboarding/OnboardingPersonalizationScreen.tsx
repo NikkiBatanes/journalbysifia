@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 // const { width } = Dimensions.get('window'); // unused
 
@@ -213,6 +214,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const tooltipTranslateY = useRef(new Animated.Value(6)).current;
   const inputBorderWidth = useRef(new Animated.Value(1.5)).current;
   const onPressHint = useCallback(() => {
+    try { triggerLightHaptic(); } catch {}
     setShowTooltip((prev) => {
       const next = !prev;
       if (next) {

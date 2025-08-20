@@ -8,6 +8,7 @@ import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { triggerLightHaptic } from '../utils/haptics';
 
 type TruthInLoveCardProps = {
   truth: string;
@@ -110,7 +111,10 @@ export default function TruthInLoveCard({
           {/* Keep the info/insight button as a separate tap target */}
           <TouchableOpacity
             style={styles.expandIcon}
-            onPress={() => setShowInsight(!showInsight)}
+            onPress={() => {
+              triggerLightHaptic();
+              setShowInsight(!showInsight);
+            }}
             accessibilityRole="button"
             accessibilityLabel={showInsight ? 'Hide insight' : 'Show insight'}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

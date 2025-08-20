@@ -9,6 +9,7 @@ import { Typography } from '../theme/typography';
 import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { triggerLightHaptic } from '../utils/haptics';
 
 type DirectChallengeCardProps = {
   challenge: string;
@@ -33,7 +34,10 @@ export default function DirectChallengeCard({ challenge, challengeCTA, playbookT
         <Text style={styles.heading}>Rise in Faith</Text>
         <TouchableOpacity
           style={styles.expandIcon}
-          onPress={() => setShowInsight(!showInsight)}
+          onPress={() => {
+            triggerLightHaptic();
+            setShowInsight(!showInsight);
+          }}
         >
           <Icon
             name={showInsight ? 'chevron-up' : 'information-outline'}

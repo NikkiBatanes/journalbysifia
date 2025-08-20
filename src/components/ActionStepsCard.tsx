@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextInput, Animated, Easing } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ import SmartJournalingPrayerModal from '../screens/SmartJournalingPrayerModal';
 import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockModal';
 import { InteractiveCoachingModal } from './InteractiveCoachingModal';
 import { toLocalDateString } from '../utils/date';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 type SubTask = {
   id: string;
@@ -60,6 +62,7 @@ import { useActionSteps } from '../context/ActionStepsContext';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useReflectionBySubtask } from '../services/hooks/useReflectionData';
 import { ReflectionApi } from '../services/api/reflectionApi';
+import { faithPointsService } from '../services/faithPointsService';
 
 // Smart Journaling Helper Functions
 const getJournalTypeIcon = (journalType?: string): string => {
@@ -196,6 +199,8 @@ export default function ActionStepsCard({
 
   // Toggle simplified insight for a specific step
   const toggleInsight = (stepId: string) => {
+    // Subtle confirmation for expanding/collapsing insights
+    triggerLightHaptic();
     console.log('[ActionStepsCard] Toggling insight for step:', stepId);
     setExpandedSteps(prev => {
       const newSet = new Set(prev);
@@ -211,6 +216,9 @@ export default function ActionStepsCard({
   };
 
 
+
+  // Success animation per-step (pulse when becoming completed)
+  const completionAnim = React.useRef<Record<string, Animated.Value>>({});
 
   // Query for existing reflection when a subtask is selected
   const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
@@ -287,6 +295,15 @@ export default function ActionStepsCard({
     return processedSteps;
   }, [propSteps, contextSteps, preferPropSteps]);
 
+  // Initialize animation values for each step after steps are computed
+  React.useEffect(() => {
+    (steps || []).forEach(s => {
+      if (!completionAnim.current[s.id]) {
+        completionAnim.current[s.id] = new Animated.Value(0);
+      }
+    });
+  }, [steps]);
+
   // Debug: Track when ActionStepsCard re-renders and what completion states it shows
   React.useEffect(() => {
     if (steps && steps.length > 0) {
@@ -310,8 +327,112 @@ export default function ActionStepsCard({
 
   const onToggleSubTask = React.useCallback((stepId: string, subTaskId: string) => {
     console.log('[ActionStepsCard] Toggling subtask:', { stepId, subTaskId });
+
+    // Light haptic for any toggle action
+    triggerLightHaptic();
+
+    // Determine if this toggle will complete the parent action step
+    try {
+      const step = steps.find(s => s.id === stepId);
+      const sub = step?.subTasks?.find(st => st.id === subTaskId);
+      if (step && sub) {
+        const willBeCompleted = (() => {
+          // Predict new completion state for the toggled subtask
+          const nextSubCompleted = !sub.completed;
+          const allOthersCompleted = (step.subTasks || [])
+            .filter(st => st.id !== subTaskId)
+            .every(st => st.completed);
+          return nextSubCompleted && allOthersCompleted;
+        })();
+
+        if (!step.completed && willBeCompleted) {
+          // Success haptic when an action step transitions to completed
+          triggerSuccessHaptic();
+          // Trigger success pulse animation on the step card
+          const anim = completionAnim.current[stepId];
+          if (anim) {
+            Animated.sequence([
+              Animated.timing(anim, {
+                toValue: 1,
+                duration: 160,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+              }),
+              Animated.timing(anim, {
+                toValue: 0,
+                duration: 180,
+                easing: Easing.inOut(Easing.ease),
+                useNativeDriver: true,
+              }),
+            ]).start();
+          }
+
+          // Award faith points once per completed action step (idempotent via AsyncStorage)
+          (async () => {
+            try {
+              if (!user?.id) { return; }
+              const awardKey = `fp_awarded_action_step:${user.id}:${playbookId || 'unknown_playbook'}:${stepId}`;
+              const alreadyAwarded = await AsyncStorage.getItem(awardKey);
+              if (alreadyAwarded) {
+                console.log('[ActionStepsCard] Faith points already awarded for step, skipping:', { stepId, userId: user.id });
+                return;
+              }
+
+              await faithPointsService.awardPoints(user.id, 'action_step_completed', {
+                stepId,
+                subTaskId,
+                playbookId,
+                source: 'ActionStepsCard.onToggleSubTask'
+              });
+
+              await AsyncStorage.setItem(awardKey, '1');
+              console.log('[ActionStepsCard] Faith points awarded and recorded for step:', { stepId, userId: user.id });
+
+              // If that was the final incomplete step for this playbook, award a one-time playbook completion bonus
+              try {
+                if (playbookId) {
+                  const allCompletedAfter = (steps || []).every(s => {
+                    if (s.id === stepId) {
+                      // This step becomes completed after this toggle
+                      return true;
+                    }
+                    return s.completed === true;
+                  });
+
+                  if (allCompletedAfter) {
+                    const playbookAwardKey = `fp_awarded_playbook_completed:${user.id}:${playbookId}`;
+                    const playbookAlready = await AsyncStorage.getItem(playbookAwardKey);
+                    if (!playbookAlready) {
+                      await faithPointsService.awardPoints(user.id, 'playbook_completed', {
+                        playbookId,
+                        stepId,
+                        subTaskId,
+                        source: 'ActionStepsCard.onToggleSubTask',
+                      });
+                      await AsyncStorage.setItem(playbookAwardKey, '1');
+                      console.log('[ActionStepsCard] Playbook completion bonus awarded:', { playbookId, userId: user.id });
+                    } else {
+                      console.log('[ActionStepsCard] Playbook completion bonus already awarded, skipping:', { playbookId, userId: user.id });
+                    }
+                  }
+                }
+              } catch (pbErr) {
+                console.warn('[ActionStepsCard] Failed to award playbook completion bonus (non-fatal):', pbErr);
+              }
+            } catch (err) {
+              console.warn('[ActionStepsCard] Failed to award faith points:', err);
+            }
+          })();
+        }
+      }
+    } catch (e) {
+      // Non-fatal: haptic prediction failed; continue
+      console.warn('[ActionStepsCard] Haptic prediction error:', e);
+    }
+
+    // Proceed with actual toggle update in context
     handleToggleStep(stepId, subTaskId);
-  }, [handleToggleStep]);
+  }, [handleToggleStep, steps, user?.id, playbookId]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
     console.log('[ActionStepsCard] Journal type pressed:', {
@@ -326,6 +447,9 @@ export default function ActionStepsCard({
       console.log('[ActionStepsCard] No journaling needed for this task');
       return;
     }
+
+    // Light haptic for journal action buttons
+    triggerLightHaptic();
 
     // Handle reflection type with modal
     if (journalType === 'reflection') {
@@ -830,12 +954,18 @@ export default function ActionStepsCard({
                 return !st.text.toLowerCase().startsWith('example:');
               });
 
+              const stepAnim = completionAnim.current[step.id];
+              const stepScale = stepAnim
+                ? stepAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] })
+                : 1 as any;
+
               return (
-                <View
+                <Animated.View
                   key={step.id}
                   style={[
                     solidCardBackground ? styles.solidStepCard : styles.stepCard,
                     step.completed && styles.completedCard,
+                    { transform: [{ scale: stepScale }] },
                   ]}
                 >
                   <View style={styles.stepHeader}>
@@ -996,7 +1126,7 @@ export default function ActionStepsCard({
                       hasAccess={expoundingAccess.hasAccess}
                     />
                   )}
-                </View>
+                </Animated.View>
               );
             })}
           </View>

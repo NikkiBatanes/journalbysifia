@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, Animated, Image, Text, Alert, StatusBar, ScrollView } from 'react-native';
+import { View, StyleSheet, Animated, Image, Text, Alert, StatusBar, ScrollView, NativeModules } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -21,6 +21,34 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const [isGenerating, setIsGenerating] = useState(false);
   const hasGenerated = useRef(false);
+  // Haptics preference-gated triggers
+  const triggerLightHaptic = React.useCallback(() => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) return;
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  }, [user]);
+
+  const triggerSuccessHaptic = React.useCallback(() => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) return;
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('notificationSuccess', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  }, [user]);
 
   // Progress and step visuals (aligned with onboarding screen)
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -132,6 +160,9 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
             useNativeDriver: false,
           }).start(() => resolve());
         });
+
+        // Success haptic when progress completes
+        triggerSuccessHaptic();
 
         // Navigate based on whether this is from onboarding or main flow
         if (isFromOnboarding) {
@@ -251,11 +282,15 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           duration: 1000,
           useNativeDriver: false,
         }).start();
+        // Light haptic on step advance (only when actually advancing)
+        if (!isLastStep) {
+          triggerLightHaptic();
+        }
         return isLastStep ? prev : nextStep;
       });
     }, 3000);
     return () => clearInterval(stepInterval);
-  }, [isGenerating, generationSteps.length, progressAnim]);
+  }, [isGenerating, generationSteps.length, progressAnim, triggerLightHaptic]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top','bottom']}>

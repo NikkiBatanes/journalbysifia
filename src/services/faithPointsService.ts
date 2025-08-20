@@ -87,6 +87,7 @@ export class FaithPointsService {
     devotional_generated: 8,
     journal_entry: 5,
     action_step_completed: 3,
+    playbook_completed: 10,
     daily_streak: 5,
     weekly_goal_met: 25,
     content_shared: 15,

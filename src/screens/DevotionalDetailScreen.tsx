@@ -799,6 +799,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     style={styles.questionCardWrapper}
                     activeOpacity={0.8}
                     onPress={() => {
+                      // Light haptic on question tap
+                      triggerLightHaptic();
                       setSelectedReflectionQuestion(question.text);
                       setReflectionModalVisible(true);
                     }}
