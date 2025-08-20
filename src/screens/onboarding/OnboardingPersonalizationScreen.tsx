@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 0,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: 'transparent',
   },
   headerTransparent: {
     backgroundColor: 'transparent',
