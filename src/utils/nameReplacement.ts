@@ -21,40 +21,48 @@ export function replaceUserNamePlaceholder(text: string, displayName: string): s
  * Replace hardcoded names from old playbooks with current user's name
  * This handles existing playbooks that have hardcoded names instead of placeholders
  * @param text - The text that may contain hardcoded names
- * @param currentDisplayName - The current user's display name
+ * @param currentFirstName - The current user's first name
  * @param oldDisplayName - The old user's display name to replace (optional)
  * @returns Text with old names replaced with current name
  */
-export function replaceHardcodedNames(text: string, currentDisplayName: string, oldDisplayName?: string): string {
-  if (!text || !currentDisplayName) {
+export function replaceHardcodedNames(text: string, currentFirstName: string, oldDisplayName?: string): string {
+  if (!text || !currentFirstName) {
     return text;
   }
 
   let processedText = text;
 
-  // If we have the old display name, replace it directly
-  if (oldDisplayName && oldDisplayName !== currentDisplayName) {
-    // Replace exact matches of the old name
+  // If we have the old display name, replace it directly with first name only
+  if (oldDisplayName && oldDisplayName !== currentFirstName) {
+    // Replace exact matches of the old name with first name
     const oldNameRegex = new RegExp(`\\b${escapeRegExp(oldDisplayName)}\\b`, 'g');
-    processedText = processedText.replace(oldNameRegex, currentDisplayName);
+    processedText = processedText.replace(oldNameRegex, currentFirstName);
   }
 
-  // Also try to detect and replace common name patterns at the beginning of sentences
-  // This handles cases where names appear at the start of Truth in Love content
+  // ENHANCED approach: Replace various name patterns while preserving context
   const namePatterns = [
-    // Pattern: "Name, " (name followed by comma and space)
+    // Pattern: "Name, you" - replace "Name" but preserve ", you"
+    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+(you\s+)/i,
+    // Pattern: "name, rest" - handle lowercase names like "loaer, rest"
+    /^([a-z]+),\s+(.*)/i,
+    // Pattern: "Name, " at start - replace name but preserve comma and space
     /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s+/,
-    // Pattern: "Name " at the beginning (name followed by space)
-    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?=[a-z])/,
   ];
 
   for (const pattern of namePatterns) {
     const match = processedText.match(pattern);
     if (match && match[1]) {
       const detectedName = match[1];
-      // Only replace if it looks like a name and is different from current name
-      if (detectedName !== currentDisplayName && isLikelyName(detectedName)) {
-        processedText = processedText.replace(pattern, `${currentDisplayName}, `);
+      const followingText = match[2] || ''; // Preserve following text if exists
+      
+      // Replace if it looks like a name and is different from current name
+      if (detectedName !== currentFirstName && (isLikelyName(detectedName) || detectedName.toLowerCase() === 'loaer')) {
+        if (followingText) {
+          processedText = processedText.replace(pattern, `${currentFirstName}, ${followingText}`);
+        } else {
+          processedText = processedText.replace(pattern, `${currentFirstName}, `);
+        }
+        console.log(`[nameReplacement] Replaced "${detectedName}" with "${currentFirstName}"`);
         break; // Only replace the first occurrence
       }
     }
@@ -120,19 +128,18 @@ export function replaceAllNamePlaceholders(
   let processedText = text;
   const originalText = text;
 
-  // Replace [User's Name] with display name or constructed name
-  const displayName = user.displayName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}`.trim() : '');
-  console.log('[nameReplacement] Display name:', displayName);
+  // Use first name only for more natural text flow
+  const firstName = user.firstName || (user.displayName ? user.displayName.split(' ')[0] : '');
+  console.log('[nameReplacement] Using first name:', firstName);
 
-  if (displayName) {
-    // First, replace placeholder patterns
-    const afterPlaceholder = replaceUserNamePlaceholder(processedText, displayName);
-    console.log('[nameReplacement] After placeholder replacement:', { before: processedText, after: afterPlaceholder });
-    processedText = afterPlaceholder;
+  if (firstName) {
+    // First, replace [User's Name] placeholder with first name only
+    processedText = processedText.replace(/\[User's Name\]/g, firstName);
+    console.log('[nameReplacement] After placeholder replacement:', { before: text, after: processedText });
 
-    // Then, try to replace hardcoded names from old playbooks
-    if (options?.replaceHardcodedNames !== false) {
-      const afterHardcoded = replaceHardcodedNames(processedText, displayName, options?.oldDisplayName);
+    // Then, try to replace hardcoded names from old playbooks (disabled by default to prevent text cutting)
+    if (options?.replaceHardcodedNames === true) {
+      const afterHardcoded = replaceHardcodedNames(processedText, firstName, options?.oldDisplayName);
       console.log('[nameReplacement] After hardcoded replacement:', { before: processedText, after: afterHardcoded });
       processedText = afterHardcoded;
     }

@@ -118,22 +118,23 @@ function parseOpenAIResponse(aiData: OpenAIData, userName: string, userInput: st
   if (truthSummaryMatch) {
     let summary = truthSummaryMatch[1].trim();
 
-    // Remove userName prefix if present (case insensitive)
+    // Replace userName with [User's Name] placeholder for dynamic replacement
     const usernamePrefix = new RegExp(`^${userName},?\s*`, 'i'); // eslint-disable-line no-useless-escape
-    summary = summary.replace(usernamePrefix, '').trim();
+    summary = summary.replace(usernamePrefix, '[User\'s Name], ');
 
-    // Remove literal "[User's Name]," if AI outputs it literally (case insensitive)
-    summary = summary.replace(/^\[User'?s Name\],?\s*/i, '').trim();
+    // Keep literal "[User's Name]," if AI outputs it (don't remove it)
+    // This ensures we always have the placeholder for dynamic replacement
 
-    // Ensure the summary starts with a capital letter and has proper spacing
-    if (summary.length > 0) {
-      // First, trim any leading/trailing whitespace
-      summary = summary.trim();
-      // Then capitalize the first letter and ensure proper spacing after any punctuation
-      summary = summary.charAt(0).toUpperCase() +
-               (summary.length > 1 ? summary.slice(1).replace(/^\s*[.,;:!?]\s*/, (match) =>
-                 match.trim() + ' '  // Add space after punctuation if missing
-               ) : '');
+    // Ensure the summary starts with proper capitalization after placeholder
+    if (summary.startsWith('[User\'s Name], ')) {
+      const afterPlaceholder = summary.substring('[User\'s Name], '.length);
+      if (afterPlaceholder.length > 0) {
+        const capitalizedAfter = afterPlaceholder.charAt(0).toLowerCase() + afterPlaceholder.slice(1);
+        summary = '[User\'s Name], ' + capitalizedAfter;
+      }
+    } else if (summary.length > 0) {
+      // If no placeholder, add it at the beginning
+      summary = '[User\'s Name], ' + summary.charAt(0).toLowerCase() + summary.slice(1);
     }
 
     playbook.truthInLove.summary = summary;

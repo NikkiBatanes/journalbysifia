@@ -49,16 +49,35 @@ export default function TruthInLoveCard({
   useEffect(() => {
     setIsExpanded(!!expanded);
   }, [expanded]);
-  // Replace [User's Name] placeholders with current user's name
+  // Use fresh user data from auth context, fallback to currentUser prop
+  const freshUserData = user ? {
+    displayName: (user as any).displayName || (user.user_metadata?.full_name) || '',
+    firstName: (user as any).firstName || (user.user_metadata?.first_name) || '',
+    lastName: (user as any).lastName || (user.user_metadata?.last_name) || '',
+  } : currentUser;
+
   console.log('[TruthInLoveCard] Debug Info:', {
     originalTruth: truth,
     originalSummary: summary,
     currentUser,
-    hasCurrentUser: !!currentUser,
+    freshUserData,
+    usingFreshData: !!user,
+    userMetadata: user?.user_metadata,
+    timestamp: new Date().toISOString(),
   });
 
-  const processedTruth = currentUser ? replaceAllNamePlaceholders(truth, currentUser, { replaceHardcodedNames: true }) : truth;
-  const processedSummary = currentUser ? replaceAllNamePlaceholders(summary, currentUser, { replaceHardcodedNames: true }) : summary;
+  // Force re-computation when user data changes
+  const processedTruth = React.useMemo(() => {
+    const result = freshUserData ? replaceAllNamePlaceholders(truth, freshUserData, { replaceHardcodedNames: true }) : truth;
+    console.log('[TruthInLoveCard] Processing truth:', { original: truth, processed: result, userData: freshUserData });
+    return result;
+  }, [truth, freshUserData?.firstName, freshUserData?.displayName]);
+
+  const processedSummary = React.useMemo(() => {
+    const result = freshUserData ? replaceAllNamePlaceholders(summary, freshUserData, { replaceHardcodedNames: true }) : summary;
+    console.log('[TruthInLoveCard] Processing summary:', { original: summary, processed: result, userData: freshUserData });
+    return result;
+  }, [summary, freshUserData?.firstName, freshUserData?.displayName]);
 
   console.log('[TruthInLoveCard] Processed:', {
     processedTruth,
