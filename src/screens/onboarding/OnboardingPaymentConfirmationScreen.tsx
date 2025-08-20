@@ -12,6 +12,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { usePlatformPayment } from '../../hooks/usePlatformPayment';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
   const navigation = useNavigation();
   const { user } = useAuth();
   const { subscription, refreshSubscription } = useNewSubscription(user?.id ?? '');
+  const { subscriptionStatus, refreshSubscriptionStatus } = usePlatformPayment();
   const params = route?.params || {};
   const { tier = 'spark', platform = 'local_test', transactionId } = params;
 
