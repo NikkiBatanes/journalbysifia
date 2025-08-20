@@ -865,11 +865,6 @@ export default function ActionStepsCard({
                       style={styles.expoundButton}
                       onPress={() => toggleInsight(step.id)}
                     >
-                      <MaterialCommunityIcons
-                        name="lightbulb-outline"
-                        size={16}
-                        color="rgba(255, 255, 255, 0.8)"
-                      />
                       <Text style={styles.expoundButtonText}>
                         {expandedSteps.has(step.id) ? 'Hide Insight' : 'Get Insight'}
                       </Text>
@@ -1285,7 +1280,7 @@ const styles = StyleSheet.create({
     ...Typography.interRegular,
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginLeft: 4,
+    marginLeft: 0,
   },
   stepDescription: {
     ...Typography.interRegular,
