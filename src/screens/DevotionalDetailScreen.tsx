@@ -97,6 +97,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     try {
       const { RNHapticFeedback } = NativeModules as any;
       if (!RNHapticFeedback) return; // no-op if not linked
+      // Respect user preference if available (default: enabled)
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) { return; }
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;

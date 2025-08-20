@@ -17,6 +17,7 @@ import {
   Platform,
   StyleSheet,
   Image,
+  NativeModules,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -396,6 +397,21 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Status bar: auto-detect from background
   useScreenStatusBar('auto', '#F2F5F7');
 
+  // Subtle haptic feedback, gated by user preference
+  const triggerLightHaptic = useCallback(() => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) return;
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  }, [user]);
+
   // Collapsing Playbook label
   const playbookWidth = useRef(new Animated.Value(0)).current;
   const [playbookMeasuredWidth, setPlaybookMeasuredWidth] = useState(0);
@@ -730,7 +746,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
         <TouchableOpacity
           style={styles.expandableButtonTouchable}
-          onPress={() => navigation.navigate('UserInput')}
+          onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
           activeOpacity={0.8}
         >
           <View style={styles.fabIconContainer}>

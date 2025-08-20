@@ -306,8 +306,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     padding: 10,
     paddingBottom: 40,
     height: SCREEN_HEIGHT * 0.7,
@@ -430,10 +430,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   continueButton: {
-    backgroundColor: Colors.growthGreen,
+    backgroundColor: Colors.alertCoral,
     paddingVertical: 14,
     paddingHorizontal: 24,
-    borderRadius: 12,
+    borderRadius: 14,
     marginTop: 30,
     width: '100%',
     alignItems: 'center',

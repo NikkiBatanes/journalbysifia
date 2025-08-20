@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
+  NativeModules,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -44,14 +45,31 @@ const DevotionalsScreen = () => {
   // Fetch user's playbooks to suggest creating devotionals
   const { data: playbooks = [], isLoading: isLoadingPlaybooks } = usePlaybooksData(userId || '');
 
+  // Subtle haptic feedback, gated by user preference
+  const triggerLightHaptic = () => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) return;
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  };
+
   const handleDevotionalPress = (devotional: Devotional) => {
     // Log title extraction for debugging
     createTitleExtractionMemory(devotional);
+    triggerLightHaptic();
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
   };
 
   const handlePlaybookPress = async (playbookId: string) => {
     try {
+      triggerLightHaptic();
       const playbookData = await fetchPlaybookById(playbookId);
       if (playbookData) {
         navigation.navigate('PlaybookDetail', { playbook: playbookData });

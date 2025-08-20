@@ -432,8 +432,8 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     backgroundColor: Colors.anchorBlue,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     padding: 20,
     paddingBottom: 40, // Increased bottom padding for better spacing
     maxHeight: '85%',
@@ -634,13 +634,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: Colors.hopeWhite,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    backgroundColor: Colors.alertCoral,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 14,
   },
   retryButtonText: {
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     fontFamily: defaultFontFamily.semiBold,
     fontSize: 14,
   },

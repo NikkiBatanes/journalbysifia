@@ -1,7 +1,7 @@
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import { Pencil, Check, Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
@@ -111,6 +111,21 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     } as any;
   }
   LocaleConfig.defaultLocale = 'customUpper';
+
+  // Subtle haptic feedback, gated by user preference
+  const triggerLightHaptic = useCallback(() => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) return;
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  }, [user]);
 
   // Ensure local YYYY-MM-DD formatting for calendar API (avoid UTC toISOString shifts)
   const formatLocalYYYYMMDD = useCallback((d: Date) => {
@@ -514,7 +529,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
           <View style={styles.headerIcons}>
             <TouchableOpacity
               style={styles.headerIconButton}
-              onPress={() => navigation.navigate('JournalMoments')}
+              onPress={() => { triggerLightHaptic(); navigation.navigate('JournalMoments'); }}
               accessibilityRole="button"
               accessibilityLabel="Add note"
             >
@@ -522,7 +537,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.calendarIconButton}
-              onPress={() => setShowCalendarModal(true)}
+              onPress={() => { triggerLightHaptic(); setShowCalendarModal(true); }}
               accessibilityRole="button"
               accessibilityLabel="Open calendar"
             >

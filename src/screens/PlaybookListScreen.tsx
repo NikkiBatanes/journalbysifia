@@ -11,6 +11,7 @@ import {
   Animated,
   Pressable,
   TouchableOpacity,
+  NativeModules,
 } from 'react-native';
 
 import { format } from 'date-fns';
@@ -83,6 +84,21 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Multiple fallback mechanisms for userId
   const userId = user?.id || session?.user?.id;
+
+  // Subtle haptic feedback, gated by user preference
+  const triggerLightHaptic = useCallback(() => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) return;
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  }, [user]);
 
   // Debug logging for user state
   console.log('[PlaybookListScreen] User state:', {
@@ -396,8 +412,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Move handleCardPress outside of renderItem
   const handleCardPress = useCallback((playbook: Playbook) => {
+    triggerLightHaptic();
     navigation.navigate('PlaybookDetail', { playbook });
-  }, [navigation]);
+  }, [navigation, triggerLightHaptic]);
 
   const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
     // Safety check for item
