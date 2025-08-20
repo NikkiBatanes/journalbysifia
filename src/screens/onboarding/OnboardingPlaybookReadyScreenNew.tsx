@@ -690,7 +690,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               { }
               <View style={[styles.progressFill, { width: `${progressData.percentage}%` }]} />
             </View>
-            <Text style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</Text>
+            <Text style={styles.progressText}>{progressData.completed}/{progressData.total} Tasks</Text>
           </View>
 
           {/* CAROUSEL INDICATORS moved out of header to sit above carousel */}
@@ -998,9 +998,9 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 8,
+    height: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
+    borderRadius: 6,
     overflow: 'hidden', // clip inner fill so left edge appears rounded
     marginRight: 10,
   },
@@ -1008,10 +1008,10 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.growthGreen,
     // Ensure left edge is rounded; right edge will round when 100%
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    borderTopLeftRadius: 6,
+    borderBottomLeftRadius: 6,
+    borderTopRightRadius: 6,
+    borderBottomRightRadius: 6,
   },
   progressText: {
     fontSize: 12,

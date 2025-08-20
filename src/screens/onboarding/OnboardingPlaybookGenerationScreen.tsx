@@ -69,11 +69,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const progressAnim = useRef(new Animated.Value(0)).current;
   // const contentFadeAnim = useRef(new Animated.Value(0)).current; // Unused, commented out
   // const pulseValue = useRef(new Animated.Value(0.8)).current; // Unused, commented out
-  const breathingAnim = useRef(new Animated.Value(0.9)).current;
-  const textOpacity = useRef(new Animated.Value(0.8)).current;
-  const textPulse = useRef(new Animated.Value(1)).current;
-  const inWordsOpacity = useRef(new Animated.Value(1)).current;   // starts visible
-  const outWordsOpacity = useRef(new Animated.Value(0)).current;  // starts hidden
+  // Removed breathing text animations; keeping ring animation only
 
   // Concentric Aura breathing values (three rings)
   const aura1Scale = useRef(new Animated.Value(0.9)).current;
@@ -83,6 +79,12 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const aura2Opacity = useRef(new Animated.Value(0.28)).current;
   const aura3Opacity = useRef(new Animated.Value(0.20)).current;
 
+  // Shimmer effect for current step text and typing dots state
+  const shimmerOpacity = useRef(new Animated.Value(0.85)).current;
+  const [dotCount, setDotCount] = useState(0);
+  // Reserve fixed width for dots so the phrase doesn't shift while dots animate
+  const [dotsWidth, setDotsWidth] = useState<number | null>(null);
+
   // Scale breathing words subtly with the inner ring
   // const textScale = aura1Scale.interpolate({
   //   inputRange: [0.85, 1.1],
@@ -90,21 +92,22 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   //   extrapolate: 'clamp',
   // }); // Unused, commented out
 
-  // Breathing animation text
-  const [_breathingText, _setBreathingText] = useState('Breathe in peace');
-  const [_breathingPhase, _setBreathingPhase] = useState<'in' | 'hold' | 'out'>('in');
-  // Typewriter suffix after the word "Breathe "
-  const [breathSuffix, setBreathSuffix] = useState('in peace');
-  const suffixIndexRef = useRef(0); // 0: 'in peace', 1: 'out worry'
+  // Breathing text removed from UI; represented as a static step below
   // No manual measurement: we'll use flex spacers and safe-area padding
 
   const generationSteps = [
+    { title: 'Breathe in peace...', description: '' },
+    { title: 'Breathe out worry...', description: '' },
     { title: 'Listening to your heart…', description: '' },
     { title: 'Finding God\'s Word for your season…', description: '' },
     { title: 'Preparing your steps…', description: '' },
     { title: 'Equipping you for the journey…', description: '' },
     { title: 'Finalizing Your Playbook', description: '' },
   ];
+
+  // Current step title without trailing ellipsis/dots
+  const currentTitle = generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title || '';
+  const baseTitle = currentTitle.replace(/(…|\.{1,3})\s*$/, '').trimEnd();
 
   // Handle navigation after animation completes
   useEffect(() => {
@@ -354,7 +357,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     }
   }, [params, user, navigation, progressAnim]);
 
-  // Breathing animation cycle: Inhale (4s) → Hold (1s) → Exhale (4s)
+  // Sun ring animation (breathing text removed)
   useEffect(() => {
     let stopped = false;
 
@@ -389,58 +392,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       cycle();
     };
 
-    const animateCore = () => {
-      const coreCycle = () => {
-        if (stopped) { return; }
-        // Inhale: update words and fade ellipsis in
-        _setBreathingPhase('in');
-        Animated.parallel([
-          Animated.timing(breathingAnim, { toValue: 1.12, duration: 4000, useNativeDriver: true }),
-          Animated.timing(textOpacity, { toValue: 1.0, duration: 4000, useNativeDriver: true }),
-          Animated.timing(inWordsOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
-          Animated.timing(outWordsOpacity, { toValue: 0, duration: 900, useNativeDriver: true }),
-          // subtle bounce when switching to inhale words
-          Animated.sequence([
-            Animated.spring(textPulse, { toValue: 1.06, friction: 6, tension: 90, useNativeDriver: true }),
-            Animated.timing(textPulse, { toValue: 1.0, duration: 1200, useNativeDriver: true }),
-          ]),
-        ]).start(({ finished }) => {
-          if (!finished || stopped) { return; }
-          _setBreathingPhase('hold');
-          // Hold: keep text nearly steady
-          Animated.parallel([
-            Animated.timing(textOpacity, { toValue: 0.95, duration: 300, useNativeDriver: true }),
-            Animated.delay(1000),
-          ]).start(() => {
-            if (stopped) { return; }
-            _setBreathingPhase('out');
-            // Exhale: scale down arcs and dim text a bit
-            Animated.parallel([
-              Animated.timing(breathingAnim, { toValue: 0.88, duration: 4000, useNativeDriver: true }),
-              Animated.timing(textOpacity, { toValue: 0.6, duration: 4000, useNativeDriver: true }),
-              Animated.timing(inWordsOpacity, { toValue: 0, duration: 900, useNativeDriver: true }),
-              Animated.timing(outWordsOpacity, { toValue: 1, duration: 900, useNativeDriver: true }),
-              // gentle inward bounce when switching to exhale words
-              Animated.sequence([
-                Animated.spring(textPulse, { toValue: 0.94, friction: 6, tension: 90, useNativeDriver: true }),
-                Animated.timing(textPulse, { toValue: 1.0, duration: 1200, useNativeDriver: true }),
-              ]),
-            ]).start(({ finished: f2 }) => {
-              if (!f2 || stopped) { return; }
-              _setBreathingPhase('in');
-              coreCycle();
-            });
-          });
-        });
-      };
-      coreCycle();
-    };
-
     // Start rings with slight phase offsets and start text sync
     animateRing(aura1Scale, aura1Opacity, 0);
     animateRing(aura2Scale, aura2Opacity, 250);
     animateRing(aura3Scale, aura3Opacity, 500);
-    animateCore();
 
     return () => {
       stopped = true;
@@ -450,69 +405,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
       aura1Opacity.stopAnimation();
       aura2Opacity.stopAnimation();
       aura3Opacity.stopAnimation();
-      breathingAnim.stopAnimation();
-      textOpacity.stopAnimation();
     };
-  }, [breathingAnim, aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity, textOpacity, inWordsOpacity, outWordsOpacity, textPulse]);
+  }, [aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity]);
 
-  // Type/erase loop for suffix after "Breathe "
-  useEffect(() => {
-    let stopped = false;
-    const targets = ['in peace...', 'out worry...'];
-    const typeSpeed = 110;   // ms per char (slower typing)
-    const eraseSpeed = 80;   // ms per char (slower erasing)
-    const holdFull = 2200;   // linger longer when fully typed
-    const holdEmpty = 600;   // linger longer when erased before next phrase
-
-    let timer: NodeJS.Timeout | null = null;
-
-    const clearTimer = () => {
-      if (timer) {
-        clearTimeout(timer);
-        timer = null;
-      }
-    };
-
-    const type = (target: string, from = '') => {
-      if (stopped) {return;}
-      if (from.length === target.length) {
-        timer = setTimeout(() => erase(target), holdFull);
-        return;
-      }
-      const next = target.slice(0, from.length + 1);
-      setBreathSuffix(next);
-      timer = setTimeout(() => type(target, next), typeSpeed);
-    };
-
-    const erase = (current: string) => {
-      if (stopped) {return;}
-      if (current.length === 0) {
-        // switch target
-        suffixIndexRef.current = (suffixIndexRef.current + 1) % targets.length;
-        const nextTarget = targets[suffixIndexRef.current];
-        timer = setTimeout(() => type(nextTarget, ''), holdEmpty);
-        return;
-      }
-      const next = current.slice(0, current.length - 1);
-      setBreathSuffix(next);
-      timer = setTimeout(() => erase(next), eraseSpeed);
-    };
-
-    // Start with current target based on index
-    const start = () => {
-      const target = targets[suffixIndexRef.current];
-      // Ensure we begin from full word on first mount
-      setBreathSuffix('');
-      type(target, '');
-    };
-
-    start();
-
-    return () => {
-      stopped = true;
-      clearTimer();
-    };
-  }, []);
+  // Removed typewriter breathing text effect
 
   useEffect(() => {
     // Start entrance animation
@@ -525,6 +421,33 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
     // Start playbook generation
     generatePlaybook();
   }, [fadeAnim, generatePlaybook]);
+
+  // Shimmer (breathing) effect on the step text
+  useEffect(() => {
+    let mounted = true;
+    const loop = () => {
+      Animated.sequence([
+        Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+      ]).start(({ finished }) => {
+        if (finished && mounted && isGenerating) loop();
+      });
+    };
+    if (isGenerating) loop();
+    return () => {
+      mounted = false;
+      shimmerOpacity.stopAnimation();
+    };
+  }, [isGenerating, shimmerOpacity]);
+
+  // Typing effect for trailing dots: cycles '', '.', '..', '...'
+  useEffect(() => {
+    if (!isGenerating) { return; }
+    const id = setInterval(() => {
+      setDotCount(prev => (prev + 1) % 4);
+    }, 500);
+    return () => clearInterval(id);
+  }, [isGenerating]);
 
   useEffect(() => {
     if (isGenerating) {
@@ -647,9 +570,26 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.stepTextContainer}
               >
-                <Text style={styles.currentStepText}>
-                  {generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title}
-                </Text>
+                <View style={styles.stepTextRow}>
+                  <Animated.Text style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]}>
+                    {baseTitle}
+                  </Animated.Text>
+                  {/* Fixed-width container for dots to prevent re-centering */}
+                  <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
+                    <Text style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
+                      {'.'.repeat(dotCount)}
+                    </Text>
+                  </View>
+                  {/* Hidden measurer renders once to get exact width of '...' for the current font */}
+                  {dotsWidth == null && (
+                    <Text
+                      style={[styles.currentStepText, styles.hiddenMeasure]}
+                      onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
+                    >
+                      ...
+                    </Text>
+                  )}
+                </View>
               </ScrollView>
               {/* Spacer to ensure sun and breathing text do not overlap step text */}
               <View style={styles.sunSpacer} />
@@ -681,16 +621,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
             ]}
           />
         </View>
-        {/* Breathing text; typewriter effect for suffix including ellipsis */}
-        <Animated.Text
-          style={[
-            styles.breathingText,
-            { bottom: Math.max(insets.bottom + 8, 16) },
-          ]}
-          pointerEvents="none"
-        >
-          {'Breathe '}{breathSuffix}
-        </Animated.Text>
+        {/* Breathing text removed; guidance now part of generationSteps */}
       </Animated.View>
     </SafeAreaView>
   );
@@ -801,14 +732,15 @@ const styles = StyleSheet.create({
   },
   progressBarBackground: {
     width: '100%',
-    height: 8,
+    height: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 4,
+    borderRadius: 6,
   },
   breathingText: {
     fontSize: 16,
@@ -857,6 +789,22 @@ const styles = StyleSheet.create({
   stepTextContainer: {
     flexGrow: 1,
     justifyContent: 'center',
+  },
+  stepTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dotsContainer: {
+    marginLeft: 0,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  hiddenMeasure: {
+    position: 'absolute',
+    opacity: 0,
+    height: 0,
+    width: undefined,
   },
   sunSpacer: {
     height: 56,
