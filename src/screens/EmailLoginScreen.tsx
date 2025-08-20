@@ -85,10 +85,6 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBackToSocial}>
-            <Ionicons name="chevron-back" size={24} color="#fff" />
-          </TouchableOpacity>
-
           <Image
             source={require('../../assets/icons/siFiaTransparent.png')}
             style={styles.logo}
