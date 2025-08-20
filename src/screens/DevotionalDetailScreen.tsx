@@ -1060,12 +1060,12 @@ const styles = StyleSheet.create({
   },
   partyContainer: {
     position: 'absolute',
-    right: 20, // near the pray button
-    bottom: 36, // slightly above the button
-    width: 140,
-    height: 140,
+    right: 0, // align with the button's right edge
+    bottom: -8, // sit just behind the button
+    width: 110,
+    height: 110,
     overflow: 'visible',
-    zIndex: 2,
+    zIndex: 0, // behind the button
   },
   partyPiece: {
     position: 'absolute',
@@ -1089,6 +1089,7 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
+    zIndex: 1, // above confetti
   },
   prayerButtonActive: {
     backgroundColor: 'rgba(255, 59, 48, 0.1)',
