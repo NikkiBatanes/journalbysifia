@@ -246,9 +246,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 10,
   },
   backButton: {
     marginRight: 20,
@@ -256,7 +254,9 @@ const styles = StyleSheet.create({
   logo: {
     width: 140,
     height: 140,
-    transform: [{ translateY: -10 }],
+    alignSelf: 'flex-start',
+    marginTop: 0,
+    marginBottom: 10,
   },
   titleContainer: {
     alignItems: 'center',
@@ -265,14 +265,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.system.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.system.regular,
     color: 'rgba(255,255,255,0.8)',
   },
   errorBanner: {
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.system.regular,
     color: '#fff',
   },
   eyeIcon: {
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   },
   registerButtonText: {
     fontSize: 18,
-    fontFamily: Fonts.semiBold,
+    fontFamily: Fonts.system.semiBold,
     fontWeight: '600',
     color: '#fff',
   },
@@ -357,13 +357,13 @@ const styles = StyleSheet.create({
   },
   loginText: {
     fontSize: 16,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.system.regular,
     color: 'rgba(255,255,255,0.8)',
     textDecorationLine: 'none',
   },
   loginLink: {
     fontSize: 16,
-    fontFamily: Fonts.bold,
+    fontFamily: Fonts.system.bold,
     color: '#FF6B6B',
     fontWeight: '600',
     textDecorationLine: 'none',
