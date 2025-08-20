@@ -71,46 +71,69 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   // Flag to prevent feedback loop between programmatic and user scrolls
   const isScrollingProgrammatically = useRef(false);
 
-  // --- Pray button feedback & party animation ---
-  const heartScale = useRef(new Animated.Value(1)).current;
-  const [showParty, setShowParty] = useState(false);
-  const partyPieces = useRef(
-    Array.from({ length: 14 }).map(() => ({
-      anim: new Animated.Value(0),
-      // random trajectories
-      dx: (Math.random() * 2 - 1) * 60, // -60..60
-      dy: - (40 + Math.random() * 80), // -40..-120
-      rot: (Math.random() * 2 - 1) * 360, // -360..360
-      size: 4 + Math.random() * 5,
-      color: [
-        '#FFD166',
-        '#EF476F',
-        '#06D6A0',
-        '#118AB2',
-        '#8338EC',
-      ][Math.floor(Math.random() * 5)],
-    }))
-  ).current;
+  // Heart burst animation state near the Pray button
+  type HeartParticle = {
+    id: number;
+    progress: Animated.Value; // 0 -> 1
+    dx: number; // horizontal drift
+    dy: number; // vertical height
+    size: number; // icon size
+    rotate: number; // degrees
+    color: string;
+    delay: number;
+  };
+  const [heartParticles, setHeartParticles] = useState<HeartParticle[]>([]);
+  const heartIdRef = useRef(0);
 
-  const triggerHeartBounce = () => {
-    heartScale.setValue(1);
-    Animated.sequence([
-      Animated.timing(heartScale, { toValue: 1.25, duration: 120, useNativeDriver: true }),
-      Animated.spring(heartScale, { toValue: 1, useNativeDriver: true, friction: 4 }),
-    ]).start();
+  const triggerLightHaptic = () => {
+    // Bare RN fallback: short vibration as light impact surrogate
+    // Keep very short to feel like "light"
+    try {
+      Vibration.vibrate(10);
+    } catch (e) {
+      // no-op
+    }
   };
 
-  const triggerParty = () => {
-    // show container and animate pieces
-    setShowParty(true);
-    const animations = partyPieces.map((p) =>
-      Animated.timing(p.anim, { toValue: 1, duration: 700, useNativeDriver: true })
-    );
-    Animated.stagger(12, animations).start(() => {
-      // reset and hide
-      partyPieces.forEach(p => p.anim.setValue(0));
-      setShowParty(false);
+  const startHeartBurst = () => {
+    const NUM = 10;
+    const colors = [Colors.alertCoral, '#ff7a7a', '#ff9aa2', '#ff6b6b'];
+    const newParticles: HeartParticle[] = Array.from({ length: NUM }).map((_, i) => {
+      const id = heartIdRef.current++;
+      return {
+        id,
+        progress: new Animated.Value(0),
+        dx: (Math.random() * 80 - 40), // -40..40
+        dy: 70 + Math.random() * 70, // 70..140 upward
+        size: 12 + Math.random() * 10, // 12..22
+        rotate: Math.random() * 60 - 30, // -30..30 deg
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: i * 35, // stagger
+      };
     });
+
+    setHeartParticles(prev => [...prev, ...newParticles]);
+
+    // Kick off animations
+    newParticles.forEach((p) => {
+      Animated.timing(p.progress, {
+        toValue: 1,
+        duration: 900,
+        delay: p.delay,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    // Cleanup after the longest animation
+    setTimeout(() => {
+      setHeartParticles(prev => prev.filter(h => !newParticles.find(n => n.id === h.id)));
+    }, 1200);
+  };
+
+  const onPrayPress = () => {
+    triggerLightHaptic();
+    startHeartBurst();
+    togglePrayed();
   };
 
   useEffect(() => {
@@ -337,23 +360,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       console.log('📝 Updated prayedDays state:', newState);
       return newState;
     });
-
-    // Haptic + visual feedback when marking as prayed
-    if (isPrayed) {
-      // Prefer light impact haptics if available; fallback to mild vibration
-      try {
-        const Haptics = require('react-native-haptic-feedback');
-        if (Haptics?.trigger) {
-          Haptics.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false });
-        } else {
-          Vibration.vibrate(8);
-        }
-      } catch {
-        try { Vibration.vibrate(8); } catch {}
-      }
-      triggerHeartBounce();
-      triggerParty();
-    }
 
     // If marking as prayed, save to database using React Query
     if (isPrayed && currentDay.prayer?.trim() && user) {
@@ -719,59 +725,76 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               subtitle="Connect with God"
             >
               <View style={styles.prayerContainer}>
-                {/* Party Confetti Burst (render first so it's behind text and button) */}
-                {showParty && (
-                  <View pointerEvents="none" style={styles.partyContainer}>
-                    {partyPieces.map((p, idx) => {
-                      const translateX = p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
-                      const translateY = p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, p.dy] });
-                      const rotate = p.anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${p.rot}deg`] });
-                      const opacity = p.anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] });
-                      return (
-                        <Animated.View
-                          key={idx}
-                          style={[
-                            styles.partyPiece,
-                            {
-                              opacity,
-                              transform: [{ translateX }, { translateY }, { rotate }],
-                            },
-                          ]}
-                        >
-                          <Ionicons name="heart" size={Math.max(10, Math.min(18, p.size + 6))} color={p.color} />
-                        </Animated.View>
-                      );
-                    })}
-                  </View>
-                )}
                 <Text style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
                     ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
                     : 'No prayer for today.'}
                 </Text>
-                <TouchableOpacity
+                <View>
+                  {/* Heart burst layer above the button, anchored near its position */}
+                  {heartParticles.length > 0 && (
+                    <View pointerEvents="none" style={styles.prayerBurstLayer}>
+                      {heartParticles.map((p) => {
+                        const translateY = p.progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -p.dy],
+                        });
+                        const translateX = p.progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, p.dx],
+                        });
+                        const scale = p.progress.interpolate({
+                          inputRange: [0, 0.3, 1],
+                          outputRange: [0.4, 1.1, 0.8],
+                        });
+                        const opacity = p.progress.interpolate({
+                          inputRange: [0, 0.7, 1],
+                          outputRange: [0, 1, 0],
+                        });
+                        return (
+                          <Animated.View
+                            key={p.id}
+                            style={[
+                              styles.heartParticle,
+                              {
+                                opacity,
+                                transform: [
+                                  { translateX },
+                                  { translateY },
+                                  { scale },
+                                  { rotate: `${p.rotate}deg` },
+                                ],
+                              },
+                            ]}
+                          >
+                            <Ionicons name="heart" size={p.size} color={p.color} />
+                          </Animated.View>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  <TouchableOpacity
                   style={[
                     styles.prayerButton,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
                   ]}
-                  onPress={togglePrayed}
+                  onPress={onPrayPress}
                 >
-                  <Animated.View style={{ transform: [{ scale: heartScale }] }}>
-                    <Ionicons
-                      name="heart"
-                      size={20}
-                      color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.inactiveIcon}
-                      style={styles.prayerIcon}
-                    />
-                  </Animated.View>
+                  <Ionicons
+                    name="heart"
+                    size={20}
+                    color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.inactiveIcon}
+                    style={styles.prayerIcon}
+                  />
                   <Text style={[
                     styles.prayerButtonText,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
                   ]}>
                     {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? ' Prayed' : ' Pray'}
                   </Text>
-                </TouchableOpacity>
-
+                  </TouchableOpacity>
+                </View>
               </View>
             </DevotionalSectionCard>
             </ScrollView>
@@ -1066,19 +1089,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(26,60,109,0.08)',
     borderRadius: 12,
   },
-  partyContainer: {
-    position: 'absolute',
-    right: 0, // align with the button's right edge
-    bottom: -8, // sit just behind the button
-    width: 110,
-    height: 110,
-    overflow: 'visible',
-    zIndex: 0, // behind the button
-  },
-  partyPiece: {
-    position: 'absolute',
-    borderRadius: 2,
-  },
   prayerButton: {
     position: 'absolute',
     right: 0,
@@ -1097,7 +1107,6 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: 'rgba(0, 0, 0, 0.05)',
-    zIndex: 1, // above confetti
   },
   prayerButtonActive: {
     backgroundColor: 'rgba(255, 59, 48, 0.1)',
@@ -1115,6 +1124,25 @@ const styles = StyleSheet.create({
   },
   prayerIcon: {
     marginRight: 0,
+  },
+  // Overlay layer anchored near the Pray button to render heart particles
+  prayerBurstLayer: {
+    position: 'absolute',
+    // Slightly offset to center particles around the heart icon
+    right: -6,
+    bottom: -32,
+    width: 120,
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 5,
+    // Allow particles to overflow outside the layer if needed
+    overflow: 'visible',
+  },
+  heartParticle: {
+    position: 'absolute',
+    left: 60, // start from center of the layer (half of width)
+    top: 60,  // start from center of the layer (half of height)
   },
   prayerText: {
     fontSize: 16,
