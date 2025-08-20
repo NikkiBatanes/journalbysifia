@@ -10,13 +10,13 @@ import {
   ActivityIndicator,
   Dimensions,
   ScrollView,
+  Vibration,
 } from 'react-native';
 import { FlatList, Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { runOnJS } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
 import { RootStackParamList } from '../navigation/types';
 import {
   useDevotionalByIdReactQuery,
@@ -71,45 +71,47 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   // Flag to prevent feedback loop between programmatic and user scrolls
   const isScrollingProgrammatically = useRef(false);
 
-  // Animation: Pray button scale bump
-  const prayBtnScale = useRef(new Animated.Value(1)).current;
-  // Animation: Party/confetti state and refs
-  const [party, setParty] = useState(false);
-  const confettiAnims = useRef(Array.from({ length: 12 }).map(() => ({
-    translateY: new Animated.Value(0),
-    translateX: new Animated.Value(0),
-    opacity: new Animated.Value(1),
-    rotate: new Animated.Value(0),
-    scale: new Animated.Value(1),
-  }))).current;
+  // --- Pray button feedback & party animation ---
+  const heartScale = useRef(new Animated.Value(1)).current;
+  const [showParty, setShowParty] = useState(false);
+  const partyPieces = useRef(
+    Array.from({ length: 14 }).map(() => ({
+      anim: new Animated.Value(0),
+      // random trajectories
+      dx: (Math.random() * 2 - 1) * 60, // -60..60
+      dy: - (40 + Math.random() * 80), // -40..-120
+      rot: (Math.random() * 2 - 1) * 360, // -360..360
+      size: 4 + Math.random() * 5,
+      color: [
+        '#FFD166',
+        '#EF476F',
+        '#06D6A0',
+        '#118AB2',
+        '#8338EC',
+      ][Math.floor(Math.random() * 5)],
+    }))
+  ).current;
 
-  const startParty = useCallback(() => {
-    setParty(true);
-    confettiAnims.forEach((anim, i) => {
-      // reset values
-      anim.translateY.setValue(0);
-      anim.translateX.setValue(0);
-      anim.opacity.setValue(1);
-      anim.rotate.setValue(0);
-      anim.scale.setValue(1);
+  const triggerHeartBounce = () => {
+    heartScale.setValue(1);
+    Animated.sequence([
+      Animated.timing(heartScale, { toValue: 1.25, duration: 120, useNativeDriver: true }),
+      Animated.spring(heartScale, { toValue: 1, useNativeDriver: true, friction: 4 }),
+    ]).start();
+  };
 
-      const angle = (i / confettiAnims.length) * Math.PI * 2;
-      const distance = 60 + Math.random() * 60;
-      const xSpread = 40 + Math.random() * 60;
-
-      Animated.parallel([
-        Animated.timing(anim.translateY, { toValue: -distance, duration: 900, useNativeDriver: true }),
-        Animated.timing(anim.translateX, { toValue: Math.cos(angle) * xSpread, duration: 900, useNativeDriver: true }),
-        Animated.timing(anim.opacity, { toValue: 0, duration: 900, useNativeDriver: true }),
-        Animated.timing(anim.rotate, { toValue: Math.random() * Math.PI * 2, duration: 900, useNativeDriver: true }),
-        Animated.timing(anim.scale, { toValue: 0.8 + Math.random() * 0.6, duration: 900, useNativeDriver: true }),
-      ]).start();
+  const triggerParty = () => {
+    // show container and animate pieces
+    setShowParty(true);
+    const animations = partyPieces.map((p) =>
+      Animated.timing(p.anim, { toValue: 1, duration: 700, useNativeDriver: true })
+    );
+    Animated.stagger(12, animations).start(() => {
+      // reset and hide
+      partyPieces.forEach(p => p.anim.setValue(0));
+      setShowParty(false);
     });
-
-    setTimeout(() => setParty(false), 950);
-  }, [confettiAnims]);
-
-  // handlePrayPress is defined after togglePrayed to satisfy TS ordering
+  };
 
   useEffect(() => {
     // Log for debugging
@@ -336,6 +338,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       return newState;
     });
 
+    // Haptic + visual feedback when marking as prayed
+    if (isPrayed) {
+      // Light haptic (fallback). For richer haptics, we can add react-native-haptic-feedback.
+      try { Vibration.vibrate(10); } catch {}
+      triggerHeartBounce();
+      triggerParty();
+    }
+
     // If marking as prayed, save to database using React Query
     if (isPrayed && currentDay.prayer?.trim() && user) {
       const cleanPrayer = currentDay.prayer.replace(/\*\*/g, '').trim();
@@ -373,29 +383,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       });
     }
   }, [devotional, currentDayIndex, currentDay, prayedDays, user, createDevotionalPrayerMutation]);
-
-  // Pray button press: haptic + bump + confetti, then toggle state
-  const handlePrayPress = useCallback(async () => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (e) {
-      // haptics may fail silently on some platforms
-    }
-
-    Animated.sequence([
-      Animated.spring(prayBtnScale, { toValue: 0.92, useNativeDriver: true, friction: 5, tension: 150 }),
-      Animated.spring(prayBtnScale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 150 }),
-    ]).start();
-
-    const prayerKey = `${devotional?.id}-${currentDayIndex}`;
-    const willBePrayed = !prayedDays[prayerKey];
-    if (willBePrayed) {
-      startParty();
-    }
-
-    togglePrayed();
-  }, [currentDayIndex, devotional?.id, prayedDays, togglePrayed, prayBtnScale, startParty]);
 
   // Handle continuing after completion modal
   const handleCompletionContinue = () => {
@@ -728,56 +715,53 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
                     : 'No prayer for today.'}
                 </Text>
-                <Animated.View style={{ transform: [{ scale: prayBtnScale }] }}>
-                  <TouchableOpacity
-                    style={[
-                      styles.prayerButton,
-                      prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
-                    ]}
-                    onPress={handlePrayPress}
-                    activeOpacity={0.85}
-                  >
+                <TouchableOpacity
+                  style={[
+                    styles.prayerButton,
+                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
+                  ]}
+                  onPress={togglePrayed}
+                >
+                  <Animated.View style={{ transform: [{ scale: heartScale }] }}>
                     <Ionicons
                       name="heart"
                       size={20}
                       color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.inactiveIcon}
                       style={styles.prayerIcon}
                     />
-                    <Text style={[
-                      styles.prayerButtonText,
-                      prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
-                    ]}>
-                      {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? ' Prayed' : ' Pray'}
-                    </Text>
-                  </TouchableOpacity>
-                </Animated.View>
+                  </Animated.View>
+                  <Text style={[
+                    styles.prayerButtonText,
+                    prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
+                  ]}>
+                    {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? ' Prayed' : ' Pray'}
+                  </Text>
+                </TouchableOpacity>
 
-                {party && (
-                  <View pointerEvents="none" style={styles.confettiContainer}>
-                    {confettiAnims.map((anim, i) => (
-                      <Animated.Text
-                        key={`confetti-${i}`}
-                        style={[
-                          styles.confettiPiece,
-                          {
-                            opacity: anim.opacity,
-                            transform: [
-                              { translateY: anim.translateY },
-                              { translateX: anim.translateX },
-                              {
-                                rotate: anim.rotate.interpolate({
-                                  inputRange: [0, Math.PI * 2],
-                                  outputRange: ['0rad', '6.283rad'],
-                                }),
-                              },
-                              { scale: anim.scale },
-                            ],
-                          },
-                        ]}
-                      >
-                        {['🎉', '✨', '💖', '💫', '🕊️'][i % 5]}
-                      </Animated.Text>
-                    ))}
+                {/* Party Confetti Burst */}
+                {showParty && (
+                  <View pointerEvents="none" style={styles.partyContainer}>
+                    {partyPieces.map((p, idx) => {
+                      const translateX = p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
+                      const translateY = p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, p.dy] });
+                      const rotate = p.anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${p.rot}deg`] });
+                      const opacity = p.anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] });
+                      return (
+                        <Animated.View
+                          key={idx}
+                          style={[
+                            styles.partyPiece,
+                            {
+                              width: p.size,
+                              height: p.size,
+                              backgroundColor: p.color,
+                              opacity,
+                              transform: [{ translateX }, { translateY }, { rotate }],
+                            },
+                          ]}
+                        />
+                      );
+                    })}
                   </View>
                 )}
               </View>
@@ -1074,23 +1058,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(26,60,109,0.08)',
     borderRadius: 12,
   },
-  confettiContainer: {
+  partyContainer: {
     position: 'absolute',
-    right: 10,
-    bottom: 30,
-    width: 120,
-    height: 120,
+    right: 20, // near the pray button
+    bottom: 36, // slightly above the button
+    width: 140,
+    height: 140,
     overflow: 'visible',
+    zIndex: 2,
   },
-  confettiPiece: {
+  partyPiece: {
     position: 'absolute',
-    right: 20,
-    bottom: 20,
-    fontSize: 18,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
+    borderRadius: 2,
   },
   prayerButton: {
     position: 'absolute',
