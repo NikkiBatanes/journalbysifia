@@ -340,8 +340,17 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
     // Haptic + visual feedback when marking as prayed
     if (isPrayed) {
-      // Mild haptic (fallback). For richer haptics, we can add react-native-haptic-feedback.
-      try { Vibration.vibrate(5); } catch {}
+      // Prefer light impact haptics if available; fallback to mild vibration
+      try {
+        const Haptics = require('react-native-haptic-feedback');
+        if (Haptics?.trigger) {
+          Haptics.trigger('impactLight', { enableVibrateFallback: true, ignoreAndroidSystemSettings: false });
+        } else {
+          Vibration.vibrate(8);
+        }
+      } catch {
+        try { Vibration.vibrate(8); } catch {}
+      }
       triggerHeartBounce();
       triggerParty();
     }
@@ -724,14 +733,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                           style={[
                             styles.partyPiece,
                             {
-                              width: p.size,
-                              height: p.size,
-                              backgroundColor: p.color,
                               opacity,
                               transform: [{ translateX }, { translateY }, { rotate }],
                             },
                           ]}
-                        />
+                        >
+                          <Ionicons name="heart" size={Math.max(10, Math.min(18, p.size + 6))} color={p.color} />
+                        </Animated.View>
                       );
                     })}
                   </View>
