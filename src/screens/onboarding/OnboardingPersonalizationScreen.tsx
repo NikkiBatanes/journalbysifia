@@ -542,7 +542,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       </View>
 
       <View style={styles.contentContainer}>
-        <View style={styles.modalHeader}>
+        <View style={styles.modalHeader} pointerEvents="box-none">
           <TouchableOpacity
             style={styles.modalBackButton}
             onPress={handleBack}
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.anchorBlue,
   },
   headerTransparent: {
     backgroundColor: 'transparent',
@@ -645,6 +645,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 0,
     backgroundColor: 'transparent',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 20,
+    elevation: 20,
   },
   modalBackButton: {
     padding: 8,
@@ -701,7 +707,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.modalBlue,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
-    paddingTop: 20,
+    paddingTop: 0,
   },
   scrollContainer: {
     flex: 1,
