@@ -5,11 +5,13 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { OnboardingStyles } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useUserState } from '../../hooks/useUserState';
 import { supabase } from '../../services/supabaseClient';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar, KeyboardAvoidingView, Platform, TextInput, InteractionManager } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, StatusBar, KeyboardAvoidingView, Platform, TextInput, InteractionManager, Animated, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
@@ -152,6 +154,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const route = useRoute();
   const { user } = useAuth();
   const { updateOnboardingStep } = useUserState();
+  const insets = useSafeAreaInsets();
   // Determine if we need to show name input step based on registration method
   const [registrationMethod, setRegistrationMethod] = useState<'email' | 'oauth'>('email');
   const [showNameStep, setShowNameStep] = useState(false);
@@ -200,6 +203,54 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const [scrollY, setScrollY] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const askBoxYRef = useRef(0);
+  // Animate the rounded-top container when keyboard opens (details step only)
+  const containerTranslateY = useRef(new Animated.Value(0)).current;
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  // Tooltip for input guidance (mirrors UserInputScreen)
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipOpacity = useRef(new Animated.Value(0)).current;
+  const tooltipTranslateY = useRef(new Animated.Value(6)).current;
+  const inputBorderWidth = useRef(new Animated.Value(1.5)).current;
+  const onPressHint = useCallback(() => {
+    setShowTooltip((prev) => {
+      const next = !prev;
+      if (next) {
+        Animated.parallel([
+          Animated.timing(tooltipOpacity, { toValue: 1, duration: 160, useNativeDriver: true }),
+          Animated.timing(tooltipTranslateY, { toValue: 0, duration: 160, useNativeDriver: true }),
+        ]).start();
+      } else {
+        Animated.parallel([
+          Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+          Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+        ]).start();
+      }
+      return next;
+    });
+  }, [tooltipOpacity, tooltipTranslateY]);
+
+  const handleDetailsFocus = useCallback(() => {
+    Animated.timing(inputBorderWidth, {
+      toValue: 2,
+      duration: 120,
+      useNativeDriver: false,
+    }).start();
+    if (showTooltip) {
+      Animated.parallel([
+        Animated.timing(tooltipOpacity, { toValue: 0, duration: 120, useNativeDriver: true }),
+        Animated.timing(tooltipTranslateY, { toValue: 6, duration: 120, useNativeDriver: true }),
+      ]).start(() => setShowTooltip(false));
+    }
+  }, [inputBorderWidth, showTooltip, tooltipOpacity, tooltipTranslateY]);
+
+  const handleDetailsBlur = useCallback(() => {
+    Animated.timing(inputBorderWidth, {
+      toValue: 1.5,
+      duration: 120,
+      useNativeDriver: false,
+    }).start();
+  }, [inputBorderWidth]);
 
   const focusDetailsInput = useCallback(() => {
     InteractionManager.runAfterInteractions(() => {
@@ -215,18 +266,66 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   // When the user changes challenge, clear details so the new placeholder is visible
   React.useEffect(() => {
     setChallengeDetails('');
-    // Keep focus on the details input when changing challenge while on this step
-    if (currentStep === (showNameStep ? 5 : 4)) {
-      focusDetailsInput();
-    }
-  }, [selectedChallenge, currentStep, focusDetailsInput, showNameStep]);
+    // Do not auto-focus per UX requirement
+  }, [selectedChallenge]);
 
-  // Auto focus when entering the details step
+  // Do not auto-focus when entering the details step per UX requirement
   React.useEffect(() => {
-    if (currentStep === (showNameStep ? 5 : 4)) {
-      focusDetailsInput();
-    }
-  }, [currentStep, showNameStep, focusDetailsInput]);
+    // no-op
+  }, [currentStep, showNameStep]);
+
+  // Always show the top content when entering a new step/page
+  React.useEffect(() => {
+    // Slight delay to allow layout to settle before scrolling
+    const id = setTimeout(() => {
+      try {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+      } catch {}
+    }, 0);
+    return () => clearTimeout(id);
+  }, [currentStep, showNameStep]);
+
+  // Track keyboard visibility and (legacy) slide container up only on details step
+  React.useEffect(() => {
+    const isDetailsStep = currentStep === (showNameStep ? 5 : 4);
+
+    const onShow = (e: any) => {
+      setKeyboardVisible(true);
+      if (!isDetailsStep) return;
+      const kbHeight = e?.endCoordinates?.height ?? 0;
+      const safeBottom = insets?.bottom ?? 0;
+      // Translate only by the portion that overlaps the safe area, leaving a margin
+      // Extra margin of 56 helps keep the sheet from overshooting above the keyboard
+      let shift = Math.max(kbHeight - safeBottom - 56, 0);
+      // Cap shift to avoid moving too far on small content screens
+      shift = Math.min(shift, 240);
+      Animated.timing(containerTranslateY, {
+        toValue: -shift,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    };
+    const onHide = () => {
+      setKeyboardVisible(false);
+      Animated.timing(containerTranslateY, {
+        toValue: 0,
+        duration: 160,
+        useNativeDriver: true,
+      }).start();
+    };
+
+    const subShow = Platform.OS === 'ios'
+      ? Keyboard.addListener('keyboardWillShow', onShow)
+      : Keyboard.addListener('keyboardDidShow', onShow);
+    const subHide = Platform.OS === 'ios'
+      ? Keyboard.addListener('keyboardWillHide', onHide)
+      : Keyboard.addListener('keyboardDidHide', onHide);
+
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, [currentStep, showNameStep, containerTranslateY, insets?.bottom]);
 
   // Dynamic total steps based on whether we show name step
   const totalSteps = showNameStep ? 5 : 4; // Name + Age + Faith + Challenge + Details OR Age + Faith + Challenge + Details
@@ -479,7 +578,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         ))}
       </View>
 
-      <View style={styles.askBox} onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}>
+      <Animated.View style={[styles.askBox, { borderWidth: inputBorderWidth }]} onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}>
         <TextInput
           ref={detailsInputRef}
           style={styles.askInput}
@@ -504,13 +603,60 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           placeholderTextColor="rgba(255, 255, 255, 0.5)"
           cursorColor={Colors.hopeWhite}
           selectionColor={Colors.hopeWhite}
-          autoFocus={currentStep === (showNameStep ? 5 : 4)}
+          // No autoFocus: user must tap to activate cursor
           value={challengeDetails}
           onChangeText={setChallengeDetails}
+          onTouchStart={focusDetailsInput}
+          onFocus={handleDetailsFocus}
+          onBlur={handleDetailsBlur}
           multiline
           textAlignVertical="top"
         />
-      </View>
+        {/* Tooltip anchored above hint icon */}
+        {showTooltip && (
+          <Animated.View style={[
+            styles.tooltip,
+            { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }] },
+          ]} pointerEvents="box-none">
+            <Text style={styles.tooltipKicker}>How Fia can help you.</Text>
+            <Text style={styles.tooltipTitle}>Share what you're going through in detail. The more context, the better.</Text>
+            <Text style={styles.tooltipSubtitle}>Helpful details to include:</Text>
+            <View style={styles.tooltipList}>
+              <View style={styles.tooltipItemRow}>
+                <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>1</Text></View>
+                <Text style={styles.tooltipItemText}>What happened</Text>
+              </View>
+              <View style={styles.tooltipItemRow}>
+                <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>2</Text></View>
+                <Text style={styles.tooltipItemText}>Your pain</Text>
+              </View>
+              <View style={styles.tooltipItemRow}>
+                <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>3</Text></View>
+                <Text style={styles.tooltipItemText}>A situation or struggle</Text>
+              </View>
+              <View style={styles.tooltipItemRow}>
+                <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>4</Text></View>
+                <Text style={styles.tooltipItemText}>A decision you need to make</Text>
+              </View>
+            </View>
+            <Text style={styles.tooltipFooter}>Then we'll turn this into a personalized playbook.</Text>
+            <View style={styles.tooltipCaret} />
+          </Animated.View>
+        )}
+        {/* Hint button */}
+        <TouchableOpacity
+          onPress={onPressHint}
+          activeOpacity={0.9}
+          style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        >
+          <MaterialCommunityIcons
+            name="information"
+            size={30}
+            color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
+          />
+        </TouchableOpacity>
+      </Animated.View>
     </View>
   );
 
@@ -518,6 +664,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     <KeyboardAvoidingView
       style={OnboardingStyles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
     >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
@@ -531,7 +678,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         </View>
       </View>
 
-      <View style={styles.titleContainer}>
+      <View style={[
+        styles.titleContainer,
+        // Condense header further when keyboard is visible on details step to free vertical space
+        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) ? { marginBottom: 0 } : null,
+      ]}>
         {name ? (
           <Text style={styles.userGreeting}>Hi, {name}.</Text>
         ) : null}
@@ -541,7 +692,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         </Text>
       </View>
 
-      <View style={styles.contentContainer}>
+      <Animated.View style={[
+        styles.contentContainer,
+        // Nudge container upward more to expand vertically toward the title when keyboard is visible on details step
+        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) ? { marginTop: -310 } : null,
+      ]}>
         <View style={styles.modalHeader} pointerEvents="box-none">
           <TouchableOpacity
             style={styles.modalBackButton}
@@ -572,6 +727,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         <ScrollView
           ref={scrollViewRef}
           style={styles.scrollContainer}
+          contentContainerStyle={
+            (currentStep === (showNameStep ? 5 : 4) && keyboardVisible)
+              ? { paddingBottom: 28 }
+              : undefined
+          }
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
           scrollEventThrottle={16}
@@ -614,7 +774,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
 
     </KeyboardAvoidingView>
   );
@@ -712,6 +872,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingTop: 44, // leave space for absolute overlay header (chevron + progress)
   },
   stepContainer: {
     flex: 1,
@@ -814,8 +975,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   challengeOptionsContainer: {
-    gap: 8,
-    marginBottom: 20,
+    gap: 16,
+    // Align spacing with faith journey options
+    // Remove extra bottom margin to keep uniform spacing across steps
   },
   challengeOption: {
     flexDirection: 'row',
@@ -946,6 +1108,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     padding: 16,
+    paddingRight: 64, // space for info icon
     width: '100%',
     minHeight: 150,
     maxHeight: 300,
@@ -959,8 +1122,100 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  askHintButton: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    zIndex: 10,
+  },
+  tooltip: {
+    position: 'absolute',
+    right: 10,
+    bottom: 58,
+    maxWidth: 280,
+    backgroundColor: Colors.alertCoral,
+    borderColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: 12,
+    padding: 12,
+    zIndex: 20,
+  },
+  tooltipTitle: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  tooltipKicker: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  tooltipSubtitle: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  tooltipList: {
+    gap: 8,
+    marginTop: 6,
+    marginBottom: 6,
+  },
+  tooltipItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tooltipBadge: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  tooltipBadgeText: {
+    color: Colors.hopeWhite,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  tooltipItemText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+    lineHeight: 18,
+    flexShrink: 1,
+  },
+  tooltipFooter: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 6,
+  },
+  tooltipCaret: {
+    position: 'absolute',
+    right: 24,
+    bottom: -6,
+    width: 12,
+    height: 12,
+    backgroundColor: Colors.alertCoral,
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 3,
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+  disabledButton: {
+    opacity: 0.7,
+    borderRadius: 20,
+    padding: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
   askInput: {
-    color: Colors.white,
+    color: Colors.hopeWhite,
     fontSize: 16,
     padding: 0,
     margin: 0,
