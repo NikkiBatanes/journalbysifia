@@ -340,8 +340,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
     // Haptic + visual feedback when marking as prayed
     if (isPrayed) {
-      // Light haptic (fallback). For richer haptics, we can add react-native-haptic-feedback.
-      try { Vibration.vibrate(10); } catch {}
+      // Mild haptic (fallback). For richer haptics, we can add react-native-haptic-feedback.
+      try { Vibration.vibrate(5); } catch {}
       triggerHeartBounce();
       triggerParty();
     }
@@ -710,6 +710,32 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               subtitle="Connect with God"
             >
               <View style={styles.prayerContainer}>
+                {/* Party Confetti Burst (render first so it's behind text and button) */}
+                {showParty && (
+                  <View pointerEvents="none" style={styles.partyContainer}>
+                    {partyPieces.map((p, idx) => {
+                      const translateX = p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
+                      const translateY = p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, p.dy] });
+                      const rotate = p.anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${p.rot}deg`] });
+                      const opacity = p.anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] });
+                      return (
+                        <Animated.View
+                          key={idx}
+                          style={[
+                            styles.partyPiece,
+                            {
+                              width: p.size,
+                              height: p.size,
+                              backgroundColor: p.color,
+                              opacity,
+                              transform: [{ translateX }, { translateY }, { rotate }],
+                            },
+                          ]}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
                 <Text style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
                     ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
@@ -738,32 +764,6 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                   </Text>
                 </TouchableOpacity>
 
-                {/* Party Confetti Burst */}
-                {showParty && (
-                  <View pointerEvents="none" style={styles.partyContainer}>
-                    {partyPieces.map((p, idx) => {
-                      const translateX = p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
-                      const translateY = p.anim.interpolate({ inputRange: [0, 1], outputRange: [0, p.dy] });
-                      const rotate = p.anim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${p.rot}deg`] });
-                      const opacity = p.anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] });
-                      return (
-                        <Animated.View
-                          key={idx}
-                          style={[
-                            styles.partyPiece,
-                            {
-                              width: p.size,
-                              height: p.size,
-                              backgroundColor: p.color,
-                              opacity,
-                              transform: [{ translateX }, { translateY }, { rotate }],
-                            },
-                          ]}
-                        />
-                      );
-                    })}
-                  </View>
-                )}
               </View>
             </DevotionalSectionCard>
             </ScrollView>
