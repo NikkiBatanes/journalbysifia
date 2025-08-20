@@ -28,7 +28,7 @@ export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavig
       <Stack.Screen
         name="Register"
         component={RegisterScreen}
-        options={{ title: 'Create Account' }}
+        options={{ title: 'Create an Account' }}
       />
       <Stack.Screen
         name="EmailLogin"
@@ -38,7 +38,7 @@ export default function AuthStackNavigator({ onLogin: _onLogin }: AuthStackNavig
       <Stack.Screen
         name="EmailRegister"
         component={EmailRegisterScreen}
-        options={{ title: 'Create Account' }}
+        options={{ title: 'Create an Account' }}
       />
       <Stack.Screen
         name="ForgotPassword"

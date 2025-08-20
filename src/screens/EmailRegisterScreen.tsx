@@ -116,7 +116,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Create an account</Text>
+          <Text style={styles.title}>Create an Account</Text>
           <Text style={styles.subtitle}>Join siFia: Faith in Action</Text>
         </View>
 
@@ -216,7 +216,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color="#274673" />
             ) : (
-              <Text style={styles.registerButtonText}>Create Account</Text>
+              <Text style={styles.registerButtonText}>Create an Account</Text>
             )}
           </TouchableOpacity>
         </View>
