@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0514AFD280B246FE849D1203 /* Lora-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1F2FD5522C744C0FB49EF9BE /* Lora-Medium.ttf */; };
+		094E9AAD7230B8113D674268 /* libPods-siFia.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DA365AFC1F14FA5837C8E3EA /* libPods-siFia.a */; };
 		0F6264EFECCC48E1AC4DB68C /* Lexend-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CA99DA14CC894AFAB6807E65 /* Lexend-Regular.ttf */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		19A3499C21CB487FACC34C08 /* Lexend-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = F3E5E6C36DE54FF0A0AB4FA4 /* Lexend-Medium.ttf */; };
@@ -31,7 +32,6 @@
 		9F72F288FABC4A0D87C03863 /* Lexend-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FEF5C05996784F21B3BF2BB0 /* Lexend-Bold.ttf */; };
 		9FC146FE68FF4846B8380F3F /* EvilIcons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5DD6404215904366A8E904EB /* EvilIcons.ttf */; };
 		A54B2E1C950443E1B510C6B1 /* Poppins-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4D2764BA199D4440A1D5D017 /* Poppins-Bold.ttf */; };
-		ADAEE7E9F9CCE5CF9E820492 /* libPods-siFia.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 0C667F9E2B9DAECC51FD257E /* libPods-siFia.a */; };
 		AFC685DFDB184B2AA9A3469B /* Lexend-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */; };
 		B4446F8E95DA47298B6724D9 /* Ionicons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6C702E38EF6C4E6FA409FA9D /* Ionicons.ttf */; };
 		B457F921B244432A83B0DC62 /* Zocial.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 803AE2F05A1F437681BB4AD5 /* Zocial.ttf */; };
@@ -50,7 +50,6 @@
 
 /* Begin PBXFileReference section */
 		0236ACB8DAE6421C87EDBC23 /* Lora-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Lora-SemiBold.ttf"; path = "../assets/fonts/Lora/Lora-SemiBold.ttf"; sourceTree = "<group>"; };
-		0C667F9E2B9DAECC51FD257E /* libPods-siFia.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-siFia.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		120628914A104590BF731FCA /* Fontisto.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Fontisto.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Fontisto.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* siFia.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = siFia.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = siFia/Images.xcassets; sourceTree = "<group>"; };
@@ -65,11 +64,11 @@
 		43D1FCFBE4BC418F8F1B879C /* Lexend-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-SemiBold.ttf"; path = "../assets/fonts/Lexend/Lexend-SemiBold.ttf"; sourceTree = "<group>"; };
 		4D2764BA199D4440A1D5D017 /* Poppins-Bold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Bold.ttf"; path = "../assets/fonts/Poppins/Poppins-Bold.ttf"; sourceTree = "<group>"; };
 		4E36E768DCE4447F974901D9 /* Entypo.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Entypo.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Entypo.ttf"; sourceTree = "<group>"; };
-		5D6652F64FDD923B1E0727F5 /* Pods-siFia.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-siFia.debug.xcconfig"; path = "Target Support Files/Pods-siFia/Pods-siFia.debug.xcconfig"; sourceTree = "<group>"; };
 		5DD6404215904366A8E904EB /* EvilIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = EvilIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/EvilIcons.ttf"; sourceTree = "<group>"; };
 		68A6229AED15421BBF4DB9A2 /* FontAwesome.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome.ttf"; sourceTree = "<group>"; };
 		69025D5AE32D4F0C9E300580 /* Poppins-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Regular.ttf"; path = "../assets/fonts/Poppins/Poppins-Regular.ttf"; sourceTree = "<group>"; };
 		6C702E38EF6C4E6FA409FA9D /* Ionicons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Ionicons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Ionicons.ttf"; sourceTree = "<group>"; };
+		6FFAFBCF7E7B51A113FC48B7 /* Pods-siFia.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-siFia.release.xcconfig"; path = "Target Support Files/Pods-siFia/Pods-siFia.release.xcconfig"; sourceTree = "<group>"; };
 		72477C3D56F74F81A731CCFA /* FontAwesome5_Solid.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Solid.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Solid.ttf"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = siFia/AppDelegate.swift; sourceTree = "<group>"; };
 		79C4EAB745CB4A43B25C08B1 /* NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"; path = "../assets/fonts/NunitoSans/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf"; sourceTree = "<group>"; };
@@ -83,11 +82,12 @@
 		884EE6073AEE4AC7BB2FD40A /* Poppins-SemiBold.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-SemiBold.ttf"; path = "../assets/fonts/Poppins/Poppins-SemiBold.ttf"; sourceTree = "<group>"; };
 		9597A569D46646D295EF6F5A /* MaterialCommunityIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialCommunityIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf"; sourceTree = "<group>"; };
 		9D531852859B4AC5BDC9CCE0 /* Poppins-Medium.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Medium.ttf"; path = "../assets/fonts/Poppins/Poppins-Medium.ttf"; sourceTree = "<group>"; };
-		BD4DF928D4FA187FA6602EF6 /* Pods-siFia.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-siFia.release.xcconfig"; path = "Target Support Files/Pods-siFia/Pods-siFia.release.xcconfig"; sourceTree = "<group>"; };
+		B99EFF49421E6A36473AF87A /* Pods-siFia.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-siFia.debug.xcconfig"; path = "Target Support Files/Pods-siFia/Pods-siFia.debug.xcconfig"; sourceTree = "<group>"; };
 		C84F4E6C0D67452FBD92E445 /* Feather.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = Feather.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Feather.ttf"; sourceTree = "<group>"; };
 		CA99DA14CC894AFAB6807E65 /* Lexend-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Lexend-Regular.ttf"; path = "../assets/fonts/Lexend/Lexend-Regular.ttf"; sourceTree = "<group>"; };
 		D044DFC269B948D8BFD99AE7 /* Lora-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "Lora-Regular.ttf"; path = "../assets/fonts/Lora/Lora-Regular.ttf"; sourceTree = "<group>"; };
 		D3DB586B99F94FADB066F9B6 /* MaterialIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialIcons.ttf"; sourceTree = "<group>"; };
+		DA365AFC1F14FA5837C8E3EA /* libPods-siFia.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-siFia.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		EC1D7969A19E439DB6376DDE /* FontAwesome6_Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome6_Regular.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome6_Regular.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F1AF3AEE3A824C4788062598 /* AntDesign.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = AntDesign.ttf; path = "../node_modules/react-native-vector-icons/Fonts/AntDesign.ttf"; sourceTree = "<group>"; };
@@ -102,7 +102,7 @@
 			files = (
 				882BD8662E3CA8FB00EB01BA /* AVFoundation.framework in Frameworks */,
 				882BD8642E3CA88200EB01BA /* libRNSound.a in Frameworks */,
-				ADAEE7E9F9CCE5CF9E820492 /* libPods-siFia.a in Frameworks */,
+				094E9AAD7230B8113D674268 /* libPods-siFia.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -127,7 +127,7 @@
 				882BD8652E3CA8FB00EB01BA /* AVFoundation.framework */,
 				882BD8632E3CA88200EB01BA /* libRNSound.a */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				0C667F9E2B9DAECC51FD257E /* libPods-siFia.a */,
+				DA365AFC1F14FA5837C8E3EA /* libPods-siFia.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -165,8 +165,8 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				5D6652F64FDD923B1E0727F5 /* Pods-siFia.debug.xcconfig */,
-				BD4DF928D4FA187FA6602EF6 /* Pods-siFia.release.xcconfig */,
+				B99EFF49421E6A36473AF87A /* Pods-siFia.debug.xcconfig */,
+				6FFAFBCF7E7B51A113FC48B7 /* Pods-siFia.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -218,13 +218,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "siFia" */;
 			buildPhases = (
-				F83E36450C7D4CACD09161AA /* [CP] Check Pods Manifest.lock */,
+				EC3DFE98FE688F3C1AE81571 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				D3C2AA2C593E7DE43F6CC75B /* [CP] Embed Pods Frameworks */,
-				488F35D20CD4C618BCE079CF /* [CP] Copy Pods Resources */,
+				7434D49769682E0B331A3D5F /* [CP] Embed Pods Frameworks */,
+				E5BA057EA30BA4DBC433CD22 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -328,24 +328,7 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
 		};
-		488F35D20CD4C618BCE079CF /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		D3C2AA2C593E7DE43F6CC75B /* [CP] Embed Pods Frameworks */ = {
+		7434D49769682E0B331A3D5F /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -362,7 +345,24 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		F83E36450C7D4CACD09161AA /* [CP] Check Pods Manifest.lock */ = {
+		E5BA057EA30BA4DBC433CD22 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-siFia/Pods-siFia-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		EC3DFE98FE688F3C1AE81571 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -400,7 +400,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5D6652F64FDD923B1E0727F5 /* Pods-siFia.debug.xcconfig */;
+			baseConfigurationReference = B99EFF49421E6A36473AF87A /* Pods-siFia.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -433,7 +433,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = BD4DF928D4FA187FA6602EF6 /* Pods-siFia.release.xcconfig */;
+			baseConfigurationReference = 6FFAFBCF7E7B51A113FC48B7 /* Pods-siFia.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

@@ -292,6 +292,14 @@ const OnboardingPersonalizationScreen: React.FC = () => {
     const onShow = (e: any) => {
       setKeyboardVisible(true);
       if (!isDetailsStep) return;
+      
+      // Scroll to bottom when keyboard appears on details step
+      setTimeout(() => {
+        try {
+          scrollViewRef.current?.scrollToEnd({ animated: true });
+        } catch {}
+      }, 300);
+      
       const kbHeight = e?.endCoordinates?.height ?? 0;
       const safeBottom = insets?.bottom ?? 0;
       // Translate only by the portion that overlaps the safe area, leaving a margin
@@ -695,7 +703,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       <Animated.View style={[
         styles.contentContainer,
         // Nudge container upward more to expand vertically toward the title when keyboard is visible on details step
-        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) ? { marginTop: -310 } : null,
+        (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) ? { marginTop: -215 } : null,
       ]}>
         <View style={styles.modalHeader} pointerEvents="box-none">
           <TouchableOpacity
@@ -729,8 +737,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           style={styles.scrollContainer}
           contentContainerStyle={
             (currentStep === (showNameStep ? 5 : 4) && keyboardVisible)
-              ? { paddingBottom: 28 }
-              : undefined
+              ? { paddingBottom: 10 }
+              : { paddingBottom: 10 }
           }
           showsVerticalScrollIndicator={false}
           onScroll={handleScroll}
@@ -1109,6 +1117,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.2)',
     padding: 16,
     paddingRight: 64, // space for info icon
+    paddingBottom: 12,
     width: '100%',
     minHeight: 150,
     maxHeight: 300,
@@ -1239,7 +1248,7 @@ const styles = StyleSheet.create({
   continueButtonContainer: {
     backgroundColor: 'transparent',
     paddingHorizontal: 20,
-    paddingBottom: 28,
+    paddingBottom: 10,
     paddingTop: 10,
   },
   continueButton: {
