@@ -153,20 +153,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            {/* Expounding Button */}
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                showExpounding && styles.activeActionButton,
-              ]}
-              onPress={toggleExpounding}
-            >
-              <Ionicons
-                name="bulb-outline"
-                size={20}
-                color={showExpounding ? '#6366F1' : '#9CA3AF'}
-              />
-            </TouchableOpacity>
+            {/* Expounding icon-only button removed */}
 
             {/* Export Button */}
             <TouchableOpacity
@@ -283,15 +270,7 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({
       {subtask.text}
     </Text>
 
-    {/* Subtask Expounding Button */}
-    {hasExpoundingAccess && (
-      <TouchableOpacity
-        style={styles.subtaskActionButton}
-        onPress={onShowExpounding}
-      >
-        <Ionicons name="bulb-outline" size={16} color="#6366F1" />
-      </TouchableOpacity>
-    )}
+    {/* Icon-only subtask expounding button removed */}
   </View>
 );
 
