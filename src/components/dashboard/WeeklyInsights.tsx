@@ -15,6 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -222,7 +223,10 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
         { width: (width - 64) / 2 }, // 2 cards per row with margins
         index % 2 === 1 && styles.rightCard,
       ]}
-      onPress={() => onInsightPress?.(insight)}
+      onPress={() => {
+        triggerLightHaptic();
+        onInsightPress?.(insight);
+      }}
       activeOpacity={0.8}
     >
       <View style={styles.cardHeader}>
@@ -276,7 +280,13 @@ const WeeklyInsights: React.FC<WeeklyInsightsProps> = ({ onInsightPress }) => {
         {insights.map(renderInsightCard)}
       </View>
 
-      <TouchableOpacity style={styles.viewAllButton} activeOpacity={0.8}>
+      <TouchableOpacity
+        style={styles.viewAllButton}
+        activeOpacity={0.8}
+        onPress={() => {
+          triggerLightHaptic();
+        }}
+      >
         <Text style={styles.viewAllText}>View Detailed Analytics</Text>
         <Ionicons name="chevron-forward" size={16} color={Colors.alertCoral} />
       </TouchableOpacity>

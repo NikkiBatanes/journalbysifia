@@ -11,6 +11,7 @@ import { TouchableOpacity, View, Image, StyleSheet, Text } from 'react-native';
 
 import { Colors } from '../theme';
 import { useTheme } from '../theme/ThemeContext';
+import { triggerLightHaptic } from '../utils/haptics';
 import BottomTabNavigator from './BottomTabNavigator';
 import PlaybookDetailScreen from '../screens/PlaybookDetailScreenNew';
 import CardDetailScreen from '../screens/CardDetailScreen';
@@ -53,7 +54,13 @@ interface BackButtonProps {
 }
 
 const BackButton = React.memo<BackButtonProps>(({ onPress, color = Colors.anchorBlue }) => (
-  <TouchableOpacity onPress={onPress} style={styles.backButton}>
+  <TouchableOpacity
+    onPress={() => {
+      triggerLightHaptic();
+      onPress();
+    }}
+    style={styles.backButton}
+  >
     <Ionicons name="chevron-back" size={24} color={color} />
   </TouchableOpacity>
 ));

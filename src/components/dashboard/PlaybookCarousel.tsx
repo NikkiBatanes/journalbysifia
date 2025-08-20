@@ -18,6 +18,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.7;
@@ -187,7 +188,10 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
         styles.playbookCard,
         index === 0 ? styles.firstCard : styles.otherCard,
       ]}
-      onPress={() => onPlaybookPress?.(playbook)}
+      onPress={() => {
+        triggerLightHaptic();
+        onPlaybookPress?.(playbook);
+      }}
       activeOpacity={0.8}
     >
       <View style={styles.cardHeader}>
@@ -246,7 +250,13 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       <Text style={styles.emptyDescription}>
         Create your first playbook to start your spiritual journey
       </Text>
-      <TouchableOpacity style={styles.createButton} onPress={onViewAll}>
+      <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => {
+          triggerLightHaptic();
+          onViewAll?.();
+        }}
+      >
         <Text style={styles.createButtonText}>Explore Playbooks</Text>
       </TouchableOpacity>
     </View>
@@ -273,7 +283,13 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
         <MaterialCommunityIcons name="clipboard-text-play" size={24} color={Colors.alertCoral} />
         <Text style={styles.title}>Your Playbooks</Text>
         {playbooks.length > 0 && (
-          <TouchableOpacity onPress={onViewAll} style={styles.viewAllButton}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              onViewAll?.();
+            }}
+            style={styles.viewAllButton}
+          >
             <Text style={styles.viewAllText}>View All</Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.alertCoral} />
           </TouchableOpacity>
@@ -283,7 +299,13 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={fetchPlaybooks} style={styles.retryButton}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              fetchPlaybooks();
+            }}
+            style={styles.retryButton}
+          >
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>

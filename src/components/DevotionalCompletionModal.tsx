@@ -10,14 +10,43 @@ import {
   Dimensions,
   Animated,
   Easing,
+  NativeModules,
 } from 'react-native';
 import { Colors } from '../theme';
+import { OnboardingStyles } from '../theme/onboardingStyles';
 import { Typography as TypographyStyles } from '../theme/typography';
 
 import { Devotional } from '../interfaces/devotional';
 import { extractCleanTitle } from '../utils/titleUtils';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// Lightweight haptic helpers (no-op if module not linked)
+const triggerLightHaptic = () => {
+  try {
+    const { RNHapticFeedback } = NativeModules as any;
+    if (!RNHapticFeedback) return;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Haptic = require('react-native-haptic-feedback');
+    const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+    if (typeof triggerFn === 'function') {
+      triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+    }
+  } catch {}
+};
+
+const triggerSuccessHaptic = () => {
+  try {
+    const { RNHapticFeedback } = NativeModules as any;
+    if (!RNHapticFeedback) return;
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Haptic = require('react-native-haptic-feedback');
+    const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+    if (typeof triggerFn === 'function') {
+      triggerFn('notificationSuccess', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+    }
+  } catch {}
+};
 
 interface DevotionalCompletionModalProps {
   visible: boolean;
@@ -39,9 +68,69 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   onRatingSubmit,
 }) => {
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const backdropAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const checkAnim = useRef(new Animated.Value(0)).current;
   const [rating, setRating] = useState(0);
+
+  // Simple celebratory burst particles
+  type BurstParticle = {
+    id: number;
+    progress: Animated.Value; // 0 -> 1
+    dx: number; // horizontal drift
+    dy: number; // vertical rise
+    size: number; // icon size
+    rotate: number; // degrees
+    color: string;
+    delay: number;
+  };
+  const [burstParticles, setBurstParticles] = useState<BurstParticle[]>([]);
+  const burstIdRef = useRef(0);
+
+  const startBurst = useCallback((count = 12) => {
+    const colors = [Colors.growthGreen, '#6bd16b', '#8de98d'];
+    const particles: BurstParticle[] = Array.from({ length: count }).map((_, i) => {
+      const id = burstIdRef.current++;
+      return {
+        id,
+        progress: new Animated.Value(0),
+        dx: (Math.random() * 140 - 70), // -70..70
+        dy: 60 + Math.random() * 80,    // 60..140 upward
+        size: 10 + Math.random() * 8,   // 10..18
+        rotate: Math.random() * 90 - 45, // -45..45 deg
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: i * 25,
+      };
+    });
+
+    setBurstParticles(prev => [...prev, ...particles]);
+
+    particles.forEach((p) => {
+      Animated.timing(p.progress, {
+        toValue: 1,
+        duration: 900,
+        delay: p.delay,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.quad),
+      }).start();
+    });
+
+    // Haptic pattern aligned with the burst: 4 light taps spaced across the burst duration
+    const pulses = 4;
+    const step = Math.max(1, Math.floor(particles.length / pulses));
+    for (let i = 0; i < pulses; i++) {
+      const idx = Math.min(particles.length - 1, i * step);
+      const delay = particles[idx]?.delay || i * 80;
+      setTimeout(() => {
+        triggerLightHaptic();
+      }, delay);
+    }
+
+    // Cleanup after the burst completes
+    setTimeout(() => {
+      setBurstParticles(prev => prev.filter(h => !particles.find(n => n.id === h.id)));
+    }, 1300);
+  }, []);
 
   const isLastDay = devotional &&
     currentDayNumber === devotional.totalDays;
@@ -50,32 +139,46 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const totalDays = devotional?.totalDays || 0;
   const progress = totalDays > 0 ? (completedDays / totalDays) * 100 : 0;
 
+  // Guard to avoid re-running the full open sequence while visible stays true
+  const hasOpenedRef = useRef(false);
+
+  // Run the slide-in and initial animations only when visibility changes to true
   useEffect(() => {
-    if (visible) {
-      // Reset animations when modal becomes visible
+    if (visible && !hasOpenedRef.current) {
+      hasOpenedRef.current = true;
+
+      // Reset and run slide-in
       slideAnim.setValue(SCREEN_HEIGHT);
-      progressAnim.setValue(0);
+      backdropAnim.setValue(0);
       checkAnim.setValue(0);
 
-      // Start slide-up animation
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-        easing: Easing.out(Easing.ease),
-      }).start();
+      Animated.parallel([
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 240,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+        Animated.timing(backdropAnim, {
+          toValue: 1,
+          duration: 240,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+      ]).start();
 
-      // Start progress bar animation after a delay
+      // Kick off initial progress animation shortly after opening
       setTimeout(() => {
+        progressAnim.setValue(0);
         Animated.timing(progressAnim, {
           toValue: progress,
           duration: 1000,
           useNativeDriver: false,
           easing: Easing.out(Easing.ease),
         }).start();
-      }, 500);
+      }, 300);
 
-      // Start checkmark animation after progress animation
+      // Checkmark reveal sequence
       setTimeout(() => {
         Animated.timing(checkAnim, {
           toValue: 1,
@@ -83,17 +186,48 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           useNativeDriver: true,
           easing: Easing.bounce,
         }).start();
-      }, 1500);
+        // Subtle success haptic when check appears
+        triggerSuccessHaptic();
+        // Fire celebratory burst when checkmark appears
+        startBurst();
+      }, 1200);
+    }
+
+    if (!visible) {
+      // Allow animations to run again next time it's opened
+      hasOpenedRef.current = false;
     }
   }, [visible, slideAnim, progressAnim, checkAnim, progress]);
 
+  // When progress value changes while the modal is open, smoothly update the bar
+  // without resetting or re-running the slide-in animation.
+  useEffect(() => {
+    if (!visible) return;
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 500,
+      useNativeDriver: false,
+      easing: Easing.out(Easing.ease),
+    }).start();
+  }, [progress, visible, progressAnim]);
+
   const handleClose = useCallback(() => {
-    Animated.timing(slideAnim, {
-      toValue: SCREEN_HEIGHT,
-      duration: 300,
-      useNativeDriver: true,
-      easing: Easing.in(Easing.ease),
-    }).start(() => {
+    // Haptic on close action
+    triggerLightHaptic();
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: SCREEN_HEIGHT,
+        duration: 220,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.cubic),
+      }),
+      Animated.timing(backdropAnim, {
+        toValue: 0,
+        duration: 180,
+        useNativeDriver: true,
+        easing: Easing.in(Easing.cubic),
+      }),
+    ]).start(() => {
       onClose();
       setRating(0);
     });
@@ -102,6 +236,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const handleStarPress = useCallback((index: number) => {
     const selectedRating = index + 1;
     // Update the UI state immediately
+    triggerLightHaptic();
     setRating(selectedRating);
     // Submit the rating in the background
     onRatingSubmit(selectedRating).catch(console.error);
@@ -156,10 +291,12 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     >
       <View style={styles.overlay}>
         <TouchableWithoutFeedback onPress={handleClose}>
-          <Animated.View style={[
-            styles.backdrop,
-            visible && styles.backdropVisible,
-          ]} />
+          <Animated.View
+            style={[
+              styles.backdrop,
+              { opacity: backdropAnim },
+            ]}
+          />
         </TouchableWithoutFeedback>
         <Animated.View
           style={[
@@ -168,7 +305,6 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           ]}
         >
           <View style={styles.header}>
-            <View style={styles.handle} />
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={Colors.hopeWhite} />
             </TouchableOpacity>
@@ -199,6 +335,58 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                     },
                   ]}
                 >
+                  {burstParticles.length > 0 && (
+                    <View pointerEvents="none" style={styles.burstLayer}>
+                      {burstParticles.map((p) => {
+                        const translateY = p.progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -p.dy],
+                        });
+                        const translateX = p.progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, p.dx],
+                        });
+                        const scale = p.progress.interpolate({
+                          inputRange: [0, 0.3, 1],
+                          outputRange: [0.4, 1.1, 0.8],
+                        });
+                        const opacity = p.progress.interpolate({
+                          inputRange: [0, 0.6, 1],
+                          outputRange: [0, 1, 0],
+                        });
+                        return (
+                          <Animated.View
+                            key={p.id}
+                            style={[
+                              styles.burstParticle,
+                              {
+                                opacity,
+                                transform: [
+                                  { translateX },
+                                  { translateY },
+                                  { scale },
+                                  { rotate: `${p.rotate}deg` },
+                                ],
+                              },
+                            ]}
+                          >
+                            <View
+                              style={{
+                                width: p.size + 10,
+                                height: p.size + 10,
+                                borderRadius: (p.size + 10) / 2,
+                                backgroundColor: Colors.growthGreen,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Ionicons name="checkmark" size={p.size} color={Colors.hopeWhite} />
+                            </View>
+                          </Animated.View>
+                        );
+                      })}
+                    </View>
+                  )}
                   <Ionicons
                     name="checkmark-circle"
                     size={80}
@@ -256,6 +444,58 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                     },
                   ]}
                 >
+                  {burstParticles.length > 0 && (
+                    <View pointerEvents="none" style={styles.burstLayer}>
+                      {burstParticles.map((p) => {
+                        const translateY = p.progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, -p.dy],
+                        });
+                        const translateX = p.progress.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, p.dx],
+                        });
+                        const scale = p.progress.interpolate({
+                          inputRange: [0, 0.3, 1],
+                          outputRange: [0.4, 1.1, 0.8],
+                        });
+                        const opacity = p.progress.interpolate({
+                          inputRange: [0, 0.6, 1],
+                          outputRange: [0, 1, 0],
+                        });
+                        return (
+                          <Animated.View
+                            key={p.id}
+                            style={[
+                              styles.burstParticle,
+                              {
+                                opacity,
+                                transform: [
+                                  { translateX },
+                                  { translateY },
+                                  { scale },
+                                  { rotate: `${p.rotate}deg` },
+                                ],
+                              },
+                            ]}
+                          >
+                            <View
+                              style={{
+                                width: p.size + 10,
+                                height: p.size + 10,
+                                borderRadius: (p.size + 10) / 2,
+                                backgroundColor: Colors.growthGreen,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <Ionicons name="checkmark" size={p.size} color={Colors.hopeWhite} />
+                            </View>
+                          </Animated.View>
+                        );
+                      })}
+                    </View>
+                  )}
                   <Ionicons
                     name="checkmark-circle"
                     size={80}
@@ -275,10 +515,10 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                 </View>
 
                 <TouchableOpacity
-                  style={styles.continueButton}
-                  onPress={onContinue}
+                  style={[OnboardingStyles.primaryButton, styles.continueButtonOverride]}
+                  onPress={() => { triggerLightHaptic(); onContinue(); }}
                 >
-                  <Text style={styles.continueButtonText}>
+                  <Text style={OnboardingStyles.primaryButtonText}>
                     Continue to Next Day
                   </Text>
                 </TouchableOpacity>
@@ -327,13 +567,6 @@ const styles = StyleSheet.create({
     top: 12,
     padding: 8,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 2,
-    marginTop: 4,
-  },
   contentContainer: {
     flex: 1,
     paddingHorizontal: 24,
@@ -381,6 +614,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  burstLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  burstParticle: {
+    position: 'absolute',
   },
   progressContainer: {
     width: '100%',
@@ -484,6 +725,10 @@ const styles = StyleSheet.create({
     ...TypographyStyles.interSemiBold,
     fontSize: 16,
     color: Colors.hopeWhite,
+  },
+  continueButtonOverride: {
+    width: '100%',
+    marginTop: 30,
   },
 });
 

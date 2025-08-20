@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   Animated,
   StatusBar,
@@ -89,6 +90,59 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     color: string;
     delay: number;
   };
+
+  const triggerSuccessHaptic = () => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) { return; }
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('notificationSuccess', {
+          enableVibrateFallback: false,
+          ignoreAndroidSystemSettings: false,
+        });
+      }
+    } catch {
+      // silent no-op
+    }
+  };
+
+  const prayerHapticTimersRef = useRef<number[]>([]);
+  const startPrayerBurstHaptics = () => {
+    try {
+      // Clear any existing timers first
+      prayerHapticTimersRef.current.forEach(id => clearTimeout(id));
+      prayerHapticTimersRef.current = [];
+      // Mirror the 4-pulse timing used elsewhere
+      const schedule = [0, 250, 500, 750];
+      schedule.forEach(delay => {
+        const id = setTimeout(() => {
+          try {
+            const { RNHapticFeedback } = NativeModules as any;
+            if (!RNHapticFeedback) return;
+            const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+            if (hapticsPref === false) { return; }
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const Haptic = require('react-native-haptic-feedback');
+            const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+            if (typeof triggerFn === 'function') {
+              triggerFn('impactLight', {
+                enableVibrateFallback: false,
+                ignoreAndroidSystemSettings: false,
+              });
+            }
+          } catch {}
+        }, delay) as unknown as number;
+        prayerHapticTimersRef.current.push(id);
+      });
+    } catch {
+      // silent no-op
+    }
+  };
   const [heartParticles, setHeartParticles] = useState<HeartParticle[]>([]);
   const heartIdRef = useRef(0);
 
@@ -163,8 +217,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     const nextIsPrayed = !prayedDays[prayerKey];
 
     if (nextIsPrayed) {
-      triggerLightHaptic();
+      // Match the celebratory pattern: success + 4 light pulses
+      triggerSuccessHaptic();
+      startPrayerBurstHaptics();
       startHeartBurst();
+    } else {
+      // Provide a subtle haptic when unmarking
+      triggerLightHaptic();
     }
     togglePrayed();
   };
@@ -345,6 +404,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     if (!devotional) {
       return;
     }
+    
+    // Trigger haptic feedback and open modal immediately for responsiveness
+    triggerLightHaptic();
 
     // Get the current day
     const dayToMark = devotional.days[currentDayIndex];
@@ -352,20 +414,20 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       return;
     }
 
-    try {
-      // Mark the day as complete in the database
-      const success = await markDayComplete(devotional.id, dayToMark.dayNumber);
-      if (success) {
-        // React Query handles optimistic updates automatically
-        // Store the completed day index for modal display
-        setCompletedDayIndex(currentDayIndex);
-        setShowCompletionModal(true);
-      } else {
-        console.error('Failed to mark day as complete');
-      }
-    } catch (error) {
-      console.error('Error marking day as complete:', error);
-    }
+    // Show modal right away to reduce perceived delay
+    setCompletedDayIndex(currentDayIndex);
+    setShowCompletionModal(true);
+
+    // Perform DB update in background
+    markDayComplete(devotional.id, dayToMark.dayNumber)
+      .then((success) => {
+        if (!success) {
+          console.error('Failed to mark day as complete');
+        }
+      })
+      .catch((error) => {
+        console.error('Error marking day as complete:', error);
+      });
   };
 
   // Toggle prayer status for the current day and add to prayed items
@@ -587,7 +649,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           visible={showCompletionModal}
           devotional={devotional}
           currentDayNumber={(completedDayIndex ?? 0) + 1}
-          completedDays={devotional.days.filter(day => day.completed).length}
+          completedDays={
+            devotional.days.filter(day => day.completed).length +
+            (devotional.days[(completedDayIndex ?? 0)]?.completed ? 0 : 1)
+          }
           onContinue={handleCompletionContinue}
           onClose={handleModalClose}
           onRatingSubmit={handleRatingSubmit}
@@ -800,7 +865,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                               },
                             ]}
                           >
-                            <Ionicons name="heart" size={p.size} color={p.color} />
+                            <MaterialCommunityIcons name="hands-pray" size={p.size} color={p.color} />
                           </Animated.View>
                         );
                       })}
@@ -816,10 +881,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                   onPress={onPrayPress}
                   disabled={createDevotionalPrayerMutation.isPending}
                 >
-                  <Ionicons
-                    name="heart"
+                  <MaterialCommunityIcons
+                    name="hands-pray"
                     size={20}
-                    color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.inactiveIcon}
+                    color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.hopeWhite}
                     style={styles.prayerIcon}
                   />
                   <Text style={[
@@ -1133,15 +1198,17 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingLeft: 10,
     paddingRight: 14,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    // Match onboarding email button style
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
     borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
+    // Subtle white border like onboarding buttons
+    borderColor: 'rgba(255,255,255,0.2)',
     zIndex: 6,
   },
   prayerButtonActive: {
@@ -1150,7 +1217,7 @@ const styles = StyleSheet.create({
   },
   prayerButtonText: {
     marginLeft: 2,
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     fontWeight: '600',

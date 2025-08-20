@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { Colors } from '../theme';
 
 export interface SuccessModalConfig {
@@ -22,22 +23,63 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
   onEdit,
 }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const timersRef = React.useRef<number[]>([]);
+
+  const hapticOptions = React.useMemo(() => ({
+    enableVibrateFallback: true,
+    ignoreAndroidSystemSettings: false,
+  }), []);
+
+  const triggerLightHaptic = React.useCallback(() => {
+    try { ReactNativeHapticFeedback.trigger('impactLight', hapticOptions); } catch {}
+  }, [hapticOptions]);
+
+  const triggerSuccessHaptic = React.useCallback(() => {
+    try { ReactNativeHapticFeedback.trigger('notificationSuccess', hapticOptions); } catch {}
+  }, [hapticOptions]);
+
+  const startBurstHaptics = React.useCallback(() => {
+    // Clear any existing timers before starting
+    timersRef.current.forEach(id => clearTimeout(id));
+    timersRef.current = [];
+    const schedule = [0, 250, 500, 750];
+    schedule.forEach(delay => {
+      const id = setTimeout(() => {
+        ReactNativeHapticFeedback.trigger('impactLight', hapticOptions);
+      }, delay) as unknown as number;
+      timersRef.current.push(id);
+    });
+  }, [hapticOptions]);
 
   React.useEffect(() => {
     if (visible && config) {
+      // Visual fade-in
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }).start();
+
+      // Haptics: success + 4 light pulses
+      triggerSuccessHaptic();
+      startBurstHaptics();
     } else {
+      // Visual fade-out
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
       }).start();
+
+      // Cleanup timers when hiding
+      timersRef.current.forEach(id => clearTimeout(id));
+      timersRef.current = [];
     }
-  }, [visible, config, fadeAnim]);
+    return () => {
+      timersRef.current.forEach(id => clearTimeout(id));
+      timersRef.current = [];
+    };
+  }, [visible, config, fadeAnim, triggerSuccessHaptic, startBurstHaptics]);
 
   if (!visible || !config) {
     return null;
@@ -65,7 +107,7 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
               {config.showEditButton && onEdit && (
                 <TouchableOpacity
                   style={[styles.button, styles.editButton]}
-                  onPress={onEdit}
+                  onPress={() => { triggerLightHaptic(); onEdit(); }}
                 >
                   <Text style={styles.editButtonText}>Edit</Text>
                 </TouchableOpacity>
@@ -73,7 +115,7 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
 
               <TouchableOpacity
                 style={[styles.button, styles.doneButton]}
-                onPress={onDone}
+                onPress={() => { triggerLightHaptic(); onDone(); }}
               >
                 <Text style={styles.doneButtonText}>Done</Text>
               </TouchableOpacity>

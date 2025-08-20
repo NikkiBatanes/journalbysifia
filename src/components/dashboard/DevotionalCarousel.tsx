@@ -18,6 +18,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.75;
@@ -215,7 +216,10 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
         },
       ]}
-      onPress={() => onDevotionalPress?.(devotional)}
+      onPress={() => {
+        triggerLightHaptic();
+        onDevotionalPress?.(devotional);
+      }}
       activeOpacity={0.8}
     >
       <View style={styles.cardHeader}>
@@ -310,7 +314,13 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
         <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
         <Text style={styles.title}>Your Devotionals</Text>
         {devotionals.length > 0 && (
-          <TouchableOpacity onPress={onViewAll} style={styles.viewAllButton}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              onViewAll?.();
+            }}
+            style={styles.viewAllButton}
+          >
             <Text style={styles.viewAllText}>View All</Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.alertCoral} />
           </TouchableOpacity>
@@ -320,7 +330,13 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={fetchDevotionals} style={styles.retryButton}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              fetchDevotionals();
+            }}
+            style={styles.retryButton}
+          >
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
