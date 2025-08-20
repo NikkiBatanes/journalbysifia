@@ -8,9 +8,9 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   StyleSheet,
-  Animated,
   StatusBar,
   Platform,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -30,13 +30,8 @@ interface OnboardingSplashScreenProps {
 const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onComplete: _onComplete }) => {
   const navigation = useNavigation();
   const { user } = useAuth();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
   const hasNavigatedRef = useRef(false);
 
-  // Elegant loading dots animations
-  const dot1Anim = useRef(new Animated.Value(0.4)).current;
-  const dot2Anim = useRef(new Animated.Value(0.4)).current;
-  const dot3Anim = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
     console.log('[SplashScreen] Component mounted, starting splash screen flow');
@@ -53,59 +48,9 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       console.error('[SplashScreen] Error setting status bar:', error);
     }
 
-    // Simple logo fade-in
-    try {
-      console.log('[SplashScreen] Starting logo fade-in animation');
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start(() => {
-        console.log('[SplashScreen] Logo fade-in animation completed');
-      });
-    } catch (error) {
-      console.error('[SplashScreen] Error in fade-in animation:', error);
-    }
+    // Show logo instantly (removed fade-in)
 
-    // Start elegant pulsing dots animation
-    const animateDot = (dotAnim: Animated.Value, delay: number, dotNum: number) => {
-      console.log(`[SplashScreen] Starting dot ${dotNum} animation with delay ${delay}ms`);
-      try {
-        return Animated.loop(
-          Animated.sequence([
-            Animated.delay(delay),
-            Animated.timing(dotAnim, {
-              toValue: 1,
-              duration: 800,
-              useNativeDriver: true,
-            }),
-            Animated.timing(dotAnim, {
-              toValue: 0.4,
-              duration: 800,
-              useNativeDriver: true,
-            }),
-          ])
-        );
-      } catch (error) {
-        console.error(`[SplashScreen] Error creating dot ${dotNum} animation:`, error);
-        return { start: () => {}, stop: () => {} };
-      }
-    };
-
-    // Start staggered dot animations
-    let anim1: any, anim2: any, anim3: any;
-    try {
-      console.log('[SplashScreen] Starting dot animations');
-      anim1 = animateDot(dot1Anim, 0, 1);
-      anim2 = animateDot(dot2Anim, 200, 2);
-      anim3 = animateDot(dot3Anim, 400, 3);
-
-      anim1.start();
-      anim2.start();
-      anim3.start();
-    } catch (error) {
-      console.error('[SplashScreen] Error starting dot animations:', error);
-    }
+    // Removed loading dots animation for a cleaner splash
 
     // Conditional navigation: decide based on post-auth redirect, auth + subscription status
     const navigateToCorrectScreen = async (): Promise<boolean> => {
@@ -380,15 +325,12 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       }
     }, 3000);
 
-    // Cleanup function for both animations and timeout
+    // Cleanup function for timeout
     return () => {
       console.log('[SplashScreen] Cleaning up animations and navigation timeout');
-      if (anim1) {anim1.stop();}
-      if (anim2) {anim2.stop();}
-      if (anim3) {anim3.stop();}
       if (navigationTimeout) {clearTimeout(navigationTimeout);}
     };
-  }, [dot1Anim, dot2Anim, dot3Anim, fadeAnim, navigation, user]); // Added missing dependencies
+  }, [navigation, user]);
 
   return (
     <View style={styles.container}>
@@ -396,23 +338,11 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
       {/* Logo Section */}
       <View style={styles.logoSection}>
-        <Animated.Image
+        <Image
           source={require('../../../assets/icons/siFiaTransparent.png')}
-          style={[
-            styles.logoImage,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
+          style={styles.logoImage}
           resizeMode="contain"
         />
-
-        {/* Loading Dots */}
-        <View style={styles.loadingContainer}>
-          <Animated.View style={[styles.dot, { opacity: dot1Anim }]} />
-          <Animated.View style={[styles.dot, { opacity: dot2Anim }]} />
-          <Animated.View style={[styles.dot, { opacity: dot3Anim }]} />
-        </View>
 
 
       </View>
@@ -439,19 +369,6 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 200,
     height: 200,
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.hopeWhite,
-    marginHorizontal: 4,
   },
 });
 

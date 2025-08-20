@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { useRef, useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, Animated, Image, Text, Alert } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useRef, useEffect, useState } from 'react';
+import { View, StyleSheet, Animated, Image, Text, Alert, StatusBar, ScrollView } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/types';
@@ -18,17 +18,26 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
 const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const { userInput, userName, isFromOnboarding } = route.params;
   const { user } = useAuth();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const [animationKey, setAnimationKey] = useState(0);
-  const animations = useRef<Animated.Value[]>([]);
+  const insets = useSafeAreaInsets();
   const [isGenerating, setIsGenerating] = useState(false);
   const hasGenerated = useRef(false);
-  const isMounted = useRef(true);
 
-  // Pulse animation values (legacy simple pulse for lines/logo)
-  const pulseValue = useRef(new Animated.Value(0.8)).current;
+  // Progress and step visuals (aligned with onboarding screen)
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const [currentStep, setCurrentStep] = useState(0);
+  const generationSteps = [
+    { title: 'Breathe in peace...', description: '' },
+    { title: 'Breathe out worry...', description: '' },
+    { title: 'Listening to your heart…', description: '' },
+    { title: 'Finding God\'s Word for your season…', description: '' },
+    { title: 'Preparing your steps…', description: '' },
+    { title: 'Equipping you for the journey…', description: '' },
+    { title: 'Finalizing Your Playbook', description: '' },
+  ];
+  const currentTitle = generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title || '';
+  const baseTitle = currentTitle.replace(/(…|\.{1,3})\s*$/, '').trimEnd();
 
-  // Concentric Aura breathing values (three rings)
+  // Bottom sun concentric rings animation
   const aura1Scale = useRef(new Animated.Value(0.9)).current;
   const aura2Scale = useRef(new Animated.Value(0.9)).current;
   const aura3Scale = useRef(new Animated.Value(0.9)).current;
@@ -36,46 +45,12 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const aura2Opacity = useRef(new Animated.Value(0.28)).current;
   const aura3Opacity = useRef(new Animated.Value(0.20)).current;
 
-  // Fade in and pulse animation when component mounts
-  useEffect(() => {
-    // Start fade in animation
-    const fadeIn = Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    });
+  // Shimmer for step text and animated dots
+  const shimmerOpacity = useRef(new Animated.Value(0.85)).current;
+  const [dotCount, setDotCount] = useState(0);
+  const [dotsWidth, setDotsWidth] = useState<number | null>(null);
 
-    // Create pulse animation
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseValue, {
-          toValue: 1.1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseValue, {
-          toValue: 0.9,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // Start both animations with mount check
-    fadeIn.start((finished) => {
-      if (!isMounted.current || !finished) {return;}
-    });
-    pulseAnimation.start((finished) => {
-      if (!isMounted.current || !finished) {return;}
-    });
-
-    // Cleanup function
-    return () => {
-      fadeIn.stop();
-      pulseAnimation.stop();
-      pulseValue.setValue(0.8); // Reset to initial scale
-    };
-  }, [fadeAnim, pulseValue]);
+  // No fade-in; show UI instantly
 
   // Generate playbook when component mounts
   useEffect(() => {
@@ -87,7 +62,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       isGenerating,
     });
     const generatePlaybookContent = async () => {
-      if (isGenerating || hasGenerated.current) {return;}
+      if (hasGenerated.current) {return;}
 
       hasGenerated.current = true;
       setIsGenerating(true);
@@ -149,15 +124,22 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
           }
         }
 
+        // Smoothly complete progress bar, then navigate
+        await new Promise<void>((resolve) => {
+          Animated.timing(progressAnim, {
+            toValue: 100,
+            duration: 800,
+            useNativeDriver: false,
+          }).start(() => resolve());
+        });
+
         // Navigate based on whether this is from onboarding or main flow
         if (isFromOnboarding) {
-          // For onboarding, go to actual playbook first
           navigation.navigate('PlaybookDetail' as any, {
             playbook: savedPlaybook,
             isFromOnboarding: true,
           });
         } else {
-          // For main flow, go directly to playbook detail
           navigation.reset({
             index: 0,
             routes: [
@@ -181,39 +163,16 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
       }
     };
 
-    // Start generation after a short delay to show animation
+    // Start showing UI immediately; delay the actual generation slightly
+    setIsGenerating(true);
     const timer = setTimeout(generatePlaybookContent, 3000);
     return () => clearTimeout(timer);
-  }, [userInput, userName, isFromOnboarding, isGenerating, navigation, user?.id]);
+  }, [userInput, userName, isFromOnboarding, isGenerating, navigation, user?.id, progressAnim]);
 
 
-
-
-
-  // Progress steps
-  const [currentStep, setCurrentStep] = useState(0);
-  const [_completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false, false, false]);
-
-  const steps = [
-    { id: 1, title: 'Analyzing Your Challenge', description: 'Understanding your specific needs...' },
-    { id: 2, title: 'Finding Truth in Love', description: 'Discovering biblical wisdom...' },
-    { id: 3, title: 'Creating Action Steps', description: 'Building practical solutions...' },
-    { id: 4, title: 'Crafting Affirmations', description: 'Preparing encouraging words...' },
-    { id: 5, title: 'Finalizing Your Playbook', description: 'Putting it all together...' },
-  ];
-
-  // Progress animation
-  const progressAnimation = useRef(new Animated.Value(0)).current;
-
-  // Breathing animation text
-  const [breathingText, setBreathingText] = useState('Breathe in...');
-  const [_breathingPhase, setBreathingPhase] = useState<'in' | 'hold' | 'out'>('in');
-  const breathingAnim = useRef(new Animated.Value(0.9)).current;
-
-  // Breathing animation cycle: Inhale (4s) → Hold (1s) → Exhale (4s)
+  // Bottom sun ring animation loop
   useEffect(() => {
     let stopped = false;
-
     const animateRing = (
       scaleVal: Animated.Value,
       opacityVal: Animated.Value,
@@ -221,410 +180,285 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
     ) => {
       const cycle = () => {
         if (stopped) {return;}
-        // Inhale
         Animated.sequence([
           Animated.delay(startDelay),
           Animated.parallel([
             Animated.timing(scaleVal, { toValue: 1.1, duration: 4000, useNativeDriver: true }),
             Animated.timing(opacityVal, { toValue: 0.55, duration: 4000, useNativeDriver: true }),
           ]),
-          // Hold
           Animated.parallel([
             Animated.delay(1000),
           ]),
-          // Exhale
           Animated.parallel([
             Animated.timing(scaleVal, { toValue: 0.85, duration: 4000, useNativeDriver: true }),
             Animated.timing(opacityVal, { toValue: 0.22, duration: 4000, useNativeDriver: true }),
           ]),
         ]).start(({ finished }) => {
-          if (!finished || stopped) {return;}
+          if (!finished || stopped) { return; }
           cycle();
         });
       };
       cycle();
     };
-
-    // Drive the central logo scale with the main breathingAnim
-    const animateCore = () => {
-      const coreCycle = () => {
-        if (stopped) {return;}
-        // Inhale
-        Animated.timing(breathingAnim, { toValue: 1.12, duration: 4000, useNativeDriver: true }).start(({ finished }) => {
-          if (!finished || stopped) {return;}
-          setBreathingPhase('hold');
-          setBreathingText('Hold...');
-          // Hold
-          Animated.delay(1000).start(() => {
-            if (stopped) {return;}
-            setBreathingPhase('out');
-            setBreathingText('Breathe out...');
-            // Exhale
-            Animated.timing(breathingAnim, { toValue: 0.88, duration: 4000, useNativeDriver: true }).start(({ finished: f2 }) => {
-              if (!f2 || stopped) {return;}
-              setBreathingPhase('in');
-              setBreathingText('Breathe in...');
-              coreCycle();
-            });
-          });
-        });
-      };
-      coreCycle();
-    };
-
-    // Start rings with slight phase offsets
     animateRing(aura1Scale, aura1Opacity, 0);
     animateRing(aura2Scale, aura2Opacity, 250);
     animateRing(aura3Scale, aura3Opacity, 500);
-    animateCore();
-
     return () => {
       stopped = true;
-      // Stop animations by stopping any running timing (best-effort)
-      aura1Scale.stopAnimation(); aura2Scale.stopAnimation(); aura3Scale.stopAnimation();
-      aura1Opacity.stopAnimation(); aura2Opacity.stopAnimation(); aura3Opacity.stopAnimation();
-      breathingAnim.stopAnimation();
+      aura1Scale.stopAnimation();
+      aura2Scale.stopAnimation();
+      aura3Scale.stopAnimation();
+      aura1Opacity.stopAnimation();
+      aura2Opacity.stopAnimation();
+      aura3Opacity.stopAnimation();
     };
-  }, [breathingAnim, aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity]);
+  }, [aura1Scale, aura2Scale, aura3Scale, aura1Opacity, aura2Opacity, aura3Opacity]);
 
-  // Progress step animation
+  // Shimmer effect for step text
   useEffect(() => {
+    let mounted = true;
+    const loop = () => {
+      Animated.sequence([
+        Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
+      ]).start(({ finished }) => {
+        if (finished && mounted && isGenerating) loop();
+      });
+    };
+    if (isGenerating) loop();
+    return () => {
+      mounted = false;
+      shimmerOpacity.stopAnimation();
+    };
+  }, [isGenerating, shimmerOpacity]);
+
+  // Animated dots for step text
+  useEffect(() => {
+    if (!isGenerating) { return; }
+    const id = setInterval(() => setDotCount(prev => (prev + 1) % 4), 500);
+    return () => clearInterval(id);
+  }, [isGenerating]);
+
+  // Step advancement and progress bar animation (cap at 95%)
+  useEffect(() => {
+    if (!isGenerating) { return; }
     const stepInterval = setInterval(() => {
-      if (!isMounted.current) {return;}
       setCurrentStep(prev => {
         const nextStep = prev + 1;
-        if (nextStep < steps.length) {
-          // Mark current step as completed
-          setCompletedSteps(prevCompleted => {
-            const newCompleted = [...prevCompleted];
-            newCompleted[prev] = true;
-            return newCompleted;
-          });
-          return nextStep;
-        }
-        return prev;
+        const isLastStep = nextStep >= generationSteps.length;
+        Animated.timing(progressAnim, {
+          toValue: Math.min(((isLastStep ? generationSteps.length : nextStep) / generationSteps.length) * 100, 95),
+          duration: 1000,
+          useNativeDriver: false,
+        }).start();
+        return isLastStep ? prev : nextStep;
       });
-    }, 600); // Progress every 600ms to complete in 3 seconds
-
+    }, 3000);
     return () => clearInterval(stepInterval);
-  }, [steps.length]);
-
-  // Animate progress bar based on current step
-  useEffect(() => {
-    Animated.timing(progressAnimation, {
-      toValue: ((currentStep + 1) / steps.length) * 100,
-      duration: 500,
-      useNativeDriver: false,
-    }).start((finished) => {
-      if (!isMounted.current || !finished) {return;}
-    });
-  }, [currentStep, steps.length, progressAnimation]);
-
-  // Start line animations
-  useEffect(() => {
-    // Capture ref value at the start of the effect
-    const currentAnimations = animations.current;
-
-    // Line animations
-    const lineAnimations = currentAnimations.map((anim, index) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(index * 100),
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0.3,
-            duration: 800,
-            useNativeDriver: true,
-          }),
-        ])
-      )
-    );
-
-    // Start line animations
-    const lineAnimation = Animated.stagger(100, lineAnimations);
-    lineAnimation.start();
-
-    // Cleanup function
-    return () => {
-      lineAnimation.stop();
-      currentAnimations.forEach(anim => anim.setValue(0.3));
-    };
-  }, [animationKey]);
-
-  // Reset animations when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      if (!isMounted.current) {return;}
-      setAnimationKey(prev => prev + 1);
-      return () => {};
-    }, [])
-  );
-
-  // Cleanup effect - stop all animations on unmount
-  useEffect(() => {
-    // Capture ref value at the start of the effect
-    const currentAnimations = animations.current;
-
-    return () => {
-      isMounted.current = false;
-      // Stop all animations to prevent memory leaks
-      fadeAnim.stopAnimation();
-      breathingAnim.stopAnimation();
-      pulseValue.stopAnimation();
-      currentAnimations.forEach(anim => anim.stopAnimation());
-    };
-  }, [fadeAnim, breathingAnim, pulseValue]);
+  }, [isGenerating, generationSteps.length, progressAnim]);
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        { opacity: fadeAnim },
-      ]}
-    >
-      <View style={StyleSheet.absoluteFill}>
-        <View style={styles.background} />
-      </View>
+    <SafeAreaView style={styles.container} edges={['top','bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
+      <View style={styles.content}>
+        {isGenerating ? (
+          <View style={styles.centerBlockContainer}>
+            <View style={styles.centerBlock}>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={require('../../assets/images/siFiaAppIcon.png')}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              </View>
 
-      {/* Centered Content Container */}
-      <View style={styles.centeredContent}>
-        {/* Breathing Aura + Logo */}
-        <View style={styles.auraWrapper}>
-          {/* Concentric Aura Rings (behind logo) */}
-          <Animated.View
-            style={[
-              styles.auraRing,
-              styles.auraRing1,
-              { transform: [{ scale: aura1Scale }], opacity: aura1Opacity },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.auraRing,
-              styles.auraRing2,
-              { transform: [{ scale: aura2Scale }], opacity: aura2Opacity },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.auraRing,
-              styles.auraRing3,
-              { transform: [{ scale: aura3Scale }], opacity: aura3Opacity },
-            ]}
-          />
+              <Text style={styles.generationTitle}>Creating Your Playbook</Text>
 
-          {/* Logo on top */}
-          <Animated.View
-            style={[
-              styles.logoContainer,
-              { transform: [{ scale: breathingAnim }] },
-            ]}
-          >
-            <Image
-              source={require('../../assets/images/siFiaAppIcon.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </Animated.View>
-        </View>
+              <View style={styles.progressBarContainer}>
+                <View style={styles.progressBarBackground}>
+                  <Animated.View
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 100],
+                          outputRange: ['0%', '100%'],
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
 
-        {/* Title */}
-        <Text style={styles.title}>Creating Your Playbook</Text>
-
-        {/* Simple Progress Bar */}
-        <View style={styles.progressBarContainer}>
-          <View style={styles.progressBarBackground}>
-            <Animated.View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: progressAnimation.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: ['0%', '100%'],
-                    extrapolate: 'clamp',
-                  }),
-                },
-              ]}
-            />
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.stepTextContainer}
+              >
+                <View style={styles.stepTextRow}>
+                  <Animated.Text style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]}>
+                    {baseTitle}
+                  </Animated.Text>
+                  <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
+                    <Text style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
+                      {'.'.repeat(dotCount)}
+                    </Text>
+                  </View>
+                  {dotsWidth == null && (
+                    <Text
+                      style={[styles.currentStepText, styles.hiddenMeasure]}
+                      onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
+                    >
+                      ...
+                    </Text>
+                  )}
+                </View>
+              </ScrollView>
+              <View style={styles.sunSpacer} />
+            </View>
           </View>
+        ) : null}
+
+        <View style={[styles.sunContainer, { paddingBottom: Math.max(insets.bottom, 16) }]} pointerEvents="none">
+          <Animated.View
+            style={[styles.sunRing, styles.sunRing1, { transform: [{ scale: aura1Scale }], opacity: aura1Opacity }]}
+          />
+          <Animated.View
+            style={[styles.sunRing, styles.sunRing2, { transform: [{ scale: aura2Scale }], opacity: aura2Opacity }]}
+          />
+          <Animated.View
+            style={[styles.sunRing, styles.sunRing3, { transform: [{ scale: aura3Scale }], opacity: aura3Opacity }]}
+          />
         </View>
-
-        {/* Current Step Text */}
-        <Text style={styles.stepText}>
-          {steps[currentStep]?.description || 'Preparing your personalized playbook...'}
-        </Text>
-
-        {/* Breathing Text */}
-        <Text style={styles.breathingText}>
-          {breathingText}
-        </Text>
       </View>
-    </Animated.View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  background: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: Colors.anchorBlue,
-  },
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
-  centeredContent: {
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  centerBlockContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    position: 'relative',
+    zIndex: 2,
+  },
+  centerBlock: {
+    alignItems: 'center',
+    width: '100%',
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    marginBottom: 30,
+    width: 88,
+    height: 88,
+    marginBottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 2,
   },
   logo: {
     width: '100%',
     height: '100%',
     borderRadius: 16,
   },
-  // Concentric aura container and rings
-  auraWrapper: {
-    width: 260,
-    height: 260,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  auraRing: {
-    position: 'absolute',
-    borderRadius: 9999,
-    backgroundColor: '#FFFFFF',
-    // Soft glow for iOS; Android relies on opacity for softness
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-  },
-  auraRing1: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-  },
-  auraRing2: {
-    width: 270,
-    height: 270,
-    borderRadius: 135,
-  },
-  auraRing3: {
-    width: 320,
-    height: 320,
-    borderRadius: 160,
-  },
-  breathingContainer: {
-    marginBottom: 40,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
+  generationTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: Colors.white,
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 24,
+    width: '100%',
+    paddingHorizontal: 20,
   },
   progressBarContainer: {
-    width: '100%',
-    marginBottom: 40,
-    paddingHorizontal: 0,
+    width: '80%',
+    marginBottom: 30,
   },
   progressBarBackground: {
-    height: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 3,
+    width: '100%',
+    height: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 6,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
     backgroundColor: Colors.growthGreen,
-    borderRadius: 3,
-    shadowColor: Colors.growthGreen,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
+    borderRadius: 6,
   },
-  stepText: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    fontWeight: '400',
-    textAlign: 'center',
-    marginBottom: 20,
-    opacity: 0.9,
-  },
-  breathingText: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    fontWeight: '300',
-    textAlign: 'center',
-    opacity: 0.7,
-    fontStyle: 'italic',
-  },
-  progressContent: {
-    flex: 1,
+  stepTextContainer: {
+    flexGrow: 1,
     justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
   },
-  progressTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  stepsContainer: {
+  stepTextRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
   },
-  stepCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  stepNumber: {
+  currentStepText: {
     fontSize: 14,
-    fontWeight: '600',
-  },
-  checkmark: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.hopeWhite,
-  },
-  connectionLine: {
-    height: 3,
-    width: 30,
-    marginHorizontal: 8,
-    borderRadius: 1.5,
-  },
-  stepDescription: {
-    fontSize: 16,
-    color: Colors.lightGray,
+    color: Colors.white,
     textAlign: 'center',
-    lineHeight: 24,
-    paddingHorizontal: 20,
+    fontWeight: '500',
+    paddingHorizontal: 8,
+    includeFontPadding: false,
+  },
+  dotsContainer: {
+    marginLeft: 0,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  hiddenMeasure: {
+    position: 'absolute',
+    opacity: 0,
+    height: 0,
+    width: undefined,
+  },
+  sunSpacer: {
+    height: 56,
+  },
+  sunContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: -100,
+    height: 560,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
+    zIndex: 1,
+  },
+  sunRing: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  sunRing1: {
+    width: 800,
+    height: 800,
+    borderRadius: 400,
+    bottom: -540,
+  },
+  sunRing2: {
+    width: 980,
+    height: 980,
+    borderRadius: 490,
+    bottom: -620,
+  },
+  sunRing3: {
+    width: 1160,
+    height: 1160,
+    borderRadius: 580,
+    bottom: -720,
   },
 });
 
