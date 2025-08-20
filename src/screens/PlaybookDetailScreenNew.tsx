@@ -1723,6 +1723,10 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     right: 0,
     alignItems: 'center',
     paddingHorizontal: 20,
+    // Ensure this sits above the full-screen card overlay (which uses zIndex 9999)
+    zIndex: 10000,
+    // @ts-ignore Android elevation for z-ordering above overlay
+    elevation: 10000,
   },
   bottomButtonExpanded: {
     marginTop: 20,
