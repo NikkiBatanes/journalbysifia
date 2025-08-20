@@ -293,7 +293,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
             disabled={isLoading}
           >
             <Text style={styles.createButtonText}>
-              {isAuthenticated ? 'Continue Setup' : 'Create an account'}
+              {isAuthenticated ? 'Continue Setup' : 'Create an Account'}
             </Text>
           </TouchableOpacity>
 
