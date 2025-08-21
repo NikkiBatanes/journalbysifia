@@ -309,7 +309,43 @@ export class PrayerApi {
       dbPrayer.notes = prayer.notes;
     }
 
+    // If this is a devotional prayer, ensure idempotency: return an existing entry for the same
+    // user/date/devotional identifiers instead of inserting a duplicate.
+    if (
+      dbPrayer.prayer_type === 'devotional' &&
+      dbPrayer.user_id &&
+      dbPrayer.selected_date &&
+      (dbPrayer.day_number !== null || dbPrayer.day_title || dbPrayer.devotional_title)
+    ) {
+      const { data: existing, error: lookupError } = await supabase
+        .from('prayers')
+        .select('*')
+        .eq('user_id', dbPrayer.user_id)
+        .eq('prayer_type', 'devotional')
+        .eq('selected_date', dbPrayer.selected_date)
+        .eq('day_number', dbPrayer.day_number)
+        .eq('devotional_title', dbPrayer.devotional_title)
+        .limit(1)
+        .maybeSingle();
+
+      if (lookupError) {
+        console.warn('[PrayerApi.createPrayer] Devotional lookup warning:', lookupError);
+      }
+
+      if (existing) {
+        // Return existing in API format
+        return {
+          ...existing,
+          type: existing.journal_category || (existing.prayer_type === 'people' ? 'people' : 'devotional'),
+          is_answered: existing.status === 'answered',
+          is_request: existing.is_prayer_request,
+          is_prayed: existing.prayed,
+        } as PrayerApiEntry;
+      }
+    }
+
     console.log('[PrayerApi.createPrayer] Inserting dbPrayer:', JSON.stringify(dbPrayer));
+    // Use INSERT to avoid dependency on unique index being applied. Pre-lookup above provides idempotency.
     const { data, error } = await supabase
       .from('prayers')
       .insert(dbPrayer)
@@ -318,6 +354,33 @@ export class PrayerApi {
     console.log('[PrayerApi.createPrayer] Insert result data:', JSON.stringify(data));
 
     if (error) {
+      // If conflict arises (e.g., partial unique index), fetch the existing row and return it
+      // Supabase/Postgrest error code for unique violation is typically '23505'
+      // Fallback: try to read existing devotional row and return
+      if (
+        (error as any)?.code === '23505' &&
+        dbPrayer.prayer_type === 'devotional'
+      ) {
+        const { data: existingAfterConflict } = await supabase
+          .from('prayers')
+          .select('*')
+          .eq('user_id', dbPrayer.user_id)
+          .eq('prayer_type', 'devotional')
+          .eq('selected_date', dbPrayer.selected_date)
+          .eq('day_number', dbPrayer.day_number)
+          .eq('devotional_title', dbPrayer.devotional_title)
+          .limit(1)
+          .maybeSingle();
+        if (existingAfterConflict) {
+          return {
+            ...existingAfterConflict,
+            type: existingAfterConflict.journal_category || (existingAfterConflict.prayer_type === 'people' ? 'people' : 'devotional'),
+            is_answered: existingAfterConflict.status === 'answered',
+            is_request: existingAfterConflict.is_prayer_request,
+            is_prayed: existingAfterConflict.prayed,
+          } as PrayerApiEntry;
+        }
+      }
       console.error('Error creating prayer:', error);
       throw new Error(`Failed to create prayer: ${error.message}`);
     }

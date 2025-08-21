@@ -16,6 +16,8 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  Animated as RNAnimated,
+  Easing as RNEasing,
 } from 'react-native';
 
 // Navigation & Gestures
@@ -42,6 +44,7 @@ import { Colors, Fonts } from '../theme';
 import { useTheme } from '../theme/ThemeContext';
 import { Typography } from '../theme/typography';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
+import { triggerLightHaptic } from '../utils/haptics';
 
 // Components
 import DocumentCardView from '../components/DocumentCardView';
@@ -97,7 +100,7 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
   showUserInput: boolean;
   setShowUserInput: (show: boolean) => void;
   chevronStyle: any;
-  showCompactHeader: boolean;
+  showCompactHeader?: boolean;
   playbookTitle?: string;
   completedTasksCount: number;
   totalTasksCount: number;
@@ -106,73 +109,117 @@ const HeaderLeft = ({ navigation, showUserInput, setShowUserInput, chevronStyle,
   onboardingNextStep?: string;
   styles: any;
 }) => (
-  <View style={styles.headerLeftContainer}>
-    <TouchableOpacity
-      onPress={() => {
-        try {
-          if (isFromOnboarding && onboardingNextStep) {
-            // Continue onboarding flow to next step
-            console.log('🎯 Continuing onboarding flow to:', onboardingNextStep);
-            navigation.navigate(onboardingNextStep);
-          } else {
-            navigation.goBack();
-          }
-        } catch (err) {
-          console.log('Navigation error:', err);
-        }
-      }}
-      style={styles.backButtonContainer}
-    >
-      <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
-    </TouchableOpacity>
-    {!showCompactHeader && (
-      <TouchableOpacity
-        style={styles.playbookLabelContainer}
-        onPress={() => setShowUserInput(!showUserInput)}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
-        <Animated.View style={chevronStyle}>
-          <Ionicons
-            name="chevron-down"
-            size={15}
-            color={Colors.anchorBlue}
-          />
-        </Animated.View>
-      </TouchableOpacity>
-    )}
-    {showCompactHeader && (
-      <View style={styles.headerProgressContainer}>
-        <Text
-          style={styles.compactHeaderTitle}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
-          {playbookTitle}
-        </Text>
-        <View style={styles.headerProgressRow}>
-          <View style={styles.headerProgressBarBg}>
-            <View
-              style={[
-                styles.headerProgressBarFill,
-                { width: `${progressPercentage}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.headerTasksText}>
-            {completedTasksCount}/{totalTasksCount} Tasks
-          </Text>
-        </View>
-      </View>
-    )}
-  </View>
+  <HeaderLeftInner
+    navigation={navigation}
+    showUserInput={showUserInput}
+    setShowUserInput={setShowUserInput}
+    chevronStyle={chevronStyle}
+    showCompactHeader={showCompactHeader}
+    playbookTitle={playbookTitle}
+    completedTasksCount={completedTasksCount}
+    totalTasksCount={totalTasksCount}
+    progressPercentage={progressPercentage}
+    isFromOnboarding={isFromOnboarding}
+    onboardingNextStep={onboardingNextStep}
+    styles={styles}
+  />
 );
+
+// Inner component to use hooks
+const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronStyle, showCompactHeader, playbookTitle, completedTasksCount, totalTasksCount, progressPercentage, isFromOnboarding, onboardingNextStep, styles }: any) => {
+  const progressAnim = React.useRef(new RNAnimated.Value(progressPercentage || 0)).current;
+
+  React.useEffect(() => {
+    RNAnimated.timing(progressAnim, {
+      toValue: Math.max(0, Math.min(100, progressPercentage || 0)),
+      duration: 450,
+      easing: RNEasing.out(RNEasing.cubic),
+      useNativeDriver: false, // width animation
+    }).start();
+  }, [progressPercentage, progressAnim]);
+
+  const animatedWidth = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
+  });
+
+  return (
+    <View style={styles.headerLeftContainer}>
+      <TouchableOpacity
+        onPress={() => {
+          // Light haptic on back
+          triggerLightHaptic();
+          try {
+            if (isFromOnboarding && onboardingNextStep) {
+              // Continue onboarding flow to next step
+              console.log('🎯 Continuing onboarding flow to:', onboardingNextStep);
+              navigation.navigate(onboardingNextStep);
+            } else {
+              navigation.goBack();
+            }
+          } catch (err) {
+            console.log('Navigation error:', err);
+          }
+        }}
+        style={styles.backButtonContainer}
+      >
+        <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+      </TouchableOpacity>
+      {!showCompactHeader && (
+        <TouchableOpacity
+          style={styles.playbookLabelContainer}
+          onPress={() => {
+            // Light haptic on PLAYBOOK + chevron toggle
+            triggerLightHaptic();
+            setShowUserInput(!showUserInput);
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
+          <Animated.View style={chevronStyle}>
+            <Ionicons
+              name="chevron-down"
+              size={15}
+              color={Colors.anchorBlue}
+            />
+          </Animated.View>
+        </TouchableOpacity>
+      )}
+      {showCompactHeader && (
+        <View style={styles.headerProgressContainer}>
+          <Text
+            style={styles.compactHeaderTitle}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {playbookTitle}
+          </Text>
+          <View style={styles.headerProgressRow}>
+            <View style={styles.headerProgressBarBg}>
+              <RNAnimated.View
+                style={[
+                  styles.headerProgressBarFill,
+                  { width: animatedWidth },
+                ]}
+              />
+            </View>
+            <Text style={styles.headerTasksText}>
+              {completedTasksCount}/{totalTasksCount} Tasks
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
 
 // Profile button component extracted to fix linter warning
 const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: any; styles: any }) => (
   <TouchableOpacity
     onPress={() => {
       console.log('Profile image pressed from PlaybookDetail');
+      // Light haptic on avatar tap
+      triggerLightHaptic();
       try {
         navigation.navigate('UserProfileModal');
       } catch (navigationError) {
@@ -1032,6 +1079,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
     
     // In stack view, toggle expand/collapse of the tapped card in-place
     if (viewMode === 'stack' && !isScrolling) {
+      // Light haptic on expand/collapse
+      triggerLightHaptic();
       console.log('[PlaybookDetail] Conditions met, toggling expansion');
       // Smooth expand/collapse animation
       LayoutAnimation.configureNext({
@@ -1103,6 +1152,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               showToggle={true}
               viewMode={viewMode}
               onToggleView={(mode: 'stack' | 'document') => {
+                // Light haptic on view toggle (stack/document)
+                triggerLightHaptic();
                 setHasReachedLastCard(false);
                 setViewMode(mode);
               }}
@@ -1132,6 +1183,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 showToggle={true}
                 viewMode={viewMode}
                 onToggleView={(mode: 'stack' | 'document') => {
+                  // Light haptic on view toggle (stack/document)
+                  triggerLightHaptic();
                   setHasReachedLastCard(false);
                   setViewMode(mode);
                 }}
@@ -1521,7 +1574,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 && !hasCreatedDevotional && (
                 <View style={styles.devotionalButtonWrapper}>
                   <DevotionalButton
-                    onPress={() => setShowDevotionalModal(true)}
+                    onPress={() => {
+                      // Light haptic on create devotional
+                      triggerLightHaptic();
+                      setShowDevotionalModal(true);
+                    }}
                     visible={true}
                   />
                 </View>

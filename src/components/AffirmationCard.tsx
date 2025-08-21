@@ -6,6 +6,7 @@ import { Typography } from '../theme/typography';
 import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface AffirmationCardProps {
   id: string;
@@ -45,7 +46,10 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
         </Text>
         <TouchableOpacity
           style={styles.expandIcon}
-          onPress={() => setShowInsight(!showInsight)}
+          onPress={() => {
+            triggerLightHaptic();
+            setShowInsight(!showInsight);
+          }}
         >
           <Icon
             name={showInsight ? 'chevron-up' : 'information-outline'}

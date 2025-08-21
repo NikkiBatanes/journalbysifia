@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
+import { triggerSuccessHaptic } from '../../utils/haptics';
 
 const { height } = Dimensions.get('window'); // Removed unused width variable
 
@@ -96,6 +97,14 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     // Start animations
     entranceAnimation.start();
     sparkleAnimation.start();
+
+    // Haptic feedback for completion-style notifications
+    try {
+      const at = (activityType || '').toLowerCase();
+      if (at.includes('action_step_completed') || at.includes('playbook_completed')) {
+        triggerSuccessHaptic();
+      }
+    } catch {}
 
     // Auto-hide after 2.5 seconds
     const hideTimer = setTimeout(() => {
@@ -189,7 +198,13 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
           <View style={styles.textContainer}>
             <Text style={styles.pointsText}>+{points} FP</Text>
             <Text style={styles.activityText}>
-              {activityType.replace('_', ' ').toUpperCase()}
+              {(() => {
+                const at = (activityType || '').toLowerCase();
+                if (at === 'playbook_completed') {
+                  return 'MISSION ACCOMPLISHED';
+                }
+                return activityType.replace(/_/g, ' ').toUpperCase();
+              })()}
             </Text>
           </View>
 

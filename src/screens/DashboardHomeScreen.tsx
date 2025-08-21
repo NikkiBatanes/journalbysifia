@@ -17,6 +17,7 @@ import {
   Platform,
   StyleSheet,
   Image,
+  NativeModules,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -110,9 +111,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       gap: 4,
     },
     profileButton: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
       backgroundColor: Colors.lightGray,
       justifyContent: 'center',
       alignItems: 'center',
@@ -206,36 +207,37 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     notificationBadge: {
       position: 'absolute',
-      top: -2,
-      right: -2,
+      top: 6,
+      right: 6,
       backgroundColor: Colors.alertCoral,
-      borderRadius: 10,
-      minWidth: 20,
-      height: 20,
+      borderRadius: 7,
+      minWidth: 14,
+      height: 14,
       justifyContent: 'center',
       alignItems: 'center',
     },
     notificationCount: {
-      fontSize: 12,
+      fontSize: 9,
       fontWeight: '600',
       color: Colors.hopeWhite,
+      lineHeight: 12,
     },
     profileImage: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
       backgroundColor: Colors.lightGray,
     },
     initialAvatar: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
       backgroundColor: Colors.alertCoral,
       justifyContent: 'center',
       alignItems: 'center',
     },
     initialLetter: {
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: '600',
       color: Colors.hopeWhite,
     },
@@ -395,6 +397,21 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   // Status bar: auto-detect from background
   useScreenStatusBar('auto', '#F2F5F7');
+
+  // Subtle haptic feedback, gated by user preference
+  const triggerLightHaptic = useCallback(() => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) return;
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  }, [user]);
 
   // Collapsing Playbook label
   const playbookWidth = useRef(new Animated.Value(0)).current;
@@ -660,7 +677,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         })()}
 
         {/* Notifications */}
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() => {
+            triggerLightHaptic();
+          }}
+        >
           <Ionicons name="notifications-outline" size={24} color={Colors.anchorBlue} />
           <View style={styles.notificationBadge}>
             <Text style={styles.notificationCount}>3</Text>
@@ -670,7 +692,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         {/* Profile Avatar with Notification */}
         <TouchableOpacity
           style={styles.profileButton}
-          onPress={() => navigation.navigate('UserProfile')}
+          onPress={() => { triggerLightHaptic(); navigation.navigate('UserProfile'); }}
         >
           {user?.user_metadata?.avatar_url ? (
             <Image
@@ -730,7 +752,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
         <TouchableOpacity
           style={styles.expandableButtonTouchable}
-          onPress={() => navigation.navigate('UserInput')}
+          onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
           activeOpacity={0.8}
         >
           <View style={styles.fabIconContainer}>
@@ -770,10 +792,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }
           showsVerticalScrollIndicator={false}
         >
-        {/* Row 1: Inspiration Cards */}
+        {/* Daily Scripture - full width at top */}
+        <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
+
+        {/* Row 1: Inspiration Cards (Affirmation only) */}
         <View style={styles.row}>
           <DailyAffirmationCard onRefresh={() => setRefreshing(true)} />
-          <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
         </View>
 
         {/* Row 2: Progress Tracking */}
@@ -810,7 +834,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         </View>
 
         <PlaybookCarousel
-          onPlaybookPress={(playbook) => navigation.navigate('Playbook', { id: playbook.id })}
+          onPlaybookPress={(playbook) => navigation.navigate('PlaybookDetail', { playbookId: playbook.id })}
           onViewAll={() => {
             // Navigate to playbooks list
             console.log('Navigate to playbooks list');
@@ -819,7 +843,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         <DevotionalCarousel
           onDevotionalPress={(devotional) => {
             // Navigate to devotional detail screen
-            console.log('Navigate to devotional:', devotional.title);
+            navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
           }}
           onViewAll={() => {
             // Navigate to devotionals list
@@ -834,8 +858,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
         <ActionStepsCard
           onStepPress={(step) => {
-            // Navigate to step detail or playbook
-            console.log('Navigate to step:', step.title);
+            // Navigate to Playbook detail when an action step is tapped
+            triggerLightHaptic();
+            navigation.navigate('PlaybookDetail', { playbookId: step.playbookId });
           }}
           onViewAll={() => {
             // Navigate to all action steps

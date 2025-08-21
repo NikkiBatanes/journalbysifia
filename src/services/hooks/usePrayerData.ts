@@ -598,6 +598,22 @@ export const useCreateDevotionalPrayer = () => {
       const previousAllDevotional = queryClient.getQueryData(queryKeys.prayers.allDevotional(userId));
       const previousEntries = queryClient.getQueryData(queryKeys.prayers.entries(userId, dateStr));
 
+      // Check if an identical devotional prayer already exists in cache to avoid duplicates
+      const existsIn = (list: any[] | undefined) =>
+        !!list?.some((p: any) =>
+          p?.user_id === userId &&
+          p?.prayer_type === 'devotional' &&
+          p?.selected_date === dateStr &&
+          p?.devotional_title === devotionalTitle &&
+          p?.day_number === dayNumber
+        );
+
+      const existingDevotional = queryClient.getQueryData<any[]>(queryKeys.prayers.devotional(userId, dateStr));
+      const existingAllDevotional = queryClient.getQueryData<any[]>(queryKeys.prayers.allDevotional(userId));
+      const existingEntries = queryClient.getQueryData<any[]>(queryKeys.prayers.entries(userId, dateStr));
+
+      const alreadyExists = existsIn(existingDevotional) || existsIn(existingAllDevotional) || existsIn(existingEntries);
+
       // Create optimistic prayer entry
       const optimisticPrayer: PrayerApiEntry = {
         id: `temp-${Date.now()}`,
@@ -616,23 +632,27 @@ export const useCreateDevotionalPrayer = () => {
         is_answered: false,
       };
 
-      // Optimistically update devotional prayers for date
-      queryClient.setQueryData(
-        queryKeys.prayers.devotional(userId, dateStr),
-        (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
-      );
+      if (!alreadyExists) {
+        // Optimistically update devotional prayers for date
+        queryClient.setQueryData(
+          queryKeys.prayers.devotional(userId, dateStr),
+          (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
+        );
 
-      // Optimistically update all devotional prayers
-      queryClient.setQueryData(
-        queryKeys.prayers.allDevotional(userId),
-        (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
-      );
+        // Optimistically update all devotional prayers
+        queryClient.setQueryData(
+          queryKeys.prayers.allDevotional(userId),
+          (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
+        );
 
-      // Optimistically update all entries for date
-      queryClient.setQueryData(
-        queryKeys.prayers.entries(userId, dateStr),
-        (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
-      );
+        // Optimistically update all entries for date
+        queryClient.setQueryData(
+          queryKeys.prayers.entries(userId, dateStr),
+          (old: PrayerApiEntry[] = []) => [optimisticPrayer, ...old]
+        );
+      } else {
+        console.log('[useCreateDevotionalPrayer] Skipping optimistic duplicate for devotional prayer');
+      }
 
       return { previousDevotional, previousAllDevotional, previousEntries };
     },

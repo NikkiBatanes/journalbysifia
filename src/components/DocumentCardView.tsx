@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 import TruthInLoveCard from './TruthInLoveCard';
@@ -9,6 +9,11 @@ import AffirmationCard from './AffirmationCard';
 import BibleVerseCard from './BibleVerseCard';
 import DirectChallengeCard from './DirectChallengeCard';
 import { Colors } from '../theme';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import { useAuth } from '../context/IndustryStandardAuthContext';
+import { faithPointsService } from '../services/faithPointsService';
+import { usePlaybookStoreReactQuery } from '../store/usePlaybookStoreReactQuery';
 
 interface Affirmation {
   id: string;
@@ -43,6 +48,42 @@ interface DocumentCardViewProps {
 }
 
 const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propStyles, currentUser, navigation, playbookTitle, playbookId, userInput, expanded = false }) => {
+  const { user } = useAuth();
+
+  // Shared Read Aloud state across views
+  const hasRead = usePlaybookStoreReactQuery(state => playbookId ? !!state.readAloudMap[playbookId] : false);
+  const setReadAloud = usePlaybookStoreReactQuery(state => state.setReadAloud);
+  const readCooldownRef = useRef<number>(0);
+  const readAwardedRef = useRef<boolean>(false);
+  const [particles, setParticles] = useState<{ id: number; progress: Animated.Value; dx: number; dy: number; size: number; rotate: number; color: string; delay: number;}[]>([]);
+  const particleIdRef = useRef(0);
+
+  const showReadButton = useMemo(() => card.type === 'affirmation' && (card.affirmations?.length || 0) > 0, [card]);
+
+  const startBurst = () => {
+    const NUM = 8;
+    const colors = [Colors.alertCoral, '#ff7a7a', '#ff9aa2', '#ff6b6b'];
+    const newParticles = Array.from({ length: NUM }).map((_, i) => {
+      const id = particleIdRef.current++;
+      return {
+        id,
+        progress: new Animated.Value(0),
+        dx: (Math.random() * 80 - 40),
+        dy: 60 + Math.random() * 60,
+        size: 10 + Math.random() * 8,
+        rotate: Math.random() * 60 - 30,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: i * 35,
+      };
+    });
+    setParticles(prev => [...prev, ...newParticles]);
+    newParticles.forEach(p => {
+      Animated.timing(p.progress, { toValue: 1, duration: 900, delay: p.delay, useNativeDriver: true }).start();
+    });
+    setTimeout(() => {
+      setParticles(prev => prev.filter(h => !newParticles.find(n => n.id === h.id)));
+    }, 1200);
+  };
   if (card.type === 'truth') {
     return (
       <View style={styles.truthCardContainer}>
@@ -115,6 +156,67 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
             <Text style={propStyles.noAffirmationsText}>No affirmations</Text>
           )}
         </View>
+
+        {/* Read Aloud button below the last affirmation */}
+        {showReadButton && (
+          <View pointerEvents="box-none" style={readStyles.readButtonWrapper}>
+            {particles.length > 0 && (
+              <View pointerEvents="none" style={readStyles.readBurstLayer}>
+                {particles.map((p) => {
+                  const translateY = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -p.dy] });
+                  const translateX = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
+                  const scale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
+                  const opacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
+                  return (
+                    <Animated.View key={p.id} style={[readStyles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}> 
+                      <Ionicons name="book" size={p.size} color={p.color} />
+                    </Animated.View>
+                  );
+                })}
+              </View>
+            )}
+            <TouchableOpacity
+              style={[readStyles.readButton, hasRead && readStyles.readButtonActive]}
+              activeOpacity={0.85}
+              onPress={() => {
+                const now = Date.now();
+                if (now - readCooldownRef.current < 800) { return; }
+                readCooldownRef.current = now;
+
+                const nextIsRead = !hasRead;
+                if (nextIsRead) {
+                  triggerSuccessHaptic();
+                  startBurst();
+
+                  if (!readAwardedRef.current && user?.id && playbookId) {
+                    readAwardedRef.current = true; // session guard
+                    (async () => {
+                      try {
+                        const already = await faithPointsService.hasActivityTodayForPlaybook(user.id, 'affirmation_read_aloud', playbookId);
+                        if (!already) {
+                          await faithPointsService.awardPoints(user.id, 'affirmation_read_aloud', { playbookId, playbookTitle, source: 'playbook_detail' });
+                        }
+                      } catch (e) {
+                        // allow retry if failed
+                        readAwardedRef.current = false;
+                      }
+                    })();
+                  }
+                } else {
+                  triggerLightHaptic();
+                }
+                if (playbookId) { setReadAloud(playbookId, nextIsRead); }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={hasRead ? 'Read' : 'Read aloud'}
+              accessibilityHint="Tap when you have read the affirmations aloud"
+              testID="playbookAffirmationsReadButton"
+            >
+              <Ionicons name="book-outline" size={18} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={readStyles.readIcon} />
+              <Text style={[readStyles.readButtonText, hasRead && readStyles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   }
@@ -180,3 +282,57 @@ const styles = StyleSheet.create({
 });
 
 export default DocumentCardView;
+
+// Styles specifically for the Read Aloud button and burst animation within the Affirmations card
+const readStyles = StyleSheet.create({
+  readButtonWrapper: {
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  readBurstLayer: {
+    position: 'absolute',
+    bottom: 22,
+    alignSelf: 'center',
+    width: 140,
+    height: 120,
+  },
+  readParticle: {
+    position: 'absolute',
+    bottom: 0,
+    left: '50%',
+  },
+  readButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingLeft: 10,
+    paddingRight: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  readButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  readButtonActive: {
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderColor: 'rgba(255, 59, 48, 0.2)',
+  },
+  readButtonTextActive: {
+    color: Colors.alertCoral,
+  },
+  readIcon: {
+    marginRight: 6,
+  },
+});

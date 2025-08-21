@@ -4,7 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, TouchableOpacity, Platform, Animated } from 'react-native';
+import { StyleSheet, TouchableOpacity, Platform, Animated, NativeModules } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
@@ -18,6 +18,7 @@ import DevotionalsScreen from '../screens/DevotionalsScreen';
 import JournalScreen from '../screens/JournalScreen';
 import JournalStackNavigator from './JournalStackNavigator';
 import HomeStackNavigator from './HomeStackNavigator';
+import { useAuth } from '../context/IndustryStandardAuthContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -161,17 +162,36 @@ const TabPressContext = React.createContext<{
 
 export default function BottomTabNavigator({ onLogout: _onLogout }: BottomTabNavigatorProps) {
   const theme = useTheme();
+  const { user } = useAuth();
   const [currentTab, setCurrentTab] = React.useState<string>('UserInput');
   const journalScreenRef = React.useRef<JournalScreenRef>(null);
 
+  // Subtle haptic feedback, gated by user preference
+  const triggerLightHaptic = React.useCallback(() => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) { return; }
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) { return; }
+      // dynamic require to avoid TurboModule issues
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  }, [user]);
+
   // Handle tab press
   const handleTabPress = React.useCallback((tabName: string) => {
+    // Fire subtle haptic on any tab press (if enabled)
+    triggerLightHaptic();
     if (tabName === 'Journal' && currentTab === 'Journal' && journalScreenRef.current) {
       // Toggle between current date and last selected date
       journalScreenRef.current.resetToCurrentDate();
     }
     setCurrentTab(tabName);
-  }, [currentTab]);
+  }, [currentTab, triggerLightHaptic]);
 
   // Move tabBar render function outside
   const renderTabBar = React.useCallback(

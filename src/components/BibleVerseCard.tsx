@@ -9,6 +9,7 @@ import { formatBibleVerse } from '../utils/textFormatting';
 import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { triggerLightHaptic } from '../utils/haptics';
 
 import { BibleVerse } from '../interfaces/playbook';
 
@@ -39,7 +40,10 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         <Text style={[styles.heading, { color: textColor }]}>Bible Verse</Text>
         <TouchableOpacity
           style={styles.expandIcon}
-          onPress={() => setShowInsight(!showInsight)}
+          onPress={() => {
+            triggerLightHaptic();
+            setShowInsight(!showInsight);
+          }}
         >
           <Icon
             name={showInsight ? 'chevron-up' : 'information-outline'}

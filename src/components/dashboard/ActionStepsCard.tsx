@@ -16,6 +16,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface ActionStep {
   id: string;
@@ -117,7 +118,10 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   const renderActionStep = ({ item }: { item: ActionStep }) => (
     <TouchableOpacity
       style={styles.stepItem}
-      onPress={() => onStepPress?.(item)}
+      onPress={() => {
+        triggerLightHaptic();
+        onStepPress?.(item);
+      }}
       activeOpacity={0.8}
     >
       <View style={styles.stepHeader}>
@@ -174,7 +178,13 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         <Ionicons name="checkmark-circle" size={24} color={Colors.alertCoral} />
         <Text style={styles.title}>Unfinished Steps</Text>
         {actionSteps.length > 0 && (
-          <TouchableOpacity onPress={onViewAll} style={styles.viewAllButton}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              onViewAll?.();
+            }}
+            style={styles.viewAllButton}
+          >
             <Text style={styles.viewAllText}>View All</Text>
             <Ionicons name="chevron-forward" size={16} color={Colors.alertCoral} />
           </TouchableOpacity>
@@ -184,7 +194,13 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={fetchActionSteps} style={styles.retryButton}>
+          <TouchableOpacity
+            onPress={() => {
+              triggerLightHaptic();
+              fetchActionSteps();
+            }}
+            style={styles.retryButton}
+          >
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>

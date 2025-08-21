@@ -11,6 +11,7 @@ import {
   Animated,
   Pressable,
   TouchableOpacity,
+  NativeModules,
 } from 'react-native';
 
 import { format } from 'date-fns';
@@ -84,6 +85,21 @@ const PlaybookListScreen = ({ navigation }: any) => {
   // Multiple fallback mechanisms for userId
   const userId = user?.id || session?.user?.id;
 
+  // Subtle haptic feedback, gated by user preference
+  const triggerLightHaptic = useCallback(() => {
+    try {
+      const { RNHapticFeedback } = NativeModules as any;
+      if (!RNHapticFeedback) return;
+      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
+      if (hapticsPref === false) return;
+      const Haptic = require('react-native-haptic-feedback');
+      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
+      if (typeof triggerFn === 'function') {
+        triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+      }
+    } catch {}
+  }, [user]);
+
   // Debug logging for user state
   console.log('[PlaybookListScreen] User state:', {
     hasUser: !!user,
@@ -116,6 +132,36 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Set filter to 'ongoing' by default to show in-progress playbooks first
   const [filter, setFilter] = useState<'all' | 'ongoing' | 'completed'>('ongoing');
+
+  // Subtle selection animation for filter tabs
+  const tabKeys = useMemo(() => (['all', 'ongoing', 'completed'] as const), []);
+  const tabScales = useRef<Record<'all' | 'ongoing' | 'completed', Animated.Value>>({
+    all: new Animated.Value(1),
+    ongoing: new Animated.Value(1),
+    completed: new Animated.Value(1),
+  });
+
+  const handleTabPressIn = useCallback((tab: 'all' | 'ongoing' | 'completed') => {
+    try {
+      Animated.spring(tabScales.current[tab], {
+        toValue: 0.96,
+        useNativeDriver: true,
+        speed: 20,
+        bounciness: 0,
+      }).start();
+    } catch {}
+  }, []);
+
+  const handleTabPressOut = useCallback((tab: 'all' | 'ongoing' | 'completed') => {
+    try {
+      Animated.spring(tabScales.current[tab], {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 20,
+        bounciness: 0,
+      }).start();
+    } catch {}
+  }, []);
 
   // Component renders with current state
 
@@ -396,8 +442,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
   // Move handleCardPress outside of renderItem
   const handleCardPress = useCallback((playbook: Playbook) => {
+    triggerLightHaptic();
     navigation.navigate('PlaybookDetail', { playbook });
-  }, [navigation]);
+  }, [navigation, triggerLightHaptic]);
 
   const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
     // Safety check for item
@@ -433,10 +480,11 @@ const PlaybookListScreen = ({ navigation }: any) => {
       >
         <Swipeable
           ref={rowRefs.current[item.id]}
+          onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
           renderRightActions={() => (
             <RectButton
               style={styles.deleteButton}
-              onPress={() => handleDelete(item.id)}
+              onPress={() => { try { triggerLightHaptic(); } catch {}; handleDelete(item.id); }}
             >
               <Ionicons name="trash-outline" size={24} color="white" />
             </RectButton>
@@ -513,7 +561,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
               </Text>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate('UserInput')}
+                onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
                 activeOpacity={0.85}
                 style={styles.heroOutlineButton}
               >
@@ -562,31 +610,92 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </View>
         </View>
         {/* Filter Tabs */}
-        <View style={styles.filterTabs}>
-          {(['all', 'ongoing', 'completed'] as const).map((tab) => (
-            <Pressable
-              key={tab}
-              style={[
-                styles.filterTab,
-                filter === tab && (
-                  tab === 'completed'
-                    ? styles.filterTabActiveCompleted
-                    : tab === 'ongoing'
-                      ? styles.filterTabActiveOngoing
-                      : styles.filterTabActive
-                ),
-              ]}
-              onPress={() => setFilter(tab)}
-            >
-              <Text style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}>
-                {tab === 'all' ? 'All' : tab === 'ongoing' ? 'In Progress' : 'Completed'}
-              </Text>
-            </Pressable>
-          ))}
+        <View style={styles.pageInner}>
+          <View style={[styles.filterTabs, { paddingLeft: 16, paddingRight: Math.max(insets.right, 16) }]}>
+            {tabKeys.map((tab) => (
+              <Pressable
+                key={tab}
+                style={[
+                  styles.filterTab,
+                  filter === tab && (
+                    tab === 'completed'
+                      ? styles.filterTabActiveCompleted
+                      : tab === 'ongoing'
+                        ? styles.filterTabActiveOngoing
+                        : styles.filterTabActive
+                  ),
+                ]}
+                onPressIn={() => handleTabPressIn(tab)}
+                onPressOut={() => handleTabPressOut(tab)}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setFilter(tab);
+                }}
+              >
+                <Animated.View style={{ transform: [{ scale: tabScales.current[tab] }] }}>
+                  <Text style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}>
+                    {tab === 'all' ? 'All' : tab === 'ongoing' ? 'In Progress' : 'Completed'}
+                  </Text>
+                </Animated.View>
+              </Pressable>
+            ))}
+          </View>
         </View>
         {isLoading || isFetching ? (
           <View style={[styles.listContent, styles.pageInner]}>
             <PlaybookSkeleton />
+          </View>
+        ) : sections.length === 0 ? (
+          <View style={[styles.container, styles.containerEmpty]}>
+            <View style={[styles.emptyStateContainer]}>
+              <View style={styles.emptyHeroContainer}>
+                <View style={styles.heroCard}>
+                  {filter === 'ongoing' ? (
+                    <MaterialCommunityIcons
+                      name="clipboard-text-clock"
+                      size={32}
+                      color="rgba(255,255,255,0.8)"
+                      style={styles.heroIcon}
+                    />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name="trophy-outline"
+                      size={32}
+                      color="rgba(255,255,255,0.8)"
+                      style={styles.heroIcon}
+                    />
+                  )}
+                  <Text style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</Text>
+                  <Text style={styles.heroTitle}>
+                    {filter === 'ongoing' ? 'All your playbooks are completed' : 'No completed playbooks yet'}
+                  </Text>
+                  <Text style={styles.heroSubtitle}>
+                    {filter === 'ongoing'
+                      ? 'Great job finishing your tasks. Review a completed playbook or start a new one.'
+                      : 'Keep going! Your finished playbooks will appear here.'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
+                    activeOpacity={0.85}
+                    style={styles.heroOutlineButton}
+                  >
+                    <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                    <Text style={styles.heroOutlineButtonText}>
+                      {filter === 'ongoing' ? 'Create a Playbook' : 'Create a Playbook'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => { triggerLightHaptic(); setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
+                    activeOpacity={0.85}
+                    style={{ paddingVertical: 6, paddingHorizontal: 8 }}
+                  >
+                    <Text style={{ color: Colors.hopeWhite, opacity: 0.9 }}>
+                      {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
           </View>
         ) : (
           <SectionList

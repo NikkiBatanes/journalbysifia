@@ -83,10 +83,12 @@ export class FaithPointsService {
 
   // Points awarded for different activities
   private readonly POINTS_SYSTEM = {
+    affirmation_read_aloud: 2,
     playbook_generated: 10,
     devotional_generated: 8,
     journal_entry: 5,
     action_step_completed: 3,
+    playbook_completed: 10,
     daily_streak: 5,
     weekly_goal_met: 25,
     content_shared: 15,
@@ -99,6 +101,58 @@ export class FaithPointsService {
    */
   public getPointsForActivity(activity: keyof typeof this.POINTS_SYSTEM): number {
     return this.POINTS_SYSTEM[activity];
+  }
+
+  /**
+   * Check if a specific activity already has a transaction for the current day (local device day)
+   */
+  public async hasActivityToday(userId: string, activity: string): Promise<boolean> {
+    try {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const { data } = await supabase
+        .from('faith_points_log')
+        .select('id, created_at')
+        .eq('user_id', userId)
+        .eq('activity_type', activity)
+        .gte('created_at', startOfDay.toISOString())
+        .limit(1);
+
+      return !!(data && data.length > 0);
+    } catch (error) {
+      console.warn('[FaithPointsService] hasActivityToday check failed, defaulting to false', error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a specific activity for a specific playbook already has a transaction for the current day
+   * Uses metadata.playbookId to scope the check per playbook
+   */
+  public async hasActivityTodayForPlaybook(
+    userId: string,
+    activity: string,
+    playbookId: string
+  ): Promise<boolean> {
+    try {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const { data } = await supabase
+        .from('faith_points_log')
+        .select('id, created_at, metadata')
+        .eq('user_id', userId)
+        .eq('activity_type', activity)
+        .gte('created_at', startOfDay.toISOString())
+        .contains('metadata', { playbookId })
+        .limit(1);
+
+      return !!(data && data.length > 0);
+    } catch (error) {
+      console.warn('[FaithPointsService] hasActivityTodayForPlaybook check failed, defaulting to false', error);
+      return false;
+    }
   }
 
   /**

@@ -24,6 +24,7 @@ import { RootStackParamList } from '../navigation/types';
 
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
+import { triggerLightHaptic } from '../utils/haptics';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -210,6 +211,7 @@ const UserInputScreen: React.FC = () => {
   // Remove the local mock implementation.
 
   const handleGeneratePlaybook = async () => {
+    try { triggerLightHaptic(); } catch {}
     animateButton();
     if (!userInput.trim()) {
       // Show error animation
@@ -252,6 +254,7 @@ const UserInputScreen: React.FC = () => {
 
   const [showTooltip, setShowTooltip] = useState(false);
   const onPressHint = () => {
+    try { triggerLightHaptic(); } catch {}
     setShowTooltip((v) => {
       const next = !v;
       if (next) {
