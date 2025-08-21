@@ -3,6 +3,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import DashboardHomeScreen from '../screens/DashboardHomeScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import StreakDetailScreen from '../screens/StreakDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,6 +19,15 @@ export default function HomeStackNavigator() {
           presentation: 'modal',
           animation: 'slide_from_bottom',
           gestureEnabled: true,
+        }}
+      />
+      <Stack.Screen
+        name="StreakDetail"
+        component={StreakDetailScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          presentation: 'card',
+          animation: 'slide_from_right',
         }}
       />
     </Stack.Navigator>

@@ -3,18 +3,21 @@
  * Displays user's spiritual growth streaks and achievements
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
+  Dimensions,
+  Modal,
+  Animated,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface Streak {
   id: string;
@@ -30,10 +33,23 @@ interface StreakTrackerProps {
 }
 
 
+const { width } = Dimensions.get('window');
+// Chip sizing and spacing (grid layout)
+const CHIP_SPACING = 8;
+const CONTENT_HORIZONTAL_PADDING = 16;
+const CHIP_COLUMNS = 4; // single row of 4 chips
+// reduce total width slightly so the row can be centered with visible side breathing room
+const CHIP_WIDTH = Math.floor(
+  (width - CONTENT_HORIZONTAL_PADDING * 2 - CHIP_SPACING * (CHIP_COLUMNS - 1) - 8) / CHIP_COLUMNS
+);
+
 const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   const { user } = useAuth();
   const [streaks, setStreaks] = useState<Streak[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Streak | null>(null);
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const sheetAnim = useRef(new Animated.Value(0)).current; // 0 hidden, 1 visible
 
   const calculateStreaks = useCallback((activities: any[]): Streak[] => {
     const streakTypes = [
@@ -182,12 +198,13 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   }, [fetchStreaks]);
 
   const getStreakIcon = (type: string) => {
+    // Use MaterialCommunityIcons to match bottom navigation
     switch (type) {
-      case 'prayer': return 'hands-up';
+      case 'prayer': return 'hands-pray';
       case 'devotional': return 'book';
-      case 'journal': return 'journal';
-      case 'playbook': return 'library';
-      default: return 'flame';
+      case 'journal': return 'notebook-edit';
+      case 'playbook': return 'clipboard-text-play';
+      default: return 'fire';
     }
   };
 
@@ -208,50 +225,45 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     }
   };
 
+  const formatLastActivity = (iso: string) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const now = new Date();
+    const sameYear = d.getFullYear() === now.getFullYear();
+    const weekday = d.toLocaleString(undefined, { weekday: 'short' });
+    const month = d.toLocaleString(undefined, { month: 'short' });
+    const day = d.toLocaleString(undefined, { day: 'numeric' });
+    const year = sameYear ? '' : ` ${d.getFullYear()}`;
+    return `${weekday}, ${month} ${day}${year}`;
+  };
+
+  const openSheet = (streak: Streak) => {
+    setSelected(streak);
+    setSheetVisible(true);
+    Animated.timing(sheetAnim, { toValue: 1, duration: 160, useNativeDriver: true }).start();
+  };
+
+  const closeSheet = () => {
+    Animated.timing(sheetAnim, { toValue: 0, duration: 160, useNativeDriver: true }).start(({ finished }) => {
+      if (finished) setSheetVisible(false);
+    });
+  };
+
   const renderStreakCard = (streak: Streak) => (
     <TouchableOpacity
       key={streak.id}
-      style={styles.streakCard}
-      onPress={() => onStreakPress?.(streak)}
-      activeOpacity={0.8}
+      style={styles.chip}
+      onPress={() => { triggerLightHaptic(); openSheet(streak); }}
+      activeOpacity={0.85}
     >
-      <View style={styles.streakHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: getStreakColor(streak.currentStreak) }]}>
-          <Ionicons
-            name={getStreakIcon(streak.type) as any}
-            size={20}
-            color={Colors.hopeWhite}
-          />
-        </View>
-        <View style={styles.streakInfo}>
-          <Text style={styles.streakTitle}>{getStreakTitle(streak.type)}</Text>
-          <Text style={styles.streakSubtitle}>
-            {streak.isActive ? 'Active streak' : 'Streak broken'}
-          </Text>
-        </View>
-        {streak.isActive && (
-          <View style={styles.activeIndicator}>
-            <Ionicons name="flame" size={16} color={Colors.alertCoral} />
-          </View>
-        )}
-      </View>
-
-      <View style={styles.streakStats}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{streak.currentStreak}</Text>
-          <Text style={styles.statLabel}>Current</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{streak.longestStreak}</Text>
-          <Text style={styles.statLabel}>Best</Text>
-        </View>
-      </View>
-
-      {streak.lastActivity && (
-        <Text style={styles.lastActivity}>
-          Last: {new Date(streak.lastActivity).toLocaleDateString()}
-        </Text>
+      <MaterialCommunityIcons
+        name={getStreakIcon(streak.type) as any}
+        size={18}
+        color={Colors.mediumGray}
+      />
+      <Text style={styles.streakNumber}>{streak.currentStreak}</Text>
+      {streak.isActive && (
+        <MaterialCommunityIcons name="fire" size={14} color={Colors.alertCoral} style={{ marginLeft: 4 }} />
       )}
     </TouchableOpacity>
   );
@@ -260,7 +272,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Ionicons name="flame" size={24} color={Colors.alertCoral} />
+          <MaterialCommunityIcons name="fire" size={24} color={Colors.alertCoral} />
           <Text style={styles.title}>Streak Tracker</Text>
         </View>
         <Text style={styles.loadingText}>Loading streaks...</Text>
@@ -271,24 +283,73 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="flame" size={24} color={Colors.alertCoral} />
+        <MaterialCommunityIcons name="fire" size={24} color={Colors.alertCoral} />
         <Text style={styles.title}>Streak Tracker</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContainer}
-      >
+      <View style={[styles.grid, { paddingHorizontal: CONTENT_HORIZONTAL_PADDING }]}>
         {streaks.map(renderStreakCard)}
-      </ScrollView>
+      </View>
+
+      {/* Bottom Sheet */}
+      <Modal
+        visible={sheetVisible}
+        transparent
+        animationType="none"
+        onRequestClose={closeSheet}
+      >
+        <TouchableOpacity activeOpacity={1} style={styles.sheetBackdrop} onPress={closeSheet} />
+        <Animated.View
+          style={[
+            styles.sheet,
+            {
+              transform: [
+                {
+                  translateY: sheetAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [260, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>{selected ? getStreakTitle(selected.type) : ''}</Text>
+          {selected && (
+            <View style={styles.sheetContent}>
+              <View style={styles.sheetRow}>
+                <Text style={styles.sheetLabel}>Current</Text>
+                <Text style={styles.sheetValue}>{selected.currentStreak}</Text>
+              </View>
+              <View style={styles.sheetRow}>
+                <Text style={styles.sheetLabel}>Best</Text>
+                <Text style={styles.sheetValue}>{selected.longestStreak}</Text>
+              </View>
+              {selected.lastActivity && (
+                <View style={styles.sheetRow}>
+                  <Text style={styles.sheetLabel}>Last Activity</Text>
+                  <Text style={styles.sheetValue}>{formatLastActivity(selected.lastActivity)}</Text>
+                </View>
+              )}
+              {!!onStreakPress && (
+                <TouchableOpacity style={styles.sheetButton} onPress={() => { onStreakPress(selected); closeSheet(); }}>
+                  <Text style={styles.sheetButtonText}>View Details</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </Animated.View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    marginTop: 30,
     marginBottom: 24,
+    overflow: 'visible',
   },
   header: {
     flexDirection: 'row',
@@ -309,75 +370,99 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   scrollContainer: {
-    paddingHorizontal: 16,
-    gap: 12,
+    // paddingHorizontal set dynamically to SIDE_PADDING for edge-to-edge feel
   },
-  streakCard: {
-    backgroundColor: Colors.modalBlue,
-    borderRadius: 12,
-    padding: 16,
-    width: 160,
-    borderLeftWidth: 0,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    justifyContent: 'center',
+    gap: CHIP_SPACING,
   },
-  streakHeader: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
     justifyContent: 'center',
-    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    height: 48,
+    width: CHIP_WIDTH,
+    // no vertical margin needed in single-row layout
   },
-  streakInfo: {
-    flex: 1,
-  },
-  streakTitle: {
-    fontSize: 14,
+  streakNumber: {
+    fontSize: 18,
     fontWeight: '600',
     color: Colors.hopeWhite,
+    marginHorizontal: 6,
   },
-  streakSubtitle: {
-    fontSize: 11,
+  streakLabel: {
+    fontSize: 12,
     color: Colors.mediumGray,
   },
-  activeIndicator: {
-    padding: 2,
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  streakStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: Colors.modalBlue,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderTopWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 20,
+  },
+  sheetHandle: {
+    alignSelf: 'center',
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     marginBottom: 8,
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  sheetTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: Colors.hopeWhite,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: Colors.mediumGray,
-    textTransform: 'uppercase',
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginHorizontal: 8,
-  },
-  lastActivity: {
-    fontSize: 10,
-    color: Colors.lightGray,
+    marginBottom: 8,
     textAlign: 'center',
+  },
+  sheetContent: {
+    gap: 8,
+  },
+  sheetRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  sheetLabel: {
+    fontSize: 13,
+    color: Colors.mediumGray,
+  },
+  sheetValue: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  sheetButton: {
+    marginTop: 12,
+    alignSelf: 'center',
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  sheetButtonText: {
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
 

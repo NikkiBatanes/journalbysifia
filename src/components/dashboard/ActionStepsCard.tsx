@@ -3,7 +3,7 @@
  * Displays unfinished action steps from user's playbooks
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { rankSteps, generateCoachTip } from '../../services/nextBestStep';
 
 interface ActionStep {
   id: string;
@@ -28,20 +29,67 @@ interface ActionStep {
   isCompleted: boolean;
   dueDate?: string;
   priority?: 'high' | 'medium' | 'low';
+  estimatedMinutes?: number;
+  difficulty?: number | null;
+  impactScore?: number | null;
+  dependsOnStepId?: string | null;
+  blockers?: string | null;
+  coachTip?: string;
 }
 
 interface ActionStepsCardProps {
   onStepPress?: (step: ActionStep) => void;
   onViewAll?: () => void;
+  onCountChange?: (count: number) => void;
 }
 
 
 
-const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAll }) => {
+const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAll, onCountChange }) => {
   const { user } = useAuth();
   const [actionSteps, setActionSteps] = useState<ActionStep[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [completedId, setCompletedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(3);
+  // Example modal removed per request; keep UI simple and non-interactive
+
+  const logEvent = useCallback(async (event_type: string, payload: { playbook_id?: string; step_id?: string; [k: string]: any } = {}) => {
+    if (!user) return;
+    try {
+      await supabase.from('user_behavior_events').insert({
+        user_id: user.id,
+        event_type,
+        playbook_id: payload.playbook_id,
+        step_id: payload.step_id,
+        metadata: payload,
+      });
+    } catch (e) {
+      // Non-blocking analytics error
+      console.warn('Failed to log user_behavior_event', e);
+    }
+  }, [user]);
+
+  // Notify parent when count changes
+  useEffect(() => {
+    try { onCountChange?.(actionSteps.length); } catch {}
+  }, [actionSteps.length, onCountChange]);
+
+  // Track which steps have already fired view_step to avoid duplicates
+  const viewedStepIdsRef = useRef<Set<string>>(new Set());
+
+  // Fire view_step when an item becomes sufficiently visible
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ item: ActionStep; isViewable: boolean }> }) => {
+    viewableItems.forEach(({ item, isViewable }) => {
+      if (isViewable && item && !viewedStepIdsRef.current.has(item.id)) {
+        viewedStepIdsRef.current.add(item.id);
+        logEvent('view_step', { playbook_id: item.playbookId, step_id: item.id, title: item.title });
+      }
+    });
+  });
+
+  const viewabilityConfig = { itemVisiblePercentThreshold: 60, minimumViewTime: 400 };
 
   const fetchActionSteps = useCallback(async () => {
     if (!user) {return;}
@@ -58,6 +106,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
           playbook:playbooks(*)
         `)
         .eq('completed', false)
+        .order('order_index', { ascending: true })
         .limit(10);
 
       if (progressError) {
@@ -73,17 +122,42 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       // Transform the data to match ActionStep interface
       const transformedSteps: ActionStep[] = __progressData.map((step: any) => ({
         id: step.id,
-        title: step.title || step.step_title || 'Untitled Step',
-        description: step.description || step.step_description,
+        title: step.text || 'Untitled Step',
+        description: step.examples || undefined,
         playbookTitle: step.playbook?.title || 'Unknown Playbook',
         playbookId: step.playbook_id,
-        stepIndex: step.step_index || 0,
+        stepIndex: step.order_index ?? 0,
         isCompleted: step.completed || false,
         dueDate: step.due_date,
-        priority: step.priority || 'medium'
+        priority: step.priority || 'medium',
+        estimatedMinutes: step.estimated_minutes ?? undefined,
+        difficulty: step.difficulty ?? null,
+        impactScore: step.impact_score ?? null,
+        dependsOnStepId: step.depends_on_step_id ?? null,
+        blockers: step.blockers ?? null,
       }));
 
-      setActionSteps(transformedSteps);
+      // Generate a short coach tip and rank steps by next-best-step scoring
+      const withTips = transformedSteps.map(s => ({ ...s, coachTip: generateCoachTip({
+        id: s.id,
+        title: s.title,
+        description: s.description,
+        playbookTitle: s.playbookTitle,
+        playbookId: s.playbookId,
+        stepIndex: s.stepIndex,
+        isCompleted: s.isCompleted,
+        dueDate: s.dueDate,
+        priority: s.priority,
+        estimatedMinutes: s.estimatedMinutes ?? null,
+        difficulty: s.difficulty ?? null,
+        impactScore: s.impactScore ?? null,
+        dependsOnStepId: s.dependsOnStepId ?? null,
+        blockers: s.blockers ?? null,
+      }) }));
+
+      const ranked = rankSteps(withTips);
+
+      setActionSteps(ranked);
 
     } catch (fetchError) {
       console.error('Error fetching action steps:', fetchError);
@@ -97,6 +171,15 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     fetchActionSteps();
   }, [fetchActionSteps, user]);
 
+  // Keep visibleCount within bounds when list size changes
+  useEffect(() => {
+    setVisibleCount((prev) => {
+      const min = 3;
+      const max = actionSteps.length > 0 ? actionSteps.length : min;
+      return Math.min(Math.max(prev, min), max);
+    });
+  }, [actionSteps.length]);
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high': return Colors.alertCoral;
@@ -105,6 +188,86 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       default: return Colors.faithGold;
     }
   };
+
+  const formatDueDate = (dateInput?: string | Date) => {
+    if (!dateInput) return '';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const sameYear = d.getFullYear() === now.getFullYear();
+    const base = new Intl.DateTimeFormat('en-US', {
+      weekday: 'short',
+      month: 'long',
+      day: 'numeric',
+      ...(sameYear ? {} : { year: 'numeric' as const }),
+    }).format(d);
+    return base; // e.g., Thu, August 21 or Thu, August 21, 2026 depending on year
+  };
+
+  const markStepDone = useCallback(async (step: ActionStep) => {
+    if (!user) return;
+    try {
+      setCompletingId(step.id);
+      // 1) Update the action step as completed
+      const { error: updateError } = await supabase
+        .from('playbook_action_steps')
+        .update({ completed: true })
+        .eq('id', step.id);
+      if (updateError) { throw updateError; }
+
+      // 2) Log to faith_points_log so StreakTracker can count it
+      await supabase.from('faith_points_log').insert({
+        user_id: user.id,
+        activity_type: 'action_step_completed',
+        points: 1,
+        metadata: { playbook_id: step.playbookId, step_id: step.id, title: step.title },
+      });
+
+      // 2b) Analytics event: complete_step
+      logEvent('complete_step', { playbook_id: step.playbookId, step_id: step.id, title: step.title });
+
+      // 3) Show brief success checkmark before removing the item
+      triggerLightHaptic();
+      setCompletedId(step.id);
+      setTimeout(() => {
+        setActionSteps(prev => prev.filter(s => s.id !== step.id));
+        setCompletedId(null);
+      }, 500);
+    } catch (e) {
+      console.error('Failed to mark step as done:', e);
+      setError('Failed to complete step. Please try again.');
+    } finally {
+      setCompletingId(null);
+    }
+  }, [user]);
+
+  // Example viewing and analytics removed
+
+  const snoozeStepByDays = useCallback(async (step: ActionStep, days: number = 1) => {
+    if (!user) return;
+    try {
+      const baseDate = step.dueDate ? new Date(step.dueDate) : new Date();
+      const newDate = new Date(baseDate);
+      newDate.setDate(baseDate.getDate() + days);
+
+      const { error: updateErr } = await supabase
+        .from('playbook_action_steps')
+        .update({ due_date: newDate.toISOString().slice(0, 10) })
+        .eq('id', step.id);
+      if (updateErr) throw updateErr;
+
+      logEvent('snooze_step', { playbook_id: step.playbookId, step_id: step.id, title: step.title, days });
+
+      // Optimistically update local state
+      setActionSteps(prev => prev.map(s => s.id === step.id ? { ...s, dueDate: newDate.toISOString() } : s));
+      triggerLightHaptic();
+    } catch (e) {
+      console.error('Failed to snooze step:', e);
+      setError('Failed to snooze step. Please try again.');
+    }
+  }, [user, logEvent]);
+
+  // No example modal handlers
 
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
@@ -115,35 +278,139 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     }
   };
 
+  // Indent example line to start under the first letter of the title
+  // Adjusted to keep title closer to the icon: padding(2) + icon(18) + gap(6)
+  const TITLE_LEFT_OFFSET = 2 + 18 + 6;
+
+  // Remove simple markdown emphasis markers from titles (e.g., **bold**, *italic*)
+  const stripMarkdownEmphasis = (s: string) => {
+    if (!s) return '';
+    return s
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .trim();
+  };
+
+  const renderExampleWithBubble = (text: string) => {
+    const trimmed = (text || '').trim();
+    if (!trimmed) return null;
+    const parts = trimmed.split(/\s+/);
+    const first = parts.shift() || '';
+    const rest = parts.join(' ');
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginLeft: TITLE_LEFT_OFFSET, marginTop: 2 }}>
+        <Ionicons name="chatbubble-ellipses-outline" size={14} color={Colors.alertCoral} />
+        <Text style={[styles.stepDescription, { marginLeft: 6 }]} numberOfLines={2}>
+          {first}{rest ? ' ' + rest : ''}
+        </Text>
+      </View>
+    );
+  };
+
+  // Pagination logic (match Todos pattern, adjusted to 3 at a time)
+  const visibleSteps = actionSteps.slice(0, visibleCount);
+  const hasMore = actionSteps.length > visibleCount;
+  const canShowLess = visibleCount > 3 && actionSteps.length > 3;
+
+  const loadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + 3, actionSteps.length));
+  };
+
+  const showLess = () => {
+    setVisibleCount(3);
+  };
+
   const renderActionStep = ({ item }: { item: ActionStep }) => (
     <TouchableOpacity
       style={styles.stepItem}
       onPress={() => {
         triggerLightHaptic();
+        // start_step when tapping into a step
+        logEvent('start_step', { playbook_id: item.playbookId, step_id: item.id, title: item.title });
         onStepPress?.(item);
       }}
       activeOpacity={0.8}
     >
+      {(item.priority || item.dueDate) && (
+        <View style={{ marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}>
+          {item.priority && (
+            <View style={[styles.chip, { alignSelf: 'flex-start', marginRight: 6 }]}>
+              <Text style={styles.chipText}>{item.priority}</Text>
+            </View>
+          )}
+          {item.dueDate && (
+            <View style={[styles.chip, { alignSelf: 'flex-start' }]}>
+              <Text style={styles.chipText}>Due {formatDueDate(item.dueDate)}</Text>
+            </View>
+          )}
+        </View>
+      )}
       <View style={styles.stepHeader}>
-        <Ionicons
-          name={getPriorityIcon(item.priority || 'medium')}
-          size={16}
-          color={getPriorityColor(item.priority || 'medium')}
-        />
+        <TouchableOpacity
+          onPress={() => markStepDone(item)}
+          disabled={completingId === item.id}
+          style={{ padding: 2 }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Mark step as done"
+          accessibilityRole="button"
+        >
+          {completingId === item.id ? (
+            <ActivityIndicator size="small" color={Colors.faithGold} style={{ width: 18, height: 18 }} />
+          ) : completedId === item.id ? (
+            <Ionicons
+              name={'checkmark-circle'}
+              size={18}
+              color={Colors.successGreen}
+            />
+          ) : (
+            <Ionicons
+              name={'ellipse-outline'}
+              size={18}
+              color={Colors.faithGold}
+            />
+          )}
+        </TouchableOpacity>
         <Text style={styles.stepTitle} numberOfLines={1}>
-          {item.title}
+          {stripMarkdownEmphasis(item.title)}
         </Text>
       </View>
 
-      <Text style={styles.playbookName} numberOfLines={1}>
-        From: {item.playbookTitle}
-      </Text>
+      {item.description && renderExampleWithBubble(item.description)}
 
-      {item.description && (
-        <Text style={styles.stepDescription} numberOfLines={2}>
-          {item.description}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 2, marginLeft: TITLE_LEFT_OFFSET }}>
+        <View style={{ width: 1, height: 28, backgroundColor: Colors.mediumGray, borderRadius: 2, marginRight: 8 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 10, color: Colors.mediumGray, letterSpacing: 1, fontWeight: '600' }}>
+            FROM PLAYBOOK
+          </Text>
+          <Text style={{ fontSize: 11, color: Colors.mediumGray, fontWeight: '600' }}>
+            {item.playbookTitle}
+          </Text>
+        </View>
+      </View>
+
+      {/* Context chips */}
+      <View style={styles.chipsRow}>
+        {typeof item.estimatedMinutes === 'number' && (
+          <View style={styles.chip}><Text style={styles.chipText}>{item.estimatedMinutes} min</Text></View>
+        )}
+      </View>
+
+      
+
+      {item.coachTip && (
+        <Text style={styles.coachTip} numberOfLines={1}>
+          {item.coachTip}
         </Text>
       )}
+
+      {/* CTA row */}
+      <View style={styles.ctaRow}>
+        <TouchableOpacity style={styles.secondaryButton} onPress={() => snoozeStepByDays(item, 1)}>
+          <Ionicons name="time-outline" size={14} color={Colors.alertCoral} />
+          <Text style={styles.secondaryText}>Snooze 1d</Text>
+        </TouchableOpacity>
+      </View>
     </TouchableOpacity>
   );
 
@@ -174,22 +441,6 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <Ionicons name="checkmark-circle" size={24} color={Colors.alertCoral} />
-        <Text style={styles.title}>Unfinished Steps</Text>
-        {actionSteps.length > 0 && (
-          <TouchableOpacity
-            onPress={() => {
-              triggerLightHaptic();
-              onViewAll?.();
-            }}
-            style={styles.viewAllButton}
-          >
-            <Text style={styles.viewAllText}>View All</Text>
-            <Ionicons name="chevron-forward" size={16} color={Colors.alertCoral} />
-          </TouchableOpacity>
-        )}
-      </View>
 
       {error ? (
         <View style={styles.errorContainer}>
@@ -207,14 +458,54 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       ) : actionSteps.length === 0 ? (
         renderEmptyState()
       ) : (
-        <FlatList
-          data={actionSteps}
-          renderItem={renderActionStep}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
-        />
+        <>
+          <FlatList
+            data={visibleSteps}
+            renderItem={renderActionStep}
+            keyExtractor={(item) => item.id}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={false}
+            onViewableItemsChanged={onViewableItemsChanged.current}
+            viewabilityConfig={viewabilityConfig}
+          />
+
+          {/* Show more / Show less controls matching Todos */}
+          {actionSteps.length > 0 && (
+            <View style={styles.paginationContainer}>
+              <View style={styles.paginationButtonGroup}>
+                {hasMore && (
+                  <TouchableOpacity
+                    style={[styles.paginationButton, styles.showMoreButton]}
+                    onPress={loadMore}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Show more steps. ${actionSteps.length - visibleCount} remaining`}
+                    accessibilityHint="Loads 3 more action steps"
+                  >
+                    <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                    <Text style={[styles.paginationButtonText, styles.showMoreText]}>Show more</Text>
+                  </TouchableOpacity>
+                )}
+                {canShowLess && (
+                  <TouchableOpacity
+                    style={[styles.paginationButton, styles.showLessButton]}
+                    onPress={showLess}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel="Show less steps"
+                    accessibilityHint="Collapses the list to show only the first 3 steps"
+                  >
+                    <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                    <Text style={[styles.paginationButtonText, styles.showLessText]}>Show less</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+        </>
       )}
+
+      {/* Example modal removed */}
     </View>
   );
 };
@@ -229,6 +520,59 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     minHeight: 120,
   },
+  titleText: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: 14,
+  },
+  subtitleText: {
+    fontSize: 12,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginTop: -6,
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 8,
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  ctaText: {
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.alertCoral,
+  },
+  secondaryText: {
+    color: Colors.alertCoral,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  // Example modal styles removed
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,6 +606,24 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 4,
   },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 6,
+  },
+  chip: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  chipText: {
+    fontSize: 11,
+    color: Colors.hopeWhite,
+  },
   stepTitle: {
     fontSize: 14,
     fontWeight: '600',
@@ -277,6 +639,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.lightGray,
     lineHeight: 16,
+  },
+  coachTip: {
+    marginTop: 4,
+    fontSize: 12,
+    color: Colors.faithGold,
+    fontStyle: 'italic',
   },
   loadingContainer: {
     height: 100,
@@ -327,6 +695,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
     fontWeight: '600',
+  },
+  // Pagination styles (mirroring Todos)
+  paginationContainer: {
+    marginTop: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    gap: 6,
+  },
+  paginationButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  showMoreButton: {},
+  showLessButton: {},
+  showMoreText: {
+    color: Colors.alertCoral,
+  },
+  showLessText: {
+    color: Colors.mediumGray,
   },
 });
 

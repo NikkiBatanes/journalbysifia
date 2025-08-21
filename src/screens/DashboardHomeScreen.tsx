@@ -312,6 +312,29 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingBottom: 0,
       paddingTop: 0,
     },
+    actionsHeaderContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    actionsHeaderTitle: {
+      fontSize: 12,
+      color: Colors.hopeWhite,
+      textAlign: 'center',
+      textTransform: 'uppercase',
+      fontWeight: '600',
+      letterSpacing: 0.8,
+      marginBottom: 6,
+    },
+    actionsHeaderSubtitle: {
+      fontSize: 12,
+      color: Colors.mediumGray,
+      textAlign: 'center',
+      marginTop: -2,
+      marginBottom: 6,
+      fontWeight: '500',
+    },
     expandableButton: {
       backgroundColor: Colors.hopeWhite, 
       borderRadius: 28, 
@@ -393,6 +416,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     fetchDirectSubscription();
   }, [user?.id, subscription?.tier, queryClient]); // Re-run when cached subscription changes
   const [refreshing, setRefreshing] = useState(false);
+  const [actionsCount, setActionsCount] = useState(0);
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
 
   // Status bar: auto-detect from background
@@ -792,7 +816,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }
           showsVerticalScrollIndicator={false}
         >
-        {/* Daily Scripture - full width at top */}
+        {/* Progress Tracking - moved above Today's Scripture */}
+        <StreakTracker onStreakPress={(streak) => navigation.navigate('StreakDetail', { type: streak.type })} />
+
+        {/* Daily Scripture - now below Streak Tracker */}
         <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
 
         {/* Row 1: Inspiration Cards (Affirmation only) */}
@@ -800,12 +827,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <DailyAffirmationCard onRefresh={() => setRefreshing(true)} />
         </View>
 
-        {/* Row 2: Progress Tracking */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Your Journey</Text>
-        </View>
-
-        <StreakTracker onStreakPress={(streak) => navigation.navigate('StreakDetail', { type: streak.type })} />
+        {/* Weekly Insights */}
         <WeeklyInsights onInsightPress={() => navigation.navigate('Analytics')} />
 
         {/* AI Insights */}
@@ -851,9 +873,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }}
         />
 
-        {/* Row 3: Action Items */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Today's Actions</Text>
+        {/* External Actions header and subtitle (moved out of card) */}
+        <View style={styles.actionsHeaderContainer}>
+          <Text style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</Text>
+          <Text style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</Text>
         </View>
 
         <ActionStepsCard
@@ -866,6 +889,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             // Navigate to all action steps
             console.log('Navigate to all action steps');
           }}
+          onCountChange={setActionsCount}
         />
         
         {/* Reflection Questions Card */}
