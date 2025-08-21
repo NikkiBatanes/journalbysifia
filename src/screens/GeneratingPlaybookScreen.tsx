@@ -54,12 +54,12 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [currentStep, setCurrentStep] = useState(0);
   const generationSteps = [
-    { title: 'Breathe in peace...', description: '' },
-    { title: 'Breathe out worry...', description: '' },
     { title: 'Listening to your heart…', description: '' },
     { title: 'Finding God\'s Word for your season…', description: '' },
     { title: 'Preparing your steps…', description: '' },
     { title: 'Equipping you for the journey…', description: '' },
+    { title: 'Breathe in peace...', description: '' },
+    { title: 'Breathe out worry...', description: '' },
     { title: 'Finalizing Your Playbook', description: '' },
   ];
   const currentTitle = generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title || '';

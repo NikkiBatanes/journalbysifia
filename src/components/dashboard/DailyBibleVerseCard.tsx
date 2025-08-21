@@ -14,6 +14,7 @@ import {
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 interface BibleVerse {
@@ -239,13 +240,31 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       // Only use verses if found in database
       console.log('[DailyScripture] Total extracted verses:', allVerses.length);
       if (allVerses.length > 0) {
-        // Select verse based on current date for consistency
         const today = new Date();
+        const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const storageKey = `daily_scripture_selection_${user.id}_${dateKey}`;
+
+        // Try to load cached selection for stability throughout the day
+        let cached: string | null = null;
+        try {
+          cached = await AsyncStorage.getItem(storageKey);
+        } catch {}
+
+        if (cached) {
+          const found = allVerses.find(v => v.id === cached);
+          if (found) {
+            setVerse(found);
+            return;
+          }
+        }
+
+        // Fallback to deterministic pick and cache it
         const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
         const selectedIndex = dayOfYear % allVerses.length;
         const selected = allVerses[selectedIndex];
         console.log('[DailyScripture] Selected verse:', selected);
         setVerse(selected);
+        try { await AsyncStorage.setItem(storageKey, selected.id); } catch {}
       } else {
         setVerse(null);
       }

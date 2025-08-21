@@ -96,12 +96,12 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // No manual measurement: we'll use flex spacers and safe-area padding
 
   const generationSteps = [
-    { title: 'Breathe in peace...', description: '' },
-    { title: 'Breathe out worry...', description: '' },
     { title: 'Listening to your heart…', description: '' },
     { title: 'Finding God\'s Word for your season…', description: '' },
     { title: 'Preparing your steps…', description: '' },
     { title: 'Equipping you for the journey…', description: '' },
+    { title: 'Breathe in peace...', description: '' },
+    { title: 'Breathe out worry...', description: '' },
     { title: 'Finalizing Your Playbook', description: '' },
   ];
 

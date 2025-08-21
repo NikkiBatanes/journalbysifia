@@ -28,6 +28,8 @@ interface PlaybookStoreReactQuery {
   selectedPlaybookId: string | null;
   filterStatus: 'all' | 'ongoing' | 'completed';
   sortBy: 'created' | 'updated' | 'progress';
+  // Read Aloud state (per playbook)
+  readAloudMap: Record<string, boolean>;
 
   // Actions
   setLocalPlaybooks: (playbooks: Playbook[]) => void;
@@ -37,6 +39,9 @@ interface PlaybookStoreReactQuery {
   addOfflineChange: (change: OfflineChange) => void;
   clearOfflineChanges: () => void;
   syncWithReactQuery: (playbooks: Playbook[]) => void;
+  // Read Aloud actions
+  setReadAloud: (playbookId: string, value: boolean) => void;
+  getReadAloud: (playbookId: string) => boolean;
 
   // Enhanced actions with React Query integration
   updateActionStepOptimistic: (playbookId: string, stepId: string, completed: boolean) => void;
@@ -174,6 +179,7 @@ export const usePlaybookStoreReactQuery = create<PlaybookStoreReactQuery>()(
       selectedPlaybookId: null,
       filterStatus: 'all',
       sortBy: 'created',
+      readAloudMap: {},
 
       // Basic setters
       setLocalPlaybooks: (playbooks: Playbook[]) => {
@@ -193,6 +199,15 @@ export const usePlaybookStoreReactQuery = create<PlaybookStoreReactQuery>()(
 
       setSortBy: (sort: 'created' | 'updated' | 'progress') => {
         set({ sortBy: sort });
+      },
+
+      // Read Aloud actions
+      setReadAloud: (playbookId: string, value: boolean) => {
+        set(state => ({ readAloudMap: { ...state.readAloudMap, [playbookId]: value } }));
+      },
+      getReadAloud: (playbookId: string) => {
+        const state = get();
+        return !!state.readAloudMap[playbookId];
       },
 
       addOfflineChange: (change: OfflineChange) => {
@@ -364,6 +379,7 @@ export const usePlaybookStoreReactQuery = create<PlaybookStoreReactQuery>()(
         selectedPlaybookId: state.selectedPlaybookId,
         filterStatus: state.filterStatus,
         sortBy: state.sortBy,
+        readAloudMap: state.readAloudMap,
       }),
     }
   )
