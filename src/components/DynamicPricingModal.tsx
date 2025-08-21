@@ -12,6 +12,7 @@ import pricingService from '../services/pricingService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 // const { width } = Dimensions.get('window'); // Unused, commented out
 
@@ -84,6 +85,7 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
   const savings = originalPrice - discountedPrice;
 
   const handleGetOffer = async () => {
+    try { triggerSuccessHaptic(); } catch {}
     // Mark discount as redeemed for this user/device
     try {
       await pricingService.markDiscountRedeemed(user?.id, discountPercentage);
@@ -130,7 +132,13 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           {/* Close Button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              onClose();
+            }}
+          >
             <Ionicons name="close" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
 

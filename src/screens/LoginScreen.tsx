@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
 
 interface Props {
   navigation: any;
@@ -24,25 +25,31 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading } = useAuth();
 
   const handleGoogleLogin = async () => {
+    triggerLightHaptic();
     const { error } = await signInWithGoogle();
     if (error) {
+      triggerErrorHaptic();
       Alert.alert('Google Login Failed', error.message || 'Please try again');
     }
   };
 
   const handleAppleLogin = async () => {
+    triggerLightHaptic();
     const { error } = await signInWithApple();
     if (error) {
+      triggerErrorHaptic();
       Alert.alert('Apple Login Failed', error.message || 'Please try again');
     }
   };
 
   const handleEmailLogin = () => {
+    triggerLightHaptic();
     // Navigate to email login form or handle email login
     navigation.navigate('EmailLogin');
   };
 
   const handleSignUp = () => {
+    triggerLightHaptic();
     navigation.navigate('Register');
   };
 

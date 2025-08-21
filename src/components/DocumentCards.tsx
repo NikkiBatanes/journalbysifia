@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 
@@ -218,6 +218,22 @@ const ReadAloudButtonDoc: React.FC<{
       setParticles(prev => prev.filter(h => !newParticles.find(n => n.id === h.id)));
     }, 1200);
   };
+
+  // Fallback: if points were already awarded for this playbook today, mark as read in store
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        if (userId && playbookId) {
+          const already = await faithPointsService.hasActivityTodayForPlaybook(userId, 'affirmation_read_aloud', playbookId);
+          if (mounted && already && !hasRead) {
+            setReadAloud(playbookId, true);
+          }
+        }
+      } catch (e) {}
+    })();
+    return () => { mounted = false; };
+  }, [userId, playbookId, hasRead, setReadAloud]);
 
   return (
     <View pointerEvents="box-none" style={readDocStyles.readButtonWrapper}>

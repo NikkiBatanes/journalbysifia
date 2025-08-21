@@ -19,6 +19,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { faithPointsService } from '../../services/faithPointsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { triggerErrorHaptic } from '../../utils/haptics';
 
 
 interface Affirmation {
@@ -278,6 +279,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
 
     } catch (err) {
       console.error('Error fetching daily affirmation:', err);
+      try { triggerErrorHaptic(); } catch {}
       setError('Unable to load affirmation');
       setAffirmations([]);
     } finally {
@@ -288,6 +290,17 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   useEffect(() => {
     fetchDailyAffirmation();
   }, [fetchDailyAffirmation]);
+
+  // Initialize hasRead based on whether the user has already recorded today's read activity
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!user?.id) { return; }
+        const already = await faithPointsService.hasActivityToday(user.id, 'affirmation_read_aloud');
+        if (already) { setHasRead(true); readAwardedRef.current = true; }
+      } catch {}
+    })();
+  }, [user?.id]);
 
   // Cleanup any pending haptic timers on unmount
   useEffect(() => {
@@ -301,6 +314,15 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
 
   const handleRefresh = () => {
     fetchDailyAffirmation();
+    // Also re-check read status on manual refresh to ensure UI stays in sync
+    (async () => {
+      try {
+        if (!user?.id) { return; }
+        const already = await faithPointsService.hasActivityToday(user.id, 'affirmation_read_aloud');
+        setHasRead(!!already);
+        if (already) { readAwardedRef.current = true; }
+      } catch {}
+    })();
     onRefresh?.();
   };
 

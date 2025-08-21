@@ -21,6 +21,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import { Colors } from '../../theme/colors';
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 // Feature interface removed as it's not currently used in the component
 
@@ -71,6 +72,8 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
   }, [fadeAnim, slideAnim]);
 
   const handleContinue = async () => {
+    // Haptic feedback for primary action
+    triggerLightHaptic();
     setIsLoading(true);
 
     try {
@@ -158,7 +161,7 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
             {/* Sign in link */}
             <View style={styles.signInRow}>
               <Text style={styles.signInText}>Already a member? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Auth' as any, { screen: 'Login' })}>
+              <TouchableOpacity onPress={() => { triggerLightHaptic(); (navigation as any).navigate('Auth' as any, { screen: 'Login' }); }}>
                 <Text style={styles.signInLink}>Login</Text>
               </TouchableOpacity>
             </View>

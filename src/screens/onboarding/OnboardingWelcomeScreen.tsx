@@ -27,6 +27,7 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -180,6 +181,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   };
 
   const handleCreateAccount = async () => {
+    triggerLightHaptic();
     setIsLoading(true);
     setTimeout(() => {
       if (isAuthenticated) {
@@ -197,6 +199,7 @@ const OnboardingWelcomeScreen: React.FC = () => {
   };
 
   const handleLogin = async () => {
+    triggerLightHaptic();
     setIsLoading(true);
     setTimeout(() => {
       if (isAuthenticated) {

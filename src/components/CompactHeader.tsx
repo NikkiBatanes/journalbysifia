@@ -32,7 +32,7 @@ const CompactHeader: React.FC<CompactHeaderProps> = ({
           />
         </View>
         <Text style={styles.progressText}>
-          {completedTasks}/{totalTasks} Tasks
+          {completedTasks}/{totalTasks} Steps
         </Text>
       </View>
     </View>

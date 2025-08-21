@@ -14,6 +14,7 @@ import pricingService, { LocationPricing } from '../../services/pricingService';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
@@ -30,11 +31,13 @@ const OnboardingTrialOfferScreen = () => {
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
 
   const handleClose = async () => {
+    try { triggerLightHaptic(); } catch {}
     // User declines trial and remains as seeker (freemium)
     navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
   };
 
   const handleStartTrial = async () => {
+    try { triggerSuccessHaptic(); } catch {}
     try {
       if (!user?.id) {
         throw new Error('User not authenticated');
@@ -211,14 +214,20 @@ const OnboardingTrialOfferScreen = () => {
           <View style={styles.toggleContainer}>
             <TouchableOpacity
               style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
-              onPress={() => setIsAnnual(false)}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setIsAnnual(false);
+              }}
               activeOpacity={0.9}
             >
               <Text style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.toggleButton, isAnnual && styles.activeToggle]}
-              onPress={() => setIsAnnual(true)}
+              onPress={() => {
+                try { triggerLightHaptic(); } catch {}
+                setIsAnnual(true);
+              }}
               activeOpacity={0.9}
             >
               <Text style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</Text>

@@ -20,6 +20,20 @@ export const triggerLightHaptic = () => {
   }
 };
 
+export const triggerMediumHaptic = () => {
+  const trigger = getTriggerFn();
+  if (typeof trigger === 'function') {
+    trigger('impactMedium', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+  }
+};
+
+export const triggerHeavyHaptic = () => {
+  const trigger = getTriggerFn();
+  if (typeof trigger === 'function') {
+    trigger('impactHeavy', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+  }
+};
+
 export const triggerSuccessHaptic = () => {
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
@@ -31,5 +45,12 @@ export const triggerSelectionHaptic = () => {
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('selection', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
+  }
+};
+
+export const triggerErrorHaptic = () => {
+  const trigger = getTriggerFn();
+  if (typeof trigger === 'function') {
+    trigger('notificationError', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
   }
 };

@@ -343,11 +343,13 @@ const OnboardingPersonalizationScreen: React.FC = () => {
   const handleBack = () => {
     // On age group step, don't go back
     if (currentStep > 1) {
+      try { triggerLightHaptic(); } catch {}
       setCurrentStep(currentStep - 1);
     }
   };
 
   const handleContinue = async () => {
+    try { triggerLightHaptic(); } catch {}
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -473,7 +475,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               styles.ageOption,
               selectedAgeGroup === ageGroup.value && styles.selectedAgeOption,
             ]}
-            onPress={() => setSelectedAgeGroup(ageGroup.value)}
+            onPress={() => { try { triggerLightHaptic(); } catch {}; setSelectedAgeGroup(ageGroup.value); }}
           >
             <Text style={styles.ageOptionTitle}>{ageGroup.label}</Text>
           </TouchableOpacity>
@@ -498,7 +500,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               styles.faithOption,
               selectedFaithJourney === option.id && styles.selectedFaithOption,
             ]}
-            onPress={() => setSelectedFaithJourney(option.id)}
+            onPress={() => { try { triggerLightHaptic(); } catch {}; setSelectedFaithJourney(option.id); }}
           >
             <View style={styles.faithOptionIcon}>
               <Ionicons name={option.icon} size={24} color={Colors.alertCoral} />
@@ -529,7 +531,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               styles.challengeOption,
               selectedChallenge === challenge.id && styles.selectedChallengeOption,
             ]}
-            onPress={() => setSelectedChallenge(challenge.id)}
+            onPress={() => { try { triggerLightHaptic(); } catch {}; setSelectedChallenge(challenge.id); }}
           >
             <View style={styles.challengeOptionIcon}>
               <Ionicons name={challenge.icon} size={24} color={Colors.alertCoral} />
@@ -581,14 +583,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           <TouchableOpacity
             key={index}
             style={styles.exampleTag}
-            onPress={() => setChallengeDetails(example)}
+            onPress={() => { try { triggerLightHaptic(); } catch {}; setChallengeDetails(example); }}
           >
             <Text style={styles.exampleTagText}>{example}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      <Animated.View style={[styles.askBox, { borderWidth: inputBorderWidth }]} onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}>
+      <Animated.View
+        style={[styles.askBox, { borderWidth: inputBorderWidth }]}
+        onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}
+        // Provide light haptic feedback when the ask box area is tapped
+        onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
+      >
         <TextInput
           ref={detailsInputRef}
           style={styles.askInput}
@@ -720,15 +727,18 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             />
           </TouchableOpacity>
           <View style={styles.progressContainer}>
-            {Array.from({ length: totalSteps }, (_, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.progressSegment,
-                  index < currentStep ? styles.progressSegmentActive : styles.progressSegmentInactive,
-                ]}
-              />
-            ))}
+            {/* Welcome-style dot pagination */}
+            <View style={styles.dotsContainer}>
+              {Array.from({ length: totalSteps }, (_, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.dot,
+                    (index + 1) === currentStep && styles.activeDotGreen,
+                  ]}
+                />
+              ))}
+            </View>
           </View>
 
           <View style={styles.spacer} />
@@ -773,7 +783,19 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           )}
         </ScrollView>
 
-        <View style={styles.continueButtonContainer}>
+        <View
+          style={[
+            styles.continueButtonContainer,
+            // Add safe-area-aware bottom padding for better spacing above home indicator
+            keyboardVisible
+              ? (currentStep === totalSteps
+                  // Final step: "Create My Playbook" — minimal padding, safe-area only
+                  ? { paddingBottom: Math.max(insets?.bottom ?? 0, 0) }
+                  // Other steps: slightly reduced padding
+                  : { paddingBottom: Math.max(insets?.bottom ?? 0, 4) })
+              : { paddingBottom: Math.max(insets?.bottom ?? 0, 16) + 8 },
+          ]}
+        >
           <TouchableOpacity
             style={[styles.continueButton, canContinue() && styles.continueButtonActive]}
             onPress={handleContinue}
@@ -839,6 +861,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     marginHorizontal: 15,
+  },
+  // Welcome-style dots pagination
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    marginHorizontal: 3,
+  },
+  activeDotGreen: {
+    backgroundColor: Colors.growthGreen,
+    width: 20,
   },
   progressSegment: {
     width: 25,

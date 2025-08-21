@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
 
 interface Props {
   navigation: any;
@@ -30,18 +31,21 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   const { signIn, loading } = useAuth();
 
   const handleLogin = async () => {
+    triggerLightHaptic();
     // clear previous error
     setError('');
 
     const emailTrim = email.trim();
 
     if (!emailTrim || !password) {
+      triggerErrorHaptic();
       setError('Please fill in all fields');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailTrim)) {
+      triggerErrorHaptic();
       setError('Please enter a valid email address');
       return;
     }
@@ -59,6 +63,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
       // valid users may not have a profile row yet (or RLS may block reads).
       // Supabase does not expose account-existence via public APIs for security.
 
+      triggerErrorHaptic();
       setError(message);
       return;
     }
@@ -68,10 +73,12 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleBackToSocial = () => {
+    triggerLightHaptic();
     navigation.goBack();
   };
 
   const handleSignUp = () => {
+    triggerLightHaptic();
     navigation.navigate('Register');
   };
 
@@ -152,7 +159,10 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.forgotPassword}>
+          <TouchableOpacity 
+            style={styles.forgotPassword} 
+            onPress={() => triggerLightHaptic()}
+          >
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
@@ -271,7 +281,7 @@ const styles = StyleSheet.create({
   },
   forgotPasswordText: {
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    fontFamily: Fonts.system.regular,
     color: 'rgba(255,255,255,0.8)',
     textDecorationLine: 'none',
   },

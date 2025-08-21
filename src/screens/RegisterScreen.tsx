@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
 
 interface Props {
   navigation: any;
@@ -73,6 +74,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   }, [user, navigation]);
 
   const handleGoogleSignUp = async () => {
+    triggerLightHaptic();
     setError('');
     console.log('🔄 Starting Google sign up...');
 
@@ -96,6 +98,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       console.error('Google Sign-In Error:', googleError);
       console.error('❌ Full error details:', JSON.stringify(googleError, null, 2));
       // Show inline banner and keep user on page
+      triggerErrorHaptic();
       setError(googleError.message || 'Google sign up failed. Please try again.');
       return;
     }
@@ -104,6 +107,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleAppleSignUp = async () => {
+    triggerLightHaptic();
     setError('');
     console.log('🔄 Starting Apple sign up...');
 
@@ -125,6 +129,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       console.error('Apple Sign-In Error:', appleError);
       console.error('❌ Full error details:', JSON.stringify(appleError, null, 2));
       // Show inline banner and keep user on page
+      triggerErrorHaptic();
       setError(appleError.message || 'Apple sign up failed. Please try again.');
       return;
     }
@@ -133,11 +138,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleEmailSignUp = () => {
+    triggerLightHaptic();
     // Navigate to full registration form or handle email signup
     navigation.navigate('EmailRegister');
   };
 
   const handleSignIn = () => {
+    triggerLightHaptic();
     navigation.navigate('Login');
   };
 

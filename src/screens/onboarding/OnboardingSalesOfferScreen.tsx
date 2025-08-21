@@ -14,6 +14,7 @@ import pricingService, { LocationPricing, PricingTier as ServicePricingTier } fr
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 
 // removed Dimensions width as unused
 
@@ -66,6 +67,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   }, [isAnnual, expandedCards.size]);
 
   const handleClose = async () => {
+    try { triggerLightHaptic(); } catch {}
     // Track user opt-out and check if dynamic discount should be shown
     const shouldShowDiscount = await pricingService.trackUserOptOut(user?.id, selectedTier);
 
@@ -150,7 +152,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           isSelected && styles.selectedCard,
           isFocused && styles.focusedCard,
         ]}
-        onPress={() => setSelectedTier(tier.id)}
+        onPress={() => {
+          try { triggerLightHaptic(); } catch {}
+          setSelectedTier(tier.id);
+        }}
         activeOpacity={0.8}
       >
         {isSelected && (
@@ -232,7 +237,10 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               </Text>
               <TouchableOpacity
                 style={styles.detailsToggle}
-                onPress={() => toggleCardExpansion(tier.id)}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  toggleCardExpansion(tier.id);
+                }}
                 activeOpacity={0.8}
               >
                 <Ionicons
@@ -302,13 +310,19 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <View style={styles.toggleContainer}>
           <TouchableOpacity
             style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
-            onPress={() => setIsAnnual(false)}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              setIsAnnual(false);
+            }}
           >
             <Text style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.toggleButton, isAnnual && styles.activeToggle]}
-            onPress={() => setIsAnnual(true)}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              setIsAnnual(true);
+            }}
           >
             <Text style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</Text>
           </TouchableOpacity>
@@ -327,7 +341,14 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
       {/* Fixed Footer CTA */}
       <View style={styles.footerContainer}>
-        <TouchableOpacity style={styles.unlockButton} onPress={handleUnlockPlan} activeOpacity={0.9}>
+        <TouchableOpacity
+          style={styles.unlockButton}
+          onPress={() => {
+            try { triggerSuccessHaptic(); } catch {}
+            handleUnlockPlan();
+          }}
+          activeOpacity={0.9}
+        >
           <Text style={styles.unlockButtonText}>Continue My Journey</Text>
         </TouchableOpacity>
         <View style={styles.footerRow}>

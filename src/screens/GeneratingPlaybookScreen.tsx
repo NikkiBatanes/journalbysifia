@@ -273,20 +273,23 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   // Step advancement and progress bar animation (cap at 95%)
   useEffect(() => {
     if (!isGenerating) { return; }
+    const lastIndex = generationSteps.length - 1;
     const stepInterval = setInterval(() => {
       setCurrentStep(prev => {
+        // Stop if already at or beyond last step index
+        if (prev >= lastIndex) {
+          clearInterval(stepInterval);
+          return prev;
+        }
+
         const nextStep = prev + 1;
-        const isLastStep = nextStep >= generationSteps.length;
         Animated.timing(progressAnim, {
-          toValue: Math.min(((isLastStep ? generationSteps.length : nextStep) / generationSteps.length) * 100, 95),
+          toValue: Math.min((nextStep / generationSteps.length) * 100, 95),
           duration: 1000,
           useNativeDriver: false,
         }).start();
-        // Light haptic on step advance (only when actually advancing)
-        if (!isLastStep) {
-          triggerLightHaptic();
-        }
-        return isLastStep ? prev : nextStep;
+        try { triggerLightHaptic(); } catch {}
+        return nextStep;
       });
     }, 3000);
     return () => clearInterval(stepInterval);

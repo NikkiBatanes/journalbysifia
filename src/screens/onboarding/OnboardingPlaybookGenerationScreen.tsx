@@ -23,6 +23,7 @@ import { Colors } from '../../theme/colors';
 import { enhancedGenerationService } from '../../services/enhancedGenerationService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 // import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface RouteParams {
   challengeCategory: string;
@@ -309,6 +310,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                       duration: 800,
                       useNativeDriver: false,
                     }).start(() => {
+                      try { triggerLightHaptic(); } catch {}
                       // Keep isGenerating true to avoid blank state, set navigation data
                       setGeneratedPlaybook(realGeneratedPlaybook);
                       setNavigationData(realGeneratedPlaybook);
@@ -452,33 +454,27 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   useEffect(() => {
     if (isGenerating) {
       // Animate through generation steps
+      const lastIndex = generationSteps.length - 1;
       const stepInterval = setInterval(() => {
         setCurrentStep(prev => {
-          const nextStep = prev + 1;
-          const isLastStep = nextStep >= generationSteps.length;
-
-          // Animate progress bar
-          Animated.timing(progressAnim, {
-            // Cap interim progress at 95% so 100% is reserved for actual completion
-            toValue: Math.min(
-              ((isLastStep ? generationSteps.length : nextStep) / generationSteps.length) * 100,
-              95
-            ),
-            duration: 1000, // Slightly longer for smoother animation
-            useNativeDriver: false,
-          }).start(() => {
-            // Only proceed to next step after animation completes
-            if (isLastStep) {
-              clearInterval(stepInterval);
-              return;
-            }
-          });
-
-          if (isLastStep) {
+          // Stop if already at or beyond last index
+          if (prev >= lastIndex) {
             clearInterval(stepInterval);
             return prev;
           }
 
+          const nextStep = prev + 1;
+
+          // Animate progress bar (cap interim at 95%)
+          Animated.timing(progressAnim, {
+            toValue: Math.min(((nextStep) / generationSteps.length) * 100, 95),
+            duration: 1000, // Slightly longer for smoother animation
+            useNativeDriver: false,
+          }).start();
+
+          // Light haptic on each step advance
+          try { triggerLightHaptic(); } catch {}
+          // If next would be last index, allow next tick to hit the guard and stop
           return nextStep;
         });
       }, 3000); // 3 seconds per step for better readability
@@ -490,6 +486,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   // Unused function removed to fix linting issues
 
   const handleRetry = () => {
+    try { triggerLightHaptic(); } catch {}
     setGenerationError(null);
     setIsGenerating(true);
     setCurrentStep(0);

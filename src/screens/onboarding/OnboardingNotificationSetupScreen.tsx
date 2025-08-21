@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 
@@ -96,6 +97,7 @@ const OnboardingNotificationSetupScreen = () => {
   ]);
 
   const handleToggleSetting = (id: string) => {
+    try { triggerLightHaptic(); } catch {}
     setNotificationSettings(prev =>
       prev.map(setting => {
         if (setting.id === id && !setting.required) {
@@ -108,6 +110,7 @@ const OnboardingNotificationSetupScreen = () => {
 
   const handleEnableNotifications = async () => {
     try {
+      try { triggerSuccessHaptic(); } catch {}
       // Here you would request notification permissions
       // For now, we'll simulate the process
       console.log('Requesting notification permissions...');
@@ -140,6 +143,7 @@ const OnboardingNotificationSetupScreen = () => {
   };
 
   const handleSkip = () => {
+    try { triggerLightHaptic(); } catch {}
     Alert.alert(
       'Skip Notifications?',
       'You can always enable notifications later in your profile settings.',
@@ -171,33 +175,33 @@ const OnboardingNotificationSetupScreen = () => {
         };
       case 'spark':
         return {
-          title: 'Welcome to siFia SPARK',
-          subtitle: 'Stay connected with notifications for your 8 monthly playbooks, devotionals, and smart journaling.',
+          title: 'Welcome to SPARK',
+          subtitle: 'Get reminders for your 8 monthly playbooks, devotionals, and journaling.',
           badge: 'SPARK Subscriber'
         };
       case 'growth':
         return {
-          title: 'Welcome to siFia GROWTH',
-          subtitle: 'Maximize your 20 monthly resources with personalized notification reminders.',
+          title: 'Welcome to GROWTH',
+          subtitle: 'Make the most of your 20 monthly resources with helpful reminders.',
           badge: 'GROWTH Subscriber'
         };
       case 'transformation':
         return {
           title: 'Welcome to siFia TRANSFORMATION',
-          subtitle: 'Enjoy unlimited access with gentle reminders to support your spiritual journey.',
+          subtitle: 'Enjoy unlimited access with gentle reminders to support your daily walk.',
           badge: 'TRANSFORMATION Subscriber'
         };
       case 'family':
         return {
           title: 'Welcome to siFia FAMILY',
-          subtitle: 'Keep your family connected with notifications for unlimited spiritual resources.',
+          subtitle: 'Keep your family connected with notifications for unlimited resources.',
           badge: 'FAMILY Subscriber'
         };
       case 'seeker':
       default:
         return {
           title: 'Welcome, Seeker',
-          subtitle: 'Stay motivated on your spiritual path with gentle reminders and encouragement.',
+          subtitle: 'Stay motivated with gentle reminders and encouragement.',
           badge: 'Seeker (Freemium)'
         };
     }

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 
@@ -59,6 +59,22 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
   const particleIdRef = useRef(0);
 
   const showReadButton = useMemo(() => card.type === 'affirmation' && (card.affirmations?.length || 0) > 0, [card]);
+
+  // Fallback: if points were already awarded for this playbook today, mark as read in store
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        if (user?.id && playbookId && !hasRead) {
+          const already = await faithPointsService.hasActivityTodayForPlaybook(user.id, 'affirmation_read_aloud', playbookId);
+          if (mounted && already) {
+            setReadAloud(playbookId, true);
+          }
+        }
+      } catch (e) {}
+    })();
+    return () => { mounted = false; };
+  }, [user?.id, playbookId, hasRead, setReadAloud]);
 
   const startBurst = () => {
     const NUM = 8;

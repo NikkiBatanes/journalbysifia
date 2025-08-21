@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
 
 interface Props {
   navigation: any;
@@ -32,6 +33,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signUp, loading } = useAuth(); // Removed unused user variable
 
   const handleRegister = async () => {
+    triggerLightHaptic();
     // Clear any previous error
     setError('');
 
@@ -41,6 +43,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     const emailTrim = email.trim();
 
     if (!first || !last || !emailTrim || !password) {
+      triggerErrorHaptic();
       setError('Please fill in all fields');
       return;
     }
@@ -48,11 +51,13 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     // Basic email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailTrim)) {
+      triggerErrorHaptic();
       setError('Please enter a valid email address');
       return;
     }
 
     if (password.length < 6) {
+      triggerErrorHaptic();
       setError('Password must be at least 6 characters');
       return;
     }
@@ -66,6 +71,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     if (signUpError) {
       console.error('❌ Email registration failed:', signUpError);
       // Stay on this page and show inline error so user can fix inputs
+      triggerErrorHaptic();
       setError(signUpError.message || 'Registration failed. Please try again.');
       return;
     }
@@ -90,10 +96,12 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleBackToSocial = () => {
+    triggerLightHaptic();
     navigation.goBack();
   };
 
   const handleLogin = () => {
+    triggerLightHaptic();
     navigation.navigate('Login');
   };
 

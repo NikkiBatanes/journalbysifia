@@ -20,9 +20,13 @@ import AnimatedRe, { useSharedValue, withTiming, useAnimatedStyle } from 'react-
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme';
+import { Typography } from '../../theme/typography';
 import { BorderRadii } from '../../theme/styles';
 import { notificationService } from '../../services/notificationService';
 import { faithPointsService } from '../../services/faithPointsService';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
+import { usePlaybookStoreReactQuery } from '../../store/usePlaybookStoreReactQuery';
+import AnimatedProgressBar from '../../components/ui/AnimatedProgressBar';
 
 import { ActionStepsProvider, useActionSteps } from '../../context/ActionStepsContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,6 +81,57 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const hintPulse = useRef(new Animated.Value(1)).current; // scale
   const hintOpacity = useRef(new Animated.Value(0.6)).current;
 
+  // Read Aloud state for affirmations (consistent with Playbook Detail)
+  const hasRead = usePlaybookStoreReactQuery(state => playbook?.id ? !!state.readAloudMap[playbook.id] : false);
+  const setReadAloud = usePlaybookStoreReactQuery(state => state.setReadAloud);
+  const readCooldownRef = useRef<number>(0);
+  const readAwardedRef = useRef<boolean>(false);
+  // Particle burst (match dashboard)
+  const [particles, setParticles] = useState<{ id: number; progress: Animated.Value; dx: number; dy: number; size: number; rotate: number; color: string; delay: number;}[]>([]);
+  const particleIdRef = useRef(0);
+  // Timers to coordinate multi-pulse read haptics (match dashboard)
+  const readHapticTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const startBurst = () => {
+    const NUM = 8;
+    const colors = [Colors.alertCoral, '#ff7a7a', '#ff9aa2', '#ff6b6b'];
+    const newParticles = Array.from({ length: NUM }).map((_, i) => {
+      const id = particleIdRef.current++;
+      return {
+        id,
+        progress: new Animated.Value(0),
+        dx: (Math.random() * 80 - 40),
+        dy: 60 + Math.random() * 60,
+        size: 10 + Math.random() * 8,
+        rotate: Math.random() * 60 - 30,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        delay: i * 35,
+      };
+    });
+    setParticles(prev => [...prev, ...newParticles]);
+    newParticles.forEach(p => {
+      Animated.timing(p.progress, { toValue: 1, duration: 900, delay: p.delay, useNativeDriver: true }).start();
+    });
+    setTimeout(() => {
+      setParticles(prev => prev.filter(h => !newParticles.find(n => n.id === h.id)));
+    }, 1200);
+  };
+
+  // Four light haptic pulses over ~750ms to match dashboard experience
+  const startReadBurstHaptics = () => {
+    try {
+      // Clear any existing scheduled pulses first
+      readHapticTimersRef.current.forEach(t => clearTimeout(t));
+      readHapticTimersRef.current = [];
+      const schedule = [0, 250, 500, 750];
+      schedule.forEach(delay => {
+        const t = setTimeout(() => {
+          try { triggerLightHaptic(); } catch {}
+        }, delay);
+        readHapticTimersRef.current.push(t);
+      });
+    } catch {}
+  };
+
   // Carousel sizing: modern center-snap with spacing and narrower cards
   const ITEM_SPACING = 16;
   const ITEM_WIDTH = Math.round(width * 0.80); // slimmer card for better centering
@@ -110,6 +165,11 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       hintPulse.stopAnimation();
       hintOpacity.stopAnimation();
       if (devotionalTimerRef.current) {clearTimeout(devotionalTimerRef.current);}
+      // Ensure any pending read haptic timers are cleared on unmount
+      try {
+        readHapticTimersRef.current.forEach(t => clearTimeout(t));
+        readHapticTimersRef.current = [];
+      } catch {}
     };
   }, [hintOpacity, hintPulse]);
 
@@ -151,23 +211,41 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
       opacity: new Animated.Value(0),
     }))
   ).current;
+  // Timers to sync light haptics with each sparkle
+  const sparkleHapticTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
+    // Clear any pending haptic timers when modal toggles or unmounts
+    const clearTimers = () => {
+      sparkleHapticTimers.current.forEach(t => clearTimeout(t));
+      sparkleHapticTimers.current = [];
+    };
+
     if (showIntroModal) {
-      // Staggered burst
+      // Subtle haptic when the sparkle animation starts
+      try { triggerLightHaptic(); } catch {}
+      // Staggered burst of stars with synchronized light haptics per star
       starAnims.forEach((anim, i) => {
         anim.scale.setValue(0);
         anim.opacity.setValue(0);
+        const delay = i * 90;
         Animated.sequence([
-          Animated.delay(i * 90),
+          Animated.delay(delay),
           Animated.parallel([
             Animated.spring(anim.scale, { toValue: 1.4, useNativeDriver: true, speed: 18, bounciness: 8 }),
             Animated.timing(anim.opacity, { toValue: 1, duration: 250, useNativeDriver: true }),
           ]),
           Animated.timing(anim.opacity, { toValue: 0, duration: 500, delay: 150, useNativeDriver: true }),
         ]).start();
+        // Schedule a light haptic at the same moment this star pops
+        const t = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, delay);
+        sparkleHapticTimers.current.push(t);
       });
+    } else {
+      clearTimers();
     }
+
+    return () => clearTimers();
   }, [showIntroModal, starAnims]);
 
   // Issue #3 fix: Calculate progress using ActionStepsContext for real-time updates
@@ -210,23 +288,26 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [actionSteps, calculateProgress]);
 
   const toggleUserInput = () => {
+    try { triggerLightHaptic(); } catch {}
     setShowUserInput(!showUserInput);
   };
 
   const handleCreateDevotional = () => {
+    try { triggerLightHaptic(); } catch {}
     setShowDevotionalModal(true);
   };
 
   const handleContinueJourney = async () => {
-    // Save action steps to database before continuing onboarding
+    // Save action steps in the background before continuing onboarding (fire-and-forget)
     if (playbook?.id) {
       try {
-        console.log('[OnboardingPlaybookReady] Saving action steps before continuing journey');
-        await saveActionSteps(playbook.id);
-        console.log('[OnboardingPlaybookReady] Action steps saved successfully');
+        console.log('[OnboardingPlaybookReady] Queuing action steps save before continuing journey');
+        // Do not await here to avoid blocking navigation
+        Promise.resolve(saveActionSteps(playbook.id))
+          .then(() => console.log('[OnboardingPlaybookReady] Action steps saved successfully'))
+          .catch((error) => console.warn('[OnboardingPlaybookReady] Background saveActionSteps failed:', error));
       } catch (error) {
-        console.error('[OnboardingPlaybookReady] Failed to save action steps:', error);
-        // Continue anyway - don't block the user
+        console.warn('[OnboardingPlaybookReady] Failed to start background saveActionSteps:', error);
       }
     }
     navigation.navigate('OnboardingSalesOffer' as any);
@@ -318,11 +399,23 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             style={[styles.carouselCard, styles.cardContainerMinimal]}
           >
             <View style={styles.affirmationsHeader}>
+              <MaterialCommunityIcons
+                name="format-quote-close"
+                size={24}
+                color={Colors.alertCoral}
+                style={[styles.quoteIcon, { transform: [{ scaleX: -1 }] }]}
+              />
               <Text style={styles.affirmationsTitle}>Affirmations</Text>
             </View>
             <View style={styles.affirmationsList}>
               {playbook.affirmations.map((affirmation: any, index: number) => (
-                <View key={index} style={styles.affirmationCard}>
+                <View
+                  key={index}
+                  style={[
+                    styles.affirmationCard,
+                    index === playbook.affirmations.length - 1 && styles.lastAffirmationCard,
+                  ]}
+                >
                   <View style={styles.affirmationContent}>
                     <Text style={styles.affirmationText}>
                       {typeof affirmation === 'string' ? affirmation : affirmation?.text || ''}
@@ -330,6 +423,64 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   </View>
                 </View>
               ))}
+              {/* Read Aloud button with burst animation (matches dashboard) */}
+              <View pointerEvents="box-none" style={styles.readButtonWrapper}>
+                {particles.length > 0 && (
+                  <View pointerEvents="none" style={styles.readBurstLayer}>
+                    {particles.map((p) => {
+                      const translateY = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, -p.dy] });
+                      const translateX = p.progress.interpolate({ inputRange: [0, 1], outputRange: [0, p.dx] });
+                      const scale = p.progress.interpolate({ inputRange: [0, 0.3, 1], outputRange: [0.4, 1.1, 0.8] });
+                      const opacity = p.progress.interpolate({ inputRange: [0, 0.7, 1], outputRange: [0, 1, 0] });
+                      return (
+                        <Animated.View key={p.id} style={[styles.readParticle, { opacity, transform: [{ translateX }, { translateY }, { scale }, { rotate: `${p.rotate}deg` }] }]}> 
+                          <Ionicons name="book" size={p.size} color={p.color} />
+                        </Animated.View>
+                      );
+                    })}
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={[styles.readButton, hasRead && styles.readButtonActive]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    const now = Date.now();
+                    if (now - readCooldownRef.current < 800) { return; }
+                    readCooldownRef.current = now;
+
+                    const nextIsRead = !hasRead;
+                    if (nextIsRead) {
+                      try { triggerSuccessHaptic(); } catch {}
+                      // Match dashboard: celebratory burst + multi-pulse light haptics
+                      startReadBurstHaptics();
+                      startBurst();
+                      // Award once per day per playbook
+                      if (!readAwardedRef.current && user?.id && playbook?.id) {
+                        readAwardedRef.current = true;
+                        (async () => {
+                          try {
+                            const already = await faithPointsService.hasActivityTodayForPlaybook(user.id, 'affirmation_read_aloud', playbook.id);
+                            if (!already) {
+                              await faithPointsService.awardPoints(user.id, 'affirmation_read_aloud', { playbookId: playbook.id, playbookTitle: playbook.title, source: 'onboarding' });
+                            }
+                          } catch (e) {
+                            readAwardedRef.current = false; // allow retry
+                          }
+                        })();
+                      }
+                    } else {
+                      try { triggerLightHaptic(); } catch {}
+                    }
+                    if (playbook?.id) { setReadAloud(playbook.id, nextIsRead); }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={hasRead ? 'Read' : 'Read aloud'}
+                  accessibilityHint="Tap when you have read the affirmations aloud"
+                >
+                  <Ionicons name="book-outline" size={16} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={styles.readIcon} />
+                  <Text style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         ),
@@ -397,6 +548,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   }, [currentIndex, carouselCards.length, devotionalVisible]);
 
   const toggleCardExpansion = (cardId: string) => {
+    try { triggerLightHaptic(); } catch {}
     // Smooth slow expand/collapse
     LayoutAnimation.configureNext({
       duration: 700,
@@ -587,6 +739,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               style={styles.modalButton}
               activeOpacity={0.9}
               onPress={() => {
+                try { triggerLightHaptic(); } catch {}
                 // Close modal first, then show notification slightly after so it's not under the modal layer
                 setShowIntroModal(false);
                 setTimeout(async () => {
@@ -686,11 +839,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           <Text style={styles.playbookTitle}>{playbook.title || 'Your Personalized Journey'}</Text>
 
           <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              { }
-              <View style={[styles.progressFill, { width: `${progressData.percentage}%` }]} />
-            </View>
-            <Text style={styles.progressText}>{progressData.completed}/{progressData.total} Tasks</Text>
+            <AnimatedProgressBar
+              percentage={progressData.percentage}
+              height={12}
+              containerStyle={{ flex: 1 }}
+              trackStyle={styles.progressBar}
+              fillStyle={styles.progressFill}
+            />
+            <Text style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</Text>
           </View>
 
           {/* CAROUSEL INDICATORS moved out of header to sit above carousel */}
@@ -802,7 +958,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           )}
           <TouchableOpacity
             style={styles.continueButton}
-            onPress={handleContinueJourney}
+            onPress={() => { try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
             activeOpacity={0.8}
           >
             <Text style={styles.continueButtonText}>Begin My Journey</Text>
@@ -814,6 +970,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           visible={showDevotionalModal}
           onClose={() => setShowDevotionalModal(false)}
           playbookId={playbook.id}
+          userInput={userInput}
         />
       </View>
     </>
@@ -1071,20 +1228,32 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: 0,
     borderBottomColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   affirmationsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    ...Typography.interBold,
+    fontSize: 20,
     color: Colors.hopeWhite,
-    textAlign: 'center',
+    textAlign: 'left',
+    letterSpacing: 0.5,
+  },
+  quoteIcon: {
+    marginRight: 8,
   },
   affirmationsList: {
-    padding: 14,
+    paddingTop: 14,
+    paddingHorizontal: 14,
+    paddingBottom: 6,
   },
   affirmationCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 10,
+  },
+  lastAffirmationCard: {
+    marginBottom: 4,
   },
   affirmationContent: {
     padding: 14,
@@ -1094,6 +1263,53 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 24,
     fontWeight: '500',
+  },
+  readButtonWrapper: {
+    marginTop: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  readBurstLayer: {
+    position: 'absolute',
+    bottom: 22,
+    alignSelf: 'center',
+    width: 140,
+    height: 120,
+  },
+  readParticle: {
+    position: 'absolute',
+    bottom: 0,
+    left: '50%',
+  },
+  // Read Aloud button styles
+  readButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    marginTop: 4,
+  },
+  readButtonActive: {
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderColor: 'rgba(255, 59, 48, 0.2)',
+  },
+  readIcon: {
+    marginRight: 6,
+  },
+  readButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  readButtonTextActive: {
+    color: Colors.alertCoral,
   },
   dotsContainer: {
     flexDirection: 'row',
@@ -1307,6 +1523,27 @@ const OnboardingPlaybookReadyScreenNew: React.FC = () => {
   // even if the route object looked "full").
   const playbook = fetchedPlaybook ?? (isFullPlaybook ? routePlaybook : routePlaybook);
   const dataSource = fetchedPlaybook ? 'fetched' : (isFullPlaybook ? 'route-full' : 'route-partial');
+
+  // Ensure Read Aloud state persists if the playbook ID differs between route object and fetched DB object
+  // Example: onboarding may pass a temporary or partial object; after fetch, the canonical ID might differ.
+  const getReadAloud = usePlaybookStoreReactQuery(state => state.getReadAloud);
+  const setReadAloud = usePlaybookStoreReactQuery(state => state.setReadAloud);
+  useEffect(() => {
+    const routeId = routePlaybook?.id;
+    const finalId = (playbook as any)?.id;
+    if (routeId && finalId && routeId !== finalId) {
+      try {
+        const wasRead = getReadAloud(routeId);
+        const isSetOnFinal = getReadAloud(finalId);
+        if (wasRead && !isSetOnFinal) {
+          setReadAloud(finalId, true);
+          console.log('[OnboardingPlaybookReady] Migrated Read Aloud state from', routeId, 'to', finalId);
+        }
+      } catch (e) {
+        console.warn('[OnboardingPlaybookReady] Read Aloud migration failed:', e);
+      }
+    }
+  }, [routePlaybook?.id, (playbook as any)?.id, getReadAloud, setReadAloud]);
 
   // Debug logging to check action steps data
   console.log('[OnboardingPlaybookReady] Debug Info:', {

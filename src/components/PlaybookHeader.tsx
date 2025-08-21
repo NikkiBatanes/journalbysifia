@@ -131,7 +131,7 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                 <View style={[styles.progressBarFill, dynamicStyles.progressBarFill]} />
               </View>
               <Text style={[styles.progressText, dynamicStyles.progressText]}>
-                {completedTasks}/{totalTasks} Tasks
+                {completedTasks}/{totalTasks} Steps
               </Text>
 
               {showToggle && onToggleView && (

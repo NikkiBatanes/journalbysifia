@@ -12,8 +12,9 @@ import {
   Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Colors } from '../../theme/colors';
-import { triggerSuccessHaptic } from '../../utils/haptics';
+import { triggerSuccessHaptic, triggerLightHaptic, triggerMediumHaptic, triggerHeavyHaptic } from '../../utils/haptics';
 
 const { height } = Dimensions.get('window'); // Removed unused width variable
 
@@ -98,11 +99,26 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     entranceAnimation.start();
     sparkleAnimation.start();
 
-    // Haptic feedback for completion-style notifications
+    // Haptic feedback synchronized with animation
+    // Distinct FAITH POINTS award feel:
+    // - Small awards: medium + light (double-tap) shortly after entrance pop
+    // - Big awards / completions: heavy + success combo
+    let h1: ReturnType<typeof setTimeout> | null = null;
+    let h2: ReturnType<typeof setTimeout> | null = null;
     try {
       const at = (activityType || '').toLowerCase();
-      if (at.includes('action_step_completed') || at.includes('playbook_completed')) {
-        triggerSuccessHaptic();
+      const isCompletion = at.includes('action_step_completed') || at.includes('playbook_completed');
+      const isBigAward = isCompletion || points >= 20;
+
+      // Start slightly after entrance begins to align with scale pop
+      if (isBigAward) {
+        // Heavy hit, then success pulse
+        h1 = setTimeout(() => { try { triggerHeavyHaptic(); } catch {} }, 140);
+        h2 = setTimeout(() => { try { triggerSuccessHaptic(); } catch {} }, 260);
+      } else {
+        // Medium + light double-tap
+        h1 = setTimeout(() => { try { triggerMediumHaptic(); } catch {} }, 140);
+        h2 = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, 220);
       }
     } catch {}
 
@@ -114,6 +130,8 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     // Cleanup function
     return () => {
       clearTimeout(hideTimer);
+      if (h1) { clearTimeout(h1); }
+      if (h2) { clearTimeout(h2); }
       sparkleAnimation.stop();
       entranceAnimation.stop();
 
@@ -138,12 +156,16 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
   };
 
   const getActivityIcon = () => {
-    if (activityType.includes('devotional')) {return 'book';}
-    if (activityType.includes('prayer')) {return 'heart';}
-    if (activityType.includes('journal')) {return 'create';}
-    if (activityType.includes('playbook')) {return 'library';}
-    if (activityType.includes('streak')) {return 'flame';}
-    return 'star';
+    const at = (activityType || '').toLowerCase();
+    // Specific override for playbook_generated: use MCI clipboard-text-play
+    if (at === 'playbook_generated') { return { lib: 'MCI' as const, name: 'clipboard-text-play' as const }; }
+    // General mappings (Ionicons)
+    if (at.includes('devotional')) { return { lib: 'Ion' as const, name: 'book' as const }; }
+    if (at.includes('prayer')) { return { lib: 'Ion' as const, name: 'heart' as const }; }
+    if (at.includes('journal')) { return { lib: 'Ion' as const, name: 'create' as const }; }
+    if (at.includes('playbook')) { return { lib: 'Ion' as const, name: 'book' as const }; }
+    if (at.includes('streak')) { return { lib: 'Ion' as const, name: 'flame' as const }; }
+    return { lib: 'Ion' as const, name: 'star' as const };
   };
 
   const getActivityColor = () => {
@@ -188,11 +210,25 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
         {/* Main content */}
         <View style={styles.content}>
           <View style={styles.iconContainer}>
-            <Ionicons
-              name={getActivityIcon()}
-              size={24}
-              color={Colors.hopeWhite}
-            />
+            {(() => {
+              const spec = getActivityIcon();
+              if (spec.lib === 'MCI') {
+                return (
+                  <MaterialCommunityIcons
+                    name={spec.name}
+                    size={24}
+                    color={Colors.hopeWhite}
+                  />
+                );
+              }
+              return (
+                <Ionicons
+                  name={spec.name}
+                  size={24}
+                  color={Colors.hopeWhite}
+                />
+              );
+            })()}
           </View>
 
           <View style={styles.textContainer}>
@@ -202,6 +238,10 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
                 const at = (activityType || '').toLowerCase();
                 if (at === 'playbook_completed') {
                   return 'MISSION ACCOMPLISHED';
+                }
+                if (at === 'affirmation_read_aloud') {
+                  // Copy refinement: pluralize to match product copy
+                  return 'AFFIRMATIONS';
                 }
                 return activityType.replace(/_/g, ' ').toUpperCase();
               })()}

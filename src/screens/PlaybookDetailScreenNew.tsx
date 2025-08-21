@@ -204,7 +204,7 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
               />
             </View>
             <Text style={styles.headerTasksText}>
-              {completedTasksCount}/{totalTasksCount} Tasks
+              {completedTasksCount}/{totalTasksCount} Steps
             </Text>
           </View>
         </View>

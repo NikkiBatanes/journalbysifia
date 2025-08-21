@@ -87,7 +87,7 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
                 />
               </View>
               <Text style={styles.progressText}>
-                {completedTasks}/{playbook.totalTasks || 0} Tasks
+                {completedTasks}/{playbook.totalTasks || 0} Steps
               </Text>
             </View>
           </View>
