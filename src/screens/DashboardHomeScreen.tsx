@@ -792,10 +792,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }
           showsVerticalScrollIndicator={false}
         >
-        {/* Row 1: Inspiration Cards */}
+        {/* Daily Scripture - full width at top */}
+        <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
+
+        {/* Row 1: Inspiration Cards (Affirmation only) */}
         <View style={styles.row}>
           <DailyAffirmationCard onRefresh={() => setRefreshing(true)} />
-          <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
         </View>
 
         {/* Row 2: Progress Tracking */}

@@ -21,7 +21,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 // Match onboarding carousel sizing
@@ -59,6 +59,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   onViewAll,
 }) => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
   const scrollX = useRef(new Animated.Value(0)).current;
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
@@ -391,19 +392,24 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="library-outline" size={48} color={Colors.lightGray} />
-      <Text style={styles.emptyTitle}>No Playbooks Yet</Text>
+      <MaterialCommunityIcons
+        name="clipboard-text-play"
+        size={32}
+        color="rgba(255,255,255,0.8)"
+      />
+      <Text style={styles.emptyTitle}>Create a New Playbook</Text>
       <Text style={styles.emptyDescription}>
-        Create your first playbook to start your spiritual journey
+        Share what you're going through in detail. The more context, the better we can help.
       </Text>
       <TouchableOpacity
         style={styles.createButton}
         onPress={() => {
           triggerLightHaptic();
-          onViewAll?.();
+          // Navigate to UserInput screen (configured as presentation modal in navigator)
+          try { navigation.navigate('UserInput'); } catch {}
         }}
       >
-        <Text style={styles.createButtonText}>Explore Playbooks</Text>
+        <Text style={styles.createButtonText}>Create a Playbook</Text>
       </TouchableOpacity>
     </View>
   );

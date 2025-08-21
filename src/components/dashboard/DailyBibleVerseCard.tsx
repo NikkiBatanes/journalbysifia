@@ -10,13 +10,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Share,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
-import { faithPointsService } from '../../services/faithPointsService';
 
 
 interface BibleVerse {
@@ -45,96 +42,194 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       setLoading(true);
       setError(null);
 
-      // Fetch user's playbooks and devotionals with verses
+      // Fetch user's playbooks (modern schema uses bible_verse field) and devotionals as secondary source
       console.log('[DailyScripture] Fetching content for user:', user.id);
       const [playbooksResult, devotionalsResult] = await Promise.all([
         supabase
           .from('playbooks')
-          .select('id, title, content')
-          // Temporarily remove user_id filter for testing
-          // .eq('user_id', user.id)
-          .not('content', 'is', null)
-          .limit(5),
+          .select('id, title, bible_verse, user_id')
+          .eq('user_id', user.id)
+          .not('bible_verse', 'is', null)
+          .limit(20),
         supabase
           .from('devotionals')
-          .select('id, title, content')
-          // Temporarily remove user_id filter for testing
-          // .eq('user_id', user.id)
-          .not('content', 'is', null)
-          .limit(5),
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(50),
       ]);
 
-      console.log('[DailyScripture] Playbooks result:', playbooksResult.data?.length || 0);
+      console.log('[DailyScripture] Playbooks result (with bible_verse):', playbooksResult.data?.length || 0);
       console.log('[DailyScripture] Devotionals result:', devotionalsResult.data?.length || 0);
 
       const allVerses: BibleVerse[] = [];
 
-      // Extract verses from playbooks
+      // Helper to safely parse unknown JSON values
+      const safeParse = (val: any) => {
+        if (typeof val === 'string') {
+          try { return JSON.parse(val); } catch { return val; }
+        }
+        return val;
+      };
+
+      // Extract verses from playbooks.bible_verse
       if (playbooksResult.data) {
         playbooksResult.data.forEach(playbook => {
           try {
-            const content = typeof playbook.content === 'string'
-              ? JSON.parse(playbook.content)
-              : playbook.content;
-
-            // Look for Bible verses in various content structures
-            if (content.verses && Array.isArray(content.verses)) {
-              content.verses.forEach((v: any, index: number) => {
-                allVerses.push({
-                  id: `playbook-${playbook.id}-${index}`,
-                  verse: v.text || v.verse || v.content,
-                  reference: v.reference || v.citation || 'Scripture',
-                  source: playbook.title,
-                });
-              });
-            }
-
-            // Look for scripture in action steps
-            if (content.actionSteps && Array.isArray(content.actionSteps)) {
-              content.actionSteps.forEach((step: any, index: number) => {
-                if (step.scripture) {
+            const rawBible = safeParse((playbook as any).bible_verse);
+            if (rawBible) {
+              if (typeof rawBible === 'object') {
+                const text = rawBible.text || rawBible.verse || rawBible.content;
+                const reference = rawBible.reference || rawBible.citation || '';
+                if (text) {
                   allVerses.push({
-                    id: `playbook-step-${playbook.id}-${index}`,
-                    verse: step.scripture.verse || step.scripture,
-                    reference: step.scripture.reference || 'Scripture',
+                    id: `playbook-${playbook.id}`,
+                    verse: text,
+                    reference: reference || 'Scripture',
                     source: playbook.title,
                   });
                 }
-              });
+              } else if (typeof rawBible === 'string') {
+                // Attempt to split string into reference and verse if possible
+                const m1 = rawBible.match(/^(.*?\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—–:]\s*(.+)$/);
+                if (m1) {
+                  allVerses.push({ id: `playbook-${playbook.id}`, verse: m1[2].trim(), reference: m1[1].trim(), source: playbook.title });
+                } else {
+                  // Could be just reference or just text; push as text
+                  allVerses.push({ id: `playbook-${playbook.id}`, verse: rawBible, reference: 'Scripture', source: playbook.title });
+                }
+              }
             }
           } catch (parseError) {
-            console.warn('Error parsing playbook content:', parseError);
+            console.warn('Error parsing playbook bible_verse:', parseError);
           }
         });
       }
 
       // Extract verses from devotionals
       if (devotionalsResult.data) {
-        devotionalsResult.data.forEach(devotional => {
+        const seen = new Set<string>();
+        devotionalsResult.data.forEach((devotional: any) => {
           try {
-            const content = typeof devotional.content === 'string'
-              ? JSON.parse(devotional.content)
-              : devotional.content;
+            const content = devotional?.content
+              ? (typeof devotional.content === 'string' ? JSON.parse(devotional.content) : devotional.content)
+              : null;
 
-            if (content.verse) {
-              allVerses.push({
-                id: `devotional-${devotional.id}`,
-                verse: content.verse.text || content.verse,
-                reference: content.verse.reference || 'Scripture',
-                source: devotional.title,
-              });
+            // Primary: single verse object/string
+            if (content && content.verse) {
+              const text = (typeof content.verse === 'object')
+                ? (content.verse.text || content.verse.verse || content.verse.content || '')
+                : String(content.verse);
+              const reference = (typeof content.verse === 'object')
+                ? (content.verse.reference || content.verse.citation || '')
+                : '';
+              if (typeof text === 'string' && text.trim().length > 0) {
+                const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  allVerses.push({
+                    id: `devotional-${devotional.id}`,
+                    verse: text.trim(),
+                    reference: (reference || 'Scripture').trim(),
+                    source: devotional.title,
+                  });
+                }
+              }
             }
 
-            if (content.verses && Array.isArray(content.verses)) {
+            // Secondary: array of verses
+            if (content && Array.isArray(content.verses)) {
               content.verses.forEach((v: any, index: number) => {
-                allVerses.push({
-                  id: `devotional-${devotional.id}-${index}`,
-                  verse: v.text || v.verse || v.content,
-                  reference: v.reference || v.citation || 'Scripture',
-                  source: devotional.title,
-                });
+                const text = v?.text || v?.verse || v?.content || '';
+                const reference = v?.reference || v?.citation || '';
+                if (typeof text === 'string' && text.trim().length > 0) {
+                  const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                  if (!seen.has(key)) {
+                    seen.add(key);
+                    allVerses.push({
+                      id: `devotional-${devotional.id}-${index}`,
+                      verse: text.trim(),
+                      reference: (reference || 'Scripture').trim(),
+                      source: devotional.title,
+                    });
+                  }
+                }
               });
             }
+
+            // Alternate key: scripture (object/string)
+            if (content && content.scripture) {
+              const text = (typeof content.scripture === 'object')
+                ? (content.scripture.text || content.scripture.verse || content.scripture.content || '')
+                : String(content.scripture);
+              const reference = (typeof content.scripture === 'object')
+                ? (content.scripture.reference || content.scripture.citation || '')
+                : '';
+              if (typeof text === 'string' && text.trim().length > 0) {
+                const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  allVerses.push({
+                    id: `devotional-${devotional.id}-scripture`,
+                    verse: text.trim(),
+                    reference: (reference || 'Scripture').trim(),
+                    source: devotional.title,
+                  });
+                }
+              }
+            }
+
+            if (content && Array.isArray(content.scriptures)) {
+              content.scriptures.forEach((v: any, index: number) => {
+                const text = v?.text || v?.verse || v?.content || '';
+                const reference = v?.reference || v?.citation || '';
+                if (typeof text === 'string' && text.trim().length > 0) {
+                  const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                  if (!seen.has(key)) {
+                    seen.add(key);
+                    allVerses.push({
+                      id: `devotional-${devotional.id}-scriptures-${index}`,
+                      verse: text.trim(),
+                      reference: (reference || 'Scripture').trim(),
+                      source: devotional.title,
+                    });
+                  }
+                }
+              });
+            }
+
+            // Tertiary: extract from per-day structures (supports top-level days column or content.days)
+            try {
+              let days: any = (devotional as any).days ?? content?.days;
+              if (typeof days === 'string') {
+                try { days = JSON.parse(days); } catch {}
+              }
+              if (Array.isArray(days)) {
+                days.forEach((day: any, index: number) => {
+                  const s = day?.scripture || day?.verse || null;
+                  if (s) {
+                    const text = (typeof s === 'object')
+                      ? (s.text || s.verse || s.content || '')
+                      : String(s);
+                    const reference = (typeof s === 'object')
+                      ? (s.reference || s.citation || '')
+                      : '';
+                    if (typeof text === 'string' && text.trim().length > 0) {
+                      const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                      if (!seen.has(key)) {
+                        seen.add(key);
+                        allVerses.push({
+                          id: `devotional-${devotional.id}-day-${index}`,
+                          verse: text.trim(),
+                          reference: (reference || 'Scripture').trim(),
+                          source: devotional.title,
+                        });
+                      }
+                    }
+                  }
+                });
+              }
+            } catch {}
           } catch (parseError) {
             console.warn('Error parsing devotional content:', parseError);
           }
@@ -142,13 +237,15 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       }
 
       // Only use verses if found in database
+      console.log('[DailyScripture] Total extracted verses:', allVerses.length);
       if (allVerses.length > 0) {
         // Select verse based on current date for consistency
         const today = new Date();
         const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
         const selectedIndex = dayOfYear % allVerses.length;
-
-        setVerse(allVerses[selectedIndex]);
+        const selected = allVerses[selectedIndex];
+        console.log('[DailyScripture] Selected verse:', selected);
+        setVerse(selected);
       } else {
         setVerse(null);
       }
@@ -175,40 +272,20 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
     if (!verse || !user) {return;}
 
     try {
-      // Award faith points for engaging with daily scripture
-      await faithPointsService.awardPoints(user.id, 'daily_streak', {
-        type: 'scripture_read',
-        verse_id: verse.id,
-      });
-
+      // Simply trigger the verse press callback; no points awarded
       onVersePress?.(verse);
-    } catch (pointsError) {
-      console.error('Error awarding points for scripture:', pointsError);
-      // Still call the callback even if points fail
+    } catch (err) {
+      // Even if something unexpected happens, still proceed with the callback
+      console.warn('Verse press encountered an issue, proceeding without points:', err);
       onVersePress?.(verse);
     }
   };
 
-  const handleShare = async () => {
-    if (!verse) {return;}
-
-    try {
-      await Share.share({
-        message: `"${verse.verse}"\n\n- ${verse.reference}`,
-        title: 'Daily Bible Verse',
-      });
-    } catch (generateError) {
-      console.error('Error generating verse:', generateError);
-    }
-  };
+  // Note: minimal UI — share handled elsewhere if needed
 
   if (loading) {
     return (
       <View style={styles.card}>
-        <View style={styles.header}>
-          <Ionicons name="book" size={24} color={Colors.alertCoral} />
-          <Text style={styles.title}>Daily Scripture</Text>
-        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color={Colors.alertCoral} />
           <Text style={styles.loadingText}>Loading verse...</Text>
@@ -217,21 +294,14 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
     );
   }
 
+  // If no verse available, hide the component entirely
+  if (!verse || !(verse.verse || '').trim()) {
+    return null;
+  }
+
   return (
     <View style={styles.card}>
-      <View style={styles.header}>
-        <Ionicons name="book" size={24} color={Colors.alertCoral} />
-        <Text style={styles.title}>Daily Scripture</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
-            <Ionicons name="share-outline" size={18} color={Colors.mediumGray} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleRefresh} style={styles.actionButton}>
-            <Ionicons name="refresh" size={18} color={Colors.mediumGray} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
+      <Text style={styles.titleText}>TODAY'S SCRIPTURE</Text>
       {error ? (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
@@ -245,17 +315,17 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
           activeOpacity={0.8}
           style={styles.verseContent}
         >
-          <Text style={styles.verseText}>
-            "{verse?.verse}"
-          </Text>
-          <Text style={styles.referenceText}>
-            - {verse?.reference}
-          </Text>
-          {verse?.source && (
-            <Text style={styles.sourceText}>
-              From: {verse.source}
-            </Text>
-          )}
+          <View style={styles.verseRow}>
+            <View style={styles.leftBar} />
+            <View style={styles.verseColumn}>
+              <Text style={styles.verseText}>
+                {verse?.verse}
+              </Text>
+              <Text style={styles.referenceText}>
+                {verse?.reference}
+              </Text>
+            </View>
+          </View>
         </TouchableOpacity>
       )}
     </View>
@@ -265,32 +335,23 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    backgroundColor: Colors.modalBlue,
+    backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 16,
+    marginTop: 12,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderWidth: 0,
+    borderColor: 'transparent',
     minHeight: 120,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 8,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
+  titleText: {
+    fontSize: 12,
     color: Colors.hopeWhite,
-    flex: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  actionButton: {
-    padding: 4,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    letterSpacing: 0.8,
+    marginBottom: 14,
   },
   loadingContainer: {
     flex: 1,
@@ -303,26 +364,38 @@ const styles = StyleSheet.create({
     color: Colors.mediumGray,
     fontStyle: 'italic',
   },
+  verseRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  verseColumn: {
+    flex: 1,
+  },
+  leftBar: {
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.alertCoral,
+    alignSelf: 'stretch',
+    marginTop: 2,
+  },
   verseText: {
-    fontSize: 15,
-    lineHeight: 22,
+    flex: 1,
+    fontSize: 18,
+    lineHeight: 26,
     color: Colors.hopeWhite,
-    fontStyle: 'italic',
+    fontStyle: 'normal',
+    fontWeight: '500',
     marginBottom: 8,
-    textAlign: 'center',
+    textAlign: 'left',
   },
   referenceText: {
-    fontSize: 14,
-    color: Colors.devotionalPurple,
-    textAlign: 'center',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  sourceText: {
     fontSize: 12,
-    color: Colors.mediumGray,
-    textAlign: 'right',
-    fontWeight: '500',
+    color: Colors.alertCoral,
+    textAlign: 'left',
+    fontWeight: '600',
+    marginTop: 2,
+    marginBottom: 4,
   },
   errorContainer: {
     flex: 1,
