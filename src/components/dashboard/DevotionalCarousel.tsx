@@ -9,9 +9,9 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Dimensions,
+  Animated,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -21,8 +21,11 @@ import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.75;
-const CARD_MARGIN = 12;
+// Match PlaybookCarousel sizing and spacing
+const ITEM_WIDTH = width * 0.75;
+const ITEM_SPACING = 2;
+const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
+const SIDE_PADDING = (width - ITEM_WIDTH) / 2;
 
 interface Devotional {
   id: string;
@@ -39,6 +42,12 @@ interface Devotional {
     reference: string;
   } | null;
   tags?: string[];
+  // Optional fields present on the row
+  current_day?: number;
+  total_days?: number;
+  days?: any[];
+  nextDayNumber?: number;
+  nextDayTitle?: string;
 }
 
 // Fallback data for when database is empty
@@ -59,6 +68,21 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const [devotionals, setDevotionals] = useState<Devotional[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const scrollX = React.useRef(new Animated.Value(0)).current;
+
+  const formatFinishedDate = (dateStr?: string) => {
+    if (!dateStr) return undefined;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return undefined;
+    const weekday = d.toLocaleDateString(undefined, { weekday: 'long' });
+    const month = d.toLocaleDateString(undefined, { month: 'long' });
+    const day = d.getDate();
+    const year = d.getFullYear();
+    const currentYear = new Date().getFullYear();
+    const withYear = `${weekday}, ${month} ${day} ${year}`;
+    const withoutYear = `${weekday}, ${month} ${day}`;
+    return year === currentYear ? withoutYear : withYear;
+  };
 
   const fetchDevotionals = useCallback(async () => {
     if (!user) {return;}
@@ -96,6 +120,13 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             let verse = null;
             let estimatedDuration = 5; // default 5 minutes
 
+            // Track completion and navigation helpers
+            let isCompleted = false;
+            let completedAt: string | undefined = undefined;
+            let lastAccessed: string | undefined = undefined;
+            let nextDayNumber: number | undefined = undefined;
+            let nextDayTitle: string | undefined = undefined;
+            let totalDaysForReturn: number | undefined = undefined;
             try {
               const content = devotional.content
                 ? (typeof devotional.content === 'string'
@@ -111,19 +142,68 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
                 };
               }
 
-              // Estimate duration based on content length
-              if (content && (content.reflection || content.content)) {
+            // Derive completion from days data if available
+            try {
+              const content = devotional.content
+                ? (typeof devotional.content === 'string' ? JSON.parse(devotional.content) : devotional.content)
+                : null;
+              let days = (devotional as any).days ?? content?.days;
+              if (typeof days === 'string') {
+                try { days = JSON.parse(days); } catch {}
+              }
+              const totalDays: number | undefined = (devotional as any).total_days ?? content?.total_days ?? (Array.isArray(days) ? days.length : undefined);
+              totalDaysForReturn = totalDays;
+              const currentDay: number = Math.max(1, Math.min(
+                Number((devotional as any).current_day ?? content?.current_day ?? 1) || 1,
+                totalDays || 9999,
+              ));
+
+              const allDaysCompleted = Array.isArray(days) && days.length > 0 && days.every((d: any) => !!d?.completed);
+              const progressedPastEnd = !!totalDays && currentDay > totalDays;
+              if (allDaysCompleted || progressedPastEnd) {
+                isCompleted = true;
+                // If we derived completion and there's no completedAt yet, use lastAccessed or now
+                if (!completedAt) {
+                  completedAt = lastAccessed || new Date().toISOString();
+                }
+              }
+            } catch {}
+
+              // Prefer per-day estimation using next incomplete day
+              let days = (devotional as any).days ?? content?.days;
+              if (typeof days === 'string') {
+                try { days = JSON.parse(days); } catch {}
+              }
+              const totalDays: number | undefined = (devotional as any).total_days ?? content?.total_days ?? (Array.isArray(days) ? days.length : undefined);
+              const currentDay: number = Math.max(1, Math.min(
+                Number((devotional as any).current_day ?? content?.current_day ?? 1) || 1,
+                totalDays || 9999,
+              ));
+
+              // Next incomplete day is current_day (1-based). Use that day's text if available
+              let usedPerDayText = false;
+              if (Array.isArray(days) && days.length >= currentDay) {
+                const dayEntry = days[currentDay - 1];
+                const dayText = dayEntry?.reflection || dayEntry?.content || dayEntry?.text || '';
+                nextDayNumber = currentDay;
+                nextDayTitle = (dayEntry?.title && typeof dayEntry.title === 'string')
+                  ? dayEntry.title
+                  : `Day ${currentDay}`;
+                if (typeof dayText === 'string' && dayText.length > 0) {
+                  const textLength = dayText.length;
+                  estimatedDuration = Math.max(3, Math.ceil(textLength / 200));
+                  usedPerDayText = true;
+                }
+              }
+
+              // Fallback to overall content length when per-day not available
+              if (!usedPerDayText && content && (content.reflection || content.content)) {
                 const textLength = (content.reflection || content.content).length;
-                estimatedDuration = Math.max(3, Math.ceil(textLength / 200)); // ~200 chars per minute reading
+                estimatedDuration = Math.max(3, Math.ceil(textLength / 200));
               }
             } catch (parseError) {
               console.warn('Error parsing devotional content:', parseError);
             }
-
-            // Check completion status
-            let isCompleted = false;
-            let completedAt = null;
-            let lastAccessed = null;
 
             if (progressData && progressData.progress_data) {
               try {
@@ -132,11 +212,19 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
                   : progressData.progress_data;
 
                 isCompleted = progress.completed || false;
-                completedAt = progress.completedAt;
-                lastAccessed = progressData.updated_at;
+                // Prefer explicit completedAt, else use progress row updated time as fallback
+                const progressUpdatedAt = (progressData as any).updated_at as string | undefined;
+                completedAt = progress.completedAt || progressUpdatedAt || undefined;
+                lastAccessed = progressUpdatedAt || undefined;
               } catch (parseError) {
                 console.warn('Error parsing progress data:', parseError);
               }
+            }
+
+            // If completed, do not show NEXT info
+            if (isCompleted) {
+              nextDayNumber = undefined;
+              nextDayTitle = undefined;
             }
 
             return {
@@ -150,6 +238,9 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               estimatedDuration,
               category: devotional.category || 'Daily Devotion',
               verse,
+              total_days: totalDaysForReturn,
+              nextDayNumber,
+              nextDayTitle,
             };
           } catch (err) {
             console.warn('Error processing devotional:', err);
@@ -191,7 +282,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   }, [fetchDevotionals]);
 
   const getStatusColor = (isCompleted: boolean) => {
-    return isCompleted ? Colors.successGreen : Colors.devotionalPurple;
+    return isCompleted ? Colors.successGreen : Colors.faithGold;
   };
 
   const getStatusIcon = (isCompleted: boolean) => {
@@ -201,7 +292,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const getStatusText = (devotional: Devotional) => {
     if (devotional.isCompleted) {
       return devotional.completedAt
-        ? `Completed ${new Date(devotional.completedAt).toLocaleDateString()}`
+        ? `Completed ${formatFinishedDate(devotional.completedAt)}`
         : 'Completed';
     }
     return `${devotional.estimatedDuration} min read`;
@@ -239,6 +330,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
         {devotional.title}
       </Text>
 
+
       {devotional.verse && (
         <View style={styles.versePreview}>
           <Text style={styles.verseText} numberOfLines={2}>
@@ -254,24 +346,45 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
         </Text>
       )}
 
-      <View style={styles.statusSection}>
-        <View style={styles.statusInfo}>
-          <Ionicons
-            name={getStatusIcon(devotional.isCompleted)}
-            size={16}
-            color={getStatusColor(devotional.isCompleted)}
-          />
-          <Text style={[styles.statusText, { color: getStatusColor(devotional.isCompleted) }]}>
-            {getStatusText(devotional)}
+      {/* Place Next/Completed info below description */}
+      {devotional.isCompleted ? (
+        <View style={{ marginBottom: 8 }}>
+          <Text style={styles.completedText}>DONE</Text>
+          {!!formatFinishedDate(devotional.completedAt) && (
+            <Text style={styles.finishedDateText}>{formatFinishedDate(devotional.completedAt)}</Text>
+          )}
+        </View>
+      ) : devotional.nextDayNumber ? (
+        <View style={{ marginBottom: 8 }}>
+          <Text style={styles.nextLabel}>NEXT</Text>
+          <Text style={styles.nextDayTitleText} numberOfLines={1}>
+            {devotional.total_days === 1
+              ? `Day ${devotional.nextDayNumber}`
+              : `Day ${devotional.nextDayNumber}: ${devotional.nextDayTitle || ''}`}
           </Text>
         </View>
+      ) : null}
 
-        {devotional.lastAccessed && !devotional.isCompleted && (
-          <Text style={styles.lastAccessedText}>
-            Last read: {new Date(devotional.lastAccessed).toLocaleDateString()}
-          </Text>
-        )}
-      </View>
+      {!devotional.isCompleted && (
+        <View style={styles.statusSection}>
+          <View style={styles.statusInfo}>
+            <Ionicons
+              name={getStatusIcon(devotional.isCompleted)}
+              size={16}
+              color={getStatusColor(devotional.isCompleted)}
+            />
+            <Text style={[styles.statusText, { color: getStatusColor(devotional.isCompleted) }]}>
+              {getStatusText(devotional)}
+            </Text>
+          </View>
+
+          {devotional.lastAccessed && !devotional.isCompleted && (
+            <Text style={styles.lastAccessedText}>
+              Last read: {new Date(devotional.lastAccessed).toLocaleDateString()}
+            </Text>
+          )}
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -343,17 +456,143 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       ) : devotionals.length === 0 ? (
         renderEmptyState()
       ) : (
-        <ScrollView
+        <Animated.ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_PADDING }]}
           decelerationRate="fast"
-          snapToInterval={CARD_WIDTH + CARD_MARGIN}
-          snapToAlignment="start"
+          snapToInterval={ITEM_SIZE}
+          snapToAlignment="center"
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+          bounces={false}
+          removeClippedSubviews={false}
+          style={{ overflow: 'visible' }}
         >
-          {devotionals.map(renderDevotionalCard)}
-          <View style={styles.scrollPadding} />
-        </ScrollView>
+          {devotionals.map((devotional, index) => {
+            const inputRange = [
+              (index - 1) * ITEM_SIZE,
+              index * ITEM_SIZE,
+              (index + 1) * ITEM_SIZE,
+            ];
+            const scale = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.96, 1, 0.96],
+              extrapolate: 'clamp',
+            });
+            const opacity = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.85, 1, 0.85],
+              extrapolate: 'clamp',
+            });
+            const translateY = scrollX.interpolate({
+              inputRange,
+              outputRange: [4, 0, 4],
+              extrapolate: 'clamp',
+            });
+            const zIndex = scrollX.interpolate({
+              inputRange,
+              outputRange: [1, 2, 1],
+              extrapolate: 'clamp',
+            });
+
+            return (
+              <TouchableOpacity
+                key={devotional.id}
+                onPress={() => {
+                  triggerLightHaptic();
+                  onDevotionalPress?.(devotional);
+                }}
+                activeOpacity={0.85}
+              >
+                <Animated.View
+                  style={[
+                    styles.devotionalCard,
+                    { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
+                    index === 0 ? { marginLeft: -(SIDE_PADDING - 16) } : null,
+                    { transform: [{ scale }, { translateY }], opacity, zIndex },
+                  ]}
+                >
+                  <View style={styles.cardHeader}>
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryText}>{devotional.category}</Text>
+                    </View>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(devotional.isCompleted) }]}>
+                      <Ionicons
+                        name={getStatusIcon(devotional.isCompleted)}
+                        size={12}
+                        color={Colors.hopeWhite}
+                      />
+                    </View>
+                  </View>
+
+                  <Text style={styles.devotionalTitle} numberOfLines={2}>
+                    {devotional.title}
+                  </Text>
+
+
+                  {devotional.verse && (
+                    <View style={styles.versePreview}>
+                      <Text style={styles.verseText} numberOfLines={2}>
+                        "{devotional.verse.text}"
+                      </Text>
+                      <Text style={styles.verseReference}>- {devotional.verse.reference}</Text>
+                    </View>
+                  )}
+
+                  {devotional.description && (
+                    <Text style={styles.devotionalDescription} numberOfLines={2}>
+                      {devotional.description}
+                    </Text>
+                  )}
+
+                  {/* Place Next/Completed info below description */}
+                  {devotional.isCompleted ? (
+                    <View style={{ marginBottom: 8 }}>
+                      <Text style={styles.completedText}>DONE</Text>
+                      {!!formatFinishedDate(devotional.completedAt) && (
+                        <Text style={styles.finishedDateText}>{formatFinishedDate(devotional.completedAt)}</Text>
+                      )}
+                    </View>
+                  ) : devotional.nextDayNumber ? (
+                    <View style={{ marginBottom: 8 }}>
+                      <Text style={styles.nextLabel}>NEXT</Text>
+                      <Text style={styles.nextDayTitleText} numberOfLines={1}>
+                        {devotional.total_days === 1
+                          ? `Day ${devotional.nextDayNumber}`
+                          : `Day ${devotional.nextDayNumber}: ${devotional.nextDayTitle || ''}`}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {!devotional.isCompleted && (
+                    <View style={styles.statusSection}>
+                      <View style={styles.statusInfo}>
+                        <Ionicons
+                          name={getStatusIcon(devotional.isCompleted)}
+                          size={16}
+                          color={getStatusColor(devotional.isCompleted)}
+                        />
+                        <Text style={[styles.statusText, { color: getStatusColor(devotional.isCompleted) }]}>
+                          {getStatusText(devotional)}
+                        </Text>
+                      </View>
+
+                      {devotional.lastAccessed && !devotional.isCompleted && (
+                        <Text style={styles.lastAccessedText}>
+                          Last read: {new Date(devotional.lastAccessed).toLocaleDateString()}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+                </Animated.View>
+              </TouchableOpacity>
+            );
+          })}
+        </Animated.ScrollView>
       )}
     </View>
   );
@@ -393,11 +632,10 @@ const styles = StyleSheet.create({
     width: 16,
   },
   devotionalCard: {
-    width: CARD_WIDTH,
+    // width and spacing are applied inline per item to enable snapping & animations
     backgroundColor: Colors.modalBlue,
     borderRadius: 12,
     padding: 16,
-    marginRight: CARD_MARGIN,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
@@ -408,14 +646,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoryBadge: {
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   categoryText: {
     fontSize: 10,
-    color: Colors.mediumGray,
+    color: Colors.hopeWhite,
     fontWeight: '500',
     textTransform: 'uppercase',
   },
@@ -457,6 +695,28 @@ const styles = StyleSheet.create({
     color: Colors.mediumGray,
     lineHeight: 20,
     marginBottom: 16,
+  },
+  nextLabel: {
+    fontSize: 10,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    letterSpacing: 1,
+    fontWeight: '700',
+  },
+  nextDayTitleText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    fontWeight: '600',
+  },
+  completedText: {
+    fontSize: 12,
+    color: Colors.successGreen,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  finishedDateText: {
+    fontSize: 12,
+    color: Colors.successGreen,
   },
   statusSection: {
     gap: 4,

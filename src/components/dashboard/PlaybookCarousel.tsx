@@ -3,7 +3,7 @@
  * Displays user's playbooks in a horizontal carousel with progress indicators
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
+  Animated,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -19,10 +20,17 @@ import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
+import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.7;
-const CARD_MARGIN = 12;
+// Match onboarding carousel sizing
+// Tighter spacing between cards
+const ITEM_SPACING = 2;
+// Make cards smaller for better balance
+const ITEM_WIDTH = Math.round(width * 0.75);
+const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
+const SIDE_PADDING = Math.round((width - ITEM_WIDTH) / 2);
 
 interface Playbook {
   id: string;
@@ -51,9 +59,13 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   onViewAll,
 }) => {
   const { user } = useAuth();
+  const scrollX = useRef(new Animated.Value(0)).current;
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const playbookIdsRef = useRef<Set<string>>(new Set());
+  const refetchTimeoutRef = useRef<any>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   const fetchPlaybooks = useCallback(async () => {
     if (!user) {return;}
@@ -78,52 +90,63 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       const playbooksWithProgress = await Promise.all(
         playbooksData.map(async (playbook) => {
           try {
-            // Get user progress for this playbook
-            const { data: progressData } = await supabase
-              .from('user_progress')
-              .select('*')
-              .eq('user_id', user.id)
-              .eq('content_type', 'playbook')
-              .eq('content_id', playbook.id)
-              .single();
+            // Prefer authoritative counts from playbook_action_steps
+            // Total steps
+            const { count: totalStepsCount, error: totalErr } = await supabase
+              .from('playbook_action_steps')
+              .select('id', { count: 'exact', head: true })
+              .eq('playbook_id', playbook.id);
 
-            // Parse playbook content to get total steps
-            let totalSteps = 0;
-            let completedSteps = 0;
+            if (totalErr) { console.warn('Error counting total steps', totalErr); }
 
-            try {
-              const content = playbook.content
-                ? (typeof playbook.content === 'string'
-                    ? JSON.parse(playbook.content)
-                    : playbook.content)
-                : null;
+            // Completed steps
+            const { count: completedStepsCount, error: completedErr } = await supabase
+              .from('playbook_action_steps')
+              .select('id', { count: 'exact', head: true })
+              .eq('playbook_id', playbook.id)
+              .eq('completed', true);
 
-              if (content && content.actionSteps && Array.isArray(content.actionSteps)) {
-                totalSteps = content.actionSteps.length;
-              } else if (content && content.steps && Array.isArray(content.steps)) {
-                totalSteps = content.steps.length;
-              } else if (content && content.sections && Array.isArray(content.sections)) {
-                totalSteps = content.sections.length;
-              } else {
-                totalSteps = 1; // Default to 1 if structure is unclear
-              }
-            } catch (parseError) {
-              console.warn('Error parsing playbook content:', parseError);
-              totalSteps = 1;
-            }
+            if (completedErr) { console.warn('Error counting completed steps', completedErr); }
 
-            // Calculate completed steps from progress data
-            if (progressData && progressData.progress_data) {
+            let totalSteps = totalStepsCount ?? 0;
+            let completedSteps = completedStepsCount ?? 0;
+
+            // Fallback to parsing content if table has no rows
+            if (totalSteps === 0) {
               try {
-                const progress = typeof progressData.progress_data === 'string'
-                  ? JSON.parse(progressData.progress_data)
-                  : progressData.progress_data;
+                const content = playbook.content
+                  ? (typeof playbook.content === 'string'
+                      ? JSON.parse(playbook.content)
+                      : playbook.content)
+                  : null;
 
-                completedSteps = progress.completedSteps || 0;
+                if (content && content.actionSteps && Array.isArray(content.actionSteps)) {
+                  totalSteps = content.actionSteps.length;
+                } else if (content && content.steps && Array.isArray(content.steps)) {
+                  totalSteps = content.steps.length;
+                } else if (content && content.sections && Array.isArray(content.sections)) {
+                  totalSteps = content.sections.length;
+                } else {
+                  totalSteps = 1;
+                }
               } catch (parseError) {
-                completedSteps = 0;
+                console.warn('Error parsing playbook content:', parseError);
+                totalSteps = 1;
               }
             }
+
+            // Optionally read last accessed from user_progress if available
+            let lastAccessed: string | undefined;
+            try {
+              const { data: progressData } = await supabase
+                .from('user_progress')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('content_type', 'playbook')
+                .eq('content_id', playbook.id)
+                .single();
+              lastAccessed = progressData?.updated_at;
+            } catch {}
 
             const progressPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
@@ -135,7 +158,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
               progress: progressPercentage,
               totalSteps,
               completedSteps,
-              lastAccessed: progressData?.updated_at,
+              lastAccessed,
               category: playbook.category || 'Personal Growth',
             };
           } catch (err) {
@@ -155,6 +178,8 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       );
 
       setPlaybooks(playbooksWithProgress);
+      // Track current playbook IDs for realtime filtering
+      playbookIdsRef.current = new Set(playbooksWithProgress.map((p) => p.id));
 
     } catch (err) {
       console.error('Error fetching playbooks:', err);
@@ -168,42 +193,149 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     fetchPlaybooks();
   }, [fetchPlaybooks]);
 
+  // Also refetch whenever the screen regains focus (returning from details)
+  useFocusEffect(
+    useCallback(() => {
+      fetchPlaybooks();
+      return () => {};
+    }, [fetchPlaybooks])
+  );
+
+  // Debounced refetch to avoid rapid consecutive updates
+  const scheduleRefetch = useCallback(() => {
+    if (refetchTimeoutRef.current) {
+      clearTimeout(refetchTimeoutRef.current);
+    }
+    refetchTimeoutRef.current = setTimeout(() => {
+      fetchPlaybooks();
+    }, 150);
+  }, [fetchPlaybooks]);
+
+  // Realtime subscription: update when playbook_action_steps or user_progress change
+  useEffect(() => {
+    // Skip if not logged in
+    if (!user?.id) return;
+
+    const channel = supabase.channel('dashboard-playbook-progress');
+
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'playbook_action_steps' },
+      (payload: any) => {
+        const affectedId = (payload.new?.playbook_id ?? payload.old?.playbook_id) as string | undefined;
+        if (affectedId && playbookIdsRef.current.has(affectedId)) {
+          scheduleRefetch();
+        }
+      }
+    );
+
+    // Some flows update progress in user_progress rather than toggling the step row
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'user_progress' },
+      (payload: any) => {
+        const contentType = payload.new?.content_type ?? payload.old?.content_type;
+        const contentId = (payload.new?.content_id ?? payload.old?.content_id) as string | undefined;
+        if ((contentType === 'playbook' || contentType === 'playbook_action_step') && contentId && playbookIdsRef.current.has(contentId)) {
+          scheduleRefetch();
+        }
+      }
+    );
+
+    // Optional: also listen for playbooks updates (e.g., content changes)
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'playbooks' },
+      (payload: any) => {
+        const id = (payload.new?.id ?? payload.old?.id) as string | undefined;
+        if (id && playbookIdsRef.current.has(id)) {
+          scheduleRefetch();
+        }
+      }
+    );
+
+    channel.subscribe();
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        try { channelRef.current.unsubscribe(); } catch {}
+        channelRef.current = null;
+      }
+      if (refetchTimeoutRef.current) {
+        clearTimeout(refetchTimeoutRef.current);
+        refetchTimeoutRef.current = null;
+      }
+    };
+  }, [user?.id, scheduleRefetch]);
+
   const getProgressColor = (progress: number) => {
-    if (progress === 0) {return Colors.lightGray;}
-    if (progress < 30) {return Colors.error;}
-    if (progress < 70) {return Colors.faithGold;}
-    return Colors.successGreen;
+    // Match empty progress bar background for 0%
+    if (progress === 0) { return 'rgba(255, 255, 255, 0.16)'; }
+    if (progress === 100) { return Colors.successGreen; }
+    // Incomplete (1-99%) should be alert coral
+    return Colors.alertCoral;
   };
 
   const getProgressText = (progress: number) => {
-    if (progress === 0) {return 'Not Started';}
+    if (progress === 0) {return 'Not started';}
     if (progress === 100) {return 'Complete';}
     return `${progress}% Complete`;
   };
 
-  const renderPlaybookCard = (playbook: Playbook, index: number) => (
+  const renderPlaybookCard = (playbook: Playbook, index: number) => {
+    const inputRange = [
+      (index - 1) * ITEM_SIZE,
+      index * ITEM_SIZE,
+      (index + 1) * ITEM_SIZE,
+    ];
+    const scale = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.94, 1, 0.94],
+      extrapolate: 'clamp',
+    });
+    const opacity = scrollX.interpolate({
+      inputRange,
+      outputRange: [0.85, 1, 0.85],
+      extrapolate: 'clamp',
+    });
+    const translateY = scrollX.interpolate({
+      inputRange,
+      outputRange: [8, 0, 8],
+      extrapolate: 'clamp',
+    });
+    const zIndex = scrollX.interpolate({
+      inputRange,
+      outputRange: [0, 2, 0],
+      extrapolate: 'clamp',
+    });
+
+    return (
     <TouchableOpacity
       key={playbook.id}
-      style={[
-        styles.playbookCard,
-        index === 0 ? styles.firstCard : styles.otherCard,
-      ]}
+      style={styles.cardTouch}
       onPress={() => {
         triggerLightHaptic();
         onPlaybookPress?.(playbook);
       }}
-      activeOpacity={0.8}
+      activeOpacity={0.85}
     >
-      <View style={styles.cardHeader}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{playbook.category}</Text>
-        </View>
+      <Animated.View
+        style={[
+          styles.playbookCard,
+          { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
+          // Shift only the first card left to reduce initial left spacing without breaking centering
+          index === 0 ? { marginLeft: -(SIDE_PADDING - 16) } : null,
+          { transform: [{ scale }, { translateY }], opacity, zIndex },
+        ]}
+      >
+      <View style={styles.badgeContainer}>
         <View style={[styles.progressBadge, { backgroundColor: getProgressColor(playbook.progress) }]}>
           <Text style={styles.progressBadgeText}>{playbook.progress}%</Text>
         </View>
       </View>
 
-      <Text style={styles.playbookTitle} numberOfLines={2}>
+      <Text style={styles.playbookTitle}>
         {playbook.title}
       </Text>
 
@@ -225,7 +357,19 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             ]}
           />
         </View>
-        <Text style={styles.progressText}>
+        <Text
+          style={[
+            styles.progressText,
+            {
+              color:
+                playbook.progress === 0
+                  ? Colors.mediumGray
+                  : playbook.progress === 100
+                  ? Colors.successGreen
+                  : Colors.alertCoral,
+            },
+          ]}
+        >
           {getProgressText(playbook.progress)}
         </Text>
       </View>
@@ -240,8 +384,10 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           </Text>
         )}
       </View>
+      </Animated.View>
     </TouchableOpacity>
   );
+  };
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
@@ -312,17 +458,24 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       ) : playbooks.length === 0 ? (
         renderEmptyState()
       ) : (
-        <ScrollView
+        <Animated.ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_PADDING }]}
           decelerationRate="fast"
-          snapToInterval={CARD_WIDTH + CARD_MARGIN}
-          snapToAlignment="start"
+          snapToInterval={ITEM_SIZE}
+          snapToAlignment="center"
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+          bounces={false}
+          removeClippedSubviews={false}
+          style={{ overflow: 'visible' }}
         >
-          {playbooks.map(renderPlaybookCard)}
-          <View style={styles.scrollPadding} />
-        </ScrollView>
+          {playbooks.map((pb, i) => renderPlaybookCard(pb, i))}
+        </Animated.ScrollView>
       )}
     </View>
   );
@@ -331,6 +484,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
 const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
+    overflow: 'visible',
   },
   header: {
     flexDirection: 'row',
@@ -356,23 +510,23 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   scrollContainer: {
-    paddingRight: 16,
-  },
-  scrollPadding: {
-    width: 16,
+    paddingVertical: 4,
+    overflow: 'visible',
   },
   playbookCard: {
-    width: CARD_WIDTH,
     backgroundColor: Colors.modalBlue,
     borderRadius: 12,
     padding: 16,
-    marginRight: CARD_MARGIN,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    position: 'relative',
+  },
+  cardTouch: {
+    // touchable wrapper for proper activeOpacity without affecting animated styles
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 12,
   },
@@ -389,8 +543,8 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   progressBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   progressBadgeText: {
@@ -403,7 +557,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 8,
+    // Reserve space on the right so long titles don't run under the percentage badge
+    paddingRight: 64,
     lineHeight: 22,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
   },
   playbookDescription: {
     fontSize: 14,
@@ -416,9 +577,11 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 6,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     borderRadius: 3,
     marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   progressFill: {
     height: '100%',
@@ -505,10 +668,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   firstCard: {
-    marginLeft: 16,
+    // no longer used (kept for backward compatibility)
   },
   otherCard: {
-    marginLeft: CARD_MARGIN,
+    // no longer used (kept for backward compatibility)
   },
 });
 
