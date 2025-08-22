@@ -633,8 +633,8 @@ const styles = StyleSheet.create({
   devotionalCard: {
     // width and spacing are applied inline per item to enable snapping & animations
     backgroundColor: Colors.modalBlue,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 30,
+    padding: 20,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },

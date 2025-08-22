@@ -520,8 +520,8 @@ const styles = StyleSheet.create({
   },
   playbookCard: {
     backgroundColor: Colors.modalBlue,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 30,
+    padding: 20,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     position: 'relative',

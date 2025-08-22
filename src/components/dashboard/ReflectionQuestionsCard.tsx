@@ -430,15 +430,17 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                   <Text style={styles.sectionLabel}>QUESTION TO PONDER</Text>
                 </View>
                 <Text style={styles.questionText}>{item.question}</Text>
-                <TouchableOpacity
-                  style={styles.reflectButton}
-                  onPress={() => onQuestionPress?.(item)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Reflect on this question"
-                >
-                  <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                  <Text style={styles.reflectButtonText}>Reflect</Text>
-                </TouchableOpacity>
+                <View style={styles.buttonRow}>
+                  <TouchableOpacity
+                    style={styles.reflectButton}
+                    onPress={() => onQuestionPress?.(item)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Reflect on this question"
+                  >
+                    <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                    <Text style={styles.reflectButtonText}>Reflect</Text>
+                  </TouchableOpacity>
+                </View>
               </Animated.View>
             );
           })}
@@ -519,13 +521,13 @@ const styles = StyleSheet.create({
   questionCard: {
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 30,
-    padding: 20,
+    padding: 24,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    height: 320,
-    justifyContent: 'center',
+    height: 300,
+    justifyContent: 'space-evenly',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
   },
   tapHint: {
     flexDirection: 'row',
@@ -560,6 +562,12 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     textAlign: 'center',
     marginBottom: 0,
+  },
+  buttonRow: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 0,
   },
   reflectButton: {
     marginTop: 0,

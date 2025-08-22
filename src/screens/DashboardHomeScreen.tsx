@@ -84,7 +84,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       alignItems: 'center',
       paddingHorizontal: 20,
       paddingTop: 60,
-      paddingBottom: 12,
+      paddingBottom: 0,
       backgroundColor: Colors.hopeWhite,
     },
     headerLeft: {
@@ -689,7 +689,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               borderRadius: 12,
               borderWidth: 1,
               borderColor: 'rgba(255, 255, 255, 0.3)',
-              padding: 12,
+              padding: 16,
             }}
           >
             {/* Header Badge */}
@@ -697,11 +697,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <Ionicons name="mail-unread" size={14} color={Colors.alertCoral} />
               <View style={{
                 backgroundColor: 'transparent',
-                paddingHorizontal: 8,
+                paddingHorizontal: 0,
                 paddingVertical: 4,
                 borderRadius: 8,
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.25)'
+                borderWidth: 0,
+                borderColor: 'transparent'
               }}>
                 <Text style={{ color: Colors.hopeWhite, fontSize: 10, fontWeight: '700', letterSpacing: 0.6 }}>PRAYER REQUEST</Text>
               </View>

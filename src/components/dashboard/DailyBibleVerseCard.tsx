@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 16,
-    marginTop: 12,
+    marginTop: 0,
     marginBottom: 16,
     borderWidth: 0,
     borderColor: 'transparent',

@@ -412,7 +412,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.modalBlue,
-    borderRadius: 12,
+    borderRadius: 30,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,

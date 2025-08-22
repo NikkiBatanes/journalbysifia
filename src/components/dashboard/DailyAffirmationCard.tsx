@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: Colors.modalBlue,
-    borderRadius: 12,
+    borderRadius: 30,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
