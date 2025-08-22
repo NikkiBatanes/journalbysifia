@@ -433,6 +433,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     question: string;
     source: string;
     sourceType: 'playbook' | 'devotional';
+    sourceId?: string; // Devotional ID for linking
     // Optional devotional metadata
     dayNumber?: number;
     dayTitle?: string;
@@ -1075,6 +1076,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               question: q.question,
               source: q.source,
               sourceType: q.sourceType,
+              sourceId: q.sourceId, // This is the devotional ID
               dayNumber: q.dayNumber,
               dayTitle: q.dayTitle,
               totalDays: q.totalDays,
@@ -1120,14 +1122,31 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       <DevotionalDetailReflectionModal
         visible={showDevotionalModal}
         question={selectedReflection?.question || ''}
+        devotionalId={selectedReflection?.sourceId}
         devotionalTitle={selectedReflection?.source}
         dayNumber={selectedReflection?.dayNumber}
         dayTitle={selectedReflection?.dayTitle}
         totalDays={selectedReflection?.totalDays}
         questionNumber={selectedReflection?.questionNumber}
-        onSave={() => {
+        onSave={(entry) => {
           // Don't close modal immediately - success modal will handle the flow
           console.log('🎯 Dashboard: DevotionalDetailReflectionModal onSave called - success modal should show now');
+          console.log('🎯 Dashboard: Saved entry:', entry);
+          
+          // Invalidate all reflection-related queries to ensure real-time updates
+          queryClient.invalidateQueries({
+            queryKey: ['reflections'],
+          });
+          
+          // Also invalidate devotional queries in case they affect question availability
+          queryClient.invalidateQueries({
+            queryKey: ['devotionals'],
+          });
+          
+          // Force refetch of reflection questions
+          queryClient.refetchQueries({
+            queryKey: ['reflections'],
+          });
         }}
         onCancel={() => {
           setShowDevotionalModal(false);

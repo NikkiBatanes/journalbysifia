@@ -48,6 +48,7 @@ type DevotionalDetailScreenProps = {
 };
 
 import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
+import { useJournaledQuestions } from '../hooks/useJournaledQuestions';
 
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
 
@@ -62,6 +63,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   // React Query hooks for prayer data
   const { data: allDevotionalPrayers = [] } = useAllDevotionalPrayerData(user?.id || '');
   const createDevotionalPrayerMutation = useCreateDevotionalPrayer();
+
+  // Journaled questions tracking
+  const {
+    isQuestionJournaled,
+    getJournaledEntry,
+    addJournaledQuestion,
+    updateJournaledQuestion,
+  } = useJournaledQuestions(userId || '', devotionalId);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const loading = devotionalLoading; // Use React Query loading state
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -71,6 +80,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   // Reflection modal state
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
   const [selectedReflectionQuestion, setSelectedReflectionQuestion] = useState<string | null>(null);
+  const [selectedQuestionMeta, setSelectedQuestionMeta] = useState<{
+    dayNumber: number;
+    questionNumber: number;
+    existingEntry?: any;
+  } | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const [showFAB, setShowFAB] = useState(false);
@@ -801,12 +815,41 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     onPress={() => {
                       // Light haptic on question tap
                       triggerLightHaptic();
+                      
+                      const dayNumber = index + 1;
+                      const questionNumber = idx + 1;
+                      
+                      // Check if this question has already been journaled
+                      const existingEntry = getJournaledEntry(dayNumber, questionNumber);
+                      
+                      console.log('🔍 Question tapped - Debug info:', {
+                        dayNumber,
+                        questionNumber,
+                        devotionalId,
+                        existingEntry: existingEntry ? {
+                          id: existingEntry.id,
+                          title: existingEntry.title,
+                          content: existingEntry.content?.substring(0, 50) + '...',
+                          devotional_id: existingEntry.devotional_id,
+                          day_number: existingEntry.day_number,
+                          question_number: existingEntry.question_number,
+                        } : null,
+                      });
+                      
                       setSelectedReflectionQuestion(question.text);
+                      setSelectedQuestionMeta({
+                        dayNumber,
+                        questionNumber,
+                        existingEntry,
+                      });
                       setReflectionModalVisible(true);
                     }}
                   >
                     <View style={styles.questionCardContainer}>
-                      <Text style={styles.questionCardNumber}>{idx + 1}</Text>
+                      <Text style={[
+                        styles.questionCardNumber,
+                        isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber
+                      ]}>{idx + 1}</Text>
                       <Text style={styles.questionCardText}>
                         {question.text || 'Reflection question'}
                       </Text>
@@ -907,21 +950,26 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           <View style={styles.swipeIndicator} />
         </View>
 
-        {/* Reflection Modal for Questions to Ponder */}
+        {/* Devotional Detail Reflection Modal */}
         <DevotionalDetailReflectionModal
           visible={reflectionModalVisible}
           question={selectedReflectionQuestion || ''}
-          devotionalTitle={devotional?.title}
-          totalDays={devotional?.totalDays}
-          dayNumber={devotional?.currentDay}
-          dayTitle={devotional?.days[devotional.currentDay - 1]?.title}
-          questionNumber={selectedReflectionQuestion ?
-            (devotional?.days[devotional.currentDay - 1]?.reflectionQuestions?.findIndex(q => q.text === selectedReflectionQuestion) || 0) + 1
-            : undefined}
-          onSave={async (entry) => {
+          devotionalId={devotionalId}
+          dayNumber={selectedQuestionMeta?.dayNumber || currentDayIndex + 1}
+          dayTitle={currentDay?.title}
+          devotionalTitle={devotional.title}
+          totalDays={devotional.totalDays}
+          questionNumber={selectedQuestionMeta?.questionNumber || 1}
+          existingEntry={selectedQuestionMeta?.existingEntry}
+          onSave={(entry) => {
             try {
-              // The entry is already saved by the modal
               console.log('Reflection saved:', entry);
+              // Update the journaled questions tracking
+              if (selectedQuestionMeta?.existingEntry) {
+                updateJournaledQuestion(entry);
+              } else {
+                addJournaledQuestion(entry);
+              }
               // Note: We don't close the modal here to allow the success modal to show
               // The modal will be closed when the user clicks Done in the success modal
             } catch (error) {
@@ -931,6 +979,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           onCancel={() => {
             setReflectionModalVisible(false);
             setSelectedReflectionQuestion(null);
+            setSelectedQuestionMeta(null);
           }}
         />
       </View>
@@ -1311,6 +1360,10 @@ const styles = StyleSheet.create({
   },
   mainContent: {
     flex: 1,
+  },
+  journaledQuestionNumber: {
+    backgroundColor: Colors.growthGreen,
+    color: Colors.hopeWhite,
   },
 
 });

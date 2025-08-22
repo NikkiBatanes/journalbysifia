@@ -17,11 +17,13 @@ import { analytics } from '../utils/analytics';
 interface DevotionalDetailReflectionModalProps {
   visible: boolean;
   question: string;
+  devotionalId?: string;
   dayNumber?: number;
   dayTitle?: string;
   devotionalTitle?: string;
   totalDays?: number;
   questionNumber?: number;
+  existingEntry?: any;
   onSave: (entry: any) => void;
   onCancel: () => void;
 }
@@ -29,16 +31,33 @@ interface DevotionalDetailReflectionModalProps {
 const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalProps> = ({
   visible,
   question,
+  devotionalId,
   dayNumber,
   dayTitle,
   devotionalTitle,
   totalDays,
   questionNumber,
+  existingEntry,
   onSave,
   onCancel,
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  
+  console.log('🔍 DevotionalDetailReflectionModal - Props received:', {
+    visible,
+    devotionalId,
+    dayNumber,
+    questionNumber,
+    existingEntry: existingEntry ? {
+      id: existingEntry.id,
+      title: existingEntry.title,
+      content: existingEntry.content?.substring(0, 50) + '...',
+      devotional_id: existingEntry.devotional_id,
+      day_number: existingEntry.day_number,
+      question_number: existingEntry.question_number,
+    } : null,
+  });
   // New success modal system
   const successModal = useSuccessModal(
     () => {
@@ -96,10 +115,13 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         type: 'devotional' as const, // Always devotional type for devotional reflections
         source: entry.source || 'devotional' as const, // Use entry source or default to devotional
         user_id: user.id,
-        selected_date: dateStr,
+        selected_date: existingEntry ? existingEntry.selected_date : dateStr, // Preserve original date if editing
         // Include devotional metadata fields - prefer entry fields over props
         prompt: entry.prompt || question,
         tags: entry.tags || [],
+        question_text: question, // Always include the question text for tracking
+        // Extract devotional_id from props or existing entry
+        devotional_id: existingEntry?.devotional_id || devotionalId,
         ...(entry.devotionalTitle && { devotional_title: entry.devotionalTitle }),
         ...(entry.dayNumber !== undefined && { day_number: entry.dayNumber }),
         ...(entry.dayTitle && { day_title: entry.dayTitle }),
@@ -113,13 +135,24 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         ...(!entry.questionNumber && questionNumber !== undefined && { question_number: questionNumber }),
       };
 
-      // Save to database using React Query
+      // Save to database using React Query (update existing entry if it exists)
       console.log('🔍 DevotionalDetailReflectionModal: Saving with data:', saveData);
       console.log('🔍 DevotionalDetailReflectionModal: Date string:', dateStr);
       console.log('🔍 DevotionalDetailReflectionModal: User ID:', user.id);
-      console.log('🔍 DevotionalDetailReflectionModal: About to call createMutation.mutateAsync with:', saveData);
-      console.log('🔍 DevotionalDetailReflectionModal: Mutation status:', { isLoading: createMutation.isPending, isError: createMutation.isError });
-      const result = await createMutation.mutateAsync(saveData);
+      console.log('🔍 DevotionalDetailReflectionModal: Existing entry:', existingEntry);
+      
+      let result;
+      if (existingEntry) {
+        // Update existing entry
+        const { ReflectionApi } = await import('../services/api/reflectionApi');
+        result = await ReflectionApi.updateReflectionEntry(existingEntry.id, saveData);
+        console.log('🔍 DevotionalDetailReflectionModal: Updated existing entry:', result);
+      } else {
+        // Create new entry
+        console.log('🔍 DevotionalDetailReflectionModal: About to call createMutation.mutateAsync with:', saveData);
+        console.log('🔍 DevotionalDetailReflectionModal: Mutation status:', { isLoading: createMutation.isPending, isError: createMutation.isError });
+        result = await createMutation.mutateAsync(saveData);
+      }
       console.log('🔍 DevotionalDetailReflectionModal: Mutation completed successfully:', result);
 
       // Track analytics
@@ -157,6 +190,9 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         });
       }
 
+      // Call the onSave callback to update parent state
+      onSave(result);
+      
       successModal.showSuccess({
         title: 'Ponder Saved',
         message: 'Your devotional ponder has been saved to your journal.',
@@ -283,6 +319,14 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
         <View style={styles.modalView}>
           <ReflectionLogEditor
             initialTitle={question}
+            initialEntry={existingEntry ? {
+              title: existingEntry.title || question,
+              content: existingEntry.content || '',
+              tags: existingEntry.tags || [],
+              type: 'free-form' as const,
+              prompt: existingEntry.prompt || question,
+              source: 'devotional'
+            } : undefined}
             lockTitle
             onSave={saveReflectionData}
             onCancel={onCancel}

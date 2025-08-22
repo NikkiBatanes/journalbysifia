@@ -20,6 +20,8 @@ import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { ReflectionApi } from '../../services/api/reflectionApi';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 // Devotional-only rebuild: no date-based filtering required
 
 interface ReflectionQuestion {
@@ -51,6 +53,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   onViewAll,
 }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [questions, setQuestions] = useState<ReflectionQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +77,24 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
     try {
       setLoading(true);
       setError(null);
+      
+      // First, get all journaled questions to filter them out
+      const journaledEntries = await ReflectionApi.searchReflections({
+        userId: user.id,
+        limit: 1000, // Get all journaled entries
+      });
+      
+      // Create a set of journaled question identifiers for quick lookup
+      const journaledQuestionIds = new Set(
+        journaledEntries
+          .filter(entry => 
+            entry.devotional_id && 
+            entry.day_number !== undefined && 
+            entry.question_number !== undefined
+          )
+          .map(entry => `${entry.devotional_id}-${entry.day_number}-${entry.question_number}`)
+      );
+      
       // Fetch devotionals only (mirror DevotionalCarousel behavior)
       const devotionalsResult = await supabase
         .from('devotionals')
@@ -103,6 +124,13 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             ) => {
               const qText = typeof text === 'string' ? text : text?.question || text?.text || text?.prompt || '';
               if (!qText || typeof qText !== 'string') { return; }
+              
+              // Check if this question has already been journaled
+              const questionId = `${devotional.id}-${ctx?.dayNumber || 1}-${ctx?.questionIndex || 1}`;
+              if (journaledQuestionIds.has(questionId)) {
+                return; // Skip journaled questions
+              }
+              
               allQuestions.push({
                 id: `devotional-${devotional.id}-${idxSuffix}`,
                 question: qText,
@@ -251,6 +279,44 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   useEffect(() => {
     fetchReflectionQuestions();
   }, [fetchReflectionQuestions]);
+
+  // Listen for reflection entries changes to refetch questions
+  useEffect(() => {
+    const handleReflectionChange = () => {
+      console.log('🔄 ReflectionQuestionsCard: Detected reflection entry change, refetching questions');
+      fetchReflectionQuestions();
+    };
+
+    // Listen for reflection entries invalidation
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.query?.queryKey?.[0] === 'reflections') {
+        handleReflectionChange();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [queryClient, fetchReflectionQuestions]);
+
+  // Listen for devotional changes to refetch questions
+  useEffect(() => {
+    const handleDevotionalChange = () => {
+      console.log('🔄 ReflectionQuestionsCard: Detected devotional change, refetching questions');
+      fetchReflectionQuestions();
+    };
+
+    // Listen for devotional invalidation
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.query?.queryKey?.[0] === 'devotionals') {
+        handleDevotionalChange();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [queryClient, fetchReflectionQuestions]);
 
   const handleRefresh = () => {
     fetchReflectionQuestions();

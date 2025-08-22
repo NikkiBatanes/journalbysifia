@@ -1,45 +1,49 @@
-// src/services/api/reflectionApi.ts
+// src/services/api/reflectionApi.clean.ts
 import { supabase } from '../supabaseClient';
 
 export interface ReflectionApiEntry {
   id: string;
   user_id: string;
-  title?: string; // Optional in database
+  title?: string;
   content: string;
-  type: string; // Can be 'free', 'guided', 'devotional', 'playbook', etc.
-  selected_date: string; // timestamp with time zone as string
+  type: string;
+  selected_date: string;
   created_at: string;
   updated_at: string;
-  is_deleted?: boolean; // Optional with default false in database
-  // Additional fields from migration
+  is_deleted?: boolean;
   prompt?: string;
-  tags?: string[]; // ARRAY type in database
+  tags?: string[];
   source?: string;
   devotional_title?: string;
+  devotional_id?: string;
   day_number?: number;
   day_title?: string;
   total_days?: number;
   question_number?: number;
-  // Playbook-specific fields
+  question_text?: string;
   playbook_title?: string;
   playbook_id?: string;
   subtask_id?: string;
 }
 
+export interface SearchReflectionsOptions {
+  searchTerm?: string;
+  devotionalId?: string;
+  dayNumber?: number;
+  questionNumber?: number;
+  limit?: number;
+  userId: string;
+}
+
 export class ReflectionApi {
   // Get all reflection entries for a user and date
   static async getReflectionEntries(userId: string, date: string): Promise<ReflectionApiEntry[]> {
-    console.log('🔍 ReflectionApi: getReflectionEntries called with userId:', userId, 'date:', date);
     const { data, error } = await supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
       .eq('selected_date', date)
       .order('created_at', { ascending: false });
-
-    console.log('🔍 ReflectionApi: getReflectionEntries response - data:', data?.length, 'entries');
-    console.log('🔍 ReflectionApi: getReflectionEntries response - error:', error);
-    console.log('🔍 ReflectionApi: getReflectionEntries response - full data:', data);
 
     if (error) {
       console.error('Error fetching reflection entries:', error);
@@ -126,13 +130,6 @@ export class ReflectionApi {
 
   // Get reflection by subtask ID
   static async getReflectionBySubtask(userId: string, subtaskId: string): Promise<ReflectionApiEntry | null> {
-    console.log('🔍 ReflectionApi: getReflectionBySubtask called with:', {
-      userId,
-      subtaskId,
-      subtaskIdType: typeof subtaskId,
-      subtaskIdLength: subtaskId?.length,
-    });
-
     const { data, error } = await supabase
       .from('reflection_entries')
       .select('*')
@@ -142,54 +139,13 @@ export class ReflectionApi {
       .limit(1)
       .single();
 
-    console.log('🔍 ReflectionApi: getReflectionBySubtask response:', {
-      data,
-      error,
-      hasData: !!data,
-    });
-
     if (error) {
-      // If no reflection found, return null instead of throwing error
       if (error.code === 'PGRST116') {
-        console.log('🔍 ReflectionApi: No reflection found for subtask:', subtaskId);
-
-        // Try fallback query by user_id and type to see if there are any playbook reflections
-        console.log('🔍 ReflectionApi: Attempting fallback query for debugging...');
-        try {
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('reflection_entries')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('type', 'playbook')
-            .order('created_at', { ascending: false })
-            .limit(5);
-
-          console.log('🔍 ReflectionApi: Fallback query results:', {
-            count: fallbackData?.length || 0,
-            reflections: fallbackData?.map(r => ({
-              id: r.id,
-              subtask_id: r.subtask_id,
-              playbook_title: r.playbook_title,
-              title: r.title,
-            })) || [],
-            error: fallbackError,
-          });
-        } catch (fallbackErr) {
-          console.log('🔍 ReflectionApi: Fallback query failed:', fallbackErr);
-        }
-
         return null;
       }
       console.error('Error fetching reflection by subtask:', error);
       throw new Error(`Failed to fetch reflection by subtask: ${error.message}`);
     }
-
-    console.log('🔍 ReflectionApi: Found reflection for subtask:', {
-      subtaskId,
-      reflectionId: data?.id,
-      reflectionTitle: data?.title,
-      reflectionContent: data?.content?.substring(0, 50) + '...',
-    });
 
     return data;
   }
@@ -198,23 +154,18 @@ export class ReflectionApi {
   static async createReflectionEntry(
     entry: Omit<ReflectionApiEntry, 'id' | 'created_at' | 'updated_at'>
   ): Promise<ReflectionApiEntry> {
-    console.log('🔍 ReflectionApi: createReflectionEntry called with:', entry);
     const now = new Date().toISOString();
     const entryWithTimestamps = {
       ...entry,
       created_at: now,
       updated_at: now,
     };
-    console.log('🔍 ReflectionApi: About to insert into database:', entryWithTimestamps);
 
     const { data, error } = await supabase
       .from('reflection_entries')
       .insert(entryWithTimestamps)
       .select()
       .single();
-
-    console.log('🔍 ReflectionApi: Database response - data:', data);
-    console.log('🔍 ReflectionApi: Database response - error:', error);
 
     if (error) {
       console.error('Error creating reflection entry:', error);
@@ -224,17 +175,19 @@ export class ReflectionApi {
     return data;
   }
 
-  // Update a reflection entry
+  // Update an existing reflection entry (preserves original created_at)
   static async updateReflectionEntry(
     id: string,
-    updates: Partial<Omit<ReflectionApiEntry, 'id' | 'user_id' | 'created_at'>>
+    updates: Partial<Omit<ReflectionApiEntry, 'id' | 'created_at' | 'updated_at'>>
   ): Promise<ReflectionApiEntry> {
+    const updateData = {
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+
     const { data, error } = await supabase
       .from('reflection_entries')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
@@ -249,23 +202,14 @@ export class ReflectionApi {
 
   // Delete a reflection entry
   static async deleteReflectionEntry(id: string): Promise<void> {
-    console.log('🗑️ ReflectionApi: Starting delete for reflection:', id);
+    const { error } = await supabase
+      .from('reflection_entries')
+      .delete()
+      .eq('id', id);
 
-    try {
-      const { error } = await supabase
-        .from('reflection_entries')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('❌ ReflectionApi: Error deleting reflection entry:', error);
-        throw new Error(`Failed to delete reflection entry: ${error.message}`);
-      }
-
-      console.log('✅ ReflectionApi: Successfully deleted reflection:', id);
-    } catch (err) {
-      console.error('❌ ReflectionApi: Exception during delete:', err);
-      throw err;
+    if (error) {
+      console.error('Error deleting reflection entry:', error);
+      throw new Error(`Failed to delete reflection entry: ${error.message}`);
     }
   }
 
@@ -292,19 +236,37 @@ export class ReflectionApi {
     return data || [];
   }
 
-  // Search reflections by content
-  static async searchReflections(
-    userId: string,
-    searchTerm: string,
-    limit: number = 20
-  ): Promise<ReflectionApiEntry[]> {
-    const { data, error } = await supabase
+  // Search reflections with various filters
+  static async searchReflections(options: SearchReflectionsOptions): Promise<ReflectionApiEntry[]> {
+    const { searchTerm, devotionalId, dayNumber, questionNumber, limit = 10, userId } = options;
+    
+    let query = supabase
       .from('reflection_entries')
       .select('*')
       .eq('user_id', userId)
-      .or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+      .order('created_at', { ascending: false });
+
+    if (searchTerm) {
+      query = query.or(`title.ilike.%${searchTerm}%,content.ilike.%${searchTerm}%`);
+    }
+
+    if (devotionalId) {
+      query = query.eq('devotional_id', devotionalId);
+    }
+
+    if (dayNumber !== undefined) {
+      query = query.eq('day_number', dayNumber);
+    }
+
+    if (questionNumber !== undefined) {
+      query = query.eq('question_number', questionNumber);
+    }
+
+    if (limit) {
+      query = query.limit(limit);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error searching reflections:', error);
@@ -315,7 +277,11 @@ export class ReflectionApi {
   }
 
   // Get reflection statistics
-  static async getReflectionStats(userId: string, startDate: string, endDate: string) {
+  static async getReflectionStats(
+    userId: string, 
+    startDate: string, 
+    endDate: string
+  ): Promise<{ total: number; free: number; guided: number; devotional: number }> {
     const { data, error } = await supabase
       .from('reflection_entries')
       .select('type, source, created_at')
@@ -328,14 +294,12 @@ export class ReflectionApi {
       throw new Error(`Failed to fetch reflection stats: ${error.message}`);
     }
 
-    const stats = {
+    return {
       total: data?.length || 0,
       free: data?.filter(r => r.type === 'free').length || 0,
       guided: data?.filter(r => r.type === 'guided').length || 0,
       devotional: data?.filter(r => r.source === 'devotional').length || 0,
     };
-
-    return stats;
   }
 
   // Get paginated reflections for infinite scrolling
@@ -392,10 +356,26 @@ export class ReflectionApi {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Error fetching reflections count:', error);
-      throw new Error(`Failed to fetch reflections count: ${error.message}`);
+      console.error('Error getting reflections count:', error);
+      throw new Error(`Failed to get reflections count: ${error.message}`);
     }
 
     return count || 0;
+  }
+
+  // Get reflection by ID
+  static async getReflectionById(id: string): Promise<ReflectionApiEntry | null> {
+    const { data, error } = await supabase
+      .from('reflection_entries')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching reflection by ID:', error);
+      return null;
+    }
+
+    return data;
   }
 }

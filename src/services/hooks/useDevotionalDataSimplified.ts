@@ -106,6 +106,16 @@ export const useCreateDevotionalReactQuery = () => {
         queryKey: queryKeys.devotionals.list(_userId),
       });
 
+      // Invalidate devotionals queries to trigger reflection questions update
+      queryClient.invalidateQueries({
+        queryKey: ['devotionals'],
+      });
+
+      // Force refetch to ensure immediate UI updates
+      queryClient.refetchQueries({
+        queryKey: ['devotionals'],
+      });
+
       // Analytics tracking removed for now
     },
     onError: (err: Error) => {

@@ -4,6 +4,7 @@ import { ReflectionApi, ReflectionApiEntry } from '../api/reflectionApi';
 import { queryKeys } from '../queryKeys';
 import { defaultQueryOptions, defaultMutationOptions, queryOptionsPresets } from '../config/queryConfig';
 import { analytics } from '../../utils/analytics';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 // Hook for getting reflection entries for a specific date
 export const useReflectionData = (userId: string, date: string) => {
@@ -111,8 +112,50 @@ export const useReflectionStats = (userId: string, startDate: string, endDate: s
   return useQuery({
     queryKey: queryKeys.reflections.stats(userId, startDate, endDate),
     queryFn: () => ReflectionApi.getReflectionStats(userId, startDate, endDate),
-    ...queryOptionsPresets.background,
+    ...defaultQueryOptions,
     enabled: !!userId && !!startDate && !!endDate,
+  });
+};
+
+// Hook to check if a devotional question has been journaled
+export const useIsQuestionJournaled = (questionText: string, devotionalId?: string, dayNumber?: number, questionNumber?: number) => {
+  const { user } = useAuth();
+  const userId = user?.id;
+  
+  return useQuery({
+    queryKey: queryKeys.reflections.byQuestion(userId || '', questionText, devotionalId, dayNumber, questionNumber),
+    queryFn: async () => {
+      if (!userId) return false;
+      
+      // First try to find by exact question text and devotional context
+      const reflections = await ReflectionApi.searchReflections(userId, {
+        searchTerm: `"${questionText}"`,
+        devotionalId,
+        dayNumber,
+        questionNumber,
+        limit: 1
+      });
+      
+      // If no results, try a more general search
+      if (reflections.length === 0) {
+        const generalResults = await ReflectionApi.searchReflections(userId, {
+          searchTerm: questionText,
+          limit: 5
+        });
+        
+        // Check if any result contains the question text
+        return generalResults.some(reflection => 
+          reflection.content?.includes(questionText) || 
+          reflection.prompt?.includes(questionText)
+        );
+      }
+      
+      return reflections.length > 0;
+    },
+    ...queryOptionsPresets.stable,
+    enabled: !!userId && !!questionText,
+    // Cache the result for 5 minutes to avoid excessive queries
+    staleTime: 5 * 60 * 1000,
   });
 };
 
