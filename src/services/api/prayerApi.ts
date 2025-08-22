@@ -110,6 +110,43 @@ export class PrayerApi {
     return data || [];
   }
 
+  /**
+   * Get all unprayed prayer requests for a user (no date restriction)
+   * Criteria: is_prayer_request = true AND prayed != true
+   */
+  static async getUnprayedPrayerRequests(userId: string): Promise<PrayerApiEntry[]> {
+    const session = await ensureAuthenticated();
+
+    if (userId !== session.user.id) {
+      console.warn('Prayer query user_id mismatch, correcting for RLS compliance:', {
+        provided: userId,
+        authenticated: session.user.id,
+      });
+      userId = session.user.id;
+    }
+
+    const { data, error } = await supabase
+      .from('prayers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_prayer_request', true)
+      .or('prayed.is.null,prayed.eq.false')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching unprayed prayer requests:', error);
+      throw new Error(`Failed to fetch unprayed prayer requests: ${error.message}`);
+    }
+
+    return (data || []).map((p) => ({
+      ...p,
+      type: p.journal_category || (p.prayer_type === 'people' ? 'people' : 'devotional'),
+      is_answered: p.status === 'answered',
+      is_request: p.is_prayer_request,
+      is_prayed: p.prayed,
+    })) as PrayerApiEntry[];
+  }
+
   // Get prayers by type
   static async getPrayersByType(
     userId: string,

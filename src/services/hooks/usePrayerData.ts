@@ -74,6 +74,19 @@ export const useAllDevotionalPrayerData = (userId: string) => {
 };
 
 /**
+ * Get all unprayed prayer requests for a user (no date restriction)
+ */
+export const useUnprayedPrayerRequests = (userId: string) => {
+  return useQuery({
+    queryKey: queryKeys.prayers.unprayedRequests(userId),
+    queryFn: () => PrayerApi.getUnprayedPrayerRequests(userId),
+    staleTime: 60 * 1000, // 1 minute; keep fresh on dashboard
+    enabled: !!userId,
+    retry: createRetryFunction(RETRY_CONFIGS.PRAYER_ENHANCED),
+  });
+};
+
+/**
  * Get prayers by specific type
  */
 export const usePrayersByType = (

@@ -10,9 +10,10 @@ export const useReflectionData = (userId: string, date: string) => {
   return useQuery({
     queryKey: queryKeys.reflections.byDate(userId, date),
     queryFn: () => ReflectionApi.getReflectionEntries(userId, date),
-    ...queryOptionsPresets.realtime,
+    ...queryOptionsPresets.critical, // Use critical instead of realtime for better caching
     enabled: !!userId && !!date,
     initialData: [], // Provide empty array as initial data
+    refetchOnMount: true, // Always refetch on mount to ensure fresh data
   });
 };
 
@@ -157,6 +158,16 @@ export const useCreateReflection = () => {
       });
     },
     onSuccess: (data, variables) => {
+      console.log('🔍 useCreateReflection: Success callback triggered', { data, variables });
+      
+      // Update the cache directly with the new data
+      const queryKey = queryKeys.reflections.byDate(variables.user_id, variables.selected_date);
+      queryClient.setQueryData(queryKey, (old: ReflectionApiEntry[] = []) => {
+        // Remove any temporary entries and add the real one
+        const filtered = old.filter(entry => !entry.id.startsWith('temp-'));
+        return [...filtered, data];
+      });
+      
       // Invalidate and refetch related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byDate(variables.user_id, variables.selected_date) });
       queryClient.invalidateQueries({ queryKey: queryKeys.reflections.byType(variables.user_id, variables.selected_date, variables.type) });

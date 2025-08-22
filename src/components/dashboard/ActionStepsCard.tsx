@@ -14,10 +14,11 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/fonts';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
-import { rankSteps, generateCoachTip } from '../../services/nextBestStep';
+import { rankSteps } from '../../services/nextBestStep';
 
 interface ActionStep {
   id: string;
@@ -137,25 +138,8 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         blockers: step.blockers ?? null,
       }));
 
-      // Generate a short coach tip and rank steps by next-best-step scoring
-      const withTips = transformedSteps.map(s => ({ ...s, coachTip: generateCoachTip({
-        id: s.id,
-        title: s.title,
-        description: s.description,
-        playbookTitle: s.playbookTitle,
-        playbookId: s.playbookId,
-        stepIndex: s.stepIndex,
-        isCompleted: s.isCompleted,
-        dueDate: s.dueDate,
-        priority: s.priority,
-        estimatedMinutes: s.estimatedMinutes ?? null,
-        difficulty: s.difficulty ?? null,
-        impactScore: s.impactScore ?? null,
-        dependsOnStepId: s.dependsOnStepId ?? null,
-        blockers: s.blockers ?? null,
-      }) }));
-
-      const ranked = rankSteps(withTips);
+      // Rank steps by scoring (no coach tips)
+      const ranked = rankSteps(transformedSteps);
 
       setActionSteps(ranked);
 
@@ -180,29 +164,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     });
   }, [actionSteps.length]);
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return Colors.alertCoral;
-      case 'medium': return Colors.faithGold;
-      case 'low': return Colors.successGreen;
-      default: return Colors.faithGold;
-    }
-  };
+  // priority color/icon helpers removed (no priority chip shown)
 
-  const formatDueDate = (dateInput?: string | Date) => {
-    if (!dateInput) return '';
-    const d = new Date(dateInput);
-    if (isNaN(d.getTime())) return '';
-    const now = new Date();
-    const sameYear = d.getFullYear() === now.getFullYear();
-    const base = new Intl.DateTimeFormat('en-US', {
-      weekday: 'short',
-      month: 'long',
-      day: 'numeric',
-      ...(sameYear ? {} : { year: 'numeric' as const }),
-    }).format(d);
-    return base; // e.g., Thu, August 21 or Thu, August 21, 2026 depending on year
-  };
+  // no due-date formatting needed (due chip removed)
 
   const markStepDone = useCallback(async (step: ActionStep) => {
     if (!user) return;
@@ -243,40 +207,11 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
   // Example viewing and analytics removed
 
-  const snoozeStepByDays = useCallback(async (step: ActionStep, days: number = 1) => {
-    if (!user) return;
-    try {
-      const baseDate = step.dueDate ? new Date(step.dueDate) : new Date();
-      const newDate = new Date(baseDate);
-      newDate.setDate(baseDate.getDate() + days);
-
-      const { error: updateErr } = await supabase
-        .from('playbook_action_steps')
-        .update({ due_date: newDate.toISOString().slice(0, 10) })
-        .eq('id', step.id);
-      if (updateErr) throw updateErr;
-
-      logEvent('snooze_step', { playbook_id: step.playbookId, step_id: step.id, title: step.title, days });
-
-      // Optimistically update local state
-      setActionSteps(prev => prev.map(s => s.id === step.id ? { ...s, dueDate: newDate.toISOString() } : s));
-      triggerLightHaptic();
-    } catch (e) {
-      console.error('Failed to snooze step:', e);
-      setError('Failed to snooze step. Please try again.');
-    }
-  }, [user, logEvent]);
+  // removed snooze functionality per request
 
   // No example modal handlers
 
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'alert-circle';
-      case 'medium': return 'time';
-      case 'low': return 'checkmark-circle-outline';
-      default: return 'time';
-    }
-  };
+  // priority icon helper removed
 
   // Indent example line to start under the first letter of the title
   // Adjusted to keep title closer to the icon: padding(2) + icon(18) + gap(6)
@@ -325,26 +260,13 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       style={styles.stepItem}
       onPress={() => {
         triggerLightHaptic();
-        // start_step when tapping into a step
         logEvent('start_step', { playbook_id: item.playbookId, step_id: item.id, title: item.title });
         onStepPress?.(item);
       }}
       activeOpacity={0.8}
     >
-      {(item.priority || item.dueDate) && (
-        <View style={{ marginBottom: 6, flexDirection: 'row', alignItems: 'center' }}>
-          {item.priority && (
-            <View style={[styles.chip, { alignSelf: 'flex-start', marginRight: 6 }]}>
-              <Text style={styles.chipText}>{item.priority}</Text>
-            </View>
-          )}
-          {item.dueDate && (
-            <View style={[styles.chip, { alignSelf: 'flex-start' }]}>
-              <Text style={styles.chipText}>Due {formatDueDate(item.dueDate)}</Text>
-            </View>
-          )}
-        </View>
-      )}
+      {/* Priority chip removed per request */}
+
       <View style={styles.stepHeader}>
         <TouchableOpacity
           onPress={() => markStepDone(item)}
@@ -357,17 +279,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
           {completingId === item.id ? (
             <ActivityIndicator size="small" color={Colors.faithGold} style={{ width: 18, height: 18 }} />
           ) : completedId === item.id ? (
-            <Ionicons
-              name={'checkmark-circle'}
-              size={18}
-              color={Colors.successGreen}
-            />
+            <Ionicons name={'checkmark-circle'} size={18} color={Colors.successGreen} />
           ) : (
-            <Ionicons
-              name={'ellipse-outline'}
-              size={18}
-              color={Colors.faithGold}
-            />
+            <Ionicons name={'ellipse-outline'} size={18} color={Colors.faithGold} />
           )}
         </TouchableOpacity>
         <Text style={styles.stepTitle} numberOfLines={1}>
@@ -396,24 +310,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         )}
       </View>
 
-      
-
-      {item.coachTip && (
-        <Text style={styles.coachTip} numberOfLines={1}>
-          {item.coachTip}
-        </Text>
-      )}
-
-      {/* CTA row */}
-      <View style={styles.ctaRow}>
-        <TouchableOpacity style={styles.secondaryButton} onPress={() => snoozeStepByDays(item, 1)}>
-          <Ionicons name="time-outline" size={14} color={Colors.alertCoral} />
-          <Text style={styles.secondaryText}>Snooze 1d</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Coach tip removed per request */}
     </TouchableOpacity>
   );
-
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="checkmark-circle" size={32} color={Colors.successGreen} />
@@ -476,7 +375,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
                 {hasMore && (
                   <TouchableOpacity
                     style={[styles.paginationButton, styles.showMoreButton]}
-                    onPress={loadMore}
+                    onPress={() => { triggerLightHaptic(); loadMore(); }}
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityLabel={`Show more steps. ${actionSteps.length - visibleCount} remaining`}
@@ -489,7 +388,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
                 {canShowLess && (
                   <TouchableOpacity
                     style={[styles.paginationButton, styles.showLessButton]}
-                    onPress={showLess}
+                    onPress={() => { triggerLightHaptic(); showLess(); }}
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityLabel="Show less steps"
@@ -696,34 +595,41 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontWeight: '600',
   },
-  // Pagination styles (mirroring Todos)
+  // Pagination styles (aligned with Gratitude list)
   paginationContainer: {
-    marginTop: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 1,
   },
   paginationButtonGroup: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
+    gap: 6,
+    paddingBottom: 0,
+    paddingTop: 10,
   },
   paginationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     gap: 6,
   },
   paginationButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: Fonts.lexend.medium,
+    lineHeight: 14,
   },
-  showMoreButton: {},
-  showLessButton: {},
+  showMoreButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+  },
+  showLessButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
   showMoreText: {
     color: Colors.alertCoral,
   },

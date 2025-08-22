@@ -35,13 +35,17 @@ import DailyBibleVerseCard from '../components/dashboard/DailyBibleVerseCard';
 import PlaybookCarousel from '../components/dashboard/PlaybookCarousel';
 import DevotionalCarousel from '../components/dashboard/DevotionalCarousel';
 import ActionStepsCard from '../components/dashboard/ActionStepsCard';
+import ReflectionQuestionsCard from '../components/dashboard/ReflectionQuestionsCard';
+import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
+import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
+import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
 
-import QuickActionCard from '../components/dashboard/QuickActionCard';
 import StreakTracker from '../components/dashboard/StreakTracker';
-import WeeklyInsights from '../components/dashboard/WeeklyInsights';
-import AIInsights from '../components/dashboard/AIInsights';
+// Removed WeeklyInsights and AIInsights
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
+import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
+import { queryKeys } from '../services/queryKeys';
 
 const { width, height } = Dimensions.get('window');
 
@@ -150,11 +154,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 16,
+      marginBottom: 0,
     },
     playbookLabelContainer: {
-      marginTop: 24,
-      marginBottom: 16,
+      marginTop: 0,
+      marginBottom: 0,
       overflow: 'hidden',
     },
     playbookLabelClip: {
@@ -312,11 +316,17 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingBottom: 0,
       paddingTop: 0,
     },
+    sectionGap: {
+      height: 16,
+    },
+    smallSectionGap: {
+      height: 8,
+    },
     actionsHeaderContainer: {
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 16,
-      marginBottom: 8,
+      marginTop: 0,
+      marginBottom: 0,
     },
     actionsHeaderTitle: {
       fontSize: 12,
@@ -418,6 +428,22 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [refreshing, setRefreshing] = useState(false);
   const [actionsCount, setActionsCount] = useState(0);
   const [currentMotivationalText, setCurrentMotivationalText] = useState(0);
+  // Reflection Questions state
+  const [selectedReflection, setSelectedReflection] = useState<{
+    question: string;
+    source: string;
+    sourceType: 'playbook' | 'devotional';
+    // Optional devotional metadata
+    dayNumber?: number;
+    dayTitle?: string;
+    totalDays?: number;
+    questionNumber?: number;
+  } | null>(null);
+  const [showSJModal, setShowSJModal] = useState(false);
+  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  // Prayer Requests modal state
+  const [showPrayerModal, setShowPrayerModal] = useState(false);
+  const [selectedPrayerRequest, setSelectedPrayerRequest] = useState<any | null>(null);
 
   // Status bar: auto-detect from background
   useScreenStatusBar('auto', '#F2F5F7');
@@ -577,6 +603,145 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       textOpacity,
       expandButton,
     ])
+  );
+
+  // Fetch unprayed prayer requests for current user (across all dates)
+  const { data: unprayedRequests = [], isLoading: loadingRequests, isFetching: fetchingRequests, refetch: refetchRequests } = useUnprayedPrayerRequests(user?.id || '');
+  const markPrayedMutation = useMarkPrayerRequestPrayed();
+
+  const handleOpenPrayer = (req: any) => {
+    triggerLightHaptic();
+    setSelectedPrayerRequest(req);
+    setShowPrayerModal(true);
+  };
+
+  const handlePrayerSaved = async () => {
+    try {
+      if (!selectedPrayerRequest) return;
+      await markPrayedMutation.mutateAsync({
+        id: selectedPrayerRequest.id,
+        isPrayed: true,
+        _userId: selectedPrayerRequest.user_id,
+        _dateStr: selectedPrayerRequest.selected_date,
+      });
+      // Invalidate unprayed list to refresh dashboard
+      if (user?.id) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.unprayedRequests(user.id) });
+      }
+    } catch (e) {
+      console.error('Failed to mark prayer request as prayed:', e);
+      Alert.alert('Error', 'Failed to update prayer request status.');
+    } finally {
+      setShowPrayerModal(false);
+      setSelectedPrayerRequest(null);
+    }
+  };
+
+  const renderPrayerRequestsCard = () => (
+    <View style={{
+      backgroundColor: 'transparent',
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 0,
+      marginBottom: 0,
+    }}>
+      <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', marginBottom: 8, minHeight: 24 }}>
+        <Text style={{
+          fontSize: 12,
+          color: Colors.hopeWhite,
+          textAlign: 'center',
+          textTransform: 'uppercase',
+          fontWeight: '600',
+          letterSpacing: 0.8,
+          paddingHorizontal: 48,
+        }}>
+          {unprayedRequests.length === 1 ? 'PRAYER REQUEST' : 'PRAYER REQUESTS'}
+        </Text>
+        <View style={{ position: 'absolute', right: 0 }}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: 'transparent',
+            paddingHorizontal: 8,
+            paddingVertical: 4,
+            borderRadius: 12,
+            gap: 4,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.3)'
+          }}>
+            <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} />
+            <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.hopeWhite }}>{unprayedRequests.length}</Text>
+          </View>
+        </View>
+      </View>
+      {loadingRequests || fetchingRequests ? (
+        <Text style={styles.cardSubtitle}>Loading requests...</Text>
+      ) : unprayedRequests.length === 0 ? (
+        <Text style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</Text>
+      ) : (
+        unprayedRequests.slice(0, 5).map((req: any, idx: number) => (
+          <View
+            key={req.id}
+            style={{
+              marginTop: idx === 0 ? 0 : 10,
+              backgroundColor: 'transparent',
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: 'rgba(255, 255, 255, 0.3)',
+              padding: 12,
+            }}
+          >
+            {/* Header Badge */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+              <Ionicons name="mail-unread" size={14} color={Colors.alertCoral} />
+              <View style={{
+                backgroundColor: 'transparent',
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.25)'
+              }}>
+                <Text style={{ color: Colors.hopeWhite, fontSize: 10, fontWeight: '700', letterSpacing: 0.6 }}>PRAYER REQUEST</Text>
+              </View>
+            </View>
+
+            {/* Name */}
+            <Text style={{ color: Colors.hopeWhite, fontSize: 16, fontWeight: '700', marginBottom: 4 }} numberOfLines={1}>
+              {req.person_name || 'Someone'}
+            </Text>
+
+            {/* Description */}
+            <Text style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: 10 }} numberOfLines={2}>
+              {req.content || '—'}
+            </Text>
+
+            {/* CTA */}
+            <TouchableOpacity
+              onPress={() => { triggerLightHaptic(); handleOpenPrayer(req); }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                paddingTop: 10,
+                borderTopWidth: 1,
+                borderTopColor: 'rgba(255, 255, 255, 0.3)',
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={18} color={Colors.hopeWhite} />
+              <Text style={{ color: Colors.hopeWhite, fontWeight: '700', marginLeft: 6 }}>
+                {`Pray for ${req.person_name || 'them'} now`}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ))
+      )}
+      {unprayedRequests.length > 5 ? (
+        <Text style={[styles.cardSubtitle, { marginTop: 8 }]}> 
+          And {unprayedRequests.length - 5} more...
+        </Text>
+      ) : null}
+    </View>
   );
 
 
@@ -817,24 +982,24 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           showsVerticalScrollIndicator={false}
         >
         {/* Progress Tracking - moved above Today's Scripture */}
-        <StreakTracker onStreakPress={(streak) => navigation.navigate('StreakDetail', { type: streak.type })} />
+        <StreakTracker />
+        <View style={styles.smallSectionGap} />
 
         {/* Daily Scripture - now below Streak Tracker */}
         <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
+        <View style={styles.sectionGap} />
 
         {/* Row 1: Inspiration Cards (Affirmation only) */}
         <View style={styles.row}>
           <DailyAffirmationCard onRefresh={() => setRefreshing(true)} />
         </View>
+        <View style={styles.sectionGap} />
 
-        {/* Weekly Insights */}
-        <WeeklyInsights onInsightPress={() => navigation.navigate('Analytics')} />
+        {/* Prayer Requests Section (moved here, immediately after Affirmations) */}
+        {renderPrayerRequestsCard()}
+        <View style={styles.sectionGap} />
 
-        {/* AI Insights */}
-        <AIInsights
-          onInsightPress={() => navigation.navigate('AIInsights')}
-          onActionPress={() => navigation.navigate('AIInsights')}
-        />
+        {/* Removed Weekly Insights and AI Insights */}
 
         {/* Collapsing Playbook label */}
         <View style={styles.playbookLabelContainer}>
@@ -856,22 +1021,30 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         </View>
 
         <PlaybookCarousel
-          onPlaybookPress={(playbook) => navigation.navigate('PlaybookDetail', { playbookId: playbook.id })}
+          onPlaybookPress={(playbook) => {
+            triggerLightHaptic();
+            navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
+          }}
           onViewAll={() => {
             // Navigate to playbooks list
-            console.log('Navigate to playbooks list');
+            triggerLightHaptic();
+            navigation.navigate('Playbooks');
           }}
         />
+        <View style={styles.sectionGap} />
         <DevotionalCarousel
           onDevotionalPress={(devotional) => {
             // Navigate to devotional detail screen
+            triggerLightHaptic();
             navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
           }}
           onViewAll={() => {
             // Navigate to devotionals list
-            console.log('Navigate to devotionals list');
+            triggerLightHaptic();
+            navigation.navigate('Devotionals');
           }}
         />
+        <View style={styles.sectionGap} />
 
         {/* External Actions header and subtitle (moved out of card) */}
         <View style={styles.actionsHeaderContainer}>
@@ -891,70 +1064,37 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }}
           onCountChange={setActionsCount}
         />
+        <View style={styles.sectionGap} />
         
         {/* Reflection Questions Card */}
-        {renderPlaceholderCard('Reflection Questions', 'Guided spiritual growth', 'bulb-outline')}
+        <ReflectionQuestionsCard
+          onQuestionPress={(q: any) => {
+            triggerLightHaptic();
+            // Include enriched metadata for devotional reflections
+            setSelectedReflection({
+              question: q.question,
+              source: q.source,
+              sourceType: q.sourceType,
+              dayNumber: q.dayNumber,
+              dayTitle: q.dayTitle,
+              totalDays: q.totalDays,
+              questionNumber: q.questionIndex,
+            });
+            if (q.sourceType === 'playbook') {
+              setShowSJModal(true);
+            } else {
+              setShowDevotionalModal(true);
+            }
+          }}
+          onViewAll={() => {
+            // Navigate to journal reflections or a dedicated reflections screen if available
+            triggerLightHaptic();
+            navigation.navigate('Journal');
+          }}
+        />
+        <View style={styles.sectionGap} />
         
-        {/* Prayer Requests Section */}
-        {renderPlaceholderCard('Prayer Requests', 'Share and track prayers', 'heart-outline')}
-        
-        {/* Community Section */}
-        {renderPlaceholderCard('Faith Community', 'Connect with others', 'people-outline')}
-
-        {/* Row 4: Quick Actions */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-        </View>
-
-        <View style={styles.row}>
-          <QuickActionCard
-            title="Journal"
-            description="Capture your thoughts"
-            icon="journal"
-            onPress={() => navigation.navigate('Journal')}
-            accentColor={Colors.faithGold}
-          />
-          <QuickActionCard
-            title="Prayer"
-            description="Connect with God"
-            icon="hands-up"
-            onPress={() => navigation.navigate('Prayer')}
-            accentColor={Colors.spiritualPink}
-          />
-        </View>
-
-        <View style={styles.row}>
-          <QuickActionCard
-            title="Scripture"
-            description="Read and study"
-            icon="book-outline"
-            onPress={() => navigation.navigate('Scripture')}
-            accentColor={Colors.anchorBlue}
-          />
-          <QuickActionCard
-            title="Worship"
-            description="Songs and praise"
-            icon="musical-notes-outline"
-            onPress={() => navigation.navigate('Worship')}
-            accentColor={Colors.devotionalPurple}
-          />
-        </View>
-
-        {/* Growth Tracking Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Growth & Progress</Text>
-        </View>
-
-        {renderPlaceholderCard('Faith Milestones', 'Track your spiritual journey', 'trophy-outline')}
-        {renderPlaceholderCard('Reading Plan', 'Bible reading progress', 'library-outline')}
-        
-        {/* Community & Sharing */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Community</Text>
-        </View>
-
-        {renderPlaceholderCard('Prayer Circle', 'Join prayer groups', 'people-circle-outline')}
-        {renderPlaceholderCard('Testimonies', 'Share your story', 'megaphone-outline')}
+        {/* Removed sections: Faith Community, Quick Actions, Growth & Progress, Community (Prayer Circle, Testimonies) */}
 
         {/* Bottom spacing for floating button (only when visible) */}
         {showFab ? <View style={styles.bottomSpacing} /> : null}
@@ -962,6 +1102,48 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       </View>
 
       {showFab ? renderFloatingButton() : null}
+
+      {/* Reflection Modals */}
+      <SmartJournalingReflectionModal
+        visible={showSJModal}
+        subtaskTitle={selectedReflection?.question || ''}
+        onSave={() => {
+          // Don't close modal immediately - success modal will handle the flow
+          console.log('🎯 Dashboard: SmartJournalingReflectionModal onSave called - success modal should show now');
+        }}
+        onCancel={() => {
+          console.log('🎯 Dashboard: SmartJournalingReflectionModal onCancel called - closing modal');
+          setShowSJModal(false);
+          setSelectedReflection(null);
+        }}
+      />
+      <DevotionalDetailReflectionModal
+        visible={showDevotionalModal}
+        question={selectedReflection?.question || ''}
+        devotionalTitle={selectedReflection?.source}
+        dayNumber={selectedReflection?.dayNumber}
+        dayTitle={selectedReflection?.dayTitle}
+        totalDays={selectedReflection?.totalDays}
+        questionNumber={selectedReflection?.questionNumber}
+        onSave={() => {
+          // Don't close modal immediately - success modal will handle the flow
+          console.log('🎯 Dashboard: DevotionalDetailReflectionModal onSave called - success modal should show now');
+        }}
+        onCancel={() => {
+          setShowDevotionalModal(false);
+          setSelectedReflection(null);
+        }}
+      />
+      {/* Prayer Modal */}
+      <SmartJournalingPrayerModal
+        visible={showPrayerModal}
+        subtaskTitle={selectedPrayerRequest ? (selectedPrayerRequest.person_name ? `Pray for ${selectedPrayerRequest.person_name}` : 'Prayer') : ''}
+        initialActiveTab={selectedPrayerRequest ? 'people' : undefined}
+        initialPersonName={selectedPrayerRequest?.person_name || ''}
+        initialPrayerRequest={selectedPrayerRequest?.content || ''}
+        onSave={() => handlePrayerSaved()}
+        onCancel={() => { setShowPrayerModal(false); setSelectedPrayerRequest(null); }}
+      />
     </View>
   );
 };

@@ -41,8 +41,15 @@ const DevotionalDetailReflectionModal: React.FC<DevotionalDetailReflectionModalP
   const queryClient = useQueryClient();
   // New success modal system
   const successModal = useSuccessModal(
-    () => onCancel(), // onDone: close the modal
-    () => {} // onEdit: keep modal open for editing
+    () => {
+      // Done callback - close the main modal
+      console.log('✅ DevotionalDetailReflectionModal: Success modal Done pressed - closing main modal');
+      onCancel(); // This closes the main modal
+    },
+    () => {
+      // Edit callback - keep modal open for editing
+      console.log('✏️ DevotionalDetailReflectionModal: Success modal Edit pressed - keeping modal open');
+    }
   );
   const [_pendingReflectionData, _setPendingReflectionData] = useState<{ content: string; date: Date } | null>(null);
   const dateStr = toLocalDateString(new Date());

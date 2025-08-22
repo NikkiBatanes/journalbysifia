@@ -26,6 +26,10 @@ interface PrayerLogEditorProps {
   isLoading?: boolean;
   styles?: any;
   dateString?: string;
+  // New: allow parent to preselect People tab and prefill fields
+  initialActiveTab?: 'freeform' | 'people';
+  initialPersonName?: string;
+  initialPrayerRequest?: string;
 }
 
 export interface PrayerLogEditorRef {
@@ -339,6 +343,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     isLoading = false,
     styles,
     dateString,
+    initialActiveTab,
+    initialPersonName,
+    initialPrayerRequest,
   },
   ref
 ) => {
@@ -392,7 +399,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   const [showDraftNotification, setShowDraftNotification] = React.useState(false);
 
   // Tab management
-  const [activeTab, setActiveTab] = React.useState<'freeform' | 'people'>('freeform');
+  const [activeTab, setActiveTab] = React.useState<'freeform' | 'people'>(initialActiveTab === 'people' ? 'people' : 'freeform');
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -424,8 +431,8 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   }));
 
   // Structured prayer data for "Prayers for People" tab
-  const [prayerForPerson, setPrayerForPerson] = React.useState('');
-  const [prayerRequest, setPrayerRequest] = React.useState('');
+  const [prayerForPerson, setPrayerForPerson] = React.useState(initialPersonName || '');
+  const [prayerRequest, setPrayerRequest] = React.useState(initialPrayerRequest || '');
 
   const handlePersonChange = (text: string) => {
     setPrayerForPerson(text);

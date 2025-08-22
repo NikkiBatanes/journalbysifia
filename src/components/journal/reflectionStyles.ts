@@ -303,8 +303,8 @@ export const styles = StyleSheet.create({
     textAlignVertical: 'top',
   } as const,
   titleInput: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 26,
+    fontWeight: '700',
     marginBottom: 16,
     color: Colors.hopeWhite,
     backgroundColor: 'transparent',

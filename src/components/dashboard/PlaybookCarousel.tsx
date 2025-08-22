@@ -442,8 +442,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             }}
             style={styles.viewAllButton}
           >
-            <Text style={styles.viewAllText}>View All</Text>
-            <Ionicons name="chevron-forward" size={16} color={Colors.alertCoral} />
+            <Text style={styles.viewAllText}>VIEW ALL</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -511,7 +510,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   viewAllText: {
-    fontSize: 14,
+    fontSize: 11,
     color: Colors.alertCoral,
     fontWeight: '500',
   },

@@ -24,6 +24,336 @@ import {
 import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
 import { toLocalDateString } from '../../utils/date';
 import { analytics } from '../../utils/analytics';
+import NewSuccessModal from '../NewSuccessModal';
+import { useSuccessModal } from '../../hooks/useSuccessModal';
+
+// Define styles at the top to avoid hoisting issues
+const styles = StyleSheet.create({
+  editButton: {
+    padding: 4,
+    borderRadius: 4,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorTitle: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 16,
+    color: Colors.darkGray,
+    marginTop: 12,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.anchorBlue,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  retryButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 14,
+    color: Colors.hopeWhite,
+  },
+  spinning: {
+    opacity: 0.7,
+  },
+  emptyStateContainer: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 8,
+    paddingBottom: 24,
+    paddingHorizontal: 12,
+    width: '100%',
+  },
+  emptyStateIcon: {
+    marginBottom: 8,
+    opacity: 0.8,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginTop: 6,
+    opacity: 0.9,
+  },
+  titleContainer: {
+    width: '100%',
+    paddingHorizontal: 0,
+    marginBottom: 8,
+  },
+  emptyStateTitle: {
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  emptyStateSubtext: {
+    fontFamily: Fonts.regular,
+    fontSize: 14,
+    color: Colors.mediumGray,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    paddingHorizontal: 16,
+  },
+  emptyStateButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  emptyStateButtonText: {
+    fontFamily: Fonts.medium,
+    fontSize: 15,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+  },
+  entriesContainer: {
+    width: '100%',
+  },
+  paginationContainer: {
+    width: '100%',
+    paddingVertical: 1,
+  },
+  paginationButtonGroup: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingBottom: 0,
+    paddingTop: 10,
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  paginationButtonText: {
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    lineHeight: 14,
+  },
+  showMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  showMoreText: {
+    marginLeft: 2,
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    lineHeight: 14,
+    color: Colors.alertCoral,
+  },
+  showLessButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  showLessText: {
+    color: Colors.mediumGray,
+  },
+  entryCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  devotionalEntry: {
+    borderRadius: 14,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  guidedEntry: {
+    borderRadius: 14,
+    padding: 20,
+  },
+  freeFormEntry: {
+    borderRadius: 14,
+    padding: 20,
+  },
+  guidedPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  devotionalPromptContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  devotionalPromptText: {
+    fontSize: 8,
+    color: Colors.faithGold,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  guidedPromptContainer: {
+    backgroundColor: 'rgba(255, 81, 90, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  guidedPromptText: {
+    fontSize: 8,
+    color: Colors.alertCoral,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  freeFormPromptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  freeFormPromptContainer: {
+    backgroundColor: 'rgba(242, 245, 247, 0.15)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  freeFormPromptText: {
+    fontSize: 8,
+    color: 'rgba(242, 245, 247, 0.8)',
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  playbookPromptContainer: {
+    backgroundColor: 'rgba(76, 184, 144, 0.15)',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 8,
+  },
+  playbookPromptText: {
+    fontSize: 8,
+    color: Colors.growthGreen,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  timeText: {
+    fontSize: 10,
+    color: Colors.mediumGray,
+    fontFamily: Fonts.regular,
+  },
+  promptCardText: {
+    color: Colors.hopeWhite,
+    fontSize: 16,
+    lineHeight: 24,
+    textAlign: 'left',
+    marginBottom: 16,
+    fontWeight: '500',
+    letterSpacing: 0.15,
+    width: '100%',
+  },
+  normalTitleText: {
+    fontStyle: 'normal',
+  },
+  entryContent: {
+    fontFamily: Fonts.regular,
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    lineHeight: 20,
+    marginBottom: 8,
+    paddingLeft: 16,
+    marginLeft: 16,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(136, 158, 187, 0.2)',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(26, 60, 109, 0.05)',
+    borderRadius: 12,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    marginLeft: 4,
+    marginBottom: 4,
+    height: 20,
+  },
+  tagText: {
+    fontSize: 8,
+    color: Colors.anchorBlue,
+    fontFamily: Fonts.medium,
+    fontWeight: '500',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  devotionalMetadata: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  devotionalTitle: {
+    fontSize: 12,
+    fontFamily: Fonts.semiBold,
+    color: Colors.faithGold,
+    marginBottom: 2,
+  },
+  devotionalDayInfo: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    color: Colors.mediumGray,
+    fontStyle: 'italic',
+  },
+});
 
 type ViewMode = 'free' | 'guided' | 'devotional' | 'playbook';
 
@@ -69,6 +399,17 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const isSelectedToday = isTodayFn(selectedDate);
   const isSelectedYesterday = isYesterdayFn(selectedDate);
   const future = isAfter(startOfDay(selectedDate), startOfToday());
+
+  // Success modal system
+  const successModal = useSuccessModal(
+    () => {
+      resetForm();
+      setIsAdding(false);
+    }, // onDone: close the modal
+    () => {
+      // onEdit: success modal will hide automatically, main modal stays open
+    } // onEdit: keep modal open for editing
+  );
 
   // Generate a meaningful subtitle based on the number of entries and date bucket
   const getReflectionSubtitle = (count: number): string | undefined => {
@@ -130,6 +471,19 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       selected_date: entry.selected_date,
     })), [reflectionEntries]
   );
+
+  // Determine if there's content for the selected date
+  const hasContentForSelectedDate = React.useMemo(() => {
+    const filteredEntries = entries.filter(e => {
+      const entryDate = e.selected_date?.split('T')[0] || e.selected_date;
+      const compareDate = dateStr?.split('T')[0] || dateStr;
+      const matches = entryDate === compareDate;
+      console.log('🔍 hasContentForSelectedDate check:', { entryDate, compareDate, matches, entry: e });
+      return matches;
+    });
+    console.log('🔍 hasContentForSelectedDate result:', filteredEntries.length > 0, 'entries:', filteredEntries.length);
+    return filteredEntries.length > 0;
+  }, [entries, dateStr]);
 
   // Analytics tracking for load performance
   useEffect(() => {
@@ -256,6 +610,50 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // formatDate removed - not used in original design
 
+  // Prompt modal styles defined inline to avoid hoisting issues
+  const promptModalStyles = StyleSheet.create({
+    promptModalContainer: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    promptModalContent: {
+      backgroundColor: Colors.hopeWhite,
+      borderTopLeftRadius: 16,
+      borderTopRightRadius: 16,
+      maxHeight: '80%',
+      padding: 16,
+    },
+    promptModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    promptModalTitle: {
+      fontFamily: Fonts.semiBold,
+      fontSize: 18,
+      color: Colors.darkGray,
+    },
+    promptList: {
+      maxHeight: 400,
+    },
+    promptOption: {
+      paddingVertical: 12,
+      paddingHorizontal: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: Colors.lightGray,
+    },
+    selectedPromptOption: {
+      backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    },
+    promptOptionText: {
+      fontFamily: Fonts.regular,
+      fontSize: 14,
+      color: Colors.darkGray,
+    },
+  });
+
   const renderPromptPicker = () => (
     <Modal
       visible={showPromptPicker}
@@ -263,25 +661,25 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       transparent={true}
       onRequestClose={() => setShowPromptPicker(false)}
     >
-      <View style={styles.promptModalContainer}>
-        <View style={styles.promptModalContent}>
-          <View style={styles.promptModalHeader}>
-            <Text style={styles.promptModalTitle}>Select a Prompt</Text>
+      <View style={promptModalStyles.promptModalContainer}>
+        <View style={promptModalStyles.promptModalContent}>
+          <View style={promptModalStyles.promptModalHeader}>
+            <Text style={promptModalStyles.promptModalTitle}>Select a Prompt</Text>
             <TouchableOpacity onPress={() => setShowPromptPicker(false)}>
               <X size={24} color={Colors.darkGray} />
             </TouchableOpacity>
           </View>
-          <ScrollView style={styles.promptList}>
+          <ScrollView style={promptModalStyles.promptList}>
             {GUIDED_PROMPTS.map((prompt, index) => (
               <TouchableOpacity
                 key={index}
                 style={[
-                  styles.promptOption,
-                  selectedPrompt === prompt && styles.selectedPromptOption,
+                  promptModalStyles.promptOption,
+                  selectedPrompt === prompt && promptModalStyles.selectedPromptOption,
                 ]}
                 onPress={() => handlePromptSelection(prompt)}
               >
-                <Text style={styles.promptOptionText}>{prompt}</Text>
+                <Text style={promptModalStyles.promptOptionText}>{prompt}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -366,8 +764,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
     // Filter entries to only show those from the current date
     const filteredEntries = entries.filter(entry => {
-      console.log('🔍 Comparing dates:', entry.selected_date, '===', dateStr, entry.selected_date === dateStr);
-      return entry.selected_date === dateStr;
+      // Normalize both dates to ensure consistent comparison
+      const entryDate = entry.selected_date?.split('T')[0] || entry.selected_date;
+      const compareDate = dateStr?.split('T')[0] || dateStr;
+      const matches = entryDate === compareDate;
+      console.log('🔍 Comparing dates:', { entryDate, compareDate, matches, originalEntry: entry.selected_date, originalDateStr: dateStr });
+      return matches;
     });
 
     console.log('🔍 Filtered entries for date:', dateStr, 'count:', filteredEntries.length);
@@ -665,9 +1067,6 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }
 
-  // Determine if there's content for the selected date
-  const hasContentForSelectedDate = React.useMemo(() => entries.some(e => e.selected_date === dateStr), [entries, dateStr]);
-
   // Hide empty component in inline view always; hide for future in any view
   if (!isLoading && !error) {
     if (future) {return null;}
@@ -675,10 +1074,15 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   }
 
   return (
+    <>
     <JournalCard
-      icon={hasContentForSelectedDate ? <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={Colors.alertCoral} /> : undefined}
-      title={hasContentForSelectedDate ? 'HEART JOURNAL' : undefined}
-      subtitle={hasContentForSelectedDate ? getReflectionSubtitle(entries.filter(e => e.selected_date === dateStr).length) : undefined}
+      icon={!hasContentForSelectedDate ? undefined : <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={Colors.alertCoral} />}
+      title={!hasContentForSelectedDate ? undefined : 'HEART JOURNAL'}
+      subtitle={!hasContentForSelectedDate ? undefined : getReflectionSubtitle(entries.filter(e => {
+        const entryDate = e.selected_date?.split('T')[0] || e.selected_date;
+        const compareDate = dateStr?.split('T')[0] || dateStr;
+        return entryDate === compareDate;
+      }).length)}
       showAddButton={hasContentForSelectedDate && !globalEditMode?.isGlobalEditMode}
       onAdd={() => {
         setNewEntry({
@@ -747,11 +1151,15 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               try {
                 // Only include fields that exist in the database schema
                 const saveData = {
-                  title: entryData.title,
-                  content: entryData.content,
+                  title: entryData.title || '',
+                  content: entryData.content || '',
                   type: editingId ? (selectedEntry?.type || newEntry.type || 'free') : (entryData.type || newEntry.type || 'free'),
                   user_id: user.id,
                   selected_date: dateStr,
+                  // Include additional fields if they exist
+                  ...(entryData.prompt && { prompt: entryData.prompt }),
+                  ...(entryData.tags && entryData.tags.length > 0 && { tags: entryData.tags }),
+                  ...(entryData.source && { source: entryData.source }),
                 };
 
                 console.log('🔍 Saving reflection with data:', saveData);
@@ -761,11 +1169,14 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   newEntryType: newEntry.type,
                   entryDataType: entryData.type,
                   finalType: saveData.type,
+                  dateStr,
                 });
 
+                let result;
                 if (editingId) {
                   // Update existing entry
-                  await updateMutation.mutateAsync({ id: editingId, updates: saveData });
+                  result = await updateMutation.mutateAsync({ id: editingId, updates: saveData });
+                  console.log('🔍 Updated reflection result:', result);
 
                   // Track update analytics
                   const existingEntry = entries.find(e => e.id === editingId);
@@ -780,7 +1191,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   }, user.id);
                 } else {
                   // Create new entry
-                  const result = await createMutation.mutateAsync(saveData);
+                  result = await createMutation.mutateAsync(saveData);
                   console.log('🔍 Created reflection result:', result);
 
                   // Track creation analytics
@@ -795,18 +1206,25 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
                 console.log('🔍 ReflectionLog: Entry saved successfully');
 
-                // Force refetch to ensure UI updates immediately
-                await refetch();
-                console.log('🔍 ReflectionLog: Data refetched after save');
+                // Wait a moment for the mutation to complete before refetching
+                setTimeout(async () => {
+                  await refetch();
+                  console.log('🔍 ReflectionLog: Data refetched after save');
+                }, 100);
+
+                // Show success modal immediately without closing main modal
+                successModal.showSuccess({
+                  title: editingId ? 'Reflection Updated' : 'Reflection Saved',
+                  message: editingId ? 'Your reflection has been updated in your journal.' : 'Your reflection has been saved to your journal.',
+                  showEditButton: true,
+                });
+
+                // Keep the main modal open - success modal will handle closing via callbacks
               } catch (saveError) {
                 console.error('🔍 ReflectionLog: Save failed:', saveError);
                 Alert.alert('Error', 'Failed to save reflection entry. Please try again.');
                 return; // Don't close the modal if save failed
               }
-
-              // Reset form and close modal on successful save
-              resetForm();
-              setIsAdding(false);
 
               // Close global edit mode if active
               if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
@@ -857,625 +1275,20 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               return year === new Date().getFullYear() ? dateString : dateStringWithYear;
             })()}
           />
+
+          {/* Success Modal - Inside main modal for proper layering */}
+          <NewSuccessModal
+            visible={successModal.isVisible}
+            config={successModal.config}
+            onDone={successModal.handleDone}
+            onEdit={successModal.handleEdit}
+          />
       </Modal>
 
       {/* Prompt Picker Modal */}
       {renderPromptPicker()}
     </JournalCard>
+    </>
   );
 };
-
-const styles = StyleSheet.create({
-  editButton: {
-    padding: 4,
-    borderRadius: 4,
-  },
-  loadingText: {
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
-    fontSize: 13,
-    textAlign: 'center',
-    padding: 16,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 24,
-    paddingHorizontal: 16,
-  },
-  emptyText: {
-    fontFamily: Fonts.medium,
-    color: Colors.mediumGray,
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
-    fontSize: 13,
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  showMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-    marginTop: 4,
-    marginBottom: 4,
-  },
-  showMoreText: {
-    marginLeft: 2,
-    fontSize: 11,
-    fontFamily: Fonts.medium,
-    lineHeight: 14,
-    color: Colors.alertCoral,
-  },
-  entryCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-
-  },
-  entryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  entryTitle: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 14,
-    color: Colors.darkGray,
-    flex: 1,
-    marginRight: 8,
-  },
-  entryActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  entryContent: {
-    fontFamily: Fonts.regular,
-    color: Colors.hopeWhite,
-    fontSize: 12,
-    lineHeight: 20,
-    marginBottom: 8,
-    paddingLeft: 16,
-    marginLeft: 16,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(136, 158, 187, 0.2)',
-  },
-  entryMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  entryType: {
-    fontFamily: Fonts.medium,
-    fontSize: 11,
-    color: Colors.anchorBlue,
-    backgroundColor: 'rgba(26, 60, 109, 0.1)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  entryDate: {
-    fontFamily: Fonts.regular,
-    fontSize: 11,
-    color: Colors.mediumGray,
-  },
-  entryPrompt: {
-    fontFamily: Fonts.regular,
-    fontSize: 11,
-    color: Colors.mediumGray,
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  addForm: {
-    marginTop: 8,
-  },
-  typeSelector: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    backgroundColor: Colors.lightGray,
-    borderRadius: 8,
-    padding: 2,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  typeButtonActive: {
-    backgroundColor: Colors.hopeWhite,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  typeButtonText: {
-    fontFamily: Fonts.medium,
-    fontSize: 13,
-    color: Colors.mediumGray,
-  },
-  typeButtonTextActive: {
-    color: Colors.darkGray,
-  },
-  promptSelector: {
-    marginBottom: 16,
-  },
-  promptLabel: {
-    fontFamily: Fonts.medium,
-    fontSize: 13,
-    color: Colors.darkGray,
-    marginBottom: 8,
-  },
-  pickerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    minHeight: 40,
-  },
-  selectedPrompt: {
-    flex: 1,
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: Colors.darkGray,
-    marginRight: 8,
-  },
-  placeholderText: {
-    color: Colors.mediumGray,
-    fontStyle: 'italic',
-  },
-  input: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: Colors.darkGray,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 6,
-    borderWidth: 0.5,
-    borderColor: 'rgba(26, 60, 109, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12,
-    minHeight: 40,
-  },
-  contentInput: {
-    minHeight: 120,
-    textAlignVertical: 'top',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 12,
-    gap: 8,
-  },
-  button: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  saveButton: {
-    backgroundColor: Colors.alertCoral,
-  },
-  cancelButton: {
-    backgroundColor: Colors.mediumGray,
-  },
-  disabledButton: {
-    opacity: 0.5,
-  },
-  promptModalContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  promptModalContent: {
-    backgroundColor: Colors.hopeWhite,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '80%',
-    padding: 16,
-  },
-  promptModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  promptModalTitle: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 18,
-    color: Colors.darkGray,
-  },
-  promptList: {
-    maxHeight: 400,
-  },
-  promptOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
-  },
-  selectedPromptOption: {
-    backgroundColor: 'rgba(255, 107, 107, 0.1)',
-  },
-  promptOptionText: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: Colors.darkGray,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: Colors.hopeWhite,
-    borderRadius: 12,
-    width: '90%',
-    maxHeight: '80%',
-    padding: 16,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
-  },
-  modalTitle: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 16,
-    color: Colors.darkGray,
-    flex: 1,
-    marginRight: 8,
-  },
-  modalBody: {
-    flex: 1,
-  },
-  promptContainer: {
-    backgroundColor: 'rgba(26, 60, 109, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
-  },
-  promptText: {
-    fontFamily: Fonts.medium,
-    fontSize: 14,
-    color: Colors.anchorBlue,
-    fontStyle: 'italic',
-  },
-  modalContentText: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: Colors.darkGray,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  modalMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: Colors.lightGray,
-  },
-  modalMetaText: {
-    fontFamily: Fonts.regular,
-    fontSize: 12,
-    color: Colors.mediumGray,
-  },
-  // Error handling styles
-  errorContainer: {
-    alignItems: 'center',
-    padding: 24,
-  },
-  errorTitle: {
-    fontFamily: Fonts.semiBold,
-    fontSize: 16,
-    color: Colors.darkGray,
-    marginTop: 12,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  errorMessage: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  retryButtonText: {
-    fontFamily: Fonts.medium,
-    fontSize: 14,
-    color: Colors.hopeWhite,
-  },
-  spinning: {
-    // Add rotation animation if needed
-    opacity: 0.7,
-  },
-  // Original layout styles
-  devotionalEntry: {
-    borderRadius: 14,
-    padding: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  guidedEntry: {
-    borderRadius: 14,
-    padding: 20,
-  },
-  freeFormEntry: {
-    borderRadius: 14,
-    padding: 20,
-  },
-  guidedPromptRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  devotionalPromptContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  devotionalPromptText: {
-    fontSize: 8,
-    color: Colors.faithGold,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  guidedPromptContainer: {
-    backgroundColor: 'rgba(255, 81, 90, 0.1)',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  guidedPromptText: {
-    fontSize: 8,
-    color: Colors.alertCoral,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  freeFormPromptRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  freeFormPromptContainer: {
-    backgroundColor: 'rgba(242, 245, 247, 0.15)', // Reduced from 0.2 to 0.15 opacity
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  freeFormPromptText: {
-    fontSize: 8,
-    color: 'rgba(242, 245, 247, 0.8)', // Added 80% opacity to the text
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  playbookPromptContainer: {
-    backgroundColor: 'rgba(76, 184, 144, 0.15)', // Growth green with 15% opacity
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginRight: 8,
-  },
-  playbookPromptText: {
-    fontSize: 8,
-    color: Colors.growthGreen,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  timeText: {
-    fontSize: 10,
-    color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
-  },
-  promptCardText: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    lineHeight: 24,
-    textAlign: 'left',
-    marginBottom: 16,
-    fontWeight: '500',
-    letterSpacing: 0.15,
-    width: '100%',
-  },
-  normalTitleText: {
-    fontStyle: 'normal',
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    marginTop: 4,
-    marginBottom: 2,
-  },
-  tag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(26, 60, 109, 0.05)',
-    borderRadius: 12,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    marginLeft: 4,
-    marginBottom: 4,
-    height: 20,
-  },
-  tagText: {
-    fontSize: 8,
-    color: Colors.anchorBlue,
-    fontFamily: Fonts.medium,
-    fontWeight: '500',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  // Entry list styles
-  entriesContainer: {
-    width: '100%',
-  },
-  paginationContainer: {
-    width: '100%',
-    paddingVertical: 1,
-  },
-  paginationButtonGroup: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    paddingBottom: 0,
-    paddingTop: 10,
-  },
-  paginationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  paginationButtonText: {
-    marginLeft: 2,
-    fontSize: 11,
-    fontFamily: Fonts.medium,
-    lineHeight: 14,
-  },
-
-  showLessButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-  },
-  showLessText: {
-    color: Colors.mediumGray,
-  },
-  // Devotional metadata styles
-  devotionalMetadata: {
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  devotionalTitle: {
-    fontSize: 12,
-    fontFamily: Fonts.semiBold,
-    color: Colors.faithGold,
-    marginBottom: 2,
-  },
-  devotionalDayInfo: {
-    fontSize: 11,
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
-    fontStyle: 'italic',
-  },
-  // Empty state styles
-  emptyStateContainer: {
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 8,
-    paddingBottom: 24,
-    paddingHorizontal: 12,
-    width: '100%',
-  },
-  emptyStateIcon: {
-    marginBottom: 8,
-    opacity: 0.8,
-  },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionLabel: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
-    fontSize: 12,
-    color: Colors.mediumGray,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginTop: 6,
-    opacity: 0.9,
-  },
-  titleContainer: {
-    width: '100%',
-    paddingHorizontal: 0,
-    marginBottom: 8,
-  },
-  emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
-    fontSize: 18,
-    color: Colors.hopeWhite,
-    textAlign: 'center',
-    paddingHorizontal: 4,
-  },
-  emptyStateSubtext: {
-    fontFamily: Fonts.regular,
-    fontSize: 14,
-    color: Colors.mediumGray,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-    paddingHorizontal: 16,
-  },
-  emptyStateButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.hopeWhite,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 20,
-    minWidth: 120,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  buttonIcon: {
-    marginRight: 8,
-  },
-  emptyStateButtonText: {
-    fontFamily: Fonts.medium,
-    fontSize: 15,
-    color: Colors.hopeWhite,
-    letterSpacing: 0.5,
-  },
-});
 

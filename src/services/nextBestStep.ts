@@ -103,8 +103,8 @@ export function generateCoachTip(step: RankedActionStep): string | undefined {
   if (step.priority === 'high') tips.push('High priority — a small start counts.');
 
   const urgency = dueDateUrgency(step.dueDate);
-  if (urgency >= 4) tips.push('Overdue — take one small action now.');
-  else if (urgency >= 3) tips.push('Due today — schedule 10 focused minutes.');
+  // Overdue tip removed per request
+  if (urgency >= 3) tips.push('Due today — schedule 10 focused minutes.');
   else if (urgency >= 2) tips.push('Due soon — block time in your day.');
 
   // Show quick win only when an explicit estimate exists and is <= 10

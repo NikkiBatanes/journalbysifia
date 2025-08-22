@@ -52,7 +52,15 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
   }, [hapticOptions]);
 
   React.useEffect(() => {
+    console.log('🎉 NewSuccessModal: Effect triggered:', {
+      visible,
+      hasConfig: !!config,
+      configTitle: config?.title,
+      timestamp: new Date().toISOString(),
+    });
+
     if (visible && config) {
+      console.log('🎉 NewSuccessModal: Showing modal with config:', config);
       // Visual fade-in
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -64,6 +72,7 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
       triggerSuccessHaptic();
       startBurstHaptics();
     } else {
+      console.log('🎉 NewSuccessModal: Hiding modal');
       // Visual fade-out
       Animated.timing(fadeAnim, {
         toValue: 0,
@@ -134,6 +143,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    zIndex: 9999,
+    elevation: 9999,
   },
   modalContainer: {
     width: '100%',
@@ -142,7 +153,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 9999,
+    zIndex: 9999,
   },
   modalContent: {
     backgroundColor: Colors.anchorBlue,

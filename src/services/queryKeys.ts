@@ -59,6 +59,8 @@ export const queryKeys = {
     stats: (userId: string, startDate: string, endDate: string) => ['prayers', 'stats', userId, startDate, endDate] as const,
     prayed: (userId: string) => ['prayers', 'prayed', userId] as const,
     prayedItems: (userId: string) => ['prayers', 'prayedItems', userId] as const,
+    // New: Unprayed prayer requests across all dates
+    unprayedRequests: (userId: string) => ['prayers', 'unprayedRequests', userId] as const,
 
     // Infinite queries
     infinite: (userId: string, prayerType?: string) => ['prayers', 'infinite', userId, prayerType] as const,

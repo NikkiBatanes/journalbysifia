@@ -10,11 +10,17 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import { Fonts } from '../../theme/fonts';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+// Devotional-only rebuild: no date-based filtering required
 
 interface ReflectionQuestion {
   id: string;
@@ -23,6 +29,14 @@ interface ReflectionQuestion {
   sourceType: 'playbook' | 'devotional';
   category?: string;
   isAnswered?: boolean;
+  sourceId?: string;
+  // Optional metadata for better context when navigating
+  dayNumber?: number; // 1-based day index when coming from per-day content
+  dayTitle?: string;  // Title of the day if available
+  questionIndex?: number; // 1-based index within the group (e.g., Questions to Ponder)
+  questionKey?: string; // Which key produced this question (reflectionQuestions, questionsToPonder, etc.)
+  groupLabel?: string; // Human label like 'Questions to Ponder' or 'Reflection Questions'
+  totalDays?: number; // Total number of days in the devotional, when available
 }
 
 interface ReflectionQuestionsCardProps {
@@ -37,75 +51,43 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   onViewAll,
 }) => {
   const { user } = useAuth();
-  const [currentQuestion, setCurrentQuestion] = useState<ReflectionQuestion | null>(null);
+  const [questions, setQuestions] = useState<ReflectionQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // No need to fetch today's reflections for this version
+  const [diag, setDiag] = useState<{
+    devotionalCount: number;
+    totalQuestions: number;
+    sampleDevotional?: { id: string; hasContent: boolean; hasDaysColumn: boolean; contentKeys: string[] } | null;
+  }>({ devotionalCount: 0, totalQuestions: 0, sampleDevotional: null });
 
   const fetchReflectionQuestions = useCallback(async () => {
-    if (!user) {return;}
+    if (!user) {
+      // If user is not available (e.g., logged out or auth still initializing),
+      // stop loading to avoid an infinite spinner and show a gentle empty state.
+      setQuestions([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       setError(null);
+      // Fetch devotionals only (mirror DevotionalCarousel behavior)
+      const devotionalsResult = await supabase
+        .from('devotionals')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(10);
 
-      // Fetch user's playbooks and devotionals
-      const [playbooksResult, devotionalsResult] = await Promise.all([
-        supabase
-          .from('playbooks')
-          .select('id, title, content')
-
-          .not('content', 'is', null),
-        supabase
-          .from('devotionals')
-          .select('id, title, content')
-
-          .not('content', 'is', null),
-      ]);
+      if (devotionalsResult.error) {
+        console.warn('Supabase devotionals error:', devotionalsResult.error);
+      }
 
       const allQuestions: ReflectionQuestion[] = [];
 
-      // Extract questions from playbooks
-      if (playbooksResult.data) {
-        playbooksResult.data.forEach(playbook => {
-          try {
-            const content = typeof playbook.content === 'string'
-              ? JSON.parse(playbook.content)
-              : playbook.content;
-
-            // Look for reflection questions in various structures
-            if (content.reflectionQuestions && Array.isArray(content.reflectionQuestions)) {
-              content.reflectionQuestions.forEach((q: any, index: number) => {
-                allQuestions.push({
-                  id: `playbook-${playbook.id}-${index}`,
-                  question: typeof q === 'string' ? q : q.question || q.text,
-                  source: playbook.title,
-                  sourceType: 'playbook',
-                  category: q.category || 'Reflection',
-                });
-              });
-            }
-
-            // Look for questions in action steps
-            if (content.actionSteps && Array.isArray(content.actionSteps)) {
-              content.actionSteps.forEach((step: any, index: number) => {
-                if (step.reflectionQuestion || step.question) {
-                  allQuestions.push({
-                    id: `playbook-step-${playbook.id}-${index}`,
-                    question: step.reflectionQuestion || step.question,
-                    source: playbook.title,
-                    sourceType: 'playbook',
-                    category: 'Action Reflection',
-                  });
-                }
-              });
-            }
-          } catch (parseError) {
-            console.warn('Error parsing playbook content:', parseError);
-          }
-        });
-      }
-
-      // Extract questions from devotionals
+      // Extract questions from devotionals (top-level and per-day)
       if (devotionalsResult.data) {
         devotionalsResult.data.forEach(devotional => {
           try {
@@ -113,27 +95,128 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
               ? JSON.parse(devotional.content)
               : devotional.content;
 
-            if (content.reflectionQuestions && Array.isArray(content.reflectionQuestions)) {
-              content.reflectionQuestions.forEach((q: any, index: number) => {
-                allQuestions.push({
-                  id: `devotional-${devotional.id}-${index}`,
-                  question: typeof q === 'string' ? q : q.question || q.text,
-                  source: devotional.title,
-                  sourceType: 'devotional',
-                  category: q.category || 'Devotional',
-                });
-              });
-            }
-
-            // Single reflection question
-            if (content.reflectionQuestion) {
+            const pushQ = (
+              text: any,
+              idxSuffix: string,
+              category?: string,
+              ctx?: { dayNumber?: number; dayTitle?: string; questionIndex?: number; questionKey?: string; groupLabel?: string; totalDays?: number }
+            ) => {
+              const qText = typeof text === 'string' ? text : text?.question || text?.text || text?.prompt || '';
+              if (!qText || typeof qText !== 'string') { return; }
               allQuestions.push({
-                id: `devotional-single-${devotional.id}`,
-                question: content.reflectionQuestion,
+                id: `devotional-${devotional.id}-${idxSuffix}`,
+                question: qText,
                 source: devotional.title,
                 sourceType: 'devotional',
-                category: 'Devotional',
+                category: (typeof text === 'object' && (text.category || text.type)) || category || 'Devotional',
+                sourceId: String(devotional.id),
+                dayNumber: ctx?.dayNumber,
+                dayTitle: ctx?.dayTitle,
+                questionIndex: ctx?.questionIndex,
+                questionKey: ctx?.questionKey,
+                groupLabel: ctx?.groupLabel,
+                totalDays: ctx?.totalDays,
               });
+            };
+
+            // Top-level arrays
+            const arrayKeys = ['reflectionQuestions', 'questionsToPonder', 'questions', 'ponderQuestions'] as const;
+            arrayKeys.forEach((key) => {
+              const arr = (content as any)?.[key];
+              if (Array.isArray(arr)) {
+                arr.forEach((q: any, index: number) => pushQ(q, `${key}-${index}`,
+                  undefined,
+                  { questionIndex: index + 1, questionKey: key, groupLabel: key === 'questionsToPonder' ? 'Questions to Ponder' : 'Reflection Questions' }
+                ));
+              }
+            });
+
+            // Single top-level question
+            if ((content as any)?.reflectionQuestion) {
+              pushQ((content as any).reflectionQuestion, 'single', undefined, { questionIndex: 1, questionKey: 'reflectionQuestion', groupLabel: 'Reflection Question' });
+            }
+
+            // Per-day arrays: use top-level column if present, else content.days
+            let days = (devotional as any)?.days ?? (content as any)?.days;
+            if (typeof days === 'string') { try { days = JSON.parse(days); } catch {} }
+            if (Array.isArray(days)) {
+              const totalDays = days.length;
+              days.forEach((day: any, dayIdx: number) => {
+                const perDayArrayKeys = ['reflectionQuestions', 'questionsToPonder', 'questions', 'ponderQuestions'] as const;
+                perDayArrayKeys.forEach((key) => {
+                  const arr = day?.[key];
+                  if (Array.isArray(arr)) {
+                    arr.forEach((q: any, qIdx: number) => pushQ(
+                      q,
+                      `day${dayIdx + 1}-${key}-${qIdx}`,
+                      undefined,
+                      {
+                        dayNumber: dayIdx + 1,
+                        dayTitle: typeof day?.title === 'string' ? day.title : undefined,
+                        questionIndex: qIdx + 1,
+                        questionKey: key,
+                        groupLabel: key === 'questionsToPonder' ? 'Questions to Ponder' : 'Reflection Questions',
+                        totalDays,
+                      }
+                    ));
+                  }
+                });
+                if (day?.reflectionQuestion) {
+                  pushQ(
+                    day.reflectionQuestion,
+                    `day${dayIdx + 1}-single`,
+                    undefined,
+                    {
+                      dayNumber: dayIdx + 1,
+                      dayTitle: typeof day?.title === 'string' ? day.title : undefined,
+                      questionIndex: 1,
+                      questionKey: 'reflectionQuestion',
+                      groupLabel: 'Reflection Question',
+                      totalDays,
+                    }
+                  );
+                }
+              });
+            }
+            // If days is an object with nested questions (edge-case), try best-effort extraction
+            if (!Array.isArray(days) && days && typeof days === 'object') {
+              const maybeArr = (days as any)?.items || (days as any)?.list;
+              if (Array.isArray(maybeArr)) {
+                const totalDays = maybeArr.length;
+                maybeArr.forEach((d: any, idx: number) => {
+                  const arr = d?.reflectionQuestions || d?.questionsToPonder || d?.questions || d?.ponderQuestions;
+                  if (Array.isArray(arr)) {
+                    arr.forEach((q: any, qIdx: number) => pushQ(
+                      q,
+                      `dayObj${idx + 1}-arr-${qIdx}`,
+                      undefined,
+                      {
+                        dayNumber: idx + 1,
+                        dayTitle: typeof d?.title === 'string' ? d.title : undefined,
+                        questionIndex: qIdx + 1,
+                        questionKey: (arr === d?.questionsToPonder) ? 'questionsToPonder' : (arr === d?.reflectionQuestions ? 'reflectionQuestions' : 'questions'),
+                        groupLabel: d?.questionsToPonder ? 'Questions to Ponder' : 'Reflection Questions',
+                        totalDays,
+                      }
+                    ));
+                  }
+                  if (d?.reflectionQuestion) {
+                    pushQ(
+                      d.reflectionQuestion,
+                      `dayObj${idx + 1}-single`,
+                      undefined,
+                      {
+                        dayNumber: idx + 1,
+                        dayTitle: typeof d?.title === 'string' ? d.title : undefined,
+                        questionIndex: 1,
+                        questionKey: 'reflectionQuestion',
+                        groupLabel: 'Reflection Question',
+                        totalDays,
+                      }
+                    );
+                  }
+                });
+              }
             }
           } catch (parseError) {
             console.warn('Error parsing devotional content:', parseError);
@@ -141,22 +224,25 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         });
       }
 
-      // Only use questions if found in database
-      if (allQuestions.length > 0) {
-        // Select question based on current date for consistency
-        const today = new Date();
-        const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-        const selectedIndex = dayOfYear % allQuestions.length;
+      const diagPayload = {
+        devotionalCount: devotionalsResult.data?.length || 0,
+        totalQuestions: allQuestions.length,
+        sampleDevotional: devotionalsResult.data?.[0] ? {
+          id: devotionalsResult.data[0].id,
+          hasContent: !!devotionalsResult.data[0].content,
+          hasDaysColumn: !!(devotionalsResult.data[0] as any).days,
+          contentKeys: (() => { try { const c = typeof devotionalsResult.data[0].content === 'string' ? JSON.parse(devotionalsResult.data[0].content) : devotionalsResult.data[0].content; return c ? Object.keys(c) : []; } catch { return []; } })(),
+        } : null,
+      };
+      console.log('🕯️ ReflectionQuestionsCard (devotional-only rebuild):', diagPayload);
+      setDiag(diagPayload);
 
-        setCurrentQuestion(allQuestions[selectedIndex]);
-      } else {
-        setCurrentQuestion(null);
-      }
+      setQuestions(allQuestions);
 
     } catch (err) {
       console.error('Error fetching reflection questions:', err);
       setError('Unable to load reflection questions');
-      setCurrentQuestion(null);
+      setQuestions([]);
     } finally {
       setLoading(false);
     }
@@ -173,6 +259,25 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   const getSourceIcon = (sourceType: 'playbook' | 'devotional') => {
     return sourceType === 'playbook' ? 'library' : 'book';
   };
+
+  // Carousel layout and animated scroll ref (hooks must be unconditional)
+  const { width: screenWidth } = Dimensions.get('window');
+  // Match PrayCarousel sizing
+  const CARD_HORIZONTAL_PADDING = 16; // matches styles.card padding
+  const VISIBLE_WIDTH = Math.max(0, screenWidth - CARD_HORIZONTAL_PADDING * 2);
+  const CARD_WIDTH = VISIBLE_WIDTH * 0.8;
+  const CARD_SPACING = 8;
+  const ITEM_WIDTH = CARD_WIDTH;
+  const ITEM_SPACING = CARD_SPACING;
+  const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
+  // Padding should center the visible card itself (exclude spacing)
+  // Center within visible area (account for card padding)
+  const SIDE_INSET = Math.max(0, (VISIBLE_WIDTH - ITEM_WIDTH) / 2);
+  // Precompute exact snap offsets for perfect centering
+  const snapOffsets = React.useMemo(() => {
+    return questions.map((_, i) => i * ITEM_SIZE);
+  }, [questions.length, ITEM_SIZE]);
+  const scrollX = React.useRef(new Animated.Value(0)).current;
 
   if (loading) {
     return (
@@ -192,16 +297,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Ionicons name="bulb" size={24} color={Colors.alertCoral} />
         <Text style={styles.title}>Reflection Questions</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={onViewAll} style={styles.actionButton}>
-            <Text style={styles.viewAllText}>More</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleRefresh} style={styles.actionButton}>
-            <Ionicons name="refresh" size={18} color={Colors.mediumGray} />
-          </TouchableOpacity>
-        </View>
       </View>
 
       {error ? (
@@ -211,118 +307,159 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             <Text style={styles.retryText}>Try Again</Text>
           </TouchableOpacity>
         </View>
-      ) : currentQuestion ? (
-        <TouchableOpacity
-          style={styles.questionContainer}
-          onPress={() => onQuestionPress?.(currentQuestion)}
-          activeOpacity={0.8}
+      ) : questions && questions.length > 0 ? (
+        <Animated.ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_INSET }]}
+          contentOffset={{ x: 0, y: 0 }}
+          contentInsetAdjustmentBehavior="never"
+          decelerationRate="fast"
+          snapToInterval={ITEM_SIZE}
+          snapToAlignment="start"
+          snapToOffsets={snapOffsets}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+          bounces={true}
+          removeClippedSubviews={false}
+          // Expand scroll to full-screen width so centering isn't skewed by card padding
+          style={{ overflow: 'visible', marginHorizontal: -CARD_HORIZONTAL_PADDING }}
         >
-          <Text style={styles.questionText}>
-            {currentQuestion.question}
-          </Text>
+          {questions.map((item, index) => {
+            const inputRange = [
+              (index - 1) * ITEM_SIZE,
+              index * ITEM_SIZE,
+              (index + 1) * ITEM_SIZE,
+            ];
+            const scale = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.96, 1, 0.96],
+              extrapolate: 'clamp',
+            });
+            const opacity = scrollX.interpolate({
+              inputRange,
+              outputRange: [0.9, 1, 0.9],
+              extrapolate: 'clamp',
+            });
+            const translateY = scrollX.interpolate({
+              inputRange,
+              outputRange: [2, 0, 2],
+              extrapolate: 'clamp',
+            });
 
-          <View style={styles.questionFooter}>
-            <View style={styles.sourceInfo}>
-              <Ionicons
-                name={getSourceIcon(currentQuestion.sourceType)}
-                size={14}
-                color={Colors.mediumGray}
-              />
-              <Text style={styles.sourceText}>
-                {currentQuestion.source}
-              </Text>
+            return (
+              <Animated.View
+                key={item.id}
+                style={[
+                  styles.questionCard,
+                  { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
+                  { transform: [{ scale }, { translateY }], opacity },
+                ]}
+              >
+                <View style={styles.sectionHeader}>
+                  <MaterialCommunityIcons name="book" size={20} color={Colors.mediumGray} style={styles.sectionIcon} />
+                  <Text style={styles.sectionLabel}>QUESTION TO PONDER</Text>
+                </View>
+                <Text style={styles.questionText}>{item.question}</Text>
+                <TouchableOpacity
+                  style={styles.reflectButton}
+                  onPress={() => onQuestionPress?.(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Reflect on this question"
+                >
+                  <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+                  <Text style={styles.reflectButtonText}>Reflect</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
+        </Animated.ScrollView>
+      ) : (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="bulb-outline" size={18} color={Colors.mediumGray} />
+          <Text style={styles.emptyText}>No unanswered devotional questions for today.</Text>
+          {!!diag && (
+            <View style={styles.debugBox}>
+              <Text style={styles.debugText}>Devotionals: {diag.devotionalCount}</Text>
+              <Text style={styles.debugText}>Parsed Questions: {diag.totalQuestions}</Text>
+              {diag.sampleDevotional && (
+                <>
+                  <Text style={styles.debugText}>First Devotional ID: {diag.sampleDevotional.id}</Text>
+                  <Text style={styles.debugText}>Has Content: {String(diag.sampleDevotional.hasContent)}</Text>
+                  <Text style={styles.debugText}>Has Days Column: {String(diag.sampleDevotional.hasDaysColumn)}</Text>
+                  <Text style={styles.debugText} numberOfLines={1}>Content Keys: {diag.sampleDevotional.contentKeys.join(', ')}</Text>
+                </>
+              )}
             </View>
-
-            {currentQuestion.category && (
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>
-                  {currentQuestion.category}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          <View style={styles.tapHint}>
-            <Text style={styles.tapHintText}>Tap to reflect</Text>
-            <Ionicons name="arrow-forward" size={16} color={Colors.alertCoral} />
-          </View>
-        </TouchableOpacity>
-      ) : null}
+          )}
+          <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
+            <Text style={styles.retryText}>Refresh</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.modalBlue,
+    backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderWidth: 0,
+    borderColor: 'transparent',
     minHeight: 120,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
+    justifyContent: 'center',
+    marginBottom: 14,
+    gap: 0,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 12,
     color: Colors.hopeWhite,
-    flex: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionButton: {
-    padding: 4,
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: Colors.alertCoral,
-    fontWeight: '500',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    fontWeight: '600',
+    letterSpacing: 0.8,
   },
   questionContainer: {
     flex: 1,
   },
+  carouselItem: {
+    width: '100%',
+  },
   questionText: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 26,
     color: Colors.hopeWhite,
-    marginBottom: 16,
-    fontWeight: '500',
-  },
-  questionFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sourceInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  sourceText: {
-    fontSize: 12,
-    color: Colors.mediumGray,
-  },
-  categoryBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 0,
+    fontWeight: '700',
+    textAlign: 'center',
+    alignSelf: 'center',
+    maxWidth: '90%',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
-  categoryText: {
-    fontSize: 10,
-    color: Colors.lightGray,
-    fontWeight: '500',
-    textTransform: 'uppercase',
+  // New carousel styles
+  scrollContainer: {
+    paddingRight: 0,
+  },
+  questionCard: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 30,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    height: 320,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
   },
   tapHint: {
     flexDirection: 'row',
@@ -337,6 +474,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.alertCoral,
     fontWeight: '500',
+  },
+  sectionHeader: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 0,
+  },
+  sectionIcon: {
+    alignSelf: 'center',
+    marginBottom: 4,
+    opacity: 0.9,
+  },
+  sectionLabel: {
+    fontFamily: Fonts.system.semiBold,
+    fontWeight: '600',
+    fontSize: 12,
+    color: Colors.mediumGray,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 0,
+  },
+  reflectButton: {
+    marginTop: 0,
+    alignSelf: 'center',
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  reflectButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 15,
+    fontFamily: Fonts.system.medium,
+    letterSpacing: 0.5,
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   loadingContainer: {
     height: 100,
@@ -359,6 +539,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.error,
     textAlign: 'center',
+  },
+  emptyContainer: {
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.mediumGray,
+  },
+  debugBox: {
+    marginTop: 8,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    width: '100%',
+  },
+  debugText: {
+    fontSize: 11,
+    color: Colors.lightGray,
   },
   retryButton: {
     paddingHorizontal: 16,

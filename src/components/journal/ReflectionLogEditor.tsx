@@ -353,7 +353,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   const s = { ...fallbackStyles, ...styles };
   // Internal state - manage view mode
   const [viewMode, setViewMode] = React.useState<'free-form' | 'guided'>(
-    (source === 'devotional' || initialPrompt) ? 'free-form' : (initialMode || 'free-form')
+    initialMode || 'free-form'
   );
 
   // Update view mode when initialMode or source changes
@@ -653,7 +653,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   };
 
   // Always show free-form editor if we have a prompt or source is devotional
-  const effectiveViewMode = (source === 'devotional' || selectedPrompt) ? 'free-form' : viewMode;
+  const effectiveViewMode = viewMode;
 
   // Cancel handler
   const handleCancel = async () => {

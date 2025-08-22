@@ -1,7 +1,8 @@
 // Clean font system with Christian-aligned font choices
 export type FontFamily = 'system' | 'lexend' | 'poppins' | 'nunito' | 'lora';
 
-export const Fonts = {
+// Define families under an internal object so we can safely add shorthands later
+const FontFamilies = {
   // System fonts (default)
   system: {
     regular: 'System',
@@ -43,6 +44,18 @@ export const Fonts = {
   },
 } as const;
 
+// Choose a default family for shorthand access (keeps existing code that uses Fonts.medium working)
+export const DEFAULT_FONT_FAMILY: FontFamily = 'lexend';
+
+export const Fonts = {
+  ...FontFamilies,
+  // Top-level shorthands (map to DEFAULT_FONT_FAMILY)
+  regular: FontFamilies[DEFAULT_FONT_FAMILY].regular,
+  medium: FontFamilies[DEFAULT_FONT_FAMILY].medium,
+  semiBold: FontFamilies[DEFAULT_FONT_FAMILY].semiBold,
+  bold: FontFamilies[DEFAULT_FONT_FAMILY].bold,
+} as const;
+
 // Font weights
 export const FontWeights = {
   regular: '400',
@@ -53,18 +66,17 @@ export const FontWeights = {
 
 // Font family mapping for theme system
 export const FontFamilyMap = {
-  system: Fonts.system,
-  poppins: Fonts.poppins,
-  nunito: Fonts.nunito,
-  lora: Fonts.lora,
-  lexend: Fonts.lexend,
+  system: FontFamilies.system,
+  poppins: FontFamilies.poppins,
+  nunito: FontFamilies.nunito,
+  lora: FontFamilies.lora,
+  lexend: FontFamilies.lexend,
 } as const;
 
 // Get font family based on key and weight
 export const getFontFamily = (fontKey: string, weight: 'regular' | 'medium' | 'semiBold' | 'bold' = 'regular'): string => {
   const fontFamily = FontFamilyMap[fontKey as keyof typeof FontFamilyMap];
-  if (!fontFamily) {return 'System';}
-
+  if (!fontFamily) {return FontFamilies[DEFAULT_FONT_FAMILY].regular;}
   return fontFamily[weight] || fontFamily.regular;
 };
 

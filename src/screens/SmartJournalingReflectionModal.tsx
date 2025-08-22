@@ -81,12 +81,29 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   const { handleToggleStep, actionSteps } = useActionSteps();
   const queryClient = useQueryClient();
 
-  // New success modal system
+  // Success modal handlers
   const successModal = useSuccessModal(
-    () => onCancel(), // onDone: close the modal
-    () => handleEditFocus() // onEdit: focus input for editing
+    () => {
+      // Done callback - close the main modal
+      console.log('✅ SmartJournalingReflectionModal: Success modal Done pressed - closing main modal');
+      onCancel(); // This closes the main modal
+    },
+    () => {
+      // Edit callback - keep modal open and focus input
+      console.log('✏️ SmartJournalingReflectionModal: Success modal Edit pressed - keeping modal open');
+      handleEditFocus();
+    }
   );
-  // Use selectedDate if provided (from journal screen), otherwise use current date
+
+  // Debug: Log success modal state changes
+  useEffect(() => {
+    console.log('🔍 SmartJournalingReflectionModal: Success modal state changed:', {
+      isVisible: successModal.isVisible,
+      hasConfig: !!successModal.config,
+      configTitle: successModal.config?.title,
+    });
+  }, [successModal.isVisible, successModal.config]);
+
   const dateToUse = selectedDate || new Date();
   const dateStr = toLocalDateString(dateToUse); // Use selected date for consistency
   const reflectionEditorRef = useRef<ReflectionLogEditorRef>(null);
@@ -121,6 +138,10 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       // Modal is opening (transition from false to true)
       console.log('📝 SmartJournalingReflectionModal: Modal opening');
 
+      // Reset success modal state when main modal opens to prevent stale state
+      successModal.hideSuccess();
+      console.log('🔄 SmartJournalingReflectionModal: Reset success modal state on modal open');
+
       // Auto-focus the first input when modal opens for new entries
       const hasExistingContent = existingReflection?.content && existingReflection.content.trim();
       if (!hasExistingContent) {
@@ -132,7 +153,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
       }
     }
     setPrevVisible(visible);
-  }, [visible, prevVisible, existingReflection?.content]);
+  }, [visible, prevVisible, existingReflection?.content, successModal]);
 
 
 
@@ -286,15 +307,17 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         });
       }
 
-      // Show success modal after cache invalidation completes (longer delay to ensure UI updates)
+      // Show success modal in next render cycle to avoid React state batching issues
+      const isEditing = !!existingReflection;
       setTimeout(() => {
-        const isEditing = !!existingReflection;
         successModal.showSuccess({
           title: isEditing ? 'Reflection Updated' : 'Reflection Saved',
           message: isEditing ? 'Your reflection has been updated.' : 'Your reflection has been saved to your journal.',
           showEditButton: true,
         });
-      }, 500);
+        console.log('✅ SmartJournalingReflectionModal: Success modal triggered in next render cycle');
+      }, 0);
+      console.log('✅ SmartJournalingReflectionModal: Success modal scheduled to show');
 
       console.log('✅ SmartJournalingReflectionModal: Reflection saved and subtask marked complete');
     } catch (error: any) {
@@ -341,6 +364,14 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
     // No need for discard confirmation as drafts are preserved
     onCancel();
   };
+
+  // Debug: Log main modal visibility changes
+  useEffect(() => {
+    console.log('🎭 SmartJournalingReflectionModal: Main modal visibility changed:', {
+      visible,
+      timestamp: new Date().toISOString(),
+    });
+  }, [visible]);
 
   return (
     <>

@@ -23,6 +23,10 @@ interface SmartJournalingPrayerModalProps {
   existingPrayer?: any; // For editing existing prayer entries
   onSave: (entry: any) => void;
   onCancel: () => void;
+  // New optional initializers for People tab
+  initialActiveTab?: 'freeform' | 'people';
+  initialPersonName?: string;
+  initialPrayerRequest?: string;
 }
 
 const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
@@ -37,6 +41,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
   existingPrayer,
   onSave,
   onCancel,
+  initialActiveTab,
+  initialPersonName,
+  initialPrayerRequest,
 }) => {
   // Debug: Log all props received by SmartJournalingPrayerModal
   console.log('🔍 SmartJournalingPrayerModal: Props received:', {
@@ -579,6 +586,9 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             actionStepTitle={preservedActionStepTitle}
             isLoading={isLoading}
             styles={reflectionLogStyles}
+            initialActiveTab={initialActiveTab}
+            initialPersonName={initialPersonName}
+            initialPrayerRequest={initialPrayerRequest}
             dateString={(function() {
               const now = new Date();
               const year = now.getFullYear();
