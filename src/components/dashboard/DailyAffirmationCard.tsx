@@ -162,7 +162,6 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
       setError(null);
 
       // 1) Fetch user's playbooks (ids + titles)
-      console.log('[DailyAffirmation] Fetching playbooks for user:', user.id);
       const { data: playbooks, error: playbooksError } = await supabase
         .from('playbooks')
         .select('id, title')
@@ -175,7 +174,6 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
       }
 
       if (!playbooks || playbooks.length === 0) {
-        console.log('[DailyAffirmation] No playbooks for user');
         setAffirmations([]);
         return;
       }
@@ -199,7 +197,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
         playbook_title: titleById.get(a.playbook_id) || undefined,
       }));
 
-      console.log(`[DailyAffirmation] Loaded ${allAffirmations.length} affirmations from ${playbooks.length} playbooks`);
+      
 
       if (allAffirmations.length === 0) {
         setAffirmations([]);

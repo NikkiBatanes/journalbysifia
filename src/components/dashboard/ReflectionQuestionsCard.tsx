@@ -12,7 +12,6 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
@@ -22,13 +21,14 @@ import { supabase } from '../../services/supabaseClient';
 import { ReflectionApi } from '../../services/api/reflectionApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DashboardReflectionSkeleton from '../SkeletonLoader/DashboardReflectionSkeleton';
+import { GUIDED_PROMPTS } from '../journal/reflectionConstants';
 // Devotional-only rebuild: no date-based filtering required
 
 interface ReflectionQuestion {
   id: string;
   question: string;
   source: string;
-  sourceType: 'playbook' | 'devotional';
+  sourceType: 'playbook' | 'devotional' | 'guided';
   category?: string;
   isAnswered?: boolean;
   sourceId?: string;
@@ -262,10 +262,47 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           contentKeys: (() => { try { const c = typeof devotionalsResult.data[0].content === 'string' ? JSON.parse(devotionalsResult.data[0].content) : devotionalsResult.data[0].content; return c ? Object.keys(c) : []; } catch { return []; } })(),
         } : null,
       };
-      console.log('🕯️ ReflectionQuestionsCard (devotional-only rebuild):', diagPayload);
       setDiag(diagPayload);
 
-      setQuestions(allQuestions);
+      // Add 5 daily-random guided prompts (deterministic per user per day)
+      const pickDailyGuided = (count: number): ReflectionQuestion[] => {
+        const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const seedStr = `${user.id}-${dateStr}`;
+        // Simple string hash -> number
+        let h = 2166136261 >>> 0;
+        for (let i = 0; i < seedStr.length; i++) {
+          h ^= seedStr.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        // Mulberry32 PRNG
+        const mulberry32 = (a: number) => () => {
+          a |= 0; a = (a + 0x6D2B79F5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+        const rand = mulberry32(h);
+        // Copy and shuffle indices deterministically
+        const indices = Array.from({ length: GUIDED_PROMPTS.length }, (_, i) => i);
+        for (let i = indices.length - 1; i > 0; i--) {
+          const j = Math.floor(rand() * (i + 1));
+          [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        const selected = indices.slice(0, Math.min(count, indices.length));
+        return selected.map((idx, i) => ({
+          id: `guided-${dateStr}-${idx}`,
+          question: GUIDED_PROMPTS[idx],
+          source: 'Guided Prompt',
+          sourceType: 'guided',
+          category: 'Guided',
+          questionIndex: i + 1,
+          questionKey: 'guidedPrompt',
+          groupLabel: 'Guided Prompt',
+        }));
+      };
+
+      const guidedDaily = pickDailyGuided(5);
+      setQuestions([...allQuestions, ...guidedDaily]);
 
     } catch (err) {
       console.error('Error fetching reflection questions:', err);
@@ -280,10 +317,24 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
     fetchReflectionQuestions();
   }, [fetchReflectionQuestions]);
 
+  // Realtime updates: refresh when devotionals change
+  useEffect(() => {
+    if (!user) { return; }
+    const channel = supabase
+      .channel('reflection_devotionals_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'devotionals' }, () => {
+        fetchReflectionQuestions();
+      })
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [user, fetchReflectionQuestions]);
+
   // Listen for reflection entries changes to refetch questions
   useEffect(() => {
     const handleReflectionChange = () => {
-      console.log('🔄 ReflectionQuestionsCard: Detected reflection entry change, refetching questions');
       fetchReflectionQuestions();
     };
 
@@ -302,7 +353,6 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   // Listen for devotional changes to refetch questions
   useEffect(() => {
     const handleDevotionalChange = () => {
-      console.log('🔄 ReflectionQuestionsCard: Detected devotional change, refetching questions');
       fetchReflectionQuestions();
     };
 
@@ -322,8 +372,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
     fetchReflectionQuestions();
   };
 
-  const getSourceIcon = (sourceType: 'playbook' | 'devotional') => {
-    return sourceType === 'playbook' ? 'library' : 'book';
+  const getSourceIcon = (sourceType: 'playbook' | 'devotional' | 'guided') => {
+    if (sourceType === 'playbook') return 'library';
+    if (sourceType === 'guided') return 'feather';
+    return 'book';
   };
 
   // Carousel layout and animated scroll ref (hooks must be unconditional)
@@ -415,8 +467,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                 ]}
               >
                 <View style={styles.sectionHeader}>
-                  <MaterialCommunityIcons name="book" size={20} color={Colors.mediumGray} style={styles.sectionIcon} />
-                  <Text style={styles.sectionLabel}>QUESTION TO PONDER</Text>
+                  <MaterialCommunityIcons name={getSourceIcon(item.sourceType)} size={20} color={Colors.mediumGray} style={styles.sectionIcon} />
+                  <Text style={styles.sectionLabel}>
+                    {item.sourceType === 'guided' ? 'GUIDED PROMPT' : 'QUESTION TO PONDER'}
+                  </Text>
                 </View>
                 <Text style={styles.questionText}>{item.question}</Text>
                 <View style={styles.buttonRow}>
@@ -434,29 +488,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             );
           })}
         </Animated.ScrollView>
-      ) : (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="bulb-outline" size={18} color={Colors.mediumGray} />
-          <Text style={styles.emptyText}>No unanswered devotional questions for today.</Text>
-          {!!diag && (
-            <View style={styles.debugBox}>
-              <Text style={styles.debugText}>Devotionals: {diag.devotionalCount}</Text>
-              <Text style={styles.debugText}>Parsed Questions: {diag.totalQuestions}</Text>
-              {diag.sampleDevotional && (
-                <>
-                  <Text style={styles.debugText}>First Devotional ID: {diag.sampleDevotional.id}</Text>
-                  <Text style={styles.debugText}>Has Content: {String(diag.sampleDevotional.hasContent)}</Text>
-                  <Text style={styles.debugText}>Has Days Column: {String(diag.sampleDevotional.hasDaysColumn)}</Text>
-                  <Text style={styles.debugText} numberOfLines={1}>Content Keys: {diag.sampleDevotional.contentKeys.join(', ')}</Text>
-                </>
-              )}
-            </View>
-          )}
-          <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
-            <Text style={styles.retryText}>Refresh</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      ) : null}
     </View>
   );
 };
@@ -609,21 +641,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  emptyText: {
-    fontSize: 14,
-    color: Colors.mediumGray,
-  },
-  debugBox: {
-    marginTop: 8,
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    width: '100%',
-  },
-  debugText: {
-    fontSize: 11,
-    color: Colors.lightGray,
-  },
+  
   retryButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,

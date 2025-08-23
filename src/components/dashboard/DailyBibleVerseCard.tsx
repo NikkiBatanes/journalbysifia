@@ -44,7 +44,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       setError(null);
 
       // Fetch user's playbooks (modern schema uses bible_verse field) and devotionals as secondary source
-      console.log('[DailyScripture] Fetching content for user:', user.id);
+      
       const [playbooksResult, devotionalsResult] = await Promise.all([
         supabase
           .from('playbooks')
@@ -60,9 +60,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
           .limit(50),
       ]);
 
-      console.log('[DailyScripture] Playbooks result (with bible_verse):', playbooksResult.data?.length || 0);
-      console.log('[DailyScripture] Devotionals result:', devotionalsResult.data?.length || 0);
-
+      
       const allVerses: BibleVerse[] = [];
 
       // Helper to safely parse unknown JSON values
@@ -238,7 +236,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       }
 
       // Only use verses if found in database
-      console.log('[DailyScripture] Total extracted verses:', allVerses.length);
+      
       if (allVerses.length > 0) {
         const today = new Date();
         const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -262,7 +260,6 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
         const dayOfYear = Math.floor((today.getTime() - new Date(today.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
         const selectedIndex = dayOfYear % allVerses.length;
         const selected = allVerses[selectedIndex];
-        console.log('[DailyScripture] Selected verse:', selected);
         setVerse(selected);
         try { await AsyncStorage.setItem(storageKey, selected.id); } catch {}
       } else {

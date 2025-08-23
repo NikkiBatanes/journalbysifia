@@ -94,9 +94,6 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      console.log('[StreakTracker] Fetching activities for user:', user.id);
-      console.log('[StreakTracker] Date range:', thirtyDaysAgo.toISOString(), 'to now');
-
       const { data, error } = await supabase
         .from('faith_points_log')
         .select('*')
@@ -106,15 +103,11 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
 
       if (error) {
         console.error('[StreakTracker] Error fetching activities for streaks:', error);
-        console.log('[StreakTracker] Streak error details:', error);
         // Still calculate streaks with empty data to show 0 streaks
         const streakData = calculateStreaks([]);
         setStreaks(streakData);
         return;
       }
-
-      console.log(`[StreakTracker] Found ${data?.length || 0} activities for streak calculation`);
-      console.log('[StreakTracker] Activities data:', data);
 
       // Calculate streaks for each activity type
       const streakData = calculateStreaks(data || []);

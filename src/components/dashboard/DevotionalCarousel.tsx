@@ -21,11 +21,13 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import DevotionalSkeleton from '../SkeletonLoader/DevotionalSkeleton';
 
 const { width } = Dimensions.get('window');
-// Match PlaybookCarousel sizing and spacing
-const ITEM_WIDTH = width * 0.75;
-const ITEM_SPACING = 2;
+// Match ReflectionQuestionsCard sizing and spacing
+const CARD_HORIZONTAL_PADDING = 16; // matches card padding
+const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
+const ITEM_WIDTH = VISIBLE_WIDTH * 0.8;
+const ITEM_SPACING = 8;
 const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-const SIDE_PADDING = (width - ITEM_WIDTH) / 2;
+const SIDE_INSET = Math.max(0, (VISIBLE_WIDTH - ITEM_WIDTH) / 2);
 
 interface Devotional {
   id: string;
@@ -281,6 +283,21 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     fetchDevotionals();
   }, [fetchDevotionals]);
 
+  // Realtime updates: refresh when devotionals change
+  useEffect(() => {
+    if (!user) { return; }
+    const channel = supabase
+      .channel('devotionals_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'devotionals' }, () => {
+        fetchDevotionals();
+      })
+      .subscribe();
+
+    return () => {
+      try { supabase.removeChannel(channel); } catch {}
+    };
+  }, [user, fetchDevotionals]);
+
   const getStatusColor = (isCompleted: boolean) => {
     return isCompleted ? Colors.successGreen : Colors.faithGold;
   };
@@ -390,18 +407,20 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
-      <View style={styles.heroCard}>
-        <MaterialCommunityIcons
-          name="book"
-          size={32}
-          color="rgba(255,255,255,0.85)"
-          style={styles.heroIcon}
-        />
-        <Text style={styles.heroOverline}>No Devotionals</Text>
-        <Text style={styles.heroTitle}>Start with Scripture</Text>
-        <Text style={styles.heroSubtitle}>
-          Create a playbook for what you're facing, then build a daily devotional from it.
-        </Text>
+      <View style={styles.emptyCard}>
+        <View style={styles.heroCard}>
+          <MaterialCommunityIcons
+            name="book"
+            size={32}
+            color="rgba(255,255,255,0.85)"
+            style={styles.heroIcon}
+          />
+          <Text style={styles.heroOverline}>No Devotionals</Text>
+          <Text style={styles.heroTitle}>Start with Scripture</Text>
+          <Text style={styles.heroSubtitle}>
+            Create a playbook for what you're facing, then build a daily devotional from it.
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -415,7 +434,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       <View style={styles.header}>
         <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
         <Text style={styles.title}>Your Devotionals</Text>
-        {devotionals.length > 0 && (
+        {devotionals.length > 1 && (
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
@@ -447,18 +466,18 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
         <Animated.ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_PADDING }]}
+          contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_INSET }]}
           decelerationRate="fast"
           snapToInterval={ITEM_SIZE}
-          snapToAlignment="center"
+          snapToAlignment="start"
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
-          bounces={false}
+          bounces={true}
           removeClippedSubviews={false}
-          style={{ overflow: 'visible' }}
+          style={{ overflow: 'visible', marginHorizontal: -CARD_HORIZONTAL_PADDING }}
         >
           {devotionals.map((devotional, index) => {
             const inputRange = [
@@ -473,12 +492,12 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             });
             const opacity = scrollX.interpolate({
               inputRange,
-              outputRange: [0.85, 1, 0.85],
+              outputRange: [0.9, 1, 0.9],
               extrapolate: 'clamp',
             });
             const translateY = scrollX.interpolate({
               inputRange,
-              outputRange: [4, 0, 4],
+              outputRange: [2, 0, 2],
               extrapolate: 'clamp',
             });
             const zIndex = scrollX.interpolate({
@@ -488,96 +507,15 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             });
 
             return (
-              <TouchableOpacity
+              <Animated.View
                 key={devotional.id}
-                onPress={() => {
-                  triggerLightHaptic();
-                  onDevotionalPress?.(devotional);
-                }}
-                activeOpacity={0.85}
+                style={[
+                  { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
+                  { transform: [{ scale }, { translateY }], opacity, zIndex },
+                ]}
               >
-                <Animated.View
-                  style={[
-                    styles.devotionalCard,
-                    { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
-                    index === 0 ? { marginLeft: -(SIDE_PADDING - 16) } : null,
-                    { transform: [{ scale }, { translateY }], opacity, zIndex },
-                  ]}
-                >
-                  <View style={styles.cardHeader}>
-                    <View style={styles.categoryBadge}>
-                      <Text style={styles.categoryText}>{devotional.category}</Text>
-                    </View>
-                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(devotional.isCompleted) }]}>
-                      <Ionicons
-                        name={getStatusIcon(devotional.isCompleted)}
-                        size={12}
-                        color={Colors.hopeWhite}
-                      />
-                    </View>
-                  </View>
-
-                  <Text style={styles.devotionalTitle} numberOfLines={2}>
-                    {devotional.title}
-                  </Text>
-
-
-                  {devotional.verse && (
-                    <View style={styles.versePreview}>
-                      <Text style={styles.verseText} numberOfLines={2}>
-                        "{devotional.verse.text}"
-                      </Text>
-                      <Text style={styles.verseReference}>- {devotional.verse.reference}</Text>
-                    </View>
-                  )}
-
-                  {devotional.description && (
-                    <Text style={styles.devotionalDescription} numberOfLines={2}>
-                      {devotional.description}
-                    </Text>
-                  )}
-
-                  {/* Place Next/Completed info below description */}
-                  {devotional.isCompleted ? (
-                    <View style={{ marginBottom: 8 }}>
-                      <Text style={styles.completedText}>DONE</Text>
-                      {!!formatFinishedDate(devotional.completedAt) && (
-                        <Text style={styles.finishedDateText}>{formatFinishedDate(devotional.completedAt)}</Text>
-                      )}
-                    </View>
-                  ) : devotional.nextDayNumber ? (
-                    <View style={{ marginBottom: 8 }}>
-                      <Text style={styles.nextLabel}>NEXT</Text>
-                      <Text style={styles.nextDayTitleText} numberOfLines={1}>
-                        {devotional.total_days === 1
-                          ? `Day ${devotional.nextDayNumber}`
-                          : `Day ${devotional.nextDayNumber}: ${devotional.nextDayTitle || ''}`}
-                      </Text>
-                    </View>
-                  ) : null}
-
-                  {!devotional.isCompleted && (
-                    <View style={styles.statusSection}>
-                      <View style={styles.statusInfo}>
-                        <Ionicons
-                          name={getStatusIcon(devotional.isCompleted)}
-                          size={16}
-                          color={getStatusColor(devotional.isCompleted)}
-                        />
-                        <Text style={[styles.statusText, { color: getStatusColor(devotional.isCompleted) }]}>
-                          {getStatusText(devotional)}
-                        </Text>
-                      </View>
-
-                      {devotional.lastAccessed && !devotional.isCompleted && (
-                        <Text style={styles.lastAccessedText}>
-                          Last read: {new Date(devotional.lastAccessed).toLocaleDateString()}
-                        </Text>
-                      )}
-                    </View>
-                  )}
-                </Animated.View>
-              </TouchableOpacity>
+                {renderDevotionalCard(devotional, index)}
+              </Animated.View>
             );
           })}
         </Animated.ScrollView>
@@ -739,12 +677,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
+  emptyCard: {
+    width: '100%',
+    backgroundColor: Colors.modalBlue,
+    borderRadius: 30,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    position: 'relative',
+  },
   heroCard: {
     width: '100%',
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 16,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
     alignItems: 'center',
   },
   heroIcon: {

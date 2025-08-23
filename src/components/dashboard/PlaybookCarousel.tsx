@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
@@ -24,13 +25,13 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import DashboardPlaybookSkeleton from '../SkeletonLoader/DashboardPlaybookSkeleton';
 
 const { width } = Dimensions.get('window');
-// Match onboarding carousel sizing
-// Tighter spacing between cards
-const ITEM_SPACING = 2;
-// Make cards smaller for better balance
-const ITEM_WIDTH = Math.round(width * 0.75);
+// Match ReflectionQuestionsCard sizing and spacing
+const CARD_HORIZONTAL_PADDING = 16; // matches card padding
+const VISIBLE_WIDTH = Math.max(0, width - CARD_HORIZONTAL_PADDING * 2);
+const ITEM_WIDTH = Math.round(VISIBLE_WIDTH * 0.8);
+const ITEM_SPACING = 8;
 const ITEM_SIZE = ITEM_WIDTH + ITEM_SPACING;
-const SIDE_PADDING = Math.round((width - ITEM_WIDTH) / 2);
+const SIDE_INSET = Math.max(0, Math.round((VISIBLE_WIDTH - ITEM_WIDTH) / 2));
 
 interface Playbook {
   id: string;
@@ -292,22 +293,22 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     ];
     const scale = scrollX.interpolate({
       inputRange,
-      outputRange: [0.94, 1, 0.94],
+      outputRange: [0.96, 1, 0.96],
       extrapolate: 'clamp',
     });
     const opacity = scrollX.interpolate({
       inputRange,
-      outputRange: [0.85, 1, 0.85],
+      outputRange: [0.9, 1, 0.9],
       extrapolate: 'clamp',
     });
     const translateY = scrollX.interpolate({
       inputRange,
-      outputRange: [8, 0, 8],
+      outputRange: [2, 0, 2],
       extrapolate: 'clamp',
     });
     const zIndex = scrollX.interpolate({
       inputRange,
-      outputRange: [0, 2, 0],
+      outputRange: [1, 2, 1],
       extrapolate: 'clamp',
     });
 
@@ -325,8 +326,6 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
         style={[
           styles.playbookCard,
           { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
-          // Shift only the first card left to reduce initial left spacing without breaking centering
-          index === 0 ? { marginLeft: -(SIDE_PADDING - 16) } : null,
           { transform: [{ scale }, { translateY }], opacity, zIndex },
         ]}
       >
@@ -391,26 +390,33 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   };
 
   const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons
-        name="clipboard-text-play"
-        size={32}
-        color="rgba(255,255,255,0.8)"
-      />
-      <Text style={styles.emptyTitle}>Create a New Playbook</Text>
-      <Text style={styles.emptyDescription}>
-        Share what you're going through in detail. The more context, the better we can help.
-      </Text>
-      <TouchableOpacity
-        style={styles.createButton}
-        onPress={() => {
-          triggerLightHaptic();
-          // Navigate to UserInput screen (configured as presentation modal in navigator)
-          try { navigation.navigate('UserInput'); } catch {}
-        }}
-      >
-        <Text style={styles.createButtonText}>Create a Playbook</Text>
-      </TouchableOpacity>
+    <View style={styles.emptyStateContainer}>
+      <View style={styles.emptyCard}>
+        <View style={styles.heroCard}>
+          <MaterialCommunityIcons
+            name="clipboard-text-play"
+            size={32}
+            color="rgba(255,255,255,0.85)"
+            style={styles.heroIcon}
+          />
+          <Text style={styles.heroOverline}>No Playbooks</Text>
+          <Text style={styles.heroTitle}>Create a New Playboook</Text>
+          <Text style={styles.heroSubtitle}>
+            Share what you're going through in detail.{"\n"}
+            The more context, the better we can help.
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => {
+            triggerLightHaptic();
+            try { navigation.navigate('UserInput'); } catch {}
+          }}
+        >
+          <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
+          <Text style={styles.createButtonText}>Create a Playbook</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -423,7 +429,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       <View style={styles.header}>
         <MaterialCommunityIcons name="clipboard-text-play" size={24} color={Colors.alertCoral} />
         <Text style={styles.title}>Your Playbooks</Text>
-        {playbooks.length > 0 && (
+        {playbooks.length > 1 && (
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
@@ -455,18 +461,18 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
         <Animated.ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_PADDING }]}
+          contentContainerStyle={[styles.scrollContainer, { paddingHorizontal: SIDE_INSET }]}
           decelerationRate="fast"
           snapToInterval={ITEM_SIZE}
-          snapToAlignment="center"
+          snapToAlignment="start"
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             { useNativeDriver: true }
           )}
           scrollEventThrottle={16}
-          bounces={false}
+          bounces={true}
           removeClippedSubviews={false}
-          style={{ overflow: 'visible' }}
+          style={{ overflow: 'visible', marginHorizontal: -CARD_HORIZONTAL_PADDING }}
         >
           {playbooks.map((pb, i) => renderPlaybookCard(pb, i))}
         </Animated.ScrollView>
@@ -506,6 +512,58 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingVertical: 4,
     overflow: 'visible',
+  },
+  // Empty state (hero) styles to match DevotionalCarousel
+  emptyStateContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  emptyCard: {
+    width: '100%',
+    backgroundColor: Colors.modalBlue,
+    borderRadius: 30,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    position: 'relative',
+  },
+  heroCard: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    alignItems: 'center',
+  },
+  heroIcon: {
+    marginBottom: 8,
+    opacity: 0.9,
+  },
+  heroOverline: {
+    fontSize: 12,
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.9)',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  heroTitle: {
+    fontSize: 18,
+    textAlign: 'center',
+    color: Colors.hopeWhite,
+    fontWeight: '700',
+    lineHeight: 24,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+    color: 'rgba(255,255,255,0.8)',
+    lineHeight: 20,
+    marginBottom: 12,
+    paddingHorizontal: 6,
   },
   playbookCard: {
     backgroundColor: Colors.modalBlue,
@@ -628,16 +686,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   createButton: {
-    backgroundColor: Colors.alertCoral,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
     paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
     marginTop: 8,
+    flexDirection: 'row',
   },
   createButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.hopeWhite,
     fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   errorContainer: {
     height: 200,

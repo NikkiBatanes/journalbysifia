@@ -403,20 +403,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           const { subscriptionService } = await import('../services/subscriptionService');
           const directData = await subscriptionService.getUserSubscription(user.id);
           setDirectSubscription(directData);
-          console.log('🔄 Direct subscription fetch:', {
-            directTier: directData?.tier,
-            directStatus: directData?.status,
-            cachedTier: subscription?.tier,
-            cachedStatus: subscription?.status,
-            dataMatch: directData?.tier === subscription?.tier,
-            timestamp: new Date().toISOString(),
-            userId: user.id,
-            subscriptionId: directData?.id
-          });
           
           // If data doesn't match, invalidate React Query cache
           if (directData?.tier !== subscription?.tier && subscription?.tier) {
-            console.log('🔄 Cache mismatch detected, invalidating React Query cache');
             queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
           }
         } catch (error) {
@@ -639,7 +628,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     }
   };
 
-  const renderPrayerRequestsCard = () => (
+  const renderPrayerRequestsCard = () => {
+    // Hide entirely when not loading and there are no unprayed requests
+    if (!loadingRequests && !fetchingRequests && unprayedRequests.length === 0) {
+      return null;
+    }
+
+    return (
     <View style={{
       backgroundColor: 'transparent',
       borderRadius: 12,
@@ -745,6 +740,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       ) : null}
     </View>
   );
+  };
 
 
 
@@ -795,19 +791,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
           const displayName = getTierShortName(normalizedTier as SubscriptionTier);
 
-          console.log(
-            `🔎 Dashboard: Tier mapping ${tier} -> ${displayName} (normalized: ${normalizedTier}) using ${
-              directSubscription && directSubscription.tier !== subscription?.tier ? 'direct' : 'cached'
-            } data`,
-            {
-              originalTier: tier,
-              normalizedTier,
-              displayName,
-              subscriptionStatus: activeSubscription?.status,
-              subscriptionId: activeSubscription?.id,
-              limits: activeSubscription?.limits
-            }
-          );
+          // Removed debug logging of tier mapping
 
           if (!displayName) { return null; }
 
@@ -829,14 +813,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           if (isUnlimited) { return null; }
           const remaining = Math.max(0, limit - used);
           
-          // Debug logging
-          console.log('🔍 Dashboard Playbook Counter:', {
-            limit,
-            used,
-            remaining,
-            subscription_tier: subscription?.tier,
-            usage_object: usage
-          });
+          // Removed debug logging for playbook counter
           
           return (
             <TouchableOpacity
@@ -997,9 +974,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         </View>
         <View style={styles.sectionGap} />
 
-        {/* Prayer Requests Section (moved here, immediately after Affirmations) */}
-        {renderPrayerRequestsCard()}
-        <View style={styles.sectionGap} />
+        {/* Prayer Requests Section (hide when empty) */}
+        {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
+          <>
+            {renderPrayerRequestsCard()}
+            <View style={styles.sectionGap} />
+          </>
+        )}
 
         {/* Removed Weekly Insights and AI Insights */}
 
@@ -1062,7 +1043,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }}
           onViewAll={() => {
             // Navigate to all action steps
-            console.log('Navigate to all action steps');
           }}
           onCountChange={setActionsCount}
         />
@@ -1112,10 +1092,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         subtaskTitle={selectedReflection?.question || ''}
         onSave={() => {
           // Don't close modal immediately - success modal will handle the flow
-          console.log('🎯 Dashboard: SmartJournalingReflectionModal onSave called - success modal should show now');
         }}
         onCancel={() => {
-          console.log('🎯 Dashboard: SmartJournalingReflectionModal onCancel called - closing modal');
           setShowSJModal(false);
           setSelectedReflection(null);
         }}
@@ -1131,8 +1109,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         questionNumber={selectedReflection?.questionNumber}
         onSave={(entry) => {
           // Don't close modal immediately - success modal will handle the flow
-          console.log('🎯 Dashboard: DevotionalDetailReflectionModal onSave called - success modal should show now');
-          console.log('🎯 Dashboard: Saved entry:', entry);
+          // Removed debug logging
           
           // Invalidate all reflection-related queries to ensure real-time updates
           queryClient.invalidateQueries({

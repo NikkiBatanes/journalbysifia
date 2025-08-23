@@ -234,9 +234,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     const first = parts.shift() || '';
     const rest = parts.join(' ');
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginLeft: TITLE_LEFT_OFFSET, marginTop: 2 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginLeft: TITLE_LEFT_OFFSET, marginTop: 2, minWidth: 0 }}>
         <Ionicons name="chatbubble-ellipses-outline" size={14} color={Colors.alertCoral} />
-        <Text style={[styles.stepDescription, { marginLeft: 6 }]} numberOfLines={2}>
+        <Text style={[styles.stepDescription, { marginLeft: 6, flex: 1, flexShrink: 1, paddingRight: 8 }]} numberOfLines={3}>
           {first}{rest ? ' ' + rest : ''}
         </Text>
       </View>
@@ -285,7 +285,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
             <Ionicons name={'ellipse-outline'} size={18} color={Colors.faithGold} />
           )}
         </TouchableOpacity>
-        <Text style={styles.stepTitle} numberOfLines={1}>
+        <Text style={styles.stepTitle} numberOfLines={2}>
           {stripMarkdownEmphasis(item.title)}
         </Text>
       </View>
@@ -494,6 +494,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     marginBottom: 4,
+    // Allow text inside this row to properly shrink/wrap on Android
+    minWidth: 0,
   },
   chipsRow: {
     flexDirection: 'row',
@@ -518,6 +520,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.hopeWhite,
     flex: 1,
+    // Ensure long titles wrap instead of overflowing/clipping
+    flexShrink: 1,
+    paddingRight: 4,
   },
   playbookName: {
     fontSize: 12,
