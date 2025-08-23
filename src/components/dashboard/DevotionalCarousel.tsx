@@ -9,7 +9,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Dimensions,
   Animated,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
+import DevotionalSkeleton from '../SkeletonLoader/DevotionalSkeleton';
 
 const { width } = Dimensions.get('window');
 // Match PlaybookCarousel sizing and spacing
@@ -407,18 +407,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   );
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
-          <Text style={styles.title}>Your Devotionals</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.alertCoral} />
-          <Text style={styles.loadingText}>Loading devotionals...</Text>
-        </View>
-      </View>
-    );
+    return <DevotionalSkeleton />;
   }
 
   return (

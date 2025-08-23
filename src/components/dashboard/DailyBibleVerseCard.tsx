@@ -9,12 +9,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import DashboardScriptureSkeleton from '../SkeletonLoader/DashboardScriptureSkeleton';
 
 
 interface BibleVerse {
@@ -303,14 +303,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
   // Note: minimal UI — share handled elsewhere if needed
 
   if (loading) {
-    return (
-      <View style={styles.card}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.alertCoral} />
-          <Text style={styles.loadingText}>Loading verse...</Text>
-        </View>
-      </View>
-    );
+    return <DashboardScriptureSkeleton />;
   }
 
   // If no verse available, hide the component entirely

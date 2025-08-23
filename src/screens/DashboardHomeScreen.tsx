@@ -46,6 +46,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
 import { queryKeys } from '../services/queryKeys';
+import DashboardPrayerSkeleton from '../components/SkeletonLoader/DashboardPrayerSkeleton';
 
 const { width, height } = Dimensions.get('window');
 
@@ -676,7 +677,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         </View>
       </View>
       {loadingRequests || fetchingRequests ? (
-        <Text style={styles.cardSubtitle}>Loading requests...</Text>
+        <DashboardPrayerSkeleton />
       ) : unprayedRequests.length === 0 ? (
         <Text style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</Text>
       ) : (

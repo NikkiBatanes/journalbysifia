@@ -9,7 +9,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Dimensions,
   Animated,
 } from 'react-native';
@@ -22,6 +21,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { ReflectionApi } from '../../services/api/reflectionApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import DashboardReflectionSkeleton from '../SkeletonLoader/DashboardReflectionSkeleton';
 // Devotional-only rebuild: no date-based filtering required
 
 interface ReflectionQuestion {
@@ -346,18 +346,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   const scrollX = React.useRef(new Animated.Value(0)).current;
 
   if (loading) {
-    return (
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <Ionicons name="bulb" size={24} color={Colors.alertCoral} />
-          <Text style={styles.title}>Reflection Questions</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.alertCoral} />
-          <Text style={styles.loadingText}>Loading questions...</Text>
-        </View>
-      </View>
-    );
+    return <DashboardReflectionSkeleton />;
   }
 
   return (

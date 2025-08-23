@@ -9,7 +9,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Animated,
   NativeModules,
 } from 'react-native';
@@ -20,6 +19,7 @@ import { supabase } from '../../services/supabaseClient';
 import { faithPointsService } from '../../services/faithPointsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { triggerErrorHaptic } from '../../utils/haptics';
+import DashboardAffirmationSkeleton from '../SkeletonLoader/DashboardAffirmationSkeleton';
 
 
 interface Affirmation {
@@ -338,15 +338,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   const titleCopy = affirmations.length > 1 ? "TODAY'S AFFIRMATIONS" : "TODAY'S AFFIRMATION";
 
   if (loading) {
-    return (
-      <View style={styles.card}>
-        <Text accessibilityRole="header" style={styles.titleText}>TODAY'S AFFIRMATION</Text>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.alertCoral} />
-          <Text accessibilityLabel="Loading daily affirmation" style={styles.loadingText}>Loading inspiration...</Text>
-        </View>
-      </View>
-    );
+    return <DashboardAffirmationSkeleton />;
   }
 
   // Hide the card entirely if there are no affirmations and no error
@@ -483,17 +475,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 14,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: Colors.mediumGray,
-    fontStyle: 'normal',
-  },
   listContainer: {
     gap: 8,
   },
@@ -545,8 +526,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   readButtonText: {
     color: Colors.hopeWhite,

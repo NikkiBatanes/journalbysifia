@@ -1,0 +1,123 @@
+import React from 'react';
+import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+
+const DashboardReflectionSkeleton: React.FC = () => {
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
+  // Match ReflectionQuestionsCard sizing
+  const { width: screenWidth } = Dimensions.get('window');
+  const CARD_HORIZONTAL_PADDING = 16; // matches styles.card padding in ReflectionQuestionsCard
+  const VISIBLE_WIDTH = Math.max(0, screenWidth - CARD_HORIZONTAL_PADDING * 2);
+  const ITEM_WIDTH = VISIBLE_WIDTH * 0.8;
+
+  React.useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
+        Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
+      ])
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [animatedValue]);
+
+  const opacity = animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+
+  return (
+    <View style={styles.card}>
+      {/* Centered title bar */}
+      <View style={styles.titleRow}>
+        <Animated.View style={[styles.titleBar, { opacity }]} />
+      </View>
+
+      {/* One large reflection card placeholder */}
+      <View style={[styles.placeholderCard, { width: ITEM_WIDTH, alignSelf: 'center' }] }>
+        <View style={styles.sectionHeader}>
+          <Animated.View style={[styles.sectionIcon, { opacity }]} />
+          <Animated.View style={[styles.sectionLabel, { opacity }]} />
+        </View>
+        <Animated.View style={[styles.questionLineLong, { opacity }]} />
+        <Animated.View style={[styles.questionLineShort, { opacity }]} />
+        <View style={styles.buttonRow}>
+          <Animated.View style={[styles.button, { opacity }]} />
+        </View>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  card: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    minHeight: 120,
+  },
+  titleRow: {
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  titleBar: {
+    height: 12,
+    width: 180,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+  },
+  placeholderCard: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 30,
+    padding: 24,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    height: 300,
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    gap: 16,
+  },
+  sectionHeader: {
+    alignItems: 'center',
+  },
+  sectionIcon: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    marginBottom: 6,
+  },
+  sectionLabel: {
+    height: 12,
+    width: 160,
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  questionLineLong: {
+    height: 18,
+    width: '85%',
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  questionLineShort: {
+    height: 18,
+    width: '60%',
+    borderRadius: 6,
+    backgroundColor: 'rgba(255,255,255,0.20)',
+  },
+  buttonRow: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  button: {
+    height: 40,
+    width: 140,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    borderWidth: 0,
+    borderColor: 'transparent',
+  },
+});
+
+export default DashboardReflectionSkeleton;

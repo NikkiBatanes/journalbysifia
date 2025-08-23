@@ -19,6 +19,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 import { rankSteps } from '../../services/nextBestStep';
+import DashboardActionStepsSkeleton from '../SkeletonLoader/DashboardActionStepsSkeleton';
 
 interface ActionStep {
   id: string;
@@ -324,18 +325,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   );
 
   if (loading) {
-    return (
-      <View style={styles.card}>
-        <View style={styles.header}>
-          <Ionicons name="checkmark-circle" size={24} color={Colors.alertCoral} />
-          <Text style={styles.title}>Unfinished Steps</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.alertCoral} />
-          <Text style={styles.loadingText}>Loading steps...</Text>
-        </View>
-      </View>
-    );
+    return <DashboardActionStepsSkeleton />;
   }
 
   return (

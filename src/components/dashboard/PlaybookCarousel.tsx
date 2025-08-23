@@ -10,7 +10,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   Dimensions,
   Animated,
 } from 'react-native';
@@ -22,6 +21,7 @@ import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import DashboardPlaybookSkeleton from '../SkeletonLoader/DashboardPlaybookSkeleton';
 
 const { width } = Dimensions.get('window');
 // Match onboarding carousel sizing
@@ -415,18 +415,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   );
 
   if (loading) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <MaterialCommunityIcons name="clipboard-text-play" size={24} color={Colors.alertCoral} />
-          <Text style={styles.title}>Your Playbooks</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={Colors.alertCoral} />
-          <Text style={styles.loadingText}>Loading playbooks...</Text>
-        </View>
-      </View>
-    );
+    return <DashboardPlaybookSkeleton />;
   }
 
   return (
