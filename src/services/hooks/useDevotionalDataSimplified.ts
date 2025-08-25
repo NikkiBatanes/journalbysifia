@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { DeviceEventEmitter } from 'react-native';
 import { DevotionalApi } from '../api/devotionalApi';
 import { DevotionalApiEntry } from '../api/devotionalApi';
 import { Devotional, DevotionalCreationParams } from '../../interfaces/devotional';
@@ -115,6 +116,11 @@ export const useCreateDevotionalReactQuery = () => {
       queryClient.refetchQueries({
         queryKey: ['devotionals'],
       });
+
+      // Emit local event so non-React-Query consumers (e.g., DevotionalCarousel) refresh instantly
+      try {
+        DeviceEventEmitter.emit('devotional_created', { id: data.id, user_id: data.userId || _userId });
+      } catch {}
 
       // Analytics tracking removed for now
     },

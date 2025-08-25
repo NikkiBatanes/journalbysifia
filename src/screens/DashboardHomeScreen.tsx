@@ -18,6 +18,7 @@ import {
   StyleSheet,
   Image,
   NativeModules,
+  DeviceEventEmitter,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -422,7 +423,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [selectedReflection, setSelectedReflection] = useState<{
     question: string;
     source: string;
-    sourceType: 'playbook' | 'devotional';
+    sourceType: 'playbook' | 'devotional' | 'guided';
     sourceId?: string; // Devotional ID for linking
     // Optional devotional metadata
     dayNumber?: number;
@@ -576,6 +577,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
       // Refresh subscription data when screen comes into focus
       refreshSubscription();
+
+      // Proactively refresh devotionals across components
+      try {
+        const uid = user?.id;
+        if (uid) {
+          // Invalidate React Query caches used by hooks
+          queryClient.invalidateQueries({ queryKey: ['devotionals'] });
+          // Emit a dashboard-focused event for non-RQ consumers (e.g., DevotionalCarousel)
+          DeviceEventEmitter.emit('dashboard_focused', { user_id: uid });
+        } else {
+          DeviceEventEmitter.emit('dashboard_focused', {} as any);
+        }
+      } catch {}
 
       // Wait a moment then start expanding animation
       setTimeout(() => {
@@ -1063,10 +1077,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               totalDays: q.totalDays,
               questionNumber: q.questionIndex,
             });
-            if (q.sourceType === 'playbook') {
-              setShowSJModal(true);
-            } else {
+            // Route by sourceType: devotional -> devotional modal; playbook/guided -> SJ modal
+            if (q.sourceType === 'devotional') {
               setShowDevotionalModal(true);
+            } else {
+              setShowSJModal(true);
             }
           }}
           onViewAll={() => {
@@ -1090,6 +1105,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       <SmartJournalingReflectionModal
         visible={showSJModal}
         subtaskTitle={selectedReflection?.question || ''}
+        // Hide metadata when reflection comes from a guided prompt
+        isGuidedReflection={selectedReflection?.sourceType === 'guided'}
         onSave={() => {
           // Don't close modal immediately - success modal will handle the flow
         }}

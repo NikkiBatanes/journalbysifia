@@ -12,6 +12,8 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DeviceEventEmitter } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
@@ -301,7 +303,16 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
         }));
       };
 
-      const guidedDaily = pickDailyGuided(5);
+      // Filter out guided prompts that were already completed today
+      const dateStrKey = new Date().toISOString().slice(0, 10);
+      const storageKey = `@guided_completed_${dateStrKey}`;
+      let completedGuided: string[] = [];
+      try {
+        const stored = await AsyncStorage.getItem(storageKey);
+        completedGuided = stored ? JSON.parse(stored) : [];
+      } catch {}
+
+      const guidedDaily = pickDailyGuided(5).filter(g => !completedGuided.includes(g.question));
       setQuestions([...allQuestions, ...guidedDaily]);
 
     } catch (err) {
@@ -316,6 +327,17 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   useEffect(() => {
     fetchReflectionQuestions();
   }, [fetchReflectionQuestions]);
+
+  // Listen to guided completion event and remove from list immediately
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('guided_reflection_completed', (payload: { question?: string; date?: string }) => {
+      if (!payload?.question) return;
+      setQuestions(prev => prev.filter(q => !(q.sourceType === 'guided' && q.question === payload.question)));
+    });
+    return () => {
+      try { sub.remove(); } catch {}
+    };
+  }, []);
 
   // Realtime updates: refresh when devotionals change
   useEffect(() => {
@@ -335,7 +357,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   // Listen for reflection entries changes to refetch questions
   useEffect(() => {
     const handleReflectionChange = () => {
-      fetchReflectionQuestions();
+      // Defer to next tick to avoid setState during another component's render
+      setTimeout(() => {
+        fetchReflectionQuestions();
+      }, 0);
     };
 
     // Listen for reflection entries invalidation
@@ -353,7 +378,10 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   // Listen for devotional changes to refetch questions
   useEffect(() => {
     const handleDevotionalChange = () => {
-      fetchReflectionQuestions();
+      // Defer to next tick to avoid setState during another component's render
+      setTimeout(() => {
+        fetchReflectionQuestions();
+      }, 0);
     };
 
     // Listen for devotional invalidation

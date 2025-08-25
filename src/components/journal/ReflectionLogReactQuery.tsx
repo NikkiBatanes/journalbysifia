@@ -992,9 +992,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       >
         {typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content)}
       </Text>
-      {entry.tags && entry.tags.filter(tag => tag !== 'playbook').length > 0 && (
+      {entry.tags && entry.tags.filter(tag => tag !== 'playbook' && tag !== 'guided').length > 0 && (
         <View style={styles.tagsContainer}>
-          {entry.tags.filter(tag => tag !== 'playbook').map((tag, index) => (
+          {entry.tags.filter(tag => tag !== 'playbook' && tag !== 'guided').map((tag, index) => (
             <View key={index} style={styles.tag}>
               <Text style={styles.tagText}>{tag}</Text>
             </View>

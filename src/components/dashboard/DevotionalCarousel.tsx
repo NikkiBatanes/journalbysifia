@@ -3,7 +3,7 @@
  * Displays user's devotionals in a horizontal carousel with completion status
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  DeviceEventEmitter,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -71,6 +72,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const scrollX = React.useRef(new Animated.Value(0)).current;
+  const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const formatFinishedDate = (dateStr?: string) => {
     if (!dateStr) return undefined;
@@ -97,6 +99,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       const { data: devotionalsData, error: devotionalsError } = await supabase
         .from('devotionals')
         .select('*')
+        .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(10);
 
@@ -282,6 +285,45 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   useEffect(() => {
     fetchDevotionals();
   }, [fetchDevotionals]);
+
+  // Listen for local creation event to refresh immediately with a short delayed retry
+  useEffect(() => {
+    const onCreated = (payload: { id?: string; user_id?: string }) => {
+      if (payload?.user_id && user?.id && payload.user_id !== user.id) return;
+      // Immediate fetch
+      fetchDevotionals();
+      // Debounced delayed fetch to catch eventual consistency
+      if (refreshTimeout.current) {
+        clearTimeout(refreshTimeout.current);
+      }
+      refreshTimeout.current = setTimeout(() => {
+        fetchDevotionals();
+      }, 1500);
+    };
+    const onFocused = (payload: { user_id?: string }) => {
+      if (payload?.user_id && user?.id && payload.user_id !== user.id) return;
+      // Same strategy on focus
+      fetchDevotionals();
+      if (refreshTimeout.current) {
+        clearTimeout(refreshTimeout.current);
+      }
+      refreshTimeout.current = setTimeout(() => {
+        fetchDevotionals();
+      }, 800);
+    };
+
+    const subCreated = DeviceEventEmitter.addListener('devotional_created', onCreated);
+    const subFocused = DeviceEventEmitter.addListener('dashboard_focused', onFocused);
+
+    return () => {
+      try { subCreated.remove(); } catch {}
+      try { subFocused.remove(); } catch {}
+      if (refreshTimeout.current) {
+        clearTimeout(refreshTimeout.current);
+        refreshTimeout.current = null;
+      }
+    };
+  }, [user, fetchDevotionals]);
 
   // Realtime updates: refresh when devotionals change
   useEffect(() => {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toLocalDateString } from '../utils/date';
-import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View } from 'react-native';
+import { Modal, KeyboardAvoidingView, Platform, StyleSheet, Alert, View, DeviceEventEmitter } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import NewSuccessModal from '../components/NewSuccessModal';
 import { useSuccessModal } from '../hooks/useSuccessModal';
 import ReflectionLogEditor, { ReflectionLogEditorRef } from '../components/journal/ReflectionLogEditor';
@@ -26,6 +27,8 @@ interface SmartJournalingReflectionModalProps {
   selectedDate?: Date; // Date to use for reflection (defaults to current date)
   onSave: (entry: any) => void;
   onCancel: () => void;
+  // When true, this reflection was opened from a guided prompt and should hide metadata
+  isGuidedReflection?: boolean;
 }
 
 const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalProps> = ({
@@ -41,6 +44,7 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
   selectedDate,
   onSave,
   onCancel,
+  isGuidedReflection = false,
 }) => {
   // Store the initial metadata to preserve it even if props become empty after save
   const [preservedSubtaskTitle, setPreservedSubtaskTitle] = React.useState(subtaskTitle);
@@ -191,15 +195,17 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         user_id: user.id,
         title: entry.title,
         content: entry.content,
-        type: 'playbook' as const,
-        source: 'playbook' as const,
+        // Use guided type/source when launched from guided prompt
+        type: (isGuidedReflection ? 'guided' : 'playbook'),
+        source: (isGuidedReflection ? 'guided' : 'playbook'),
         selected_date: dateStr,
-        tags: [...(entry.tags || []), 'playbook'],
-        ...(playbookTitle && { playbook_title: playbookTitle }),
-        ...(playbookId && { playbook_id: playbookId }),
-        ...(subtaskId && { subtask_id: subtaskId }),
-        ...(actionStepNumber !== undefined && { day_number: actionStepNumber }),
-        ...(actionStepTitle && { day_title: actionStepTitle }),
+        tags: [...(entry.tags || []), (isGuidedReflection ? 'guided' : 'playbook')],
+        // Only attach playbook metadata when not guided
+        ...(!isGuidedReflection && playbookTitle ? { playbook_title: playbookTitle } : {}),
+        ...(!isGuidedReflection && playbookId ? { playbook_id: playbookId } : {}),
+        ...(!isGuidedReflection && subtaskId ? { subtask_id: subtaskId } : {}),
+        ...(!isGuidedReflection && actionStepNumber !== undefined ? { day_number: actionStepNumber } : {}),
+        ...(!isGuidedReflection && actionStepTitle ? { day_title: actionStepTitle } : {}),
       };
 
       // Track analytics
@@ -209,6 +215,25 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
         content_length: reflectionData.content.length,
         has_tags: (reflectionData.tags || []).length > 0,
       });
+
+      // If this is a guided reflection, persist completion for today and notify listeners to update UI immediately
+      if (isGuidedReflection) {
+        try {
+          const dateStrKey = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+          const storageKey = `@guided_completed_${dateStrKey}`;
+          const existing = await AsyncStorage.getItem(storageKey);
+          const list: string[] = existing ? JSON.parse(existing) : [];
+          const q = preservedSubtaskTitle || entry.title;
+          if (q && !list.includes(q)) {
+            list.push(q);
+            await AsyncStorage.setItem(storageKey, JSON.stringify(list));
+          }
+          // Emit global event so dashboard can remove the prompt immediately
+          DeviceEventEmitter.emit('guided_reflection_completed', { question: q, date: dateStrKey });
+        } catch (e) {
+          console.warn('Failed to persist guided completion', e);
+        }
+      }
 
       // Use update if editing existing reflection, otherwise create new one
       let savedReflection;
@@ -394,7 +419,8 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
               // Note: onDelete prop intentionally omitted - users delete via Reflection Log
               initialTitle={preservedSubtaskTitle}
               lockTitle={true}
-              source="playbook"
+              // Use 'guided' source to hide metadata when launched from guided prompt
+              source={isGuidedReflection ? 'guided' : 'playbook'}
               initialMode="free-form"
               styles={reflectionLogStyles}
               dateString={(function() {
@@ -404,8 +430,9 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                 const todayStringWithYear = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
                 return year === new Date().getFullYear() ? todayString : todayStringWithYear;
               })()}
-              playbookTitle={preservedPlaybookTitle}
-              dayNumber={(() => {
+              // Only pass playbook metadata when not guided
+              playbookTitle={!isGuidedReflection ? preservedPlaybookTitle : undefined}
+              dayNumber={!isGuidedReflection ? (() => {
                 console.log('🔍 SmartJournalingReflectionModal: Step info debug:', {
                   existingReflection_day_number: existingReflection?.day_number,
                   existingReflection_day_title: existingReflection?.day_title,
@@ -414,15 +441,15 @@ const SmartJournalingReflectionModal: React.FC<SmartJournalingReflectionModalPro
                   existingReflectionKeys: existingReflection ? Object.keys(existingReflection) : 'no existing reflection',
                 });
                 return existingReflection?.day_number ?? preservedActionStepNumber;
-              })()}
-              dayTitle={existingReflection?.day_title ?? preservedActionStepTitle}
+              })() : undefined}
+              dayTitle={!isGuidedReflection ? (existingReflection?.day_title ?? preservedActionStepTitle) : undefined}
               subtaskId={subtaskId}
               initialEntry={existingReflection ? {
                 title: existingReflection.title || preservedSubtaskTitle,
                 content: existingReflection.content || '',
                 tags: existingReflection.tags || [],
                 type: 'free-form',
-                source: 'playbook',
+                source: isGuidedReflection ? 'guided' : 'playbook',
               } : undefined}
               isLoading={isLoading}
             />

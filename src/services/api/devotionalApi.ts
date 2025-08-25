@@ -1,5 +1,6 @@
 // src/services/api/devotionalApi.ts
 import { supabase } from '../supabaseClient';
+import { DeviceEventEmitter } from 'react-native';
 import { Devotional, DevotionalCreationParams } from '../../interfaces/devotional';
 import { Playbook } from '../../interfaces/playbook';
 
@@ -109,6 +110,11 @@ export class DevotionalApi {
       console.error('Error creating devotional:', error);
       throw new Error(`Failed to create devotional: ${error.message}`);
     }
+
+    try {
+      // Notify listeners (e.g., dashboard carousel) that a new devotional was created
+      DeviceEventEmitter.emit('devotional_created', { id: data.id, user_id: data.user_id });
+    } catch {}
 
     return data;
   }
