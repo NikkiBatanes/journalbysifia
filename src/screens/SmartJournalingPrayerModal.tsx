@@ -212,8 +212,10 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
       if (!user?.id) {throw new Error('User not authenticated');}
 
       let prayerEntry: Omit<PrayerApiEntry, 'id' | 'created_at' | 'updated_at'>;
-      const prayerDateStr = toLocalDateString(prayerData.date);
-      console.log('🙏 Creating prayer with date:', prayerDateStr, 'activeTab:', prayerData.activeTab);
+      // Always use current date for prayers, not the selected journal date
+      const currentDate = new Date();
+      const prayerDateStr = toLocalDateString(currentDate);
+      console.log('🙏 Creating prayer with current date:', prayerDateStr, 'activeTab:', prayerData.activeTab);
 
       if (prayerData.activeTab === 'people') {
         // Save as "people" prayer type (like in journal screen)
@@ -232,7 +234,7 @@ const SmartJournalingPrayerModal: React.FC<SmartJournalingPrayerModalProps> = ({
             action_step_title: actionStepTitle,
             is_prayer_request: false, // This is a prayer, not a request
           },
-          selected_date: prayerDateStr,
+          selected_date: prayerDateStr, // Current date for prayers
         };
       } else {
         // Save as "journal" prayer type (freeform)

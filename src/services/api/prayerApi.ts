@@ -519,7 +519,7 @@ export class PrayerApi {
 
   // Mark prayer request as prayed
   static async markPrayerRequestPrayed(id: string, isPrayed: boolean): Promise<PrayerApiEntry> {
-    return this.updatePrayer(id, { is_prayed: isPrayed });
+    return this.updatePrayer(id, { prayed: isPrayed });
   }
 
   // Get prayers across multiple dates

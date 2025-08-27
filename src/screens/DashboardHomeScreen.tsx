@@ -19,14 +19,19 @@ import {
   Image,
   NativeModules,
   DeviceEventEmitter,
+  TextInput,
+  KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTheme } from '../hooks/useTheme';
+import { Fonts } from '../theme/fonts';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
-import { useTheme } from '../hooks/useTheme';
+import { Colors } from '../theme/colors';
 import { getTierShortName, normalizeTierInput } from '../utils/tierDisplayUtils';
 import { SubscriptionTier } from '../interfaces/subscription';
 // Removed unused imports to reduce lint noise
@@ -45,7 +50,7 @@ import StreakTracker from '../components/dashboard/StreakTracker';
 // Removed WeeklyInsights and AIInsights
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
-import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed } from '../services/hooks/usePrayerData';
+import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed, useCreatePrayer } from '../services/hooks/usePrayerData';
 import { queryKeys } from '../services/queryKeys';
 import DashboardPrayerSkeleton from '../components/SkeletonLoader/DashboardPrayerSkeleton';
 
@@ -70,9 +75,6 @@ interface DashboardHomeScreenProps {
 }
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
-  const theme = useTheme();
-  const Colors = theme.colors;
-  const Fonts = theme.typography;
 
   // Create styles using theme values
   const styles = StyleSheet.create({
@@ -379,12 +381,209 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       alignSelf: 'center',
     },
     expandText: {
-      color: Colors.anchorBlue,
+      color: Colors.hopeWhite,
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '600',
       marginLeft: 8,
-      letterSpacing: 0.3,
-      // Do not use flex here; it pushes the icon off-center when collapsed
+      overflow: 'hidden',
+    },
+    // Prayer Modal Styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalKeyboardContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      // Remove extra horizontal padding to avoid layout width shifts when typing
+      paddingHorizontal: 0,
+    },
+    prayerModalContainer: {
+      backgroundColor: Colors.anchorBlue,
+      borderRadius: 12,
+      padding: 20,
+      // Lock width so it doesn't change when inputs gain focus or while typing
+      // Use screen width minus side margins, capped at 400
+      width: Math.min(width - 40, 400),
+      maxWidth: 400,
+      alignSelf: 'center',
+      maxHeight: '80%',
+    },
+    prayerModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    prayerModalHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    prayerModalTitle: {
+      color: Colors.hopeWhite,
+      fontSize: 12,
+      fontWeight: '700',
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    prayerModalSubtitle: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: 14,
+      marginBottom: 16,
+    },
+    prayerModalTabs: {
+      flexDirection: 'row',
+      marginBottom: 16,
+      gap: 8,
+    },
+    prayerModalTab: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    prayerModalTabActive: {
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    prayerModalTabText: {
+      color: Colors.hopeWhite,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    prayerModalTabInactive: {
+      opacity: 0.6,
+    },
+    prayerModalNameInput: {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      borderRadius: 8,
+      padding: 12,
+      color: Colors.hopeWhite,
+      fontSize: 16,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    prayerModalTextArea: {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      borderRadius: 8,
+      padding: 12,
+      color: Colors.hopeWhite,
+      fontSize: 16,
+      minHeight: 120,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    prayerModalLabel: {
+      color: Colors.hopeWhite,
+      fontSize: 12,
+      fontWeight: '600',
+      marginBottom: 4,
+    },
+    prayerModalPreview: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: 14,
+      marginBottom: 16,
+    },
+    prayerModalActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+    },
+    prayerModalCancelButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    prayerModalSaveButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: Colors.alertCoral,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    prayerModalReadOnlyField: {
+      marginBottom: 16,
+      padding: 12,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    prayerModalFieldLabel: {
+      color: Colors.hopeWhite,
+      fontSize: 12,
+      fontWeight: '600',
+      marginBottom: 6,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    prayerModalReadOnlyText: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    prayerRequestBox: {
+      backgroundColor: 'rgba(255, 99, 71, 0.15)',
+      borderRadius: 12,
+      padding: 12,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 99, 71, 0.3)',
+    },
+    prayerRequestHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    prayerRequestLabel: {
+      color: Colors.alertCoral,
+      fontSize: 14,
+      fontWeight: '500',
+      flex: 1,
+    },
+    prayerModalTabInactiveText: {
+      color: 'rgba(255, 255, 255, 0.5)',
+    },
+    prayerModalReadOnlyInput: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    },
+    successModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    successModalContainer: {
+      backgroundColor: Colors.modalBlue,
+      borderRadius: 16,
+      padding: 24,
+      alignItems: 'center',
+      marginHorizontal: 40,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    successModalTitle: {
+      color: Colors.hopeWhite,
+      fontSize: 18,
+      fontWeight: '600',
+      textAlign: 'center',
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    successModalSubtitle: {
+      color: 'rgba(255, 255, 255, 0.7)',
+      fontSize: 14,
+      textAlign: 'center',
     },
   });
 
@@ -436,6 +635,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Prayer Requests modal state
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [selectedPrayerRequest, setSelectedPrayerRequest] = useState<any | null>(null);
+  
+  // Prayer modal editor state
+  const [showPrayerEditorModal, setShowPrayerEditorModal] = useState(false);
+  const [modalPrayerName, setModalPrayerName] = useState('');
+  const [modalPrayerRequest, setModalPrayerRequest] = useState('');
+  const [savingModalPrayer, setSavingModalPrayer] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successPersonName, setSuccessPersonName] = useState('');
 
   // Status bar: auto-detect from background
   useScreenStatusBar('auto', '#F2F5F7');
@@ -613,11 +820,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Fetch unprayed prayer requests for current user (across all dates)
   const { data: unprayedRequests = [], isLoading: loadingRequests, isFetching: fetchingRequests, refetch: refetchRequests } = useUnprayedPrayerRequests(user?.id || '');
   const markPrayedMutation = useMarkPrayerRequestPrayed();
+  const createPrayerMutation = useCreatePrayer();
 
   const handleOpenPrayer = (req: any) => {
     triggerLightHaptic();
+    // Show prayer editor modal
     setSelectedPrayerRequest(req);
-    setShowPrayerModal(true);
+    setModalPrayerName(req.person_name || '');
+    setModalPrayerRequest('');
+    setShowPrayerEditorModal(true);
   };
 
   const handlePrayerSaved = async () => {
@@ -640,6 +851,79 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       setShowPrayerModal(false);
       setSelectedPrayerRequest(null);
     }
+  };
+
+  const handleSaveModalPrayer = async () => {
+    if (!modalPrayerRequest.trim()) {
+      Alert.alert('Missing Prayer', 'Please enter your prayer before saving.');
+      return;
+    }
+
+    setSavingModalPrayer(true);
+    try {
+      // Create prayer with user's prayer text first, then request content in metadata
+      const prayerContent = modalPrayerRequest.trim();
+      
+      await createPrayerMutation.mutateAsync({
+        content: prayerContent,
+        prayer_type: 'people',
+        person_name: modalPrayerName.trim(),
+        metadata: {
+          is_prayer_request: false, // This is a prayer, not a request
+          original_request_id: selectedPrayerRequest?.id,
+          original_request_content: selectedPrayerRequest?.content,
+          prayer_request_display: selectedPrayerRequest?.content, // For red box display
+        },
+        selected_date: new Date().toLocaleDateString('en-CA'), // Always use current LOCAL date for prayers (YYYY-MM-DD format)
+        user_id: user?.id || '',
+      });
+
+      // Mark the original request as prayed
+      if (selectedPrayerRequest) {
+        await markPrayedMutation.mutateAsync({
+          id: selectedPrayerRequest.id,
+          isPrayed: true,
+          _userId: selectedPrayerRequest.user_id,
+          _dateStr: selectedPrayerRequest.selected_date,
+        });
+      }
+
+      // Invalidate all relevant queries to refresh UI
+      if (user?.id) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.unprayedRequests(user.id) });
+        await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.all(user.id) });
+        await queryClient.invalidateQueries({ queryKey: ['prayers'] });
+        await queryClient.invalidateQueries({ queryKey: ['prayer-requests'] });
+      }
+
+      // Show success modal
+      setSuccessPersonName(modalPrayerName);
+      setShowSuccessModal(true);
+      
+      // Close the prayer modal
+      handleCancelModalPrayer();
+      
+      // Show success feedback
+      triggerLightHaptic();
+      
+      // Auto-hide success modal after 3 seconds
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 3000);
+    } catch (e) {
+      console.error('Failed to save prayer:', e);
+      Alert.alert('Error', 'Failed to save prayer. Please try again.');
+    } finally {
+      setSavingModalPrayer(false);
+    }
+  };
+
+  const handleCancelModalPrayer = () => {
+    setShowPrayerEditorModal(false);
+    setSelectedPrayerRequest(null);
+    setModalPrayerName('');
+    setModalPrayerRequest('');
+    setSavingModalPrayer(false);
   };
 
   const renderPrayerRequestsCard = () => {
@@ -996,6 +1280,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           </>
         )}
 
+
         {/* Removed Weekly Insights and AI Insights */}
 
         {/* Collapsing Playbook label */}
@@ -1158,6 +1443,99 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         onSave={() => handlePrayerSaved()}
         onCancel={() => { setShowPrayerModal(false); setSelectedPrayerRequest(null); }}
       />
+      
+      {/* Prayer Editor Modal */}
+      <Modal
+        visible={showPrayerEditorModal}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCancelModalPrayer}
+      >
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView 
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardContainer}
+          >
+            <View style={styles.prayerModalContainer}>
+              <View style={styles.prayerModalHeader}>
+                <View style={styles.prayerModalHeaderLeft}>
+                  <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.alertCoral} />
+                  <Text style={styles.prayerModalTitle}>PRAYER LIST FOR PEOPLE</Text>
+                </View>
+              </View>
+              
+              <Text style={styles.prayerModalSubtitle}>Write prayer for someone</Text>
+              
+              {/* Tabs - show only Prayers for People active */}
+              <View style={styles.prayerModalTabs}>
+                <View style={[styles.prayerModalTab, styles.prayerModalTabActive]}>
+                  <Text style={styles.prayerModalTabText}>Prayers for People</Text>
+                </View>
+                <View style={[styles.prayerModalTab, styles.prayerModalTabInactive]}>
+                  <Text style={[styles.prayerModalTabText, styles.prayerModalTabInactiveText]}>Prayer Requests</Text>
+                </View>
+              </View>
+
+              {/* Name field - pre-filled and non-editable */}
+              <TextInput
+                style={[styles.prayerModalNameInput, styles.prayerModalReadOnlyInput]}
+                value={modalPrayerName}
+                editable={false}
+              />
+
+              {/* Prayer text area - editable */}
+              <TextInput
+                style={styles.prayerModalTextArea}
+                placeholder="What would you like to pray for them?"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                value={modalPrayerRequest}
+                onChangeText={setModalPrayerRequest}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                autoFocus
+              />
+
+              {/* Prayer Request section */}
+              <Text style={styles.prayerModalLabel}>Prayer Request:</Text>
+              <Text style={styles.prayerModalPreview}>{selectedPrayerRequest?.content || 'Provision for business'}</Text>
+
+              <View style={styles.prayerModalActions}>
+                <TouchableOpacity
+                  style={styles.prayerModalCancelButton}
+                  onPress={handleCancelModalPrayer}
+                  disabled={savingModalPrayer}
+                >
+                  <Ionicons name="close" size={20} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.prayerModalSaveButton}
+                  onPress={handleSaveModalPrayer}
+                  disabled={savingModalPrayer || !modalPrayerName.trim() || !modalPrayerRequest.trim()}
+                >
+                  <Ionicons name="checkmark" size={20} color={Colors.hopeWhite} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+      
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.successModalOverlay}>
+          <View style={styles.successModalContainer}>
+            <MaterialCommunityIcons name="check-circle" size={48} color={Colors.alertCoral} />
+            <Text style={styles.successModalTitle}>Thank you for praying for {successPersonName}!</Text>
+            <Text style={styles.successModalSubtitle}>It is now saved in your prayer journal</Text>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

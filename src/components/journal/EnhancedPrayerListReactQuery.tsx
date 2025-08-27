@@ -61,6 +61,10 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   console.log('[EnhancedPrayerListReactQuery] peoplePrayers:', peoplePrayers);
   const createPrayerMutation = useCreatePrayer();
   const updatePrayerMutation = useUpdatePrayer();
+  
+  // Check if the selected date is in the past
+  const today = new Date().toLocaleDateString('en-CA'); // Use local date to match dateStr format
+  const isPastDate = dateStr < today;
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
@@ -458,8 +462,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           <Text style={styles.prayerText}>
             {item.content || item.notes}
           </Text>
-          {/* Show Prayer Request label (and notes if present) for personal prayers that came from a request */}
-          {(item.requested_by || item.metadata?.requested_by) && item.content && (
+          {/* Show Prayer Request label for prayers that came from a request */}
+          {(item.requested_by || item.metadata?.requested_by || item.metadata?.prayer_request_display) && item.content && (
             <View style={styles.notesBox}>
               <Ionicons
                 name="mail-unread"
@@ -469,14 +473,14 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               />
               <Text style={[styles.notesText, styles.notesTextInside]} numberOfLines={3}>
                 <Text style={styles.notesLabel}>
-                  {`Prayer Request${item.notes ? ': ' : ''}`}
+                  Prayer Request: 
                 </Text>
-                {item.notes ?? ''}
+                {item.metadata?.prayer_request_display || item.notes || ''}
               </Text>
             </View>
           )}
           {/* Show regular notes for personal prayers (not from requests) */}
-          {!(item.requested_by || item.metadata?.requested_by) && item.notes && item.content && (
+          {!(item.requested_by || item.metadata?.requested_by || item.metadata?.prayer_request_display) && item.notes && item.content && (
             <Text style={styles.notesText} numberOfLines={3}>
               <Text style={styles.notesLabel}>Note: </Text>
               {item.notes}
@@ -561,7 +565,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         viewMode={viewMode}
         expanded={expanded}
         onExpand={onExpand}
-        showAddButton={hasContent || isEditing ? !isEditing : false}
+        showAddButton={hasContent || isEditing ? !isEditing && !isPastDate : !isPastDate}
         onAdd={toggleEditing}
         isAdding={isEditing}
         onCancelAdd={handleCancelEdit}

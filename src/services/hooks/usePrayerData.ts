@@ -244,6 +244,10 @@ export const useCreatePrayer = () => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.prayers.people(variables.user_id, variables.selected_date),
         });
+        // Ensure dashboard unprayed requests list is refreshed when people prayers change
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.prayers.unprayedRequests(variables.user_id),
+        });
       } else if (variables.prayer_type === 'devotional') {
         queryClient.invalidateQueries({
           queryKey: queryKeys.prayers.devotional(variables.user_id, variables.selected_date),
@@ -315,6 +319,11 @@ export const useUpdatePrayer = () => {
       // Always refetch after error or success
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      // Also refresh unprayed requests for dashboard in case an item transitioned
+      // into/out of the unprayed requests set (e.g., marking prayed or toggling request flag)
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.unprayedRequests(_userId),
       });
     },
   });
@@ -469,6 +478,10 @@ export const useMarkSupplicationAnswered = () => {
     onSettled: (data, error, { _userId, _dateStr }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      // Keep dashboard requests list in sync when marking a request as prayed/unprayed
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.unprayedRequests(_userId),
       });
     },
   });
