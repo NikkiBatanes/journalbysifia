@@ -697,6 +697,46 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       fontSize: 14,
       textAlign: 'center',
     },
+    // Prayer pagination controls (mirror ActionStepsCard pagination styles)
+    prayerPaginationContainer: {
+      width: '100%',
+      paddingVertical: 1,
+    },
+    prayerPaginationGroup: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 6,
+      paddingTop: 10,
+      paddingBottom: 0,
+    },
+    prayerPaginationButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 2,
+      paddingHorizontal: 8,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      gap: 6,
+    },
+    prayerPaginationButtonText: {
+      marginLeft: 2,
+      fontSize: 11,
+      lineHeight: 14,
+    },
+    prayerShowMoreButton: {
+      backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    },
+    prayerShowLessButton: {
+      backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    },
+    prayerShowMoreText: {
+      color: Colors.alertCoral,
+    },
+    prayerShowLessText: {
+      color: Colors.mediumGray,
+    },
   });
 
   // Always show FAB for easy access to UserInput screen (no state needed)
@@ -754,6 +794,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const [savingModalPrayer, setSavingModalPrayer] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successPersonName, setSuccessPersonName] = useState('');
+  // Prayer Requests: show more/less toggle
+  const [showAllPrayerRequests, setShowAllPrayerRequests] = useState(false);
 
   // Status bar: auto-detect from background
   useScreenStatusBar('auto', '#F2F5F7');
@@ -1115,7 +1157,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       ) : unprayedRequests.length === 0 ? (
         <ThemedText weight="regular" style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</ThemedText>
       ) : (
-        unprayedRequests.slice(0, 5).map((req: any, idx: number) => (
+        (showAllPrayerRequests ? unprayedRequests : unprayedRequests.slice(0, 2)).map((req: any, idx: number) => (
           <View
             key={req.id}
             style={[styles.prayerRequestItem, idx !== 0 && styles.prayerRequestItemSpacing]}
@@ -1151,10 +1193,35 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           </View>
         ))
       )}
-      {unprayedRequests.length > 5 ? (
-        <ThemedText weight="regular" style={[styles.cardSubtitle, styles.moreTextMarginTop]}>
-          And {unprayedRequests.length - 5} more...
-        </ThemedText>
+      {unprayedRequests.length > 2 ? (
+        <View style={styles.prayerPaginationContainer}>
+          <View style={styles.prayerPaginationGroup}>
+            {!showAllPrayerRequests && (
+              <TouchableOpacity
+                onPress={() => { triggerLightHaptic(); setShowAllPrayerRequests(true); }}
+                style={[styles.prayerPaginationButton, styles.prayerShowMoreButton]}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Show more prayer requests"
+              >
+                <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
+                <ThemedText weight="semiBold" style={[styles.prayerPaginationButtonText, styles.prayerShowMoreText]}>Show more</ThemedText>
+              </TouchableOpacity>
+            )}
+            {showAllPrayerRequests && (
+              <TouchableOpacity
+                onPress={() => { triggerLightHaptic(); setShowAllPrayerRequests(false); }}
+                style={[styles.prayerPaginationButton, styles.prayerShowLessButton]}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Show less prayer requests"
+              >
+                <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
+                <ThemedText weight="semiBold" style={[styles.prayerPaginationButtonText, styles.prayerShowLessText]}>Show less</ThemedText>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       ) : null}
     </View>
   );
