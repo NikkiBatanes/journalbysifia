@@ -320,7 +320,15 @@ export default function RootStackNavigator({
           />
 
           {/* Main App */}
-          <Stack.Screen name="MainTabs" component={MainTabsScreen} />
+          <Stack.Screen 
+            name="MainTabs" 
+            component={MainTabsScreen} 
+            options={{
+              headerShown: false,
+              animation: 'fade',
+              gestureEnabled: false,
+            }}
+          />
 
           {/* UserProfile is now nested under Dashboard (HomeStackNavigator) */}
           {/* Root-level modal alias for UserProfile to guarantee modal presentation from detail screens */}

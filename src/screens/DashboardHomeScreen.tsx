@@ -802,7 +802,23 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const textOpacity = useRef(new Animated.Value(0)).current;
   // ScrollView ref to reset position on focus
   const scrollRef = useRef<ScrollView | null>(null);
-  // FAB pan state
+  // Dashboard mount animation (fade + subtle slide up)
+  const mountOpacity = useRef(new Animated.Value(0)).current;
+  const mountTranslateY = useRef(new Animated.Value(12)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(mountOpacity, {
+        toValue: 1,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(mountTranslateY, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [mountOpacity, mountTranslateY]);
   const fabPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
   const fabPanResponder = useRef(
     PanResponder.create({
@@ -1203,7 +1219,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           return (
             <TouchableOpacity
               style={styles.subscriptionBadge}
-              onPress={() => { triggerLightHaptic(); navigation.navigate('UserProfile'); }}
+              disabled
             >
               <ThemedText weight="semiBold" style={styles.subscriptionText}>{displayName}</ThemedText>
             </TouchableOpacity>
@@ -1334,11 +1350,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     </Animated.View>
   );
 
-  // (Removed) Test buttons UI
-
   return (
-    <View style={styles.container}>
-
+    <Animated.View
+      style={[
+        styles.container,
+        { opacity: mountOpacity, transform: [{ translateY: mountTranslateY }] },
+      ]}
+    >
       {renderHeader()}
       {renderGreeting()}
 
@@ -1353,132 +1371,131 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }
           showsVerticalScrollIndicator={false}
         >
-        {/* Progress Tracking - moved above Today's Scripture */}
-        <StreakTracker />
-        <View style={styles.smallSectionGap} />
+          {/* Progress Tracking - moved above Today's Scripture */}
+          <StreakTracker />
+          <View style={styles.smallSectionGap} />
 
-        {/* Daily Scripture - now below Streak Tracker */}
-        <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
-        <View style={styles.sectionGap} />
+          {/* Daily Scripture - now below Streak Tracker */}
+          <DailyBibleVerseCard onRefresh={() => setRefreshing(true)} />
+          <View style={styles.sectionGap} />
 
-        {/* Row 1: Inspiration Cards (Affirmation only) */}
-        <View style={styles.row}>
-          <DailyAffirmationCard onRefresh={() => setRefreshing(true)} />
-        </View>
-        <View style={styles.sectionGap} />
+          {/* Row 1: Inspiration Cards (Affirmation only) */}
+          <View style={styles.row}>
+            <DailyAffirmationCard onRefresh={() => setRefreshing(true)} />
+          </View>
+          <View style={styles.sectionGap} />
 
-        {/* Prayer Requests Section (hide when empty) */}
-        {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
-          <>
-            {renderPrayerRequestsCard()}
-            <View style={styles.sectionGap} />
-          </>
-        )}
+          {/* Prayer Requests Section (hide when empty) */}
+          {(loadingRequests || fetchingRequests || unprayedRequests.length > 0) && (
+            <>
+              {renderPrayerRequestsCard()}
+              <View style={styles.sectionGap} />
+            </>
+          )}
 
 
-        {/* Removed Weekly Insights and AI Insights */}
+          {/* Removed Weekly Insights and AI Insights */}
 
-        {/* Collapsing Playbook label */}
-        <View style={styles.playbookLabelContainer}>
-          <Animated.View
-            style={[styles.playbookLabelClip, { width: playbookWidth }]}
-          >
-            <ThemedText
-              onLayout={(e) => {
-                const w = e.nativeEvent.layout.width;
-                if (w !== playbookMeasuredWidth) {
-                  setPlaybookMeasuredWidth(w);
-                }
-              }}
-              style={styles.playbookLabel}
+          {/* Collapsing Playbook label */}
+          <View style={styles.playbookLabelContainer}>
+            <Animated.View
+              style={[styles.playbookLabelClip, { width: playbookWidth }]}
             >
-              Playbook
-            </ThemedText>
-          </Animated.View>
-        </View>
+              <ThemedText
+                onLayout={(e) => {
+                  const w = e.nativeEvent.layout.width;
+                  if (w !== playbookMeasuredWidth) {
+                    setPlaybookMeasuredWidth(w);
+                  }
+                }}
+                style={styles.playbookLabel}
+              >
+                Playbook
+              </ThemedText>
+            </Animated.View>
+          </View>
 
-        <PlaybookCarousel
-          onPlaybookPress={(playbook) => {
-            triggerLightHaptic();
-            navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
-          }}
-          onViewAll={() => {
-            // Navigate to playbooks list
-            triggerLightHaptic();
-            navigation.navigate('Playbooks');
-          }}
-        />
-        <View style={styles.sectionGap} />
-        <DevotionalCarousel
-          onDevotionalPress={(devotional) => {
-            // Navigate to devotional detail screen
-            triggerLightHaptic();
-            navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
-          }}
-          onViewAll={() => {
-            // Navigate to devotionals list
-            triggerLightHaptic();
-            navigation.navigate('Devotionals');
-          }}
-        />
-        <View style={styles.sectionGap} />
+          <PlaybookCarousel
+            onPlaybookPress={(playbook) => {
+              triggerLightHaptic();
+              navigation.navigate('PlaybookDetail', { playbookId: playbook.id });
+            }}
+            onViewAll={() => {
+              // Navigate to playbooks list
+              triggerLightHaptic();
+              navigation.navigate('Playbooks');
+            }}
+          />
+          <View style={styles.sectionGap} />
+          <DevotionalCarousel
+            onDevotionalPress={(devotional) => {
+              // Navigate to devotional detail screen
+              triggerLightHaptic();
+              navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
+            }}
+            onViewAll={() => {
+              // Navigate to devotionals list
+              triggerLightHaptic();
+              navigation.navigate('Devotionals');
+            }}
+          />
+          <View style={styles.sectionGap} />
 
-        {/* External Actions header and subtitle (moved out of card) */}
-        <View style={styles.actionsHeaderContainer}>
-          <ThemedText weight="semiBold" style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</ThemedText>
-          <ThemedText weight="medium" style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</ThemedText>
-        </View>
+          {/* External Actions header and subtitle (moved out of card) */}
+          <View style={styles.actionsHeaderContainer}>
+            <ThemedText weight="semiBold" style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</ThemedText>
+            <ThemedText weight="medium" style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</ThemedText>
+          </View>
 
-        <ActionStepsCard
-          onStepPress={(step) => {
-            // Navigate to Playbook detail when an action step is tapped
-            triggerLightHaptic();
-            navigation.navigate('PlaybookDetail', { playbookId: step.playbookId });
-          }}
-          onViewAll={() => {
-            // Navigate to all action steps
-          }}
-          onCountChange={setActionsCount}
-        />
-        <View style={styles.sectionGap} />
+          <ActionStepsCard
+            onStepPress={(step) => {
+              // Navigate to Playbook detail when an action step is tapped
+              triggerLightHaptic();
+              navigation.navigate('PlaybookDetail', { playbookId: step.playbookId });
+            }}
+            onViewAll={() => {
+              // Navigate to all action steps
+            }}
+            onCountChange={setActionsCount}
+          />
+          <View style={styles.sectionGap} />
 
-        {/* Reflection Questions Card */}
-        <ReflectionQuestionsCard
-          onQuestionPress={(q: any) => {
-            triggerLightHaptic();
-            // Include enriched metadata for devotional reflections
-            setSelectedReflection({
-              question: q.question,
-              source: q.source,
-              sourceType: q.sourceType,
-              sourceId: q.sourceId, // This is the devotional ID
-              dayNumber: q.dayNumber,
-              dayTitle: q.dayTitle,
-              totalDays: q.totalDays,
-              questionNumber: q.questionIndex,
-            });
-            // Route by sourceType: devotional -> devotional modal; playbook/guided -> SJ modal
-            if (q.sourceType === 'devotional') {
-              setShowDevotionalModal(true);
-            } else {
-              setShowSJModal(true);
-            }
-          }}
-          onViewAll={() => {
-            // Navigate to journal reflections or a dedicated reflections screen if available
-            triggerLightHaptic();
-            navigation.navigate('Journal');
-          }}
-        />
-        <View style={styles.sectionGap} />
+          {/* Reflection Questions Card */}
+          <ReflectionQuestionsCard
+            onQuestionPress={(q: any) => {
+              triggerLightHaptic();
+              // Include enriched metadata for devotional reflections
+              setSelectedReflection({
+                question: q.question,
+                source: q.source,
+                sourceType: q.sourceType,
+                sourceId: q.sourceId, // This is the devotional ID
+                dayNumber: q.dayNumber,
+                dayTitle: q.dayTitle,
+                totalDays: q.totalDays,
+                questionNumber: q.questionIndex,
+              });
+              // Route by sourceType: devotional -> devotional modal; playbook/guided -> SJ modal
+              if (q.sourceType === 'devotional') {
+                setShowDevotionalModal(true);
+              } else {
+                setShowSJModal(true);
+              }
+            }}
+            onViewAll={() => {
+              // Navigate to journal reflections or a dedicated reflections screen if available
+              triggerLightHaptic();
+              navigation.navigate('Journal');
+            }}
+          />
+          <View style={styles.sectionGap} />
 
-        {/* Removed sections: Faith Community, Quick Actions, Growth & Progress, Community (Prayer Circle, Testimonies) */}
+          {/* Removed sections: Faith Community, Quick Actions, Growth & Progress, Community (Prayer Circle, Testimonies) */}
 
-        {/* Bottom spacing for floating button */}
-        <View style={styles.bottomSpacing} />
+          {/* Bottom spacing for floating button */}
+          <View style={styles.bottomSpacing} />
         </ScrollView>
       </View>
-
       {renderFloatingButton()}
 
       {/* Reflection Modals */}
@@ -1622,7 +1639,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         }}
         onDone={() => setShowSuccessModal(false)}
       />
-    </View>
+    </Animated.View>
   );
 };
 

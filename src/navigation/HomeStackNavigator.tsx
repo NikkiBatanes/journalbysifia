@@ -10,7 +10,15 @@ const Stack = createNativeStackNavigator();
 export default function HomeStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="DashboardHome" component={DashboardHomeScreen as React.ComponentType} />
+      <Stack.Screen
+        name="DashboardHome"
+        component={DashboardHomeScreen as React.ComponentType}
+        options={{
+          headerShown: false,
+          animation: 'fade',
+          gestureEnabled: false,
+        }}
+      />
       <Stack.Screen
         name="UserProfile"
         component={UserProfileScreen as React.ComponentType}
