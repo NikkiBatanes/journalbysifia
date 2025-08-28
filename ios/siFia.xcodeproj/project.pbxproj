@@ -404,6 +404,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8HXK987GBU;
 				ENABLE_BITCODE = NO;
@@ -419,9 +420,10 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.sifia;
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.yourcompany.sifia;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anchored.app;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.anchored.app;
 				PRODUCT_NAME = siFia;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -437,6 +439,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8HXK987GBU;
 				INFOPLIST_FILE = siFia/Info.plist;
@@ -451,9 +454,10 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.yourcompany.sifia;
-				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.yourcompany.sifia;
+				PRODUCT_BUNDLE_IDENTIFIER = com.anchored.app;
+				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = com.anchored.app;
 				PRODUCT_NAME = siFia;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.0;

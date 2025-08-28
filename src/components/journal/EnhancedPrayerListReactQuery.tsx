@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 import { Pencil, X, Check } from 'lucide-react-native';
 import { JournalCard } from './JournalCard';
@@ -491,11 +492,11 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         {item.is_prayer_request === true && item.prayed !== true && (
           <TouchableOpacity
             style={styles.addButton}
-            onPress={() => handleAddToMyList(item)}
+            onPress={() => { triggerLightHaptic(); handleAddToMyList(item); }}
           >
             <Ionicons
-              name="add-circle"
-              size={20}
+              name="add-circle-outline"
+              size={18}
               color={Colors.hopeWhite}
               style={styles.iconMargin}
             />
