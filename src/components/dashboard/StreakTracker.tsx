@@ -60,7 +60,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
       { type: 'journal', activityTypes: ['journal_entry'] },
       { type: 'playbook', activityTypes: ['playbook_generated', 'action_step_completed'] },
       { type: 'devotional', activityTypes: ['devotional_generated', 'daily_streak'] },
-      { type: 'prayer', activityTypes: ['daily_streak'] }, // Prayer can be tracked via daily_streak
+      { type: 'prayer', activityTypes: ['daily_streak', 'prayer_for_now', 'prayer_for_others'] }, // Include current prayer activity types
     ];
     const streakResults: Streak[] = [];
 
@@ -211,7 +211,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakP
     journal: ['journal_entry'],
     playbook: ['playbook_generated', 'action_step_completed'],
     devotional: ['devotional_generated', 'daily_streak'],
-    prayer: ['daily_streak'],
+    prayer: ['daily_streak', 'prayer_for_now', 'prayer_for_others'],
   };
 
   const getRecentActivityForType = (type: Streak['type'], days = 14) => {

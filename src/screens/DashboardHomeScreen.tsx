@@ -20,6 +20,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Modal,
+  PanResponder,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -801,6 +802,27 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const textOpacity = useRef(new Animated.Value(0)).current;
   // ScrollView ref to reset position on focus
   const scrollRef = useRef<ScrollView | null>(null);
+  // FAB pan state
+  const fabPan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const fabPanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        fabPan.setOffset({ x: (fabPan as any).x._value || 0, y: (fabPan as any).y._value || 0 });
+        fabPan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (_evt, gesture) => {
+        fabPan.setValue({ x: gesture.dx, y: gesture.dy });
+      },
+      onPanResponderRelease: () => {
+        fabPan.flattenOffset();
+      },
+      onPanResponderTerminate: () => {
+        fabPan.flattenOffset();
+      },
+    })
+  ).current;
   // When collapsed, keep text width at 0 so the icon stays perfectly centered
   const textWidth = textOpacity.interpolate({
     inputRange: [0, 1],
@@ -1284,7 +1306,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     <Animated.View
       style={[
         styles.floatingButton,
+        { transform: [{ translateX: fabPan.x }, { translateY: fabPan.y }] },
       ]}
+      {...fabPanResponder.panHandlers}
     >
       <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
         <TouchableOpacity
