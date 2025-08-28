@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -20,6 +19,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 import DevotionalSkeleton from '../SkeletonLoader/DevotionalSkeleton';
+import ThemedText from '../common/ThemedText';
 
 const { width } = Dimensions.get('window');
 // Match ReflectionQuestionsCard sizing and spacing
@@ -374,7 +374,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     >
       <View style={styles.cardHeader}>
         <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{devotional.category}</Text>
+          <ThemedText weight="medium" style={styles.categoryText}>{devotional.category}</ThemedText>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(devotional.isCompleted) }]}>
           <Ionicons
@@ -385,42 +385,42 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
         </View>
       </View>
 
-      <Text style={styles.devotionalTitle} numberOfLines={2}>
+      <ThemedText weight="semiBold" style={styles.devotionalTitle} numberOfLines={2}>
         {devotional.title}
-      </Text>
+      </ThemedText>
 
 
       {devotional.verse && (
         <View style={styles.versePreview}>
-          <Text style={styles.verseText} numberOfLines={2}>
+          <ThemedText style={styles.verseText} numberOfLines={2}>
             "{devotional.verse.text}"
-          </Text>
-          <Text style={styles.verseReference}>- {devotional.verse.reference}</Text>
+          </ThemedText>
+          <ThemedText weight="semiBold" style={styles.verseReference}>- {devotional.verse.reference}</ThemedText>
         </View>
       )}
 
       {devotional.description && (
-        <Text style={styles.devotionalDescription} numberOfLines={2}>
+        <ThemedText style={styles.devotionalDescription} numberOfLines={2}>
           {devotional.description}
-        </Text>
+        </ThemedText>
       )}
 
       {/* Place Next/Completed info below description */}
       {devotional.isCompleted ? (
         <View style={{ marginBottom: 8 }}>
-          <Text style={styles.completedText}>DONE</Text>
+          <ThemedText weight="bold" style={styles.completedText}>DONE</ThemedText>
           {!!formatFinishedDate(devotional.completedAt) && (
-            <Text style={styles.finishedDateText}>{formatFinishedDate(devotional.completedAt)}</Text>
+            <ThemedText style={styles.finishedDateText}>{formatFinishedDate(devotional.completedAt)}</ThemedText>
           )}
         </View>
       ) : devotional.nextDayNumber ? (
         <View style={{ marginBottom: 8 }}>
-          <Text style={styles.nextLabel}>NEXT</Text>
-          <Text style={styles.nextDayTitleText} numberOfLines={1}>
+          <ThemedText weight="bold" style={styles.nextLabel}>NEXT</ThemedText>
+          <ThemedText weight="semiBold" style={styles.nextDayTitleText} numberOfLines={1}>
             {devotional.total_days === 1
               ? `Day ${devotional.nextDayNumber}`
               : `Day ${devotional.nextDayNumber}: ${devotional.nextDayTitle || ''}`}
-          </Text>
+          </ThemedText>
         </View>
       ) : null}
 
@@ -432,15 +432,15 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               size={16}
               color={getStatusColor(devotional.isCompleted)}
             />
-            <Text style={[styles.statusText, { color: getStatusColor(devotional.isCompleted) }]}>
+            <ThemedText weight="medium" style={[styles.statusText, { color: getStatusColor(devotional.isCompleted) }]}>
               {getStatusText(devotional)}
-            </Text>
+            </ThemedText>
           </View>
 
           {devotional.lastAccessed && !devotional.isCompleted && (
-            <Text style={styles.lastAccessedText}>
+            <ThemedText style={styles.lastAccessedText}>
               Last read: {new Date(devotional.lastAccessed).toLocaleDateString()}
-            </Text>
+            </ThemedText>
           )}
         </View>
       )}
@@ -457,11 +457,11 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             color="rgba(255,255,255,0.85)"
             style={styles.heroIcon}
           />
-          <Text style={styles.heroOverline}>No Devotionals</Text>
-          <Text style={styles.heroTitle}>Start with Scripture</Text>
-          <Text style={styles.heroSubtitle}>
+          <ThemedText weight="semiBold" style={styles.heroOverline}>No Devotionals</ThemedText>
+          <ThemedText weight="bold" style={styles.heroTitle}>Start with Scripture</ThemedText>
+          <ThemedText style={styles.heroSubtitle}>
             Create a playbook for what you're facing, then build a daily devotional from it.
-          </Text>
+          </ThemedText>
         </View>
       </View>
     </View>
@@ -475,7 +475,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
-        <Text style={styles.title}>Your Devotionals</Text>
+        <ThemedText weight="semiBold" style={styles.title}>Your Devotionals</ThemedText>
         {devotionals.length > 1 && (
           <TouchableOpacity
             onPress={() => {
@@ -484,14 +484,14 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             }}
             style={styles.viewAllButton}
           >
-            <Text style={styles.viewAllText}>VIEW ALL</Text>
+            <ThemedText weight="medium" style={styles.viewAllText}>VIEW ALL</ThemedText>
           </TouchableOpacity>
         )}
       </View>
 
       {error ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
@@ -499,7 +499,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
             }}
             style={styles.retryButton}
           >
-            <Text style={styles.retryText}>Try Again</Text>
+            <ThemedText weight="semiBold" style={styles.retryText}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       ) : devotionals.length === 0 ? (
@@ -579,7 +579,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     flex: 1,
   },
@@ -591,7 +590,6 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 11,
     color: Colors.alertCoral,
-    fontWeight: '500',
   },
   scrollContainer: {
     paddingRight: 16,
@@ -622,7 +620,6 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 10,
     color: Colors.hopeWhite,
-    fontWeight: '500',
     textTransform: 'uppercase',
   },
   statusBadge: {
@@ -634,7 +631,6 @@ const styles = StyleSheet.create({
   },
   devotionalTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 12,
     lineHeight: 22,
@@ -655,7 +651,6 @@ const styles = StyleSheet.create({
   verseReference: {
     fontSize: 11,
     color: Colors.alertCoral,
-    fontWeight: '600',
     textAlign: 'right',
   },
   devotionalDescription: {
@@ -669,17 +664,14 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     opacity: 0.7,
     letterSpacing: 1,
-    fontWeight: '700',
   },
   nextDayTitleText: {
     fontSize: 13,
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   completedText: {
     fontSize: 12,
     color: Colors.successGreen,
-    fontWeight: '700',
     marginBottom: 8,
   },
   finishedDateText: {
@@ -696,7 +688,6 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 12,
-    fontWeight: '500',
   },
   lastAccessedText: {
     fontSize: 10,
@@ -746,13 +737,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     textTransform: 'uppercase',
     marginBottom: 6,
-    fontWeight: '600',
   },
   heroTitle: {
     fontSize: 18,
     textAlign: 'center',
     color: Colors.hopeWhite,
-    fontWeight: '700',
     lineHeight: 24,
     marginBottom: 6,
   },
@@ -784,7 +773,6 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   dynamicCardStyle: {
     // Base style for dynamic properties

@@ -2,7 +2,7 @@ import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, Text, StyleSheet } from 'react-native';
 
-import { Colors, defaultFontFamily, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import { Colors, Fonts, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 
 interface DevotionalSectionCardProps {
   icon: string;
@@ -67,14 +67,14 @@ const styles = StyleSheet.create({
     marginRight: 0,
   },
   title: {
-    fontFamily: defaultFontFamily.bold,
+    fontFamily: Fonts.bold,
     fontSize: 18,
     lineHeight: 24,
     fontWeight: 'bold',
     color: Colors.hopeWhite,
   },
   subtitle: {
-    fontFamily: defaultFontFamily.regular,
+    fontFamily: Fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.8)',
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   },
   defaultText: {
     color: Colors.hopeWhite,
-    fontFamily: 'System',
+    fontFamily: Fonts.regular,
     fontSize: 16,
     lineHeight: 22,
   },

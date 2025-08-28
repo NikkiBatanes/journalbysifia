@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
@@ -23,6 +22,7 @@ import { triggerLightHaptic } from '../../utils/haptics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import DashboardPlaybookSkeleton from '../SkeletonLoader/DashboardPlaybookSkeleton';
+import ThemedText from '../common/ThemedText';
 
 const { width } = Dimensions.get('window');
 // Match ReflectionQuestionsCard sizing and spacing
@@ -331,18 +331,18 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       >
       <View style={styles.badgeContainer}>
         <View style={[styles.progressBadge, { backgroundColor: getProgressColor(playbook.progress) }]}>
-          <Text style={styles.progressBadgeText}>{playbook.progress}%</Text>
+          <ThemedText weight="semiBold" style={styles.progressBadgeText}>{playbook.progress}%</ThemedText>
         </View>
       </View>
 
-      <Text style={styles.playbookTitle}>
+      <ThemedText weight="semiBold" style={styles.playbookTitle}>
         {playbook.title}
-      </Text>
+      </ThemedText>
 
       {playbook.description && (
-        <Text style={styles.playbookDescription} numberOfLines={3}>
+        <ThemedText style={styles.playbookDescription} numberOfLines={3}>
           {playbook.description}
-        </Text>
+        </ThemedText>
       )}
 
       <View style={styles.progressSection}>
@@ -357,7 +357,8 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             ]}
           />
         </View>
-        <Text
+        <ThemedText
+          weight="medium"
           style={[
             styles.progressText,
             {
@@ -371,17 +372,17 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           ]}
         >
           {getProgressText(playbook.progress)}
-        </Text>
+        </ThemedText>
       </View>
 
       <View style={styles.stepInfo}>
-        <Text style={styles.stepText}>
+        <ThemedText weight="medium" style={styles.stepText}>
           {playbook.completedSteps} of {playbook.totalSteps} steps
-        </Text>
+        </ThemedText>
         {playbook.lastAccessed && (
-          <Text style={styles.lastAccessedText}>
+          <ThemedText style={styles.lastAccessedText}>
             Last accessed: {new Date(playbook.lastAccessed).toLocaleDateString()}
-          </Text>
+          </ThemedText>
         )}
       </View>
       </Animated.View>
@@ -399,12 +400,12 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             color="rgba(255,255,255,0.85)"
             style={styles.heroIcon}
           />
-          <Text style={styles.heroOverline}>No Playbooks</Text>
-          <Text style={styles.heroTitle}>Create a New Playboook</Text>
-          <Text style={styles.heroSubtitle}>
+          <ThemedText weight="semiBold" style={styles.heroOverline}>No Playbooks</ThemedText>
+          <ThemedText weight="bold" style={styles.heroTitle}>Create a New Playboook</ThemedText>
+          <ThemedText style={styles.heroSubtitle}>
             Share what you're going through in detail.{"\n"}
             The more context, the better we can help.
-          </Text>
+          </ThemedText>
         </View>
         <TouchableOpacity
           style={styles.createButton}
@@ -414,7 +415,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           }}
         >
           <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-          <Text style={styles.createButtonText}>Create a Playbook</Text>
+          <ThemedText weight="semiBold" style={styles.createButtonText}>Create a Playbook</ThemedText>
         </TouchableOpacity>
       </View>
     </View>
@@ -428,7 +429,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     <View style={styles.container}>
       <View style={styles.header}>
         <MaterialCommunityIcons name="clipboard-text-play" size={24} color={Colors.alertCoral} />
-        <Text style={styles.title}>Your Playbooks</Text>
+        <ThemedText weight="semiBold" style={styles.title}>Your Playbooks</ThemedText>
         {playbooks.length > 1 && (
           <TouchableOpacity
             onPress={() => {
@@ -437,14 +438,14 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             }}
             style={styles.viewAllButton}
           >
-            <Text style={styles.viewAllText}>VIEW ALL</Text>
+            <ThemedText weight="medium" style={styles.viewAllText}>VIEW ALL</ThemedText>
           </TouchableOpacity>
         )}
       </View>
 
       {error ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
@@ -452,7 +453,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
             }}
             style={styles.retryButton}
           >
-            <Text style={styles.retryText}>Try Again</Text>
+            <ThemedText weight="semiBold" style={styles.retryText}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       ) : playbooks.length === 0 ? (
@@ -495,7 +496,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     flex: 1,
   },
@@ -507,7 +507,6 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 11,
     color: Colors.alertCoral,
-    fontWeight: '500',
   },
   scrollContainer: {
     paddingVertical: 4,
@@ -547,13 +546,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.9)',
     textTransform: 'uppercase',
     marginBottom: 6,
-    fontWeight: '600',
   },
   heroTitle: {
     fontSize: 18,
     textAlign: 'center',
     color: Colors.hopeWhite,
-    fontWeight: '700',
     lineHeight: 24,
     marginBottom: 6,
   },
@@ -591,7 +588,6 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 10,
     color: Colors.mediumGray,
-    fontWeight: '500',
     textTransform: 'uppercase',
   },
   progressBadge: {
@@ -602,11 +598,9 @@ const styles = StyleSheet.create({
   progressBadgeText: {
     fontSize: 10,
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   playbookTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 8,
     // Reserve space on the right so long titles don't run under the percentage badge
@@ -642,7 +636,6 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     color: Colors.mediumGray,
-    fontWeight: '500',
   },
   stepInfo: {
     gap: 2,
@@ -650,7 +643,6 @@ const styles = StyleSheet.create({
   stepText: {
     fontSize: 12,
     color: Colors.hopeWhite,
-    fontWeight: '500',
   },
   lastAccessedText: {
     fontSize: 10,
@@ -676,7 +668,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: Colors.hopeWhite,
   },
   emptyDescription: {
@@ -702,7 +693,6 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: 15,
     color: Colors.hopeWhite,
-    fontWeight: '600',
     letterSpacing: 0.5,
   },
   buttonIcon: {
@@ -728,7 +718,6 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   firstCard: {
     // no longer used (kept for backward compatibility)

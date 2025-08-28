@@ -6,11 +6,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   Animated,
-  PanResponder,
   Dimensions,
   Alert,
   RefreshControl,
@@ -23,18 +21,19 @@ import {
   KeyboardAvoidingView,
   Modal,
 } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useTheme } from '../hooks/useTheme';
-import { Fonts } from '../theme/fonts';
+// Removed useTheme and getFontFamily; fonts handled by ThemedText
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
 import { getTierShortName, normalizeTierInput } from '../utils/tierDisplayUtils';
 import { SubscriptionTier } from '../interfaces/subscription';
 // Removed unused imports to reduce lint noise
+import { useTheme } from '../hooks/useTheme';
+import { getFontFamily } from '../theme/fonts';
 
 import DailyAffirmationCard from '../components/dashboard/DailyAffirmationCard';
 import DailyBibleVerseCard from '../components/dashboard/DailyBibleVerseCard';
@@ -48,13 +47,14 @@ import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
 
 import StreakTracker from '../components/dashboard/StreakTracker';
 // Removed WeeklyInsights and AIInsights
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// Removed AsyncStorage (unused)
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed, useCreatePrayer } from '../services/hooks/usePrayerData';
 import { queryKeys } from '../services/queryKeys';
 import DashboardPrayerSkeleton from '../components/SkeletonLoader/DashboardPrayerSkeleton';
+import ThemedText from '../components/common/ThemedText';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 // Motivational texts that rotate
 const MOTIVATIONAL_TEXTS = [
@@ -75,6 +75,12 @@ interface DashboardHomeScreenProps {
 }
 
 const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation }) => {
+
+  // Fonts: derive theme font for TextInput usage (placeholders inherit TextInput font)
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
+  // const fontSemiBold = getFontFamily(fontKey, 'semiBold'); // unused
 
   // Create styles using theme values
   const styles = StyleSheet.create({
@@ -98,7 +104,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     headerTitle: {
       fontSize: 24,
-      fontWeight: 'bold',
       color: Colors.primary,
     },
     subscriptionBadge: {
@@ -111,7 +116,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     subscriptionText: {
       color: Colors.hopeWhite,
       fontSize: 12,
-      fontWeight: '600',
+      // weight handled by ThemedText
     },
     headerRight: {
       flexDirection: 'row',
@@ -152,7 +157,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     sectionTitle: {
       fontSize: 20,
-      fontWeight: 'bold',
       color: Colors.text,
     },
     row: {
@@ -170,7 +174,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     playbookLabel: {
       fontSize: 20,
-      fontWeight: 'bold',
       color: Colors.text,
     },
     bottomSpacing: {
@@ -185,7 +188,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     floatingButtonText: {
       color: Colors.hopeWhite,
       fontSize: 24,
-      fontWeight: '700',
       letterSpacing: 0.5,
     },
     counterBadge: {
@@ -202,8 +204,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     counterText: {
       fontSize: 12,
-      fontWeight: '600',
       color: Colors.anchorBlue,
+      // weight handled by ThemedText
     },
     iconButton: {
       width: 40,
@@ -226,7 +228,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     notificationCount: {
       fontSize: 9,
-      fontWeight: '600',
       color: Colors.hopeWhite,
       lineHeight: 12,
     },
@@ -246,8 +247,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     initialLetter: {
       fontSize: 14,
-      fontWeight: '600',
       color: Colors.hopeWhite,
+      // weight handled by ThemedText
     },
     greetingSection: {
       backgroundColor: Colors.hopeWhite,
@@ -257,7 +258,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     greeting: {
       fontSize: 24,
-      fontWeight: '800',
+      // weight handled by ThemedText
       letterSpacing: 0.5,
       color: Colors.anchorBlue,
       marginTop: 0,
@@ -266,10 +267,10 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     motivationalText: {
       fontSize: 14,
       color: Colors.anchorBlue,
-      fontWeight: '600',
       opacity: 1,
       marginTop: 0,
       marginBottom: 12,
+      // weight handled by ThemedText
     },
     placeholderCard: {
       backgroundColor: Colors.cardBackground,
@@ -292,8 +293,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     cardTitle: {
       fontSize: 18,
-      fontWeight: '600',
       color: Colors.text,
+      // weight handled by ThemedText
     },
     cardSubtitle: {
       fontSize: 14,
@@ -308,8 +309,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
     comingSoonText: {
       fontSize: 10,
-      fontWeight: '600',
       color: Colors.hopeWhite,
+      // weight handled by ThemedText
     },
     scrollView: {
       flex: 1,
@@ -337,7 +338,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       color: Colors.hopeWhite,
       textAlign: 'center',
       textTransform: 'uppercase',
-      fontWeight: '600',
+      // weight handled by ThemedText
       letterSpacing: 0.8,
       marginBottom: 6,
     },
@@ -347,18 +348,18 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       textAlign: 'center',
       marginTop: -2,
       marginBottom: 6,
-      fontWeight: '500',
+      // weight handled by ThemedText
     },
     expandableButton: {
-      backgroundColor: Colors.hopeWhite, 
-      borderRadius: 28, 
+      backgroundColor: Colors.hopeWhite,
+      borderRadius: 28,
       height: 56,
       shadowColor: Colors.cardShadow,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.3,
       shadowRadius: 8,
       elevation: 8,
-      alignSelf: 'flex-end', 
+      alignSelf: 'flex-end',
     },
     expandableButtonTouchable: {
       flex: 1,
@@ -379,13 +380,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       width: 40,
       height: 40,
       alignSelf: 'center',
+      tintColor: Colors.alertCoral,
     },
     expandText: {
-      color: Colors.hopeWhite,
+      color: Colors.anchorBlue,
       fontSize: 14,
-      fontWeight: '600',
       marginLeft: 8,
       overflow: 'hidden',
+      // weight handled by ThemedText
     },
     // Prayer Modal Styles
     modalOverlay: {
@@ -426,7 +428,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerModalTitle: {
       color: Colors.hopeWhite,
       fontSize: 12,
-      fontWeight: '700',
       letterSpacing: 0.8,
       textTransform: 'uppercase',
     },
@@ -452,7 +453,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerModalTabText: {
       color: Colors.hopeWhite,
       fontSize: 12,
-      fontWeight: '600',
+      // weight handled by ThemedText
     },
     prayerModalTabInactive: {
       opacity: 0.6,
@@ -466,6 +467,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       marginBottom: 12,
       borderWidth: 1,
       borderColor: 'rgba(255, 255, 255, 0.2)',
+      fontFamily: fontRegular,
     },
     prayerModalTextArea: {
       backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -493,6 +495,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       fontSize: 16,
       minHeight: 120,
       textAlignVertical: 'top' as const,
+      fontFamily: fontRegular,
     },
     combinedDivider: {
       height: 1,
@@ -501,8 +504,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerModalLabel: {
       color: Colors.hopeWhite,
       fontSize: 12,
-      fontWeight: '600',
       marginBottom: 4,
+      // weight handled by ThemedText
     },
     prayerModalPreview: {
       color: 'rgba(255, 255, 255, 0.8)',
@@ -543,22 +546,112 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerModalFieldLabel: {
       color: Colors.hopeWhite,
       fontSize: 12,
-      fontWeight: '600',
       marginBottom: 6,
       // No uppercase; keep normal casing
+      // weight handled by ThemedText
     },
     prayerModalReadOnlyText: {
       color: 'rgba(255, 255, 255, 0.8)',
       fontSize: 14,
       lineHeight: 20,
     },
-    prayerRequestBox: {
-      backgroundColor: 'rgba(255, 99, 71, 0.15)',
+    // Prayer Requests Card styles (moved from inline to satisfy linter)
+    prayerRequestsContainer: {
+      backgroundColor: 'transparent',
       borderRadius: 12,
-      padding: 12,
-      marginBottom: 20,
+      padding: 16,
+      marginTop: 0,
+      marginBottom: 0,
+    },
+    prayerRequestsHeaderRow: {
+      position: 'relative' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+      minHeight: 24,
+    },
+    prayerRequestsHeaderTitle: {
+      fontSize: 12,
+      color: Colors.hopeWhite,
+      textAlign: 'center' as const,
+      textTransform: 'uppercase' as const,
+      letterSpacing: 0.8,
+      paddingHorizontal: 48,
+    },
+    prayerRequestsHeaderRight: {
+      position: 'absolute' as const,
+      right: 0,
+    },
+    prayerRequestsHeaderRightBox: {
+      flexDirection: 'row' as const,
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+      gap: 4,
       borderWidth: 1,
-      borderColor: 'rgba(255, 99, 71, 0.3)',
+      borderColor: 'rgba(255,255,255,0.3)',
+    },
+    prayerRequestsHeaderCount: {
+      fontSize: 12,
+      color: Colors.hopeWhite,
+    },
+    prayerRequestItem: {
+      backgroundColor: 'transparent',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      padding: 16,
+    },
+    prayerRequestItemSpacing: {
+      marginTop: 10,
+    },
+    prayerRequestHeaderRow: {
+      flexDirection: 'row' as const,
+      alignItems: 'center',
+      marginBottom: 8,
+      gap: 6,
+    },
+    prayerRequestBadge: {
+      backgroundColor: 'transparent',
+      paddingHorizontal: 0,
+      paddingVertical: 4,
+      borderRadius: 8,
+      borderWidth: 0,
+      borderColor: 'transparent',
+    },
+    prayerRequestBadgeText: {
+      color: Colors.hopeWhite,
+      fontSize: 10,
+      letterSpacing: 0.6,
+    },
+    prayerRequestName: {
+      color: Colors.hopeWhite,
+      fontSize: 16,
+      marginBottom: 4,
+    },
+    prayerRequestDescription: {
+      color: 'rgba(255, 255, 255, 0.8)',
+      marginBottom: 10,
+    },
+    prayerRequestCTA: {
+      flexDirection: 'row' as const,
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      paddingTop: 10,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255, 255, 255, 0.3)',
+    },
+    prayerRequestCTAText: {
+      color: Colors.hopeWhite,
+      marginLeft: 6,
+    },
+    moreTextMarginTop: {
+      marginTop: 8,
+    },
+    combinedReadOnlyInner: {
+      padding: 12,
     },
     prayerRequestHeader: {
       flexDirection: 'row',
@@ -568,8 +661,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     prayerRequestLabel: {
       color: Colors.alertCoral,
       fontSize: 14,
-      fontWeight: '500',
       flex: 1,
+      // weight handled by ThemedText
     },
     prayerModalTabInactiveText: {
       color: 'rgba(255, 255, 255, 0.5)',
@@ -596,7 +689,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     successModalTitle: {
       color: Colors.hopeWhite,
       fontSize: 18,
-      fontWeight: '600',
       textAlign: 'center',
       marginTop: 16,
       marginBottom: 8,
@@ -608,15 +700,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     },
   });
 
-  // Always show FAB for easy access to UserInput screen
-  const [showFab, setShowFab] = useState(true);
+  // Always show FAB for easy access to UserInput screen (no state needed)
   const { user } = useAuth();
-  const { subscription, usage, loading: subscriptionLoading, refreshSubscription } = useSubscription();
+  const { subscription, usage, refreshSubscription } = useSubscription();
   const queryClient = useQueryClient();
-  
+
   // Add direct subscription fetch for debugging
   const [directSubscription, setDirectSubscription] = useState<any>(null);
-  
+
   useEffect(() => {
     const fetchDirectSubscription = async () => {
       if (user?.id) {
@@ -624,7 +715,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           const { subscriptionService } = await import('../services/subscriptionService');
           const directData = await subscriptionService.getUserSubscription(user.id);
           setDirectSubscription(directData);
-          
+
           // If data doesn't match, invalidate React Query cache
           if (directData?.tier !== subscription?.tier && subscription?.tier) {
             queryClient.invalidateQueries({ queryKey: ['subscription', user.id] });
@@ -656,7 +747,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Prayer Requests modal state
   const [showPrayerModal, setShowPrayerModal] = useState(false);
   const [selectedPrayerRequest, setSelectedPrayerRequest] = useState<any | null>(null);
-  
+
   // Prayer modal editor state
   const [showPrayerEditorModal, setShowPrayerEditorModal] = useState(false);
   const [modalPrayerName, setModalPrayerName] = useState('');
@@ -672,9 +763,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const triggerLightHaptic = useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) { return; }
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) return;
+      if (hapticsPref === false) { return; }
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -687,9 +778,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const triggerSuccessHaptic = useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) { return; }
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) return;
+      if (hapticsPref === false) { return; }
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -702,9 +793,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const triggerSelectionHaptic = useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) { return; }
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) return;
+      if (hapticsPref === false) { return; }
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -725,37 +816,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     inputRange: [0, 1],
     outputRange: [0, 180], // max width for the label when expanded
   });
-  const hasExpanded = useRef(false);
-
-
-  // Draggable floating button - positioned above bottom navigation
-  const pan = useRef(new Animated.ValueXY({ x: -20, y: height - 280 })).current;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        pan.setOffset({
-          x: (pan.x as any)._value,
-          y: (pan.y as any)._value,
-        });
-      },
-      onPanResponderMove: Animated.event(
-        [null, { dx: pan.x, dy: pan.y }],
-        { useNativeDriver: false }
-      ),
-      onPanResponderRelease: () => {
-        pan.flattenOffset();
-        // Snap to edges (adjusted for right-anchored container)
-        const currentX = (pan.x as any)._value;
-        const snapToEdge = currentX < -width / 2 ? -width + 76 : -20;
-        Animated.spring(pan.x, {
-          toValue: snapToEdge,
-          useNativeDriver: false,
-        }).start();
-      },
-    })
-  ).current;
+  // Removed draggable FAB logic (unused)
 
   // Get user's first name with robust fallbacks
   const firstName =
@@ -865,11 +926,14 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       buttonWidth,
       textOpacity,
       expandButton,
+      refreshSubscription,
+      queryClient,
+      user?.id,
     ])
   );
 
   // Fetch unprayed prayer requests for current user (across all dates)
-  const { data: unprayedRequests = [], isLoading: loadingRequests, isFetching: fetchingRequests, refetch: refetchRequests } = useUnprayedPrayerRequests(user?.id || '');
+  const { data: unprayedRequests = [], isLoading: loadingRequests, isFetching: fetchingRequests } = useUnprayedPrayerRequests(user?.id || '');
   const markPrayedMutation = useMarkPrayerRequestPrayed();
   const createPrayerMutation = useCreatePrayer();
 
@@ -884,7 +948,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const handlePrayerSaved = async () => {
     try {
-      if (!selectedPrayerRequest) return;
+      if (!selectedPrayerRequest) {return;}
       await markPrayedMutation.mutateAsync({
         id: selectedPrayerRequest.id,
         isPrayed: true,
@@ -914,7 +978,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     try {
       // Create prayer with user's prayer text first, then request content in metadata
       const prayerContent = modalPrayerRequest.trim();
-      
+
       await createPrayerMutation.mutateAsync({
         content: prayerContent,
         prayer_type: 'people',
@@ -950,13 +1014,13 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       // Show success modal
       setSuccessPersonName(modalPrayerName);
       setShowSuccessModal(true);
-      
+
       // Close the prayer modal
       handleCancelModalPrayer();
-      
+
       // Show success feedback
       triggerSuccessHaptic();
-      
+
       // Auto-hide success modal after 3 seconds
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -984,108 +1048,63 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     }
 
     return (
-    <View style={{
-      backgroundColor: 'transparent',
-      borderRadius: 12,
-      padding: 16,
-      marginTop: 0,
-      marginBottom: 0,
-    }}>
-      <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center', marginBottom: 8, minHeight: 24 }}>
-        <Text style={{
-          fontSize: 12,
-          color: Colors.hopeWhite,
-          textAlign: 'center',
-          textTransform: 'uppercase',
-          fontWeight: '600',
-          letterSpacing: 0.8,
-          paddingHorizontal: 48,
-        }}>
+    <View style={styles.prayerRequestsContainer}>
+      <View style={styles.prayerRequestsHeaderRow}>
+        <ThemedText weight="semiBold" style={styles.prayerRequestsHeaderTitle}>
           {unprayedRequests.length === 1 ? 'PRAYER REQUEST' : 'PRAYER REQUESTS'}
-        </Text>
-        <View style={{ position: 'absolute', right: 0 }}>
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: 'transparent',
-            paddingHorizontal: 8,
-            paddingVertical: 4,
-            borderRadius: 12,
-            gap: 4,
-            borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.3)'
-          }}>
+        </ThemedText>
+        <View style={styles.prayerRequestsHeaderRight}>
+          <View style={styles.prayerRequestsHeaderRightBox}>
             <MaterialCommunityIcons name="hands-pray" size={16} color={Colors.alertCoral} />
-            <Text style={{ fontSize: 12, fontWeight: '600', color: Colors.hopeWhite }}>{unprayedRequests.length}</Text>
+            <ThemedText weight="semiBold" style={styles.prayerRequestsHeaderCount}>{unprayedRequests.length}</ThemedText>
           </View>
         </View>
       </View>
       {loadingRequests || fetchingRequests ? (
         <DashboardPrayerSkeleton />
       ) : unprayedRequests.length === 0 ? (
-        <Text style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</Text>
+        <ThemedText weight="regular" style={styles.cardSubtitle}>No pending prayer requests. You're all caught up!</ThemedText>
       ) : (
         unprayedRequests.slice(0, 5).map((req: any, idx: number) => (
           <View
             key={req.id}
-            style={{
-              marginTop: idx === 0 ? 0 : 10,
-              backgroundColor: 'transparent',
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: 'rgba(255, 255, 255, 0.3)',
-              padding: 16,
-            }}
+            style={[styles.prayerRequestItem, idx !== 0 && styles.prayerRequestItemSpacing]}
           >
             {/* Header Badge */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+            <View style={styles.prayerRequestHeaderRow}>
               <Ionicons name="mail-unread" size={14} color={Colors.alertCoral} />
-              <View style={{
-                backgroundColor: 'transparent',
-                paddingHorizontal: 0,
-                paddingVertical: 4,
-                borderRadius: 8,
-                borderWidth: 0,
-                borderColor: 'transparent'
-              }}>
-                <Text style={{ color: Colors.hopeWhite, fontSize: 10, fontWeight: '700', letterSpacing: 0.6 }}>PRAYER REQUEST</Text>
+              <View style={styles.prayerRequestBadge}>
+                <ThemedText weight="bold" style={styles.prayerRequestBadgeText}>PRAYER REQUEST</ThemedText>
               </View>
             </View>
 
             {/* Name */}
-            <Text style={{ color: Colors.hopeWhite, fontSize: 16, fontWeight: '700', marginBottom: 4 }} numberOfLines={1}>
+            <ThemedText weight="bold" style={styles.prayerRequestName} numberOfLines={1}>
               {req.person_name || 'Someone'}
-            </Text>
+            </ThemedText>
 
             {/* Description */}
-            <Text style={{ color: 'rgba(255, 255, 255, 0.8)', marginBottom: 10 }} numberOfLines={2}>
+            <ThemedText weight="regular" style={styles.prayerRequestDescription} numberOfLines={2}>
               {req.content || '—'}
-            </Text>
+            </ThemedText>
 
             {/* CTA */}
             <TouchableOpacity
               onPress={() => { triggerLightHaptic(); handleOpenPrayer(req); }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                paddingTop: 10,
-                borderTopWidth: 1,
-                borderTopColor: 'rgba(255, 255, 255, 0.3)',
-              }}
+              style={styles.prayerRequestCTA}
             >
               <Ionicons name="add-circle-outline" size={18} color={Colors.hopeWhite} />
-              <Text style={{ color: Colors.hopeWhite, fontWeight: '700', marginLeft: 6 }}>
+              <ThemedText weight="bold" style={styles.prayerRequestCTAText}>
                 {`Pray for ${req.person_name || 'them'} now`}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
         ))
       )}
       {unprayedRequests.length > 5 ? (
-        <Text style={[styles.cardSubtitle, { marginTop: 8 }]}> 
+        <ThemedText weight="regular" style={[styles.cardSubtitle, styles.moreTextMarginTop]}>
           And {unprayedRequests.length - 5} more...
-        </Text>
+        </ThemedText>
       ) : null}
     </View>
   );
@@ -1149,7 +1168,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={styles.subscriptionBadge}
               onPress={() => { triggerLightHaptic(); navigation.navigate('UserProfile'); }}
             >
-              <Text style={styles.subscriptionText}>{displayName}</Text>
+              <ThemedText weight="semiBold" style={styles.subscriptionText}>{displayName}</ThemedText>
             </TouchableOpacity>
           );
         })()}
@@ -1161,16 +1180,16 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           const isUnlimited = !limit || limit === -1;
           if (isUnlimited) { return null; }
           const remaining = Math.max(0, limit - used);
-          
+
           // Removed debug logging for playbook counter
-          
+
           return (
             <TouchableOpacity
               style={styles.counterBadge}
               onPress={() => { triggerLightHaptic(); navigation.navigate('Playbooks'); }}
             >
               <MaterialCommunityIcons name="clipboard-text-play" size={18} color={Colors.faithGold} />
-              <Text style={styles.counterText}>{remaining}</Text>
+              <ThemedText weight="semiBold" style={styles.counterText}>{remaining}</ThemedText>
             </TouchableOpacity>
           );
         })()}
@@ -1188,7 +1207,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               onPress={() => { triggerLightHaptic(); navigation.navigate('Devotionals'); }}
             >
               <MaterialCommunityIcons name="book" size={18} color={Colors.faithGold} />
-              <Text style={styles.counterText}>{remaining}</Text>
+              <ThemedText weight="semiBold" style={styles.counterText}>{remaining}</ThemedText>
             </TouchableOpacity>
           );
         })()}
@@ -1202,7 +1221,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         >
           <Ionicons name="notifications-outline" size={24} color={Colors.anchorBlue} />
           <View style={styles.notificationBadge}>
-            <Text style={styles.notificationCount}>3</Text>
+            <ThemedText weight="semiBold" style={styles.notificationCount}>3</ThemedText>
           </View>
         </TouchableOpacity>
 
@@ -1218,7 +1237,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
             />
           ) : (
             <View style={styles.initialAvatar}>
-              <Text style={styles.initialLetter}>{(() => {
+              <ThemedText weight="semiBold" style={styles.initialLetter}>{(() => {
                 const meta: any = (user as any)?.user_metadata || {};
                 const displayName =
                   (user as any)?.displayName ||
@@ -1227,7 +1246,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   (user as any)?.email ||
                   'User';
                 return (displayName || 'U').trim().charAt(0).toUpperCase();
-              })()}</Text>
+              })()}</ThemedText>
             </View>
           )}
         </TouchableOpacity>
@@ -1237,33 +1256,19 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
   const renderGreeting = () => (
     <View style={styles.greetingSection}>
-      <Text style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Hello, {firstName}</Text>
-      <Text style={styles.motivationalText}>
+      <ThemedText weight="bold" style={styles.greeting} numberOfLines={1} ellipsizeMode="tail">Hello, {firstName}</ThemedText>
+      <ThemedText weight="semiBold" style={styles.motivationalText}>
         {MOTIVATIONAL_TEXTS[currentMotivationalText]}
-      </Text>
+      </ThemedText>
     </View>
   );
 
-  const renderPlaceholderCard = (title: string, subtitle: string, icon: string) => (
-    <View style={styles.placeholderCard}>
-      <View style={styles.cardHeader}>
-        <Ionicons name={icon as any} size={24} color={Colors.anchorBlue} />
-        <Text style={styles.cardTitle}>{title}</Text>
-      </View>
-      <Text style={styles.cardSubtitle}>{subtitle}</Text>
-      <View style={styles.comingSoonBadge}>
-        <Text style={styles.comingSoonText}>Coming Soon</Text>
-      </View>
-    </View>
-  );
+  // Removed unused renderPlaceholderCard
 
   const renderFloatingButton = () => (
     <Animated.View
       style={[
         styles.floatingButton,
-        {
-          opacity: 1, // Always visible, no animation dependency
-        },
       ]}
     >
       <Animated.View style={[styles.expandableButton, { width: buttonWidth }]}>
@@ -1280,12 +1285,11 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               accessibilityLabel="siFia"
             />
           </View>
-          <Animated.Text
-            style={[styles.expandText, { opacity: textOpacity, width: textWidth }]}
-            numberOfLines={1}
-          >
-            Create a Playbook
-          </Animated.Text>
+          <Animated.View style={{ opacity: textOpacity, width: textWidth }}>
+            <ThemedText weight="semiBold" style={styles.expandText} numberOfLines={1}>
+              Create a Playbook
+            </ThemedText>
+          </Animated.View>
         </TouchableOpacity>
       </Animated.View>
     </Animated.View>
@@ -1339,7 +1343,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           <Animated.View
             style={[styles.playbookLabelClip, { width: playbookWidth }]}
           >
-            <Text
+            <ThemedText
               onLayout={(e) => {
                 const w = e.nativeEvent.layout.width;
                 if (w !== playbookMeasuredWidth) {
@@ -1349,7 +1353,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               style={styles.playbookLabel}
             >
               Playbook
-            </Text>
+            </ThemedText>
           </Animated.View>
         </View>
 
@@ -1381,8 +1385,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
         {/* External Actions header and subtitle (moved out of card) */}
         <View style={styles.actionsHeaderContainer}>
-          <Text style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</Text>
-          <Text style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</Text>
+          <ThemedText weight="semiBold" style={styles.actionsHeaderTitle}>{`TODAY'S ACTION${actionsCount === 1 ? '' : 'S'}`}</ThemedText>
+          <ThemedText weight="medium" style={styles.actionsHeaderSubtitle}>{`Unfinished Steps (${actionsCount})`}</ThemedText>
         </View>
 
         <ActionStepsCard
@@ -1397,7 +1401,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           onCountChange={setActionsCount}
         />
         <View style={styles.sectionGap} />
-        
+
         {/* Reflection Questions Card */}
         <ReflectionQuestionsCard
           onQuestionPress={(q: any) => {
@@ -1427,15 +1431,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           }}
         />
         <View style={styles.sectionGap} />
-        
+
         {/* Removed sections: Faith Community, Quick Actions, Growth & Progress, Community (Prayer Circle, Testimonies) */}
 
-        {/* Bottom spacing for floating button (only when visible) */}
-        {showFab ? <View style={styles.bottomSpacing} /> : null}
+        {/* Bottom spacing for floating button */}
+        <View style={styles.bottomSpacing} />
         </ScrollView>
       </View>
 
-      {showFab ? renderFloatingButton() : null}
+      {renderFloatingButton()}
 
       {/* Reflection Modals */}
       <SmartJournalingReflectionModal
@@ -1460,20 +1464,20 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         dayTitle={selectedReflection?.dayTitle}
         totalDays={selectedReflection?.totalDays}
         questionNumber={selectedReflection?.questionNumber}
-        onSave={(entry) => {
+        onSave={(_entry) => {
           // Don't close modal immediately - success modal will handle the flow
           // Removed debug logging
-          
+
           // Invalidate all reflection-related queries to ensure real-time updates
           queryClient.invalidateQueries({
             queryKey: ['reflections'],
           });
-          
+
           // Also invalidate devotional queries in case they affect question availability
           queryClient.invalidateQueries({
             queryKey: ['devotionals'],
           });
-          
+
           // Force refetch of reflection questions
           queryClient.refetchQueries({
             queryKey: ['reflections'],
@@ -1494,7 +1498,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         onSave={() => handlePrayerSaved()}
         onCancel={() => { setShowPrayerModal(false); setSelectedPrayerRequest(null); }}
       />
-      
+
       {/* Prayer Editor Modal */}
       <Modal
         visible={showPrayerEditorModal}
@@ -1504,7 +1508,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         onRequestClose={handleCancelModalPrayer}
       >
         <View style={styles.modalOverlay}>
-          <KeyboardAvoidingView 
+          <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalKeyboardContainer}
           >
@@ -1512,24 +1516,26 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
               <View style={styles.prayerModalHeader}>
                 <View style={styles.prayerModalHeaderLeft}>
                   <MaterialCommunityIcons name="hands-pray" size={20} color={Colors.alertCoral} />
-                  <Text style={styles.prayerModalTitle}>PRAY FOR {modalPrayerName || 'Someone'}</Text>
+                  <ThemedText weight="bold" style={styles.prayerModalTitle}>PRAY FOR {modalPrayerName || 'Someone'}</ThemedText>
                 </View>
               </View>
-              
-              <Text style={styles.prayerModalSubtitle}>Lift up a prayer for {modalPrayerName || 'them'}</Text>
+
+              <ThemedText weight="regular" style={styles.prayerModalSubtitle}>Lift up a prayer for {modalPrayerName || 'them'}</ThemedText>
 
               {/* Name field - pre-filled and non-editable */}
               <TextInput
-                style={[styles.prayerModalNameInput, styles.prayerModalReadOnlyInput]}
+                style={[styles.prayerModalNameInput]}
                 value={modalPrayerName}
-                editable={false}
+                onChangeText={setModalPrayerName}
+                placeholder="Name (optional)"
+                placeholderTextColor="rgba(255, 255, 255, 0.6)"
               />
 
               {/* Combined field: Prayer input + Prayer Request inside same card */}
               <View style={styles.combinedPrayerField}>
                 <TextInput
                   style={styles.combinedPrayerInput}
-                  placeholder="Write a prayer from your heart…"
+                  placeholder={`Write a prayer for ${modalPrayerName || 'them'}…`}
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   value={modalPrayerRequest}
                   onChangeText={setModalPrayerRequest}
@@ -1539,9 +1545,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                   autoFocus
                 />
                 <View style={styles.combinedDivider} />
-                <View style={{ padding: 12 }}>
-                  <Text style={styles.prayerModalFieldLabel}>Prayer request from {modalPrayerName || 'them'}</Text>
-                  <Text style={styles.prayerModalReadOnlyText}>{selectedPrayerRequest?.content || 'Provision for business'}</Text>
+                <View style={styles.combinedReadOnlyInner}>
+                  <ThemedText weight="semiBold" style={styles.prayerModalFieldLabel}>Prayer request from {modalPrayerName || 'them'}</ThemedText>
+                  <ThemedText weight="regular" style={styles.prayerModalReadOnlyText}>{selectedPrayerRequest?.content || 'Provision for business'}</ThemedText>
                 </View>
               </View>
 
@@ -1556,7 +1562,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
                 <TouchableOpacity
                   style={styles.prayerModalSaveButton}
                   onPress={() => { triggerLightHaptic(); handleSaveModalPrayer(); }}
-                  disabled={savingModalPrayer || !modalPrayerName.trim() || !modalPrayerRequest.trim()}
+                  disabled={savingModalPrayer || !modalPrayerRequest.trim()}
                 >
                   <Ionicons name="checkmark" size={14} color={Colors.hopeWhite} />
                 </TouchableOpacity>
@@ -1565,7 +1571,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           </KeyboardAvoidingView>
         </View>
       </Modal>
-      
+
       {/* Success Modal */}
       <Modal
         visible={showSuccessModal}
@@ -1576,8 +1582,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         <View style={styles.successModalOverlay}>
           <View style={styles.successModalContainer}>
             <MaterialCommunityIcons name="check-circle" size={48} color={Colors.alertCoral} />
-            <Text style={styles.successModalTitle}>Thank you for praying for {successPersonName}!</Text>
-            <Text style={styles.successModalSubtitle}>It is now saved in your prayer journal</Text>
+            <ThemedText weight="semiBold" style={styles.successModalTitle}>Thank you for praying for {successPersonName}!</ThemedText>
+            <ThemedText weight="regular" style={styles.successModalSubtitle}>It is now saved in your prayer journal</ThemedText>
           </View>
         </View>
       </Modal>

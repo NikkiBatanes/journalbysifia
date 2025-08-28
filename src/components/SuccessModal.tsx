@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../theme/colors';
+import { Fonts } from '../theme';
 
 interface SuccessModalProps {
   visible: boolean;
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
     color: Colors.darkGray, // Using darkGray from Colors
     marginBottom: 12,
     textAlign: 'center',
-    fontFamily: 'System',
+    fontFamily: Fonts.semiBold,
   },
   message: {
     fontSize: 16,
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 24,
-    fontFamily: 'System',
+    fontFamily: Fonts.regular,
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
-    fontFamily: 'System',
+    fontFamily: Fonts.semiBold,
   },
 });
 

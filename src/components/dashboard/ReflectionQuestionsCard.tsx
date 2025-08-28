@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -17,7 +16,7 @@ import { DeviceEventEmitter } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { ReflectionApi } from '../../services/api/reflectionApi';
@@ -432,14 +431,14 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.title}>Reflection Questions</Text>
+        <ThemedText weight="semiBold" style={styles.title}>Reflection Questions</ThemedText>
       </View>
 
       {error ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <ThemedText weight="regular" style={styles.errorText}>{error}</ThemedText>
           <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
-            <Text style={styles.retryText}>Try Again</Text>
+            <ThemedText weight="semiBold" style={styles.retryText}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       ) : questions && questions.length > 0 ? (
@@ -496,11 +495,11 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
               >
                 <View style={styles.sectionHeader}>
                   <MaterialCommunityIcons name={getSourceIcon(item.sourceType)} size={20} color={Colors.mediumGray} style={styles.sectionIcon} />
-                  <Text style={styles.sectionLabel}>
+                  <ThemedText weight="semiBold" style={styles.sectionLabel}>
                     {item.sourceType === 'guided' ? 'GUIDED PROMPT' : 'QUESTION TO PONDER'}
-                  </Text>
+                  </ThemedText>
                 </View>
-                <Text style={styles.questionText}>{item.question}</Text>
+                <ThemedText weight="bold" style={styles.questionText}>{item.question}</ThemedText>
                 <View style={styles.buttonRow}>
                   <TouchableOpacity
                     style={styles.reflectButton}
@@ -509,7 +508,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
                     accessibilityLabel="Reflect on this question"
                   >
                     <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                    <Text style={styles.reflectButtonText}>Reflect</Text>
+                    <ThemedText weight="medium" style={styles.reflectButtonText}>Reflect</ThemedText>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
@@ -543,7 +542,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     textTransform: 'uppercase',
-    fontWeight: '600',
     letterSpacing: 0.8,
   },
   questionContainer: {
@@ -557,7 +555,6 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: Colors.hopeWhite,
     marginBottom: 0,
-    fontWeight: '700',
     textAlign: 'center',
     alignSelf: 'center',
     maxWidth: '90%',
@@ -590,7 +587,6 @@ const styles = StyleSheet.create({
   tapHintText: {
     fontSize: 12,
     color: Colors.alertCoral,
-    fontWeight: '500',
   },
   sectionHeader: {
     alignItems: 'center',
@@ -603,8 +599,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   sectionLabel: {
-    fontFamily: Fonts.system.semiBold,
-    fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
     letterSpacing: 1.2,
@@ -635,7 +629,6 @@ const styles = StyleSheet.create({
   reflectButtonText: {
     color: Colors.hopeWhite,
     fontSize: 15,
-    fontFamily: Fonts.system.medium,
     letterSpacing: 0.5,
   },
   buttonIcon: {
@@ -679,7 +672,6 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
 });
 

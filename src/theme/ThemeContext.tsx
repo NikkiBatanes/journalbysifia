@@ -150,8 +150,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
         baseTheme = defaultTheme;
     }
 
-    // Apply font preference
-    const effectiveFont = userFont || 'system';
+    // Apply font preference (default to 'lexend' as the app-wide default)
+    // Coerce legacy 'system' value to 'lexend' to enforce Lexend default
+    const effectiveFont = !userFont || userFont === 'system' ? 'lexend' : userFont;
     const fontFamily = getFontFamily(effectiveFont);
 
     return {

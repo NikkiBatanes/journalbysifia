@@ -8,7 +8,9 @@ import { Fonts as NewFonts, defaultTextStyle } from './theme/fonts';
 export const Colors = NewColors;
 
 // Export Fonts from new theme system for backward compatibility
-export const Fonts = NewFonts.system; // Default to system fonts for backward compatibility
+// Important: expose the full Fonts object so top-level shorthands (regular, medium, semiBold, bold)
+// map to DEFAULT_FONT_FAMILY defined in theme/fonts (Lexend by default)
+export const Fonts = NewFonts;
 export const defaultFontFamily = defaultTextStyle.fontFamily;
 
 // Shared card padding constants (preserved for backward compatibility)

@@ -158,7 +158,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       timezone: 'UTC',
     },
     theme: 'default',
-    font: 'system',
+    font: 'lexend',
     fontSize: 'medium',
     colorScheme: 'default',
     weekStart: 'sunday',
@@ -1101,7 +1101,6 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.settingChipsRow}>
                 {(
                   [
-                    { key: 'system', label: 'System', description: 'Device default' },
                     { key: 'lexend', label: 'Lexend', description: 'Dyslexia-friendly' },
                     { key: 'poppins', label: 'Poppins', description: 'Modern & clean' },
                     { key: 'nunito', label: 'Nunito Sans', description: 'Friendly & readable' },

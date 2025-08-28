@@ -88,6 +88,6 @@ export const loadAppFonts = async () => {
 };
 
 export const defaultTextStyle = {
-  fontFamily: Fonts.system.regular,
+  fontFamily: Fonts.regular,
   color: '#000',
 };

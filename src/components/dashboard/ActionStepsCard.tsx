@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
@@ -236,9 +235,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     return (
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginLeft: TITLE_LEFT_OFFSET, marginTop: 2, minWidth: 0 }}>
         <Ionicons name="chatbubble-ellipses-outline" size={14} color={Colors.alertCoral} />
-        <Text style={[styles.stepDescription, { marginLeft: 6, flex: 1, flexShrink: 1, paddingRight: 8 }]} numberOfLines={3}>
+        <ThemedText weight="regular" style={[styles.stepDescription, { marginLeft: 6, flex: 1, flexShrink: 1, paddingRight: 8 }]} numberOfLines={3}>
           {first}{rest ? ' ' + rest : ''}
-        </Text>
+        </ThemedText>
       </View>
     );
   };
@@ -285,9 +284,9 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
             <Ionicons name={'ellipse-outline'} size={18} color={Colors.faithGold} />
           )}
         </TouchableOpacity>
-        <Text style={styles.stepTitle} numberOfLines={2}>
+        <ThemedText weight="semiBold" style={styles.stepTitle} numberOfLines={2}>
           {stripMarkdownEmphasis(item.title)}
-        </Text>
+        </ThemedText>
       </View>
 
       {item.description && renderExampleWithBubble(item.description)}
@@ -295,19 +294,19 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 2, marginLeft: TITLE_LEFT_OFFSET }}>
         <View style={{ width: 1, height: 28, backgroundColor: Colors.mediumGray, borderRadius: 2, marginRight: 8 }} />
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 10, color: Colors.mediumGray, letterSpacing: 1, fontWeight: '600' }}>
+          <ThemedText weight="semiBold" style={{ fontSize: 10, color: Colors.mediumGray, letterSpacing: 1 }}>
             FROM PLAYBOOK
-          </Text>
-          <Text style={{ fontSize: 11, color: Colors.mediumGray, fontWeight: '600' }}>
+          </ThemedText>
+          <ThemedText weight="semiBold" style={{ fontSize: 11, color: Colors.mediumGray }}>
             {item.playbookTitle}
-          </Text>
+          </ThemedText>
         </View>
       </View>
 
       {/* Context chips */}
       <View style={styles.chipsRow}>
         {typeof item.estimatedMinutes === 'number' && (
-          <View style={styles.chip}><Text style={styles.chipText}>{item.estimatedMinutes} min</Text></View>
+          <View style={styles.chip}><ThemedText weight="regular" style={styles.chipText}>{item.estimatedMinutes} min</ThemedText></View>
         )}
       </View>
 
@@ -317,10 +316,10 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="checkmark-circle" size={32} color={Colors.successGreen} />
-      <Text style={styles.emptyTitle}>All Caught Up!</Text>
-      <Text style={styles.emptyDescription}>
+      <ThemedText weight="semiBold" style={styles.emptyTitle}>All Caught Up!</ThemedText>
+      <ThemedText weight="regular" style={styles.emptyDescription}>
         You've completed all your action steps. Great work!
-      </Text>
+      </ThemedText>
     </View>
   );
 
@@ -333,7 +332,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
       {error ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <ThemedText weight="semiBold" style={styles.errorText}>{error}</ThemedText>
           <TouchableOpacity
             onPress={() => {
               triggerLightHaptic();
@@ -341,7 +340,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
             }}
             style={styles.retryButton}
           >
-            <Text style={styles.retryText}>Try Again</Text>
+            <ThemedText weight="semiBold" style={styles.retryText}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       ) : actionSteps.length === 0 ? (
@@ -372,7 +371,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
                     accessibilityHint="Loads 3 more action steps"
                   >
                     <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                    <Text style={[styles.paginationButtonText, styles.showMoreText]}>Show more</Text>
+                    <ThemedText weight="semiBold" style={[styles.paginationButtonText, styles.showMoreText]}>Show more</ThemedText>
                   </TouchableOpacity>
                 )}
                 {canShowLess && (
@@ -385,7 +384,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
                     accessibilityHint="Collapses the list to show only the first 3 steps"
                   >
                     <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
-                    <Text style={[styles.paginationButtonText, styles.showLessText]}>Show less</Text>
+                    <ThemedText weight="semiBold" style={[styles.paginationButtonText, styles.showLessText]}>Show less</ThemedText>
                   </TouchableOpacity>
                 )}
               </View>
@@ -414,7 +413,6 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     textTransform: 'uppercase',
-    fontWeight: '600',
     letterSpacing: 0.8,
     marginBottom: 14,
   },
@@ -424,7 +422,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: -6,
     marginBottom: 12,
-    fontWeight: '500',
   },
   ctaRow: {
     flexDirection: 'row',
@@ -443,7 +440,6 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     color: Colors.hopeWhite,
-    fontWeight: '600',
     fontSize: 13,
   },
   secondaryButton: {
@@ -458,7 +454,6 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: Colors.alertCoral,
-    fontWeight: '600',
     fontSize: 13,
   },
   // Example modal styles removed
@@ -470,7 +465,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     flex: 1,
   },
@@ -482,7 +476,6 @@ const styles = StyleSheet.create({
   viewAllText: {
     fontSize: 14,
     color: Colors.alertCoral,
-    fontWeight: '500',
   },
   stepItem: {
     paddingVertical: 8,
@@ -517,7 +510,6 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: 14,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     flex: 1,
     // Ensure long titles wrap instead of overflowing/clipping
@@ -559,7 +551,6 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
   },
   emptyDescription: {
@@ -588,7 +579,6 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   // Pagination styles (aligned with Gratitude list)
   paginationContainer: {
@@ -616,7 +606,6 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
-    fontFamily: Fonts.lexend.medium,
     lineHeight: 14,
   },
   showMoreButton: {

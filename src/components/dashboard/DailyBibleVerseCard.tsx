@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DashboardScriptureSkeleton from '../SkeletonLoader/DashboardScriptureSkeleton';
+import ThemedText from '../common/ThemedText';
 
 
 interface BibleVerse {
@@ -310,29 +310,30 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
 
   return (
     <View style={styles.card}>
-      <Text style={styles.titleText}>TODAY'S SCRIPTURE</Text>
+      <ThemedText weight="semiBold" style={styles.titleText}>TODAY'S SCRIPTURE</ThemedText>
       {error ? (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
+          <ThemedText style={styles.errorText}>{error}</ThemedText>
           <TouchableOpacity onPress={handleRefresh} style={styles.retryButton}>
-            <Text style={styles.retryText}>Try Again</Text>
+            <ThemedText weight="semiBold" style={styles.retryText}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       ) : (
         <TouchableOpacity
           onPress={handleVersePress}
-          activeOpacity={0.8}
           style={styles.verseContent}
+          accessibilityRole="button"
+          accessibilityLabel="Open scripture"
         >
           <View style={styles.verseRow}>
             <View style={styles.leftBar} />
             <View style={styles.verseColumn}>
-              <Text style={styles.verseText}>
+              <ThemedText weight="medium" style={styles.verseText}>
                 {verse?.verse}
-              </Text>
-              <Text style={styles.referenceText}>
+              </ThemedText>
+              <ThemedText weight="semiBold" style={styles.referenceText}>
                 {verse?.reference}
-              </Text>
+              </ThemedText>
             </View>
           </View>
         </TouchableOpacity>
@@ -358,7 +359,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     textTransform: 'uppercase',
-    fontWeight: '600',
+    
     letterSpacing: 0.8,
     marginBottom: 14,
   },
@@ -394,7 +395,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: Colors.hopeWhite,
     fontStyle: 'normal',
-    fontWeight: '500',
+    
     marginBottom: 8,
     textAlign: 'left',
   },
@@ -402,7 +403,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.alertCoral,
     textAlign: 'left',
-    fontWeight: '600',
+    
     marginTop: 2,
     marginBottom: 4,
   },
@@ -426,7 +427,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
+    
   },
   verseContent: {
     flex: 1,

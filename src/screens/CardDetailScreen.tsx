@@ -8,7 +8,7 @@ import { StackScreenProps } from '@react-navigation/stack';
 // import { CommonActions } from '@react-navigation/native';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import PlaybookHeader from '../components/PlaybookHeader';
-import { Colors } from '../theme';
+import { Colors, Fonts } from '../theme';
 import TruthInLoveCard from '../components/TruthInLoveCard';
 import ActionStepsCard from '../components/ActionStepsCard';
 import { useActionSteps } from '../context/ActionStepsContext';
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 0, 0, 0.05)',
   },
   userInputText: {
-    fontFamily: 'System',
+    fontFamily: Fonts.regular,
     fontWeight: '400',
     fontSize: 15,
     lineHeight: 22,
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   affirmationsTitle: {
-    fontFamily: 'Inter-Black',
+    fontFamily: Fonts.bold,
     fontSize: 20,
     color: Colors.anchorBlue,
     fontWeight: '900',

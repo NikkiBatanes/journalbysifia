@@ -6,12 +6,12 @@
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
+import ThemedText from '../common/ThemedText';
 
 interface QuickActionCardProps {
   title: string;
@@ -39,13 +39,13 @@ const QuickActionCard: React.FC<QuickActionCardProps> = ({
           <Ionicons name={icon as any} size={24} color={Colors.hopeWhite} />
         </View>
 
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.description}>{description}</Text>
+        <ThemedText weight="semiBold" style={styles.title}>{title}</ThemedText>
+        <ThemedText weight="regular" style={styles.description}>{description}</ThemedText>
 
         <View style={styles.actionHint}>
-          <Text style={[styles.actionText, { color: accentColor }]}>
+          <ThemedText weight="medium" style={[styles.actionText, { color: accentColor }]}>
             Tap to start
-          </Text>
+          </ThemedText>
           <Ionicons name="arrow-forward" size={16} color={accentColor} />
         </View>
       </View>
@@ -80,7 +80,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
@@ -101,7 +100,6 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 12,
-    fontWeight: '500',
   },
 });
 

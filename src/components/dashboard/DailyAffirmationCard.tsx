@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
@@ -20,6 +19,7 @@ import { faithPointsService } from '../../services/faithPointsService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { triggerErrorHaptic } from '../../utils/haptics';
 import DashboardAffirmationSkeleton from '../SkeletonLoader/DashboardAffirmationSkeleton';
+import ThemedText from '../common/ThemedText';
 
 
 interface Affirmation {
@@ -346,13 +346,13 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
 
   return (
     <View style={styles.card}>
-      <Text accessibilityRole="header" style={styles.titleText}>{titleCopy}</Text>
+      <ThemedText weight="semiBold" accessibilityRole="header" style={styles.titleText}>{titleCopy}</ThemedText>
 
       {error ? (
         <View style={styles.errorContainer}>
-          <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text>
+          <ThemedText accessibilityRole="alert" style={styles.errorText}>{error}</ThemedText>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="Try loading affirmations again" onPress={handleRefresh} style={styles.retryButton}>
-            <Text style={styles.retryText}>Try Again</Text>
+            <ThemedText weight="semiBold" style={styles.retryText}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       ) : (
@@ -360,7 +360,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
           {affirmations.length === 0 ? (
             // This branch will rarely be hit because we return null when no affirmations and no error.
             // Kept for safety in case of future changes.
-            <Text style={styles.errorText}>No affirmations found. Create a playbook to get started.</Text>
+            <ThemedText style={styles.errorText}>No affirmations found. Create a playbook to get started.</ThemedText>
           ) : (
             <View style={styles.listContainer}>
               {affirmations.map((item) => (
@@ -372,7 +372,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
                   accessibilityRole="button"
                   accessibilityLabel={`Affirmation: ${item.content}`}
                 >
-                  <Text style={styles.affirmationText}>{item.content}</Text>
+                  <ThemedText style={styles.affirmationText}>{item.content}</ThemedText>
                 </TouchableOpacity>
               ))}
             </View>
@@ -444,7 +444,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
               testID="dailyAffirmationReadButton"
             >
               <Ionicons name="book-outline" size={18} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={styles.readIcon} />
-              <Text style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</Text>
+              <ThemedText weight="bold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
             </TouchableOpacity>
           </View>
         </>
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     textTransform: 'uppercase',
-    fontWeight: '600',
+    
     letterSpacing: 0.8,
     marginBottom: 14,
   },
@@ -489,6 +489,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: Colors.hopeWhite,
     fontStyle: 'normal',
+    
     marginBottom: 8,
     textAlign: 'left',
   },
@@ -530,7 +531,7 @@ const styles = StyleSheet.create({
   readButtonText: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontWeight: '700',
+    
     letterSpacing: 0.3,
   },
   readButtonActive: {
@@ -553,6 +554,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.error,
     textAlign: 'center',
+    
   },
   retryButton: {
     paddingHorizontal: 16,
@@ -563,7 +565,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
+    
   },
 });
 

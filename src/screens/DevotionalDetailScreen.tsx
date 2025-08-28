@@ -36,7 +36,7 @@ import { faithPointsService } from '../services/faithPointsService';
 import { subscriptionService } from '../services/subscriptionService';
 
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
-import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import { Colors, Fonts, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
 import { extractCleanTitle } from '../utils/titleUtils';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
@@ -1078,7 +1078,7 @@ const styles = StyleSheet.create({
     marginLeft: 0, // Changed from 'auto' to remove extra space
   },
   progressText: {
-    fontFamily: 'System',
+    fontFamily: Fonts.medium,
     fontWeight: '500',
     fontSize: 12,
     lineHeight: 16,
@@ -1270,7 +1270,7 @@ const styles = StyleSheet.create({
     marginLeft: 2,
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: Fonts.semiBold,
     fontWeight: '600',
   },
   prayerButtonTextActive: {

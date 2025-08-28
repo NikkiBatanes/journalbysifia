@@ -1,10 +1,13 @@
 import React, { useRef, useEffect, useCallback, useImperativeHandle } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Keyboard } from 'react-native';
+import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Keyboard } from 'react-native';
 
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 import { toLocalDateString } from '../../utils/date';
 
 interface PrayerLogEditorProps {
@@ -349,6 +352,9 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
   },
   ref
 ) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const regularFont = getFontFamily(fontKey, 'regular');
   const s = {
     ...defaultStyles,
     ...styles,
@@ -379,13 +385,11 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
     draftText: {
       color: Colors.hopeWhite,
       fontSize: 14,
-      fontWeight: '500',
-    },
+      },
   };
   const inputRef = useRef<TextInput>(null);
   const personInputRef = useRef<TextInput>(null);
   const requestInputRef = useRef<TextInput>(null);
-
   // Debug logging
   console.log('🙏 PrayerLogEditor: _subtaskTitle value:', _subtaskTitle);
   console.log('🙏 PrayerLogEditor: playbookTitle:', playbookTitle);
@@ -696,7 +700,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
       {showDraftNotification && (
         <View style={s.draftNotification}>
           <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
-          <Text style={s.draftText}>Draft Restored</Text>
+          <ThemedText weight="medium" style={s.draftText}>Draft Restored</ThemedText>
         </View>
       )}
       <StatusBar hidden />
@@ -704,7 +708,7 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
 
       {/* Header - matching reflection editor structure */}
       <View style={s.header}>
-        <Text style={s.title}>{dateString}</Text>
+        <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
         <View style={s.modeToggle}>
           {/* Prayer mode icons - compact layout */}
           <TouchableOpacity
@@ -746,18 +750,18 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
               keyboardShouldPersistTaps="handled"
             >
               {/* Title section */}
-              <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
+              <ThemedText weight="semiBold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
                 {_subtaskTitle || ''}
-              </Text>
+              </ThemedText>
 
               {/* Conditional content based on active tab */}
               {activeTab === 'freeform' ? (
                 /* Free Form Prayer Tab */
                 <TextInput
                   ref={inputRef}
-                  style={[s.entryInput, s.entryContentInput]}
+                  style={[s.entryInput, s.entryContentInput, { fontFamily: regularFont }]}
                   placeholder="Share your thoughts, prayers, and reflections..."
-                  placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                  placeholderTextColor={Colors.inactiveIcon}
                   value={prayerContent}
                   onChangeText={handleContentChange}
                   multiline
@@ -768,18 +772,18 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 <View style={s.structuredContainer}>
                   <TextInput
                     ref={personInputRef}
-                    style={s.structuredInput}
+                    style={[s.structuredInput, { fontFamily: regularFont }]}
                     placeholder="Who are you praying for?"
-                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                    placeholderTextColor={Colors.inactiveIcon}
                     value={prayerForPerson}
                     onChangeText={handlePersonChange}
                   />
                   <View style={s.gap} />
                   <TextInput
                     ref={requestInputRef}
-                    style={[s.structuredInput, s.multilineInput]}
+                    style={[s.structuredInput, s.multilineInput, { fontFamily: regularFont }]}
                     placeholder="What would you like to pray for this person?"
-                    placeholderTextColor="rgba(255, 255, 255, 0.4)"
+                    placeholderTextColor={Colors.inactiveIcon}
                     value={prayerRequest}
                     onChangeText={handleRequestChange}
                     multiline
@@ -793,18 +797,18 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
-                    <Text style={s.fromText}>
+                    <ThemedText weight="medium" style={s.fromText}>
                       FROM PLAYBOOK
-                    </Text>
+                    </ThemedText>
                     {playbookTitle && (
-                      <Text style={s.metadataText}>
+                      <ThemedText style={s.metadataText}>
                         {playbookTitle}
-                      </Text>
+                      </ThemedText>
                     )}
                     {actionStepNumber && actionStepTitle && (
-                      <Text style={s.metadataText}>
+                      <ThemedText style={s.metadataText}>
                         Step {actionStepNumber}: {actionStepTitle}
-                      </Text>
+                      </ThemedText>
                     )}
                   </View>
                 </View>
@@ -819,15 +823,15 @@ const PrayerLogEditor = React.forwardRef<PrayerLogEditorRef, PrayerLogEditorProp
             <View style={s.addMenu}>
               <TouchableOpacity style={s.addMenuItem}>
                 <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
-                <Text style={s.addMenuText}>Tags</Text>
+                <ThemedText style={s.addMenuText}>Tags</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity style={s.addMenuItem}>
                 <Ionicons name="image" size={20} color={Colors.hopeWhite} />
-                <Text style={s.addMenuText}>Photos</Text>
+                <ThemedText style={s.addMenuText}>Photos</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity style={s.addMenuItem}>
                 <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
-                <Text style={s.addMenuText}>Camera</Text>
+                <ThemedText style={s.addMenuText}>Camera</ThemedText>
               </TouchableOpacity>
             </View>
           )}

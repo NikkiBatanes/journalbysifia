@@ -6,7 +6,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -19,6 +18,7 @@ import { Colors } from '../../theme/colors';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
 
 interface Streak {
   id: string;
@@ -293,7 +293,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
         size={18}
         color={Colors.mediumGray}
       />
-      <Text style={styles.streakNumber}>{streak.currentStreak}</Text>
+      <ThemedText weight="semiBold" style={styles.streakNumber}>{streak.currentStreak}</ThemedText>
       {streak.isActive && (
         <MaterialCommunityIcons name="fire" size={14} color={Colors.alertCoral} style={{ marginLeft: 4 }} />
       )}
@@ -305,9 +305,9 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
       <View style={styles.container}>
         <View style={styles.header}>
           <MaterialCommunityIcons name="fire" size={24} color={Colors.alertCoral} />
-          <Text style={styles.title}>Streak Tracker</Text>
+          <ThemedText weight="semiBold" style={styles.title}>Streak Tracker</ThemedText>
         </View>
-        <Text style={styles.loadingText}>Loading streaks...</Text>
+        <ThemedText style={styles.loadingText}>Loading streaks...</ThemedText>
       </View>
     );
   }
@@ -316,7 +316,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <MaterialCommunityIcons name="fire" size={24} color={Colors.alertCoral} />
-        <Text style={styles.title}>Streak Tracker</Text>
+        <ThemedText weight="semiBold" style={styles.title}>Streak Tracker</ThemedText>
       </View>
 
       <View style={[styles.grid, { paddingHorizontal: CONTENT_HORIZONTAL_PADDING }]}>
@@ -357,28 +357,28 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
                 style={{ marginRight: 4 }}
               />
             ) : null}
-            <Text style={styles.sheetTitle}>{selected ? getStreakTitle(selected.type) : ''}</Text>
+            <ThemedText weight="semiBold" style={styles.sheetTitle}>{selected ? getStreakTitle(selected.type) : ''}</ThemedText>
           </View>
           {selected && (
             <View style={styles.sheetContent}>
               <View style={styles.sheetRow}>
-                <Text style={styles.sheetLabel}>Current</Text>
-                <Text style={styles.sheetValue}>{selected.currentStreak}</Text>
+                <ThemedText style={styles.sheetLabel}>Current</ThemedText>
+                <ThemedText weight="semiBold" style={styles.sheetValue}>{selected.currentStreak}</ThemedText>
               </View>
               <View style={styles.sheetRow}>
-                <Text style={styles.sheetLabel}>Best</Text>
-                <Text style={styles.sheetValue}>{selected.longestStreak}</Text>
+                <ThemedText style={styles.sheetLabel}>Best</ThemedText>
+                <ThemedText weight="semiBold" style={styles.sheetValue}>{selected.longestStreak}</ThemedText>
               </View>
               {selected.lastActivity && (
                 <View style={styles.sheetRow}>
-                  <Text style={styles.sheetLabel}>Last Activity</Text>
-                  <Text style={styles.sheetValue}>{formatLastActivity(selected.lastActivity)}</Text>
+                  <ThemedText style={styles.sheetLabel}>Last Activity</ThemedText>
+                  <ThemedText weight="semiBold" style={styles.sheetValue}>{formatLastActivity(selected.lastActivity)}</ThemedText>
                 </View>
               )}
 
               {/* Recent Activity Heatmap (14 days) */}
               <View style={styles.sectionSeparator} />
-              <Text style={styles.sectionHeader}>Recent Activity</Text>
+              <ThemedText weight="semiBold" style={styles.sectionHeader}>Recent Activity</ThemedText>
               <View style={styles.heatmapRow}>
                 {getRecentActivityForType(selected.type).map((d, idx) => (
                   <View
@@ -395,27 +395,27 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
                 const recent = getRecentActivityForType(selected.type);
                 const { activeCount, total } = getConsistencySummary(recent);
                 return (
-                  <Text style={styles.heatmapCaption}>{activeCount}/{total} days active</Text>
+                  <ThemedText style={styles.heatmapCaption}>{activeCount}/{total} days active</ThemedText>
                 );
               })()}
 
               {/* Achievements */}
               <View style={styles.sectionSeparator} />
-              <Text style={styles.sectionHeader}>Achievements</Text>
+              <ThemedText weight="semiBold" style={styles.sectionHeader}>Achievements</ThemedText>
               <View style={styles.badgesRow}>
                 {[3, 7, 14, 30].map((t) => (
                   <View
                     key={t}
                     style={[styles.badgeChip, (selected.currentStreak >= t || selected.longestStreak >= t) ? styles.badgeChipEarned : styles.badgeChipDim]}
                   >
-                    <Text style={styles.badgeText}>{t}d</Text>
+                    <ThemedText weight="semiBold" style={styles.badgeText}>{t}d</ThemedText>
                   </View>
                 ))}
               </View>
               {selected.longestStreak < 30 && (
-                <Text style={styles.badgeCaption}>
+                <ThemedText style={styles.badgeCaption}>
                   {Math.max(0, [3,7,14,30].find(t => t > selected.longestStreak) as number - selected.currentStreak)} days to next badge
-                </Text>
+                </ThemedText>
               )}
 
               {/* Actions removed per request */}
@@ -442,7 +442,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
     color: Colors.hopeWhite,
   },
   loadingText: {
@@ -476,7 +475,6 @@ const styles = StyleSheet.create({
   },
   streakNumber: {
     fontSize: 18,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     marginHorizontal: 6,
   },
@@ -518,7 +516,6 @@ const styles = StyleSheet.create({
   },
   sheetTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 0,
     includeFontPadding: false as any,
@@ -530,7 +527,6 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 13,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 6,
     marginTop: 6,
@@ -588,7 +584,6 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: Colors.hopeWhite,
-    fontWeight: '600',
     fontSize: 12,
   },
   badgeCaption: {
@@ -610,7 +605,6 @@ const styles = StyleSheet.create({
   },
   primaryBtnText: {
     color: Colors.hopeWhite,
-    fontWeight: '600',
     fontSize: 14,
   },
   secondaryBtn: {
@@ -623,7 +617,6 @@ const styles = StyleSheet.create({
   },
   secondaryBtnText: {
     color: 'rgba(255,255,255,0.9)',
-    fontWeight: '600',
     fontSize: 14,
   },
   sheetRow: {
@@ -637,7 +630,6 @@ const styles = StyleSheet.create({
   sheetValue: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   sheetButton: {
     marginTop: 12,
@@ -649,7 +641,6 @@ const styles = StyleSheet.create({
   },
   sheetButtonText: {
     color: Colors.hopeWhite,
-    fontWeight: '600',
     fontSize: 14,
   },
 });

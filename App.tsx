@@ -8,7 +8,7 @@ import 'react-native-url-polyfill/auto';
 
 import React, { useState, useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StatusBar, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
+import { View, StatusBar, ActivityIndicator, StyleSheet, LogBox, Text as RNText, TextInput as RNTextInput } from 'react-native';
 
 import { NavigationContainer } from '@react-navigation/native';
 
@@ -40,10 +40,13 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import ErrorBoundary from './src/components/ErrorBoundary/ErrorBoundary';
 import { queryClient } from './src/config/queryClientConfig';
 import { trialExpiryService } from './src/services/TrialExpiryService';
+import GlobalFontApplier from './src/components/common/GlobalFontApplier';
 
 // Hide debug notifications
 LogBox.ignoreLogs(['Warning: ...']); // Ignore specific warnings if needed
 LogBox.ignoreAllLogs(); // Ignore all log notifications
+
+// Global default font is applied dynamically via GlobalFontApplier using theme.currentFont
 
 // Main App Component
 function App(): React.JSX.Element {
@@ -97,6 +100,7 @@ function AppWithAuth({ fontsLoaded, playbook }: { fontsLoaded: boolean; playbook
 
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <ThemeProvider>
+          <GlobalFontApplier />
           <ScrollProvider>
             <ActionStepsProviderWrapper initialSteps={playbook.actionSteps}>
               <UserProvider>

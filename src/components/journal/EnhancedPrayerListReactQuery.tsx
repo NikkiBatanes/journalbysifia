@@ -24,6 +24,9 @@ import { PrayerApiEntry } from '../../services/api/prayerApi';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
 
 // Types and Interfaces
 type TabType = 'mine' | 'requests';
@@ -52,6 +55,8 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
   const globalEditMode = useEditModeSafe();
+  const theme = useTheme();
+  const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular');
 
   // React Query hooks for data fetching
   const { data: peoplePrayers = [], error } = usePeoplePrayerData(
@@ -305,9 +310,9 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             }}
           >
             <View style={styles.tabContent}>
-              <Text style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]}>
+              <ThemedText style={[styles.tabText, activeTab === 'mine' && styles.activeTabText]} weight="medium">
                 Prayers for People
-              </Text>
+              </ThemedText>
             </View>
           </TouchableOpacity>
           <TouchableOpacity
@@ -322,9 +327,9 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             }}
           >
             <View style={styles.tabContent}>
-              <Text style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]}>
+              <ThemedText style={[styles.tabText, activeTab === 'requests' && styles.activeTabText]} weight="medium">
                 Prayer Requests
-              </Text>
+              </ThemedText>
             </View>
           </TouchableOpacity>
         </View>
@@ -333,9 +338,9 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         <View style={[styles.inputContainer, isNameFocused && styles.inputFocused]}>
           <TextInput
             key={`name-${inputKey}`}
-            style={[styles.input, styles.singleLineInput]}
+            style={[styles.input, styles.singleLineInput, { fontFamily: regularFont }]}
             placeholder={activeTab === 'mine' ? 'Who are you praying for?' : 'Who is requesting prayer?'}
-            placeholderTextColor={Colors.mediumGray}
+            placeholderTextColor={Colors.inactiveIcon}
             value={name}
             onChangeText={setName}
             onFocus={() => setIsNameFocused(true)}
@@ -353,10 +358,10 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             style={[
               styles.input,
               styles.prayerInput,
-              { height: Math.max(140, prayerHeight) },
+              { height: Math.max(140, prayerHeight), fontFamily: regularFont },
             ]}
             placeholder={activeTab === 'mine' ? 'What would you like to pray for them?' : 'What is the prayer request?'}
-            placeholderTextColor={Colors.mediumGray}
+            placeholderTextColor={Colors.inactiveIcon}
             value={prayer}
             onChangeText={setPrayer}
             onFocus={() => setIsPrayerFocused(true)}
@@ -370,12 +375,12 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           {/* Integrated Notes Section - Only show in 'Mine' tab */}
           {activeTab === 'mine' && (
             <View style={styles.notesSection}>
-              <Text style={styles.notesLabel}>{currentRequestedBy ? 'Prayer Request:' : 'Notes (optional):'}</Text>
+              <ThemedText style={styles.notesLabel} weight="medium">{currentRequestedBy ? 'Prayer Request:' : 'Notes (optional):'}</ThemedText>
               <TextInput
                 key={`notes-${inputKey}`}
-                style={[styles.notesInput, { height: Math.max(60, notesHeight) }]}
+                style={[styles.notesInput, { height: Math.max(60, notesHeight), fontFamily: regularFont }]}
                 placeholder="Add any additional notes here..."
-                placeholderTextColor={Colors.mediumGray}
+                placeholderTextColor={Colors.inactiveIcon}
                 value={notes}
                 onChangeText={setNotes}
                 onFocus={() => setIsNotesFocused(true)}

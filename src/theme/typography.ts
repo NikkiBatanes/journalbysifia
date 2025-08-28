@@ -1,22 +1,24 @@
 // src/theme/typography.ts
 
 import { TextStyle } from 'react-native';
+import { Fonts } from './fonts';
 
 export const Typography = {
+  // Keep existing keys for backward compatibility, but map to app default font (Lexend)
   interRegular: {
-    fontFamily: 'Inter-Regular',
-    fontWeight: '500',
+    fontFamily: Fonts.regular,
+    fontWeight: '400',
   } as TextStyle,
   interSemiBold: {
-    fontFamily: 'Inter-SemiBold',
-    fontWeight: '500',
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600',
   } as TextStyle,
   interBold: {
-    fontFamily: 'Inter-Bold',
-    fontWeight: '800',
+    fontFamily: Fonts.bold,
+    fontWeight: '700',
   } as TextStyle,
   interBlack: {
-    fontFamily: 'Inter-Black',
+    fontFamily: Fonts.bold,
     fontWeight: '900',
   } as TextStyle,
 };
