@@ -1,5 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { Colors } from '../theme';
 
@@ -7,6 +9,7 @@ export interface SuccessModalConfig {
   title: string;
   message: string;
   showEditButton?: boolean;
+  hideDoneButton?: boolean;
 }
 
 interface NewSuccessModalProps {
@@ -23,6 +26,24 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
   onEdit,
 }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const iconScale = React.useRef(new Animated.Value(0.85)).current;
+  const sparkleAnims = React.useRef(
+    Array.from({ length: 5 }).map(() => ({
+      opacity: new Animated.Value(0),
+      translateY: new Animated.Value(0),
+      scale: new Animated.Value(0.6),
+    }))
+  ).current;
+  const sparklePositions = React.useMemo(
+    () => [
+      { top: 6, left: 10 } as const,
+      { top: 10, right: 8 } as const,
+      { bottom: 10, left: 16 } as const,
+      { bottom: 8, right: 14 } as const,
+      { top: 2, right: 26 } as const,
+    ],
+    []
+  );
   const timersRef = React.useRef<number[]>([]);
 
   const hapticOptions = React.useMemo(() => ({
@@ -34,22 +55,8 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
     try { ReactNativeHapticFeedback.trigger('impactLight', hapticOptions); } catch {}
   }, [hapticOptions]);
 
-  const triggerSuccessHaptic = React.useCallback(() => {
-    try { ReactNativeHapticFeedback.trigger('notificationSuccess', hapticOptions); } catch {}
-  }, [hapticOptions]);
-
-  const startBurstHaptics = React.useCallback(() => {
-    // Clear any existing timers before starting
-    timersRef.current.forEach(id => clearTimeout(id));
-    timersRef.current = [];
-    const schedule = [0, 250, 500, 750];
-    schedule.forEach(delay => {
-      const id = setTimeout(() => {
-        ReactNativeHapticFeedback.trigger('impactLight', hapticOptions);
-      }, delay) as unknown as number;
-      timersRef.current.push(id);
-    });
-  }, [hapticOptions]);
+  // Success modal haptics: add a light tap on show and a subtle follow-up
+  // synced with the sparkles start. FP toast haptics remain enabled.
 
   React.useEffect(() => {
     console.log('🎉 NewSuccessModal: Effect triggered:', {
@@ -68,9 +75,36 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
         useNativeDriver: true,
       }).start();
 
-      // Haptics: success + 4 light pulses
-      triggerSuccessHaptic();
-      startBurstHaptics();
+      // Icon pop-in
+      iconScale.setValue(0.85);
+      Animated.spring(iconScale, {
+        toValue: 1,
+        stiffness: 180,
+        damping: 14,
+        mass: 0.6,
+        useNativeDriver: true,
+      }).start();
+
+      // Tiny sparkles drift up and fade
+      sparkleAnims.forEach((anim, idx) => {
+        anim.opacity.setValue(0);
+        anim.translateY.setValue(0);
+        anim.scale.setValue(0.6);
+        Animated.sequence([
+          Animated.delay(80 + idx * 60),
+          Animated.parallel([
+            Animated.timing(anim.opacity, { toValue: 1, duration: 120, useNativeDriver: true }),
+            Animated.timing(anim.translateY, { toValue: -8 - idx * 2, duration: 700, useNativeDriver: true }),
+            Animated.timing(anim.scale, { toValue: 1, duration: 700, useNativeDriver: true }),
+          ]),
+          Animated.timing(anim.opacity, { toValue: 0, duration: 180, useNativeDriver: true }),
+        ]).start();
+      });
+
+      // Single haptic aligned with the first sparkles kick-off
+      // Sparkles first delay is ~80ms; trigger slightly after to feel synced
+      const t = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, 140) as unknown as number;
+      timersRef.current.push(t);
     } else {
       console.log('🎉 NewSuccessModal: Hiding modal');
       // Visual fade-out
@@ -88,7 +122,7 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
       timersRef.current.forEach(id => clearTimeout(id));
       timersRef.current = [];
     };
-  }, [visible, config, fadeAnim, triggerSuccessHaptic, startBurstHaptics]);
+  }, [visible, config, fadeAnim, iconScale, sparkleAnims]);
 
   if (!visible || !config) {
     return null;
@@ -109,26 +143,47 @@ const NewSuccessModal: React.FC<NewSuccessModalProps> = ({
           ]}
         >
           <View style={styles.modalContent}>
+            <View style={styles.iconWrapper}>
+              <Animated.View style={{ transform: [{ scale: iconScale }] }}>
+                <MaterialCommunityIcons name="hands-pray" size={42} color={Colors.hopeWhite} />
+              </Animated.View>
+              {/* Tiny sparkles (icon-based) */}
+              {sparkleAnims.map((anim, i) => (
+                <Animated.View
+                  key={`sp-${i}`}
+                  style={[
+                    styles.sparkle,
+                    sparklePositions[i],
+                    { opacity: anim.opacity, transform: [{ translateY: anim.translateY }, { scale: anim.scale }] },
+                  ]}
+                >
+                  <Ionicons name="sparkles" size={12} color={Colors.hopeWhite} />
+                </Animated.View>
+              ))}
+            </View>
             <Text style={styles.title}>{config.title}</Text>
             <Text style={styles.message}>{config.message}</Text>
+            {(config.showEditButton && onEdit) || !config.hideDoneButton ? (
+              <View style={styles.buttonContainer}>
+                {config.showEditButton && onEdit && (
+                  <TouchableOpacity
+                    style={[styles.button, styles.editButton]}
+                    onPress={() => { triggerLightHaptic(); onEdit(); }}
+                  >
+                    <Text style={styles.editButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                )}
 
-            <View style={styles.buttonContainer}>
-              {config.showEditButton && onEdit && (
-                <TouchableOpacity
-                  style={[styles.button, styles.editButton]}
-                  onPress={() => { triggerLightHaptic(); onEdit(); }}
-                >
-                  <Text style={styles.editButtonText}>Edit</Text>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={[styles.button, styles.doneButton]}
-                onPress={() => { triggerLightHaptic(); onDone(); }}
-              >
-                <Text style={styles.doneButtonText}>Done</Text>
-              </TouchableOpacity>
-            </View>
+                {!config.hideDoneButton && (
+                  <TouchableOpacity
+                    style={[styles.button, styles.doneButton]}
+                    onPress={() => { triggerLightHaptic(); onDone(); }}
+                  >
+                    <Text style={styles.doneButtonText}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : null}
           </View>
         </Animated.View>
       </View>
@@ -162,6 +217,14 @@ const styles = StyleSheet.create({
     padding: 28,
     alignItems: 'center',
   },
+  iconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
   title: {
     fontSize: 18,
     fontWeight: '600',
@@ -175,6 +238,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
+  },
+  sparkle: {
+    position: 'absolute',
+    opacity: 0,
   },
   buttonContainer: {
     flexDirection: 'row',

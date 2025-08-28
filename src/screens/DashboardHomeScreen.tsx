@@ -23,6 +23,8 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
+import { faithPointsService } from '../services/faithPointsService';
+import { notificationService } from '../services/notificationService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 // Removed useTheme and getFontFamily; fonts handled by ThemedText
@@ -53,6 +55,7 @@ import { useUnprayedPrayerRequests, useMarkPrayerRequestPrayed, useCreatePrayer 
 import { queryKeys } from '../services/queryKeys';
 import DashboardPrayerSkeleton from '../components/SkeletonLoader/DashboardPrayerSkeleton';
 import ThemedText from '../components/common/ThemedText';
+import NewSuccessModal from '../components/NewSuccessModal';
 
 const { width } = Dimensions.get('window');
 
@@ -590,8 +593,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       paddingVertical: 4,
       borderRadius: 12,
       gap: 4,
-      borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.3)',
     },
     prayerRequestsHeaderCount: {
       fontSize: 12,
@@ -774,20 +775,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     } catch {}
   }, [user]);
 
-  // Success haptic (after saving prayer)
-  const triggerSuccessHaptic = useCallback(() => {
-    try {
-      const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) { return; }
-      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) { return; }
-      const Haptic = require('react-native-haptic-feedback');
-      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
-      if (typeof triggerFn === 'function') {
-        triggerFn('notificationSuccess', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
-      }
-    } catch {}
-  }, [user]);
+  // (removed) triggerSuccessHaptic — unused
 
   // Selection haptic (when focusing inputs)
   const triggerSelectionHaptic = useCallback(() => {
@@ -811,6 +799,8 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   // Simple expandable button
   const buttonWidth = useRef(new Animated.Value(56)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
+  // ScrollView ref to reset position on focus
+  const scrollRef = useRef<ScrollView | null>(null);
   // When collapsed, keep text width at 0 so the icon stays perfectly centered
   const textWidth = textOpacity.interpolate({
     inputRange: [0, 1],
@@ -893,6 +883,9 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       // Reset state
       buttonWidth.setValue(56);
       textOpacity.setValue(0);
+
+      // Always scroll to top when dashboard gains focus
+      try { scrollRef.current?.scrollTo({ y: 0, animated: false }); } catch {}
 
       // Refresh subscription data when screen comes into focus
       refreshSubscription();
@@ -993,38 +986,60 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         user_id: user?.id || '',
       });
 
-      // Mark the original request as prayed
-      if (selectedPrayerRequest) {
-        await markPrayedMutation.mutateAsync({
-          id: selectedPrayerRequest.id,
-          isPrayed: true,
-          _userId: selectedPrayerRequest.user_id,
-          _dateStr: selectedPrayerRequest.selected_date,
-        });
-      }
-
-      // Invalidate all relevant queries to refresh UI
-      if (user?.id) {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.unprayedRequests(user.id) });
-        await queryClient.invalidateQueries({ queryKey: queryKeys.prayers.all(user.id) });
-        await queryClient.invalidateQueries({ queryKey: ['prayers'] });
-        await queryClient.invalidateQueries({ queryKey: ['prayer-requests'] });
-      }
-
-      // Show success modal
+      // Immediately show success modal and close editor to avoid any delay
       setSuccessPersonName(modalPrayerName);
       setShowSuccessModal(true);
-
-      // Close the prayer modal
       handleCancelModalPrayer();
 
-      // Show success feedback
-      triggerSuccessHaptic();
+      // Run remaining work in background (no awaiting) to avoid blocking UI
+      try {
+        if (selectedPrayerRequest) {
+          markPrayedMutation.mutateAsync({
+            id: selectedPrayerRequest.id,
+            isPrayed: true,
+            _userId: selectedPrayerRequest.user_id,
+            _dateStr: selectedPrayerRequest.selected_date,
+          }).catch((e) => console.warn('markPrayed failed (background):', e));
+        }
+
+        if (user?.id) {
+          Promise.all([
+            queryClient.invalidateQueries({ queryKey: queryKeys.prayers.unprayedRequests(user.id) }),
+            queryClient.invalidateQueries({ queryKey: queryKeys.prayers.all(user.id) }),
+            queryClient.invalidateQueries({ queryKey: ['prayers'] }),
+            queryClient.invalidateQueries({ queryKey: ['prayer-requests'] }),
+          ]).catch((e) => console.warn('invalidateQueries failed (background):', e));
+
+          // Award faith points in background; toast shown later manually
+          faithPointsService
+            .awardPoints(user.id, 'prayer_for_now', {
+              activity_type: 'prayer_for_others',
+              prayer_request_id: selectedPrayerRequest?.id,
+              prayer_content: prayerContent.substring(0, 100),
+              prayed_for: modalPrayerName.trim(),
+              suppressNotification: true,
+            })
+            .catch((e) => console.warn('awardPoints failed (background):', e));
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not award faith points:', error);
+      }
+
+      // Show success feedback (haptic removed; toast provides a single light tap)
 
       // Auto-hide success modal after 3 seconds
       setTimeout(() => {
         setShowSuccessModal(false);
       }, 3000);
+
+      // After the success modal, show the FP notification so it appears on top
+      // Slight delay after hide to ensure correct layering
+      if (user?.id) {
+        const points = faithPointsService.getPointsForActivity('prayer_for_now');
+        setTimeout(() => {
+          notificationService.showPointsNotification(points, 'prayer_for_now', 'center');
+        }, 3200);
+      }
     } catch (e) {
       console.error('Failed to save prayer:', e);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
@@ -1305,6 +1320,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
 
       <View style={styles.content}>
         <ScrollView
+          ref={scrollRef}
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           contentInsetAdjustmentBehavior="never"
@@ -1573,20 +1589,15 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       </Modal>
 
       {/* Success Modal */}
-      <Modal
+      <NewSuccessModal
         visible={showSuccessModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowSuccessModal(false)}
-      >
-        <View style={styles.successModalOverlay}>
-          <View style={styles.successModalContainer}>
-            <MaterialCommunityIcons name="check-circle" size={48} color={Colors.alertCoral} />
-            <ThemedText weight="semiBold" style={styles.successModalTitle}>Thank you for praying for {successPersonName}!</ThemedText>
-            <ThemedText weight="regular" style={styles.successModalSubtitle}>It is now saved in your prayer journal</ThemedText>
-          </View>
-        </View>
-      </Modal>
+        config={{
+          title: `Prayed for ${successPersonName}`,
+          message: 'God hears. We’ve saved your prayer so you can keep them close.',
+          hideDoneButton: true,
+        }}
+        onDone={() => setShowSuccessModal(false)}
+      />
     </View>
   );
 };

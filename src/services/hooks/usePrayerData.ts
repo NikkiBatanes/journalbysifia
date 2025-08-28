@@ -510,9 +510,15 @@ export const useMarkPrayerRequestPrayed = () => {
       await queryClient.cancelQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
       });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.prayers.unprayedRequests(_userId),
+      });
 
       const previousPrayers = queryClient.getQueryData<PrayerApiEntry[]>(
         queryKeys.prayers.entries(_userId, _dateStr)
+      );
+      const previousUnprayed = queryClient.getQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.unprayedRequests(_userId)
       );
 
       queryClient.setQueryData<PrayerApiEntry[]>(
@@ -524,7 +530,24 @@ export const useMarkPrayerRequestPrayed = () => {
         )
       );
 
-      return { previousPrayers };
+      // Update dashboard unprayed requests list immediately
+      queryClient.setQueryData<PrayerApiEntry[]>(
+        queryKeys.prayers.unprayedRequests(_userId),
+        (old = []) => {
+          if (isPrayed) {
+            // Remove from unprayed if just marked as prayed
+            return old.filter(p => p.id !== id);
+          }
+          // If toggled back to unprayed, try to add a placeholder if not present
+          const exists = old.some(p => p.id === id);
+          if (exists) { return old; }
+          // Try to recover minimal data from entries cache to re-add
+          const fromEntries = (previousPrayers || []).find(p => p.id === id);
+          return fromEntries ? [fromEntries, ...old] : old;
+        }
+      );
+
+      return { previousPrayers, previousUnprayed };
     },
     onError: (err: Error, { _userId, _dateStr }, context) => {
       console.error('Error marking prayer request as prayed:', err);
@@ -534,10 +557,19 @@ export const useMarkPrayerRequestPrayed = () => {
           context.previousPrayers
         );
       }
+      if (context?.previousUnprayed) {
+        queryClient.setQueryData(
+          queryKeys.prayers.unprayedRequests(_userId),
+          context.previousUnprayed
+        );
+      }
     },
     onSettled: (data, error, { _userId, _dateStr }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.prayers.entries(_userId, _dateStr),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.prayers.unprayedRequests(_userId),
       });
     },
   });

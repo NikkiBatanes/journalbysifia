@@ -110,8 +110,10 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
       const isCompletion = at.includes('action_step_completed') || at.includes('playbook_completed');
       const isBigAward = isCompletion || points >= 20;
 
-      // Start slightly after entrance begins to align with scale pop
-      if (isBigAward) {
+      // For prayer_for_now, use a single light tap
+      if (at === 'prayer_for_now') {
+        h1 = setTimeout(() => { try { triggerLightHaptic(); } catch {} }, 160);
+      } else if (isBigAward) {
         // Heavy hit, then success pulse
         h1 = setTimeout(() => { try { triggerHeavyHaptic(); } catch {} }, 140);
         h2 = setTimeout(() => { try { triggerSuccessHaptic(); } catch {} }, 260);
@@ -161,7 +163,8 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
     if (at === 'playbook_generated') { return { lib: 'MCI' as const, name: 'clipboard-text-play' as const }; }
     // General mappings (Ionicons)
     if (at.includes('devotional')) { return { lib: 'Ion' as const, name: 'book' as const }; }
-    if (at.includes('prayer')) { return { lib: 'Ion' as const, name: 'heart' as const }; }
+    // Use praying hands icon for prayer-related activities
+    if (at.includes('prayer')) { return { lib: 'MCI' as const, name: 'hands-pray' as const }; }
     if (at.includes('journal')) { return { lib: 'Ion' as const, name: 'create' as const }; }
     if (at.includes('playbook')) { return { lib: 'Ion' as const, name: 'book' as const }; }
     if (at.includes('streak')) { return { lib: 'Ion' as const, name: 'flame' as const }; }
@@ -242,6 +245,9 @@ const AnimatedPointsNotification: React.FC<AnimatedPointsNotificationProps> = ({
                 if (at === 'affirmation_read_aloud') {
                   // Copy refinement: pluralize to match product copy
                   return 'AFFIRMATIONS';
+                }
+                if (at === 'prayer_for_now') {
+                  return 'PRAYER';
                 }
                 return activityType.replace(/_/g, ' ').toUpperCase();
               })()}
