@@ -28,13 +28,11 @@ import { faithPointsService } from '../services/faithPointsService';
 import { notificationService } from '../services/notificationService';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-// Removed useTheme and getFontFamily; fonts handled by ThemedText
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useSubscription } from '../hooks/useSubscription';
 import { Colors } from '../theme/colors';
 import { getTierShortName, normalizeTierInput } from '../utils/tierDisplayUtils';
 import { SubscriptionTier } from '../interfaces/subscription';
-// Removed unused imports to reduce lint noise
 import { useTheme } from '../hooks/useTheme';
 import { getFontFamily } from '../theme/fonts';
 
@@ -84,7 +82,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
   const fontRegular = getFontFamily(fontKey, 'regular');
-  // const fontSemiBold = getFontFamily(fontKey, 'semiBold'); // unused
 
   // Create styles using theme values
   const styles = StyleSheet.create({

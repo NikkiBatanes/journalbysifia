@@ -229,8 +229,8 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       if (event?.type === 'updated' && event.query.queryKey) {
         const queryKey = event.query.queryKey;
         // Check if any of the invalidated queries should trigger a refetch
-        if (queryKey.includes('userPlaybooks') || 
-            queryKey.includes('playbookProgress') || 
+        if (queryKey.includes('userPlaybooks') ||
+            queryKey.includes('playbookProgress') ||
             queryKey.includes('playbooks') ||
             queryKey.includes('actionSteps')) {
           console.log('[PlaybookCarousel] Query invalidated, scheduled refetch:', queryKey);
@@ -250,7 +250,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     };
 
     const subscription = DeviceEventEmitter.addListener('playbookProgressUpdate', handleProgressUpdate);
-    
+
     return () => {
       subscription.remove();
     };
@@ -325,7 +325,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
         refetchTimeoutRef.current = null;
       }
     };
-  }, [user?.id, scheduleRefetch]);
+  }, [user?.id, scheduleRefetch, fetchPlaybooks]);
 
   const getProgressColor = (progress: number) => {
     // Match empty progress bar background for 0%

@@ -263,7 +263,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
                   style={styles.removeButton}
                   onPress={() => handleRemoveMember(member)}
                 >
-                  <Ionicons name="trash-outline" size={20} color={Colors.errorRed} />
+                  <Ionicons name="trash-outline" size={20} color={Colors.dangerRed} />
                 </TouchableOpacity>
               )}
             </View>
@@ -289,7 +289,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
                   style={styles.cancelButton}
                   onPress={() => handleCancelInvitation(invitation)}
                 >
-                  <Ionicons name="close-circle" size={24} color={Colors.errorRed} />
+                  <Ionicons name="close-circle" size={24} color={Colors.dangerRed} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
     color: Colors.textGray,
   },
   errorBanner: {
-    backgroundColor: Colors.errorRed,
+    backgroundColor: Colors.dangerRed,
     marginHorizontal: 20,
     marginVertical: 8,
     padding: 16,

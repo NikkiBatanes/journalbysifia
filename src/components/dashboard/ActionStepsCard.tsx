@@ -76,8 +76,8 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     try {
       // Simple console log for now - can be enhanced later
       console.log(`[Analytics] ${event_type}:`, payload);
-    } catch (error) {
-      console.error('Analytics error:', error);
+    } catch (analyticsError) {
+      console.error('Analytics error:', analyticsError);
     }
   }, []);
 
@@ -100,6 +100,74 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   });
 
   const viewabilityConfig = { itemVisiblePercentThreshold: 60, minimumViewTime: 400 };
+
+  // Auto-complete main step when all subtasks are done
+  const checkAndCompleteStep = useCallback(async (stepId: string) => {
+    // Get fresh step data from current state
+    setActionSteps(currentSteps => {
+      const step = currentSteps.find(s => s.id === stepId);
+      if (!step || !step.subTasks || step.subTasks.length === 0 || !user) {
+        return currentSteps;
+      }
+
+      const allSubTasksCompleted = step.subTasks.every(subTask => subTask.completed);
+      if (allSubTasksCompleted && !step.isCompleted) {
+        console.log(`[DEBUG] Completing step ${stepId} - all ${step.subTasks.length} subtasks done`);
+
+        // Perform async operations
+        (async () => {
+          try {
+            setCompletingStepId(stepId);
+
+            // Initialize animation if not exists
+            if (!stepAnimations[stepId]) {
+              stepAnimations[stepId] = new Animated.Value(1);
+            }
+
+            // Update main step as completed
+            const { error: updateError } = await supabase
+              .from('playbook_action_steps')
+              .update({ completed: true })
+              .eq('id', stepId);
+            if (updateError) {throw updateError;}
+
+            // Award faith points for step completion
+            await faithPointsService.awardPoints(
+              user.id,
+              'action_step_completed',
+              { playbook_id: step.playbookId, step_id: step.id, title: step.title }
+            );
+
+            // Force immediate refetch for all related queries
+            await queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+            await queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
+            await queryClient.invalidateQueries({ queryKey: ['playbook', step.playbookId] });
+            await Promise.all([
+              queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] }),
+              queryClient.invalidateQueries({ queryKey: ['playbookProgress'] }),
+            ]);
+
+            // Emit event for PlaybookCarousel to update
+            DeviceEventEmitter.emit('playbookProgressUpdate', { stepId, playbookId: step.playbookId });
+
+            setCompletedStepId(stepId);
+            setTimeout(() => setCompletedStepId(null), 2000);
+          } catch (error) {
+            console.error('Error completing step:', error);
+          } finally {
+            setCompletingStepId(null);
+          }
+        })();
+
+        // Return updated state showing step as completed
+        return currentSteps.map(s =>
+          s.id === stepId ? { ...s, isCompleted: true } : s
+        );
+      }
+
+      return currentSteps;
+    });
+  }, [user, queryClient, stepAnimations]);
 
   const fetchActionSteps = useCallback(async () => {
     if (!user) {return;}
@@ -151,11 +219,11 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
         const completedSubTasks = subTasks.filter((st: SubTask) => st.completed).length;
         const totalSubTasks = subTasks.length;
-        
+
         // Check if all subtasks are completed but main step isn't
         const allSubTasksCompleted = totalSubTasks > 0 && completedSubTasks === totalSubTasks;
         const shouldAutoComplete = allSubTasksCompleted && !step.completed;
-        
+
         console.log(`[DEBUG] Step ${step.id}: ${completedSubTasks}/${totalSubTasks} subtasks, main completed: ${step.completed}, should auto-complete: ${shouldAutoComplete}`);
 
         return {
@@ -184,7 +252,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       const ranked = rankSteps(transformedSteps);
 
       setActionSteps(ranked);
-      
+
       // Store steps that need auto-completion for later processing
       const stepsToAutoComplete = ranked.filter(step => step.shouldAutoComplete);
       if (stepsToAutoComplete.length > 0) {
@@ -204,7 +272,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, checkAndCompleteStep]);
 
   useEffect(() => {
     fetchActionSteps();
@@ -260,94 +328,10 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
   // no due-date formatting needed (due chip removed)
 
-  // Auto-complete main step when all subtasks are done
-  const checkAndCompleteStep = useCallback(async (stepId: string) => {
-    // Get fresh step data from current state
-    setActionSteps(currentSteps => {
-      const step = currentSteps.find(s => s.id === stepId);
-      if (!step || !step.subTasks || step.subTasks.length === 0 || !user) {
-        return currentSteps;
-      }
-
-      const allSubTasksCompleted = step.subTasks.every(subTask => subTask.completed);
-      if (allSubTasksCompleted && !step.isCompleted) {
-        console.log(`[DEBUG] Completing step ${stepId} - all ${step.subTasks.length} subtasks done`);
-        
-        // Perform async operations
-        (async () => {
-          try {
-            setCompletingStepId(stepId);
-
-            // Initialize animation if not exists
-            if (!stepAnimations[stepId]) {
-              stepAnimations[stepId] = new Animated.Value(1);
-            }
-
-            // Update main step as completed
-            const { error: updateError } = await supabase
-              .from('playbook_action_steps')
-              .update({ completed: true })
-              .eq('id', stepId);
-            if (updateError) throw updateError;
-
-            // Award faith points for step completion
-            await faithPointsService.awardPoints(
-              user.id,
-              'action_step_completed',
-              { playbook_id: step.playbookId, step_id: step.id, title: step.title }
-            );
-
-            // Force immediate refetch for all related queries
-            await queryClient.invalidateQueries({ queryKey: ['playbooks'] });
-            await queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
-            await queryClient.invalidateQueries({ queryKey: ['playbook', step.playbookId] });
-            await queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
-            await queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
-            
-            // Trigger custom event for immediate carousel update
-            DeviceEventEmitter.emit('playbookProgressUpdate', { 
-              stepId, playbookId: step.playbookId, type: 'step_completed' 
-            });
-
-            triggerLightHaptic();
-            setCompletedStepId(stepId);
-
-            // Animate step number badge and then remove step
-            Animated.sequence([
-              Animated.timing(stepAnimations[stepId], {
-                toValue: 1.3,
-                duration: 200,
-                useNativeDriver: true,
-              }),
-              Animated.timing(stepAnimations[stepId], {
-                toValue: 1,
-                duration: 200,
-                useNativeDriver: true,
-              }),
-            ]).start(() => {
-              // Remove step from list after animation
-              setTimeout(() => {
-                setActionSteps(prev => prev.filter(s => s.id !== stepId));
-                setCompletedStepId(null);
-                setCompletingStepId(null);
-                delete stepAnimations[stepId];
-              }, 300);
-            });
-          } catch (e) {
-            console.error('Failed to auto-complete step:', e);
-            setCompletingStepId(null);
-          }
-        })();
-
-        // Return updated state showing step as completed
-        return currentSteps.map(s => 
-          s.id === stepId ? { ...s, isCompleted: true } : s
-        );
-      }
-      
-      return currentSteps;
-    });
-  }, [user, logEvent, queryClient, stepAnimations]);
+  const handleStepPress = useCallback(async (step: ActionStep) => {
+    console.log('[ActionStepsCard] Step pressed:', step.id);
+    onStepPress?.(step);
+  }, [onStepPress]);
 
   const markSubTaskDone = useCallback(async (stepId: string, subTaskId: string) => {
     if (!user) {return;}
@@ -384,10 +368,10 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
       queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
       queryClient.invalidateQueries({ queryKey: ['playbooks'] });
-      
+
       // Trigger a custom event for immediate carousel update
-      DeviceEventEmitter.emit('playbookProgressUpdate', { 
-        stepId, subTaskId, type: 'subtask' 
+      DeviceEventEmitter.emit('playbookProgressUpdate', {
+        stepId, subTaskId, type: 'subtask',
       });
 
       triggerLightHaptic();
@@ -398,7 +382,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       console.error('Failed to mark subtask as done:', e);
       setError('Failed to complete subtask. Please try again.');
     }
-  }, [user, checkAndCompleteStep, actionSteps, queryClient]);
+  }, [user, checkAndCompleteStep, queryClient]);
 
   // markStepDone removed - steps auto-complete when all subtasks are done
 
@@ -473,7 +457,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         weight="regular"
         style={[
           styles.subTaskText,
-          subTask.completed && styles.subTaskTextCompleted
+          subTask.completed && styles.subTaskTextCompleted,
         ]}
         numberOfLines={2}
       >
@@ -488,7 +472,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       onPress={() => {
         triggerLightHaptic();
         logEvent('start_step', { playbook_id: item.playbookId, step_id: item.id, title: item.title });
-        onStepPress?.(item);
+        handleStepPress(item);
       }}
       activeOpacity={0.8}
     >
