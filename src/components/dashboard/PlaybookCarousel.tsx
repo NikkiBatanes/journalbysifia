@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  DeviceEventEmitter,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
@@ -19,6 +20,7 @@ import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import DashboardPlaybookSkeleton from '../SkeletonLoader/DashboardPlaybookSkeleton';
 import ThemedText from '../common/ThemedText';
 
@@ -59,10 +61,13 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
 }) => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  const queryClient = useQueryClient();
   const scrollX = useRef(new Animated.Value(0)).current;
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
   const playbookIdsRef = useRef<Set<string>>(new Set());
   const refetchTimeoutRef = useRef<any>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
@@ -71,7 +76,12 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     if (!user) {return;}
 
     try {
-      setLoading(true);
+      // Only show skeleton on first load; keep content visible on background refetches
+      if (!hasLoadedRef.current) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
       setError(null);
 
       // Fetch playbooks
@@ -185,7 +195,9 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       console.error('Error fetching playbooks:', err);
       setError('Unable to load playbooks');
     } finally {
+      hasLoadedRef.current = true;
       setLoading(false);
+      setRefreshing(false);
     }
   }, [user]);
 
@@ -211,6 +223,39 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     }, 150);
   }, [fetchPlaybooks]);
 
+  // Listen for React Query invalidations from ActionStepsCard
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.type === 'updated' && event.query.queryKey) {
+        const queryKey = event.query.queryKey;
+        // Check if any of the invalidated queries should trigger a refetch
+        if (queryKey.includes('userPlaybooks') || 
+            queryKey.includes('playbookProgress') || 
+            queryKey.includes('playbooks') ||
+            queryKey.includes('actionSteps')) {
+          console.log('[PlaybookCarousel] Query invalidated, scheduled refetch:', queryKey);
+          scheduleRefetch(); // Use debounced refetch to avoid rapid flashing
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [queryClient, scheduleRefetch]);
+
+  // Listen for custom events from ActionStepsCard for immediate updates
+  useEffect(() => {
+    const handleProgressUpdate = (eventData: any) => {
+      console.log('[PlaybookCarousel] DeviceEvent received, scheduled refetch:', eventData);
+      scheduleRefetch();
+    };
+
+    const subscription = DeviceEventEmitter.addListener('playbookProgressUpdate', handleProgressUpdate);
+    
+    return () => {
+      subscription.remove();
+    };
+  }, [fetchPlaybooks]);
+
   // Realtime subscription: update when playbook_action_steps or user_progress change
   useEffect(() => {
     // Skip if not logged in
@@ -222,10 +267,23 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       'postgres_changes',
       { event: '*', schema: 'public', table: 'playbook_action_steps' },
       (payload: any) => {
+        console.log('[PlaybookCarousel] playbook_action_steps change detected:', payload);
         const affectedId = (payload.new?.playbook_id ?? payload.old?.playbook_id) as string | undefined;
         if (affectedId && playbookIdsRef.current.has(affectedId)) {
-          scheduleRefetch();
+          console.log('[PlaybookCarousel] Immediate refetch due to step change in playbook:', affectedId);
+          fetchPlaybooks(); // Direct call for immediate update
         }
+      }
+    );
+
+    // Also listen for playbook_sub_tasks changes
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'playbook_sub_tasks' },
+      (payload: any) => {
+        console.log('[PlaybookCarousel] playbook_sub_tasks change detected:', payload);
+        // For subtasks, we need to find which playbook they belong to
+        fetchPlaybooks(); // Direct call for immediate update
       }
     );
 

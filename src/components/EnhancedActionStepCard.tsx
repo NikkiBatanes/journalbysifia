@@ -20,6 +20,7 @@ import {
 import { StepByStepExpounding } from './StepByStepExpounding';
 import { ExportOptionsModal } from './ExportOptionsModal';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { Colors } from '../theme';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -128,7 +129,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
             <Ionicons
               name={actionStep.completed ? 'checkmark-circle' : 'ellipse-outline'}
               size={24}
-              color={actionStep.completed ? '#10B981' : '#9CA3AF'}
+              color={actionStep.completed ? Colors.successGreen : Colors.mediumGray}
             />
           </TouchableOpacity>
 
@@ -172,7 +173,7 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
                 <Ionicons
                   name={expandedSubtasks ? 'chevron-up' : 'chevron-down'}
                   size={20}
-                  color="#9CA3AF"
+                  color={Colors.mediumGray}
                 />
               </TouchableOpacity>
             )}
@@ -259,7 +260,7 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({
       <Ionicons
         name={subtask.completed ? 'checkmark-circle' : 'ellipse-outline'}
         size={20}
-        color={subtask.completed ? '#10B981' : '#9CA3AF'}
+        color={subtask.completed ? Colors.successGreen : Colors.mediumGray}
       />
     </TouchableOpacity>
 

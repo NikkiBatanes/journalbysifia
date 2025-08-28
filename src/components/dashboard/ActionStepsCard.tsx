@@ -8,17 +8,29 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   FlatList,
+  Animated,
+  DeviceEventEmitter,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme/colors';
-import ThemedText from '../common/ThemedText';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { faithPointsService } from '../../services/faithPointsService';
 import { rankSteps } from '../../services/nextBestStep';
 import DashboardActionStepsSkeleton from '../SkeletonLoader/DashboardActionStepsSkeleton';
+import ThemedText from '../common/ThemedText';
+
+interface SubTask {
+  id: string;
+  text: string;
+  completed: boolean;
+  detected_journal_type?: string;
+  is_example?: boolean;
+  example_interactive?: boolean;
+}
 
 interface ActionStep {
   id: string;
@@ -36,6 +48,10 @@ interface ActionStep {
   dependsOnStepId?: string | null;
   blockers?: string | null;
   coachTip?: string;
+  subTasks?: SubTask[];
+  completedSubTasks?: number;
+  totalSubTasks?: number;
+  shouldAutoComplete?: boolean;
 }
 
 interface ActionStepsCardProps {
@@ -44,33 +60,26 @@ interface ActionStepsCardProps {
   onCountChange?: (count: number) => void;
 }
 
-
-
 const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAll: _onViewAll, onCountChange }) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [actionSteps, setActionSteps] = useState<ActionStep[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [completingId, setCompletingId] = useState<string | null>(null);
-  const [completedId, setCompletedId] = useState<string | null>(null);
+  const [_completingStepId, setCompletingStepId] = useState<string | null>(null);
+  const [completedStepId, setCompletedStepId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState<number>(3);
+  const stepAnimations = useRef<{[stepId: string]: Animated.Value}>({}).current;
   // Example modal removed per request; keep UI simple and non-interactive
 
   const logEvent = useCallback(async (event_type: string, payload: { playbook_id?: string; step_id?: string; [k: string]: any } = {}) => {
-    if (!user) {return;}
     try {
-      await supabase.from('user_behavior_events').insert({
-        user_id: user.id,
-        event_type,
-        playbook_id: payload.playbook_id,
-        step_id: payload.step_id,
-        metadata: payload,
-      });
-    } catch (e) {
-      // Non-blocking analytics error
-      console.warn('Failed to log user_behavior_event', e);
+      // Simple console log for now - can be enhanced later
+      console.log(`[Analytics] ${event_type}:`, payload);
+    } catch (error) {
+      console.error('Analytics error:', error);
     }
-  }, [user]);
+  }, []);
 
   // Notify parent when count changes
   useEffect(() => {
@@ -99,12 +108,21 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       setLoading(true);
       setError(null);
 
-      // Fetch user's playbooks
+      // Fetch user's playbooks with subtasks
       const { data: __progressData, error: progressError } = await supabase
         .from('playbook_action_steps')
         .select(`
           *,
-          playbook:playbooks(*)
+          playbook:playbooks(*),
+          playbook_sub_tasks(
+            id,
+            text,
+            completed,
+            detected_journal_type,
+            is_example,
+            example_interactive,
+            order_index
+          )
         `)
         .eq('completed', false)
         .order('order_index', { ascending: true })
@@ -121,27 +139,64 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       }
 
       // Transform the data to match ActionStep interface
-      const transformedSteps: ActionStep[] = __progressData.map((step: any) => ({
-        id: step.id,
-        title: step.text || 'Untitled Step',
-        description: step.examples || undefined,
-        playbookTitle: step.playbook?.title || 'Unknown Playbook',
-        playbookId: step.playbook_id,
-        stepIndex: step.order_index ?? 0,
-        isCompleted: step.completed || false,
-        dueDate: step.due_date,
-        priority: step.priority || 'medium',
-        estimatedMinutes: step.estimated_minutes ?? undefined,
-        difficulty: step.difficulty ?? null,
-        impactScore: step.impact_score ?? null,
-        dependsOnStepId: step.depends_on_step_id ?? null,
-        blockers: step.blockers ?? null,
-      }));
+      const transformedSteps: ActionStep[] = __progressData.map((step: any) => {
+        const subTasks = (step.playbook_sub_tasks || []).map((subTask: any) => ({
+          id: subTask.id,
+          text: subTask.text || '',
+          completed: subTask.completed || false,
+          detected_journal_type: subTask.detected_journal_type,
+          is_example: subTask.is_example,
+          example_interactive: subTask.example_interactive,
+        }));
+
+        const completedSubTasks = subTasks.filter((st: SubTask) => st.completed).length;
+        const totalSubTasks = subTasks.length;
+        
+        // Check if all subtasks are completed but main step isn't
+        const allSubTasksCompleted = totalSubTasks > 0 && completedSubTasks === totalSubTasks;
+        const shouldAutoComplete = allSubTasksCompleted && !step.completed;
+        
+        console.log(`[DEBUG] Step ${step.id}: ${completedSubTasks}/${totalSubTasks} subtasks, main completed: ${step.completed}, should auto-complete: ${shouldAutoComplete}`);
+
+        return {
+          id: step.id,
+          title: step.text || 'Untitled Step',
+          description: step.examples || undefined,
+          playbookTitle: step.playbook?.title || 'Unknown Playbook',
+          playbookId: step.playbook_id,
+          stepIndex: step.order_index ?? 0,
+          isCompleted: step.completed || false,
+          dueDate: step.due_date,
+          priority: step.priority || 'medium',
+          estimatedMinutes: step.estimated_minutes ?? undefined,
+          difficulty: step.difficulty ?? null,
+          impactScore: step.impact_score ?? null,
+          dependsOnStepId: step.depends_on_step_id ?? null,
+          blockers: step.blockers ?? null,
+          subTasks,
+          completedSubTasks,
+          totalSubTasks,
+          shouldAutoComplete,
+        };
+      });
 
       // Rank steps by scoring (no coach tips)
       const ranked = rankSteps(transformedSteps);
 
       setActionSteps(ranked);
+      
+      // Store steps that need auto-completion for later processing
+      const stepsToAutoComplete = ranked.filter(step => step.shouldAutoComplete);
+      if (stepsToAutoComplete.length > 0) {
+        console.log(`[DEBUG] Found ${stepsToAutoComplete.length} steps to auto-complete`);
+        // Process auto-completion after state is set
+        setTimeout(() => {
+          stepsToAutoComplete.forEach(step => {
+            console.log(`[DEBUG] Auto-completing step ${step.id}`);
+            checkAndCompleteStep(step.id);
+          });
+        }, 200);
+      }
 
     } catch (fetchError) {
       console.error('Error fetching action steps:', fetchError);
@@ -154,6 +209,43 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   useEffect(() => {
     fetchActionSteps();
   }, [fetchActionSteps, user]);
+
+  // Set up real-time subscription for changes from other screens
+  useEffect(() => {
+    if (!user) {return;}
+
+    const channel = supabase
+      .channel('dashboard-action-steps')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'playbook_action_steps',
+        },
+        () => {
+          // Refetch when action steps change
+          fetchActionSteps();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'playbook_sub_tasks',
+        },
+        () => {
+          // Refetch when subtasks change
+          fetchActionSteps();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchActionSteps]);
 
   // Keep visibleCount within bounds when list size changes
   useEffect(() => {
@@ -168,42 +260,147 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
   // no due-date formatting needed (due chip removed)
 
-  const markStepDone = useCallback(async (step: ActionStep) => {
-    if (!user) {return;}
-    try {
-      setCompletingId(step.id);
-      // 1) Update the action step as completed
-      const { error: updateError } = await supabase
-        .from('playbook_action_steps')
-        .update({ completed: true })
-        .eq('id', step.id);
-      if (updateError) { throw updateError; }
+  // Auto-complete main step when all subtasks are done
+  const checkAndCompleteStep = useCallback(async (stepId: string) => {
+    // Get fresh step data from current state
+    setActionSteps(currentSteps => {
+      const step = currentSteps.find(s => s.id === stepId);
+      if (!step || !step.subTasks || step.subTasks.length === 0 || !user) {
+        return currentSteps;
+      }
 
-      // 2) Log to faith_points_log so StreakTracker can count it
-      await supabase.from('faith_points_log').insert({
-        user_id: user.id,
-        activity_type: 'action_step_completed',
-        points: 1,
-        metadata: { playbook_id: step.playbookId, step_id: step.id, title: step.title },
+      const allSubTasksCompleted = step.subTasks.every(subTask => subTask.completed);
+      if (allSubTasksCompleted && !step.isCompleted) {
+        console.log(`[DEBUG] Completing step ${stepId} - all ${step.subTasks.length} subtasks done`);
+        
+        // Perform async operations
+        (async () => {
+          try {
+            setCompletingStepId(stepId);
+
+            // Initialize animation if not exists
+            if (!stepAnimations[stepId]) {
+              stepAnimations[stepId] = new Animated.Value(1);
+            }
+
+            // Update main step as completed
+            const { error: updateError } = await supabase
+              .from('playbook_action_steps')
+              .update({ completed: true })
+              .eq('id', stepId);
+            if (updateError) throw updateError;
+
+            // Award faith points for step completion
+            await faithPointsService.awardPoints(
+              user.id,
+              'action_step_completed',
+              { playbook_id: step.playbookId, step_id: step.id, title: step.title }
+            );
+
+            // Force immediate refetch for all related queries
+            await queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+            await queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
+            await queryClient.invalidateQueries({ queryKey: ['playbook', step.playbookId] });
+            await queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
+            await queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
+            
+            // Trigger custom event for immediate carousel update
+            DeviceEventEmitter.emit('playbookProgressUpdate', { 
+              stepId, playbookId: step.playbookId, type: 'step_completed' 
+            });
+
+            triggerLightHaptic();
+            setCompletedStepId(stepId);
+
+            // Animate step number badge and then remove step
+            Animated.sequence([
+              Animated.timing(stepAnimations[stepId], {
+                toValue: 1.3,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+              Animated.timing(stepAnimations[stepId], {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+              }),
+            ]).start(() => {
+              // Remove step from list after animation
+              setTimeout(() => {
+                setActionSteps(prev => prev.filter(s => s.id !== stepId));
+                setCompletedStepId(null);
+                setCompletingStepId(null);
+                delete stepAnimations[stepId];
+              }, 300);
+            });
+          } catch (e) {
+            console.error('Failed to auto-complete step:', e);
+            setCompletingStepId(null);
+          }
+        })();
+
+        // Return updated state showing step as completed
+        return currentSteps.map(s => 
+          s.id === stepId ? { ...s, isCompleted: true } : s
+        );
+      }
+      
+      return currentSteps;
+    });
+  }, [user, logEvent, queryClient, stepAnimations]);
+
+  const markSubTaskDone = useCallback(async (stepId: string, subTaskId: string) => {
+    if (!user) {return;}
+
+    try {
+      // Update subtask completion in database
+      const { error: updateError } = await supabase
+        .from('playbook_sub_tasks')
+        .update({ completed: true })
+        .eq('id', subTaskId);
+
+      if (updateError) {throw updateError;}
+
+      // No faith points for individual subtasks - only on full step completion
+
+      // Update local state
+      setActionSteps(prev => prev.map(step => {
+        if (step.id === stepId) {
+          const updatedSubTasks = step.subTasks?.map(subTask =>
+            subTask.id === subTaskId ? { ...subTask, completed: true } : subTask
+          ) || [];
+          const completedSubTasks = updatedSubTasks.filter((st: SubTask) => st.completed).length;
+
+          return {
+            ...step,
+            subTasks: updatedSubTasks,
+            completedSubTasks,
+          };
+        }
+        return step;
+      }));
+
+      // Force immediate refetch for playbook carousel sync
+      queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
+      queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
+      queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+      
+      // Trigger a custom event for immediate carousel update
+      DeviceEventEmitter.emit('playbookProgressUpdate', { 
+        stepId, subTaskId, type: 'subtask' 
       });
 
-      // 2b) Analytics event: complete_step
-      logEvent('complete_step', { playbook_id: step.playbookId, step_id: step.id, title: step.title });
-
-      // 3) Show brief success checkmark before removing the item
       triggerLightHaptic();
-      setCompletedId(step.id);
-      setTimeout(() => {
-        setActionSteps(prev => prev.filter(s => s.id !== step.id));
-        setCompletedId(null);
-      }, 500);
+
+      // Check if step should be auto-completed
+      setTimeout(() => checkAndCompleteStep(stepId), 100);
     } catch (e) {
-      console.error('Failed to mark step as done:', e);
-      setError('Failed to complete step. Please try again.');
-    } finally {
-      setCompletingId(null);
+      console.error('Failed to mark subtask as done:', e);
+      setError('Failed to complete subtask. Please try again.');
     }
-  }, [user, logEvent]);
+  }, [user, checkAndCompleteStep, actionSteps, queryClient]);
+
+  // markStepDone removed - steps auto-complete when all subtasks are done
 
   // Example viewing and analytics removed
 
@@ -258,6 +455,33 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     setVisibleCount(3);
   };
 
+  const renderSubTask = (subTask: SubTask, stepId: string) => (
+    <View key={subTask.id} style={styles.subTaskItem}>
+      <TouchableOpacity
+        onPress={() => !subTask.completed && markSubTaskDone(stepId, subTask.id)}
+        disabled={subTask.completed}
+        style={styles.subTaskCheckbox}
+        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+      >
+        <Ionicons
+          name={subTask.completed ? 'checkmark-circle' : 'ellipse-outline'}
+          size={20}
+          color={subTask.completed ? Colors.successGreen : Colors.mediumGray}
+        />
+      </TouchableOpacity>
+      <ThemedText
+        weight="regular"
+        style={[
+          styles.subTaskText,
+          subTask.completed && styles.subTaskTextCompleted
+        ]}
+        numberOfLines={2}
+      >
+        {subTask.text}
+      </ThemedText>
+    </View>
+  );
+
   const renderActionStep = ({ item }: { item: ActionStep }) => (
     <TouchableOpacity
       style={styles.stepItem}
@@ -270,28 +494,45 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     >
       {/* Priority chip removed per request */}
 
-      <View style={styles.stepHeader}>
-        <TouchableOpacity
-          onPress={() => markStepDone(item)}
-          disabled={completingId === item.id}
-          style={styles.completeButtonTouch}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          accessibilityLabel="Mark step as done"
-          accessibilityRole="button"
-        >
-          {completingId === item.id ? (
-            <ActivityIndicator size="small" color={Colors.faithGold} style={styles.smallIndicator}
-            />
-          ) : completedId === item.id ? (
-            <Ionicons name={'checkmark-circle'} size={18} color={Colors.successGreen} />
-          ) : (
-            <Ionicons name={'ellipse-outline'} size={18} color={Colors.faithGold} />
+      <View style={styles.stepHeaderMain}>
+        {/* Step number badge - not clickable, with animation */}
+        <View style={styles.stepNumberContainer}>
+          <Animated.View style={[
+            styles.stepNumberBadge,
+            (item.isCompleted || completedStepId === item.id) && styles.stepNumberBadgeCompleted,
+            {
+              transform: [{
+                scale: stepAnimations[item.id] || 1,
+              }],
+            },
+          ]}>
+          <ThemedText weight="semiBold" style={[
+            styles.stepNumberText,
+            (item.isCompleted || completedStepId === item.id) && styles.stepNumberTextCompleted,
+          ]}>
+            {item.stepIndex + 1}
+          </ThemedText>
+          </Animated.View>
+        </View>
+        <View style={styles.stepTitleContainer}>
+          <ThemedText weight="semiBold" style={styles.stepTitle} numberOfLines={2}>
+            {stripMarkdownEmphasis(item.title)}
+          </ThemedText>
+          {/* Progress indicator */}
+          {item.subTasks && item.subTasks.length > 0 && (
+            <ThemedText weight="regular" style={styles.progressText}>
+              {item.completedSubTasks}/{item.totalSubTasks} completed
+            </ThemedText>
           )}
-        </TouchableOpacity>
-        <ThemedText weight="semiBold" style={styles.stepTitle} numberOfLines={2}>
-          {stripMarkdownEmphasis(item.title)}
-        </ThemedText>
+        </View>
       </View>
+
+      {/* Subtasks */}
+      {item.subTasks && item.subTasks.length > 0 && (
+        <View style={[styles.subTasksContainer, leftOffsetStyle]}>
+          {item.subTasks.map(subTask => renderSubTask(subTask, item.id))}
+        </View>
+      )}
 
       {item.description && renderExampleWithBubble(item.description)}
       <View style={[styles.fromRow, leftOffsetStyle]}>
@@ -466,6 +707,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     gap: 8,
   },
+  stepHeaderMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    overflow: 'visible',
+  },
   title: {
     fontSize: 16,
     color: Colors.hopeWhite,
@@ -511,13 +758,75 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.hopeWhite,
   },
-  stepTitle: {
-    fontSize: 14,
-    color: Colors.hopeWhite,
+  stepTitleContainer: {
     flex: 1,
-    // Ensure long titles wrap instead of overflowing/clipping
     flexShrink: 1,
     paddingRight: 4,
+  },
+  stepNumberContainer: {
+    marginRight: 12,
+    overflow: 'visible',
+    zIndex: 10,
+    width: 40, // Even wider to accommodate 1.3x scale (24 * 1.3 = 31.2)
+    height: 40, // Even taller to accommodate 1.3x scale
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumberBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.faithGold,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumberBadgeCompleted: {
+    backgroundColor: Colors.successGreen,
+  },
+  stepNumberText: {
+    fontSize: 12,
+    color: Colors.hopeWhite, // Changed to hopeWhite as requested
+    fontWeight: '700',
+  },
+  stepNumberTextCompleted: {
+    color: Colors.hopeWhite,
+  },
+  stepTitle: {
+    fontSize: 16, // Increased from 14
+    color: Colors.hopeWhite,
+    // Ensure long titles wrap instead of overflowing/clipping
+    flexShrink: 1,
+  },
+  progressText: {
+    fontSize: 11,
+    color: Colors.mediumGray,
+    marginTop: 2,
+  },
+  subTasksContainer: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  subTaskItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+    paddingRight: 8,
+  },
+  subTaskCheckbox: {
+    marginRight: 8,
+    marginTop: 0,
+  },
+  subTaskText: {
+    fontSize: 14, // Increased from 12
+    color: Colors.lightGray,
+    flex: 1,
+    lineHeight: 18, // Increased from 16
+  },
+  subTaskTextCompleted: {
+    color: Colors.mediumGray,
+    textDecorationLine: 'line-through',
+    textDecorationStyle: 'solid',
+    textDecorationColor: Colors.mediumGray,
   },
   playbookName: {
     fontSize: 12,

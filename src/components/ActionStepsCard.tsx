@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextInput, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextInput, Animated, Easing, DeviceEventEmitter } from 'react-native';
 
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -168,22 +168,16 @@ export default function ActionStepsCard({
   stepCircleBackground,
   playbookTitle,
   playbookId,
-  userInput, // User's original struggle/context for personalized Christian coaching
-  selectedDate, // Date for reflection (from journal screen)
+  userInput,
+  selectedDate,
   showExampleSubtasksInline = false,
   preferPropSteps = false,
 }: ActionStepsCardProps) {
-  const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const { user } = useAuth();
+  const { actionSteps: contextSteps, handleToggleStep } = useActionSteps();
   const queryClient = useQueryClient();
-
-  // Feature access for expounding
-  const expoundingAccess = useFeatureAccess({ feature: 'expounding_content' });
-
-  // Smart Journaling Modal State
-  type ActiveModalType = 'reflection' | 'gratitude' | 'prayer' | 'timeblock' | null;
-  const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
-  const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
+  const [selectedSubtask, setSelectedSubtask] = useState<{ subTask: SubTask; stepInfo: { stepNumber: number; stepTitle: string; stepId?: string } } | null>(null);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
   const [selectedActionStep, setSelectedActionStep] = useState<{ stepNumber: number; stepTitle: string; stepId?: string } | null>(null);
 
   // Interactive Coaching Modal State (Phase 3)
@@ -196,6 +190,14 @@ export default function ActionStepsCard({
 
   // Simplified expounding state - track which steps show insights
   const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
+  
+  const completionAnim = React.useRef<Record<string, Animated.Value>>({});
+
+  // Query for existing reflection when a subtask is selected
+  const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
+    user?.id || '',
+    selectedSubtask?.subTask?.id ?? ''
+  );
 
   // Toggle simplified insight for a specific step
   const toggleInsight = (stepId: string) => {
@@ -215,23 +217,12 @@ export default function ActionStepsCard({
     });
   };
 
-
-
-  // Success animation per-step (pulse when becoming completed)
-  const completionAnim = React.useRef<Record<string, Animated.Value>>({});
-
-  // Query for existing reflection when a subtask is selected
-  const { data: existingReflection, isLoading: isReflectionLoading, error: reflectionError } = useReflectionBySubtask(
-    user?.id || '',
-    selectedSubtask?.id ?? ''
-  );
-
   // Debug: Log reflection query results
   React.useEffect(() => {
     if (selectedSubtask) {
       console.log('[ActionStepsCard] Reflection query debug:', {
         userId: user?.id,
-        subtaskId: selectedSubtask?.id,
+        subtaskId: selectedSubtask?.subTask?.id,
         existingReflection,
         isLoading: isReflectionLoading,
         error: reflectionError,
@@ -432,6 +423,17 @@ export default function ActionStepsCard({
 
     // Proceed with actual toggle update in context
     handleToggleStep(stepId, subTaskId);
+    
+    // Invalidate queries immediately for dashboard sync
+    queryClient.invalidateQueries({ queryKey: ['userPlaybooks'] });
+    queryClient.invalidateQueries({ queryKey: ['playbookProgress'] });
+    queryClient.invalidateQueries({ queryKey: ['playbooks'] });
+    queryClient.invalidateQueries({ queryKey: ['actionSteps'] });
+    
+    // Trigger custom event for immediate dashboard sync
+    DeviceEventEmitter.emit('playbookProgressUpdate', { 
+      stepId, subTaskId, type: 'playbook_detail_toggle' 
+    });
   }, [handleToggleStep, steps, user?.id, playbookId]);
 
   const onJournalTypePress = React.useCallback((journalType: string, subTask: SubTask, stepInfo?: { stepNumber: number; stepTitle: string; stepId?: string }) => {
