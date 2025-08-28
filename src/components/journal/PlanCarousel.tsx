@@ -7,6 +7,7 @@ import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
 import { TodosReactQuery } from './TodosReactQuery';
 import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from './TimeBlockReactQuery';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
@@ -134,6 +135,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
                 onPress={() => {
                   // Only handle component tap navigation when not in edit mode
                   if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
+                    triggerLightHaptic();
                     onComponentTap(item.id);
                   }
                 }}
@@ -142,7 +144,10 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
               >
                 {React.cloneElement(item.component as React.ReactElement<any>, {
                   expanded: expandedIndex === i,
-                  onExpand: () => setExpandedIndex(expandedIndex === i ? null : i),
+                  onExpand: () => {
+                    triggerLightHaptic();
+                    setExpandedIndex(expandedIndex === i ? null : i);
+                  },
                 })}
               </TouchableOpacity>
             </Animated.View>

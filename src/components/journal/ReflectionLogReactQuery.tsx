@@ -26,6 +26,7 @@ import { toLocalDateString } from '../../utils/date';
 import { analytics } from '../../utils/analytics';
 import NewSuccessModal from '../NewSuccessModal';
 import { useSuccessModal } from '../../hooks/useSuccessModal';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 // Define styles at the top to avoid hoisting issues
 const styles = StyleSheet.create({
@@ -542,6 +543,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            triggerLightHaptic();
             console.log('🔍 ReflectionLog: Deleting entry', entryId);
             const startTime = Date.now();
 
@@ -593,6 +595,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
 
   // Handle prompt selection with analytics
   const handlePromptSelection = useCallback((prompt: string) => {
+    triggerLightHaptic();
     setSelectedPrompt(prompt);
     setNewEntry(prev => ({ ...prev, prompt, type: 'guided' }));
     setShowPromptPicker(false);
@@ -665,7 +668,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         <View style={promptModalStyles.promptModalContent}>
           <View style={promptModalStyles.promptModalHeader}>
             <Text style={promptModalStyles.promptModalTitle}>Select a Prompt</Text>
-            <TouchableOpacity onPress={() => setShowPromptPicker(false)}>
+            <TouchableOpacity onPress={() => { triggerLightHaptic(); setShowPromptPicker(false); }}>
               <X size={24} color={Colors.darkGray} />
             </TouchableOpacity>
           </View>
@@ -735,6 +738,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
+              triggerLightHaptic();
               console.log('🔄 User retrying reflection fetch');
               analytics.trackReflectionEvent('reflection_error', {
                 error_type: error.message || 'Unknown error',
@@ -831,6 +835,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             <TouchableOpacity
               style={styles.emptyStateButton}
               onPress={() => {
+                triggerLightHaptic();
                 setNewEntry({
                   title: '',
                   content: '',
@@ -871,7 +876,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               {entriesToShow.length > visibleCount && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showMoreButton]}
-                  onPress={() => setVisibleCount(prev => Math.min(prev + 3, entriesToShow.length))}
+                  onPress={() => { triggerLightHaptic(); setVisibleCount(prev => Math.min(prev + 3, entriesToShow.length)); }}
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel={`Show more reflections. ${entriesToShow.length - visibleCount} remaining`}
@@ -886,7 +891,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               {visibleCount > 3 && (
                 <TouchableOpacity
                   style={[styles.paginationButton, styles.showLessButton]}
-                  onPress={() => setVisibleCount(3)}
+                  onPress={() => { triggerLightHaptic(); setVisibleCount(3); }}
                   activeOpacity={0.7}
                   accessibilityRole="button"
                   accessibilityLabel="Show less reflections"
@@ -916,7 +921,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             ? styles.guidedEntry
             : styles.freeFormEntry,
       ]}
-      onPress={() => handleEntryPress(entry)}
+      onPress={() => { triggerLightHaptic(); handleEntryPress(entry); }}
       activeOpacity={0.8}
     >
       {entry.source === 'devotional' || entry.type === 'devotional' ? (
@@ -1050,6 +1055,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
+              triggerLightHaptic();
               console.log('🔄 User retrying reflection fetch');
               analytics.trackReflectionEvent('reflection_error', {
                 error_type: error.message || 'Unknown error',
@@ -1067,14 +1073,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     );
   }
 
-  // Hide empty component in inline view always; hide for future in any view
-  if (!isLoading && !error) {
-    if (future) {return null;}
-    if (viewMode === 'inline' && !hasContentForSelectedDate) {return null;}
-  }
+// ...
 
-  return (
-    <>
+return (
+  <>
     <JournalCard
       icon={!hasContentForSelectedDate ? undefined : <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={Colors.alertCoral} />}
       title={!hasContentForSelectedDate ? undefined : 'HEART JOURNAL'}
@@ -1085,6 +1087,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       }).length)}
       showAddButton={hasContentForSelectedDate && !globalEditMode?.isGlobalEditMode}
       onAdd={() => {
+        triggerLightHaptic();
         setNewEntry({
           title: '',
           content: '',
@@ -1102,6 +1105,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       headerRight={globalEditMode?.isGlobalEditMode ? (
         <TouchableOpacity
           onPress={() => {
+            triggerLightHaptic();
             setNewEntry({
               title: '',
               content: '',
@@ -1143,6 +1147,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       >
         <ReflectionLogEditor
             onSave={async (entryData: any) => {
+              triggerLightHaptic();
               if (!user) {
                 console.error('User not authenticated');
                 return;
@@ -1232,10 +1237,12 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               }
             }}
             onCancel={() => {
+              triggerLightHaptic();
               resetForm();
               setIsAdding(false);
             }}
             onDelete={editingId ? async (id: string) => {
+              triggerLightHaptic();
               try {
                 await deleteMutation.mutateAsync(id);
                 await refetch();

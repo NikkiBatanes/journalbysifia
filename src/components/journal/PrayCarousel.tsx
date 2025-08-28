@@ -15,6 +15,7 @@ import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
 import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8;
@@ -147,6 +148,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
                 onPress={() => {
                   // Only handle component tap navigation when not in edit mode
                   if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
+                    triggerLightHaptic();
                     onComponentTap(item.id);
                   }
                 }}
@@ -155,7 +157,10 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
               >
                 {React.cloneElement(item.component as React.ReactElement<any>, {
                   expanded: expandedIndex === i,
-                  onExpand: () => setExpandedIndex(expandedIndex === i ? null : i),
+                  onExpand: () => {
+                    triggerLightHaptic();
+                    setExpandedIndex(expandedIndex === i ? null : i);
+                  },
                 })}
               </TouchableOpacity>
             </Animated.View>

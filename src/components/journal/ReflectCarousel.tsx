@@ -16,6 +16,7 @@ import { GratitudeListReactQuery } from './GratitudeListReactQuery';
 import { TodayWinReactQuery } from './TodayWinReactQuery';
 import { LookingForwardReactQuery } from './LookingForwardReactQuery';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
@@ -153,6 +154,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
                 onPress={() => {
                   // Only handle component tap navigation when not in edit mode
                   if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
+                    triggerLightHaptic();
                     onComponentTap(item.id);
                   }
                 }}
@@ -161,7 +163,10 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
               >
                 {React.cloneElement(item.component as React.ReactElement<any>, {
                   expanded: expandedIndex === i,
-                  onExpand: () => setExpandedIndex(expandedIndex === i ? null : i),
+                  onExpand: () => {
+                    triggerLightHaptic();
+                    setExpandedIndex(expandedIndex === i ? null : i);
+                  },
                 })}
               </TouchableOpacity>
             </Animated.View>

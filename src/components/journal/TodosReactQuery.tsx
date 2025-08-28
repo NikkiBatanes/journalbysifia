@@ -15,6 +15,7 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { TodoSkeleton } from '../SkeletonLoader/TodoSkeleton';
 import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 // React Query hooks
 import {
@@ -604,7 +605,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             Failed to load todos
           </Text>
           <TouchableOpacity
-            onPress={() => refetch()}
+            onPress={() => { 
+              triggerLightHaptic(); 
+              refetch(); 
+            }} 
             style={styles.retryButton}
             accessibilityRole="button"
             accessibilityLabel="Retry loading todos"
@@ -672,7 +676,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           <Text style={styles.emptyStateSubtext} accessibilityRole="text">{emptySubtitle}</Text>
           <TouchableOpacity
             style={styles.emptyStateButton}
-            onPress={startAdding}
+            onPress={() => {
+              triggerLightHaptic();
+              startAdding();
+            }}
             accessibilityRole="button"
             accessibilityLabel={`${buttonLabel} adding todos`}
           >
@@ -871,13 +878,19 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   />
                   <View style={styles.editButtons}>
                     <TouchableOpacity
-                      onPress={cancelEdit}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        cancelEdit();
+                      }}
                       style={[styles.editActionButton, styles.editCancelButton]}
                     >
                       <Ionicons name="close" size={16} color={Colors.hopeWhite} />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={saveEditedTodo}
+                      onPress={() => {
+                        triggerLightHaptic();
+                        saveEditedTodo();
+                      }}
                       style={[styles.editActionButton, styles.editSaveButton]}
                       disabled={!editingText.trim()}
                     >
@@ -973,7 +986,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             <View style={styles.buttonGroup}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
-                onPress={cancelAdding}
+                onPress={() => {
+                  triggerLightHaptic();
+                  cancelAdding();
+                }}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel="Cancel adding todo"
@@ -982,7 +998,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={handleSave}
+                onPress={() => {
+                  triggerLightHaptic();
+                  handleSave();
+                }}
                 style={[
                   styles.button,
                   styles.saveButton,

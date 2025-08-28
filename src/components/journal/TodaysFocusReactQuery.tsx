@@ -20,6 +20,7 @@ import { TodaysFocusSkeleton } from '../SkeletonLoader/TodaysFocusSkeleton';
 import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { isToday, isYesterday, isAfter, startOfDay, startOfToday } from 'date-fns';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface PriorityItem {
   id: string;
@@ -552,6 +553,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             </Text>
             <TouchableOpacity
               onPress={() => {
+                triggerLightHaptic();
                 // Trigger a refetch by calling the query again
                 // In React Native, we don't have window.location.reload
                 console.log('Retry loading focus data');
@@ -624,7 +626,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               ))}
               <View style={styles.buttonRow}>
                 <TouchableOpacity
-                  onPress={handleCancel}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    handleCancel();
+                  }}
                   style={[styles.button, styles.cancelButton]}
                   activeOpacity={0.8}
                   accessibilityRole="button"
@@ -634,7 +639,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={toggleEditing}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    toggleEditing();
+                  }}
                   style={[
                     styles.button,
                     styles.saveButton,
@@ -701,13 +709,19 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                               />
                               <View style={styles.editPriorityButtons}>
                                 <TouchableOpacity
-                                  onPress={cancelEditPriority}
+                                  onPress={() => {
+                                    triggerLightHaptic();
+                                    cancelEditPriority();
+                                  }}
                                   style={[styles.editPriorityActionButton, styles.editPriorityCancelButton]}
                                 >
                                   <Ionicons name="close" size={16} color={Colors.hopeWhite} />
                                 </TouchableOpacity>
                                 <TouchableOpacity
-                                  onPress={saveEditedPriority}
+                                  onPress={() => {
+                                    triggerLightHaptic();
+                                    saveEditedPriority();
+                                  }}
                                   style={[styles.editPriorityActionButton, styles.editPrioritySaveButton]}
                                   disabled={!editingPriorityText.trim()}
                                 >
@@ -761,7 +775,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                   <Text style={styles.emptyStateSubtext} accessibilityRole="text">{focusState.subtitle}</Text>
                   <TouchableOpacity
                     style={styles.emptyStateButton}
-                    onPress={toggleEditing}
+                    onPress={() => {
+                      triggerLightHaptic();
+                      toggleEditing();
+                    }}
                     accessibilityRole="button"
                     accessibilityLabel={focusState.ctaLabel}
                   >

@@ -6,6 +6,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingVi
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { GUIDED_PROMPTS } from './reflectionConstants';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -622,6 +623,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Save handler - directly call onSave
   const handleSave = async () => {
+    // Haptic feedback for save action
+    triggerLightHaptic();
     // Clear any existing draft since we're saving the entry
     try {
       await AsyncStorage.removeItem(getDraftKey());
@@ -657,6 +660,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Cancel handler
   const handleCancel = async () => {
+    // Haptic feedback for cancel/close
+    triggerLightHaptic();
     try {
       // Save draft before canceling (only if user made changes)
       if (hasUserMadeChanges) {
@@ -677,6 +682,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
   // Delete handler for saved entries
   const handleDelete = () => {
+    // Light haptic on opening delete confirmation
+    triggerLightHaptic();
     if (!onDelete || !entryId) {
       console.warn('Delete function or entry ID not available');
       return;
@@ -694,6 +701,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
+            // Haptic on confirmed delete
+            triggerLightHaptic();
             onDelete(entryId);
             onCancel(); // Close the modal after deletion
           },
@@ -719,6 +728,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
         <TouchableOpacity
           style={s.modeButton}
           onPress={async () => {
+            // Haptic for switching to free-form mode
+            triggerLightHaptic();
             // If coming from guided mode
             if (selectedPrompt) {
               // If there's content, show confirmation
@@ -802,6 +813,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           <TouchableOpacity
             style={[s.modeButton, (selectedPrompt || viewMode === 'guided') && s.activeModeButton]}
             onPress={() => {
+              // Haptic for switching to guided mode
+              triggerLightHaptic();
               // Always reset to show the prompt selection
               setViewMode('guided');
               setSelectedPrompt('');
@@ -963,6 +976,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     <TouchableOpacity
                       style={s.reflectLabel}
                       onPress={async () => {
+                        // Haptic on selecting a guided prompt
+                        triggerLightHaptic();
                         // First update the view mode
                         await setViewMode('free-form');
 
@@ -1008,15 +1023,15 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           ]}>
             {showAddMenu && (
               <View style={s.addMenu}>
-                <TouchableOpacity style={s.addMenuItem}>
+                <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
                   <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
                   <Text style={s.addMenuText}>Tags</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.addMenuItem}>
+                <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
                   <Ionicons name="image" size={20} color={Colors.hopeWhite} />
                   <Text style={s.addMenuText}>Photos</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={s.addMenuItem}>
+                <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
                   <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
                   <Text style={s.addMenuText}>Camera</Text>
                 </TouchableOpacity>
@@ -1024,7 +1039,10 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
             )}
             <TouchableOpacity
               style={[s.fab, s.addFab]}
-              onPress={() => setShowAddMenu(!showAddMenu)}
+              onPress={() => {
+                triggerLightHaptic();
+                setShowAddMenu(!showAddMenu);
+              }}
             >
               <Ionicons
                 name={showAddMenu ? 'close' : 'add'}

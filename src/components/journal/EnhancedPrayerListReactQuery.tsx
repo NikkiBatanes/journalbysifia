@@ -248,6 +248,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
 
   // Edit mode handlers
   const toggleEditing = useCallback(() => {
+    triggerLightHaptic();
     setIsEditing(!isEditing);
     if (!isEditing) {
       // Clear form when starting to edit
@@ -260,6 +261,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
   }, [isEditing]);
 
   const handleCancelEdit = useCallback(() => {
+    triggerLightHaptic();
     setName('');
     setPrayer('');
     setNotes('');
@@ -294,6 +296,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           <TouchableOpacity
             style={[styles.tab, activeTab === 'mine' && styles.activeTab]}
             onPress={() => {
+              triggerLightHaptic();
               console.log('🔄 Switching to "Prayers for People" tab');
               setActiveTab(_prev => {
                 console.log('🔄 Tab state updated to:', 'mine');
@@ -310,6 +313,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           <TouchableOpacity
             style={[styles.tab, activeTab === 'requests' && styles.activeTab]}
             onPress={() => {
+              triggerLightHaptic();
               console.log('🔄 Switching to "Prayer Requests" tab');
               setActiveTab(_prev => {
                 console.log('🔄 Tab state updated to:', 'requests');
@@ -389,7 +393,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         {/* Action Buttons */}
         <View style={styles.buttonRow}>
           <TouchableOpacity
-            onPress={handleCancelEdit}
+            onPress={() => { triggerLightHaptic(); handleCancelEdit(); }}
             style={[styles.button, styles.cancelButton]}
             activeOpacity={0.8}
             accessibilityRole="button"
@@ -398,7 +402,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             <X size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
           </TouchableOpacity>
           <TouchableOpacity
-            onPress={handleAddPrayer}
+            onPress={() => { triggerLightHaptic(); handleAddPrayer(); }}
             style={[
               styles.button,
               styles.saveButton,
@@ -608,7 +612,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             {!isPast && (
               <TouchableOpacity
                 style={styles.emptyStateButton}
-                onPress={toggleEditing}
+                onPress={() => { triggerLightHaptic(); toggleEditing(); }}
                 accessibilityRole="button"
                 accessibilityLabel="Begin creating prayer list"
               >

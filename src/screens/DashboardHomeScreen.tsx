@@ -1147,7 +1147,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           return (
             <TouchableOpacity
               style={styles.subscriptionBadge}
-              onPress={() => navigation.navigate('UserProfile')}
+              onPress={() => { triggerLightHaptic(); navigation.navigate('UserProfile'); }}
             >
               <Text style={styles.subscriptionText}>{displayName}</Text>
             </TouchableOpacity>
@@ -1167,7 +1167,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           return (
             <TouchableOpacity
               style={styles.counterBadge}
-              onPress={() => navigation.navigate('Playbooks')}
+              onPress={() => { triggerLightHaptic(); navigation.navigate('Playbooks'); }}
             >
               <MaterialCommunityIcons name="clipboard-text-play" size={18} color={Colors.faithGold} />
               <Text style={styles.counterText}>{remaining}</Text>
@@ -1185,7 +1185,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           return (
             <TouchableOpacity
               style={styles.counterBadge}
-              onPress={() => navigation.navigate('Devotionals')}
+              onPress={() => { triggerLightHaptic(); navigation.navigate('Devotionals'); }}
             >
               <MaterialCommunityIcons name="book" size={18} color={Colors.faithGold} />
               <Text style={styles.counterText}>{remaining}</Text>

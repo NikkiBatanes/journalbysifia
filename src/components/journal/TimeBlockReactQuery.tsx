@@ -24,6 +24,7 @@ import {
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { getCategoryColor, getCategoryIcon } from './TimeBlockCategories';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -748,7 +749,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
-                  onPress={startAdding}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    startAdding();
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Begin planning your day"
                 >
@@ -765,7 +769,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
-                  onPress={startAdding}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    startAdding();
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Revisit yesterday's time blocks"
                 >
@@ -782,7 +789,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
-                  onPress={startAdding}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    startAdding();
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Revisit this day's time blocks"
                 >
@@ -799,7 +809,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
-                  onPress={startAdding}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    startAdding();
+                  }}
                   accessibilityRole="button"
                   accessibilityLabel="Plan time blocks for this future day"
                 >
@@ -1339,7 +1352,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             <View style={styles.buttonGroup}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
-                onPress={() => setIsAdding(false)}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setIsAdding(false);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel="Cancel adding time block"
                 accessibilityHint="Discards the current time block and returns to the main view"
@@ -1348,7 +1364,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, styles.saveButton, !newBlock.title.trim() && styles.disabledButton]}
-                onPress={addTimeBlock}
+                onPress={() => {
+                  triggerLightHaptic();
+                  addTimeBlock();
+                }}
                 disabled={!newBlock.title.trim()}
                 accessibilityRole="button"
                 accessibilityLabel={editId ? 'Update time block' : 'Save time block'}

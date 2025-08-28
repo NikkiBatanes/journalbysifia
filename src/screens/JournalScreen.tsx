@@ -159,6 +159,27 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const scrollDirection = useRef('');
   const scrollTimeout = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  // Haptics while header week is actively scrolled and implied date changes
+  const lastHeaderHapticDateKey = useRef<string | null>(null);
+  const lastHeaderHapticTime = useRef<number>(0);
+  const handleHeaderScroll = useCallback((event: any) => {
+    const now = Date.now();
+    const { contentOffset } = event.nativeEvent || {};
+    const offsetX = contentOffset?.x ?? 0;
+    const weekIndex = Math.round(offsetX / screenWidth);
+    if (weeks.length === 0 || weekIndex < 0 || weekIndex >= weeks.length) return;
+    const currentWeek = weeks[weekIndex];
+    if (!currentWeek || selectedDayOfWeek < 0 || selectedDayOfWeek >= currentWeek.length) return;
+    const targetDay = currentWeek[selectedDayOfWeek];
+    if (!targetDay) return;
+    const key = format(targetDay, 'yyyy-MM-dd');
+    if (key !== lastHeaderHapticDateKey.current && now - lastHeaderHapticTime.current > 120) {
+      triggerLightHaptic();
+      lastHeaderHapticDateKey.current = key;
+      lastHeaderHapticTime.current = now;
+    }
+  }, [weeks, selectedDayOfWeek, screenWidth, triggerLightHaptic]);
+
   // Animation state
   const scrollY = useRef<Animated.Value>(new Animated.Value(0)).current;
   const weekOpacity = scrollY.interpolate({
@@ -271,6 +292,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
           // Only update if the day is different to prevent unnecessary re-renders
           if (!isSameDay(targetDay, currentDate)) {
             console.log('📅 Date swipe: updating to', format(targetDay, 'yyyy-MM-dd'));
+            // Subtle feedback when swiping header left/right changes the date
+            triggerLightHaptic();
             // Update the date immediately for better UX
             setCurrentDate(new Date(targetDay.getTime()));
           }
@@ -293,6 +316,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   };
 
   const handleDateSelect = (date: Date) => {
+    // Feedback on picking a date from the week strip
+    triggerLightHaptic();
     // Create a new date object with just the date part (no time)
     const newDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
@@ -379,6 +404,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   // Handle component tap to switch to inline view and scroll to specific component
   const handleComponentTap = useCallback((pageKey: string, componentId?: string) => {
+    // Subtle feedback when jumping to a component/page
+    triggerLightHaptic();
     const pageIndex = pages.findIndex(page => page.key === pageKey);
     if (pageIndex !== -1) {
       setCurrentPage(pageIndex);
@@ -462,6 +489,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     const { contentOffset, layoutMeasurement } = event.nativeEvent;
     const pageIndex = Math.round(contentOffset.x / layoutMeasurement.width);
     if (pageIndex !== currentPage && pageIndex >= 0 && pageIndex < pages.length) {
+      // Feedback on page change
+      triggerLightHaptic();
       setCurrentPage(pageIndex);
     }
   };
@@ -472,6 +501,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       const { velocityY, translationY } = event.nativeEvent;
       // Check for fast downward swipe (velocity > 500 and translation > 50)
       if (velocityY > 500 && translationY > 50) {
+        // Feedback when closing inline view
+        triggerLightHaptic();
         setViewMode('carousel');
       }
     }
@@ -563,6 +594,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
             snapToAlignment="start"
             decelerationRate="fast"
             pagingEnabled
+            onScroll={handleHeaderScroll}
             onMomentumScrollEnd={handleScroll}
             scrollEventThrottle={16}
           >
@@ -720,6 +752,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                 <TouchableOpacity
                   style={[styles.editButton, isGlobalEditMode && styles.editButtonActive]}
                   onPress={() => {
+                    // Feedback on toggling global edit mode
+                    triggerLightHaptic();
                     // Switch to inline view and trigger global edit mode
                     if (viewMode !== 'inline') {
                       setViewMode('inline');
@@ -793,6 +827,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                 style={styles.calendarCompact}
                 headerStyle={styles.calendarHeaderCompact}
                 onDayPress={(day) => {
+                  // Feedback on picking a date from the calendar modal
+                  triggerLightHaptic();
                   const [y, m, d] = day.dateString.split('-').map(n => parseInt(n, 10));
                   const picked = new Date(y, (m - 1), d);
                   setCurrentDate(picked);
