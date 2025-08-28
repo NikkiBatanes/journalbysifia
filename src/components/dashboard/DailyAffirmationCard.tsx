@@ -58,10 +58,10 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   const triggerLightHaptic = () => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) {return;}
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
       if (hapticsPref === false) { return; }
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -76,10 +76,10 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
   const triggerSuccessHaptic = () => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) {return;}
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
       if (hapticsPref === false) { return; }
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -101,10 +101,10 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
         const id = setTimeout(() => {
           try {
             const { RNHapticFeedback } = NativeModules as any;
-            if (!RNHapticFeedback) return;
+            if (!RNHapticFeedback) {return;}
             const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
             if (hapticsPref === false) { return; }
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
+
             const Haptic = require('react-native-haptic-feedback');
             const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
             if (typeof triggerFn === 'function') {
@@ -197,7 +197,7 @@ const DailyAffirmationCard: React.FC<DailyAffirmationCardProps> = ({ onRefresh, 
         playbook_title: titleById.get(a.playbook_id) || undefined,
       }));
 
-      
+
 
       if (allAffirmations.length === 0) {
         setAffirmations([]);
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     textTransform: 'uppercase',
-    
+
     letterSpacing: 0.8,
     marginBottom: 14,
   },
@@ -489,7 +489,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: Colors.hopeWhite,
     fontStyle: 'normal',
-    
+
     marginBottom: 8,
     textAlign: 'left',
   },
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
   readButtonText: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    
+
     letterSpacing: 0.3,
   },
   readButtonActive: {
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.error,
     textAlign: 'center',
-    
+
   },
   retryButton: {
     paddingHorizontal: 16,
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    
+
   },
 });
 

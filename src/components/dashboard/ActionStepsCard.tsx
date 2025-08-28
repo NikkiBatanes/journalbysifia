@@ -3,7 +3,7 @@
  * Displays unfinished action steps from user's playbooks
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -46,7 +46,7 @@ interface ActionStepsCardProps {
 
 
 
-const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAll, onCountChange }) => {
+const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAll: _onViewAll, onCountChange }) => {
   const { user } = useAuth();
   const [actionSteps, setActionSteps] = useState<ActionStep[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +57,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   // Example modal removed per request; keep UI simple and non-interactive
 
   const logEvent = useCallback(async (event_type: string, payload: { playbook_id?: string; step_id?: string; [k: string]: any } = {}) => {
-    if (!user) return;
+    if (!user) {return;}
     try {
       await supabase.from('user_behavior_events').insert({
         user_id: user.id,
@@ -169,7 +169,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   // no due-date formatting needed (due chip removed)
 
   const markStepDone = useCallback(async (step: ActionStep) => {
-    if (!user) return;
+    if (!user) {return;}
     try {
       setCompletingId(step.id);
       // 1) Update the action step as completed
@@ -203,7 +203,7 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
     } finally {
       setCompletingId(null);
     }
-  }, [user]);
+  }, [user, logEvent]);
 
   // Example viewing and analytics removed
 
@@ -217,9 +217,12 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
   // Adjusted to keep title closer to the icon: padding(2) + icon(18) + gap(6)
   const TITLE_LEFT_OFFSET = 2 + 18 + 6;
 
+  // Memoized dynamic left offset style to avoid inline object in JSX
+  const leftOffsetStyle = useMemo(() => ({ marginLeft: TITLE_LEFT_OFFSET }), [TITLE_LEFT_OFFSET]);
+
   // Remove simple markdown emphasis markers from titles (e.g., **bold**, *italic*)
   const stripMarkdownEmphasis = (s: string) => {
-    if (!s) return '';
+    if (!s) {return '';}
     return s
       .replace(/\*\*(.+?)\*\*/g, '$1')
       .replace(/\*(.+?)\*/g, '$1')
@@ -228,14 +231,14 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
 
   const renderExampleWithBubble = (text: string) => {
     const trimmed = (text || '').trim();
-    if (!trimmed) return null;
+    if (!trimmed) {return null;}
     const parts = trimmed.split(/\s+/);
     const first = parts.shift() || '';
     const rest = parts.join(' ');
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', marginLeft: TITLE_LEFT_OFFSET, marginTop: 2, minWidth: 0 }}>
+      <View style={[styles.exampleRow, leftOffsetStyle]}>
         <Ionicons name="chatbubble-ellipses-outline" size={14} color={Colors.alertCoral} />
-        <ThemedText weight="regular" style={[styles.stepDescription, { marginLeft: 6, flex: 1, flexShrink: 1, paddingRight: 8 }]} numberOfLines={3}>
+        <ThemedText weight="regular" style={[styles.stepDescription, styles.exampleDescription]} numberOfLines={3}>
           {first}{rest ? ' ' + rest : ''}
         </ThemedText>
       </View>
@@ -271,13 +274,14 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
         <TouchableOpacity
           onPress={() => markStepDone(item)}
           disabled={completingId === item.id}
-          style={{ padding: 2 }}
+          style={styles.completeButtonTouch}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           accessibilityLabel="Mark step as done"
           accessibilityRole="button"
         >
           {completingId === item.id ? (
-            <ActivityIndicator size="small" color={Colors.faithGold} style={{ width: 18, height: 18 }} />
+            <ActivityIndicator size="small" color={Colors.faithGold} style={styles.smallIndicator}
+            />
           ) : completedId === item.id ? (
             <Ionicons name={'checkmark-circle'} size={18} color={Colors.successGreen} />
           ) : (
@@ -290,14 +294,13 @@ const ActionStepsCard: React.FC<ActionStepsCardProps> = ({ onStepPress, onViewAl
       </View>
 
       {item.description && renderExampleWithBubble(item.description)}
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, marginBottom: 2, marginLeft: TITLE_LEFT_OFFSET }}>
-        <View style={{ width: 1, height: 28, backgroundColor: Colors.mediumGray, borderRadius: 2, marginRight: 8 }} />
-        <View style={{ flex: 1 }}>
-          <ThemedText weight="semiBold" style={{ fontSize: 10, color: Colors.mediumGray, letterSpacing: 1 }}>
+      <View style={[styles.fromRow, leftOffsetStyle]}>
+        <View style={styles.fromDivider} />
+        <View style={styles.fromTextContainer}>
+          <ThemedText weight="semiBold" style={styles.fromLabel}>
             FROM PLAYBOOK
           </ThemedText>
-          <ThemedText weight="semiBold" style={{ fontSize: 11, color: Colors.mediumGray }}>
+          <ThemedText weight="semiBold" style={styles.fromTitle}>
             {item.playbookTitle}
           </ThemedText>
         </View>
@@ -526,11 +529,30 @@ const styles = StyleSheet.create({
     color: Colors.lightGray,
     lineHeight: 16,
   },
+  exampleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginTop: 2,
+    minWidth: 0,
+  },
+  exampleDescription: {
+    marginLeft: 6,
+    flex: 1,
+    flexShrink: 1,
+    paddingRight: 8,
+  },
   coachTip: {
     marginTop: 4,
     fontSize: 12,
     color: Colors.faithGold,
     fontStyle: 'italic',
+  },
+  completeButtonTouch: {
+    padding: 2,
+  },
+  smallIndicator: {
+    width: 18,
+    height: 18,
   },
   loadingContainer: {
     height: 100,
@@ -607,6 +629,31 @@ const styles = StyleSheet.create({
     marginLeft: 2,
     fontSize: 11,
     lineHeight: 14,
+  },
+  fromRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  fromDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: Colors.mediumGray,
+    borderRadius: 2,
+    marginRight: 8,
+  },
+  fromTextContainer: {
+    flex: 1,
+  },
+  fromLabel: {
+    fontSize: 10,
+    color: Colors.mediumGray,
+    letterSpacing: 1,
+  },
+  fromTitle: {
+    fontSize: 11,
+    color: Colors.mediumGray,
   },
   showMoreButton: {
     backgroundColor: 'rgba(255, 107, 107, 0.1)',

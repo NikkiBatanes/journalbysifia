@@ -3,7 +3,7 @@
  * Displays user's spiritual growth streaks and achievements
  */
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -44,7 +44,7 @@ const CHIP_WIDTH = Math.floor(
   (width - CONTENT_HORIZONTAL_PADDING * 2 - CHIP_SPACING * (CHIP_COLUMNS - 1) - 8) / CHIP_COLUMNS
 );
 
-const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
+const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress: _onStreakPress }) => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [streaks, setStreaks] = useState<Streak[]>([]);
@@ -53,8 +53,9 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   const [selected, setSelected] = useState<Streak | null>(null);
   const [sheetVisible, setSheetVisible] = useState(false);
   const sheetAnim = useRef(new Animated.Value(0)).current; // 0 hidden, 1 visible
+  const sheetPaddingStyle = React.useMemo(() => ({ paddingBottom: 16 + insets.bottom }), [insets.bottom]);
 
-  const calculateStreaks = useCallback((activities: any[]): Streak[] => {
+  const calculateStreaks = useCallback((activityList: any[]): Streak[] => {
     const streakTypes = [
       { type: 'journal', activityTypes: ['journal_entry'] },
       { type: 'playbook', activityTypes: ['playbook_generated', 'action_step_completed'] },
@@ -64,7 +65,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     const streakResults: Streak[] = [];
 
     streakTypes.forEach(({ type, activityTypes }) => {
-      const typeActivities = activities.filter(activity =>
+      const typeActivities = activityList.filter(activity =>
         activityTypes.includes(activity.activity_type)
       );
 
@@ -121,13 +122,13 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     }
   }, [user, calculateStreaks]);
 
-  const calculateStreakForType = (activities: any[]) => {
-    if (activities.length === 0) {
+  const calculateStreakForType = (activityList: any[]) => {
+    if (activityList.length === 0) {
       return { currentStreak: 0, longestStreak: 0, lastActivity: null, isActive: false };
     }
 
     // Group activities by date
-    const activityDates = activities.map(activity =>
+    const activityDates = activityList.map(activity =>
       new Date(activity.created_at).toDateString()
     );
     const uniqueDates = [...new Set(activityDates)].sort((a, b) =>
@@ -185,7 +186,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     return {
       currentStreak: isActive ? currentStreak : 0,
       longestStreak,
-      lastActivity: activities[0]?.created_at,
+      lastActivity: activityList[0]?.created_at,
       isActive,
     };
   };
@@ -240,12 +241,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
     return { activeCount, total: recent.length };
   };
 
-  const getStreakColor = (streak: number) => {
-    if (streak >= 30) {return Colors.successGreen;}
-    if (streak >= 14) {return Colors.faithGold;}
-    if (streak >= 7) {return Colors.alertCoral;}
-    return Colors.mediumGray;
-  };
+  // removed unused getStreakColor helper
 
   const getStreakTitle = (type: string) => {
     switch (type) {
@@ -258,7 +254,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
   };
 
   const formatLastActivity = (iso: string) => {
-    if (!iso) return '';
+    if (!iso) {return '';}
     const d = new Date(iso);
     const now = new Date();
     const sameYear = d.getFullYear() === now.getFullYear();
@@ -277,7 +273,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
 
   const closeSheet = () => {
     Animated.timing(sheetAnim, { toValue: 0, duration: 160, useNativeDriver: true }).start(({ finished }) => {
-      if (finished) setSheetVisible(false);
+      if (finished) {setSheetVisible(false);}
     });
   };
 
@@ -295,7 +291,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
       />
       <ThemedText weight="semiBold" style={styles.streakNumber}>{streak.currentStreak}</ThemedText>
       {streak.isActive && (
-        <MaterialCommunityIcons name="fire" size={14} color={Colors.alertCoral} style={{ marginLeft: 4 }} />
+        <MaterialCommunityIcons name="fire" size={14} color={Colors.alertCoral} style={styles.iconMarginLeft} />
       )}
     </TouchableOpacity>
   );
@@ -344,7 +340,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
                 },
               ],
             },
-            { paddingBottom: 16 + insets.bottom },
+            sheetPaddingStyle,
           ]}
         >
           <View style={styles.sheetHandle} />
@@ -354,7 +350,7 @@ const StreakTracker: React.FC<StreakTrackerProps> = ({ onStreakPress }) => {
                 name={getStreakIcon(selected.type) as any}
                 size={18}
                 color={Colors.hopeWhite}
-                style={{ marginRight: 4 }}
+                style={styles.iconMarginRight}
               />
             ) : null}
             <ThemedText weight="semiBold" style={styles.sheetTitle}>{selected ? getStreakTitle(selected.type) : ''}</ThemedText>
@@ -590,6 +586,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.7)',
     marginTop: 6,
+  },
+  iconMarginLeft: {
+    marginLeft: 4,
+  },
+  iconMarginRight: {
+    marginRight: 4,
   },
   actionsRow: {
     flexDirection: 'row',

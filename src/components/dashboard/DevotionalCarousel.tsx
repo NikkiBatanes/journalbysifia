@@ -20,6 +20,7 @@ import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic } from '../../utils/haptics';
 import DevotionalSkeleton from '../SkeletonLoader/DevotionalSkeleton';
 import ThemedText from '../common/ThemedText';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 // Match ReflectionQuestionsCard sizing and spacing
@@ -73,11 +74,12 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const [error, setError] = useState<string | null>(null);
   const scrollX = React.useRef(new Animated.Value(0)).current;
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const devotionalIdsRef = useRef<Set<string>>(new Set());
 
   const formatFinishedDate = (dateStr?: string) => {
-    if (!dateStr) return undefined;
+    if (!dateStr) {return undefined;}
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return undefined;
+    if (isNaN(d.getTime())) {return undefined;}
     const weekday = d.toLocaleDateString(undefined, { weekday: 'long' });
     const month = d.toLocaleDateString(undefined, { month: 'long' });
     const day = d.getDate();
@@ -127,11 +129,11 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
             // Track completion and navigation helpers
             let isCompleted = false;
-            let completedAt: string | undefined = undefined;
-            let lastAccessed: string | undefined = undefined;
-            let nextDayNumber: number | undefined = undefined;
-            let nextDayTitle: string | undefined = undefined;
-            let totalDaysForReturn: number | undefined = undefined;
+            let completedAt: string | undefined;
+            let lastAccessed: string | undefined;
+            let nextDayNumber: number | undefined;
+            let nextDayTitle: string | undefined;
+            let totalDaysForReturn: number | undefined;
             try {
               const content = devotional.content
                 ? (typeof devotional.content === 'string'
@@ -149,17 +151,17 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
             // Derive completion from days data if available
             try {
-              const content = devotional.content
+              const content2 = devotional.content
                 ? (typeof devotional.content === 'string' ? JSON.parse(devotional.content) : devotional.content)
                 : null;
-              let days = (devotional as any).days ?? content?.days;
+              let days = (devotional as any).days ?? content2?.days;
               if (typeof days === 'string') {
                 try { days = JSON.parse(days); } catch {}
               }
-              const totalDays: number | undefined = (devotional as any).total_days ?? content?.total_days ?? (Array.isArray(days) ? days.length : undefined);
+              const totalDays: number | undefined = (devotional as any).total_days ?? content2?.total_days ?? (Array.isArray(days) ? days.length : undefined);
               totalDaysForReturn = totalDays;
               const currentDay: number = Math.max(1, Math.min(
-                Number((devotional as any).current_day ?? content?.current_day ?? 1) || 1,
+                Number((devotional as any).current_day ?? content2?.current_day ?? 1) || 1,
                 totalDays || 9999,
               ));
 
@@ -226,6 +228,11 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               }
             }
 
+            // Fallback lastAccessed from devotional.updated_at if progress missing
+            if (!lastAccessed) {
+              try { lastAccessed = (devotional as any).updated_at as string | undefined; } catch {}
+            }
+
             // If completed, do not show NEXT info
             if (isCompleted) {
               nextDayNumber = undefined;
@@ -273,6 +280,8 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       });
 
       setDevotionals(sortedDevotionals);
+      // Track current devotional IDs for realtime filtering
+      devotionalIdsRef.current = new Set(sortedDevotionals.map(d => d.id));
 
     } catch (err) {
       console.error('Error fetching devotionals:', err);
@@ -286,10 +295,18 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     fetchDevotionals();
   }, [fetchDevotionals]);
 
+  // Also refetch whenever the screen regains focus (returning from details)
+  useFocusEffect(
+    useCallback(() => {
+      fetchDevotionals();
+      return () => {};
+    }, [fetchDevotionals])
+  );
+
   // Listen for local creation event to refresh immediately with a short delayed retry
   useEffect(() => {
     const onCreated = (payload: { id?: string; user_id?: string }) => {
-      if (payload?.user_id && user?.id && payload.user_id !== user.id) return;
+      if (payload?.user_id && user?.id && payload.user_id !== user.id) {return;}
       // Immediate fetch
       fetchDevotionals();
       // Debounced delayed fetch to catch eventual consistency
@@ -301,7 +318,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
       }, 1500);
     };
     const onFocused = (payload: { user_id?: string }) => {
-      if (payload?.user_id && user?.id && payload.user_id !== user.id) return;
+      if (payload?.user_id && user?.id && payload.user_id !== user.id) {return;}
       // Same strategy on focus
       fetchDevotionals();
       if (refreshTimeout.current) {
@@ -325,20 +342,48 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     };
   }, [user, fetchDevotionals]);
 
-  // Realtime updates: refresh when devotionals change
+  // Debounced refetch to avoid rapid consecutive updates
+  const scheduleRefetch = useCallback(() => {
+    if (refreshTimeout.current) {
+      clearTimeout(refreshTimeout.current);
+    }
+    refreshTimeout.current = setTimeout(() => {
+      fetchDevotionals();
+    }, 150);
+  }, [fetchDevotionals]);
+
+  // Realtime updates: refresh when devotionals or related user_progress change
   useEffect(() => {
     if (!user) { return; }
-    const channel = supabase
-      .channel('devotionals_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'devotionals' }, () => {
-        fetchDevotionals();
-      })
-      .subscribe();
+    const channel = supabase.channel('devotionals_dashboard');
+
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'devotionals' },
+      () => {
+        scheduleRefetch();
+      }
+    );
+
+    // Some flows update progress in user_progress for devotionals
+    channel.on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'user_progress' },
+      (payload: any) => {
+        const contentType = (payload.new?.content_type ?? payload.old?.content_type) as string | undefined;
+        const contentId = (payload.new?.content_id ?? payload.old?.content_id) as string | undefined;
+        if (contentType === 'devotional' && contentId && devotionalIdsRef.current.has(contentId)) {
+          scheduleRefetch();
+        }
+      }
+    );
+
+    channel.subscribe();
 
     return () => {
-      try { supabase.removeChannel(channel); } catch {}
+      try { channel.unsubscribe(); } catch {}
     };
-  }, [user, fetchDevotionals]);
+  }, [user, scheduleRefetch]);
 
   const getStatusColor = (isCompleted: boolean) => {
     return isCompleted ? Colors.successGreen : Colors.faithGold;
@@ -407,14 +452,14 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
       {/* Place Next/Completed info below description */}
       {devotional.isCompleted ? (
-        <View style={{ marginBottom: 8 }}>
+        <View style={styles.mb8}>
           <ThemedText weight="bold" style={styles.completedText}>DONE</ThemedText>
           {!!formatFinishedDate(devotional.completedAt) && (
             <ThemedText style={styles.finishedDateText}>{formatFinishedDate(devotional.completedAt)}</ThemedText>
           )}
         </View>
       ) : devotional.nextDayNumber ? (
-        <View style={{ marginBottom: 8 }}>
+        <View style={styles.mb8}>
           <ThemedText weight="bold" style={styles.nextLabel}>NEXT</ThemedText>
           <ThemedText weight="semiBold" style={styles.nextDayTitleText} numberOfLines={1}>
             {devotional.total_days === 1
@@ -519,7 +564,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
           scrollEventThrottle={16}
           bounces={true}
           removeClippedSubviews={false}
-          style={{ overflow: 'visible', marginHorizontal: -CARD_HORIZONTAL_PADDING }}
+          style={styles.scrollExpanded}
         >
           {devotionals.map((devotional, index) => {
             const inputRange = [
@@ -552,7 +597,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
               <Animated.View
                 key={devotional.id}
                 style={[
-                  { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
+                  styles.itemContainer,
                   { transform: [{ scale }, { translateY }], opacity, zIndex },
                 ]}
               >
@@ -594,8 +639,16 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingRight: 16,
   },
-  scrollPadding: {
-    width: 16,
+  scrollExpanded: {
+    overflow: 'visible',
+    marginHorizontal: -16, // matches CARD_HORIZONTAL_PADDING
+  },
+  itemContainer: {
+    width: ITEM_WIDTH,
+    marginRight: ITEM_SPACING,
+  },
+  mb8: {
+    marginBottom: 8,
   },
   devotionalCard: {
     // width and spacing are applied inline per item to enable snapping & animations

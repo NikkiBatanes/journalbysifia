@@ -20,7 +20,7 @@ import ThemedText from '../common/ThemedText';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { ReflectionApi } from '../../services/api/reflectionApi';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import DashboardReflectionSkeleton from '../SkeletonLoader/DashboardReflectionSkeleton';
 import { GUIDED_PROMPTS } from '../journal/reflectionConstants';
 // Devotional-only rebuild: no date-based filtering required
@@ -51,7 +51,7 @@ interface ReflectionQuestionsCardProps {
 
 const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   onQuestionPress,
-  onViewAll,
+  onViewAll: _onViewAll,
 }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -59,7 +59,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // No need to fetch today's reflections for this version
-  const [diag, setDiag] = useState<{
+  const [_diag, setDiag] = useState<{
     devotionalCount: number;
     totalQuestions: number;
     sampleDevotional?: { id: string; hasContent: boolean; hasDaysColumn: boolean; contentKeys: string[] } | null;
@@ -78,24 +78,24 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
     try {
       setLoading(true);
       setError(null);
-      
+
       // First, get all journaled questions to filter them out
       const journaledEntries = await ReflectionApi.searchReflections({
         userId: user.id,
         limit: 1000, // Get all journaled entries
       });
-      
+
       // Create a set of journaled question identifiers for quick lookup
       const journaledQuestionIds = new Set(
         journaledEntries
-          .filter(entry => 
-            entry.devotional_id && 
-            entry.day_number !== undefined && 
+          .filter(entry =>
+            entry.devotional_id &&
+            entry.day_number !== undefined &&
             entry.question_number !== undefined
           )
           .map(entry => `${entry.devotional_id}-${entry.day_number}-${entry.question_number}`)
       );
-      
+
       // Fetch devotionals only (mirror DevotionalCarousel behavior)
       const devotionalsResult = await supabase
         .from('devotionals')
@@ -125,13 +125,13 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
             ) => {
               const qText = typeof text === 'string' ? text : text?.question || text?.text || text?.prompt || '';
               if (!qText || typeof qText !== 'string') { return; }
-              
+
               // Check if this question has already been journaled
               const questionId = `${devotional.id}-${ctx?.dayNumber || 1}-${ctx?.questionIndex || 1}`;
               if (journaledQuestionIds.has(questionId)) {
                 return; // Skip journaled questions
               }
-              
+
               allQuestions.push({
                 id: `devotional-${devotional.id}-${idxSuffix}`,
                 question: qText,
@@ -266,6 +266,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
       setDiag(diagPayload);
 
       // Add 5 daily-random guided prompts (deterministic per user per day)
+      /* eslint-disable no-bitwise */
       const pickDailyGuided = (count: number): ReflectionQuestion[] => {
         const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
         const seedStr = `${user.id}-${dateStr}`;
@@ -330,7 +331,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   // Listen to guided completion event and remove from list immediately
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('guided_reflection_completed', (payload: { question?: string; date?: string }) => {
-      if (!payload?.question) return;
+      if (!payload?.question) {return;}
       setQuestions(prev => prev.filter(q => !(q.sourceType === 'guided' && q.question === payload.question)));
     });
     return () => {
@@ -400,8 +401,8 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   };
 
   const getSourceIcon = (sourceType: 'playbook' | 'devotional' | 'guided') => {
-    if (sourceType === 'playbook') return 'library';
-    if (sourceType === 'guided') return 'feather';
+    if (sourceType === 'playbook') {return 'library';}
+    if (sourceType === 'guided') {return 'feather';}
     return 'book';
   };
 
@@ -421,7 +422,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
   // Precompute exact snap offsets for perfect centering
   const snapOffsets = React.useMemo(() => {
     return questions.map((_, i) => i * ITEM_SIZE);
-  }, [questions.length, ITEM_SIZE]);
+  }, [questions, ITEM_SIZE]);
   const scrollX = React.useRef(new Animated.Value(0)).current;
 
   if (loading) {
@@ -460,7 +461,7 @@ const ReflectionQuestionsCard: React.FC<ReflectionQuestionsCardProps> = ({
           bounces={true}
           removeClippedSubviews={false}
           // Expand scroll to full-screen width so centering isn't skewed by card padding
-          style={{ overflow: 'visible', marginHorizontal: -CARD_HORIZONTAL_PADDING }}
+          style={styles.scrollExpanded}
         >
           {questions.map((item, index) => {
             const inputRange = [
@@ -564,6 +565,10 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingRight: 0,
   },
+  scrollExpanded: {
+    overflow: 'visible',
+    marginHorizontal: -16, // matches CARD_HORIZONTAL_PADDING
+  },
   questionCard: {
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 30,
@@ -662,7 +667,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  
+
   retryButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,

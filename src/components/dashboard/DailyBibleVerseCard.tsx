@@ -44,7 +44,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       setError(null);
 
       // Fetch user's playbooks (modern schema uses bible_verse field) and devotionals as secondary source
-      
+
       const [playbooksResult, devotionalsResult] = await Promise.all([
         supabase
           .from('playbooks')
@@ -60,7 +60,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
           .limit(50),
       ]);
 
-      
+
       const allVerses: BibleVerse[] = [];
 
       // Helper to safely parse unknown JSON values
@@ -236,7 +236,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
       }
 
       // Only use verses if found in database
-      
+
       if (allVerses.length > 0) {
         const today = new Date();
         const dateKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     textAlign: 'center',
     textTransform: 'uppercase',
-    
+
     letterSpacing: 0.8,
     marginBottom: 14,
   },
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     color: Colors.hopeWhite,
     fontStyle: 'normal',
-    
+
     marginBottom: 8,
     textAlign: 'left',
   },
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.alertCoral,
     textAlign: 'left',
-    
+
     marginTop: 2,
     marginBottom: 4,
   },
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   retryText: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    
+
   },
   verseContent: {
     flex: 1,

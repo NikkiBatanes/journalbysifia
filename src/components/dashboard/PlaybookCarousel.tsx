@@ -8,11 +8,9 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Dimensions,
   Animated,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
@@ -216,7 +214,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   // Realtime subscription: update when playbook_action_steps or user_progress change
   useEffect(() => {
     // Skip if not logged in
-    if (!user?.id) return;
+    if (!user?.id) {return;}
 
     const channel = supabase.channel('dashboard-playbook-progress');
 
@@ -325,7 +323,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
       <Animated.View
         style={[
           styles.playbookCard,
-          { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
+          styles.itemContainer,
           { transform: [{ scale }, { translateY }], opacity, zIndex },
         ]}
       >
@@ -403,7 +401,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           <ThemedText weight="semiBold" style={styles.heroOverline}>No Playbooks</ThemedText>
           <ThemedText weight="bold" style={styles.heroTitle}>Create a New Playboook</ThemedText>
           <ThemedText style={styles.heroSubtitle}>
-            Share what you're going through in detail.{"\n"}
+            Share what you're going through in detail.{'\n'}
             The more context, the better we can help.
           </ThemedText>
         </View>
@@ -473,7 +471,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
           scrollEventThrottle={16}
           bounces={true}
           removeClippedSubviews={false}
-          style={{ overflow: 'visible', marginHorizontal: -CARD_HORIZONTAL_PADDING }}
+          style={styles.scrollExpanded}
         >
           {playbooks.map((pb, i) => renderPlaybookCard(pb, i))}
         </Animated.ScrollView>
@@ -511,6 +509,10 @@ const styles = StyleSheet.create({
   scrollContainer: {
     paddingVertical: 4,
     overflow: 'visible',
+  },
+  scrollExpanded: {
+    overflow: 'visible',
+    marginHorizontal: -CARD_HORIZONTAL_PADDING,
   },
   // Empty state (hero) styles to match DevotionalCarousel
   emptyStateContainer: {
@@ -569,6 +571,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     position: 'relative',
+  },
+  itemContainer: {
+    width: ITEM_WIDTH,
+    marginRight: ITEM_SPACING,
   },
   cardTouch: {
     // touchable wrapper for proper activeOpacity without affecting animated styles
@@ -719,12 +725,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.hopeWhite,
   },
-  firstCard: {
-    // no longer used (kept for backward compatibility)
-  },
-  otherCard: {
-    // no longer used (kept for backward compatibility)
-  },
+
 });
 
 export default PlaybookCarousel;
