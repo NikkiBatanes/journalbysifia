@@ -66,7 +66,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
   const [playbooks, setPlaybooks] = useState<Playbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const hasLoadedRef = useRef(false);
   const playbookIdsRef = useRef<Set<string>>(new Set());
   const refetchTimeoutRef = useRef<any>(null);
@@ -254,7 +254,7 @@ const PlaybookCarousel: React.FC<PlaybookCarouselProps> = ({
     return () => {
       subscription.remove();
     };
-  }, [fetchPlaybooks]);
+  }, [fetchPlaybooks, scheduleRefetch]);
 
   // Realtime subscription: update when playbook_action_steps or user_progress change
   useEffect(() => {

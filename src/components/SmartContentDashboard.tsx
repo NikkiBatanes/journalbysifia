@@ -3,7 +3,7 @@
  * Displays personalized content recommendations with intelligent timing
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -43,13 +43,9 @@ export const SmartContentDashboard: React.FC<SmartContentDashboardProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const contentCuration = new IntelligentContentCuration();
+  const contentCuration = useMemo(() => new IntelligentContentCuration(), []);
 
-  useEffect(() => {
-    loadRecommendations();
-  }, [userId, spiritualProfile, recentConversations]);
-
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     setIsLoading(true);
     try {
       const newRecommendations = await contentCuration.generateRecommendations(
@@ -58,13 +54,25 @@ export const SmartContentDashboard: React.FC<SmartContentDashboardProps> = ({
         recentConversations
       );
       setRecommendations(newRecommendations);
+
+      // Generate learning path based on recommendations
+      const path = await contentCuration.generateLearningPath(
+        userId,
+        spiritualProfile,
+        newRecommendations
+      );
+      setLearningPath(path);
     } catch (error) {
       console.error('Error loading recommendations:', error);
-      Alert.alert('Error', 'Unable to load content recommendations');
+      Alert.alert('Error', 'Failed to load content recommendations');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId, spiritualProfile, recentConversations, contentCuration]);
+
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

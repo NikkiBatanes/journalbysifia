@@ -34,7 +34,7 @@ const DashboardActionStepsSkeleton: React.FC = () => {
             </View>
             <View style={styles.exampleRow}>
               <Animated.View style={[styles.leftBar, { opacity }]} />
-              <View style={{ flex: 1 }}>
+              <View style={styles.exampleContent}>
                 <Animated.View style={[styles.exampleLineLong, { opacity }]} />
               </View>
             </View>
@@ -110,6 +110,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.16)',
     marginRight: 8,
     marginTop: 2,
+  },
+  exampleContent: {
+    flex: 1,
   },
   exampleLineLong: {
     height: 14,

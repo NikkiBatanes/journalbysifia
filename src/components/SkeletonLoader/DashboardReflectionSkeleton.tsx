@@ -30,7 +30,7 @@ const DashboardReflectionSkeleton: React.FC = () => {
       </View>
 
       {/* One large reflection card placeholder */}
-      <View style={[styles.placeholderCard, { width: ITEM_WIDTH, alignSelf: 'center' }] }>
+      <View style={[styles.placeholderCard, styles.centeredCard, { width: ITEM_WIDTH }]}>
         <View style={styles.sectionHeader}>
           <Animated.View style={[styles.sectionIcon, { opacity }]} />
           <Animated.View style={[styles.sectionLabel, { opacity }]} />
@@ -76,6 +76,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     alignItems: 'center',
     gap: 16,
+  },
+  centeredCard: {
+    alignSelf: 'center',
   },
   sectionHeader: {
     alignItems: 'center',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -38,20 +38,20 @@ const FamilyAdminDashboardScreen: React.FC = () => {
   const [usageAnalytics, setUsageAnalytics] = useState<any>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (familyGroup && isAdmin) {
-      loadUsageAnalytics();
-    }
-  }, [familyGroup, isAdmin]);
-
-  const loadUsageAnalytics = async () => {
+  const loadUsageAnalytics = useCallback(async () => {
     try {
       const analytics = await getFamilyUsageAnalytics();
       setUsageAnalytics(analytics);
     } catch (err) {
-      console.error('Failed to load usage analytics:', err);
+      console.error('Error loading usage analytics:', err);
     }
-  };
+  }, [getFamilyUsageAnalytics]);
+
+  useEffect(() => {
+    if (familyGroup && isAdmin) {
+      loadUsageAnalytics();
+    }
+  }, [familyGroup, isAdmin, loadUsageAnalytics]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -321,7 +321,7 @@ const FamilyAdminDashboardScreen: React.FC = () => {
               <Text style={styles.modalSend}>Send</Text>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.modalContent}>
             <Text style={styles.inputLabel}>Email Address</Text>
             <TextInput

@@ -3,7 +3,7 @@
  * Simplified for current app capabilities - text content only
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -38,13 +38,9 @@ export const TextBasedContentDashboard: React.FC<TextBasedContentDashboardProps>
   const [refreshing, setRefreshing] = useState(false);
   const [readingProgress, setReadingProgress] = useState(0);
 
-  const contentCuration = new TextBasedContentCuration();
+  const contentCuration = useMemo(() => new TextBasedContentCuration(), []);
 
-  useEffect(() => {
-    loadRecommendations();
-  }, [userId, spiritualProfile, recentConversations]);
-
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     setIsLoading(true);
     try {
       const newRecommendations = await contentCuration.generateTextRecommendations(
@@ -55,11 +51,15 @@ export const TextBasedContentDashboard: React.FC<TextBasedContentDashboardProps>
       setRecommendations(newRecommendations);
     } catch (error) {
       console.error('Error loading recommendations:', error);
-      Alert.alert('Error', 'Unable to load content recommendations');
+      Alert.alert('Error', 'Failed to load content recommendations');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId, spiritualProfile, recentConversations, contentCuration]);
+
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

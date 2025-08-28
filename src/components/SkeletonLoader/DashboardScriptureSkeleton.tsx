@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Colors } from '../../theme/colors';
 
 const DashboardScriptureSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -28,7 +27,7 @@ const DashboardScriptureSkeleton: React.FC = () => {
       {/* Verse block with left bar */}
       <View style={styles.verseRow}>
         <Animated.View style={[styles.leftBar, { opacity }]} />
-        <View style={{ flex: 1 }}>
+        <View style={styles.verseContent}>
           <Animated.View style={[styles.verseLineLong, { opacity }]} />
           <Animated.View style={[styles.verseLineShort, { opacity }]} />
           <Animated.View style={[styles.referenceBar, { opacity }]} />
@@ -71,6 +70,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.25)',
     alignSelf: 'stretch',
     marginTop: 2,
+  },
+  verseContent: {
+    flex: 1,
   },
   verseLineLong: {
     height: 18,

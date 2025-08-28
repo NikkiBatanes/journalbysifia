@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Typography } from '../constants';
 import { progressTrackingService, SpiritualProgressData, WeeklyProgressSummary, SpiritualGrowthInsight } from '../services/progressTrackingService';
-import { smartNotificationService } from '../services/smartNotificationService';
 
 const { width } = Dimensions.get('window');
 
@@ -30,11 +29,7 @@ export const ProgressTrackingDashboard: React.FC<ProgressTrackingDashboardProps>
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'weekly' | 'insights'>('overview');
 
-  useEffect(() => {
-    loadProgressData();
-  }, [userId]);
-
-  const loadProgressData = async () => {
+  const loadProgressData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -53,7 +48,11 @@ export const ProgressTrackingDashboard: React.FC<ProgressTrackingDashboardProps>
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadProgressData();
+  }, [loadProgressData]);
 
   const handleSetWeeklyGoal = () => {
     Alert.prompt(
@@ -64,7 +63,7 @@ export const ProgressTrackingDashboard: React.FC<ProgressTrackingDashboardProps>
         {
           text: 'Set Goal',
           onPress: async (value) => {
-            const goal = parseInt(value || '3');
+            const goal = parseInt(value || '3', 10);
             if (goal > 0 && goal <= 50) {
               try {
                 await progressTrackingService.setWeeklyGoal(userId, goal);

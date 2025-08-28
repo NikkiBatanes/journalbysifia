@@ -64,7 +64,7 @@ const DashboardPlaybookSkeleton: React.FC = () => {
             <View style={styles.progressSection}>
               <View style={styles.progressBar}>
                 {/* Empty progress (no fill) to indicate loading state */}
-                <Animated.View style={[styles.progressFill, { opacity, width: '0%' }]} />
+                <Animated.View style={[styles.progressFill, styles.emptyProgress, { opacity }]} />
               </View>
               <Animated.View style={[styles.progressTextSkeleton, { opacity }]} />
             </View>
@@ -150,6 +150,9 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 3,
     backgroundColor: Colors.alertCoral,
+  },
+  emptyProgress: {
+    width: '0%',
   },
   progressTextSkeleton: {
     height: 12,
