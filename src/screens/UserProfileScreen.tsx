@@ -67,6 +67,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const { user, signOut, updatePreferences, updateProfile } = useAuth();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   // Status bar: dark icons on white header area
   useScreenStatusBar('dark', Colors.hopeWhite);
   
@@ -509,21 +510,21 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.counterHeader}>
               <Ionicons name="book-outline" size={18} color={Colors.primary} />
             </View>
-            <Text style={styles.counterNumbers}>{playbookUsed} / {playbookLimit}</Text>
+            <Text style={[styles.counterNumbers, font]}>{playbookUsed} / {playbookLimit}</Text>
             <View style={styles.progressTrack}><View style={[styles.progressValue, { width: `${playbookPct * 100}%` }]} /></View>
           </View>
           <View style={styles.counterCard}>
             <View style={styles.counterHeader}>
               <Ionicons name="heart-outline" size={18} color={Colors.devotionalPurple} />
             </View>
-            <Text style={styles.counterNumbers}>{devotionalUsed} / {devotionalLimit}</Text>
+            <Text style={[styles.counterNumbers, font]}>{devotionalUsed} / {devotionalLimit}</Text>
             <View style={styles.progressTrack}><View style={[styles.progressValueAlt, { width: `${devotionalPct * 100}%` }]} /></View>
           </View>
         </View>
 
         {isTrialing && !isCanceled && (
           <TouchableOpacity style={styles.upgradeButton}>
-            <Text style={styles.upgradeButtonText}>Upgrade Plan</Text>
+            <Text style={[styles.upgradeButtonText, font]}>Upgrade Plan</Text>
             <Ionicons name="arrow-forward" size={16} color="#fff" />
           </TouchableOpacity>
         )}
@@ -534,16 +535,16 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const renderAllBadges = () => (
     <View style={styles.badgesContainer}>
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionTitle, { color: Colors.hopeWhite }]}>Badges</Text>
+        <Text style={[styles.sectionTitle, { color: Colors.hopeWhite }, font]}>Badges</Text>
         {!!recentBadges.length && (
           <TouchableOpacity onPress={() => setBadgesModal(true)}>
-            <Text style={styles.viewAllText}>Recent</Text>
+            <Text style={[styles.viewAllText, font]}>Recent</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {!!(allBadges && allBadges.length) && (
-        <Text style={styles.badgesSubtitle} numberOfLines={2}>
+        <Text style={[styles.badgesSubtitle, font]} numberOfLines={2}>
           You have {allBadges.length} badges: {allBadges.map(b => b.name).join(', ')}
         </Text>
       )}
@@ -562,20 +563,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                       {isIonicon && iconStr ? (
                         <Ionicons name={iconStr as any} size={22} color={Colors.hopeWhite} />
                       ) : iconStr ? (
-                        <Text style={[styles.badgeEmoji, { color: Colors.hopeWhite }]}>{iconStr}</Text>
+                        <Text style={[styles.badgeEmoji, { color: Colors.hopeWhite }, font]}>{iconStr}</Text>
                       ) : (
                         <Ionicons name="medal" size={22} color={Colors.hopeWhite} />
                       )}
                     </View>
-                    <Text style={[styles.badgeName, { color: Colors.hopeWhite }]}>{badge.name}</Text>
-                    <Text style={[styles.badgePoints, { color: Colors.hopeWhite }]}>+{(badge as any).faith_points_reward || 0}</Text>
+                    <Text style={[styles.badgeName, { color: Colors.hopeWhite }, font]}>{badge.name}</Text>
+                    <Text style={[styles.badgePoints, { color: Colors.hopeWhite }, font]}>+{(badge as any).faith_points_reward || 0}</Text>
                   </View>
                 );
               })}
             </View>
           </ScrollView>
         ) : (
-          <Text style={[styles.badgesSubtitle, { textAlign: 'center' }]}>No badges yet</Text>
+          <Text style={[styles.badgesSubtitle, { textAlign: 'center' }, font]}>No badges yet</Text>
         )}
       </View>
     </View>
@@ -583,7 +584,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderCommunitySection = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>COMMUNITY</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>COMMUNITY</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -592,7 +593,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="share-social" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Share with Friends</Text>
+          <Text style={[styles.menuText, font]}>Share with Friends</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -603,7 +604,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="star" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Leave a Review</Text>
+          <Text style={[styles.menuText, font]}>Leave a Review</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -614,7 +615,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-instagram" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Instagram</Text>
+          <Text style={[styles.menuText, font]}>Instagram</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -625,7 +626,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-facebook" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Facebook</Text>
+          <Text style={[styles.menuText, font]}>Facebook</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -636,7 +637,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Text style={{ color: Colors.anchorBlue, fontSize: 16, fontWeight: '800' }}>X</Text>
           </View>
-          <Text style={styles.menuText}>X</Text>
+          <Text style={[styles.menuText, font]}>X</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -645,7 +646,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderLegalPrivacySection = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>LEGAL & PRIVACY</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>LEGAL & PRIVACY</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -654,7 +655,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="document-text" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Terms of Service</Text>
+          <Text style={[styles.menuText, font]}>Terms of Service</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -665,7 +666,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="lock-closed" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Privacy Policy</Text>
+          <Text style={[styles.menuText, font]}>Privacy Policy</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -674,7 +675,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderHelpSupportSection = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>HELP & SUPPORT</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>HELP & SUPPORT</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -683,7 +684,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="help-circle" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>FAQ</Text>
+          <Text style={[styles.menuText, font]}>FAQ</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -694,7 +695,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="bulb" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Suggest a Feature</Text>
+          <Text style={[styles.menuText, font]}>Suggest a Feature</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -705,7 +706,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="bug" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Report a Bug</Text>
+          <Text style={[styles.menuText, font]}>Report a Bug</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -714,7 +715,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderAppBehaviorSection = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>PERMISSIONS</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>PERMISSIONS</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
@@ -723,7 +724,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="notifications" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Notifications</Text>
+          <Text style={[styles.menuText, font]}>Notifications</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -734,7 +735,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="shield-checkmark" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>System Permissions</Text>
+          <Text style={[styles.menuText, font]}>System Permissions</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -743,7 +744,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
   const renderMenuOptions = () => (
     <View>
-      <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>PERSONALIZATION</Text>
+      <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>PERSONALIZATION</Text>
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
@@ -752,7 +753,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="book" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Bible Version</Text>
+          <Text style={[styles.menuText, font]}>Bible Version</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -763,7 +764,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="calendar" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Week Start</Text>
+          <Text style={[styles.menuText, font]}>Week Start</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.85)'} />
         </TouchableOpacity>
 
@@ -774,7 +775,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="color-palette" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Appearance</Text>
+          <Text style={[styles.menuText, font]}>Appearance</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.85)'} />
         </TouchableOpacity>
 
@@ -785,7 +786,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="text" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Font</Text>
+          <Text style={[styles.menuText, font]}>Font</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
@@ -796,7 +797,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="pulse" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Haptics</Text>
+          <Text style={[styles.menuText, font]}>Haptics</Text>
           <Switch
             value={hapticsEnabled}
             onValueChange={setHapticsEnabled}
@@ -812,7 +813,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="volume-high" size={18} color={Colors.anchorBlue} />
           </View>
-          <Text style={styles.menuText}>Sounds</Text>
+          <Text style={[styles.menuText, font]}>Sounds</Text>
           <Switch
             value={soundsEnabled}
             onValueChange={setSoundsEnabled}
@@ -833,7 +834,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
       <View>
-        <Text style={[styles.sectionLabel, styles.sectionLabelRight]}>FAMILY SUBSCRIPTION</Text>
+        <Text style={[styles.sectionLabel, styles.sectionLabelRight, font]}>FAMILY SUBSCRIPTION</Text>
         <View style={styles.menuContainer}>
           {familyGroup ? (
             <>
@@ -844,11 +845,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <View style={styles.menuIconBox}>
                   <Ionicons name="people" size={18} color={Colors.anchorBlue} />
                 </View>
-                <Text style={styles.menuText}>
+                <Text style={[styles.menuText, font]}>
                   {isAdmin ? 'Manage Family' : 'Family Group'}
                 </Text>
                 <View style={styles.trialBadge}>
-                  <Text style={styles.trialBadgeText}>
+                  <Text style={[styles.trialBadgeText, font]}>
                     {familyGroup.current_members}/{familyGroup.max_members}
                   </Text>
                 </View>
@@ -863,7 +864,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                   <View style={styles.menuIconBox}>
                     <Ionicons name="person-add" size={18} color={Colors.anchorBlue} />
                   </View>
-                  <Text style={styles.menuText}>Invite Members</Text>
+                  <Text style={[styles.menuText, font]}>Invite Members</Text>
                   <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
                 </TouchableOpacity>
               )}
@@ -883,7 +884,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               <View style={styles.menuIconBox}>
                 <Ionicons name="add-circle" size={18} color={Colors.anchorBlue} />
               </View>
-              <Text style={styles.menuText}>Create Family Group</Text>
+              <Text style={[styles.menuText, font]}>Create Family Group</Text>
               <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
             </TouchableOpacity>
           )}
@@ -902,7 +903,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.menuIconBox}>
             <Ionicons name="log-out" size={18} color={Colors.alertCoral} />
           </View>
-          <Text style={[styles.menuText, styles.logoutText]}>Logout</Text>
+          <Text style={[styles.menuText, styles.logoutText, font]}>Logout</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -920,9 +921,9 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity onPress={() => setEditProfileModal(false)} accessibilityRole="button" accessibilityLabel="Go back">
             <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Edit Profile</Text>
+          <Text style={[styles.modalTitle, font]}>Edit Profile</Text>
           <TouchableOpacity onPress={handleUpdateProfile}>
-            <Text style={styles.saveText}>Save</Text>
+            <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
 
@@ -934,7 +935,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 <Image source={{ uri: avatarUrl }} style={styles.modalAvatar} />
               ) : (
                 <View style={[styles.modalAvatar, styles.modalInitialAvatar]}>
-                  <Text style={styles.modalInitialLetter}>{initialLetter}</Text>
+                  <Text style={[styles.modalInitialLetter, font]}>{initialLetter}</Text>
                 </View>
               )}
               <TouchableOpacity
@@ -950,10 +951,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.sectionLabel}>NAME</Text>
+            <Text style={[styles.sectionLabel, font]}>NAME</Text>
             <View style={styles.nameContainer}>
               <TextInput
-                style={styles.nameField}
+                style={[styles.nameField, font]}
                 value={(profileForm as any).firstName}
                 onChangeText={(text) => setProfileForm({ ...profileForm, firstName: text })}
                 placeholder="First name"
@@ -961,7 +962,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
               />
               <View style={styles.nameDivider} />
               <TextInput
-                style={styles.nameField}
+                style={[styles.nameField, font]}
                 value={(profileForm as any).lastName}
                 onChangeText={(text) => setProfileForm({ ...profileForm, lastName: text })}
                 placeholder="Last name"
@@ -983,20 +984,20 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => setSettingsModal(false)}>
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Settings</Text>
+          <Text style={[styles.modalTitle, font]}>Settings</Text>
           <TouchableOpacity onPress={handleUpdatePreferences}>
-            <Text style={styles.saveText}>Save</Text>
+            <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
         </View>
 
         <ScrollView style={styles.modalContent}>
           <View style={styles.settingGroup}>
-            <Text style={styles.settingTitle}>Notifications</Text>
+            <Text style={[styles.settingTitle, font]}>Notifications</Text>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Push Notifications</Text>
+              <Text style={[styles.settingLabel, font]}>Push Notifications</Text>
               <Switch
                 value={preferences.notifications.pushEnabled}
                 onValueChange={(value) =>
@@ -1009,7 +1010,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Email Notifications</Text>
+              <Text style={[styles.settingLabel, font]}>Email Notifications</Text>
               <Switch
                 value={preferences.notifications.emailEnabled}
                 onValueChange={(value) =>
@@ -1023,19 +1024,19 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.settingGroup}>
-            <Text style={styles.settingTitle}>Privacy</Text>
+            <Text style={[styles.settingTitle, font]}>Privacy</Text>
 
             <View style={styles.settingItem}>
-              <Text style={styles.settingLabel}>Profile Visibility</Text>
-              <Text style={styles.settingValue}>{preferences.privacy.profileVisibility}</Text>
+              <Text style={[styles.settingLabel, font]}>Profile Visibility</Text>
+              <Text style={[styles.settingValue, font]}>{preferences.privacy.profileVisibility}</Text>
             </View>
           </View>
 
           <View style={styles.settingGroup}>
-            <Text style={styles.settingTitle}>Calendar</Text>
+            <Text style={[styles.settingTitle, font]}>Calendar</Text>
 
             <View style={styles.settingItemColumn}>
-              <Text style={styles.settingLabel}>Week Start</Text>
+              <Text style={[styles.settingLabel, font]}>Week Start</Text>
               <View style={styles.settingChipsRow}>
                 {(
                   [
@@ -1057,7 +1058,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                       accessibilityRole="button"
                       accessibilityLabel={`Set week start to ${d.label}`}
                     >
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{d.label}</Text>
+                      <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{d.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -1066,10 +1067,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.settingGroup}>
-            <Text style={styles.settingTitle}>Appearance</Text>
+            <Text style={[styles.settingTitle, font]}>Appearance</Text>
 
             <View style={styles.settingItemColumn}>
-              <Text style={styles.settingLabel}>Theme</Text>
+              <Text style={[styles.settingLabel, font]}>Theme</Text>
               <View style={styles.settingChipsRow}>
                 {(
                   [
@@ -1089,7 +1090,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                       accessibilityRole="button"
                       accessibilityLabel={`Set theme to ${opt.label}`}
                     >
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{opt.label}</Text>
+                      <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{opt.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -1097,7 +1098,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             </View>
 
             <View style={styles.settingItemColumn}>
-              <Text style={styles.settingLabel}>Font</Text>
+              <Text style={[styles.settingLabel, font]}>Font</Text>
               <View style={styles.settingChipsRow}>
                 {(
                   [
@@ -1106,22 +1107,22 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                     { key: 'nunito', label: 'Nunito Sans', description: 'Friendly & readable' },
                     { key: 'lora', label: 'Lora', description: 'Elegant serif' },
                   ] as const
-                ).map((font) => {
-                  const active = preferences.font === font.key;
+                ).map((fontOption) => {
+                  const active = preferences.font === fontOption.key;
                   return (
                     <TouchableOpacity
-                      key={font.key}
+                      key={fontOption.key}
                       style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => handleFontChange(font.key)}
+                      onPress={() => handleFontChange(fontOption.key)}
                       accessibilityRole="button"
-                      accessibilityLabel={`Set font to ${font.label}`}
+                      accessibilityLabel={`Set font to ${fontOption.label}`}
                     >
-                      <Text style={[styles.chipText, active && styles.chipTextActive]}>{font.label}</Text>
+                      <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{fontOption.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-              <Text style={styles.fontNote}>Lexend font is specially designed to improve reading proficiency</Text>
+              <Text style={[styles.fontNote, font]}>Lexend font is specially designed to improve reading proficiency</Text>
             </View>
           </View>
         </ScrollView>

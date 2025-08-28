@@ -7,15 +7,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
+  Animated,
   Keyboard,
-  StyleSheet,
-  StatusBar,
-  Image,
+  TouchableWithoutFeedback,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
+  StatusBar,
   Alert,
-  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -25,6 +24,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { triggerLightHaptic } from '../utils/haptics';
+import { useTheme } from '../theme/ThemeContext';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -35,6 +35,8 @@ const UserInputScreen: React.FC = () => {
   const navigation = useNavigation<UserInputScreenNavigationProp>();
   const inputRef = useRef<TextInput | null>(null);
   const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const font = React.useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
 
   // Set status bar style
   useEffect(() => {
@@ -123,6 +125,8 @@ const UserInputScreen: React.FC = () => {
   const headerIntroOpacity = useRef(new Animated.Value(0)).current;
   const askBoxTranslateY = useRef(new Animated.Value(16)).current;
   const askBoxOpacity = useRef(new Animated.Value(0)).current;
+
+  // Simple chat input - no complex height calculations needed
 
   // Intro animation when screen first opens
   useEffect(() => {
@@ -292,84 +296,83 @@ const UserInputScreen: React.FC = () => {
         <View style={[styles.footer, { paddingBottom: (insets.bottom || 0) + 8 }]}>
           <View style={styles.inputContainer}>
             <Animated.View style={[{ opacity: askBoxOpacity, transform: [{ translateY: askBoxTranslateY }] }]}>
-              <Animated.View style={[styles.askBox, { borderWidth: inputBorderWidth }]}>
-                <TextInput
-                  ref={inputRef}
-                  style={styles.askInput}
-                  placeholder={placeholderText}
-                  placeholderTextColor={'rgba(255,255,255,0.7)'}
-                  value={userInput}
-                  onChangeText={setUserInput}
-                  multiline
-                  textAlignVertical="top"
-                  scrollEnabled={true}
-                  autoCapitalize="sentences"
-                  keyboardAppearance="dark"
-                  textBreakStrategy="simple"
-                  underlineColorAndroid="transparent"
-                  autoCorrect={true}
-                  autoFocus={false}
-                  onTouchStart={handleInputPress}
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                  blurOnSubmit={false}
-                />
-              {/* Tooltip anchored above hint icon */}
-              {showTooltip && (
-                <Animated.View style={[styles.tooltip, { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }] }]} pointerEvents="box-none">
-                  <Text style={styles.tooltipKicker}>How Fia can help you.</Text>
-                  <Text style={styles.tooltipTitle}>Share what you're going through in detail. The more context, the better.</Text>
-                  <Text style={styles.tooltipSubtitle}>Helpful details to include:</Text>
-                  <View style={styles.tooltipList}>
-                    <View style={styles.tooltipItemRow}>
-                      <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>1</Text></View>
-                      <Text style={styles.tooltipItemText}>What happened</Text>
-                    </View>
-                    <View style={styles.tooltipItemRow}>
-                      <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>2</Text></View>
-                      <Text style={styles.tooltipItemText}>Your pain</Text>
-                    </View>
-                    <View style={styles.tooltipItemRow}>
-                      <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>3</Text></View>
-                      <Text style={styles.tooltipItemText}>A situation or struggle</Text>
-                    </View>
-                    <View style={styles.tooltipItemRow}>
-                      <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>4</Text></View>
-                      <Text style={styles.tooltipItemText}>A decision you need to make</Text>
-                    </View>
+              <View style={styles.askWrapper}>
+                <Animated.View style={[styles.askBox, { borderWidth: inputBorderWidth }]}>
+                  <TextInput
+                    ref={inputRef}
+                    style={[styles.askInput, font]}
+                    placeholder={placeholderText}
+                    placeholderTextColor={'rgba(255,255,255,0.7)'}
+                    value={userInput}
+                    onChangeText={setUserInput}
+                    multiline
+                    textAlignVertical="top"
+                    scrollEnabled={true}
+                    autoCapitalize="sentences"
+                    keyboardAppearance="dark"
+                    underlineColorAndroid="transparent"
+                    autoCorrect={true}
+                    autoFocus={false}
+                    onTouchStart={handleInputPress}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    blurOnSubmit={false}
+                  />
+                  <View style={styles.actionsOverlay}>
+                    <TouchableOpacity
+                      onPress={onPressHint}
+                      activeOpacity={0.9}
+                      style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    >
+                      <MaterialCommunityIcons
+                        name="information"
+                        size={34}
+                        color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.5)'}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.askSendButton, (!userInput || !userInput.trim()) && styles.disabledButton]}
+                      onPress={handleGeneratePlaybook}
+                      disabled={!userInput || !userInput.trim()}
+                    >
+                      <Ionicons
+                        name="arrow-up-circle"
+                        size={34}
+                        color={userInput.trim() ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
+                      />
+                    </TouchableOpacity>
                   </View>
-                  <Text style={styles.tooltipFooter}>Then we'll turn this into a personalized playbook.</Text>
-                  <View style={styles.tooltipCaret} />
                 </Animated.View>
-              )}
-              {/* Hint button with same styling/sizing as send button */}
-              <TouchableOpacity
-                onPress={onPressHint}
-                activeOpacity={0.9}
-                style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
-                hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-              >
-                <MaterialCommunityIcons
-                  name="information"
-                  size={34}
-                  color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.5)'}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.askSendButton,
-                  (!userInput || !userInput.trim()) && styles.disabledButton,
-                ]}
-                onPress={handleGeneratePlaybook}
-                disabled={!userInput || !userInput.trim()}
-              >
-                <Ionicons
-                  name="arrow-up-circle"
-                  size={34}
-                  color={userInput.trim() ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
-                />
-              </TouchableOpacity>
-              </Animated.View>
+                {/* Tooltip anchored above hint icon; placed outside askBox to avoid clipping */}
+                {showTooltip && (
+                  <Animated.View style={[styles.tooltip, { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }] }]} pointerEvents="box-none">
+                    <Text style={[styles.tooltipKicker, font]}>How Fia can help you.</Text>
+                    <Text style={[styles.tooltipTitle, font]}>Share what you're going through in detail. The more context, the better.</Text>
+                    <Text style={[styles.tooltipSubtitle, font]}>Helpful details to include:</Text>
+                    <View style={styles.tooltipList}>
+                      <View style={styles.tooltipItemRow}>
+                        <View style={styles.tooltipBadge}><Text style={[styles.tooltipBadgeText, font]}>1</Text></View>
+                        <Text style={[styles.tooltipItemText, font]}>What happened</Text>
+                      </View>
+                      <View style={styles.tooltipItemRow}>
+                        <View style={styles.tooltipBadge}><Text style={[styles.tooltipBadgeText, font]}>2</Text></View>
+                        <Text style={[styles.tooltipItemText, font]}>Your pain</Text>
+                      </View>
+                      <View style={styles.tooltipItemRow}>
+                        <View style={styles.tooltipBadge}><Text style={[styles.tooltipBadgeText, font]}>3</Text></View>
+                        <Text style={[styles.tooltipItemText, font]}>A situation or struggle</Text>
+                      </View>
+                      <View style={styles.tooltipItemRow}>
+                        <View style={styles.tooltipBadge}><Text style={[styles.tooltipBadgeText, font]}>4</Text></View>
+                        <Text style={[styles.tooltipItemText, font]}>A decision you need to make</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.tooltipFooter, font]}>Then we'll turn this into a personalized playbook.</Text>
+                    <View style={styles.tooltipCaret} />
+                  </Animated.View>
+                )}
+              </View>
             </Animated.View>
           </View>
         </View>
@@ -383,6 +386,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
     paddingBottom: 0,
+  },
+  askHintButtonInline: {
+    opacity: 1,
+  },
+  askSendButtonInline: {
+    opacity: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -425,63 +434,65 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     marginBottom: Platform.OS === 'ios' ? 0 : 20, // Add some bottom margin on Android
   },
+  askWrapper: {
+    position: 'relative',
+    overflow: 'visible',
+  },
   askBox: {
     borderRadius: 32,
     backgroundColor: Colors.inputBackground,
     borderWidth: 1.5,
     borderColor: Colors.inputBorder,
-    padding: 12,
-    paddingRight: 120, // Space for hint + send buttons
+    padding: 0, // Remove padding to allow seamless scrolling
+    paddingBottom: 60, // Space for overlay icons
     width: '100%',
-    minHeight: 150,
-    maxHeight: 300, // Increased max height to allow more text
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    flexDirection: 'column',
+    minHeight: 60,
     position: 'relative',
-    ...Platform.select({
-      android: {
-        paddingTop: 6,
-      },
-    }),
+    overflow: 'hidden', // Clip content at container edges
+  },
+  actionsOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  bottomRow: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8 as any,
   },
   askInput: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    // Set consistent padding and margins
-    padding: 0,
-    margin: 0,
-    // Set line height with some extra space
-    lineHeight: 24,
-    backgroundColor: 'transparent',
     width: '100%',
-    textAlign: 'left',
-    includeFontPadding: false,
-    textAlignVertical: 'top', // Ensure text stays at the top
-    // Allow text to wrap and grow
-    flex: 1,
-    // Platform-specific adjustments
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    lineHeight: 24,
+    padding: 16,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
+    textAlignVertical: 'top',
+    minHeight: 120,
+    maxHeight: 120,
     ...Platform.select({
       ios: {
-        paddingTop: 6,
+        paddingTop: 16,
       },
       android: {
         textAlignVertical: 'top',
-        paddingTop: 4,
+        paddingTop: 16,
       },
     }),
   },
   askSendButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    zIndex: 10,
+    // positioned in bottomRow
   },
   askHintButton: {
-    position: 'absolute',
-    right: 54, // decreased gap between icons
-    bottom: 16,
-    zIndex: 10,
+    // positioned in bottomRow  
   },
   tooltip: {
     position: 'absolute',

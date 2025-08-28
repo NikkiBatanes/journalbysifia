@@ -590,46 +590,63 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         ))}
       </View>
 
-      <Animated.View
-        style={[styles.askBox, { borderWidth: inputBorderWidth }]}
-        onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}
-        // Provide light haptic feedback when the ask box area is tapped
-        onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
-      >
-        <TextInput
-          ref={detailsInputRef}
-          style={styles.askInput}
-          placeholder={(
-            (() => {
-              const placeholders: Record<string, string> = {
-                relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
-                anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
-                purpose: "I'm unsure about my career path and want godly direction.",
-                forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
-                financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
-                spiritual: 'I want to deepen prayer and Bible study habits.',
-                addiction: "I'm trying to break a habit and need support and scripture.",
-                grief: "I'm grieving a recent loss and need comfort and hope.",
-              };
-              if (selectedChallenge && placeholders[selectedChallenge]) {
-                return placeholders[selectedChallenge];
-              }
-              return 'Describe your situation for this challenge (optional)';
-            })()
-          )}
-          placeholderTextColor="rgba(255, 255, 255, 0.5)"
-          cursorColor={Colors.hopeWhite}
-          selectionColor={Colors.hopeWhite}
-          // No autoFocus: user must tap to activate cursor
-          value={challengeDetails}
-          onChangeText={setChallengeDetails}
-          onTouchStart={focusDetailsInput}
-          onFocus={handleDetailsFocus}
-          onBlur={handleDetailsBlur}
-          multiline
-          textAlignVertical="top"
-        />
-        {/* Tooltip anchored above hint icon */}
+      <View style={styles.askWrapper}>
+        <Animated.View
+          style={[styles.askBox, { borderWidth: inputBorderWidth }]}
+          onLayout={(e) => { askBoxYRef.current = e.nativeEvent.layout.y; }}
+          // Provide light haptic feedback when the ask box area is tapped
+          onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
+        >
+          <TextInput
+            ref={detailsInputRef}
+            style={styles.askInput}
+            placeholder={(
+              (() => {
+                const placeholders: Record<string, string> = {
+                  relationships: "I'm struggling with communication in my marriage. I'd like biblical guidance.",
+                  anxiety: 'I feel overwhelmed by work and worry. Help me find peace and trust.',
+                  purpose: "I'm unsure about my career path and want godly direction.",
+                  forgiveness: "I'm having trouble forgiving someone who hurt me. How do I begin?",
+                  financial: "I'm stressed about debt and budgeting. Teach me stewardship.",
+                  spiritual: 'I want to deepen prayer and Bible study habits.',
+                  addiction: "I'm trying to break a habit and need support and scripture.",
+                  grief: "I'm grieving a recent loss and need comfort and hope.",
+                };
+                if (selectedChallenge && placeholders[selectedChallenge]) {
+                  return placeholders[selectedChallenge];
+                }
+                return 'Describe your situation for this challenge (optional)';
+              })()
+            )}
+            placeholderTextColor="rgba(255, 255, 255, 0.5)"
+            cursorColor={Colors.hopeWhite}
+            selectionColor={Colors.hopeWhite}
+            // No autoFocus: user must tap to activate cursor
+            value={challengeDetails}
+            onChangeText={setChallengeDetails}
+            onTouchStart={focusDetailsInput}
+            onFocus={handleDetailsFocus}
+            onBlur={handleDetailsBlur}
+            multiline
+            textAlignVertical="top"
+            scrollEnabled={true}
+          />
+          <View style={styles.actionsOverlay}>
+            <TouchableOpacity
+              onPress={onPressHint}
+              activeOpacity={0.9}
+              style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            >
+              <MaterialCommunityIcons
+                name="information"
+                size={30}
+                color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
+              />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+        {/* Tooltip anchored above hint icon; placed outside askBox to avoid clipping */}
         {showTooltip && (
           <Animated.View style={[
             styles.tooltip,
@@ -660,20 +677,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             <View style={styles.tooltipCaret} />
           </Animated.View>
         )}
-        {/* Hint button */}
-        <TouchableOpacity
-          onPress={onPressHint}
-          activeOpacity={0.9}
-          style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-        >
-          <MaterialCommunityIcons
-            name="information"
-            size={30}
-            color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.6)'}
-          />
-        </TouchableOpacity>
-      </Animated.View>
+      </View>
     </View>
   );
 
@@ -1156,27 +1160,27 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 16,
-    paddingRight: 64, // space for info icon
-    paddingBottom: 12,
+    padding: 0, // Remove padding to allow seamless scrolling
+    paddingBottom: 60, // Space for overlay icon
     width: '100%',
     minHeight: 150,
-    maxHeight: 300,
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    flexDirection: 'column',
     position: 'relative',
-    ...Platform.select({
-      android: {
-        paddingTop: 10,
-      },
-    }),
+    overflow: 'hidden', // Clip content at container edges
+  },
+  askWrapper: {
+    position: 'relative',
+    overflow: 'visible',
+  },
+  actionsOverlay: {
+    position: 'absolute',
+    bottom: 12,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   askHintButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 16,
-    zIndex: 10,
+    // positioned in actionsOverlay
   },
   tooltip: {
     position: 'absolute',
@@ -1265,24 +1269,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   askInput: {
-    color: Colors.hopeWhite,
-    fontSize: 16,
-    padding: 0,
-    margin: 0,
-    lineHeight: 24,
-    backgroundColor: 'transparent',
     width: '100%',
-    textAlign: 'left',
-    includeFontPadding: true,
+    color: Colors.hopeWhite,
+    fontSize: 18,
+    lineHeight: 24,
+    padding: 16,
+    paddingBottom: 0,
+    backgroundColor: 'transparent',
     textAlignVertical: 'top',
-    flex: 1,
+    minHeight: 150,
+    maxHeight: 150,
     ...Platform.select({
       ios: {
-        paddingTop: 8,
+        paddingTop: 16,
       },
       android: {
         textAlignVertical: 'top',
-        paddingTop: 6,
+        paddingTop: 16,
       },
     }),
   },

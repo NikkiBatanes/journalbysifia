@@ -4,6 +4,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil as LuPencil } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import { useTheme } from '../../theme/ThemeContext';
 
 export interface ProfileStatsLite {
   faithPoints: number;
@@ -43,6 +44,8 @@ interface Props {
 }
 
 const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar, plan, usage, isLoading = false }) => {
+  const theme = useTheme();
+  const font = useMemo(() => ({ fontFamily: theme.fontFamily }), [theme.fontFamily]);
   const displayName = useMemo(() => {
     const meta = (user as any)?.user_metadata || {};
     return (
@@ -106,13 +109,13 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
         <View style={styles.planAndUsageRow}>
           {!!plan && (
             <View style={styles.planPill}>
-              <Text style={styles.planText}>{String(plan).toUpperCase()}</Text>
+              <Text style={[styles.planText, font]}>{String(plan).toUpperCase()}</Text>
               {!!usage && (
                 <View style={styles.pillsRow}>
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="clipboard-text-play" size={14} color={Colors.hopeWhite} />
-                      <Text style={styles.usageText}>
+                      <Text style={[styles.usageText, font]}>
                         {usage.playbooks.used}
                         {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
                       </Text>
@@ -121,7 +124,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="book" size={14} color={Colors.hopeWhite} />
-                      <Text style={styles.usageText}>
+                      <Text style={[styles.usageText, font]}>
                         {usage.devotionals.used}
                         {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
                       </Text>
@@ -131,19 +134,19 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="star-four-points" size={14} color={Colors.hopeWhite} />
-                      <Text style={styles.usageText}>{points} FP</Text>
+                      <Text style={[styles.usageText, font]}>{points} FP</Text>
                     </View>
                   </View>
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="fire" size={14} color={Colors.hopeWhite} />
-                      <Text style={styles.usageText}>{streakDays}</Text>
+                      <Text style={[styles.usageText, font]}>{streakDays}</Text>
                     </View>
                   </View>
                   <View style={styles.usagePill}>
                     <View style={styles.usageItemRow}>
                       <MaterialCommunityIcons name="trophy" size={14} color={Colors.hopeWhite} />
-                      <Text style={styles.usageText}>{badgesCount}</Text>
+                      <Text style={[styles.usageText, font]}>{badgesCount}</Text>
                     </View>
                   </View>
                 </View>
@@ -155,7 +158,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
               <View style={styles.usagePill}>
                 <View style={styles.usageItemRow}>
                   <MaterialCommunityIcons name="clipboard-text-play" size={12} color={Colors.hopeWhite} />
-                  <Text style={styles.usageText}>
+                  <Text style={[styles.usageText, font]}>
                     {usage.playbooks.used}
                     {usage.playbooks.limit >= 0 ? `/${usage.playbooks.limit}` : '/∞'}
                   </Text>
@@ -164,7 +167,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
               <View style={styles.usagePill}>
                 <View style={styles.usageItemRow}>
                   <MaterialCommunityIcons name="book" size={12} color={Colors.hopeWhite} />
-                  <Text style={styles.usageText}>
+                  <Text style={[styles.usageText, font]}>
                     {usage.devotionals.used}
                     {usage.devotionals.limit >= 0 ? `/${usage.devotionals.limit}` : '/∞'}
                   </Text>
@@ -189,7 +192,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
             <View style={[styles.avatar, styles.initialAvatar]}>
-              <Text style={styles.initialLetter}>{initialLetter}</Text>
+              <Text style={[styles.initialLetter, font]}>{initialLetter}</Text>
             </View>
           )}
           <TouchableOpacity
@@ -208,12 +211,12 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
         <View style={styles.profileInfo}>
           <View style={styles.nameRow}>
-            <Text style={styles.userName}>{displayName}</Text>
+            <Text style={[styles.userName, font]}>{displayName}</Text>
           </View>
-          {!!user?.email && <Text style={styles.userEmail}>{user.email}</Text>}
+          {!!user?.email && <Text style={[styles.userEmail, font]}>{user.email}</Text>}
 
           <View style={styles.levelContainer}>
-            <Text style={styles.levelText}>Level {level}: {LEVEL_TITLES[level] || ''}</Text>
+            <Text style={[styles.levelText, font]}>Level {level}: {LEVEL_TITLES[level] || ''}</Text>
             <View style={styles.progressBar}>
               <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
             </View>
