@@ -11,6 +11,7 @@ import {
   Pressable,
   TouchableOpacity,
   NativeModules,
+  Text,
 } from 'react-native';
 
 import { format } from 'date-fns';
@@ -637,14 +638,14 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   }}
                 >
                   <Animated.View style={{ transform: [{ scale: tabScales.current[tab] }] }}>
-                    <ThemedText
+                    <Text
                       style={[
                         styles.filterTabTextOnWhite,
                         filter === tab && styles.filterTabTextActiveOnWhite,
                       ]}
                     >
                       {tab === 'all' ? 'All' : tab === 'ongoing' ? 'In Progress' : 'Completed'}
-                    </ThemedText>
+                    </Text>
                   </Animated.View>
                 </Pressable>
               ))}
@@ -661,7 +662,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
             </View>
           ) : sections.length === 0 ? (
             <View style={[styles.containerEmpty]}>
-              <View style={[styles.emptyStateContainer]}>
+              <View style={[styles.emptyStateContainer, styles.pageInner, styles.listContentPadding]}>
                 <View style={styles.emptyHeroContainer}>
                   <View style={styles.heroCard}>
                     {filter === 'ongoing' ? (
@@ -688,16 +689,18 @@ const PlaybookListScreen = ({ navigation }: any) => {
                         ? 'Great job finishing your tasks. Review a completed playbook or start a new one.'
                         : 'Keep going! Your finished playbooks will appear here.'}
                     </ThemedText>
-                    <TouchableOpacity
-                      onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
-                      activeOpacity={0.85}
-                      style={styles.heroOutlineButton}
-                    >
-                      <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                      <ThemedText weight="medium" style={styles.heroOutlineButtonText}>
-                        {filter === 'ongoing' ? 'Create a Playbook' : 'Create a Playbook'}
-                      </ThemedText>
-                    </TouchableOpacity>
+                    {filter !== 'completed' && (
+                      <TouchableOpacity
+                        onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
+                        activeOpacity={0.85}
+                        style={styles.heroOutlineButton}
+                      >
+                        <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                        <ThemedText weight="medium" style={styles.heroOutlineButtonText}>
+                          Create a Playbook
+                        </ThemedText>
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity
                       onPress={() => { triggerLightHaptic(); setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
                       activeOpacity={0.85}

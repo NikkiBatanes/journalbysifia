@@ -5,7 +5,6 @@ import {
   Animated,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   ActivityIndicator,
@@ -41,6 +40,7 @@ import { extractCleanTitle } from '../utils/titleUtils';
 import DevotionalSectionCard from '../components/DevotionalSectionCard';
 import { useAllDevotionalPrayerData, useCreateDevotionalPrayer } from '../services/hooks/usePrayerData';
 import { toLocalDateString } from '../utils/date';
+import ThemedText from '../components/common/ThemedText';
 
 type DevotionalDetailScreenProps = {
   navigation: StackNavigationProp<RootStackParamList, 'DevotionalDetail'>;
@@ -57,7 +57,22 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const userId = user?.id;
 
   // React Query hooks for devotional data
-  const { data: devotional, isLoading: devotionalLoading } = useDevotionalByIdReactQuery(userId || '', devotionalId);
+  // Clean and validate devotional ID from route params to avoid simulator-only issues
+  const cleanDevotionalId = (devotionalId || '').toString().replace(/\s+/g, '').trim();
+  const isValidUUID = (id: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(id);
+  };
+
+  useEffect(() => {
+    console.log('[DevotionalDetailScreen] Params devotionalId:', devotionalId);
+    console.log('[DevotionalDetailScreen] Clean devotionalId:', cleanDevotionalId);
+    console.log('[DevotionalDetailScreen] userId:', userId);
+    console.log('[DevotionalDetailScreen] isValidUUID(cleanDevotionalId):', isValidUUID(cleanDevotionalId));
+    console.log('[DevotionalDetailScreen] Platform:', Platform.OS);
+  }, [devotionalId, cleanDevotionalId, userId]);
+
+  const { data: devotional, isLoading: devotionalLoading } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
   const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
 
   // React Query hooks for prayer data
@@ -578,11 +593,34 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     }
   };
 
+  // Guard: if query is not enabled yet due to missing user or invalid ID, avoid showing Not Found
+  const queryEnabled = !!userId && isValidUUID(cleanDevotionalId);
+
+  if (!queryEnabled) {
+    if (!userId) {
+      return (
+        <SafeAreaView style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.anchorBlue} />
+          <ThemedText weight="medium" style={styles.loadingText}>Preparing devotional...</ThemedText>
+        </SafeAreaView>
+      );
+    }
+    // Invalid ID format; show a friendly error and provide a way back
+    return (
+      <SafeAreaView style={styles.errorContainer}>
+        <ThemedText weight="bold" style={styles.errorText}>Invalid devotional link</ThemedText>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.anchorBlue} />
-        <Text style={styles.loadingText}>Loading devotional...</Text>
+        <ThemedText weight="medium" style={styles.loadingText}>Loading devotional...</ThemedText>
       </SafeAreaView>
     );
   }
@@ -590,7 +628,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   if (!devotional) {
     return (
       <SafeAreaView style={styles.errorContainer}>
-        <Text style={styles.errorText}>Devotional not found</Text>
+        <ThemedText weight="bold" style={styles.errorText}>Devotional not found</ThemedText>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
         >
@@ -676,14 +714,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
       {/* Header with gesture detector for swipe-to-dismiss */}
       <GestureDetector gesture={panGesture}>
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+          <ThemedText weight="semiBold" style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
             {extractCleanTitle(devotional.title, 'Devotional')}
-          </Text>
+          </ThemedText>
           <View style={styles.dayCounterContainer}>
             <Ionicons name="calendar-clear-outline" size={14} color={Colors.anchorBlue} />
-            <Text style={styles.dayCounterText}>
+            <ThemedText weight="medium" style={styles.dayCounterText}>
               Day {currentDayIndex + 1} of {devotional.totalDays}
-            </Text>
+            </ThemedText>
             {currentDay?.completed && (
               <Ionicons
                 name="checkmark-circle"
@@ -764,8 +802,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             >
             {/* Day Title - Moved below progress bar */}
             <View style={styles.dayTitleContainer}>
-              <Text style={styles.dayNumber}>Day {index + 1}</Text>
-              <Text style={styles.dayTitle} numberOfLines={2} ellipsizeMode="tail">
+              <ThemedText weight="semiBold" style={styles.dayNumber}>Day {index + 1}</ThemedText>
+              <ThemedText weight="bold" style={styles.dayTitle} numberOfLines={2} ellipsizeMode="tail">
                 {devotional.totalDays === 1 ? (
                   extractCleanTitle(devotional.title, 'Devotional')
                 ) : (
@@ -773,7 +811,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     extractCleanTitle(day.title) :
                     extractCleanTitle(devotional.title, 'Devotional')
                 )}
-              </Text>
+              </ThemedText>
             </View>
             {/* Scripture Card */}
             <DevotionalSectionCard
@@ -781,12 +819,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               title="Today's Scripture"
               subtitle="God's Word for today"
             >
-              <Text style={styles.scriptureText}>
+              <ThemedText style={styles.scriptureText}>
                 {day.scripture?.text || ''}
-              </Text>
-              <Text style={styles.scriptureReference}>
+              </ThemedText>
+              <ThemedText weight="medium" style={styles.scriptureReference}>
                 - {day.scripture?.reference || ''}
-              </Text>
+              </ThemedText>
             </DevotionalSectionCard>
 
             {/* Reflection Card */}
@@ -795,9 +833,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               title="Daily Reflection"
               subtitle="Meditate on this"
             >
-              <Text style={styles.reflectionText}>
+              <ThemedText style={styles.reflectionText}>
                 {day?.reflection || ''}
-              </Text>
+              </ThemedText>
             </DevotionalSectionCard>
 
             {/* Questions Card */}
@@ -846,18 +884,18 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     }}
                   >
                     <View style={styles.questionCardContainer}>
-                      <Text style={[
+                      <ThemedText weight="bold" style={[
                         styles.questionCardNumber,
                         isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber
-                      ]}>{idx + 1}</Text>
-                      <Text style={styles.questionCardText}>
+                      ]}>{idx + 1}</ThemedText>
+                      <ThemedText style={styles.questionCardText}>
                         {question.text || 'Reflection question'}
-                      </Text>
+                      </ThemedText>
                     </View>
                   </TouchableOpacity>
                 ))
               ) : (
-                <Text style={styles.questionCardText}>No questions for today.</Text>
+                <ThemedText style={styles.questionCardText}>No questions for today.</ThemedText>
               )}
             </DevotionalSectionCard>
 
@@ -868,11 +906,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               subtitle="Connect with God"
             >
               <View style={styles.prayerContainer}>
-                <Text style={styles.prayerText}>
+                <ThemedText style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
                     ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
                     : 'No prayer for today.'}
-                </Text>
+                </ThemedText>
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
                   {/* Heart burst layer above the button, anchored near its position */}
                   {heartParticles.length > 0 && (
@@ -932,12 +970,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.hopeWhite}
                     style={styles.prayerIcon}
                   />
-                  <Text style={[
+                  <ThemedText weight="bold" style={[
                     styles.prayerButtonText,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
                   ]}>
                     {prayedDays[`${devotional?.id}-${currentDayIndex}`] ? ' Prayed' : ' Pray'}
-                  </Text>
+                  </ThemedText>
                   </TouchableOpacity>
                 </View>
               </View>

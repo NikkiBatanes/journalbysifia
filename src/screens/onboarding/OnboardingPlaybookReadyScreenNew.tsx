@@ -961,7 +961,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             onPress={() => { try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
             activeOpacity={0.8}
           >
-            <Text style={styles.continueButtonText}>Ready to...</Text>
+            <Text style={styles.continueButtonText}>Continue My Journey</Text>
           </TouchableOpacity>
         </View>
 
@@ -1368,7 +1368,7 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     backgroundColor: Colors.alertCoral,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 28,
     borderRadius: 12,
     alignItems: 'center',
@@ -1380,8 +1380,9 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     color: Colors.hopeWhite,
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   expandHintButton: {
     position: 'absolute',

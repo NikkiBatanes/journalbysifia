@@ -1,11 +1,11 @@
-import React, { useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   View,
-  Text,
   StyleSheet,
+  SectionList,
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
@@ -19,6 +19,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { usePlaybooksData } from '../services/hooks/usePlaybookData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { Devotional } from '../interfaces/devotional';
 import { format } from 'date-fns';
@@ -27,14 +28,21 @@ import { Swipeable, RectButton } from 'react-native-gesture-handler';
 import { extractCleanTitle } from '../utils/titleUtils';
 import { Colors, Fonts } from '../theme';
 import 'react-native-gesture-handler';
+import DevotionalSkeleton from '../components/SkeletonLoader/DevotionalSkeleton';
+import BlueSheet from '../components/layout/BlueSheet';
+import ThemedText from '../components/common/ThemedText';
 
 type DevotionalsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Devotionals'>;
+
+type FilterType = 'all' | 'ongoing' | 'completed';
 
 const DevotionalsScreen = () => {
   const navigation = useNavigation<DevotionalsScreenNavigationProp>();
   const { user } = useAuth();
   const userId = user?.id;
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<FilterType>('all');
   const {
     devotionals,
     deleteDevotional,
@@ -63,6 +71,17 @@ const DevotionalsScreen = () => {
   const handleDevotionalPress = (devotional: Devotional) => {
     // Log title extraction for debugging
     createTitleExtractionMemory(devotional);
+    
+    // Debug logging for simulator issue
+    console.log('[DevotionalsScreen] Navigating to devotional:', {
+      devotionalId: devotional.id,
+      devotionalIdType: typeof devotional.id,
+      devotionalIdLength: devotional.id?.length,
+      title: devotional.title,
+      createdAt: devotional.createdAt,
+      platform: require('react-native').Platform.OS,
+    });
+    
     triggerLightHaptic();
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
   };
@@ -156,16 +175,16 @@ const DevotionalsScreen = () => {
           >
             <View style={styles.cardContent}>
               {/* Date */}
-              <Text style={styles.date}>{formattedDate}</Text>
+              <ThemedText weight="medium" style={styles.date}>{formattedDate}</ThemedText>
 
               {/* Series Title or Devotional Title */}
-              <Text style={styles.devotionalTitle} numberOfLines={1}>{cleanTitle}</Text>
+              <ThemedText weight="semiBold" style={styles.devotionalTitle} numberOfLines={1}>{cleanTitle}</ThemedText>
 
               {/* Description */}
               {item.description && (
-                <Text style={styles.description} numberOfLines={2}>
+                <ThemedText style={styles.description} numberOfLines={2}>
                   {item.description.replace(/^CATEGORY:[^\n]*\n?/i, '')}
-                </Text>
+                </ThemedText>
               )}
 
               {/* Categories + From Playbook Buttons */}
@@ -174,7 +193,7 @@ const DevotionalsScreen = () => {
                   {item.category && (
                     <View style={item.playbookId ? styles.categoryBadgeWithPlaybook : styles.categoryBadge}>
                       <Ionicons name="pricetag-outline" size={10} color={Colors.hopeWhite} style={styles.tagIcon} />
-                      <Text style={styles.categoryText}>{item.category}</Text>
+                      <ThemedText weight="medium" style={styles.categoryText}>{item.category}</ThemedText>
                     </View>
                   )}
                   {item.playbookId && (
@@ -184,7 +203,7 @@ const DevotionalsScreen = () => {
                       activeOpacity={0.8}
                     >
                       <Ionicons name="book-outline" size={12} color={Colors.hopeWhite} style={styles.playbookIcon} />
-                      <Text style={styles.playbookText}>From Playbook</Text>
+                      <ThemedText weight="medium" style={styles.playbookText}>From Playbook</ThemedText>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -194,11 +213,11 @@ const DevotionalsScreen = () => {
                 <View style={styles.progressHeader}>
                   <View style={styles.progressLabel}>
                     <MaterialCommunityIcons name="chart-timeline-variant-shimmer" size={16} color="rgba(255, 255, 255, 0.8)" style={styles.progressIcon} />
-                    <Text style={styles.progressLabelText}>Progress</Text>
+                    <ThemedText weight="semiBold" style={styles.progressLabelText}>Progress</ThemedText>
                   </View>
-                  <Text style={styles.dayCounter}>
+                  <ThemedText weight="medium" style={styles.dayCounter}>
                     {completedDays}/{item.totalDays} {item.totalDays === 1 ? 'Day' : 'Days'} Completed
-                  </Text>
+                  </ThemedText>
                 </View>
                 <View style={styles.progressBarRow}>
                   <View style={styles.progressWrapper}>
@@ -213,9 +232,9 @@ const DevotionalsScreen = () => {
                     const nextIdx = item.days.findIndex(day => !day.completed);
                     if (nextIdx !== -1) {
                       return (
-                        <Text style={styles.nextDayText}>
+                        <ThemedText weight="semiBold" style={styles.nextDayText}>
                           NEXT: Day {nextIdx + 1}
-                        </Text>
+                        </ThemedText>
                       );
                     }
                     return null;
@@ -234,13 +253,61 @@ const DevotionalsScreen = () => {
       return (
         <View style={styles.emptyStateContainer}>
           <ActivityIndicator size="large" color={Colors.anchorBlue} />
-          <Text style={styles.emptyStateText}>Loading devotionals...</Text>
+          <ThemedText style={styles.emptyStateText}>Loading devotionals...</ThemedText>
         </View>
       );
     }
 
     const hasPlaybooks = !isLoadingPlaybooks && (playbooks?.length ?? 0) > 0;
+    const totalDevotionals = Array.isArray(devotionals) ? devotionals.length : 0;
 
+    // If there are some devotionals overall but none in the selected filter,
+    // show a filter-specific empty hero (match PlaybookListScreen behavior)
+    if (totalDevotionals > 0) {
+      return (
+        <View style={styles.emptyStateContainer}>
+          <View style={styles.emptyHeroContainer}>
+            <View style={styles.heroCard}>
+              {filter === 'ongoing' ? (
+                <MaterialCommunityIcons
+                  name="clipboard-text-clock"
+                  size={32}
+                  color="rgba(255,255,255,0.8)"
+                  style={styles.heroIcon}
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name="trophy-outline"
+                  size={32}
+                  color="rgba(255,255,255,0.8)"
+                  style={styles.heroIcon}
+                />
+              )}
+              <ThemedText weight="bold" style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</ThemedText>
+              <ThemedText weight="bold" style={styles.heroTitle}>
+                {filter === 'ongoing' ? 'All your devotionals are completed' : 'No completed devotionals yet'}
+              </ThemedText>
+              <ThemedText style={styles.heroSubtitle}>
+                {filter === 'ongoing'
+                  ? 'Great job finishing your devotionals. Review a completed devotional or start a new one.'
+                  : 'Keep going! Your finished devotionals will appear here.'}
+              </ThemedText>
+              <TouchableOpacity
+                onPress={() => setFilter(filter === 'ongoing' ? 'completed' : 'ongoing')}
+                activeOpacity={0.85}
+                style={styles.heroTextButton}
+              >
+                <ThemedText weight="medium" style={styles.heroLinkText}>
+                  {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    // Otherwise, no devotionals at all: show the original full empty-collection hero
     return (
       <View style={styles.emptyStateContainer}>
         {/* Hero (centered card) */}
@@ -252,9 +319,9 @@ const DevotionalsScreen = () => {
               color="rgba(255,255,255,0.8)"
               style={styles.heroIcon}
             />
-            <Text style={styles.heroOverline}>No Devotionals</Text>
-            <Text style={styles.heroTitle}>Start with Scripture</Text>
-            <Text style={styles.heroSubtitle}>
+            <ThemedText weight="bold" style={styles.heroOverline}>No Devotionals</ThemedText>
+            <ThemedText weight="bold" style={styles.heroTitle}>Start with Scripture</ThemedText>
+            <ThemedText style={styles.heroSubtitle}>
               {(() => {
                 const count = !isLoadingPlaybooks && Array.isArray(playbooks) ? playbooks.length : 0;
                 if (count > 0) {
@@ -264,7 +331,7 @@ const DevotionalsScreen = () => {
                 }
                 return "Create a playbook for what you're facing, then build a daily devotional from it.";
               })()}
-            </Text>
+            </ThemedText>
             <TouchableOpacity
               onPress={() => {
                 if (!hasPlaybooks) {
@@ -277,7 +344,7 @@ const DevotionalsScreen = () => {
               style={styles.heroOutlineButton}
             >
               <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-              <Text style={styles.heroOutlineButtonText}>{hasPlaybooks ? 'Create a Devotional' : 'Create a Playbook'}</Text>
+              <ThemedText weight="medium" style={styles.heroOutlineButtonText}>{hasPlaybooks ? 'Create a Devotional' : 'Create a Playbook'}</ThemedText>
             </TouchableOpacity>
 
             {/* Guided steps */}
@@ -285,31 +352,31 @@ const DevotionalsScreen = () => {
               {hasPlaybooks ? (
                 <>
                   <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
-                    <Text style={styles.stepText}>Pick a Playbook</Text>
+                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
+                    <ThemedText style={styles.stepText}>Pick a Playbook</ThemedText>
                   </View>
                   <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
-                    <Text style={styles.stepText}>Create Your Devotional</Text>
+                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
+                    <ThemedText style={styles.stepText}>Create Your Devotional</ThemedText>
                   </View>
                   <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
-                    <Text style={styles.stepText}>Return each day—read, reflect, pray</Text>
+                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
+                    <ThemedText style={styles.stepText}>Return each day—read, reflect, pray</ThemedText>
                   </View>
                 </>
               ) : (
                 <>
                   <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
-                    <Text style={styles.stepText}>Create a Playbook</Text>
+                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>1</ThemedText></View>
+                    <ThemedText style={styles.stepText}>Create a Playbook</ThemedText>
                   </View>
                   <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
-                    <Text style={styles.stepText}>Add Scriptures and prompts</Text>
+                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>2</ThemedText></View>
+                    <ThemedText style={styles.stepText}>Add Scriptures and prompts</ThemedText>
                   </View>
                   <View style={styles.stepItem}>
-                    <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
-                    <Text style={styles.stepText}>Start your Daily Devotional</Text>
+                    <View style={styles.stepBadge}><ThemedText weight="bold" style={styles.stepBadgeText}>3</ThemedText></View>
+                    <ThemedText style={styles.stepText}>Start your Daily Devotional</ThemedText>
                   </View>
                 </>
               )}
@@ -326,11 +393,11 @@ const DevotionalsScreen = () => {
 
             return (
               <View style={styles.carouselSection}>
-                <Text style={styles.carouselTitle}>
+                <ThemedText weight="bold" style={styles.carouselTitle}>
                   {suggested.length === 1
                     ? 'Start a devotional from this playbook'
                     : 'Start a devotional from these playbooks'}
-                </Text>
+                </ThemedText>
                 <FlatList
                   data={suggested}
                   keyExtractor={(item) => item.id}
@@ -346,16 +413,16 @@ const DevotionalsScreen = () => {
                       <View style={styles.cardIconCircle}>
                         <MaterialCommunityIcons name="clipboard-text-play" size={28} color={Colors.hopeWhite} />
                       </View>
-                      <Text style={styles.cardTitle} numberOfLines={2}>{extractCleanTitle(item.title, 'Playbook')}</Text>
+                      <ThemedText weight="bold" style={styles.cardTitle} numberOfLines={2}>{extractCleanTitle(item.title, 'Playbook')}</ThemedText>
                       {item.truthInLove?.summary ? (
-                        <Text style={styles.cardSubtitle} numberOfLines={3}>{item.truthInLove.summary}</Text>
+                        <ThemedText style={styles.cardSubtitle} numberOfLines={3}>{item.truthInLove.summary}</ThemedText>
                       ) : null}
                       <TouchableOpacity
                         style={styles.cardCTA}
                         activeOpacity={0.9}
                         onPress={() => handlePlaybookPress(item.id)}
                       >
-                        <Text style={styles.cardCTAText}>Create a Devotional</Text>
+                        <ThemedText weight="bold" style={styles.cardCTAText}>Create a Devotional</ThemedText>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -370,36 +437,135 @@ const DevotionalsScreen = () => {
     );
   };
 
-  const isEmpty = !isLoading && (devotionals?.length ?? 0) === 0;
+  // Filtering
+  const filteredDevotionals = useMemo(() => {
+    if (!Array.isArray(devotionals)) return [];
+    switch (filter) {
+      case 'ongoing':
+        return devotionals.filter(d => !d.completed);
+      case 'completed':
+        return devotionals.filter(d => d.completed);
+      default:
+        return devotionals;
+    }
+  }, [devotionals, filter]);
+
+  // Sorting by updatedAt desc (fallback createdAt)
+  const sortedDevotionals = useMemo(() => {
+    return [...filteredDevotionals].sort((a, b) => {
+      const dateA = new Date(a.updatedAt || a.createdAt).getTime();
+      const dateB = new Date(b.updatedAt || b.createdAt).getTime();
+      return dateB - dateA;
+    });
+  }, [filteredDevotionals]);
+
+  // Grouping by Month Year
+  const sections = useMemo(() => {
+    const groups: Record<string, Devotional[]> = {};
+    for (const d of sortedDevotionals) {
+      const key = format(new Date(d.updatedAt || d.createdAt), 'MMMM yyyy').toUpperCase();
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(d);
+    }
+    return Object.entries(groups).map(([title, data]) => ({ title, data }));
+  }, [sortedDevotionals]);
+
+  const totalDevotionalsAll = Array.isArray(devotionals) ? devotionals.length : 0;
+  const sectionItemsCount = sections.reduce((acc, s) => acc + s.data.length, 0);
+  const isTrulyEmpty = !isLoading && totalDevotionalsAll === 0;
+  const isFilterEmpty = !isLoading && totalDevotionalsAll > 0 && sectionItemsCount === 0;
+
+  // Prefetch detail data for visible items
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ item: Devotional }> }) => {
+    try {
+      const ids = viewableItems.map(v => v.item?.id).filter(Boolean) as string[];
+      ids.slice(0, 6).forEach((id) => {
+        const key = ['devotionals', 'detail', userId || '', id];
+        if (!queryClient.getQueryData(key)) {
+          queryClient.prefetchQuery({
+            queryKey: key,
+            queryFn: async () => {
+              // lightweight prefetch: return existing cached list item if any
+              const fromList = (devotionals || []).find(d => d.id === id);
+              return fromList || null;
+            },
+            staleTime: 10 * 60 * 1000,
+          });
+        }
+      });
+    } catch {}
+  }).current;
 
   return (
-    <SafeAreaView style={styles.container} edges={['left','right','bottom']}>
-      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+    <SafeAreaView style={[styles.container, isTrulyEmpty && styles.containerBlue]} edges={['left','right','bottom']}>
+      <StatusBar barStyle={isTrulyEmpty ? 'light-content' : 'dark-content'} translucent backgroundColor="transparent" />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top }, isTrulyEmpty && styles.headerBlue]}>
         <View style={styles.pageInner}>
-          {isEmpty ? (
+          {isTrulyEmpty ? (
             <View style={styles.headerSpacer} />
           ) : (
-            <Text style={styles.headerTitle}>Devotionals</Text>
+            <ThemedText weight="bold" style={styles.headerTitle}>Devotionals</ThemedText>
+          )}
+          {/* Filters */}
+          {!isTrulyEmpty && (
+            <View style={[styles.filterTabsOnWhite, { paddingRight: Math.max(insets.right, 16) }]}>
+              {([
+                { key: 'all', label: 'All' },
+                { key: 'ongoing', label: 'In Progress' },
+                { key: 'completed', label: 'Completed' },
+              ] as const).map(tab => (
+                <TouchableOpacity
+                  key={tab.key}
+                  onPress={() => setFilter(tab.key)}
+                  style={[
+                    styles.filterTabOnWhite,
+                    filter === tab.key && (
+                      tab.key === 'completed'
+                        ? styles.filterTabActiveCompletedOnWhite
+                        : tab.key === 'ongoing'
+                        ? styles.filterTabActiveOngoingOnWhite
+                        : styles.filterTabActiveOnWhite
+                    ),
+                  ]}
+                  activeOpacity={0.9}
+                >
+                  <ThemedText weight="semiBold" style={[styles.filterTabTextOnWhite, filter === tab.key && styles.filterTabTextActiveOnWhite]}>
+                    {tab.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
           )}
         </View>
       </View>
 
-      <FlatList
-        data={devotionals.sort((a: Devotional, b: Devotional) => {
-          // Sort by updatedAt in descending order (newest first)
-          // Fall back to createdAt if updatedAt is not available
-          const dateA = new Date(a.updatedAt || a.createdAt).getTime();
-          const dateB = new Date(b.updatedAt || b.createdAt).getTime();
-          return dateB - dateA;
-        })}
-        renderItem={renderDevotionalItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={isEmpty ? styles.emptyListContent : [styles.listContent, styles.pageInner]}
-        ListEmptyComponent={renderEmptyState}
-      />
+      {/* Content area within BlueSheet for consistent blue background layout */}
+      <BlueSheet style={styles.contentSheet}>
+        {isLoading ? (
+          <View style={[styles.listContent, styles.pageInner]}>
+            <DevotionalSkeleton />
+          </View>
+        ) : (
+          <SectionList
+            style={styles.sectionList}
+            sections={sections}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }: { item: Devotional }) => renderDevotionalItem({ item })}
+            renderSectionHeader={({ section: { title } }) => (
+              <View style={styles.sectionHeader}>
+                <ThemedText weight="bold" style={styles.sectionHeaderText}>{title}</ThemedText>
+              </View>
+            )}
+            stickySectionHeadersEnabled
+            contentContainerStyle={isTrulyEmpty ? styles.emptyListContent : [styles.listContent, styles.pageInner, styles.listContentPadding]}
+            ListEmptyComponent={renderEmptyState}
+            onViewableItemsChanged={onViewableItemsChanged}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </BlueSheet>
     </SafeAreaView>
   );
 };
@@ -420,13 +586,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.hopeWhite,
   },
+  // Empty state: make entire screen blue including header area
+  containerBlue: {
+    backgroundColor: Colors.anchorBlue,
+  },
   swipeableContainer: {
     width: '100%',
     marginBottom: 12,
     borderRadius: 16,
     overflow: 'hidden',
     minHeight: 200, // Minimum height
-    backgroundColor: Colors.alertCoral, // Match delete button color
+    backgroundColor: 'transparent', // Keep background clean on BlueSheet
   },
   swipeableInner: {
     width: '100%',
@@ -440,11 +610,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 0,
   },
+  headerBlue: {
+    backgroundColor: Colors.anchorBlue,
+  },
   headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
     color: Colors.anchorBlue,
-    marginBottom: 10,
+    marginBottom: 8,
     marginTop: 10,
     letterSpacing: 0.5,
     fontWeight: '800',
@@ -455,23 +628,85 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10,
   },
+  // Match Playbook header-on-white tabs
+  filterTabsOnWhite: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 16,
+    gap: 6,
+  },
+  filterTabOnWhite: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: 'rgba(3, 32, 61, 0.06)',
+  },
+  filterTabActiveOnWhite: {
+    backgroundColor: Colors.anchorBlue,
+  },
+  filterTabTextOnWhite: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: Colors.anchorBlue,
+    letterSpacing: 0.2,
+    fontWeight: '400',
+  },
+  filterTabTextActiveOnWhite: {
+    color: Colors.hopeWhite,
+  },
+  // Per-tab active colors on white header
+  filterTabActiveCompletedOnWhite: {
+    backgroundColor: Colors.growthGreen,
+  },
+  filterTabActiveOngoingOnWhite: {
+    backgroundColor: Colors.alertCoral,
+  },
   pageInner: {
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
   },
+  contentSheet: {
+    flex: 1,
+    position: 'relative',
+    zIndex: 2,
+  },
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 2,
+    paddingBottom: 20,
+  },
+  sectionList: {
+    flex: 1,
+  },
+  listContentPadding: {
+    paddingTop: 20,
+    paddingBottom: 8,
   },
   emptyListContent: {
     paddingHorizontal: 0,
     paddingTop: 0,
     paddingBottom: 2,
   },
+  sectionHeader: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 10,
+  },
+  sectionHeaderText: {
+    fontFamily: Fonts.bold,
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    fontWeight: 'bold',
+  },
   devotionalCard: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(255,255,255,0.08)', // Match Playbook card tint on BlueSheet
     borderRadius: 16,
     padding: 16,
     position: 'relative',
@@ -663,7 +898,7 @@ const styles = StyleSheet.create({
   heroCard: {
     width: '90%',
     maxWidth: 720,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 34,
     paddingVertical: 32,
     paddingHorizontal: 20,
@@ -721,6 +956,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     fontSize: 15,
     letterSpacing: 0.5,
+  },
+  // Link-style text button below hero CTA (to switch filters)
+  heroTextButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  heroLinkText: {
+    color: Colors.hopeWhite,
+    opacity: 0.9,
   },
   heroBenefitsRow: {
     flexDirection: 'row',

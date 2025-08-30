@@ -54,7 +54,18 @@ export const useDevotionalDataReactQuery = (userId: string) => {
     queryFn: async () => {
       console.log('[useDevotionalDataReactQuery] Fetching devotionals for user:', userId);
       const apiEntries = await DevotionalApi.getDevotionals(userId);
-      return apiEntries.map(transformApiEntryToDevotional);
+      const transformed = apiEntries.map(transformApiEntryToDevotional);
+      
+      // Debug logging for simulator issue
+      console.log('[useDevotionalDataReactQuery] Transformed devotionals:', transformed.map(d => ({
+        id: d.id,
+        idType: typeof d.id,
+        idLength: d.id?.length,
+        title: d.title?.substring(0, 50),
+        platform: require('react-native').Platform.OS,
+      })));
+      
+      return transformed;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes

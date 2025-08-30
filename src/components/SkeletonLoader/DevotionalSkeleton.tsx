@@ -1,12 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, Animated, Dimensions, Text } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Colors } from '../../theme/colors';
-
-const { width } = Dimensions.get('window');
-const ITEM_WIDTH = Math.round(width * 0.75);
-const ITEM_SPACING = 12; // visible gap between cards in skeleton
-const SIDE_PADDING = Math.round((width - ITEM_WIDTH) / 2);
+import { View, StyleSheet, Animated } from 'react-native';
+import { Colors } from '../../theme';
 
 const DevotionalSkeleton: React.FC = () => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -17,12 +11,12 @@ const DevotionalSkeleton: React.FC = () => {
         Animated.timing(animatedValue, {
           toValue: 1,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(animatedValue, {
           toValue: 0,
           duration: 1000,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ])
     );
@@ -37,101 +31,100 @@ const DevotionalSkeleton: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header to match carousel section */}
-      <View style={styles.header}>
-        <MaterialCommunityIcons name="book" size={24} color={Colors.alertCoral} />
-        <Text style={styles.title}>Your Devotionals</Text>
-      </View>
+      {/* Section Header Skeleton */}
+      <View style={styles.sectionHeader} />
 
-      {/* Horizontal row of skeleton cards to match carousel layout */}
-      <View style={[styles.row, { paddingHorizontal: SIDE_PADDING }]}> 
-        {[0, 1, 2].map((index) => (
-          <View
-            key={index}
-            style={[
-              styles.card,
-              { width: ITEM_WIDTH, marginRight: ITEM_SPACING },
-              index === 0 ? { marginLeft: -(SIDE_PADDING - 16) } : null,
-            ]}
-          >
-            {/* Title */}
+      {[1, 2, 3].map((item) => (
+        <View key={item} style={styles.card}>
+          <View style={styles.cardContent}>
+            {/* Date skeleton */}
+            <Animated.View style={[styles.dateSkeleton, { opacity }]} />
+
+            {/* Title skeleton */}
             <Animated.View style={[styles.titleSkeleton, { opacity }]} />
 
-            {/* Verse/description block */}
-            <Animated.View style={[styles.descriptionSkeleton, { opacity }]} />
+            {/* Progress bar skeleton */}
+            <View style={styles.progressContainer}>
+              <View style={styles.progressRow}>
+                {/* Progress bar background */}
+                <View style={styles.progressBarContainer}>
+                  <Animated.View style={[styles.progressBarSkeleton, { opacity }]} />
+                </View>
 
-            {/* Status section (progress/time text) */}
-            <View style={styles.statusSection}>
-              <Animated.View style={[styles.statusTextSkeleton, { opacity }]} />
-              <Animated.View style={[styles.lastAccessedSkeleton, { opacity }]} />
+                {/* Tasks text skeleton */}
+                <Animated.View style={[styles.tasksSkeleton, { opacity }]} />
+              </View>
             </View>
           </View>
-        ))}
-      </View>
+        </View>
+      ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 24,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    gap: 8,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.hopeWhite,
     flex: 1,
   },
-  row: {
-    flexDirection: 'row',
-    paddingRight: 16,
+  sectionHeader: {
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginTop: 30,
+    marginBottom: 10,
+    width: '30%',
+    alignSelf: 'flex-start',
   },
   card: {
-    backgroundColor: Colors.modalBlue,
-    borderRadius: 30,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    position: 'relative',
+    backgroundColor: 'rgba(0,0,0,0.04)',
+    borderRadius: 20,
+    padding: 12,
+    width: '100%',
+    height: 88,
+    marginBottom: 12,
   },
   titleSkeleton: {
-    height: 18,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    marginTop: 6,
-    marginBottom: 12,
-    width: '78%',
-    alignSelf: 'flex-start',
+    height: 16,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    borderRadius: 4,
+    marginBottom: 8,
+    marginTop: 1,
+    width: '90%',
   },
-  descriptionSkeleton: {
-    height: 40,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.20)',
-    marginBottom: 16,
-    width: '92%',
-    alignSelf: 'flex-start',
+  cardContent: {
+    flex: 1,
   },
-  statusSection: {
-    gap: 6,
-  },
-  statusTextSkeleton: {
-    height: 12,
-    width: 120,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  lastAccessedSkeleton: {
+  dateSkeleton: {
     height: 10,
-    width: 90,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    borderRadius: 4,
+    marginBottom: 4,
+    width: '70%',
+  },
+  progressContainer: {
+    marginTop: 'auto',
+  },
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  progressBarContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  progressBarSkeleton: {
+    height: 10,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    borderRadius: 4,
+    width: '97%',
+  },
+  tasksSkeleton: {
+    height: 12,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    borderRadius: 4,
+    width: 60,
   },
 });
 
