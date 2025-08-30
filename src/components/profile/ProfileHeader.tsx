@@ -109,7 +109,7 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
         <View style={styles.planAndUsageRow}>
           {!!plan && (
             <View style={styles.planPill}>
-              <Text style={[styles.planText, font]}>{String(plan).toUpperCase()}</Text>
+              <Text style={[styles.planText, font]}>{String(plan)}</Text>
               {!!usage && (
                 <View style={styles.pillsRow}>
                   <View style={styles.usagePill}>

@@ -429,7 +429,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           case 'family':
             return 'siFia FAMILY';
           case 'free_trial':
-            return 'Free Trial';
+            {
+              const chosen = (subscription as any)?.trial_chosen_tier || 'growth';
+              const tierName = String(chosen).replace('_', ' ').toUpperCase();
+              return `siFia ${tierName} FREE TRIAL`;
+            }
           default:
             return undefined;
         }

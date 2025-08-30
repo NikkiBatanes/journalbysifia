@@ -44,7 +44,11 @@ const OnboardingTrialOfferScreen = () => {
       }
 
       // Start 3-day free trial with new subscription system
-      await startTrial({ user_id: user.id, duration_days: 3 });
+      await startTrial({ 
+        user_id: user.id, 
+        duration_days: 3,
+        trial_chosen_tier: initialTierId as any // Pass the selected tier
+      });
 
       // Navigate to notification setup with trial user type
       navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'trial' });
@@ -164,7 +168,7 @@ const OnboardingTrialOfferScreen = () => {
           <Text style={styles.timelineTitle}>{item.title}</Text>
           {item.id === 1 ? (
             <Text style={styles.timelineDescription}>
-              Try <Text style={styles.strong}>siFia {`${getTierDisplayName(selectedTierId).toUpperCase()} PLAN`}</Text> free for 3 days{'\n'}
+              Try <Text style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</Text> free for 3 days{'\n'}
               No pressure, no catch.{'\n'}
               Experience personalized guidance and see how it fits your story.
             </Text>
@@ -246,7 +250,7 @@ const OnboardingTrialOfferScreen = () => {
               <View style={styles.dividerLine} />
               <View style={styles.planTagFloating}>
                 <Text style={styles.planTagText}>
-                  {`${getTierDisplayName(selectedTierId).toUpperCase()} PLAN`}
+                  {`${getTierDisplayName(selectedTierId)} PLAN`}
                 </Text>
               </View>
             </View>

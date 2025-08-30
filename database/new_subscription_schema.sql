@@ -48,6 +48,7 @@ CREATE TABLE user_subscriptions_new (
     -- Trial and subscription dates
     trial_start_date TIMESTAMPTZ,
     trial_end_date TIMESTAMPTZ,
+    trial_chosen_tier subscription_tier_new, -- The plan user chose during trial signup
     subscription_start_date TIMESTAMPTZ,
     subscription_end_date TIMESTAMPTZ,
     

@@ -343,7 +343,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION start_free_trial(target_user_id uuid, duration_days integer DEFAULT 3)
+CREATE OR REPLACE FUNCTION start_free_trial(target_user_id uuid, duration_days integer DEFAULT 3, chosen_tier subscription_tier DEFAULT 'growth')
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -366,6 +366,7 @@ BEGIN
         smart_journaling_enabled = false,
         trial_start_date = now(),
         trial_end_date = trial_end,
+        trial_chosen_tier = chosen_tier,
         updated_at = now()
     WHERE user_id = target_user_id
     RETURNING id INTO subscription_id;
@@ -379,7 +380,8 @@ BEGIN
             playbooks_limit,
             devotionals_limit,
             trial_start_date,
-            trial_end_date
+            trial_end_date,
+            trial_chosen_tier
         ) VALUES (
             target_user_id,
             'free_trial',
@@ -387,7 +389,8 @@ BEGIN
             2,
             2,
             now(),
-            trial_end
+            trial_end,
+            chosen_tier
         ) RETURNING id INTO subscription_id;
         
         -- Create usage tracking record

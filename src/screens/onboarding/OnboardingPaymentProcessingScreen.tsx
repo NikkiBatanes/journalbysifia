@@ -47,7 +47,8 @@ const OnboardingPaymentProcessingScreen = () => {
         setProcessingStatus('Activating free trial...');
         await startTrial({ 
           user_id: user?.id || '', 
-          duration_days: trialDays 
+          duration_days: trialDays,
+          trial_chosen_tier: tier as any // Pass the selected tier from route params
         });
         
         setProcessingStatus('Trial activated successfully!');

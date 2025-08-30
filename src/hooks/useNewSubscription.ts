@@ -69,12 +69,16 @@ export function useNewSubscription(userId: string): UseSubscriptionResult {
   const showDashboardCounts = subscription?.limits?.show_dashboard_counts ?? false;
   const daysRemaining = subscription?.days_remaining ?? 0;
 
-  // Usage properties
+  // Usage properties with better defaults
   const canGeneratePlaybook = usageCheck?.can_generate_playbook ?? true;
   const canGenerateDevotional = usageCheck?.can_generate_devotional ?? true;
   const canUseSmartJournaling = subscription?.limits?.smart_journaling_enabled ?? false;
-  const playbooksRemaining = usageCheck?.playbooks_remaining ?? 0;
-  const devotionalsRemaining = usageCheck?.devotionals_remaining ?? 0;
+  
+  // Calculate remaining based on subscription data if usageCheck isn't ready
+  const playbooksRemaining = usageCheck?.playbooks_remaining ?? 
+    (subscription ? Math.max(0, subscription.playbooks_limit - subscription.playbooks_used) : 0);
+  const devotionalsRemaining = usageCheck?.devotionals_remaining ?? 
+    (subscription ? Math.max(0, subscription.devotionals_limit - subscription.devotionals_used) : 0);
 
   // Start trial mutation
   const startTrialMutation = useMutation({

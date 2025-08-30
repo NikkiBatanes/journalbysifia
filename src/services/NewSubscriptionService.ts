@@ -131,10 +131,11 @@ export class NewSubscriptionService {
    * Start free trial for user (during onboarding)
    */
   static async startFreeTrial(options: TrialStartOptions): Promise<Subscription> {
-    const { user_id, duration_days = 3 } = options;
+    const { user_id, duration_days = 3, trial_chosen_tier } = options;
 
     const { data, error } = await supabase.rpc('start_free_trial', {
-      target_user_id: user_id
+      target_user_id: user_id,
+      chosen_tier: trial_chosen_tier
     });
 
     if (error) {
@@ -302,9 +303,9 @@ export class NewSubscriptionService {
       throw new UsageLimitError(subscription.tier, 'devotional', subscription.devotionals_limit, subscription.devotionals_used);
     }
 
-    // Skip incrementing usage for onboarding playbooks - they're free
-    if (isOnboarding && action === 'playbook' && subscription.tier === 'seeker') {
-      console.log('🎯 Skipping usage increment for onboarding playbook (free for seeker tier)');
+    // Skip incrementing usage for onboarding playbooks - they're free for all tiers
+    if (isOnboarding && action === 'playbook') {
+      console.log('🎯 Skipping usage increment for onboarding playbook (free for all users)');
       return;
     }
 
@@ -514,7 +515,9 @@ export class NewSubscriptionService {
       playbooks_remaining: remaining,
       devotionals_remaining: -1, // Will be calculated separately
       show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation' && subscription.tier !== 'family',
-      upgrade_message: !canGenerate ? `You've reached your ${subscription.tier} plan limit. Upgrade for more playbooks!` : undefined
+      upgrade_message: !canGenerate
+        ? this.getPlaybookLimitMessage(subscription, limits)
+        : undefined
     };
   }
 
@@ -534,8 +537,46 @@ export class NewSubscriptionService {
       playbooks_remaining: -1, // Will be calculated separately
       devotionals_remaining: remaining,
       show_upgrade_prompt: !canGenerate && subscription.tier !== 'transformation' && subscription.tier !== 'family',
-      upgrade_message: !canGenerate ? `You've reached your ${subscription.tier} plan limit. Upgrade for more devotionals!` : undefined
+      upgrade_message: !canGenerate
+        ? this.getDevotionalLimitMessage(subscription, limits)
+        : undefined
     };
+  }
+
+  /**
+   * Get tier-specific playbook limit message
+   */
+  private static getPlaybookLimitMessage(subscription: Subscription, limits: SubscriptionLimits): string {
+    switch (subscription.tier) {
+      case 'free_trial':
+        return `You've reached your trial limit.`;
+      case 'spark':
+        return `You've reached your Spark plan limit.`;
+      case 'growth':
+        return `You've reached your Growth plan limit.`;
+      case 'seeker':
+        return `Ready to begin your journey?`;
+      default:
+        return `You've reached your ${subscription.tier} plan limit.`;
+    }
+  }
+
+  /**
+   * Get tier-specific devotional limit message
+   */
+  private static getDevotionalLimitMessage(subscription: Subscription, limits: SubscriptionLimits): string {
+    switch (subscription.tier) {
+      case 'free_trial':
+        return `You've reached your trial limit.`;
+      case 'spark':
+        return `You've reached your Spark plan limit.`;
+      case 'growth':
+        return `You've reached your Growth plan limit.`;
+      case 'seeker':
+        return `Ready to begin your journey?`;
+      default:
+        return `You've reached your ${subscription.tier} plan limit.`;
+    }
   }
 
   /**

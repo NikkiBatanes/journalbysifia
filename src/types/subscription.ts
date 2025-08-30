@@ -41,6 +41,7 @@ export interface Subscription {
   // Trial and subscription dates
   trial_start_date?: string;
   trial_end_date?: string;
+  trial_chosen_tier?: SubscriptionTier; // The plan user chose during trial signup
   subscription_start_date?: string;
   subscription_end_date?: string;
   
@@ -176,6 +177,7 @@ export interface SubscriptionUpgradeOptions {
 export interface TrialStartOptions {
   user_id: string;
   duration_days?: number; // Default 3 days
+  trial_chosen_tier?: SubscriptionTier; // The plan user chose during trial signup
 }
 
 export interface FamilyInviteOptions {

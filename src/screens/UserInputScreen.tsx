@@ -25,6 +25,8 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { triggerLightHaptic } from '../utils/haptics';
 import { useTheme } from '../theme/ThemeContext';
+import { useFeatureAccess } from '../hooks/useFeatureAccess';
+import { useNewSubscription } from '../hooks/useNewSubscription';
 
 type UserInputScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'> & {
   navigate: (screen: 'GeneratingPlaybook', params: { userInput: string; userName: string }) => void;
@@ -113,6 +115,183 @@ const UserInputScreen: React.FC = () => {
   }, []);
 
   const { user } = useAuth();
+  const subscriptionData = useNewSubscription(user?.id || '');
+  const { hasAccess, accessResult, isLoading: accessLoading } = useFeatureAccess({ 
+    feature: 'playbook_generation' 
+  });
+
+  // Override hasAccess based on actual usage data
+  const canGeneratePlaybook = hasAccess && (subscriptionData.isUnlimited || subscriptionData.playbooksRemaining > 0);
+
+  // Determine seeker type based on subscription history
+  const getSeekerType = () => {
+    const { subscription } = subscriptionData;
+    if (!subscription) return 'fresh';
+    
+    const hasTrialHistory = subscription.trial_start_date && subscription.trial_end_date;
+    const hasPaidHistory = subscription.subscription_start_date;
+    
+    if (hasPaidHistory) {
+      return 'cancelled_subscription'; // Had paid plan, now cancelled
+    } else if (hasTrialHistory) {
+      return 'expired_trial'; // Used trial, didn't convert
+    } else {
+      return 'fresh'; // Never tried trial
+    }
+  };
+
+  const getSeekerDisplayText = () => {
+    const seekerType = getSeekerType();
+    
+    switch (seekerType) {
+      case 'fresh':
+        return "No playbooks";
+      case 'expired_trial':
+        return "Don't let your growth pause here.";
+      case 'cancelled_subscription':
+        return "Your journey doesn't have to end here.";
+      default:
+        return "No playbooks";
+    }
+  };
+
+  const getSeekerMessage = () => {
+    const seekerType = getSeekerType();
+    
+    switch (seekerType) {
+      case 'fresh':
+        return "Start your free trial to generate playbooks!";
+      case 'expired_trial':
+        return "Upgrade to continue generating playbooks!";
+      case 'cancelled_subscription':
+        return "Reactivate your subscription to continue!";
+      default:
+        return "Start your free trial to generate playbooks!";
+    }
+  };
+
+  const getSeekerUpgradePrompt = () => {
+    const seekerType = getSeekerType();
+    
+    switch (seekerType) {
+      case 'fresh':
+        return {
+          title: "Begin My Journey",
+          message: "Take your first step with a free trial: 2 playbooks and 2 devotionals, no commitment needed.",
+          cta: "Begin My Journey"
+        };
+      case 'expired_trial':
+        return {
+          title: "Choose My Plan",
+          message: "Your trial has ended, but your walk with Christ continues. Choose a plan to stay equipped and encouraged.",
+          cta: "Choose My Plan"
+        };
+      case 'cancelled_subscription':
+        return {
+          title: "Begin Again",
+          message: "Every step in faith matters. Restart today to keep growing in wisdom and strength.",
+          cta: "Begin Again"
+        };
+      default:
+        return {
+          title: "Begin My Journey",
+          message: "Take your first step with a free trial: 2 playbooks and 2 devotionals, no commitment needed.",
+          cta: "Begin My Journey"
+        };
+    }
+  };
+
+  const getChosenPlanLimits = (tier: string) => {
+    switch (tier) {
+      case 'spark':
+        return { playbooks: 8, devotionals: 8 };
+      case 'growth':
+        return { playbooks: 20, devotionals: 20 };
+      case 'transformation':
+        return { playbooks: 'unlimited', devotionals: 'unlimited' };
+      case 'family':
+        return { playbooks: 'unlimited', devotionals: 'unlimited' };
+      default:
+        return { playbooks: 8, devotionals: 8 }; // Default to spark
+    }
+  };
+
+  const getTierDisplayName = (subscription: any) => {
+    const tier = subscription?.tier;
+    const chosenTier = subscription?.trial_chosen_tier;
+    
+    console.log('🔍 [UserInputScreen] getTierDisplayName debug:', {
+      tier,
+      chosenTier,
+      fullSubscription: subscription
+    });
+    
+    // Handle trial display logic
+    if (tier === 'free_trial') {
+      console.log('✅ [UserInputScreen] Showing Free Trial label');
+      return 'Free Trial';
+    }
+    
+    // Handle other tier displays using consistent naming
+    const tierDisplayMap: Record<string, string> = {
+      'seeker': 'siFia SEEKER',
+      'spark': 'siFia SPARK',
+      'growth': 'siFia GROWTH', 
+      'transformation': 'siFia TRANSFORMATION',
+      'family': 'siFia FAMILY'
+    };
+    
+    const displayName = tierDisplayMap[tier] || tier?.replace('_', ' ').toUpperCase() || 'siFia SEEKER';
+    console.log('📝 [UserInputScreen] Standard tier display:', displayName);
+    return displayName;
+  };
+
+  const getUsageLimitAlert = (subscription: any) => {
+    const tier = subscription?.tier;
+    
+    switch (tier) {
+      case 'free_trial':
+        // For debugging: let's check what tier we're getting
+        console.log('Trial subscription data:', subscription);
+        const chosenTier = subscription?.trial_chosen_tier || subscription?.tier || 'growth'; // Check trial_chosen_tier first, then current tier
+        const chosenPlanLimits = getChosenPlanLimits(chosenTier);
+        return {
+          title: "Trial Limit Reached",
+          message: `Your chosen plan will soon unlock, giving you ${chosenPlanLimits.playbooks} playbooks + ${chosenPlanLimits.devotionals} devotionals each month or you can start now and keep going today.`,
+          cta: "Unlock Now",
+          action: "unlock_plan"
+        };
+      case 'spark':
+        return {
+          title: "You've reached your Spark plan limit.",
+          message: "You've created 8 playbooks and 8 devotionals this month. Your Spark plan will refresh next month, or you can upgrade to unlock more now.",
+          cta: "Upgrade Plan",
+          action: "upgrade_plan"
+        };
+      case 'growth':
+        return {
+          title: "You've reached your Growth plan limit.",
+          message: "You've created 20 playbooks and 20 devotionals this month. Your Growth plan will refresh next month, or you can upgrade for even more.",
+          cta: "Upgrade Plan",
+          action: "upgrade_plan"
+        };
+      case 'seeker':
+        return {
+          title: "Ready to begin your journey?",
+          message: "As a Seeker, you can explore the app, but generating playbooks and devotionals is only available with a trial or plan. Start your free trial today to create your first 2 playbooks and 2 devotionals—your journey begins here.",
+          cta: "Start Free Trial",
+          action: "start_trial"
+        };
+      default:
+        return {
+          title: "Usage Limit Reached",
+          message: `You've reached your ${tier} plan limit. Upgrade for more!`,
+          cta: "Upgrade",
+          action: "upgrade_plan"
+        };
+    }
+  };
+  
   // const userId = user?.id; // Unused, commented out
   const userName = (user as any)?.user_metadata?.full_name || (user as any)?.user_metadata?.name || user?.email?.split('@')[0] || 'User';
 
@@ -144,7 +323,7 @@ const UserInputScreen: React.FC = () => {
         ]),
       ]),
     ]).start();
-  }, []);
+  }, [askBoxOpacity, askBoxTranslateY, headerIntroOpacity, headerTranslateY]);
   const handleFocus = () => {
     Animated.timing(inputBorderWidth, {
       toValue: 2,
@@ -217,6 +396,7 @@ const UserInputScreen: React.FC = () => {
   const handleGeneratePlaybook = async () => {
     try { triggerLightHaptic(); } catch {}
     animateButton();
+    
     if (!userInput.trim()) {
       // Show error animation
       Animated.sequence([
@@ -235,7 +415,53 @@ const UserInputScreen: React.FC = () => {
       return;
     }
 
-    // Navigate directly to GeneratingPlaybookScreen - it will handle the generation
+    // Check subscription access before proceeding
+    if (!canGeneratePlaybook) {
+      const { subscription, playbooksRemaining, isSeeker } = subscriptionData;
+      
+      if (isSeeker) {
+        const upgradePrompt = getSeekerUpgradePrompt();
+        Alert.alert(
+          upgradePrompt.title,
+          upgradePrompt.message,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: upgradePrompt.cta, 
+              onPress: () => {
+                // Navigate to appropriate screen based on seeker type
+                const seekerType = getSeekerType();
+                if (seekerType === 'fresh') {
+                  console.log('Navigate to trial signup');
+                } else if (seekerType === 'expired_trial') {
+                  console.log('Navigate to subscription plans');
+                } else if (seekerType === 'cancelled_subscription') {
+                  console.log('Navigate to reactivation flow');
+                }
+              }
+            }
+          ]
+        );
+      } else if (playbooksRemaining === 0) {
+        const alertConfig = getUsageLimitAlert(subscription);
+        Alert.alert(
+          alertConfig.title,
+          alertConfig.message,
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: alertConfig.cta, 
+              onPress: () => {
+                console.log(`Navigate to ${alertConfig.action}`);
+              }
+            }
+          ]
+        );
+      }
+      return;
+    }
+
+    // Navigate directly to GeneratingPlaybookScreen - it will handle the generation and usage tracking
     navigation.navigate('GeneratingPlaybook', {
       userInput,
       userName: userName || 'Friend',
@@ -318,30 +544,47 @@ const UserInputScreen: React.FC = () => {
                     onBlur={handleBlur}
                     blurOnSubmit={false}
                   />
-                  <View style={styles.actionsOverlay}>
-                    <TouchableOpacity
-                      onPress={onPressHint}
-                      activeOpacity={0.9}
-                      style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
-                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                    >
-                      <MaterialCommunityIcons
-                        name="information"
-                        size={34}
-                        color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.5)'}
-                      />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.askSendButton, (!userInput || !userInput.trim()) && styles.disabledButton]}
-                      onPress={handleGeneratePlaybook}
-                      disabled={!userInput || !userInput.trim()}
-                    >
-                      <Ionicons
-                        name="arrow-up-circle"
-                        size={34}
-                        color={userInput.trim() ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
-                      />
-                    </TouchableOpacity>
+                  {/* Bottom row overlays: status on left, buttons on right */}
+                  <View style={styles.bottomRow} pointerEvents="box-none">
+                    <View style={styles.statusInline} pointerEvents="none">
+                      <Text style={[styles.statusText, font]}>
+                        {subscriptionData.isLoading 
+                          ? 'Loading subscription...'
+                          : !subscriptionData.subscription || subscriptionData.isSeeker
+                            ? getSeekerDisplayText()
+                            : subscriptionData.isUnlimited
+                              ? 'Unlimited playbooks'
+                              : `${subscriptionData.playbooksRemaining} of ${subscriptionData.subscription?.playbooks_limit || 0} playbooks remaining`}
+                      </Text>
+                      <Text style={[styles.tierBadgeInline, font]}>
+                        {getTierDisplayName(subscriptionData.subscription)}
+                      </Text>
+                    </View>
+                    <View style={styles.actionsRight}>
+                      <TouchableOpacity
+                        onPress={onPressHint}
+                        activeOpacity={0.9}
+                        style={[styles.askHintButton, !showTooltip && styles.disabledButton]}
+                        hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                      >
+                        <MaterialCommunityIcons
+                          name="information"
+                          size={34}
+                          color={showTooltip ? Colors.alertCoral : 'rgba(255, 255, 255, 0.5)'}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.askSendButton, (!userInput || !userInput.trim()) && styles.disabledButton]}
+                        onPress={handleGeneratePlaybook}
+                        disabled={!userInput || !userInput.trim()}
+                      >
+                        <Ionicons
+                          name="arrow-up-circle"
+                          size={34}
+                          color={userInput.trim() ? Colors.hopeWhite : 'rgba(255, 255, 255, 0.5)'}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </Animated.View>
                 {/* Tooltip anchored above hint icon; placed outside askBox to avoid clipping */}
@@ -386,6 +629,35 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.anchorBlue,
     paddingBottom: 0,
+  },
+  // Inline status inside ask box
+  statusInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  statusText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  tierBadgeInline: {
+    color: Colors.hopeWhite,
+    fontSize: 9,
+    fontWeight: '800',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 9,
+    overflow: 'hidden',
+    textAlign: 'center',
+    maxWidth: 80,
   },
   askHintButtonInline: {
     opacity: 1,
@@ -434,6 +706,36 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     marginBottom: Platform.OS === 'ios' ? 0 : 20, // Add some bottom margin on Android
   },
+  usageCounter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  usageText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  tierBadge: {
+    color: Colors.hopeWhite,
+    fontSize: 12,
+    fontWeight: '700',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
+    textAlign: 'center',
+    flexWrap: 'wrap',
+    maxWidth: 100,
+  },
   askWrapper: {
     position: 'relative',
     overflow: 'visible',
@@ -460,12 +762,18 @@ const styles = StyleSheet.create({
   },
   bottomRow: {
     position: 'absolute',
+    left: 16,
+    right: 16,
     bottom: 12,
-    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 8 as any,
+    justifyContent: 'space-between',
+    gap: 12 as any,
+  },
+  actionsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   askInput: {
     width: '100%',
@@ -492,7 +800,7 @@ const styles = StyleSheet.create({
     // positioned in bottomRow
   },
   askHintButton: {
-    // positioned in bottomRow  
+    // positioned in bottomRow
   },
   tooltip: {
     position: 'absolute',
@@ -588,6 +896,17 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.1)', // Slight background for better visibility
+  },
+  debugInfo: {
+    backgroundColor: 'rgba(255, 0, 0, 0.2)',
+    padding: 8,
+    marginBottom: 8,
+    borderRadius: 4,
+  },
+  debugText: {
+    color: Colors.hopeWhite,
+    fontSize: 10,
+    fontFamily: 'monospace',
   },
 });
 

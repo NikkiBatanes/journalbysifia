@@ -88,6 +88,18 @@ class TierRestrictionService {
       usageType: 'familyMembers',
     },
 
+    // Basic content generation
+    {
+      feature: 'playbook_generation',
+      requiredTier: 'free_trial',
+      usageType: 'playbooks',
+    },
+    {
+      feature: 'devotional_generation',
+      requiredTier: 'free_trial',
+      usageType: 'devotionals',
+    },
+
     // Content creation limits
     {
       feature: 'unlimited_playbooks',
@@ -326,6 +338,8 @@ class TierRestrictionService {
     recommendedTier: SubscriptionTier;
   } {
     const featureNames: Record<string, string> = {
+      'playbook_generation': 'Playbook Generation',
+      'devotional_generation': 'Devotional Generation',
       'export_pdf': 'PDF Export',
       'export_docx': 'Word Export',
       'expounding_content': 'Deeper Insights',
