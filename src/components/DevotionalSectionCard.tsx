@@ -10,6 +10,7 @@ interface DevotionalSectionCardProps {
   subtitle: string;
   children: React.ReactNode;
   style?: object;
+  variant?: 'blue' | 'tintOnBlue';
 }
 
 const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
@@ -18,10 +19,11 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
   subtitle,
   children,
   style = {},
+  variant = 'blue',
 }) => (
-  <View style={[styles.card, style]}>
+  <View style={[styles.card, variant === 'tintOnBlue' ? styles.cardTintOnBlue : null, style]}>
     <View style={styles.headerRow}>
-      <View style={styles.iconContainer}>
+      <View style={[styles.iconContainer, variant === 'tintOnBlue' ? styles.iconContainerOnTint : null]}>
         <Ionicons name={icon} size={20} color={Colors.alertCoral} />
       </View>
       <View>
@@ -38,7 +40,7 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.anchorBlue,
-    borderRadius: 20,
+    borderRadius: 30,
     padding: CARD_CONTENT_PADDING,
     marginBottom: 18,
     marginHorizontal: CARD_HORIZONTAL_PADDING,
@@ -47,6 +49,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 10,
     elevation: 3,
+  },
+  cardTintOnBlue: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
   },
   headerRow: {
     flexDirection: 'row',
@@ -62,6 +67,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+  },
+  iconContainerOnTint: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   icon: {
     marginRight: 0,

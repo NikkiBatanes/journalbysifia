@@ -718,7 +718,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             {extractCleanTitle(devotional.title, 'Devotional')}
           </ThemedText>
           <View style={styles.dayCounterContainer}>
-            <Ionicons name="calendar-clear-outline" size={14} color={Colors.anchorBlue} />
+            <Ionicons name="calendar-clear-outline" size={14} color={Colors.hopeWhite} />
             <ThemedText weight="medium" style={styles.dayCounterText}>
               Day {currentDayIndex + 1} of {devotional.totalDays}
             </ThemedText>
@@ -818,12 +818,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               icon="book-outline"
               title="Today's Scripture"
               subtitle="God's Word for today"
+              variant="tintOnBlue"
             >
               <ThemedText style={styles.scriptureText}>
                 {day.scripture?.text || ''}
               </ThemedText>
               <ThemedText weight="medium" style={styles.scriptureReference}>
-                - {day.scripture?.reference || ''}
+                {day.scripture?.reference || ''}
               </ThemedText>
             </DevotionalSectionCard>
 
@@ -832,6 +833,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               icon="bookmark-outline"
               title="Daily Reflection"
               subtitle="Meditate on this"
+              variant="tintOnBlue"
             >
               <ThemedText style={styles.reflectionText}>
                 {day?.reflection || ''}
@@ -843,6 +845,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               icon="help-circle-outline"
               title="Questions to Ponder"
               subtitle="Reflect deeply"
+              variant="tintOnBlue"
             >
               {day?.reflectionQuestions?.length ? (
                 day.reflectionQuestions.map((question: any, idx: number) => (
@@ -904,11 +907,15 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               icon="heart-outline"
               title="Prayer"
               subtitle="Connect with God"
+              variant="tintOnBlue"
             >
               <View style={styles.prayerContainer}>
                 <ThemedText style={styles.prayerText}>
                   {day.prayer && day.prayer.trim().length > 0
-                    ? day.prayer.replace(/\*\*/g, '').replace(/\n/g, '\n\n')
+                    ? day.prayer
+                        .replace(/\*\*/g, '')
+                        .replace(/\n/g, '\n\n')
+                        .replace(/\s*In Jesus' Name/gi, "\n\nIn Jesus' Name")
                     : 'No prayer for today.'}
                 </ThemedText>
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
@@ -1029,21 +1036,21 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
   },
   headerContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
     paddingVertical: 12,
     paddingHorizontal: 16,
     zIndex: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
+    borderBottomColor: 'rgba(255,255,255,0.15)',
   },
   loadingContainer: {
     flex: 1,
@@ -1073,7 +1080,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '500',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 4,
   },
@@ -1143,7 +1150,7 @@ const styles = StyleSheet.create({
   },
   dayCounterText: {
     fontSize: 14,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginLeft: 4,
     marginRight: 4,
   },
@@ -1166,7 +1173,7 @@ const styles = StyleSheet.create({
   dayTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     lineHeight: 28,
   },
   scrollView: {

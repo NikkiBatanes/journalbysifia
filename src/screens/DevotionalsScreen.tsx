@@ -559,7 +559,16 @@ const DevotionalsScreen = () => {
               </View>
             )}
             stickySectionHeadersEnabled
-            contentContainerStyle={isTrulyEmpty ? styles.emptyListContent : [styles.listContent, styles.pageInner, styles.listContentPadding]}
+            contentContainerStyle={
+              isTrulyEmpty
+                ? styles.emptyListContent
+                : [
+                    styles.listContent,
+                    styles.pageInner,
+                    styles.listContentPadding,
+                    { paddingBottom: Math.max(insets.bottom, 12) + 8 },
+                  ]
+            }
             ListEmptyComponent={renderEmptyState}
             onViewableItemsChanged={onViewableItemsChanged}
             showsVerticalScrollIndicator={false}
