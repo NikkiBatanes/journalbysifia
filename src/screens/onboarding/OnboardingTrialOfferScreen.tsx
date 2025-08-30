@@ -44,10 +44,11 @@ const OnboardingTrialOfferScreen = () => {
       }
 
       // Start 3-day free trial with new subscription system
+      // Use the currently selected tier (not just the initial param)
       await startTrial({ 
         user_id: user.id, 
         duration_days: 3,
-        trial_chosen_tier: initialTierId as any // Pass the selected tier
+        trial_chosen_tier: selectedTierId as any // Record the user's actual choice
       });
 
       // Navigate to notification setup with trial user type

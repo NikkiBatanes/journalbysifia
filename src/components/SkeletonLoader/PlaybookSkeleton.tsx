@@ -33,7 +33,7 @@ export const PlaybookSkeleton: React.FC = () => {
     <View style={styles.container}>
       {/* Section Header Skeleton */}
       <View style={styles.sectionHeader}>
-        <Animated.View style={[styles.sectionHeaderSkeleton, { opacity }]} />
+        
       </View>
 
       {[1, 2, 3].map((item) => (
@@ -70,22 +70,22 @@ const styles = StyleSheet.create({
     // No padding - skeleton is rendered inside PlaybookListScreen's padded container
   },
   sectionHeader: {
-    backgroundColor: '#f6f8fa',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
-    marginTop: 12, // Match PlaybookListScreen section header margin
-    marginBottom: 2,
+    marginTop: 30, // Match PlaybookListScreen section header margin
+    marginBottom: 10, // Match PlaybookListScreen spacing
   },
   sectionHeaderSkeleton: {
     height: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.1)', // Match TodaysFocus skeleton color
+    backgroundColor: 'rgba(255, 255, 255, 0.3)', // Light on blue
     borderRadius: 4,
     width: '30%', // Increased width to better match "JULY 2025"
   },
   card: {
-    backgroundColor: Colors.anchorBlue,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)', // Match actual card surface on BlueSheet
+    borderRadius: 20,
     padding: 12,
     width: '100%',
     height: 88, // Match the actual card height

@@ -4,7 +4,6 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { Pencil } from 'lucide-react-native';
 import {
   View,
-  Text,
   StyleSheet,
   Alert,
   SectionList,
@@ -18,9 +17,12 @@ import { format } from 'date-fns';
 
 import { RectButton, Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import PlaybookCard from '../components/PlaybookCard';
+import BlueSheet from '../components/layout/BlueSheet';
 import { Colors, Fonts } from '../theme';
+import ThemedText from '../components/common/ThemedText';
 import { useTheme } from '../theme/ThemeContext';
 import type { Playbook } from '../interfaces/playbook';
 import { deletePlaybook, getPlaybooks } from '../services/apiIntegration';
@@ -81,6 +83,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const theme = useTheme();
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
+  // Visible bar height excluding safe area bottom, plus a small cushion
+  const bottomClearance = Math.max(12, Math.max(0, tabBarHeight - insets.bottom) + 12);
 
   // Multiple fallback mechanisms for userId
   const userId = user?.id || session?.user?.id;
@@ -89,9 +94,9 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const triggerLightHaptic = useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) {return;}
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) return;
+      if (hapticsPref === false) {return;}
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -484,7 +489,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           renderRightActions={() => (
             <RectButton
               style={styles.deleteButton}
-              onPress={() => { try { triggerLightHaptic(); } catch {}; handleDelete(item.id); }}
+              onPress={() => { try { triggerLightHaptic(); } catch {} handleDelete(item.id); }}
             >
               <Ionicons name="trash-outline" size={24} color="white" />
             </RectButton>
@@ -535,30 +540,31 @@ const PlaybookListScreen = ({ navigation }: any) => {
   if (playbooks.length === 0 && !isLoading && userId) {
     console.log('[PlaybookListScreen] Showing empty state');
     return (
-      <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
-        <View style={[styles.container, styles.containerEmpty]}>
-          <View style={[styles.headerBar, { paddingTop: insets.top }]}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: Colors.anchorBlue }]} edges={['left','right','bottom']}>
+        <View style={[styles.container, styles.containerEmpty, { backgroundColor: Colors.anchorBlue }]}>
+          <View style={[styles.headerBar, { paddingTop: insets.top, backgroundColor: Colors.anchorBlue }]}>
             <View style={styles.pageInner}>
               {/* Hide header when empty; keep layout with spacer (match Devotionals) */}
               <View style={styles.headerSpacer} />
             </View>
           </View>
 
-          {/* Empty state hero */}
-          <View style={styles.emptyStateContainer}>
-            <View style={styles.emptyHeroContainer}>
-              <View style={styles.heroCard}>
+          {/* Empty state hero on anchor blue background via BlueSheet */}
+          <BlueSheet style={styles.contentSheet}>
+            <View style={[styles.emptyStateContainer, styles.pageInner]}>
+              <View style={styles.emptyHeroContainer}>
+                <View style={styles.heroCard}>
               <MaterialCommunityIcons
                 name="clipboard-text-play"
                 size={32}
                 color="rgba(255,255,255,0.8)"
                 style={styles.heroIcon}
               />
-              <Text style={styles.heroOverline}>No Playbooks</Text>
-              <Text style={styles.heroTitle}>Create a New Playbook</Text>
-              <Text style={styles.heroSubtitle}>
+              <ThemedText weight="semiBold" style={styles.heroOverline}>No Playbooks</ThemedText>
+              <ThemedText weight="semiBold" style={styles.heroTitle}>Create a New Playbook</ThemedText>
+              <ThemedText style={styles.heroSubtitle}>
                 Share what you're going through in detail. The more context, the better we can help.
-              </Text>
+              </ThemedText>
 
               <TouchableOpacity
                 onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
@@ -566,36 +572,37 @@ const PlaybookListScreen = ({ navigation }: any) => {
                 style={styles.heroOutlineButton}
               >
                 <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                <Text style={styles.heroOutlineButtonText}>Create a Playbook</Text>
+                <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Create a Playbook</ThemedText>
               </TouchableOpacity>
 
                 {/* Hint before bullets */}
-                <Text style={styles.stepsHint}>Helpful details to include:</Text>
+                <ThemedText weight="semiBold" style={styles.stepsHint}>Helpful details to include:</ThemedText>
 
                 {/* Guided steps */}
                 <View style={styles.stepsContainer}>
                 <View style={styles.stepItem}>
-                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
-                  <Text style={styles.stepText}>What happened</Text>
+                  <View style={styles.stepBadge}><ThemedText weight="semiBold" style={styles.stepBadgeText}>1</ThemedText></View>
+                  <ThemedText style={styles.stepText}>What happened</ThemedText>
                 </View>
                 <View style={styles.stepItem}>
-                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
-                  <Text style={styles.stepText}>Your pain</Text>
+                  <View style={styles.stepBadge}><ThemedText weight="semiBold" style={styles.stepBadgeText}>2</ThemedText></View>
+                  <ThemedText style={styles.stepText}>Your pain</ThemedText>
                 </View>
                 <View style={styles.stepItem}>
-                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
-                  <Text style={styles.stepText}>A situation or struggle</Text>
+                  <View style={styles.stepBadge}><ThemedText weight="semiBold" style={styles.stepBadgeText}>3</ThemedText></View>
+                  <ThemedText style={styles.stepText}>A situation or struggle</ThemedText>
                 </View>
                 <View style={styles.stepItem}>
-                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>4</Text></View>
-                  <Text style={styles.stepText}>A decision you need to make</Text>
+                  <View style={styles.stepBadge}><ThemedText weight="semiBold" style={styles.stepBadgeText}>4</ThemedText></View>
+                  <ThemedText style={styles.stepText}>A decision you need to make</ThemedText>
                 </View>
                 </View>
                 {/* Subtle deliverable hint below bullets */}
-                <Text style={styles.stepsFootnote}>We’ll turn this into a personalized playbook.</Text>
+                <ThemedText weight="medium" style={styles.stepsFootnote}>We’ll turn this into a personalized playbook.</ThemedText>
+                </View>
               </View>
             </View>
-          </View>
+          </BlueSheet>
         </View>
       </SafeAreaView>
     );
@@ -604,114 +611,135 @@ const PlaybookListScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
       <View style={styles.container}>
-        <View style={[styles.headerBar, { paddingTop: insets.top }]}>
+        {/* Header on white background with tabs */}
+        <View pointerEvents="box-none" style={[styles.headerBar, { paddingTop: insets.top }]}>
           <View style={styles.pageInner}>
-            <Text style={styles.headerTitle}>Playbooks</Text>
+            <ThemedText weight="bold" style={styles.headerTitle}>Playbooks</ThemedText>
+            <View style={[styles.filterTabsOnWhite, { paddingRight: Math.max(insets.right, 16) }]}>
+              {tabKeys.map((tab) => (
+                <Pressable
+                  key={tab}
+                  style={[
+                    styles.filterTabOnWhite,
+                    filter === tab && (
+                      tab === 'completed'
+                        ? styles.filterTabActiveCompleted
+                        : tab === 'ongoing'
+                          ? styles.filterTabActiveOngoing
+                          : styles.filterTabActiveOnWhite
+                    ),
+                  ]}
+                  onPressIn={() => handleTabPressIn(tab)}
+                  onPressOut={() => handleTabPressOut(tab)}
+                  onPress={() => {
+                    triggerLightHaptic();
+                    setFilter(tab);
+                  }}
+                >
+                  <Animated.View style={{ transform: [{ scale: tabScales.current[tab] }] }}>
+                    <ThemedText
+                      style={[
+                        styles.filterTabTextOnWhite,
+                        filter === tab && styles.filterTabTextActiveOnWhite,
+                      ]}
+                    >
+                      {tab === 'all' ? 'All' : tab === 'ongoing' ? 'In Progress' : 'Completed'}
+                    </ThemedText>
+                  </Animated.View>
+                </Pressable>
+              ))}
+            </View>
           </View>
         </View>
-        {/* Filter Tabs */}
-        <View style={styles.pageInner}>
-          <View style={[styles.filterTabs, { paddingLeft: 16, paddingRight: Math.max(insets.right, 16) }]}>
-            {tabKeys.map((tab) => (
-              <Pressable
-                key={tab}
-                style={[
-                  styles.filterTab,
-                  filter === tab && (
-                    tab === 'completed'
-                      ? styles.filterTabActiveCompleted
-                      : tab === 'ongoing'
-                        ? styles.filterTabActiveOngoing
-                        : styles.filterTabActive
-                  ),
-                ]}
-                onPressIn={() => handleTabPressIn(tab)}
-                onPressOut={() => handleTabPressOut(tab)}
-                onPress={() => {
-                  triggerLightHaptic();
-                  setFilter(tab);
-                }}
-              >
-                <Animated.View style={{ transform: [{ scale: tabScales.current[tab] }] }}>
-                  <Text style={[styles.filterTabText, filter === tab && styles.filterTabTextActive]}>
-                    {tab === 'all' ? 'All' : tab === 'ongoing' ? 'In Progress' : 'Completed'}
-                  </Text>
-                </Animated.View>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-        {isLoading || isFetching ? (
-          <View style={[styles.listContent, styles.pageInner]}>
-            <PlaybookSkeleton />
-          </View>
-        ) : sections.length === 0 ? (
-          <View style={[styles.container, styles.containerEmpty]}>
-            <View style={[styles.emptyStateContainer]}>
-              <View style={styles.emptyHeroContainer}>
-                <View style={styles.heroCard}>
-                  {filter === 'ongoing' ? (
-                    <MaterialCommunityIcons
-                      name="clipboard-text-clock"
-                      size={32}
-                      color="rgba(255,255,255,0.8)"
-                      style={styles.heroIcon}
-                    />
-                  ) : (
-                    <MaterialCommunityIcons
-                      name="trophy-outline"
-                      size={32}
-                      color="rgba(255,255,255,0.8)"
-                      style={styles.heroIcon}
-                    />
-                  )}
-                  <Text style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</Text>
-                  <Text style={styles.heroTitle}>
-                    {filter === 'ongoing' ? 'All your playbooks are completed' : 'No completed playbooks yet'}
-                  </Text>
-                  <Text style={styles.heroSubtitle}>
-                    {filter === 'ongoing'
-                      ? 'Great job finishing your tasks. Review a completed playbook or start a new one.'
-                      : 'Keep going! Your finished playbooks will appear here.'}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
-                    activeOpacity={0.85}
-                    style={styles.heroOutlineButton}
-                  >
-                    <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-                    <Text style={styles.heroOutlineButtonText}>
-                      {filter === 'ongoing' ? 'Create a Playbook' : 'Create a Playbook'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => { triggerLightHaptic(); setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
-                    activeOpacity={0.85}
-                    style={{ paddingVertical: 6, paddingHorizontal: 8 }}
-                  >
-                    <Text style={{ color: Colors.hopeWhite, opacity: 0.9 }}>
-                      {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
-                    </Text>
-                  </TouchableOpacity>
+
+        {/* Rounded content area standardized via BlueSheet (matches Journal) */}
+        <BlueSheet style={styles.contentSheet}>
+
+          {isLoading || isFetching ? (
+            <View style={[styles.listContent, styles.pageInner]}>
+              <PlaybookSkeleton />
+            </View>
+          ) : sections.length === 0 ? (
+            <View style={[styles.containerEmpty]}>
+              <View style={[styles.emptyStateContainer]}>
+                <View style={styles.emptyHeroContainer}>
+                  <View style={styles.heroCard}>
+                    {filter === 'ongoing' ? (
+                      <MaterialCommunityIcons
+                        name="clipboard-text-clock"
+                        size={32}
+                        color="rgba(255,255,255,0.8)"
+                        style={styles.heroIcon}
+                      />
+                    ) : (
+                      <MaterialCommunityIcons
+                        name="trophy-outline"
+                        size={32}
+                        color="rgba(255,255,255,0.8)"
+                        style={styles.heroIcon}
+                      />
+                    )}
+                    <ThemedText weight="semiBold" style={styles.heroOverline}>{filter === 'ongoing' ? 'IN PROGRESS LIST' : 'COMPLETED LIST'}</ThemedText>
+                    <ThemedText weight="semiBold" style={styles.heroTitle}>
+                      {filter === 'ongoing' ? 'All your playbooks are completed' : 'No completed playbooks yet'}
+                    </ThemedText>
+                    <ThemedText style={styles.heroSubtitle}>
+                      {filter === 'ongoing'
+                        ? 'Great job finishing your tasks. Review a completed playbook or start a new one.'
+                        : 'Keep going! Your finished playbooks will appear here.'}
+                    </ThemedText>
+                    <TouchableOpacity
+                      onPress={() => { triggerLightHaptic(); navigation.navigate('UserInput'); }}
+                      activeOpacity={0.85}
+                      style={styles.heroOutlineButton}
+                    >
+                      <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                      <ThemedText weight="medium" style={styles.heroOutlineButtonText}>
+                        {filter === 'ongoing' ? 'Create a Playbook' : 'Create a Playbook'}
+                      </ThemedText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => { triggerLightHaptic(); setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
+                      activeOpacity={0.85}
+                      style={styles.heroTextButton}
+                    >
+                      <ThemedText style={styles.heroLinkText}>
+                        {filter === 'ongoing' ? 'Review Completed' : 'See In Progress'}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
-        ) : (
-          <SectionList
-            key={`${filter}-${sections.length}`}
-            sections={sections}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            renderSectionHeader={({ section: { title } }) => (
-              <View style={styles.sectionHeader}><Text style={styles.sectionHeaderText}>{title}</Text></View>
-            )}
-            contentContainerStyle={[styles.listContent, styles.pageInner]}
-            stickySectionHeadersEnabled
-            showsVerticalScrollIndicator={false}
-            extraData={filter}
-          />
-        )}
+          ) : (
+            <SectionList
+              style={styles.sectionList}
+              key={`${filter}-${sections.length}`}
+              sections={sections}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              renderSectionHeader={({ section: { title } }) => (
+                <View style={styles.sectionHeader}><ThemedText weight="bold" style={styles.sectionHeaderText}>{title}</ThemedText></View>
+              )}
+              contentContainerStyle={[
+                styles.listContent,
+                styles.pageInner,
+                styles.listContentPadding,
+              ]}
+              ListFooterComponent={<View style={{ height: bottomClearance }} />}
+              scrollIndicatorInsets={{ top: 0, bottom: bottomClearance, left: 0, right: 0 }}
+              stickySectionHeadersEnabled
+              showsVerticalScrollIndicator={false}
+              bounces
+              alwaysBounceVertical
+              contentInsetAdjustmentBehavior="never"
+              overScrollMode="always"
+              removeClippedSubviews={false}
+              keyboardShouldPersistTaps="handled"
+              extraData={filter}
+            />
+          )}
+        </BlueSheet>
       </View>
     </SafeAreaView>
   );
@@ -719,7 +747,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
 
 export default PlaybookListScreen;
 
-const createStyles = (theme: any) => StyleSheet.create({
+const createStyles = (_theme: any) => StyleSheet.create({
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -729,10 +757,10 @@ const createStyles = (theme: any) => StyleSheet.create({
   swipeableContainer: {
     width: '100%',
     marginBottom: 8,
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     height: 88, // Fixed height to match card
-    backgroundColor: theme.colors.primary, // Use theme primary color for instant switching
+    backgroundColor: 'transparent', // Let page background show when swiping
   },
   cardTouchable: {
     width: '100%',
@@ -744,16 +772,16 @@ const createStyles = (theme: any) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     height: '100%',
-    borderTopRightRadius: 16, // Match card's border radius
-    borderBottomRightRadius: 16, // Match card's border radius
+    borderTopRightRadius: 20, // Match card's border radius
+    borderBottomRightRadius: 20, // Match card's border radius
   },
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.hopeWhite,
+    backgroundColor: Colors.hopeWhite,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.hopeWhite,
+    backgroundColor: Colors.hopeWhite,
   },
   pageInner: {
     width: '100%',
@@ -771,15 +799,23 @@ const createStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'flex-start',
     paddingHorizontal: 16,
     paddingVertical: 0,
+    paddingBottom: 0,
+    backgroundColor: Colors.hopeWhite,
   },
   headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
-    color: theme.colors.anchorBlue,
-    marginBottom: 10,
+    color: Colors.anchorBlue,
+    marginBottom: 8,
     marginTop: 10,
     letterSpacing: 0.5,
     fontWeight: '800',
+  },
+  // Additional layout styling applied on top of BlueSheet if needed
+  contentSheet: {
+    flex: 1,
+    position: 'relative',
+    zIndex: 2,
   },
   headerSpacer: {
     height: 44,
@@ -804,7 +840,7 @@ const createStyles = (theme: any) => StyleSheet.create({
   heroCard: {
     width: '90%',
     maxWidth: 720,
-    backgroundColor: theme.colors.anchorBlue,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 34,
     paddingVertical: 32,
     paddingHorizontal: 20,
@@ -863,6 +899,15 @@ const createStyles = (theme: any) => StyleSheet.create({
   heroButtonIcon: {
     marginRight: 8,
   },
+  // Link-style text button below hero CTA
+  heroTextButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  heroLinkText: {
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+  },
   stepsHint: {
     color: 'rgba(255,255,255,0.9)',
     fontSize: 13,
@@ -915,22 +960,31 @@ const createStyles = (theme: any) => StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 20,
   },
+  // SectionList container and extra padding
+  sectionList: {
+    flex: 1,
+  },
+  listContentPadding: {
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
   filterTabs: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
     marginBottom: 12,
     gap: 2,
+    marginTop: 12,
   },
   filterTab: {
     paddingVertical: 6,
     paddingHorizontal: 18,
-    borderRadius: 6,
-    backgroundColor: '#e8edf6',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     marginHorizontal: 2,
   },
   filterTabActive: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   filterTabActiveCompleted: {
     backgroundColor: Colors.growthGreen,
@@ -941,26 +995,53 @@ const createStyles = (theme: any) => StyleSheet.create({
   filterTabText: {
     fontFamily: Fonts.semiBold,
     fontSize: 13,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     letterSpacing: 0.2,
     fontWeight: '400',
   },
   filterTabTextActive: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
+  },
+  // Header (on-white) tab styles
+  filterTabsOnWhite: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 16,
+    gap: 6,
+  },
+  filterTabOnWhite: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: 'rgba(3, 32, 61, 0.06)', // subtle anchor tint on white
+  },
+  filterTabActiveOnWhite: {
+    backgroundColor: Colors.anchorBlue,
+  },
+  filterTabTextOnWhite: {
+    fontFamily: Fonts.semiBold,
+    fontSize: 13,
+    color: Colors.anchorBlue,
+    letterSpacing: 0.2,
+    fontWeight: '400',
+  },
+  filterTabTextActiveOnWhite: {
+    color: Colors.hopeWhite,
   },
   sectionHeader: {
-    backgroundColor: '#f6f8fa',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
     marginTop: 12,
-    marginBottom: 2,
+    marginBottom: 10,
   },
   sectionHeaderText: {
     fontFamily: Fonts.bold,
     fontSize: 12,
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     fontWeight: 'bold',
@@ -989,7 +1070,7 @@ const createStyles = (theme: any) => StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
     letterSpacing: 0.8,
     lineHeight: 14,
-    marginBottom: 2,
+    marginBottom: 8,
     textTransform: 'uppercase',
   },
 });

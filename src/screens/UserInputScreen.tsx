@@ -176,9 +176,9 @@ const UserInputScreen: React.FC = () => {
     switch (seekerType) {
       case 'fresh':
         return {
-          title: "Begin My Journey",
-          message: "Take your first step with a free trial: 2 playbooks and 2 devotionals, no commitment needed.",
-          cta: "Begin My Journey"
+          title: "Start your 3-day free trial",
+          message: "Get 2 playbooks and 2 devotionals to begin your journey. If you've picked a plan in the offer, your trial uses that; otherwise we'll start with Growth.",
+          cta: "Start Free Trial"
         };
       case 'expired_trial':
         return {
@@ -194,9 +194,9 @@ const UserInputScreen: React.FC = () => {
         };
       default:
         return {
-          title: "Begin My Journey",
-          message: "Take your first step with a free trial: 2 playbooks and 2 devotionals, no commitment needed.",
-          cta: "Begin My Journey"
+          title: "Start your 3-day free trial",
+          message: "Get 2 playbooks and 2 devotionals to begin your journey. If you've picked a plan in the offer, your trial uses that; otherwise we'll start with Growth.",
+          cta: "Start Free Trial"
         };
     }
   };

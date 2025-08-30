@@ -961,7 +961,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             onPress={() => { try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
             activeOpacity={0.8}
           >
-            <Text style={styles.continueButtonText}>Begin My Journey</Text>
+            <Text style={styles.continueButtonText}>Ready to...</Text>
           </TouchableOpacity>
         </View>
 

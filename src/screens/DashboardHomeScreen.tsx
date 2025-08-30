@@ -44,6 +44,7 @@ import ActionStepsCard from '../components/dashboard/ActionStepsCard';
 import ReflectionQuestionsCard from '../components/dashboard/ReflectionQuestionsCard';
 import SmartJournalingReflectionModal from './SmartJournalingReflectionModal';
 import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
+import BlueSheet from '../components/layout/BlueSheet';
 import SmartJournalingPrayerModal from './SmartJournalingPrayerModal';
 
 import StreakTracker from '../components/dashboard/StreakTracker';
@@ -135,18 +136,12 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     scrollContainer: {
       flex: 1,
     },
-    content: {
+    // Additional styling applied on top of BlueSheet if needed
+    contentSheet: {
       flex: 1,
-      backgroundColor: Colors.anchorBlue,
-      borderTopLeftRadius: 32,
-      borderTopRightRadius: 32,
-      overflow: 'hidden',
-      // Increase overlap so rounded corners are clearly visible
-      marginTop: -20,
-      paddingTop: 0,
       position: 'relative',
       zIndex: 2,
-      // subtle top elevation so corners are visible
+      // Keep subtle top shadow if desired; BlueSheet handles the blue BG and radius
       shadowColor: Colors.primary,
       shadowOffset: { width: 0, height: -2 },
       shadowOpacity: 0.06,
@@ -255,7 +250,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       backgroundColor: Colors.hopeWhite,
       paddingHorizontal: 20,
       paddingTop: 0,
-      paddingBottom: 16,
+      paddingBottom: 10,
     },
     greeting: {
       fontSize: 24,
@@ -270,7 +265,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       color: Colors.anchorBlue,
       opacity: 1,
       marginTop: 0,
-      marginBottom: 12,
+      marginBottom: 0,
       // weight handled by ThemedText
     },
     placeholderCard: {
@@ -1424,7 +1419,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       {renderHeader()}
       {renderGreeting()}
 
-      <View style={styles.content}>
+      <BlueSheet style={styles.contentSheet}>
         <ScrollView
           ref={scrollRef}
           style={styles.scrollView}
@@ -1559,7 +1554,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
           {/* Bottom spacing for floating button */}
           <View style={styles.bottomSpacing} />
         </ScrollView>
-      </View>
+      </BlueSheet>
       {renderFloatingButton()}
 
       {/* Reflection Modals */}

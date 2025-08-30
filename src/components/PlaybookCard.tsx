@@ -90,8 +90,11 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
 
 const createStyles = (theme: any) => StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 16,
+    // Use a translucent surface that contrasts on anchor blue backgrounds
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 0,
+    borderColor: 'transparent',
+    borderRadius: 20,
     padding: 12,
     width: '100%',
     height: 88, // Match the swipeable container height
