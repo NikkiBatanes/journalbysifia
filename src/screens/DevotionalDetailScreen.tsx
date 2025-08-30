@@ -9,14 +9,8 @@ import {
   View,
   ActivityIndicator,
   Dimensions,
-  Image,
-  ImageBackground,
   ScrollView,
-  Vibration,
-  Easing,
   Platform,
-  Linking,
-  Alert,
   NativeModules,
 } from 'react-native';
 import { FlatList, Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -123,10 +117,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const triggerSuccessHaptic = () => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) {return;}
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
       if (hapticsPref === false) { return; }
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -152,10 +146,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         const id = setTimeout(() => {
           try {
             const { RNHapticFeedback } = NativeModules as any;
-            if (!RNHapticFeedback) return;
+            if (!RNHapticFeedback) {return;}
             const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
             if (hapticsPref === false) { return; }
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
+
             const Haptic = require('react-native-haptic-feedback');
             const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
             if (typeof triggerFn === 'function') {
@@ -179,11 +173,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     // Use subtle OS-like selection haptic if native module is linked
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return; // no-op if not linked
+      if (!RNHapticFeedback) {return;} // no-op if not linked
       // Respect user preference if available (default: enabled)
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
       if (hapticsPref === false) { return; }
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -433,7 +427,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     if (!devotional) {
       return;
     }
-    
+
     // Trigger haptic feedback and open modal immediately for responsiveness
     triggerLightHaptic();
 
@@ -856,13 +850,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     onPress={() => {
                       // Light haptic on question tap
                       triggerLightHaptic();
-                      
+
                       const dayNumber = index + 1;
                       const questionNumber = idx + 1;
-                      
+
                       // Check if this question has already been journaled
                       const existingEntry = getJournaledEntry(dayNumber, questionNumber);
-                      
+
                       console.log('🔍 Question tapped - Debug info:', {
                         dayNumber,
                         questionNumber,
@@ -876,7 +870,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                           question_number: existingEntry.question_number,
                         } : null,
                       });
-                      
+
                       setSelectedReflectionQuestion(question.text);
                       setSelectedQuestionMeta({
                         dayNumber,
@@ -889,7 +883,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     <View style={styles.questionCardContainer}>
                       <ThemedText weight="bold" style={[
                         styles.questionCardNumber,
-                        isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber
+                        isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
                       ]}>{idx + 1}</ThemedText>
                       <ThemedText style={styles.questionCardText}>
                         {question.text || 'Reflection question'}
@@ -966,7 +960,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                   style={[
                     styles.prayerButton,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonActive,
-                    createDevotionalPrayerMutation.isPending && { opacity: 0.6 },
+                    createDevotionalPrayerMutation.isPending && styles.prayerButtonLoading,
                   ]}
                   onPress={onPrayPress}
                   disabled={createDevotionalPrayerMutation.isPending}
@@ -975,8 +969,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     name="hands-pray"
                     size={20}
                     color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.hopeWhite}
-                    style={styles.prayerIcon}
-                  />
+                    style={[styles.dayContent, styles.dayContentInactive]}              />
                   <ThemedText weight="bold" style={[
                     styles.prayerButtonText,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
@@ -1410,5 +1403,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.growthGreen,
     color: Colors.hopeWhite,
   },
-
+  dayContent: {
+    flex: 1,
+  },
+  dayContentInactive: {
+    opacity: 0.6,
+  },
+  prayerButtonLoading: {
+    opacity: 0.6,
+  },
 });

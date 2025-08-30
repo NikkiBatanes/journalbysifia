@@ -57,9 +57,9 @@ const DevotionalsScreen = () => {
   const triggerLightHaptic = () => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) {return;}
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) return;
+      if (hapticsPref === false) {return;}
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -71,7 +71,7 @@ const DevotionalsScreen = () => {
   const handleDevotionalPress = (devotional: Devotional) => {
     // Log title extraction for debugging
     createTitleExtractionMemory(devotional);
-    
+
     // Debug logging for simulator issue
     console.log('[DevotionalsScreen] Navigating to devotional:', {
       devotionalId: devotional.id,
@@ -81,7 +81,7 @@ const DevotionalsScreen = () => {
       createdAt: devotional.createdAt,
       platform: require('react-native').Platform.OS,
     });
-    
+
     triggerLightHaptic();
     navigation.navigate('DevotionalDetail', { devotionalId: devotional.id });
   };
@@ -439,7 +439,7 @@ const DevotionalsScreen = () => {
 
   // Filtering
   const filteredDevotionals = useMemo(() => {
-    if (!Array.isArray(devotionals)) return [];
+    if (!Array.isArray(devotionals)) {return [];}
     switch (filter) {
       case 'ongoing':
         return devotionals.filter(d => !d.completed);
@@ -464,16 +464,14 @@ const DevotionalsScreen = () => {
     const groups: Record<string, Devotional[]> = {};
     for (const d of sortedDevotionals) {
       const key = format(new Date(d.updatedAt || d.createdAt), 'MMMM yyyy').toUpperCase();
-      if (!groups[key]) groups[key] = [];
+      if (!groups[key]) {groups[key] = [];}
       groups[key].push(d);
     }
     return Object.entries(groups).map(([title, data]) => ({ title, data }));
   }, [sortedDevotionals]);
 
   const totalDevotionalsAll = Array.isArray(devotionals) ? devotionals.length : 0;
-  const sectionItemsCount = sections.reduce((acc, s) => acc + s.data.length, 0);
   const isTrulyEmpty = !isLoading && totalDevotionalsAll === 0;
-  const isFilterEmpty = !isLoading && totalDevotionalsAll > 0 && sectionItemsCount === 0;
 
   // Prefetch detail data for visible items
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: Array<{ item: Devotional }> }) => {
