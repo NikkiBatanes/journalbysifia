@@ -55,21 +55,16 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 0,
     paddingBottom: 4,
   },
   iconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 107, 107, 0.3)', // Lighter alertCoral with 30% opacity
-    justifyContent: 'center',
-    alignItems: 'center',
+    // Remove circular background and sizing; leave simple spacing only
     marginRight: 12,
   },
   iconContainerOnTint: {
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    // No special background on tint variant either
   },
   icon: {
     marginRight: 0,

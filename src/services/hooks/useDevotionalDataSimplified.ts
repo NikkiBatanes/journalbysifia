@@ -78,24 +78,49 @@ export const useDevotionalDataReactQuery = (userId: string) => {
  * Fetch a single devotional by ID
  */
 export const useDevotionalByIdReactQuery = (userId: string, id: string) => {
-  return useQuery({
+  const queryEnabled = !!id && !!userId && isValidUUID(id);
+  
+  console.log('[useDevotionalByIdReactQuery] Hook called:', { userId, id, queryEnabled });
+  
+  const result = useQuery({
     queryKey: queryKeys.devotionals.detail(userId, id),
     queryFn: async () => {
-      console.log('[useDevotionalByIdReactQuery] Fetching devotional:', id);
-
-      // Validate UUID format before making API call
+      console.log('[useDevotionalByIdReactQuery] Query function executing');
       if (!isValidUUID(id)) {
-        console.warn('[useDevotionalByIdReactQuery] Invalid UUID format, skipping API call:', id);
+        console.log('[useDevotionalByIdReactQuery] Invalid UUID, returning null');
         return null;
       }
-      const apiEntry = await DevotionalApi.getDevotionalById(id);
-      return apiEntry ? transformApiEntryToDevotional(apiEntry) : null;
+      
+      try {
+        console.log('[useDevotionalByIdReactQuery] Calling API...');
+        const apiEntry = await DevotionalApi.getDevotionalById(id);
+        console.log('[useDevotionalByIdReactQuery] API result:', apiEntry ? 'found' : 'null');
+        const transformed = apiEntry ? transformApiEntryToDevotional(apiEntry) : null;
+        console.log('[useDevotionalByIdReactQuery] Transformed result:', transformed ? 'success' : 'null');
+        return transformed;
+      } catch (error) {
+        console.error('[useDevotionalByIdReactQuery] API error:', error);
+        throw error;
+      }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
-    enabled: !!id && !!userId && isValidUUID(id),
+    staleTime: 0, // Force fresh data temporarily
+    gcTime: 0, // No cache temporarily  
+    enabled: queryEnabled,
     retry: 3,
+    refetchOnMount: true, // Force refetch temporarily
+    refetchOnWindowFocus: false,
   });
+  
+  console.log('[useDevotionalByIdReactQuery] Query state:', {
+    data: result.data,
+    isLoading: result.isLoading,
+    isFetching: result.isFetching,
+    error: result.error,
+    status: result.status,
+    fetchStatus: result.fetchStatus
+  });
+  
+  return result;
 };
 
 /**
@@ -123,10 +148,18 @@ export const useCreateDevotionalReactQuery = () => {
         queryKey: ['devotionals'],
       });
 
-      // Force refetch to ensure immediate UI updates
-      queryClient.refetchQueries({
-        queryKey: ['devotionals'],
+      // Use setQueryData for immediate updates without triggering re-renders
+      queryClient.setQueryData(['devotionals', _userId], (oldData: any) => {
+        if (!oldData) return [data];
+        return [data, ...oldData];
       });
+
+      // Delayed refetch to ensure data consistency without navigation conflicts
+      setTimeout(() => {
+        queryClient.refetchQueries({
+          queryKey: ['devotionals'],
+        });
+      }, 1000);
 
       // Emit local event so non-React-Query consumers (e.g., DevotionalCarousel) refresh instantly
       try {
@@ -170,13 +203,30 @@ export const useMarkDayCompleteReactQuery = (userId: string) => {
         console.error('[useMarkDayCompleteReactQuery] Sync error:', syncError);
       }
 
-      // Invalidate related queries
+      // Only invalidate the list query to update dashboard, NOT the detail query
+      // to prevent re-renders while the modal is open
       queryClient.invalidateQueries({
         queryKey: queryKeys.devotionals.list(userId),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.detail(userId, devotionalId),
-      });
+
+      // Use setQueryData to update the detail query data without triggering re-renders
+      // This prevents the modal from reopening due to query invalidation
+      queryClient.setQueryData(
+        queryKeys.devotionals.detail(userId, devotionalId),
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          
+          // Update the specific day's completed status
+          const updatedDays = oldData.days.map((day: any, index: number) => {
+            if (day.dayNumber === dayNumber) {
+              return { ...day, completed: true };
+            }
+            return day;
+          });
+          
+          return { ...oldData, days: updatedDays };
+        }
+      );
 
       // Analytics tracking removed for now
     },
@@ -206,13 +256,21 @@ export const useSubmitDevotionalRatingReactQuery = () => {
     onSuccess: (data, { devotionalId, rating, userId }) => {
       console.log('[useSubmitDevotionalRatingReactQuery] Success:', { devotionalId, rating });
 
-      // Invalidate related queries
+      // Update list query cache (invalidate to refresh)
       queryClient.invalidateQueries({
         queryKey: queryKeys.devotionals.list(userId),
       });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.devotionals.detail(userId, devotionalId),
-      });
+      
+      // Update detail query cache directly to prevent modal reset
+      queryClient.setQueryData(
+        queryKeys.devotionals.detail(userId, devotionalId),
+        (oldData: any) => {
+          if (oldData) {
+            return { ...oldData, rating };
+          }
+          return oldData;
+        }
+      );
 
       // Analytics tracking removed for now
     },

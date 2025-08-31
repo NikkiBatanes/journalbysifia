@@ -35,7 +35,13 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
 }) => {
   const theme = useTheme();
   const styles = createStyles(theme);
-  const formattedDate = format(new Date(playbook.createdAt || ''), 'EEEE, MMM d, yyyy').toUpperCase();
+  const formattedDate = useMemo(() => {
+    const date = new Date(playbook.createdAt || '');
+    const currentYear = new Date().getFullYear();
+    const year = date.getFullYear();
+    const formatString = year === currentYear ? 'EEEE, MMMM d' : 'EEEE, MMMM d, yyyy';
+    return format(date, formatString).toUpperCase();
+  }, [playbook.createdAt]);
   // Use shared utility for task stats (matches detail screen)
   const { completed, total } = useMemo(() => getCompletedStepsCount(playbook.actionSteps), [playbook.actionSteps]);
 

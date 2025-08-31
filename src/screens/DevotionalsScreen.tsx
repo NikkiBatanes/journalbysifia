@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Pencil } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -19,6 +19,7 @@ import { RootStackParamList } from '../navigation/types';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { usePlaybooksData } from '../services/hooks/usePlaybookData';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import DevotionalModal from '../components/DevotionalModal';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { Devotional } from '../interfaces/devotional';
@@ -42,7 +43,10 @@ const DevotionalsScreen = () => {
   const userId = user?.id;
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter, setFilter] = useState<FilterType>('ongoing');
+  const [showDevotionalModal, setShowDevotionalModal] = useState(false);
+  const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
+  const [selectedPlaybookInfo, setSelectedPlaybookInfo] = useState<string | null>(null);
   const {
     devotionals,
     deleteDevotional,
@@ -121,7 +125,11 @@ const DevotionalsScreen = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return format(new Date(dateString), 'EEEE, MMM d, yyyy').toUpperCase();
+    const date = new Date(dateString);
+    const currentYear = new Date().getFullYear();
+    const year = date.getFullYear();
+    const formatString = year === currentYear ? 'EEEE, MMMM d' : 'EEEE, MMMM d, yyyy';
+    return format(date, formatString).toUpperCase();
   };
 
   const renderDevotionalItem = ({ item }: { item: Devotional }) => {
@@ -410,17 +418,20 @@ const DevotionalsScreen = () => {
                   snapToAlignment="start"
                   renderItem={({ item }) => (
                     <View style={styles.card}>
-                      <View style={styles.cardIconCircle}>
-                        <MaterialCommunityIcons name="clipboard-text-play" size={28} color={Colors.hopeWhite} />
-                      </View>
-                      <ThemedText weight="bold" style={styles.cardTitle} numberOfLines={2}>{extractCleanTitle(item.title, 'Playbook')}</ThemedText>
+                      <MaterialCommunityIcons name="clipboard-text-play" size={22} color={Colors.alertCoral} style={styles.cardIcon} />
+                      <ThemedText weight="bold" style={styles.cardTitle}>{extractCleanTitle(item.title, 'Playbook')}</ThemedText>
                       {item.truthInLove?.summary ? (
                         <ThemedText style={styles.cardSubtitle} numberOfLines={3}>{item.truthInLove.summary}</ThemedText>
                       ) : null}
                       <TouchableOpacity
                         style={styles.cardCTA}
                         activeOpacity={0.9}
-                        onPress={() => handlePlaybookPress(item.id)}
+                        onPress={() => {
+                          setSelectedPlaybookId(item.id);
+                          // Use the actual user input captured when creating the playbook
+                          setSelectedPlaybookInfo(item.userInput);
+                          setShowDevotionalModal(true);
+                        }}
                       >
                         <ThemedText weight="bold" style={styles.cardCTAText}>Create a Devotional</ThemedText>
                       </TouchableOpacity>
@@ -573,6 +584,22 @@ const DevotionalsScreen = () => {
           />
         )}
       </BlueSheet>
+
+      {/* Devotional creation modal triggered from empty-state playbook cards */}
+      <DevotionalModal
+        visible={showDevotionalModal}
+        onClose={() => setShowDevotionalModal(false)}
+        playbookId={selectedPlaybookId || undefined}
+        playbookInfo={selectedPlaybookInfo || undefined}
+        onSelectDuration={(days) => {
+          setShowDevotionalModal(false);
+          // Navigate to PlaybookDetail to continue creation with selected playbook
+          if (selectedPlaybookId) {
+            // Fallback: fetch playbook then navigate (reuse existing helper)
+            handlePlaybookPress(selectedPlaybookId);
+          }
+        }}
+      />
     </SafeAreaView>
   );
 };
@@ -1134,7 +1161,7 @@ const styles = StyleSheet.create({
   carouselTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginBottom: 8,
     paddingLeft: 0,
   },
@@ -1148,11 +1175,10 @@ const styles = StyleSheet.create({
   card: {
     width: 256,
     marginRight: 16,
-    backgroundColor: 'white',
-    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)', // match empty state hero card tint
+    borderRadius: 30,
     padding: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(0,0,0,0.06)',
+    // remove light border for dark card style
   },
   cardIconCircle: {
     width: 44,
@@ -1163,20 +1189,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  cardIcon: {
+    marginBottom: 8,
+    alignSelf: 'flex-start',
+  },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginBottom: 6,
   },
   cardSubtitle: {
     fontSize: 13,
-    color: Colors.textGray,
+    color: Colors.hopeWhite,
     lineHeight: 18,
     marginBottom: 12,
   },
   cardCTA: {
-    alignSelf: 'flex-start',
+    alignSelf: 'center',
     backgroundColor: Colors.alertCoral,
     paddingVertical: 10,
     paddingHorizontal: 14,

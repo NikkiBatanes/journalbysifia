@@ -40,8 +40,8 @@ import OnboardingCompleteScreen from '../screens/onboarding/OnboardingCompleteSc
 import OnboardingPlaybookReadyScreen from '../screens/onboarding/OnboardingPlaybookReadyScreenNew';
 import OnboardingSalesOfferScreen from '../screens/onboarding/OnboardingSalesOfferScreen';
 import OnboardingTrialOfferScreen from '../screens/onboarding/OnboardingTrialOfferScreen';
-// import OnboardingPaymentProcessingScreen from '../screens/onboarding/OnboardingPaymentProcessingScreen';
-// import OnboardingPaymentConfirmationScreen from '../screens/onboarding/OnboardingPaymentConfirmationScreen';
+import OnboardingPaymentProcessingScreen from '../screens/onboarding/OnboardingPaymentProcessingScreen';
+import OnboardingPaymentConfirmationScreen from '../screens/onboarding/OnboardingPaymentConfirmationScreen';
 import OnboardingNotificationSetupScreen from '../screens/onboarding/OnboardingNotificationSetupScreen';
 
 import { OnboardingAnimations, splashToFirstScreenAnimation } from './onboardingAnimations';
@@ -292,7 +292,6 @@ export default function RootStackNavigator({
             component={OnboardingTrialOfferScreen as React.ComponentType}
             options={OnboardingAnimations.pushFromBottom}
           />
-          {/* Payment screens temporarily disabled due to missing implementations
           <Stack.Screen
             name="OnboardingPaymentProcessing"
             component={OnboardingPaymentProcessingScreen as React.ComponentType}
@@ -303,7 +302,6 @@ export default function RootStackNavigator({
             component={OnboardingPaymentConfirmationScreen as React.ComponentType}
             options={{ headerShown: false }}
           />
-          */}
           <Stack.Screen
             name="OnboardingNotificationSetup"
             component={OnboardingNotificationSetupScreen as React.ComponentType}

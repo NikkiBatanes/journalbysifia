@@ -87,7 +87,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
   const [burstParticles, setBurstParticles] = useState<BurstParticle[]>([]);
   const burstIdRef = useRef(0);
 
-  const startBurst = useCallback((count = 12) => {
+  const startBurst = useCallback((count = 8) => {
     const colors = [Colors.growthGreen, '#6bd16b', '#8de98d'];
     const particles: BurstParticle[] = Array.from({ length: count }).map((_, i) => {
       const id = burstIdRef.current++;
@@ -99,7 +99,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         size: 10 + Math.random() * 8,   // 10..18
         rotate: Math.random() * 90 - 45, // -45..45 deg
         color: colors[Math.floor(Math.random() * colors.length)],
-        delay: i * 25,
+        delay: i * 20, // Reduced stagger delay
       };
     });
 
@@ -108,10 +108,10 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     particles.forEach((p) => {
       Animated.timing(p.progress, {
         toValue: 1,
-        duration: 900,
+        duration: 700, // Reduced from 900ms
         delay: p.delay,
         useNativeDriver: true,
-        easing: Easing.out(Easing.quad),
+        easing: Easing.out(Easing.ease), // Simpler easing
       }).start();
     });
 
@@ -129,7 +129,7 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     // Cleanup after the burst completes
     setTimeout(() => {
       setBurstParticles(prev => prev.filter(h => !particles.find(n => n.id === h.id)));
-    }, 1300);
+    }, 1000); // Reduced cleanup delay
   }, []);
 
   const isLastDay = devotional &&
@@ -172,25 +172,25 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
         progressAnim.setValue(0);
         Animated.timing(progressAnim, {
           toValue: progress,
-          duration: 1000,
-          useNativeDriver: false,
-          easing: Easing.out(Easing.ease),
+          duration: 600, // Reduced from 1000ms
+          useNativeDriver: false, // Cannot use native driver for width animations
+          easing: Easing.out(Easing.quad), // Simpler easing
         }).start();
-      }, 300);
+      }, 200); // Reduced delay
 
       // Checkmark reveal sequence
       setTimeout(() => {
         Animated.timing(checkAnim, {
           toValue: 1,
-          duration: 500,
+          duration: 300, // Reduced from 500ms
           useNativeDriver: true,
-          easing: Easing.bounce,
+          easing: Easing.out(Easing.back(1.2)), // Smoother than bounce
         }).start();
         // Subtle success haptic when check appears
         triggerSuccessHaptic();
         // Fire celebratory burst when checkmark appears
-        startBurst();
-      }, 1200);
+        startBurst(8); // Reduced particle count from 12 to 8
+      }, 800); // Reduced delay from 1200ms
     }
 
     if (!visible) {
@@ -199,17 +199,17 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
     }
   }, [visible, slideAnim, progressAnim, checkAnim, progress]);
 
-  // When progress value changes while the modal is open, smoothly update the bar
-  // without resetting or re-running the slide-in animation.
-  useEffect(() => {
-    if (!visible) return;
-    Animated.timing(progressAnim, {
-      toValue: progress,
-      duration: 500,
-      useNativeDriver: false,
-      easing: Easing.out(Easing.ease),
-    }).start();
-  }, [progress, visible, progressAnim]);
+  // Disable progress re-animation to prevent multiple animations
+  // The initial animation in the first useEffect is sufficient
+  // useEffect(() => {
+  //   if (!visible) return;
+  //   Animated.timing(progressAnim, {
+  //     toValue: progress,
+  //     duration: 500,
+  //     useNativeDriver: false,
+  //     easing: Easing.out(Easing.ease),
+  //   }).start();
+  // }, [progress, visible, progressAnim]);
 
   const handleClose = useCallback(() => {
     // Haptic on close action

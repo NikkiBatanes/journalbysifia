@@ -85,8 +85,22 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
     const day = d.getDate();
     const year = d.getFullYear();
     const currentYear = new Date().getFullYear();
-    const withYear = `${weekday}, ${month} ${day} ${year}`;
-    const withoutYear = `${weekday}, ${month} ${day}`;
+    const withYear = (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Ionicons name="calendar-clear-outline" size={14} color={Colors.successGreen} style={{ marginRight: 4 }} />
+        <ThemedText weight="bold" style={styles.finishedDateText}>
+          {`${weekday}, ${month} ${day} ${year}`}
+        </ThemedText>
+      </View>
+    );
+    const withoutYear = (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Ionicons name="calendar-clear-outline" size={14} color={Colors.successGreen} style={{ marginRight: 4 }} />
+        <ThemedText weight="bold" style={styles.finishedDateText}>
+          {`${weekday}, ${month} ${day}`}
+        </ThemedText>
+      </View>
+    );
     return year === currentYear ? withoutYear : withYear;
   };
 
@@ -730,6 +744,7 @@ const styles = StyleSheet.create({
   finishedDateText: {
     fontSize: 12,
     color: Colors.successGreen,
+    fontWeight: '600',
   },
   statusSection: {
     gap: 4,

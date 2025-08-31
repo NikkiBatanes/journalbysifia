@@ -3,7 +3,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing, ActivityIndicator } from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
-import { Colors, defaultFontFamily } from '../theme';
+import { Colors } from '../theme';
+import ThemedText from './common/ThemedText';
 
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -102,6 +103,13 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const baseTitle = React.useMemo(() => currentTitle.replace(/(…|\.{1,3})\s*$/, '').trimEnd(), [currentTitle]);
 
   // Debug logging
+  React.useEffect(() => {
+    // Auto-expand 'WHAT YOU SHARED' section if we have content when opening
+    if (visible && (playbookInfo || userInput)) {
+      setShowPlaybookInfo(true);
+    }
+  }, [visible, playbookInfo, userInput]);
+
   React.useEffect(() => {
     console.log('[DevotionalModal] State changed:', { isCreating, error: !!error, isSuccess, selectedDuration });
   }, [isCreating, error, isSuccess, selectedDuration]);
@@ -283,18 +291,20 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             duration: 280,
             useNativeDriver: true,
           }).start();
-          // After the checkmark animation, wait a bit more, then close the modal.
+          
+          // Simplified timing - single timeout to prevent navigation conflicts
           setTimeout(() => {
-            setTimeout(() => {
-              handleClose(() => {
-                // Navigate only after the modal has fully closed
+            handleClose(() => {
+              // Navigate only after the modal has fully closed
+              // Add small delay to ensure React Query updates have settled
+              setTimeout(() => {
                 onDevotionalCreated(devotional.id);
                 // Reset animation state after navigation
                 setIsSuccess(false);
                 checkmarkAnim.setValue(0);
-              });
-            }, 350);
-          }, 280);
+              }, 100);
+            });
+          }, 630); // Combined delay: 280ms animation + 350ms buffer
         }
       }
     } catch (err) {
@@ -382,11 +392,11 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 
           <View style={styles.contentWrapper}>
             <View style={styles.fixedContent}>
-              <Text style={styles.title}>Create Your Personalized Devotional</Text>
+              <ThemedText weight="semiBold" style={styles.title}>Create Your Personalized Devotional</ThemedText>
               <View style={styles.subtitleContainer}>
-                <Text style={styles.subtitle}>
+                <ThemedText weight="regular" style={styles.subtitle}>
                   Based on what you've shared, we'll craft a devotional tailored to your journey.
-                </Text>
+                </ThemedText>
               </View>
             </View>
 
@@ -398,7 +408,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     onPress={() => { triggerLightHaptic(); togglePlaybookInfo(); }}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.playbookInfoLabel}>WHAT YOU SHARED</Text>
+                    <ThemedText weight="semiBold" style={styles.playbookInfoLabel}>WHAT YOU SHARED</ThemedText>
                     <Animated.View style={{ transform: [{ rotate }] }}>
                       <Ionicons
                         name="chevron-down"
@@ -412,14 +422,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                     styles.playbookInfoContent,
                     showPlaybookInfo ? styles.playbookInfoContentExpanded : styles.playbookInfoContentCollapsed,
                   ]}>
-                    <Text style={styles.playbookInfoText}>{userInput || playbookInfo}</Text>
+                    <ThemedText weight="regular" style={styles.playbookInfoText}>{userInput || playbookInfo}</ThemedText>
                   </View>
                 </View>
               )}
 
               <View style={styles.optionsContainer}>
                 {!(isCreating || isSuccess) && (
-                  <Text style={styles.durationPrompt}>Select a devotional duration:</Text>
+                  <ThemedText weight="semiBold" style={styles.durationPrompt}>Select a devotional duration:</ThemedText>
                 )}
                 {(isCreating || isSuccess) ? (
     <View style={styles.generatingContainer}>
@@ -479,18 +489,18 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           >
             <Ionicons name="checkmark-circle" size={64} color={Colors.growthGreen}/>
           </Animated.View>
-          <Text style={styles.loadingText}>Devotional Created!</Text>
+          <ThemedText weight="semiBold" style={styles.loadingText}>Devotional Created!</ThemedText>
         </>
       )}
     </View>
   ) : error ? (
     <View style={styles.errorContainer}>
-      <Text style={styles.errorText}>{error?.message || 'An error occurred'}</Text>
+      <ThemedText weight="semiBold" style={styles.errorText}>{error?.message || 'An error occurred'}</ThemedText>
       <TouchableOpacity
         style={styles.retryButton}
         onPress={() => handleClose()}
       >
-        <Text style={styles.retryButtonText}>Try Again</Text>
+        <ThemedText weight="semiBold" style={styles.retryButtonText}>Try Again</ThemedText>
       </TouchableOpacity>
     </View>
   ) : (
@@ -502,18 +512,18 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           onPress={() => { triggerLightHaptic(); handleSelectDuration(option.days); }}
           disabled={isCreating}
         >
-          <Text style={styles.optionDays}>{option.days} DAY</Text>
-          <Text style={styles.optionTitle}>{option.title}</Text>
-          <Text style={styles.optionDescription}>
+          <ThemedText weight="semiBold" style={styles.optionDays}>{option.days} DAY</ThemedText>
+          <ThemedText weight="semiBold" style={styles.optionTitle}>{option.title}</ThemedText>
+          <ThemedText weight="regular" style={styles.optionDescription}>
             {option.description}
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
       ))}
     </View>
   )}
-  <Text style={styles.footerText}>
+  <ThemedText weight="regular" style={styles.footerText}>
     God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
-  </Text>
+  </ThemedText>
 </View>
             </View>
           </View>
@@ -573,7 +583,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: defaultFontFamily.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 12,
     marginTop: 12,
@@ -594,7 +603,6 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    fontFamily: defaultFontFamily.semiBold,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
     marginBottom: 0,
@@ -602,7 +610,6 @@ const styles = StyleSheet.create({
   },
   durationPrompt: {
     fontSize: 13,
-    fontFamily: defaultFontFamily.semiBold,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'left',
     lineHeight: 20,
@@ -621,20 +628,17 @@ const styles = StyleSheet.create({
   },
   optionDays: {
     fontSize: 12,
-    fontFamily: defaultFontFamily.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 2,
   },
   optionTitle: {
     fontSize: 16,
-    fontFamily: defaultFontFamily.semiBold,
     color: Colors.hopeWhite,
     fontWeight: '600',
     marginBottom: 4,
   },
   optionDescription: {
     fontSize: 12,
-    fontFamily: defaultFontFamily.semiBold,
     color: 'rgba(255, 255, 255, 0.7)',
     lineHeight: 16,
   },
@@ -656,7 +660,6 @@ const styles = StyleSheet.create({
   },
   playbookInfoLabel: {
     color: Colors.hopeWhite,
-    fontFamily: defaultFontFamily.semiBold,
     fontWeight: '600',
     fontSize: 12,
     letterSpacing: 1,
@@ -688,13 +691,11 @@ const styles = StyleSheet.create({
   },
   playbookInfoText: {
     color: 'rgba(255, 255, 255, 0.9)',
-    fontFamily: defaultFontFamily.semiBold,
     fontSize: 13,
     lineHeight: 18,
   },
   footerText: {
-    fontSize: 13,
-    fontFamily: defaultFontFamily.semiBold,
+    fontSize: 11,
     color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginTop: 24,
@@ -723,7 +724,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: Colors.hopeWhite,
-    fontFamily: defaultFontFamily.semiBold,
     fontSize: 16,
     marginTop: 16,
     textAlign: 'center',
@@ -799,7 +799,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.hopeWhite,
-    fontFamily: defaultFontFamily.semiBold,
     fontSize: 16,
     marginBottom: 16,
     textAlign: 'center',
@@ -812,7 +811,6 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     color: Colors.hopeWhite,
-    fontFamily: defaultFontFamily.semiBold,
     fontSize: 14,
   },
 });

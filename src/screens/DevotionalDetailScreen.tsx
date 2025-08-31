@@ -43,6 +43,7 @@ type DevotionalDetailScreenProps = {
 
 import DevotionalDetailReflectionModal from './DevotionalDetailReflectionModal';
 import { useJournaledQuestions } from '../hooks/useJournaledQuestions';
+import DevotionalDetailSkeleton from '../components/SkeletonLoader/DevotionalDetailSkeleton';
 
 export default function DevotionalDetailScreen({ route, navigation }: DevotionalDetailScreenProps) {
 
@@ -66,8 +67,18 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     console.log('[DevotionalDetailScreen] Platform:', Platform.OS);
   }, [devotionalId, cleanDevotionalId, userId]);
 
-  const { data: devotional, isLoading: devotionalLoading } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
+  const { data: devotional, isLoading: devotionalLoading, isFetching: devotionalFetching, error: devotionalError, isError } = useDevotionalByIdReactQuery(userId || '', cleanDevotionalId);
   const { markDayComplete, submitDevotionalRating } = useDevotionalOperations(userId || '');
+
+  // Debug logging for React Query state
+  useEffect(() => {
+    console.log('[DevotionalDetailScreen] React Query State:');
+    console.log('  - devotional:', devotional);
+    console.log('  - devotionalLoading:', devotionalLoading);
+    console.log('  - devotionalError:', devotionalError);
+    console.log('  - isError:', isError);
+    console.log('  - queryEnabled would be:', !!userId && isValidUUID(cleanDevotionalId));
+  }, [devotional, devotionalLoading, devotionalError, isError, userId, cleanDevotionalId]);
 
   // React Query hooks for prayer data
   const { data: allDevotionalPrayers = [] } = useAllDevotionalPrayerData(user?.id || '');
@@ -81,11 +92,14 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     updateJournaledQuestion,
   } = useJournaledQuestions(userId || '', devotionalId);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
-  const loading = devotionalLoading; // Use React Query loading state
+  const loading = devotionalLoading || devotionalFetching; // Use React Query loading state
+  // State for completion modal
   const [showCompletionModal, setShowCompletionModal] = useState(false);
-  // Store the index of the completed day for modal display
   const [completedDayIndex, setCompletedDayIndex] = useState<number | null>(null);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+  const modalOpenedRef = useRef(false);
   const [prayedDays, setPrayedDays] = useState<Record<string, boolean>>({});
+  // Guard to prevent multiple mark complete executions
   // Reflection modal state
   const [reflectionModalVisible, setReflectionModalVisible] = useState(false);
   const [selectedReflectionQuestion, setSelectedReflectionQuestion] = useState<string | null>(null);
@@ -424,33 +438,53 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   console.log('DevotionalDetailScreen prayer:', currentDay?.prayer);
 
   const handleMarkComplete = async () => {
-    if (!devotional) {
+    if (!devotional || isMarkingComplete || showCompletionModal || modalOpenedRef.current) {
+      console.log('🚫 Mark complete blocked by guards:', {
+        hasDevotional: !!devotional,
+        isMarkingComplete,
+        showCompletionModal,
+        modalOpened: modalOpenedRef.current
+      });
       return;
     }
-
-    // Trigger haptic feedback and open modal immediately for responsiveness
-    triggerLightHaptic();
 
     // Get the current day
     const dayToMark = devotional.days[currentDayIndex];
-    if (!dayToMark) {
+    if (!dayToMark || dayToMark.completed) {
+      console.log('🚫 Day already completed or not found');
       return;
     }
 
-    // Show modal right away to reduce perceived delay
+    console.log('✅ Starting mark complete process for day:', currentDayIndex + 1);
+
+    // Set guards to prevent multiple executions
+    setIsMarkingComplete(true);
+    modalOpenedRef.current = true;
+
+    // Trigger haptic feedback immediately
+    triggerSuccessHaptic();
+
+    // Show modal immediately with animation - this is the ONLY place modal should open
     setCompletedDayIndex(currentDayIndex);
     setShowCompletionModal(true);
 
-    // Perform DB update in background
+    // Perform DB update in background WITHOUT awaiting to prevent blocking
     markDayComplete(devotional.id, dayToMark.dayNumber)
-      .then((success) => {
-        if (!success) {
-          console.error('Failed to mark day as complete');
-        }
+      .then(() => {
+        console.log('✅ Day marked complete successfully');
       })
       .catch((error) => {
-        console.error('Error marking day as complete:', error);
+        console.error('❌ Error marking day as complete:', error);
+        // Reset guards on error
+        setIsMarkingComplete(false);
+        modalOpenedRef.current = false;
+        setShowCompletionModal(false);
       });
+
+    // Reset isMarkingComplete guard after modal is shown, but keep modalOpenedRef
+    setTimeout(() => {
+      setIsMarkingComplete(false);
+    }, 1000);
   };
 
   // Toggle prayer status for the current day and add to prayed items
@@ -519,22 +553,29 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
 
   // Handle continuing after completion modal
   const handleCompletionContinue = () => {
-    if (!devotional) {return;}
-
-    // If we're on the last day, close the modal and return to the list
-    if (currentDayIndex === devotional.days.length - 1) {
-      setShowCompletionModal(false);
-      setCompletedDayIndex(null);
+    if (!devotional) {
       return;
     }
 
-    const nextDayIndex = currentDayIndex + 1;
-    if (nextDayIndex < devotional.days.length) {
-      // Reset the FAB visibility when moving to the next day
-      setShowFAB(false);
-      setCurrentDayIndex(nextDayIndex);
+    // Close modal first
+    setShowCompletionModal(false);
+    setCompletedDayIndex(null);
+    
+    // Reset ALL guards
+    setIsMarkingComplete(false);
+    modalOpenedRef.current = false;
 
-      // Scroll to the next day after state updates
+    // If we're on the last day, return to the list
+    if (currentDayIndex === devotional.days.length - 1) {
+      return;
+    }
+
+    // Move to next day
+    const nextDayIndex = currentDayIndex + 1;
+    setCurrentDayIndex(nextDayIndex);
+
+    // Scroll to the next day after a brief delay to allow state to update
+    if (flatListRef.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToIndex({
           index: nextDayIndex,
@@ -542,14 +583,21 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         });
       }, 100);
     }
-    setShowCompletionModal(false);
-    setCompletedDayIndex(null);
   };
 
   // Handle closing the modal by pressing the X button or backdrop
   const handleModalClose = () => {
     setShowCompletionModal(false);
-    navigation.goBack();
+    setCompletedDayIndex(null);
+    setIsMarkingComplete(false);
+    modalOpenedRef.current = false;
+  };
+
+  const handleModalContinue = () => {
+    setShowCompletionModal(false);
+    setCompletedDayIndex(null);
+    setIsMarkingComplete(false);
+    modalOpenedRef.current = false;
   };
 
   // Handle rating submission
@@ -590,16 +638,31 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   // Guard: if query is not enabled yet due to missing user or invalid ID, avoid showing Not Found
   const queryEnabled = !!userId && isValidUUID(cleanDevotionalId);
 
-  if (!queryEnabled) {
-    if (!userId) {
-      return (
-        <SafeAreaView style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.anchorBlue} />
-          <ThemedText weight="medium" style={styles.loadingText}>Preparing devotional...</ThemedText>
-        </SafeAreaView>
-      );
-    }
-    // Invalid ID format; show a friendly error and provide a way back
+  // Debug logging for conditional logic decisions
+  useEffect(() => {
+    console.log('[DevotionalDetailScreen] Conditional Logic Check:');
+    console.log('  - userId:', userId);
+    console.log('  - loading:', loading);
+    console.log('  - devotionalLoading:', devotionalLoading);
+    console.log('  - devotionalFetching:', devotionalFetching);
+    console.log('  - queryEnabled:', queryEnabled);
+    console.log('  - isValidUUID(cleanDevotionalId):', isValidUUID(cleanDevotionalId));
+    console.log('  - devotional exists:', !!devotional);
+    console.log('  - isError:', isError);
+    console.log('  - Will show skeleton (no userId or loading):', !userId || loading);
+    console.log('  - Will show invalid ID:', !isValidUUID(cleanDevotionalId));
+    console.log('  - Will show "not found":', queryEnabled && !loading && !devotional && !devotionalFetching && isError);
+  }, [userId, loading, devotionalLoading, devotionalFetching, queryEnabled, cleanDevotionalId, devotional, isError]);
+
+  // Show loading while user or ID validation is pending, or while fetching data
+  if (!userId || loading || (queryEnabled && !devotional && !isError)) {
+    console.log('[DevotionalDetailScreen] Showing loading screen - userId:', userId, 'loading:', loading, 'queryEnabled:', queryEnabled, 'devotional:', !!devotional, 'isError:', isError);
+    return <DevotionalDetailSkeleton />;
+  }
+
+  // Only show invalid ID error if we're certain the ID format is wrong
+  if (!isValidUUID(cleanDevotionalId)) {
+    console.log('[DevotionalDetailScreen] Showing invalid ID error for:', cleanDevotionalId);
     return (
       <SafeAreaView style={styles.errorContainer}>
         <ThemedText weight="bold" style={styles.errorText}>Invalid devotional link</ThemedText>
@@ -610,16 +673,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
     );
   }
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.anchorBlue} />
-        <ThemedText weight="medium" style={styles.loadingText}>Loading devotional...</ThemedText>
-      </SafeAreaView>
-    );
-  }
-
-  if (!devotional) {
+  // Only show "not found" if query is enabled, completed (not loading/fetching), returned no data, AND has actually attempted to fetch
+  // Check isError to ensure we've actually tried to fetch and failed, not just returning cached null
+  if (queryEnabled && !loading && !devotional && !devotionalFetching && isError) {
+    console.log('[DevotionalDetailScreen] Showing "not found" error - queryEnabled:', queryEnabled, 'loading:', loading, 'devotional:', devotional, 'fetching:', devotionalFetching, 'isError:', isError);
     return (
       <SafeAreaView style={styles.errorContainer}>
         <ThemedText weight="bold" style={styles.errorText}>Devotional not found</ThemedText>
@@ -630,6 +687,11 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
         </TouchableOpacity>
       </SafeAreaView>
     );
+  }
+
+  // At this point, we know devotional exists (TypeScript guard)
+  if (!devotional) {
+    return <DevotionalDetailSkeleton />;
   }
 
   const handleScroll = (event: any) => {
@@ -695,10 +757,12 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
           visible={showCompletionModal}
           devotional={devotional}
           currentDayNumber={(completedDayIndex ?? 0) + 1}
-          completedDays={
-            devotional.days.filter(day => day.completed).length +
-            (devotional.days[(completedDayIndex ?? 0)]?.completed ? 0 : 1)
-          }
+          completedDays={(() => {
+            // Calculate completed days at the time of marking complete to prevent re-calculations
+            const currentCompletedCount = devotional.days.filter(day => day.completed).length;
+            const currentDayAlreadyCompleted = devotional.days[(completedDayIndex ?? 0)]?.completed;
+            return currentCompletedCount + (currentDayAlreadyCompleted ? 0 : 1);
+          })()}
           onContinue={handleCompletionContinue}
           onClose={handleModalClose}
           onRatingSubmit={handleRatingSubmit}
@@ -908,8 +972,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                   {day.prayer && day.prayer.trim().length > 0
                     ? day.prayer
                         .replace(/\*\*/g, '')
-                        .replace(/\n/g, '\n\n')
-                        .replace(/\s*In Jesus' Name/gi, "\n\nIn Jesus' Name")
+                        .replace(/\r\n/g, '\n')
+                        .replace(/\n{3,}/g, '\n\n')
+                        // Ensure two newlines before any variant of "In Jesus' name" (handles curly apostrophes and optional ", Amen")
+                        .replace(/[\s]*((?:In\s+Jesus[’']?\s*name)(?:,?\s*amen)?)/ig, '\n\n$1')
                     : 'No prayer for today.'}
                 </ThemedText>
                 <View pointerEvents="box-none" style={styles.prayerButtonWrapper}>
@@ -969,7 +1035,8 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     name="hands-pray"
                     size={20}
                     color={prayedDays[`${devotional?.id}-${currentDayIndex}`] ? Colors.alertCoral : Colors.hopeWhite}
-                    style={[styles.dayContent, styles.dayContentInactive]}              />
+                    style={styles.prayerIcon}
+                  />
                   <ThemedText weight="bold" style={[
                     styles.prayerButtonText,
                     prayedDays[`${devotional?.id}-${currentDayIndex}`] && styles.prayerButtonTextActive,
@@ -1116,7 +1183,6 @@ const styles = StyleSheet.create({
     marginLeft: 0, // Changed from 'auto' to remove extra space
   },
   progressText: {
-    fontFamily: Fonts.medium,
     fontWeight: '500',
     fontSize: 12,
     lineHeight: 16,
@@ -1281,41 +1347,34 @@ const styles = StyleSheet.create({
   prayerButton: {
     position: 'absolute',
     right: 16,
-    bottom: 16, // Inside lower-right corner of the card
+    bottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingLeft: 10,
-    paddingRight: 14,
-    // Match onboarding email button style
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(26,60,109,0.15)',
+    borderRadius: 16,
     borderWidth: 1,
-    // Subtle white border like onboarding buttons
-    borderColor: 'rgba(255,255,255,0.2)',
-    zIndex: 6,
+    borderColor: 'rgba(255,255,255,0.3)',
+    zIndex: 10,
+    minWidth: 80,
+    minHeight: 44,
   },
   prayerButtonActive: {
-    backgroundColor: 'rgba(255, 59, 48, 0.1)',
-    borderColor: 'rgba(255, 59, 48, 0.2)',
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderColor: 'rgba(255, 107, 107, 0.4)',
   },
   prayerButtonText: {
     marginLeft: 2,
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
   },
   prayerButtonTextActive: {
     color: Colors.alertCoral,
   },
   prayerIcon: {
-    marginRight: 0,
+    marginRight: 6,
   },
   // Overlay layer anchored near the Pray button to render heart particles
   prayerBurstLayer: {
