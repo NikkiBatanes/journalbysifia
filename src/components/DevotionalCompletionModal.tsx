@@ -3,7 +3,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   Modal,
   StyleSheet,
-  Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import { Colors } from '../theme';
 import { OnboardingStyles } from '../theme/onboardingStyles';
-import { Typography as TypographyStyles } from '../theme/typography';
+import ThemedText from './common/ThemedText';
 
 import { Devotional } from '../interfaces/devotional';
 import { extractCleanTitle } from '../utils/titleUtils';
@@ -313,17 +312,17 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
           <View style={styles.contentContainer}>
             {isLastDay ? (
               <>
-                <Text style={styles.congratsTitle}>
+                <ThemedText weight="bold" style={styles.congratsTitle}>
                   Congratulations!
-                </Text>
-                <Text style={styles.congratsSubtitle}>
+                </ThemedText>
+                <ThemedText weight="regular" style={styles.congratsSubtitle}>
                   You've completed the entire devotional!
-                </Text>
+                </ThemedText>
                 {devotional.title && (
                   <View style={styles.titleContainer}>
-                    <Text style={styles.devotionalTitle} numberOfLines={2}>
+                    <ThemedText weight="semiBold" style={styles.devotionalTitle} numberOfLines={2}>
                       {extractCleanTitle(devotional.title)}
-                    </Text>
+                    </ThemedText>
                   </View>
                 )}
                 <Animated.View
@@ -394,9 +393,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                   />
                 </Animated.View>
 
-                <Text style={styles.dayIndicator}>
+                <ThemedText weight="semiBold" style={styles.dayIndicator}>
                   {completedDays}/{totalDays} {completedDays === 1 ? 'Day' : 'Days'} Completed
-                </Text>
+                </ThemedText>
 
                 <View style={styles.progressContainer}>
                   <View style={styles.progressBackground}>
@@ -409,9 +408,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                   </View>
                 </View>
 
-                <Text style={styles.ratingTitle}>
+                <ThemedText weight="regular" style={styles.ratingTitle}>
                   How would you rate this devotional?
-                </Text>
+                </ThemedText>
 
                 <View style={styles.starsContainer}>
                   {renderStars()}
@@ -420,20 +419,20 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
             ) : (
               <>
                 {devotional.totalDays > 1 && (
-                  <Text style={styles.dayIndicator}>
+                  <ThemedText weight="semiBold" style={styles.dayIndicator}>
                     Day {currentDayNumber} of {totalDays}
-                  </Text>
+                  </ThemedText>
                 )}
                 <View style={styles.titleContainer}>
-                  <Text style={styles.devotionalTitle}>
+                  <ThemedText weight="semiBold" style={styles.devotionalTitle}>
                     {devotional.totalDays > 1 && currentDay
                       ? `${extractCleanTitle(devotional.title)}: ${currentDay.title}`
                       : extractCleanTitle(devotional.title)}
-                  </Text>
+                  </ThemedText>
                 </View>
-                <Text style={styles.completedText}>
+                <ThemedText weight="bold" style={styles.completedText}>
                   COMPLETED!
-                </Text>
+                </ThemedText>
 
                 <Animated.View
                   style={[
@@ -518,9 +517,9 @@ const DevotionalCompletionModal: React.FC<DevotionalCompletionModalProps> = ({
                   style={[OnboardingStyles.primaryButton, styles.continueButtonOverride]}
                   onPress={() => { triggerLightHaptic(); onContinue(); }}
                 >
-                  <Text style={OnboardingStyles.primaryButtonText}>
+                  <ThemedText weight="semiBold" style={OnboardingStyles.primaryButtonText}>
                     Continue to Next Day
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               </>
             )}
@@ -576,22 +575,18 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   dayTitle: {
-    ...TypographyStyles.interSemiBold,
     fontSize: 24,
     color: Colors.textDark,
     marginTop: 20,
   },
   completedText: {
-    ...TypographyStyles.interBold,
     fontSize: 18,
     color: Colors.growthGreen,
     marginTop: 16, // Increased top margin for more spacing
     marginBottom: 8, // Added bottom margin for more spacing
-    fontWeight: '700',
     letterSpacing: 0.5,
   },
   congratsTitle: {
-    ...TypographyStyles.interBold,
     fontSize: 28,
     color: Colors.hopeWhite,
     marginTop: 24,
@@ -600,7 +595,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   congratsSubtitle: {
-    ...TypographyStyles.interRegular,
     fontSize: 18,
     color: Colors.hopeWhite,
     marginTop: 0,
@@ -640,22 +634,17 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressText: {
-    ...TypographyStyles.interSemiBold,
     fontSize: 18,
     color: Colors.anchorBlue,
     marginTop: 16,
-    fontWeight: '600',
   },
   dayIndicator: {
-    ...TypographyStyles.interSemiBold,
     fontSize: 20,
     color: Colors.hopeWhite,
     marginBottom: 16,
-    fontWeight: '600',
     opacity: 0.9,
   },
   devotionalTitle: {
-    ...TypographyStyles.interSemiBold,
     fontSize: 16,
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -680,17 +669,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueButtonText: {
-    ...TypographyStyles.interSemiBold,
     fontSize: 16,
     color: Colors.hopeWhite,
   },
   ratingTitle: {
-    ...TypographyStyles.interRegular,
     fontSize: 14,
     color: Colors.hopeWhite,
     marginTop: 10,
     marginBottom: 0,
-    fontWeight: '400',
     lineHeight: 22,
     opacity: 0.9,
     textAlign: 'center',
@@ -722,7 +708,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   submitButtonText: {
-    ...TypographyStyles.interSemiBold,
     fontSize: 16,
     color: Colors.hopeWhite,
   },

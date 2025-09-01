@@ -319,7 +319,7 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.8}
-                style={[styles.generationTitle, { fontWeight: 'normal' }]}
+                style={styles.generationTitle}
               >
                 Creating Your Playbook
               </ThemedText>
@@ -347,18 +347,18 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
               contentContainerStyle={styles.stepTextContainer}
             >
               <View style={styles.stepTextRow}>
-                <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0, fontWeight: 'normal' }]}> 
+                <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]} > 
                   {baseTitle}
                 </AnimatedThemedText>
                 <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-                  <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0, fontWeight: 'normal' }]}>
+                  <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0 }]} > 
                     {'.'.repeat(dotCount)}
                   </ThemedText>
                 </View>
                 {dotsWidth == null && (
                   <ThemedText
                     weight="medium"
-                    style={[styles.currentStepText, styles.hiddenMeasure, { fontWeight: 'normal' }]}
+                    style={[styles.currentStepText, styles.hiddenMeasure]}
                     onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
                   >
                     ...
@@ -424,7 +424,6 @@ const styles = StyleSheet.create({
   },
   generationTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
     color: Colors.white,
     textAlign: 'center',
     marginBottom: 24,
@@ -459,7 +458,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.white,
     textAlign: 'center',
-    fontWeight: '500',
     paddingHorizontal: 8,
     includeFontPadding: false,
   },

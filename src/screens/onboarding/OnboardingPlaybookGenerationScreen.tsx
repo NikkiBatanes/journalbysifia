@@ -7,7 +7,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   Animated,
   StatusBar,
@@ -511,10 +510,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={Colors.white} />
-          <ThemedText weight="bold" style={[styles.errorTitle, { fontWeight: 'normal' }]}>Generation Failed</ThemedText>
-          <ThemedText style={[styles.errorMessage, { fontWeight: 'normal' }]}>{generationError}</ThemedText>
+          <ThemedText weight="bold" style={styles.errorTitle}>Generation Failed</ThemedText>
+          <ThemedText style={styles.errorMessage}>{generationError}</ThemedText>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <ThemedText weight="semiBold" style={[styles.retryButtonText, { fontWeight: 'normal' }]}>Try Again</ThemedText>
+            <ThemedText weight="semiBold" style={styles.retryButtonText}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -550,7 +549,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.8}
-                style={[styles.generationTitle, { fontWeight: 'normal' }]}
+                style={styles.generationTitle}
               >
                 Creating Your Playbook
               </ThemedText>
@@ -580,12 +579,12 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 contentContainerStyle={styles.stepTextContainer}
               >
                 <View style={styles.stepTextRow}>
-                  <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0, fontWeight: 'normal' }] }>
+                  <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }] }>
                     {baseTitle}
                   </AnimatedThemedText>
                   {/* Fixed-width container for dots to prevent re-centering */}
                   <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-                    <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0, fontWeight: 'normal' }] }>
+                    <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0 }] }>
                       {'.'.repeat(dotCount)}
                     </ThemedText>
                   </View>
@@ -593,7 +592,7 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                   {dotsWidth == null && (
                     <ThemedText
                       weight="medium"
-                      style={[styles.currentStepText, styles.hiddenMeasure, { fontWeight: 'normal' }]}
+                      style={[styles.currentStepText, styles.hiddenMeasure]}
                       onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
                     >
                       ...
@@ -668,7 +667,6 @@ const styles = StyleSheet.create({
   },
   generationTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
     color: Colors.white,
     textAlign: 'center',
     marginBottom: 24,
@@ -756,7 +754,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
     textAlign: 'center',
-    fontWeight: '700',
     position: 'absolute',
     left: 0,
     right: 0,
@@ -823,7 +820,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.white,
     textAlign: 'center',
-    fontWeight: '500',
     paddingHorizontal: 8,
     includeFontPadding: false,
   },
@@ -838,7 +834,6 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
     color: Colors.white,
     marginTop: 16,
     marginBottom: 8,
@@ -857,12 +852,10 @@ const styles = StyleSheet.create({
   },
   retryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.anchorBlue,
   },
   successTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
     color: Colors.white,
     marginTop: 12,
     marginBottom: 8,
@@ -877,13 +870,11 @@ const styles = StyleSheet.create({
   },
   playbookTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
     color: Colors.white,
     textAlign: 'center',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: Colors.lightBlue,
     marginBottom: 12,
   },
@@ -901,7 +892,6 @@ const styles = StyleSheet.create({
   },
   actionStepTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.white,
     marginBottom: 4,
   },
@@ -945,7 +935,6 @@ const styles = StyleSheet.create({
   verseReference: {
     fontSize: 14,
     color: Colors.lightBlue,
-    fontWeight: '600',
     textAlign: 'right',
   },
   buttonContainer: {
@@ -963,7 +952,6 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.anchorBlue,
   },
   buttonIcon: {
