@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import { getFontFamily, DEFAULT_FONT_FAMILY } from '../../theme/fonts';
 import { JournalCard } from './JournalCard';
 import { Check, X, Pencil } from 'lucide-react-native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -17,6 +17,8 @@ import {
 import { ErrorBoundary } from '../ErrorBoundary';
 import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
 
 // Prayer types for ACTS method and freeform
 const PRAYER_TYPES = [
@@ -151,6 +153,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   const globalEditMode = useEditModeSafe();
 
   const { user } = useAuth();
+  const theme = useTheme();
+  const regularFont = getFontFamily(theme.currentFont || DEFAULT_FONT_FAMILY, 'regular');
   const dateStr = toLocalDateString(selectedDate);
   const dateCategory = getDateCategory(selectedDate);
 
@@ -337,13 +341,13 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
     return (
       <View style={styles.prayerTypeContainer}>
-        <Text style={styles.sectionTitle}>Choose Prayer Style</Text>
+        <ThemedText style={styles.sectionTitle} weight="semiBold">Choose Prayer Style</ThemedText>
 
         {/* ACTS Method Section */}
         <View style={styles.methodSection}>
           <View style={styles.methodHeader}>
-            <Text style={styles.methodTitle}>ACTS Method</Text>
-            <Text style={styles.methodSubtitle}>Structured prayer approach</Text>
+            <ThemedText style={styles.methodTitle} weight="bold">ACTS Method</ThemedText>
+            <ThemedText style={styles.methodSubtitle}>Structured prayer approach</ThemedText>
           </View>
           <View style={styles.prayerTypeGrid}>
             {actsTypes.map((type) => (
@@ -360,15 +364,16 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                   size={18}
                   color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.mediumGray}
                 />
-                <Text
+                <ThemedText
                   style={[
                     styles.prayerTypeText,
                     selectedPrayerType === type.key && styles.prayerTypeTextSelected,
                   ]}
+                  weight="semiBold"
                 >
                   {type.displayName}
-                </Text>
-                <Text style={styles.prayerTypeDescription}>{type.description}</Text>
+                </ThemedText>
+                <ThemedText style={styles.prayerTypeDescription}>{type.description}</ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -377,8 +382,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         {/* Open Prayer Section */}
         <View style={styles.methodSection}>
           <View style={styles.methodHeader}>
-            <Text style={styles.methodTitle}>Open Prayer</Text>
-            <Text style={styles.methodSubtitle}>A simple, unstructured prayer</Text>
+            <ThemedText style={styles.methodTitle} weight="bold">Open Prayer</ThemedText>
+            <ThemedText style={styles.methodSubtitle}>A simple, unstructured prayer</ThemedText>
           </View>
           <View style={styles.prayerTypeGrid}>
             {freeformTypes.map((type) => (
@@ -395,15 +400,16 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                   size={20}
                   color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.mediumGray}
                 />
-                <Text
+                <ThemedText
                   style={[
                     styles.prayerTypeTextFreeform,
                     selectedPrayerType === type.key && styles.prayerTypeTextFreeformSelected,
                   ]}
+                  weight="semiBold"
                 >
                   {type.displayName}
-                </Text>
-                <Text style={styles.prayerTypeDescriptionFreeform}>{type.description}</Text>
+                </ThemedText>
+                <ThemedText style={styles.prayerTypeDescriptionFreeform}>{type.description}</ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -415,11 +421,11 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // Render prayer input
   const renderPrayerInput = () => (
     <View style={styles.inputContainer}>
-      <Text style={styles.inputLabel}>
+      <ThemedText style={styles.inputLabel} weight="semiBold">
         {PRAYER_TYPES.find(t => t.key === selectedPrayerType)?.displayName} Prayer
-      </Text>
+      </ThemedText>
       <TextInput
-        style={styles.textInput}
+        style={[styles.textInput, { fontFamily: regularFont }]}
         placeholder={`Write your ${selectedPrayerType} prayer...`}
         placeholderTextColor={Colors.mediumGray}
         value={prayerText}
@@ -463,7 +469,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     >
       {PRAYER_TYPES.map((type) => {
         const typePrayers = existingPrayers.filter((p: any) => p.type === type.key);
-        if (typePrayers.length === 0) {return null;}
+        if (typePrayers.length === 0) { return null; }
 
         return (
           <View key={type.key} style={styles.prayerTypeSection}>
@@ -473,18 +479,18 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                 size={16}
                 color={Colors.hopeWhite}
               />
-              <Text style={styles.prayerTypeSectionTitle}>{type.displayName}</Text>
+              <ThemedText style={styles.prayerTypeSectionTitle} weight="semiBold">{type.displayName}</ThemedText>
             </View>
             {typePrayers.map((prayer: any) => (
               <View key={prayer.id} style={styles.prayerItem}>
-                <Text style={styles.prayerContent}>{prayer.content}</Text>
+                <ThemedText style={styles.prayerContent}>{prayer.content}</ThemedText>
                 {(prayer.type === 'freeform' || prayer.type === 'supplication') && prayer.status === 'pending' && !prayer.is_answered && (
                   <TouchableOpacity
                     style={styles.markAnsweredButton}
                     onPress={() => handleMarkAnswered(prayer.id, true)}
                   >
                     <Ionicons name="time-outline" size={16} color="#FF9500" />
-                    <Text style={styles.markAnsweredText}>Mark Answered</Text>
+                    <ThemedText style={styles.markAnsweredText}>Mark Answered</ThemedText>
                   </TouchableOpacity>
                 )}
                 {(prayer.type === 'freeform' || prayer.type === 'supplication') && prayer.is_answered && (
@@ -494,10 +500,10 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                   >
                     <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
                     <View style={styles.answeredTextContainer}>
-                      <Text style={styles.answeredText}>Answered</Text>
-                      <Text style={styles.answeredTimestamp}>
+                      <ThemedText style={styles.answeredText} weight="medium">Answered</ThemedText>
+                      <ThemedText style={styles.answeredTimestamp}>
                         {prayer.answered_at ? formatAnsweredDate(prayer.answered_at) : 'Recently'}
-                      </Text>
+                      </ThemedText>
                     </View>
                   </TouchableOpacity>
                 )}
@@ -546,31 +552,32 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
                 color={Colors.mediumGray}
                 style={styles.emptyStateIcon}
               />
-              <Text style={styles.sectionLabel} accessibilityRole="text">
+              <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
                 PRAYER JOURNAL
-              </Text>
+              </ThemedText>
             </View>
             <View style={styles.titleContainer}>
-              <Text
+              <ThemedText
                 style={styles.emptyStateTitle}
                 accessibilityRole="header"
                 numberOfLines={1}
                 ellipsizeMode="tail"
+                weight="semiBold"
               >
                 {PRAYER_EMPTY_COPY[dateCategory].title}
-              </Text>
+              </ThemedText>
             </View>
-            <Text style={styles.emptyStateSubtext}>
+            <ThemedText style={styles.emptyStateSubtext}>
               {PRAYER_EMPTY_COPY[dateCategory].subtitle}
-            </Text>
+            </ThemedText>
             <TouchableOpacity
               style={styles.emptyStateButton}
               onPress={toggleEditing}
             >
               <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-              <Text style={styles.emptyStateButtonText}>
+              <ThemedText style={styles.emptyStateButtonText} weight="medium">
                 {dateCategory === 'today' ? 'Begin' : 'Revisit'}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
           </View>
         )}
@@ -588,9 +595,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
     marginBottom: 4,
   },
   methodSection: {
@@ -602,15 +607,12 @@ const styles = StyleSheet.create({
   },
   methodTitle: {
     fontSize: 14,
-    fontWeight: '700',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
     letterSpacing: 0.5,
   },
   methodSubtitle: {
     fontSize: 12,
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
     opacity: 0.8,
   },
   prayerTypeGrid: {
@@ -649,9 +651,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeText: {
     fontSize: 15,
-    fontWeight: '600',
     color: Colors.mediumGray,
-    fontFamily: Fonts.semiBold,
     textAlign: 'center',
   },
   prayerTypeTextSelected: {
@@ -659,9 +659,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeTextFreeform: {
     fontSize: 17,
-    fontWeight: '600',
     color: Colors.mediumGray,
-    fontFamily: Fonts.semiBold,
     textAlign: 'center',
   },
   prayerTypeTextFreeformSelected: {
@@ -670,7 +668,6 @@ const styles = StyleSheet.create({
   prayerTypeDescription: {
     fontSize: 14,
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
     textAlign: 'center',
     lineHeight: 20,
     opacity: 0.8,
@@ -679,7 +676,6 @@ const styles = StyleSheet.create({
   prayerTypeDescriptionFreeform: {
     fontSize: 16,
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
     textAlign: 'center',
     lineHeight: 22,
     opacity: 0.8,
@@ -690,16 +686,13 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
   },
   textInput: {
     backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 16,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
     fontSize: 16,
     minHeight: 140,
     borderWidth: 1,
@@ -748,9 +741,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeSectionTitle: {
     fontSize: 12,
-    fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
   },
   prayerItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.07)',
@@ -761,7 +752,6 @@ const styles = StyleSheet.create({
   prayerContent: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
     lineHeight: 24,
     letterSpacing: 0.1,
   },
@@ -780,7 +770,6 @@ const styles = StyleSheet.create({
   markAnsweredText: {
     fontSize: 11,
     color: '#FF9500',
-    fontFamily: Fonts.regular,
   },
   answeredIndicator: {
     flexDirection: 'row',
@@ -791,8 +780,6 @@ const styles = StyleSheet.create({
   answeredText: {
     fontSize: 11,
     color: Colors.growthGreen,
-    fontFamily: Fonts.regular,
-    fontWeight: '500',
   },
   answeredTextContainer: {
     marginLeft: 4,
@@ -800,7 +787,6 @@ const styles = StyleSheet.create({
   answeredTimestamp: {
     fontSize: 9,
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
     marginTop: 1,
   },
   emptyStateContainer: {
@@ -820,8 +806,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   sectionLabel: {
-    fontFamily: Fonts.system.semiBold,
-    fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
     letterSpacing: 1.2,
@@ -835,15 +819,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
     textAlign: 'center',
     paddingHorizontal: 4,
   },
   emptyStateSubtext: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -864,7 +845,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,

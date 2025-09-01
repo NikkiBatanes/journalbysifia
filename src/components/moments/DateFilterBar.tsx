@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Modal,
@@ -11,7 +10,9 @@ import {
 import { Calendar } from 'react-native-calendars';
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths } from 'date-fns';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 
 export type DateRange = {
@@ -72,6 +73,11 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
   onFilterTypeChange,
   selectedRange,
 }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
+  const fontMedium = getFontFamily(fontKey, 'medium');
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
   const { user } = useAuth();
   const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
     | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
@@ -172,27 +178,27 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
           style={[styles.filterTypeButton, filterType === 'single' && styles.activeFilterType]}
           onPress={() => onFilterTypeChange('single')}
         >
-          <Text style={[styles.filterTypeText, filterType === 'single' && styles.activeFilterTypeText]}>
+          <ThemedText style={[styles.filterTypeText, { fontFamily: fontMedium }, filterType === 'single' && styles.activeFilterTypeText]}>
             Single Date
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.filterTypeButton, filterType === 'range' && styles.activeFilterType]}
           onPress={() => onFilterTypeChange('range')}
         >
-          <Text style={[styles.filterTypeText, filterType === 'range' && styles.activeFilterTypeText]}>
+          <ThemedText style={[styles.filterTypeText, { fontFamily: fontMedium }, filterType === 'range' && styles.activeFilterTypeText]}>
             Date Range
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.filterTypeButton, filterType === 'preset' && styles.activeFilterType]}
           onPress={() => onFilterTypeChange('preset')}
         >
-          <Text style={[styles.filterTypeText, filterType === 'preset' && styles.activeFilterTypeText]}>
+          <ThemedText style={[styles.filterTypeText, { fontFamily: fontMedium }, filterType === 'preset' && styles.activeFilterTypeText]}>
             Quick Filter
-          </Text>
+          </ThemedText>
         </TouchableOpacity>
       </View>
 
@@ -206,7 +212,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
           }
         }}
       >
-        <Text style={styles.dateText}>{getDisplayText()}</Text>
+        <ThemedText style={[styles.dateText, { fontFamily: fontMedium }]}>{getDisplayText()}</ThemedText>
         <Ionicons name="chevron-down" size={20} color={Colors.hopeWhite} />
       </TouchableOpacity>
 
@@ -220,9 +226,9 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+              <ThemedText weight="semiBold" style={[styles.modalTitle, { fontFamily: fontSemiBold }]}>
                 {filterType === 'single' ? 'Select Date' : 'Select Date Range'}
-              </Text>
+              </ThemedText>
               <TouchableOpacity onPress={() => setShowCalendar(false)}>
                 <Ionicons name="close" size={24} color={Colors.hopeWhite} />
               </TouchableOpacity>
@@ -246,9 +252,9 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
             />
 
             {filterType === 'range' && tempRange.start && !tempRange.end && (
-              <Text style={styles.rangeHint}>
+              <ThemedText style={[styles.rangeHint, { fontFamily: fontRegular }]}>
                 Select end date for range
-              </Text>
+              </ThemedText>
             )}
           </View>
         </View>
@@ -264,7 +270,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Quick Filters</Text>
+              <ThemedText weight="semiBold" style={[styles.modalTitle, { fontFamily: fontSemiBold }]}>Quick Filters</ThemedText>
               <TouchableOpacity onPress={() => setShowPresets(false)}>
                 <Ionicons name="close" size={24} color={Colors.hopeWhite} />
               </TouchableOpacity>
@@ -280,15 +286,16 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
                   ]}
                   onPress={() => handlePresetSelect(preset)}
                 >
-                  <Text style={[
+                  <ThemedText style={[
                     styles.presetText,
+                    { fontFamily: fontMedium },
                     selectedRange?.label === preset.label && styles.selectedPresetText,
                   ]}>
                     {preset.label}
-                  </Text>
-                  <Text style={styles.presetSubtext}>
+                  </ThemedText>
+                  <ThemedText style={[styles.presetSubtext, { fontFamily: fontRegular }]}>
                     {format(preset.startDate, 'MMM d')} - {format(preset.endDate, 'MMM d, yyyy')}
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -327,7 +334,6 @@ const styles = StyleSheet.create({
   filterTypeText: {
     fontSize: 12,
     color: Colors.mediumGray,
-    fontFamily: Fonts.medium,
   },
   activeFilterTypeText: {
     color: Colors.hopeWhite,
@@ -345,7 +351,6 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
   },
   modalOverlay: {
     flex: 1,
@@ -370,7 +375,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
   },
   rangeHint: {
     textAlign: 'center',
@@ -395,7 +399,6 @@ const styles = StyleSheet.create({
   presetText: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
     marginBottom: 4,
   },
   selectedPresetText: {

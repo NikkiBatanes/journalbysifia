@@ -2,10 +2,12 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Swipeable } from 'react-native-gesture-handler';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert, Modal } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Check, X, Pencil } from 'lucide-react-native';
@@ -116,6 +118,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+  // Dynamic theming
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
 
   const { user } = useAuth();
   const weekStartsOn = useMemo(() => {
@@ -623,24 +628,24 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           <View style={[styles.timeColumn, styles.timeColumnInline]}>
             {block.isAllDay ? (
               <View style={styles.allDayBadge}>
-                <Text style={styles.allDayText}>ALL DAY</Text>
+                <ThemedText weight="semiBold" style={styles.allDayText}>ALL DAY</ThemedText>
               </View>
             ) : (
               <View style={styles.timeRangeStacked}>
-                <Text style={[styles.timeText, styles.timeTextInline]}>{formatTime(block.startTime)}</Text>
-                <Text style={[styles.timeSeparatorText, styles.timeSeparatorTextInline]}>TO</Text>
-                <Text style={[styles.timeText, styles.timeTextInline]}>{formatTime(block.endTime)}</Text>
+                <ThemedText weight="semiBold" style={[styles.timeText, styles.timeTextInline]}>{formatTime(block.startTime)}</ThemedText>
+                <ThemedText weight="semiBold" style={[styles.timeSeparatorText, styles.timeSeparatorTextInline]}>TO</ThemedText>
+                <ThemedText weight="semiBold" style={[styles.timeText, styles.timeTextInline]}>{formatTime(block.endTime)}</ThemedText>
                 <View style={[styles.durationContainer, styles.durationContainerInline]}>
-                  <Text style={[styles.durationText, styles.durationTextInline]}>
+                  <ThemedText style={[styles.durationText, styles.durationTextInline]}>
                     {formatDuration(block.startTime, block.endTime)}
-                  </Text>
+                  </ThemedText>
                 </View>
               </View>
             )}
           </View>
           <View style={styles.detailsColumn}>
             <View style={styles.detailsRow}>
-              <Text style={[styles.blockTitle, styles.blockTitleInline]}>{block.title}</Text>
+              <ThemedText weight="semiBold" style={[styles.blockTitle, styles.blockTitleInline]}>{block.title}</ThemedText>
             </View>
             <View style={styles.detailsContent}>
               <View style={[styles.categoryTag, { backgroundColor: getCategoryColor(block.category) }]}>
@@ -651,9 +656,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     color={Colors.anchorBlue}
                     style={styles.categoryIcon}
                   />
-                  <Text style={styles.categoryLabel} numberOfLines={1} ellipsizeMode="tail">
+                  <ThemedText weight="medium" style={styles.categoryLabel} numberOfLines={1} ellipsizeMode="tail">
                     {block.category || 'Others'}
-                  </Text>
+                  </ThemedText>
                 </View>
               </View>
               {(block.location || block.repeat.frequency !== 'never') && (
@@ -661,18 +666,18 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   {block.location && (
                     <View style={styles.metaInfoRow}>
                       <Ionicons name="location-outline" size={12} color={Colors.hopeWhite} style={styles.metaIcon} />
-                      <Text style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
+                      <ThemedText style={styles.metaText} numberOfLines={1} ellipsizeMode="tail">
                         {block.location}
-                      </Text>
+                      </ThemedText>
                     </View>
                   )}
                   {block.repeat.frequency !== 'never' && (
                     <View style={styles.metaInfoRow}>
                       <Ionicons name="repeat-outline" size={12} color={Colors.hopeWhite} style={styles.metaIcon} />
-                      <Text style={styles.metaText}>
+                      <ThemedText style={styles.metaText}>
                         {formatRepeatText(block.repeat.frequency, block.repeat.customDays, block.repeat.customFrequency)}
                         {block.repeat.endDate ? ` until ${block.repeat.endDate.toLocaleDateString()}` : ''}
-                      </Text>
+                      </ThemedText>
                     </View>
                   )}
                 </View>
@@ -739,13 +744,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               color={Colors.mediumGray}
               style={styles.emptyStateIcon}
             />
-            <Text style={styles.sectionLabel}>TIME BLOCKS</Text>
+            <ThemedText weight="semiBold" style={styles.sectionLabel}>TIME BLOCKS</ThemedText>
           </View>
           {/* Empty state copy varies by date bucket */}
           {isToday && (
             <>
-              <Text style={styles.emptyStateTitle}>Plan Your Day with Purpose</Text>
-              <Text style={styles.emptyStateText}>Schedule timeblocks to align your time with God's calling</Text>
+              <ThemedText weight="semiBold" style={styles.emptyStateTitle}>Plan Your Day with Purpose</ThemedText>
+              <ThemedText style={styles.emptyStateText}>Schedule timeblocks to align your time with God's calling</ThemedText>
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
@@ -757,15 +762,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   accessibilityLabel="Begin planning your day"
                 >
                   <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                  <Text style={styles.emptyStateButtonText}>Begin</Text>
+                  <ThemedText weight="medium" style={styles.emptyStateButtonText}>Begin</ThemedText>
                 </TouchableOpacity>
               )}
             </>
           )}
           {isYesterday && (
             <>
-              <Text style={styles.emptyStateTitle}>Revisit Yesterday</Text>
-              <Text style={styles.emptyStateText}>Capture how you spent your time yesterday</Text>
+              <ThemedText weight="semiBold" style={styles.emptyStateTitle}>Revisit Yesterday</ThemedText>
+              <ThemedText style={styles.emptyStateText}>Capture how you spent your time yesterday</ThemedText>
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
@@ -777,15 +782,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   accessibilityLabel="Revisit yesterday's time blocks"
                 >
                   <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                  <Text style={styles.emptyStateButtonText}>Revisit</Text>
+                  <ThemedText weight="medium" style={styles.emptyStateButtonText}>Revisit</ThemedText>
                 </TouchableOpacity>
               )}
             </>
           )}
           {!isToday && !isYesterday && !future && (
             <>
-              <Text style={styles.emptyStateTitle}>Revisit This Day</Text>
-              <Text style={styles.emptyStateText}>Note what filled your time on this day</Text>
+              <ThemedText weight="semiBold" style={styles.emptyStateTitle}>Revisit This Day</ThemedText>
+              <ThemedText style={styles.emptyStateText}>Note what filled your time on this day</ThemedText>
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
@@ -797,15 +802,15 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   accessibilityLabel="Revisit this day's time blocks"
                 >
                   <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                  <Text style={styles.emptyStateButtonText}>Revisit</Text>
+                  <ThemedText weight="medium" style={styles.emptyStateButtonText}>Revisit</ThemedText>
                 </TouchableOpacity>
               )}
             </>
           )}
           {future && (
             <>
-              <Text style={styles.emptyStateTitle}>Plan Schedule Ahead</Text>
-              <Text style={styles.emptyStateText}>Prayerfully plan how you’ll spend this day</Text>
+              <ThemedText weight="semiBold" style={styles.emptyStateTitle}>Plan Schedule Ahead</ThemedText>
+              <ThemedText style={styles.emptyStateText}>Prayerfully plan how you’ll spend this day</ThemedText>
               {!shouldShowAddingMode && (
                 <TouchableOpacity
                   style={styles.emptyStateButton}
@@ -817,7 +822,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   accessibilityLabel="Plan time blocks for this future day"
                 >
                   <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                  <Text style={styles.emptyStateButtonText}>Pray & Plan</Text>
+                  <ThemedText weight="medium" style={styles.emptyStateButtonText}>Pray & Plan</ThemedText>
                 </TouchableOpacity>
               )}
             </>
@@ -843,7 +848,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               accessibilityLabel={`Show ${Math.min(5, timeBlocks.length - visibleCount)} more time blocks`}
               accessibilityHint={`Reveals ${Math.min(5, timeBlocks.length - visibleCount)} additional time blocks from your ${timeBlocks.length} total blocks`}
             >
-              <Text style={styles.showMoreText}>Show more</Text>
+              <ThemedText weight="medium" style={styles.showMoreText}>Show more</ThemedText>
             </TouchableOpacity>
           )}
         </View>
@@ -857,7 +862,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             <View style={styles.editTimeRow}>
               {newBlock.isAllDay ? (
                 <View style={styles.allDayBadge}>
-                  <Text style={styles.allDayText}>ALL DAY</Text>
+                  <ThemedText weight="semiBold" style={styles.allDayText}>ALL DAY</ThemedText>
                 </View>
               ) : (
                 <View style={styles.timeRangeEdit}>
@@ -868,10 +873,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     accessibilityLabel={`Start time: ${formatTime(newBlock.startTime)}`}
                     accessibilityHint="Tap to change the start time for this time block"
                   >
-                    <Text style={styles.timeText}>{formatTime(newBlock.startTime)}</Text>
+                    <ThemedText weight="semiBold" style={styles.timeText}>{formatTime(newBlock.startTime)}</ThemedText>
                   </TouchableOpacity>
                   <View style={styles.timeSeparatorContainer}>
-                    <Text style={styles.timeSeparatorText}>TO</Text>
+                    <ThemedText weight="semiBold" style={styles.timeSeparatorText}>TO</ThemedText>
                   </View>
                   <TouchableOpacity
                     style={styles.timeButton}
@@ -880,7 +885,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     accessibilityLabel={`End time: ${formatTime(newBlock.endTime)}`}
                     accessibilityHint="Tap to change the end time for this time block"
                   >
-                    <Text style={styles.timeText}>{formatTime(newBlock.endTime)}</Text>
+                    <ThemedText weight="semiBold" style={styles.timeText}>{formatTime(newBlock.endTime)}</ThemedText>
                   </TouchableOpacity>
                 </View>
               )}
@@ -898,7 +903,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       {newBlock.isAllDay && <Check size={10} color={Colors.hopeWhite} strokeWidth={2.5} />}
                     </View>
                   </View>
-                  <Text style={styles.allDayLabel}>All Day</Text>
+                  <ThemedText style={styles.allDayLabel}>All Day</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -917,7 +922,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   style={styles.doneButton}
                   onPress={() => setShowTimePicker({ start: false, end: false, id: null })}
                 >
-                  <Text style={styles.doneButtonText}>Done</Text>
+                  <ThemedText weight="medium" style={styles.doneButtonText}>Done</ThemedText>
                 </TouchableOpacity>
               </View>
             )}
@@ -926,7 +931,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           {/* 2. Activity Title */}
           <View style={styles.inputContainer}>
             <TextInput
-              style={[styles.input, styles.fullWidth, showTitleError && styles.inputError]}
+              style={[
+                styles.input,
+                styles.fullWidth,
+                showTitleError && styles.inputError,
+                { fontFamily: getFontFamily(fontKey, 'regular') },
+              ]}
               value={newBlock.title}
               onChangeText={(text) => {
                 setNewBlock({...newBlock, title: text});
@@ -940,7 +950,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               accessibilityHint="Enter a descriptive title for your time block. This field is required."
               accessibilityRole="text"
             />
-            {showTitleError && <Text style={styles.errorText}>Title is required</Text>}
+            {showTitleError && <ThemedText style={styles.errorText}>Title is required</ThemedText>}
           </View>
 
           {/* 3. Location */}
@@ -952,7 +962,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               style={styles.locationIcon}
             />
             <TextInput
-              style={[styles.input, styles.locationInput]}
+              style={[
+                styles.input,
+                styles.locationInput,
+                { fontFamily: getFontFamily(fontKey, 'regular') },
+              ]}
               value={newBlock.location}
               onChangeText={(text) => setNewBlock({...newBlock, location: text})}
               placeholder="Add location (optional)"
@@ -981,13 +995,13 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 size={16}
                 color={newBlock.category ? Colors.hopeWhite : Colors.hopeWhite}
               />
-              <Text style={[
+              <ThemedText style={[
                 styles.categorySelectorText,
                 !newBlock.category && styles.placeholderText,
                 !newBlock.category && showCategoryError && { color: Colors.alertCoral },
               ]}>
                 {newBlock.category || 'Select a category'}
-              </Text>
+              </ThemedText>
               <Ionicons
                 name="chevron-down"
                 size={16}
@@ -995,7 +1009,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               />
             </TouchableOpacity>
             {showCategoryError && !newBlock.category && (
-              <Text style={styles.errorText}>Please select a category</Text>
+              <ThemedText style={styles.errorText}>Please select a category</ThemedText>
             )}
           </View>
 
@@ -1011,9 +1025,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 color={Colors.hopeWhite}
                 style={styles.repeatIcon}
               />
-              <Text style={styles.repeatText}>
+              <ThemedText style={styles.repeatText}>
                 {formatRepeatText(newBlock.repeat.frequency, newBlock.repeat.customDays, customFrequency, weekStartsOn)}{newBlock.repeat.endDate ? ` until ${newBlock.repeat.endDate.toLocaleDateString()}` : ''}
-              </Text>
+              </ThemedText>
               <Ionicons
                 name={showRepeatOptions ? 'chevron-up' : 'chevron-down'}
                 size={16}
@@ -1053,14 +1067,14 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       }
                     }}
                   >
-                    <Text style={styles.repeatOptionText}>
+                    <ThemedText style={styles.repeatOptionText}>
                       {freq === 'never' ? 'Never' :
                        freq === 'daily' ? 'Every Day' :
                        freq === 'weekly' ? 'Every Week' :
                        freq === 'biweekly' ? 'Every 2 Weeks' :
                        freq === 'monthly' ? 'Every Month' :
                        freq === 'yearly' ? 'Every Year' : 'Custom...'}
-                    </Text>
+                    </ThemedText>
                     {newBlock.repeat.frequency === freq && (
                       <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
                     )}
@@ -1074,10 +1088,10 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               <View style={styles.customRepeatContainer}>
                 {/* Frequency Selector */}
                 <View style={styles.frequencySelector}>
-                  <Text style={styles.frequencyLabel}>Repeat every:</Text>
+                  <ThemedText style={styles.frequencyLabel}>Repeat every:</ThemedText>
                   <View style={styles.frequencyInputs}>
                     <TextInput
-                      style={styles.frequencyInput}
+                      style={[styles.frequencyInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                       value={_inputValue}
                       onChangeText={(text) => {
                         setInputValue(text);
@@ -1129,9 +1143,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       style={styles.frequencyUnitButton}
                       onPress={() => setShowFrequencySelector(!_showFrequencySelector)}
                     >
-                      <Text style={styles.frequencyUnitText}>
+                      <ThemedText style={styles.frequencyUnitText}>
                         {customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1)}{customFrequency.value > 1 ? 's' : ''}
-                      </Text>
+                      </ThemedText>
                       <Ionicons name="chevron-down" size={14} color={Colors.hopeWhite} />
                     </TouchableOpacity>
                   </View>
@@ -1155,9 +1169,9 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                             setShowFrequencySelector(false);
                           }}
                         >
-                          <Text style={styles.frequencyOptionText}>
+                          <ThemedText style={styles.frequencyOptionText}>
                             {unit.charAt(0).toUpperCase() + unit.slice(1)}
-                          </Text>
+                          </ThemedText>
                           {customFrequency.unit === unit && (
                             <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
                           )}
@@ -1170,7 +1184,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 {/* Days of Week Selector (only shown for weekly frequency) */}
                 {customFrequency.unit === 'week' && (
                   <View style={styles.customDaysContainer}>
-                    <Text style={styles.customDaysLabel}>On days:</Text>
+                    <ThemedText style={styles.customDaysLabel}>On days:</ThemedText>
                     <View style={styles.daysOfWeekContainer}>
                       {Array.from({ length: 7 }).map((_, i) => {
                         const dayIndex = (i + weekStartsOn) % 7; // 0=Sun..6=Sat, rotated by preference
@@ -1199,12 +1213,12 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                               });
                             }}
                           >
-                            <Text style={[
+                            <ThemedText style={[
                               styles.dayButtonText,
                               isSelected && styles.dayButtonTextSelected,
                             ]}>
                               {label}
-                            </Text>
+                            </ThemedText>
                           </TouchableOpacity>
                         );
                       })}
@@ -1218,7 +1232,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           {/* End Repeat Options */}
           {newBlock.repeat.frequency !== 'never' && (
             <View style={styles.endRepeatContainer}>
-              <Text style={styles.endRepeatLabel}>End Repeat:</Text>
+              <ThemedText style={styles.endRepeatLabel}>End Repeat:</ThemedText>
               <View style={styles.endRepeatOptions}>
                 <TouchableOpacity
                   style={[
@@ -1235,7 +1249,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     });
                   }}
                 >
-                  <Text style={styles.endRepeatOptionText}>Never</Text>
+                  <ThemedText style={styles.endRepeatOptionText}>Never</ThemedText>
                   {!newBlock.repeat.endDate && (
                     <Ionicons name="checkmark" size={16} color={Colors.alertCoral} />
                   )}
@@ -1250,11 +1264,11 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       setShowEndDatePicker(!_showEndDatePicker);
                     }}
                   >
-                    <Text style={styles.endRepeatOptionText}>
+                    <ThemedText style={styles.endRepeatOptionText}>
                       {newBlock.repeat.endDate
                         ? newBlock.repeat.endDate.toLocaleDateString()
                         : 'Select End Date'}
-                    </Text>
+                    </ThemedText>
                     <View style={styles.dropdownIconContainer}>
                       {newBlock.repeat.endDate && (
                         <Ionicons name="checkmark" size={16} color={Colors.alertCoral} style={styles.checkmarkIcon} />
@@ -1283,7 +1297,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
             >
               <View style={styles.modalOverlay}>
                 <View style={styles.datePickerModalContent}>
-                  <Text style={styles.datePickerTitle}>Select End Date</Text>
+                  <ThemedText weight="semiBold" style={styles.datePickerTitle}>Select End Date</ThemedText>
                   <DateTimePicker
                     value={newBlock.repeat.endDate || new Date()}
                     mode="date"
@@ -1312,7 +1326,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     style={styles.doneButton}
                     onPress={() => setShowEndDatePicker(false)}
                   >
-                    <Text style={styles.doneButtonText}>Done</Text>
+                    <ThemedText weight="medium" style={styles.doneButtonText}>Done</ThemedText>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1321,7 +1335,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
           {/* 6. Notes */}
           <TextInput
-            style={[styles.input, styles.notesInput]}
+            style={[styles.input, styles.notesInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
             value={newBlock.notes}
             onChangeText={(text) => setNewBlock({...newBlock, notes: text})}
             placeholder="Add notes (optional)"
@@ -1398,13 +1412,13 @@ const NotesWithChevron = ({ notes, isExpanded, onToggle }: { notes: string; isEx
   return (
     <TouchableOpacity style={styles.notesContainer} onPress={onToggle} activeOpacity={0.7}>
       <Ionicons name="document-text-outline" size={12} color={Colors.hopeWhite} style={styles.notesIcon} />
-      <Text
+      <ThemedText
         style={styles.notesText}
         numberOfLines={isExpanded ? undefined : 2}
         ellipsizeMode="tail"
       >
         {notes}
-      </Text>
+      </ThemedText>
       {showChevron && (
         <Ionicons
           name={isExpanded ? 'chevron-up' : 'chevron-down'}
@@ -1458,14 +1472,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    fontFamily: Fonts.regular,
     color: Colors.mediumGray,
     fontSize: 13,
     textAlign: 'center',
     padding: 16,
   },
   emptyText: {
-    fontFamily: Fonts.regular,
     color: Colors.mediumGray,
     fontSize: 13,
     textAlign: 'center',
@@ -1488,7 +1500,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
@@ -1499,7 +1510,6 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     marginTop: 2,
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 18,
     letterSpacing: 0.2,
@@ -1509,7 +1519,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   emptyStateText: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -1533,7 +1542,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
@@ -1548,7 +1556,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   showMoreText: {
-    fontFamily: Fonts.medium,
     color: Colors.anchorBlue,
     fontSize: 13,
   },
@@ -1606,7 +1613,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   timeSeparatorText: {
-    fontFamily: Fonts.regular,
     fontSize: 8,
     color: Colors.hopeWhite,
     marginVertical: 2,
@@ -1627,7 +1633,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   allDayText: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 10,
     color: Colors.hopeWhite,
@@ -1647,7 +1652,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   durationText: {
-    fontFamily: Fonts.regular,
     fontSize: 10,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -1676,7 +1680,6 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   blockTitle: {
-    fontFamily: Fonts.bold,
     fontWeight: '400',
     fontSize: 14,
     color: Colors.hopeWhite,
@@ -1710,7 +1713,6 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   categoryLabel: {
-    fontFamily: Fonts.medium,
     fontWeight: '600',
     fontSize: 11,
     color: Colors.anchorBlue,
@@ -1730,7 +1732,6 @@ const styles = StyleSheet.create({
     width: 12,
   },
   metaText: {
-    fontFamily: Fonts.regular,
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.7)',
     flex: 1,
@@ -1759,7 +1760,6 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   timeText: {
-    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     fontSize: 13,
     minWidth: 40,
@@ -1776,14 +1776,12 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontFamily: Fonts.semiBold,
     fontSize: 14,
     color: Colors.darkGray,
     flex: 1,
     marginRight: 8,
   },
   category: {
-    fontFamily: Fonts.regular,
     fontSize: 11,
     color: Colors.mediumGray,
     backgroundColor: 'rgba(0,0,0,0.05)',
@@ -1797,7 +1795,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   locationText: {
-    fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.mediumGray,
     marginLeft: 4,
@@ -1808,7 +1805,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   notesText: {
-    fontFamily: Fonts.regular,
     fontSize: 11,
     color: 'rgba(255, 255, 255, 0.9)',
     flex: 1,
@@ -1836,7 +1832,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 10,
-    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -1866,7 +1861,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   categorySelectorText: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.hopeWhite,
     marginLeft: 8,
@@ -1892,7 +1886,6 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.lightGray,
   },
   categoryOptionText: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.darkGray,
   },
@@ -1903,7 +1896,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   allDayLabel: {
-    fontFamily: Fonts.medium,
     fontSize: 14,
     color: Colors.hopeWhite,
   },
@@ -1935,7 +1927,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   timeLabel: {
-    fontFamily: Fonts.medium,
     fontSize: 14,
     color: Colors.hopeWhite,
   },
@@ -1951,7 +1942,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
     padding: 8,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
     fontSize: 14,
   },
   buttonRow: {
@@ -2040,7 +2030,6 @@ const styles = StyleSheet.create({
   },
   doneButtonText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
     fontSize: 14,
   },
   inputContainer: {
@@ -2069,7 +2058,6 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     padding: 0,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
     fontSize: 14,
     height: '100%',
   },
@@ -2102,7 +2090,6 @@ const styles = StyleSheet.create({
   repeatText: {
     color: Colors.hopeWhite,
     flex: 1,
-    fontFamily: Fonts.regular,
     fontSize: 14,
   },
   repeatOptions: {
@@ -2124,7 +2111,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
   },
   repeatOptionText: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.hopeWhite,
   },
@@ -2171,7 +2157,6 @@ const styles = StyleSheet.create({
   },
   gridItemText: {
     color: Colors.darkGray,
-    fontFamily: Fonts.medium,
     fontSize: 11,
     textAlign: 'center',
     marginTop: 2,
@@ -2189,7 +2174,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   customRepeatLabel: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -2200,7 +2184,6 @@ const styles = StyleSheet.create({
   frequencyLabel: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
     marginBottom: 8,
   },
   frequencyInputs: {
@@ -2215,7 +2198,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 8,
-    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -2236,7 +2218,6 @@ const styles = StyleSheet.create({
   },
   frequencyUnitText: {
     flex: 1,
-    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     fontSize: 14,
     lineHeight: 20,
@@ -2262,7 +2243,6 @@ const styles = StyleSheet.create({
   },
   frequencyOptionText: {
     flex: 1,
-    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     fontSize: 14,
   },
@@ -2275,7 +2255,6 @@ const styles = StyleSheet.create({
   customDaysLabel: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
     marginBottom: 8,
   },
   daysOfWeekContainer: {
@@ -2302,7 +2281,6 @@ const styles = StyleSheet.create({
   dayButtonText: {
     fontSize: 12,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
   },
   dayButtonTextSelected: {
     color: 'white',
@@ -2314,7 +2292,6 @@ const styles = StyleSheet.create({
   endRepeatLabel: {
     fontSize: 14,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
     marginBottom: 8,
   },
   endRepeatOptions: {
@@ -2336,7 +2313,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   endRepeatOptionText: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.hopeWhite,
     flex: 1,
@@ -2356,7 +2332,6 @@ const styles = StyleSheet.create({
   },
   datePickerTitle: {
     fontSize: 18,
-    fontFamily: Fonts.bold,
     fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 16,
@@ -2371,7 +2346,6 @@ const styles = StyleSheet.create({
   },
   repeatModalTitle: {
     fontSize: 18,
-    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 16,
     textAlign: 'center',

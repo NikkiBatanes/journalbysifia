@@ -1,11 +1,10 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import Entypo from 'react-native-vector-icons/Entypo';
-import { View, StyleSheet, TextInput, TouchableOpacity, Text, Alert, Modal, Platform } from 'react-native';
+import { View, StyleSheet, TextInput, TouchableOpacity, Alert, Modal, Platform } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
 
 import { Check, ListTodo as LuListTodo, X, Pencil } from 'lucide-react-native';
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
@@ -16,6 +15,9 @@ import { TodoSkeleton } from '../SkeletonLoader/TodoSkeleton';
 import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 // React Query hooks
 import {
@@ -75,6 +77,9 @@ const TODOS_EMPTY_COPY: Record<'yesterday' | 'earlier' | 'future', { title: stri
 };
 
 const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Date(), refreshKey = 0, variant = 'carousel', viewMode, expanded, onExpand }) => {
+  // Dynamic theming for fonts
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
@@ -597,13 +602,13 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           accessibilityRole="alert"
           accessibilityLabel="Error loading todos"
         >
-          <Text
+          <ThemedText
             style={styles.errorText}
             accessibilityRole="text"
             accessibilityLabel="Failed to load todos"
           >
             Failed to load todos
-          </Text>
+          </ThemedText>
           <TouchableOpacity
             onPress={() => { 
               triggerLightHaptic(); 
@@ -614,7 +619,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             accessibilityLabel="Retry loading todos"
             accessibilityHint="Attempts to reload the todo list"
           >
-            <Text style={styles.retryText}>Retry</Text>
+            <ThemedText style={styles.retryText}>Retry</ThemedText>
           </TouchableOpacity>
         </View>
       </JournalCard>
@@ -661,19 +666,18 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               color={Colors.mediumGray}
               style={styles.emptyStateIcon}
             />
-            <Text style={styles.sectionLabel} accessibilityRole="text">TO-DOS</Text>
+            <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">TO-DOS</ThemedText>
           </View>
           <View style={styles.titleContainer}>
-            <Text
+            <ThemedText
+              weight="semiBold"
               style={styles.emptyStateTitle}
               accessibilityRole="header"
-              numberOfLines={1}
-              ellipsizeMode="tail"
             >
               {emptyTitle}
-            </Text>
+            </ThemedText>
           </View>
-          <Text style={styles.emptyStateSubtext} accessibilityRole="text">{emptySubtitle}</Text>
+          <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">{emptySubtitle}</ThemedText>
           <TouchableOpacity
             style={styles.emptyStateButton}
             onPress={() => {
@@ -684,7 +688,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             accessibilityLabel={`${buttonLabel} adding todos`}
           >
             <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>{buttonLabel}</Text>
+            <ThemedText weight="medium" style={styles.emptyStateButtonText}>{buttonLabel}</ThemedText>
           </TouchableOpacity>
         </View>
       </JournalCard>
@@ -867,7 +871,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               {editingId === item.id ? (
                 <View style={styles.editContainer}>
                   <TextInput
-                    style={styles.editInput}
+                    style={[styles.editInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                     value={editingText}
                     onChangeText={setEditingText}
                     autoFocus
@@ -899,7 +903,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   </View>
                 </View>
               ) : (
-                <Text
+                <ThemedText
                   style={[
                     styles.todoText,
                     item.completed && styles.completedText,
@@ -907,7 +911,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   accessibilityElementsHidden={true}
                 >
                   {item.text}
-                </Text>
+                </ThemedText>
               )}
             </SwipeableTodoItem>
           </View>
@@ -926,9 +930,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   accessibilityHint="Loads 5 more todo items to the list"
                 >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                  <Text style={[styles.paginationButtonText, styles.showMoreText]}>
+                  <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showMoreText]}>
                     Show more
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               )}
               {canShowLess && (
@@ -941,9 +945,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   accessibilityHint="Collapses the list to show only the first 5 todos"
                 >
                   <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
-                  <Text style={[styles.paginationButtonText, styles.showLessText]}>
+                  <ThemedText weight="medium" style={[styles.paginationButtonText, styles.showLessText]}>
                     Show less
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               )}
             </View>
@@ -956,7 +960,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           <View style={styles.inputContainer}>
             <TextInput
               ref={inputRef}
-              style={styles.input}
+              style={[styles.input, { fontFamily: getFontFamily(fontKey, 'regular') }]}
               value={newTodo}
               onChangeText={setNewTodo}
               placeholder="Add a task..."
@@ -1033,13 +1037,13 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
         <View style={styles.modalContainer}>
           <View style={styles.modalTitleRow}>
             <Ionicons style={styles.modalTitleIcon} name="copy-outline" size={18} color={Colors.hopeWhite} />
-            <Text style={styles.modalTitle}>Copy Incomplete To-Dos</Text>
+            <ThemedText weight="semiBold" style={styles.modalTitle}>Copy Incomplete To-Dos</ThemedText>
           </View>
-          <Text style={styles.modalSubtitle}>
+          <ThemedText style={styles.modalSubtitle}>
             Copy {todos.filter(t => !t.completed).length} incomplete to-do{todos.filter(t => !t.completed).length === 1 ? '' : 's'} to a new date. Original to-dos will remain.
-          </Text>
+          </ThemedText>
 
-          <Text style={styles.chooseDateLabel}>Choose a date</Text>
+          <ThemedText weight="medium" style={styles.chooseDateLabel}>Choose a date</ThemedText>
           <View style={styles.datePickerContainer}>
             <TouchableOpacity
               style={styles.datePickerButton}
@@ -1050,7 +1054,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 setCopyTargetDate(tomorrow);
               }}
             >
-              <Text style={styles.datePickerText}>Tomorrow</Text>
+              <ThemedText weight="medium" style={styles.datePickerText}>Tomorrow</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1062,7 +1066,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 setCopyTargetDate(nextWeek);
               }}
             >
-              <Text style={styles.datePickerText}>Next Week</Text>
+              <ThemedText weight="medium" style={styles.datePickerText}>Next Week</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -1071,12 +1075,12 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               style={styles.selectedDateContainer}
               onPress={toggleCalendar}
             >
-              <Text style={styles.selectedDateText}>
+              <ThemedText weight="medium" style={styles.selectedDateText}>
                 {formatSelectedDate(copyTargetDate)}
-              </Text>
-              <Text style={styles.tapToChangeText}>
+              </ThemedText>
+              <ThemedText style={styles.tapToChangeText}>
                 {showCalendar ? 'Hide calendar' : 'Tap to change'}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
 
             {showCalendar && (
@@ -1088,7 +1092,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   renderHeader={(date) => {
                     const d = new Date(date as any);
                     const label = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }).toUpperCase();
-                    return <Text style={styles.monthHeaderText}>{label}</Text>;
+                    return <ThemedText weight="semiBold" style={styles.monthHeaderText}>{label}</ThemedText>;
                   }}
                   hideArrows={false}
                   firstDay={weekStartsOn}
@@ -1107,9 +1111,9 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                     selectedDotColor: Colors.hopeWhite,
                     arrowColor: Colors.hopeWhite,
                     monthTextColor: Colors.hopeWhite,
-                    textDayFontFamily: Fonts.regular,
-                    textMonthFontFamily: Fonts.semiBold,
-                    textDayHeaderFontFamily: Fonts.medium,
+                    textDayFontFamily: getFontFamily(fontKey, 'regular'),
+                    textMonthFontFamily: getFontFamily(fontKey, 'semiBold'),
+                    textDayHeaderFontFamily: getFontFamily(fontKey, 'medium'),
                     textDayFontSize: 14,
                     textMonthFontSize: 16,
                     textDayHeaderFontSize: 13,
@@ -1126,14 +1130,14 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                       [selectedStr]: {
                         selected: true,
                         customStyles: {
-                          text: { fontFamily: Fonts.bold, fontWeight: '800', color: Colors.hopeWhite },
+                          text: { fontFamily: getFontFamily(fontKey, 'bold'), color: Colors.hopeWhite },
                         },
                       },
                     };
                     if (todayStr !== selectedStr) {
                       marked[todayStr] = {
                         customStyles: {
-                          text: { color: Colors.alertCoral, fontFamily: Fonts.bold, fontWeight: '700' },
+                          text: { color: Colors.alertCoral, fontFamily: getFontFamily(fontKey, 'bold') },
                         },
                       };
                     }
@@ -1149,7 +1153,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               style={[styles.modalButton, styles.cancelButton]}
               onPress={() => setShowCopyModal(false)}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <ThemedText weight="semiBold" style={styles.cancelButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1159,7 +1163,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                 await copyIncompleteTodos(copyTargetDate);
               }}
             >
-              <Text style={styles.copyButtonText}>Add to Date</Text>
+              <ThemedText weight="semiBold" style={styles.copyButtonText}>Add to Date</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -1194,8 +1198,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
     letterSpacing: 1.2,
@@ -1209,15 +1211,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
     textAlign: 'center',
     paddingHorizontal: 4,
   },
   emptyStateSubtext: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -1241,7 +1240,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
@@ -1300,7 +1298,6 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
-    fontFamily: Fonts.medium,
     lineHeight: 14,
   },
   showMoreButton: {
@@ -1339,7 +1336,6 @@ const styles = StyleSheet.create({
   },
   todoText: {
     flex: 1,
-    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     fontSize: 13,
     lineHeight: 18,
@@ -1360,7 +1356,6 @@ const styles = StyleSheet.create({
   },
   editInput: {
     flex: 1,
-    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     fontSize: 13,
     lineHeight: 18,
@@ -1398,7 +1393,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 12,
     padding: 12,
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.hopeWhite,
     borderWidth: 1,
@@ -1450,7 +1444,6 @@ const styles = StyleSheet.create({
 
   // Loading and error states
   errorText: {
-    fontFamily: Fonts.regular,
     color: Colors.alertCoral,
     fontSize: 13,
     textAlign: 'center',
@@ -1464,7 +1457,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   retryText: {
-    fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
     fontSize: 12,
   },
@@ -1492,8 +1484,6 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   modalTitle: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
     textAlign: 'left',
@@ -1510,7 +1500,6 @@ const styles = StyleSheet.create({
     marginTop: -10,
   },
   modalSubtitle: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     lineHeight: 20,
     color: Colors.hopeWhite,
@@ -1521,7 +1510,6 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   chooseDateLabel: {
-    fontFamily: Fonts.medium,
     fontSize: 14,
     color: Colors.hopeWhite,
     textAlign: 'left',
@@ -1544,7 +1532,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   datePickerText: {
-    fontFamily: Fonts.medium,
     fontSize: 14,
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -1580,7 +1567,6 @@ const styles = StyleSheet.create({
     }),
   },
   selectedDateText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -1588,7 +1574,6 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   tapToChangeText: {
-    fontFamily: Fonts.regular,
     fontSize: 12,
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -1623,14 +1608,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
   },
   cancelButtonText: {
-    fontFamily: Fonts.semiBold,
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
   copyButtonText: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
@@ -1639,8 +1621,6 @@ const styles = StyleSheet.create({
   monthHeaderText: {
     fontSize: 16,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     letterSpacing: 1,
     textAlign: 'center',
     paddingVertical: 4,

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 
@@ -52,6 +52,7 @@ import {
   useCreatePrayer,
   useMarkSupplicationAnswered,
 } from '../../services/hooks/usePrayerData';
+import ThemedText from '../common/ThemedText';
 
 // Prayer types and descriptions
 const PRAYER_TYPES = [
@@ -159,7 +160,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
   if (!user) {
     return (
       <View style={styles.card}>
-        <Text style={styles.errorText}>Please log in to view prayers</Text>
+        <ThemedText style={styles.errorText}>Please log in to view prayers</ThemedText>
       </View>
     );
   }
@@ -173,8 +174,8 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       >
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={24} color={Colors.alertCoral} style={styles.errorIcon} />
-          <Text style={styles.errorText}>Unable to load prayers</Text>
-          <Text style={styles.errorSubtext}>Please check your connection and try again</Text>
+          <ThemedText style={styles.errorText}>Unable to load prayers</ThemedText>
+          <ThemedText style={styles.errorSubtext}>Please check your connection and try again</ThemedText>
           <TouchableOpacity
             onPress={() => refetch()}
             style={styles.retryButton}
@@ -183,7 +184,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
             accessibilityHint="Tap to attempt loading prayers again"
           >
             <Ionicons name="refresh" size={16} color={Colors.hopeWhite} style={styles.retryIcon} />
-            <Text style={styles.retryText}>Try Again</Text>
+            <ThemedText style={styles.retryText}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -303,7 +304,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       <View key={type.key} style={styles.prayerGroupCard}>
         <View style={styles.prayerGroupHeader}>
           <View style={styles.prayerTypeBadge}>
-            <Text style={styles.prayerGroupTitle}>{type.label}</Text>
+            <ThemedText style={styles.prayerGroupTitle}>{type.label}</ThemedText>
           </View>
         </View>
 
@@ -341,14 +342,14 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
                       color={Colors.success}
                       style={styles.pillIcon}
                     />
-                    <Text style={styles.answeredText}>Answered</Text>
+                    <ThemedText style={styles.answeredText}>Answered</ThemedText>
                     {prayer.answered_date && (
-                      <Text style={styles.answeredDate}>
+                      <ThemedText style={styles.answeredDate}>
                         {new Date(prayer.answered_date).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                         })}
-                      </Text>
+                      </ThemedText>
                     )}
                   </View>
                 ) : (
@@ -359,7 +360,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
                       color="rgba(255, 255, 255, 0.8)"
                       style={styles.pillIcon}
                     />
-                    <Text style={styles.pendingText}>Pending</Text>
+                    <ThemedText style={styles.pendingText}>Pending</ThemedText>
                   </View>
                 )}
               </TouchableOpacity>
@@ -376,12 +377,12 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       <View style={styles.headerRow}>
         <View style={styles.headerTitleContainer}>
           <Ionicons name="heart" size={20} color={Colors.hopeWhite} style={styles.headerIcon} />
-          <Text style={styles.headerTitle}>PRAYER JOURNAL</Text>
+          <ThemedText style={styles.headerTitle}>PRAYER JOURNAL</ThemedText>
         </View>
         <View style={styles.headerPill}>
-          <Text style={styles.headerPillText}>
+          <ThemedText style={styles.headerPillText}>
             {actsData ? (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length + actsData.freeform.length) : 0} {(actsData ? (actsData.adoration.length + actsData.confession.length + actsData.thanksgiving.length + actsData.supplication.length + actsData.freeform.length) : 0) === 1 ? 'PRAYER' : 'PRAYERS'}
-          </Text>
+          </ThemedText>
         </View>
       </View>
 
@@ -403,8 +404,8 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
               style={styles.dropdownIcon}
             />
             <View style={styles.dropdownTextContainer}>
-              <Text style={styles.dropdownTitle}>{selectedType.displayName}</Text>
-              <Text style={styles.dropdownDesc}>{selectedType.description}</Text>
+              <ThemedText style={styles.dropdownTitle}>{selectedType.displayName}</ThemedText>
+              <ThemedText style={styles.dropdownDesc}>{selectedType.description}</ThemedText>
             </View>
           </View>
           <Ionicons
@@ -432,9 +433,9 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
                   style={styles.dropdownIcon}
                 />
                 <View style={styles.dropdownTextContainer}>
-                  <Text style={styles.dropdownItemTitle}>{type.displayName}</Text>
+                  <ThemedText style={styles.dropdownItemTitle}>{type.displayName}</ThemedText>
                 </View>
-                <Text style={styles.dropdownItemDesc}>{type.description}</Text>
+                <ThemedText style={styles.dropdownItemDesc}>{type.description}</ThemedText>
               </TouchableOpacity>
             ))}
           </View>

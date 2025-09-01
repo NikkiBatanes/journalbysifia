@@ -501,16 +501,12 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
   entryTitle: {
-    fontFamily: Fonts.medium,
-    color: Colors.darkGray,
     fontSize: 15,
     flex: 1,
     marginRight: 8,
     marginBottom: 4,
   },
   entryContent: {
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
     fontSize: 12,
     lineHeight: 20,
     marginBottom: 8,
@@ -535,7 +531,6 @@ export const styles = StyleSheet.create({
   guidedPromptText: {
     fontSize: 8,
     color: Colors.alertCoral,
-    fontFamily: Fonts.medium,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -555,7 +550,6 @@ export const styles = StyleSheet.create({
   freeFormPromptText: {
     fontSize: 8,
     color: Colors.growthGreen,
-    fontFamily: Fonts.medium,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -563,7 +557,6 @@ export const styles = StyleSheet.create({
   timeText: {
     fontSize: 10,
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
   },
   normalTitleText: {
     fontStyle: 'normal',
@@ -592,7 +585,6 @@ export const styles = StyleSheet.create({
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
-    fontFamily: Fonts.medium,
     lineHeight: 14,
   },
   showMoreButton: {
@@ -635,7 +627,6 @@ export const styles = StyleSheet.create({
   tagText: {
     fontSize: 8,
     color: Colors.anchorBlue,
-    fontFamily: Fonts.medium,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -648,7 +639,6 @@ export const styles = StyleSheet.create({
     marginLeft: 6,
     color: Colors.mediumGray,
     fontSize: 14,
-    fontFamily: Fonts.regular,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -670,10 +660,9 @@ export const styles = StyleSheet.create({
     width: '100%',
   },
   promptLabel: {
-    fontFamily: Fonts.medium,
+    fontSize: 14,
     color: Colors.darkGray,
     marginBottom: 8,
-    fontSize: 14,
   },
   pickerContainer: {
     flexDirection: 'row',
@@ -687,9 +676,8 @@ export const styles = StyleSheet.create({
   },
   selectedPrompt: {
     flex: 1,
-    fontFamily: Fonts.regular,
-    color: Colors.darkGray,
     fontSize: 14,
+    color: Colors.darkGray,
     marginRight: 8,
   },
   promptModalContainer: {
@@ -712,7 +700,6 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   promptModalTitle: {
-    fontFamily: Fonts.semiBold,
     fontSize: 18,
     color: Colors.darkGray,
   },
@@ -725,7 +712,6 @@ export const styles = StyleSheet.create({
     borderBottomColor: Colors.lightGray,
   },
   promptItemText: {
-    fontFamily: Fonts.regular,
     fontSize: 16,
     color: Colors.darkGray,
     lineHeight: 24,

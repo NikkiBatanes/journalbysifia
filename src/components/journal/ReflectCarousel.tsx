@@ -1,7 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import {
   View,
-  Text,
   Animated,
   StyleSheet,
   Dimensions,
@@ -10,13 +9,13 @@ import {
 } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
 import { ReflectionLogReactQuery } from './ReflectionLogReactQuery';
 import { GratitudeListReactQuery } from './GratitudeListReactQuery';
 import { TodayWinReactQuery } from './TodayWinReactQuery';
 import { LookingForwardReactQuery } from './LookingForwardReactQuery';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
@@ -103,7 +102,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>REFLECT & GROW</Text>
+        <ThemedText weight="semiBold" style={styles.title}>REFLECT & GROW</ThemedText>
       </View>
       <Animated.ScrollView
         ref={scrollViewRef}
@@ -196,8 +195,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     letterSpacing: 2,
     textAlign: 'left',

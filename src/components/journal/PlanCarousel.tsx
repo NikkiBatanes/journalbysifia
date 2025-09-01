@@ -1,13 +1,13 @@
 import React, { useRef, useCallback, useState } from 'react';
-import { View, Text, Animated, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Animated, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
-import { Fonts } from '../../theme/fonts';
 import { Colors } from '../../theme/colors';
 import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
 import { TodosReactQuery } from './TodosReactQuery';
 import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from './TimeBlockReactQuery';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8; // Show larger cards
@@ -84,7 +84,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>PLAN & PREPARE</Text>
+        <ThemedText weight="semiBold" style={styles.title}>PLAN & PREPARE</ThemedText>
       </View>
       <Animated.ScrollView
         ref={scrollViewRef}
@@ -177,8 +177,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     letterSpacing: 2,
     textAlign: 'left',

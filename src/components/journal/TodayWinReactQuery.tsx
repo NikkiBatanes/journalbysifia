@@ -6,6 +6,9 @@ import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
 import { Check, X, Trophy as LuTrophy, Pencil } from 'lucide-react-native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -32,6 +35,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+  // Dynamic theming for fonts
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
 
   const { user } = useAuth();
   const [winText, setWinText] = useState('');
@@ -98,7 +104,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   };
 
   // Determine if we should show adding mode
-  const shouldShowAddingMode = isAdding || isEditing;
+  const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
 
   // Reset state when date changes (prevents stale data)
   React.useEffect(() => {
@@ -120,7 +126,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
 
   // Handle global edit mode activation
   React.useEffect(() => {
-    if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode) {
+    if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
       // Check if there's existing win content
       const hasExistingWin = entries.length > 0 && entries[0]?.content;
 
@@ -320,18 +326,15 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         showAddButton={false}
       >
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
+          <ThemedText style={styles.errorText}>
             Failed to load today's win. Please try again.
-          </Text>
+          </ThemedText>
           <TouchableOpacity
             style={styles.retryButton}
-            onPress={() => {
-              // Trigger a refetch by clearing cache and refetching
-              refetch();
-            }}
+            onPress={() => { refetch(); }}
             activeOpacity={0.8}
           >
-            <Text style={styles.retryText}>Retry</Text>
+            <ThemedText style={styles.retryText}>Retry</ThemedText>
           </TouchableOpacity>
         </View>
       </JournalCard>
@@ -415,16 +418,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       // Apply optimistic update immediately
       setDisplayWin(optimisticWin);
       console.log('🏆 TodayWin: Optimistic update applied:', optimisticWin);
-
-      // Clear editing state after optimistic update
-      setIsAdding(false);
-      setIsEditing(false);
-      setWinText('');
-      setPreviousWin(null);
-      setEditingEntryId(null);
-
+      
       // Close global edit mode if active
-      if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+      if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
         globalEditMode.setGlobalEditMode(false);
       }
 
@@ -438,6 +434,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           console.log('🏆 TodayWin: Update mutation successful', data);
           setIsSaving(false);
 
+          // Exit edit mode and clear input like LookingForward
+          setIsAdding(false);
+          setIsEditing(false);
+          setWinText('');
+
           // Track analytics
           analytics.trackWinEvent('win_updated', {
             text_length: winText.trim().length,
@@ -449,6 +450,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         onError: (updateMutationError) => {
           console.error('🏆 TodayWin: Update mutation failed', updateMutationError);
           setIsSaving(false); // Allow useEffect to work again
+          Alert.alert('Error', "Couldn't save your win. Please try again.");
           // Revert optimistic update and restore editing state on error
           const originalWin = {
             id: editingEntryId,
@@ -482,15 +484,8 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
       setDisplayWin(optimisticWin);
       console.log('🏆 TodayWin: Optimistic create applied:', optimisticWin);
 
-      // Clear editing state after optimistic update
-      setIsAdding(false);
-      setIsEditing(false);
-      setWinText('');
-      setPreviousWin(null);
-      setEditingEntryId(null);
-
       // Close global edit mode if active
-      if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+      if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
         globalEditMode.setGlobalEditMode(false);
       }
 
@@ -503,6 +498,11 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           console.log('🏆 TodayWin: Create mutation successful', data);
           setIsSaving(false);
 
+          // Exit add mode and clear input like LookingForward
+          setIsAdding(false);
+          setIsEditing(false);
+          setWinText('');
+
           // Track analytics
           analytics.trackWinEvent('win_created', {
             text_length: winText.trim().length,
@@ -513,6 +513,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         onError: (createMutationError) => {
           console.error('🏆 TodayWin: Create mutation failed', createMutationError);
           setIsSaving(false); // Allow useEffect to work again
+          Alert.alert('Error', "Couldn't save your win. Please try again.");
           // Revert optimistic update on error
           setDisplayWin(null);
           console.log('🏆 TodayWin: Reverted optimistic create due to error');
@@ -550,8 +551,14 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         return copy.subtitle;
       })()}
       icon={displayWin || shouldShowAddingMode ? <Ionicons name="trophy" size={24} color={Colors.alertCoral} /> : undefined}
-      showAddButton={false}
-      onAdd={startAdding}
+      showAddButton={displayWin ? !shouldShowAddingMode : false}
+      onAdd={displayWin ? () => {
+        setWinText(displayWin.text);
+        setIsEditing(true);
+        setIsAdding(true);
+        setEditingEntryId(displayWin.id);
+        setPreviousWin({ id: displayWin.id, text: displayWin.text });
+      } : startAdding}
       isAdding={shouldShowAddingMode}
       onCancelAdd={cancelAdding}
       viewMode={viewMode}
@@ -564,7 +571,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
             <>
               <View style={styles.inputContainer}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                   value={winText}
                   onChangeText={setWinText}
                   placeholder="What's your win for today?"
@@ -590,9 +597,9 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                     style={[
                       styles.button,
                       styles.saveButton,
-                      !winText.trim() && styles.disabledButton,
+                      (!winText.trim() || isSaving || createMutation.isPending || updateMutation.isPending) && styles.disabledButton,
                     ]}
-                    disabled={!winText.trim()}
+                    disabled={!winText.trim() || isSaving || createMutation.isPending || updateMutation.isPending}
                     activeOpacity={0.8}
                   >
                     <Check size={14} color={Colors.hopeWhite} strokeWidth={3.5} />
@@ -615,7 +622,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
               {editingItemId === displayWin.id ? (
                 <View style={styles.editWinContainer}>
                   <TextInput
-                    style={styles.editWinInput}
+                    style={[styles.editWinInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                     value={editingItemText}
                     onChangeText={setEditingItemText}
                     autoFocus
@@ -645,7 +652,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                   styles.winContainer,
                   viewMode === 'inline' && styles.winContainerInline,
                 ]}>
-                  <Text style={styles.winText}>{displayWin.text}</Text>
+                  <ThemedText style={[styles.winText, { fontFamily: getFontFamily(fontKey, 'bold') }]}>{displayWin.text}</ThemedText>
                 </View>
               )}
             </SwipeableTodoItem>
@@ -659,31 +666,31 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                   size={32}
                   color={Colors.mediumGray}
                 />
-                <Text style={styles.sectionLabel} accessibilityRole="text">
+                <ThemedText style={styles.sectionLabel} accessibilityRole="text">
                   {(() => {
                     const category = getDateCategory(selectedDate);
                     const copy = getCopy(category, entries.length);
                     return copy.header;
                   })()}
-                </Text>
+                </ThemedText>
               </View>
               <View style={styles.titleContainer}>
-                <Text
+                <ThemedText
                   style={styles.emptyStateTitle}
                   accessibilityRole="header"
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
                   Celebrate God's Victories
-                </Text>
+                </ThemedText>
               </View>
-              <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+              <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">
                 {(() => {
                   const category = getDateCategory(selectedDate);
                   const copy = getCopy(category, entries.length);
                   return copy.emptySubtext;
                 })()}
-              </Text>
+              </ThemedText>
               <TouchableOpacity
                 style={styles.emptyStateButton}
                 onPress={startAdding}
@@ -694,12 +701,12 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
                 })()}
               >
                 <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                <Text style={styles.emptyStateButtonText}>
+                <ThemedText style={styles.emptyStateButtonText}>
                   {(() => {
                     const category = getDateCategory(selectedDate);
                     return category === 'today' ? 'Begin' : 'Revisit';
                   })()}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             </View>
           );
@@ -732,6 +739,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 0,
     justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'column',
     width: '100%',
     alignSelf: 'stretch',
   },
@@ -759,13 +768,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   winText: {
-    fontFamily: Fonts.bold, // This should map to weight 800 in your Fonts configuration
     color: Colors.hopeWhite,
     fontSize: 18,
     lineHeight: 24,
     textAlign: 'center',
     letterSpacing: 1,
-    fontWeight: '600', // Explicitly set font weight to 800
     flexWrap: 'wrap',
   },
   editButton: {
@@ -844,8 +851,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: Fonts.regular,
     color: Colors.hopeWhite,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
     backgroundColor: 'transparent',
     borderRadius: 6,
     paddingHorizontal: 8,
@@ -881,7 +888,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   errorText: {
-    fontFamily: Fonts.regular,
     color: Colors.alertCoral,
     fontSize: 13,
     textAlign: 'center',
@@ -895,7 +901,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   retryText: {
-    fontFamily: Fonts.medium,
     color: Colors.hopeWhite,
     fontSize: 12,
   },
@@ -909,7 +914,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
@@ -917,7 +921,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   emptyStateSubtext: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -955,7 +958,6 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
@@ -985,7 +987,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,

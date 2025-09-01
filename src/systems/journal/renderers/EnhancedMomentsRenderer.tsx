@@ -1,11 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, SectionList, RefreshControlProps, Dimensions, FlatList } from 'react-native';
+import { View, StyleSheet, SectionList, RefreshControlProps, Dimensions, FlatList } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
-import { Fonts } from '../../../theme/fonts';
 import { format, startOfMonth } from 'date-fns';
+import ThemedText from '../../../components/common/ThemedText';
+import { useTheme } from '../../../hooks/useTheme';
+import { getFontFamily } from '../../../theme/fonts';
 import { GroupingType, SortType } from '../../../components/moments/GroupingControls';
 import { DateRange } from '../../../components/moments/DateFilterBar';
 import { supabase } from '../../../services/supabaseClient';
@@ -49,6 +51,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   headerComponents = [],
   refreshControl,
 }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
+  const fontRegular = getFontFamily(fontKey, 'regular');
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
@@ -889,10 +895,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
   const renderSectionHeader = ({ section }: { section: GroupedSection }) => (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{section.title}</Text>
-      <Text style={styles.sectionCount}>
+      <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>{section.title}</ThemedText>
+      <ThemedText style={[styles.sectionCount, { fontFamily: fontRegular }]}>
         {section.data.length} {section.data.length === 1 ? 'entry' : 'entries'}
-      </Text>
+      </ThemedText>
     </View>
   );
 
@@ -921,9 +927,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           {/* Fixed header (time + tag) stays put and aligns with Prayer Journal */}
           <View style={styles.devoHeaderContainer}>
             <View style={styles.momentHeader}>
-              <Text style={styles.momentDate}>{format(firstEntry.date, 'h:mm a')}</Text>
+              <ThemedText style={[styles.momentDate, { fontFamily: fontRegular }]}>{format(firstEntry.date, 'h:mm a')}</ThemedText>
               <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{firstEntry.category.toUpperCase()}</Text>
+                <ThemedText weight="semiBold" style={[styles.categoryText, { fontFamily: fontSemiBold }]}>{firstEntry.category.toUpperCase()}</ThemedText>
               </View>
             </View>
           </View>
@@ -988,9 +994,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <View style={styles.momentItem}>
           <View style={styles.momentContent}>
             <View style={styles.momentHeader}>
-              <Text style={styles.momentDate}>{format(entry.date, 'h:mm a')}</Text>
+              <ThemedText style={[styles.momentDate, { fontFamily: fontRegular }]}>{format(entry.date, 'h:mm a')}</ThemedText>
               <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{entry.category.toUpperCase()}</Text>
+                <ThemedText weight="semiBold" style={[styles.categoryText, { fontFamily: fontSemiBold }]}>{entry.category.toUpperCase()}</ThemedText>
               </View>
             </View>
             <PluginRenderer
@@ -1007,13 +1013,12 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <Text style={styles.emptyTitle}>No moments found</Text>
-      <Text style={styles.emptySubtitle}>
+      <ThemedText weight="semiBold" style={[styles.emptyTitle, { fontFamily: fontSemiBold }]}>No moments found</ThemedText>
+      <ThemedText style={[styles.emptySubtitle, { fontFamily: fontRegular }]}>
         {searchQuery
           ? `No entries match "${searchQuery}" in the selected date range`
-          : 'No journal entries found for the selected date range'
-        }
-      </Text>
+          : 'No journal entries found for the selected date range'}
+      </ThemedText>
     </View>
   );
 
@@ -1095,12 +1100,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
   },
   sectionCount: {
     fontSize: 12,
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
   },
   momentItem: {
     flexDirection: 'row',
@@ -1137,7 +1140,6 @@ const styles = StyleSheet.create({
   momentDate: {
     fontSize: 12,
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
   },
   categoryBadge: {
     paddingHorizontal: 8,
@@ -1161,14 +1163,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
-    fontFamily: Fonts.regular,
   },
   carouselContainer: {
     marginBottom: 16,

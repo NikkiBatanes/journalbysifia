@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { BaseRendererProps } from './BaseRenderer';
 import { PluginRenderer } from '../PluginRenderer';
 import { Colors } from '../../../theme/colors';
-import { Fonts } from '../../../theme/fonts';
 import { format } from 'date-fns';
+import ThemedText from '../../../components/common/ThemedText';
+import { useTheme } from '../../../hooks/useTheme';
+import { getFontFamily } from '../../../theme/fonts';
 
 interface MomentsRendererProps extends BaseRendererProps {
   showDateHeader?: boolean;
@@ -18,6 +20,10 @@ export const MomentsRenderer: React.FC<MomentsRendererProps> = ({
   showDateHeader = true,
   style,
 }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
+  const fontRegular = getFontFamily(fontKey, 'regular');
   // Filter plugins that have data (future enhancement)
   const pluginsWithData = plugins; // For now, show all plugins
 
@@ -26,15 +32,15 @@ export const MomentsRenderer: React.FC<MomentsRendererProps> = ({
       <View style={[styles.container, style]}>
         {showDateHeader && (
           <View style={styles.dateHeader}>
-            <Text style={styles.dateText}>
+            <ThemedText weight="semiBold" style={[styles.dateText, { fontFamily: fontSemiBold }]}>
               {format(
                 selectedDate,
                 selectedDate.getFullYear() === new Date().getFullYear()
                   ? 'EEEE, MMMM d'
                   : 'EEEE, MMMM d, yyyy'
               )}
-            </Text>
-            <Text style={styles.noEntriesText}>No entries for this date</Text>
+            </ThemedText>
+            <ThemedText style={[styles.noEntriesText, { fontFamily: fontRegular }]}>No entries for this date</ThemedText>
           </View>
         )}
       </View>
@@ -45,17 +51,17 @@ export const MomentsRenderer: React.FC<MomentsRendererProps> = ({
     <View style={[styles.container, style]}>
       {showDateHeader && (
         <View style={styles.dateHeader}>
-          <Text style={styles.dateText}>
+          <ThemedText weight="semiBold" style={[styles.dateText, { fontFamily: fontSemiBold }]}>
             {format(
               selectedDate,
               selectedDate.getFullYear() === new Date().getFullYear()
                 ? 'EEEE, MMMM d'
                 : 'EEEE, MMMM d, yyyy'
             )}
-          </Text>
-          <Text style={styles.entriesCountText}>
+          </ThemedText>
+          <ThemedText style={[styles.entriesCountText, { fontFamily: fontRegular }]}>
             {pluginsWithData.length} {pluginsWithData.length === 1 ? 'entry' : 'entries'}
-          </Text>
+          </ThemedText>
         </View>
       )}
 
@@ -99,7 +105,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
   },
   entriesCountText: {
     fontSize: 14,

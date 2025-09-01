@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
+import { Modal, View, TouchableOpacity, ScrollView, TextInput, StyleSheet } from 'react-native';
 
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 import { TIMEBLOCK_CATEGORIES, TimeBlockCategory } from './TimeBlockCategories';
 
 interface TimeBlockCategoryModalProps {
@@ -20,6 +22,8 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
   onCancel,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
 
   // Filter categories based on search query
   const filteredCategories = useMemo(() => {
@@ -48,9 +52,9 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <View style={styles.header}>
-            <Text style={styles.title}>Select Category</Text>
+            <ThemedText weight="semiBold" style={styles.title}>Select Category</ThemedText>
             <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Cancel</Text>
+              <ThemedText weight="medium" style={styles.closeButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -64,7 +68,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                 style={styles.searchIcon}
               />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { fontFamily: getFontFamily(fontKey, 'medium') }]}
                 placeholder="Search categories..."
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={searchQuery}
@@ -107,12 +111,12 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                       color={Colors.hopeWhite}
                     />
                   </View>
-                  <Text style={[
-                    styles.categoryText,
-                    selectedCategory === category.name && styles.selectedCategoryText,
-                  ]}>
+                  <ThemedText
+                    weight={selectedCategory === category.name ? 'semiBold' : 'medium'}
+                    style={styles.categoryText}
+                  >
                     {category.name}
-                  </Text>
+                  </ThemedText>
                 </View>
                 {selectedCategory === category.name && (
                   <Ionicons
@@ -155,7 +159,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
   },
   closeButton: {
@@ -163,7 +166,6 @@ const styles = StyleSheet.create({
   },
   closeButtonText: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
     color: Colors.hopeWhite,
   },
   scrollContainer: {
@@ -197,12 +199,10 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 16,
-    fontFamily: Fonts.medium,
     color: Colors.hopeWhite,
     flex: 1,
   },
   selectedCategoryText: {
-    fontFamily: Fonts.bold,
   },
   searchContainer: {
     padding: 16,
@@ -224,7 +224,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    fontFamily: Fonts.medium,
     color: Colors.hopeWhite,
     paddingVertical: 4,
   },

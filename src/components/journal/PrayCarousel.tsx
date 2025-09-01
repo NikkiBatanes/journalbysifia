@@ -1,7 +1,6 @@
 import React, { useRef, useCallback, useState } from 'react';
 import {
   View,
-  Text,
   Animated,
   StyleSheet,
   Dimensions,
@@ -10,12 +9,12 @@ import {
 } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
 import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
 import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth * 0.8;
@@ -97,7 +96,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>PRAY & SEEK</Text>
+        <ThemedText weight="semiBold" style={styles.title}>PRAY & SEEK</ThemedText>
       </View>
       <Animated.ScrollView
         ref={scrollViewRef}
@@ -189,8 +188,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     letterSpacing: 2,
     textAlign: 'left',

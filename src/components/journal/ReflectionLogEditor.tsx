@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useImperativeHandle } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
+import { View, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator, Animated } from 'react-native';
 
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
 import { GUIDED_PROMPTS } from './reflectionConstants';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 type ViewMode = 'free-form' | 'guided';
 
@@ -350,6 +353,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
   },
   ref
 ) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontFamilyRegular = getFontFamily(fontKey, 'regular');
+  const fontFamilyMedium = getFontFamily(fontKey, 'medium');
+  const fontFamilyBold = getFontFamily(fontKey, 'bold');
   // Merge styles prop with fallbackStyles
   const s = { ...fallbackStyles, ...styles };
   // Internal state - manage view mode
@@ -716,13 +724,13 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
       {showDraftNotification && (
         <View style={s.draftNotification}>
           <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
-          <Text style={s.draftText}>Draft Restored</Text>
+          <ThemedText weight="medium" style={s.draftText}>Draft Restored</ThemedText>
         </View>
       )}
       <StatusBar hidden />
     <View style={s.backgroundContainer} />
     <View style={s.header}>
-      <Text style={s.title}>{dateString}</Text>
+      <ThemedText weight="bold" style={s.title}>{dateString}</ThemedText>
       <View style={s.modeToggle}>
         {/* Always show pencil icon for free-form mode */}
         <TouchableOpacity
@@ -855,7 +863,8 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
           {effectiveViewMode === 'free-form' ? (
             <>
               {lockTitle || (source && source !== 'freeform') ? (
-                <Text
+                <ThemedText
+                  weight="bold"
                   style={[
                     s.entryInput,
                     s.titleInput,
@@ -864,7 +873,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                   ]}
                 >
                   {initialTitle || newEntry.title}
-                </Text>
+                </ThemedText>
               ) : (
                 <TextInput
                   ref={titleInputRef}
@@ -873,6 +882,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     s.titleInput,
                     s.transparentInput,
                     s.editableTitle, // Match locked title opacity
+                    { fontFamily: fontFamilyBold },
                   ]}
                   placeholder="Name Your Reflection..."
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
@@ -901,7 +911,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               {/* Simple Text Input */}
               <TextInput
                 ref={contentInputRef}
-                style={[styles.entryInput, styles.entryContentInput]}
+                style={[
+                  s.entryInput,
+                  s.entryContentInput,
+                  { fontFamily: fontFamilyRegular },
+                ]}
                 placeholder="Pour out your thoughts..."
                 placeholderTextColor="rgba(255, 255, 255, 0.4)"
                 value={newEntry.content}
@@ -917,28 +931,28 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
-                  <Text style={s.fromText}>
+                  <ThemedText weight="medium" style={s.fromText}>
                     FROM
-                  </Text>
+                  </ThemedText>
                   {totalDays && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       {totalDays}-day {totalDays > 1 ? 'Devotional Series' : 'Devotional'}
-                    </Text>
+                    </ThemedText>
                   )}
                   {devotionalTitle && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       {devotionalTitle}
-                    </Text>
+                    </ThemedText>
                   )}
                   {dayNumber && dayTitle && totalDays !== 1 && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       Day {dayNumber}: {dayTitle}
-                    </Text>
+                    </ThemedText>
                   )}
                   {questionNumber && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       Question to Ponder #{questionNumber}
-                    </Text>
+                    </ThemedText>
                   )}
                   </View>
                 </View>
@@ -947,18 +961,18 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
-                  <Text style={s.fromText}>
+                  <ThemedText weight="medium" style={s.fromText}>
                     FROM PLAYBOOK
-                  </Text>
+                  </ThemedText>
                   {playbookTitle && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       {playbookTitle}
-                    </Text>
+                    </ThemedText>
                   )}
                   {dayNumber && dayTitle && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       Step {dayNumber}: {dayTitle}
-                    </Text>
+                    </ThemedText>
                   )}
                   </View>
                 </View>
@@ -972,7 +986,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                     key={index}
                     style={s.promptCard}
                   >
-                    <Text style={s.promptCardText}>{prompt}</Text>
+                    <ThemedText style={s.promptCardText}>{prompt}</ThemedText>
                     <TouchableOpacity
                       style={s.reflectLabel}
                       onPress={async () => {
@@ -1000,7 +1014,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                         });
                       }}
                     >
-                      <Text style={s.reflectLabelText}>REFLECT ON IT</Text>
+                      <ThemedText weight="bold" style={s.reflectLabelText}>REFLECT ON IT</ThemedText>
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -1025,15 +1039,15 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
               <View style={s.addMenu}>
                 <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
                   <Ionicons name="pricetag" size={20} color={Colors.hopeWhite} />
-                  <Text style={s.addMenuText}>Tags</Text>
+                  <ThemedText style={s.addMenuText}>Tags</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
                   <Ionicons name="image" size={20} color={Colors.hopeWhite} />
-                  <Text style={s.addMenuText}>Photos</Text>
+                  <ThemedText style={s.addMenuText}>Photos</ThemedText>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.addMenuItem} onPress={() => { triggerLightHaptic(); }}>
                   <Ionicons name="camera" size={20} color={Colors.hopeWhite} />
-                  <Text style={s.addMenuText}>Camera</Text>
+                  <ThemedText style={s.addMenuText}>Camera</ThemedText>
                 </TouchableOpacity>
               </View>
             )}

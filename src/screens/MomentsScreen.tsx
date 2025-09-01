@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   RefreshControl,
@@ -10,13 +9,19 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme/colors';
-import { Fonts } from '../theme/fonts';
+import ThemedText from '../components/common/ThemedText';
+import { useTheme } from '../hooks/useTheme';
+import { getFontFamily } from '../theme/fonts';
 import { DateFilterBar, DateRange, FilterType } from '../components/moments/DateFilterBar';
 import { GroupingControls, GroupingType, SortType } from '../components/moments/GroupingControls';
 import { EnhancedMomentsRenderer } from '../systems/journal/renderers/EnhancedMomentsRenderer';
 import { getAllPlugins } from '../systems/journal/plugins/registry';
 
 export const MomentsScreen: React.FC = () => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontBold = getFontFamily(fontKey, 'bold');
+  const fontRegular = getFontFamily(fontKey, 'regular');
   // Date filtering state - Default to show all dates
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedRange, setSelectedRange] = useState<DateRange>({
@@ -86,7 +91,7 @@ export const MomentsScreen: React.FC = () => {
 
       <View style={styles.header}>
         <View style={styles.headerTopRow}>
-          <Text style={styles.headerTitle}>Moments</Text>
+          <ThemedText weight="extraBold" style={[styles.headerTitle, { fontFamily: fontBold }]}>Moments</ThemedText>
           {/* Single filter toggle icon on same row as title */}
           <TouchableOpacity
             style={[styles.filterToggleButton, showFilters && styles.filterToggleButtonActive]}
@@ -101,9 +106,7 @@ export const MomentsScreen: React.FC = () => {
             />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerSubtitle}>
-          Your journal entries and memories
-        </Text>
+        <ThemedText style={[styles.headerSubtitle, { fontFamily: fontRegular }]}>Your journal entries and memories</ThemedText>
       </View>
 
       {/* Fixed inline filters panel (does not scroll) */}
@@ -173,13 +176,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
   },
   headerSubtitle: {
     fontSize: 16,
     color: Colors.mediumGray,
     marginTop: 4,
-    fontFamily: Fonts.regular,
   },
   scrollView: {
     flex: 1,

@@ -2,14 +2,13 @@ import React, { useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   Animated,
   Dimensions,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
 
 // MaterialCommunityIcons import removed as it's not being used
 import { useDevotionalPrayerData } from '../../services/hooks/usePrayerData';
@@ -119,25 +118,25 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
           {allPrayers.map((prayer) => (
             <View style={styles.prayerItem} key={prayer.id}>
               <View style={styles.prayerContentContainer}>
-                <Text style={styles.prayerText}>{prayer.content
+                <ThemedText style={styles.prayerText}>{prayer.content
                     .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
                     .replace(/(\n?)(In Jesus'? Name, Amen)/i, '\n\n$2')
-                }</Text>
+                }</ThemedText>
               </View>
               <View style={styles.metadataContainer}>
                 <View style={styles.verticalLine} />
                 <View style={styles.metadataContent}>
-                  <Text style={styles.fromText}>From</Text>
+                  <ThemedText style={styles.fromText} weight="medium">From</ThemedText>
                   {prayer.total_days && (
-                    <Text style={styles.metadataText}>
+                    <ThemedText style={styles.metadataText}>
                       {prayer.total_days === 1 ? '1-Day Devotional' : `${prayer.total_days}-Day Devotional Series`}
-                    </Text>
+                    </ThemedText>
                   )}
-                  <Text style={styles.devotionalTitle}>{prayer.devotional_title}</Text>
+                  <ThemedText style={styles.devotionalTitle}>{prayer.devotional_title}</ThemedText>
                   {prayer.day_number && prayer.day_title && prayer.day_number > 1 && (
-                    <Text style={styles.metadataText}>
+                    <ThemedText style={styles.metadataText}>
                       Day {prayer.day_number}: {prayer.day_title}
-                    </Text>
+                    </ThemedText>
                   )}
                 </View>
               </View>
@@ -203,25 +202,25 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
               >
                 <View style={styles.horizontalPrayerItem}>
                   <View style={styles.prayerContentContainer}>
-                    <Text style={styles.prayerText}>{prayer.content
+                    <ThemedText style={styles.prayerText}>{prayer.content
                         .replace(/Heavenly Father,\s*/i, 'Heavenly Father,\n\n')
                         .replace(/(\n?)(In Jesus'? Name, Amen)/i, '\n\n$2')
-                    }</Text>
+                    }</ThemedText>
                   </View>
                   <View style={styles.metadataContainer}>
                     <View style={styles.verticalLine} />
                     <View style={styles.metadataContent}>
-                      <Text style={styles.fromText}>From</Text>
+                      <ThemedText style={styles.fromText} weight="medium">From</ThemedText>
                       {prayer.total_days && (
-                        <Text style={styles.metadataText}>
+                        <ThemedText style={styles.metadataText}>
                           {prayer.total_days === 1 ? '1-Day Devotional' : `${prayer.total_days}-Day Devotional Series`}
-                        </Text>
+                        </ThemedText>
                       )}
-                      <Text style={styles.devotionalTitle}>{prayer.devotional_title}</Text>
+                      <ThemedText style={styles.devotionalTitle}>{prayer.devotional_title}</ThemedText>
                       {prayer.day_number && prayer.day_title && prayer.day_number > 1 && (
-                        <Text style={styles.metadataText}>
+                        <ThemedText style={styles.metadataText}>
                           Day {prayer.day_number}: {prayer.day_title}
-                        </Text>
+                        </ThemedText>
                       )}
                     </View>
                   </View>
@@ -272,13 +271,13 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
                 color={Colors.mediumGray}
                 style={styles.emptyStateIcon}
               />
-              <Text style={styles.sectionLabel} accessibilityRole="text">
+              <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
                 PRAYED DEVOTIONAL PRAYERS
-              </Text>
+              </ThemedText>
             </View>
             <View style={styles.titleContainer}>
-              <Text style={styles.emptyStateTitle}>No Devotional Prayers</Text>
-              <Text style={styles.emptyStateSubtitle}>{getEmptySubtitle()}</Text>
+              <ThemedText style={styles.emptyStateTitle} weight="semiBold">No Devotional Prayers</ThemedText>
+              <ThemedText style={styles.emptyStateSubtitle}>{getEmptySubtitle()}</ThemedText>
             </View>
           </View>
         )}
@@ -331,9 +330,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeSectionTitle: {
     fontSize: 12,
-    fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
   },
   prayerItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)', // Match reflection items' outer container
@@ -410,8 +407,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabel: {
-    fontFamily: Fonts.system.semiBold,
-    fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
     letterSpacing: 1.2,
@@ -425,18 +420,15 @@ const styles = StyleSheet.create({
   },
   emptyStateTitle: {
     fontSize: 18,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 8,
-    fontFamily: Fonts.semiBold,
   },
   emptyStateSubtitle: {
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
     lineHeight: 20,
-    fontFamily: Fonts.regular,
   },
 });
 

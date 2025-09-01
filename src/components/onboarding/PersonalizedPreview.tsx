@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '../../theme/colors';
+import ThemedText from '../common/ThemedText';
 
 interface UserProfile {
   spiritualMaturity: 'new' | 'growing' | 'mature';
@@ -365,7 +366,7 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
       <TouchableOpacity onPress={onBack} style={styles.backButton}>
         <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle}>Your Journey</Text>
+      <ThemedText weight="bold" style={styles.headerTitle}>Your Journey</ThemedText>
     </View>
 
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -374,39 +375,39 @@ const PersonalizedPreview: React.FC<Props> = ({ userProfile, onContinue, onBack 
         <View style={styles.greetingIcon}>
           <Ionicons name="sparkles" size={32} color={Colors.faithGold} />
         </View>
-        <Text style={styles.greetingTitle}>Your Personalized Journey</Text>
-        <Text style={styles.greetingText}>{getPersonalizedGreeting()}</Text>
+        <ThemedText weight="bold" style={styles.greetingTitle}>Your Personalized Journey</ThemedText>
+        <ThemedText style={styles.greetingText}>{getPersonalizedGreeting()}</ThemedText>
       </Animated.View>
 
       {/* Content Recommendations */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Recommended for You</Text>
-        <Text style={styles.sectionSubtitle}>
+        <ThemedText weight="bold" style={styles.sectionTitle}>Recommended for You</ThemedText>
+        <ThemedText style={styles.sectionSubtitle}>
           Based on your goals and available time
-        </Text>
+        </ThemedText>
 
         {recommendations.map((rec, index) => renderRecommendationCard(rec, index))}
       </View>
 
       {/* Journey Milestones */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Your 4-Week Journey</Text>
-        <Text style={styles.sectionSubtitle}>
+        <ThemedText weight="bold" style={styles.sectionTitle}>Your 4-Week Journey</ThemedText>
+        <ThemedText style={styles.sectionSubtitle}>
           Here's what you can expect to achieve
-        </Text>
+        </ThemedText>
 
         {journeyMilestones.map((milestone, index) => renderMilestone(milestone, index))}
       </View>
 
       {/* Call to Action */}
       <Animated.View style={[styles.ctaSection, { opacity: fadeAnim }]}>
-        <Text style={styles.ctaTitle}>Ready to Begin?</Text>
-        <Text style={styles.ctaText}>
+        <ThemedText weight="bold" style={styles.ctaTitle}>Ready to Begin?</ThemedText>
+        <ThemedText style={styles.ctaText}>
           Your personalized spiritual growth journey starts with just one tap.
-        </Text>
+        </ThemedText>
 
         <TouchableOpacity style={styles.startButton} onPress={onContinue}>
-          <Text style={styles.startButtonText}>Start My Journey</Text>
+          <ThemedText weight="bold" style={styles.startButtonText}>Start My Journey</ThemedText>
           <Ionicons name="arrow-forward" size={20} color="white" />
         </TouchableOpacity>
       </Animated.View>

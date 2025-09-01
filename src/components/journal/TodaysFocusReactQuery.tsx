@@ -5,7 +5,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+// Fonts removed; dynamic fonts handled via ThemedText and getFontFamily
 import { JournalCard } from './JournalCard';
 import { Check, X, Pencil } from 'lucide-react-native';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -21,6 +21,9 @@ import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { isToday, isYesterday, isAfter, startOfDay, startOfToday } from 'date-fns';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 interface PriorityItem {
   id: string;
@@ -57,6 +60,11 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+
+  // Theme-driven fonts
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
@@ -548,9 +556,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             accessibilityRole="alert"
             accessibilityLabel="Error loading today's focus"
           >
-            <Text style={styles.errorText}>
-              Failed to load today's focus. Please try again.
-            </Text>
+            <ThemedText style={styles.errorText}>Failed to load today's focus. Please try again.</ThemedText>
             <TouchableOpacity
               onPress={() => {
                 triggerLightHaptic();
@@ -563,7 +569,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
               accessibilityLabel="Retry loading today's focus"
               accessibilityHint="Attempts to reload your focus and priorities"
             >
-              <Text style={styles.retryText}>Retry</Text>
+              <ThemedText weight="medium" style={styles.retryText}>Retry</ThemedText>
             </TouchableOpacity>
           </View>
         </JournalCard>
@@ -596,10 +602,10 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
           ? (
             <View style={styles.editContainer}>
               {!globalEditMode?.isGlobalEditMode && (
-                <Text style={styles.sectionHeaderWithBottomMargin}>{focusState.eyebrow.toUpperCase()}</Text>
+                <ThemedText weight="semiBold" style={styles.sectionHeaderWithBottomMargin}>{focusState.eyebrow.toUpperCase()}</ThemedText>
               )}
               <TextInput
-                style={[styles.input, styles.focusInput]}
+                style={[styles.input, styles.focusInput, { fontFamily: fontRegular }]}
                 value={data.focus}
                 onChangeText={updateFocus}
                 placeholder={isToday(day) ? "What's your main focus today?" : focusState.title}
@@ -608,12 +614,12 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                 accessibilityLabel="Today's focus input"
                 accessibilityHint="Enter your main focus for today"
               />
-              <Text style={styles.sectionHeaderWithTopMargin}>TOP 3 PRIORITIES</Text>
+              <ThemedText weight="semiBold" style={styles.sectionHeaderWithTopMargin}>TOP 3 PRIORITIES</ThemedText>
               {data.priorities.map((priority, index) => (
                 <View key={`priority-${index}`} style={styles.priorityRow}>
-                  <Text style={styles.priorityNumber}>{index + 1}.</Text>
+                  <ThemedText style={styles.priorityNumber}>{index + 1}.</ThemedText>
                   <TextInput
-                    style={[styles.input, styles.priorityInput]}
+                    style={[styles.input, styles.priorityInput, { fontFamily: fontRegular }]}
                     value={priority.text}
                     onChangeText={(text) => updatePriority(index, text)}
                     placeholder={`Priority ${index + 1}...`}
@@ -664,12 +670,12 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
             ((data.focus || '').trim() || data.priorities.some(p => p.text.trim() !== ''))
               ? (
                 <View style={styles.viewContainer}>
-                  {data.focus && <Text style={styles.focusText}>{data.focus}</Text>}
+                  {data.focus && <ThemedText weight="semiBold" style={styles.focusText}>{data.focus}</ThemedText>}
                   <View style={styles.prioritiesList}>
                     {data.priorities.some(p => p.text.trim() !== '') && (() => {
                       const priorityCount = data.priorities.filter(p => p.text.trim() !== '').length;
                       const priorityText = priorityCount === 1 ? 'TOP PRIORITY' : `TOP ${priorityCount} PRIORITIES`;
-                      return <Text style={styles.prioritiesTitle}>{priorityText}</Text>;
+                      return <ThemedText weight="medium" style={styles.prioritiesTitle}>{priorityText}</ThemedText>;
                     })()}
                     {data.priorities
 // ...
@@ -698,7 +704,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                           {editingPriorityId === priority.id ? (
                             <View style={styles.editPriorityContainer}>
                               <TextInput
-                                style={styles.editPriorityInput}
+                                style={[styles.editPriorityInput, { fontFamily: fontRegular }]}
                                 value={editingPriorityText}
                                 onChangeText={setEditingPriorityText}
                                 autoFocus
@@ -736,13 +742,14 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                                   <Check size={10} color={Colors.hopeWhite} strokeWidth={3.5} />
                                 )}
                               </View>
-                              <Text
+                              <ThemedText
                                 style={[
                                   styles.priorityText,
                                   priority.completed && styles.completedText,
-                                ]}>
+                                ]}
+                              >
                                 {priority.text}
-                              </Text>
+                              </ThemedText>
                             </>
                           )}
                         </SwipeableTodoItem>
@@ -760,19 +767,20 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                       color={Colors.mediumGray}
                       style={styles.emptyStateIcon}
                     />
-                    <Text style={styles.sectionLabel} accessibilityRole="text">{focusState.eyebrow.toUpperCase()}</Text>
+                    <ThemedText weight="semiBold" style={styles.sectionLabel} accessibilityRole="text">{focusState.eyebrow.toUpperCase()}</ThemedText>
                   </View>
                   <View style={styles.titleContainer}>
-                    <Text
+                    <ThemedText
+                      weight="semiBold"
                       style={styles.emptyStateTitle}
                       accessibilityRole="header"
                       numberOfLines={1}
                       ellipsizeMode="tail"
                     >
                       {focusState.title}
-                    </Text>
+                    </ThemedText>
                   </View>
-                  <Text style={styles.emptyStateSubtext} accessibilityRole="text">{focusState.subtitle}</Text>
+                  <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">{focusState.subtitle}</ThemedText>
                   <TouchableOpacity
                     style={styles.emptyStateButton}
                     onPress={() => {
@@ -783,7 +791,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                     accessibilityLabel={focusState.ctaLabel}
                   >
                     <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                    <Text style={styles.emptyStateButtonText}>{focusState.ctaLabel}</Text>
+                    <ThemedText weight="medium" style={styles.emptyStateButtonText}>{focusState.ctaLabel}</ThemedText>
                   </TouchableOpacity>
                 </View>
               )
@@ -828,50 +836,46 @@ const styles = StyleSheet.create({
 
   // Text styles
   label: {
-    fontFamily: Fonts.medium,
+    // weight handled by ThemedText when used
     fontSize: 14,
     color: Colors.darkGray,
     marginBottom: 8,
   },
   sectionHeader: {
-    fontFamily: Fonts.semiBold,
+    // weight handled by ThemedText
     fontSize: 12,
     color: Colors.hopeWhite,
     marginBottom: 8,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    fontWeight: '600',
   },
   sectionHeaderWithBottomMargin: {
-    fontFamily: Fonts.semiBold,
+    // weight handled by ThemedText
     fontSize: 12,
     color: Colors.hopeWhite,
     marginBottom: 8,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    fontWeight: '600',
   },
   sectionHeaderWithTopMargin: {
-    fontFamily: Fonts.semiBold,
+    // weight handled by ThemedText
     fontSize: 12,
     color: Colors.hopeWhite,
     marginTop: 12,
     marginBottom: 8,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    fontWeight: '600',
   },
   focusText: {
-    fontFamily: Fonts.semiBold,
+    // weight handled by ThemedText
     fontSize: 20,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 8,
     lineHeight: 26,
     textAlign: 'center',
   },
   placeholderText: {
-    fontFamily: Fonts.regular,
+    // weight handled by ThemedText if used
     fontSize: 14,
     color: Colors.mediumGray,
     fontStyle: 'italic',
@@ -879,7 +883,7 @@ const styles = StyleSheet.create({
     textDecorationLine: 'none',
   },
   hintText: {
-    fontFamily: Fonts.regular,
+    // weight handled by ThemedText if used
     fontSize: 12,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -888,9 +892,9 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 40,
-    fontFamily: Fonts.regular,
+    // fontFamily applied from theme at usage
     fontSize: 13,
-    color: Colors.darkGray,
+    color: Colors.hopeWhite,
     backgroundColor: 'rgba(255, 255, 255, 0.3)',
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -901,9 +905,7 @@ const styles = StyleSheet.create({
   },
   focusInput: {
     fontSize: 18,
-    fontWeight: '500',
     marginBottom: 12,
-    fontFamily: Fonts.medium,
     height: 48,
     backgroundColor: 'transparent',
     borderWidth: 1,
@@ -939,7 +941,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   priorityText: {
-    fontFamily: Fonts.regular,
     fontSize: 16,
     color: Colors.hopeWhite,
     flex: 1,
@@ -957,8 +958,6 @@ const styles = StyleSheet.create({
   },
   editPriorityInput: {
     flex: 1,
-    fontFamily: Fonts.regular,
-    color: Colors.hopeWhite,
     fontSize: 16,
     lineHeight: 22,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -967,6 +966,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    color: Colors.hopeWhite,
   },
   editPriorityButtons: {
     flexDirection: 'row',
@@ -987,15 +987,12 @@ const styles = StyleSheet.create({
   },
 
   priorityNumber: {
-    fontFamily: Fonts.medium,
     fontSize: 16,
     color: Colors.mediumGray,
     width: 24,
   },
   priorityInput: {
     flex: 1,
-    fontFamily: Fonts.regular,
-    color: Colors.hopeWhite,
     fontSize: 16,
     marginLeft: 6,
     marginBottom: 0,
@@ -1006,6 +1003,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.3)',
     paddingHorizontal: 12,
     textAlign: 'left',
+    color: Colors.hopeWhite,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -1056,7 +1054,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.growthGreen,
   },
   prioritiesTitle: {
-    fontFamily: Fonts.medium,
     fontSize: 11,
     color: Colors.hopeWhite,
     textTransform: 'uppercase',
@@ -1067,9 +1064,8 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   loadingText: {
-    fontFamily: Fonts.regular,
-    color: Colors.mediumGray,
     fontSize: 13,
+    color: Colors.mediumGray,
     textAlign: 'center',
     padding: 16,
   },
@@ -1082,7 +1078,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   errorText: {
-    fontFamily: Fonts.regular,
     color: Colors.alertCoral,
     fontSize: 13,
     textAlign: 'center',
@@ -1106,14 +1101,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     fontSize: 12,
-    color: Colors.mediumGray,
-    letterSpacing: 1.2,
+    color: Colors.hopeWhite,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
-    marginTop: 6,
-    opacity: 0.9,
   },
   titleContainer: {
     width: '100%',
@@ -1121,39 +1112,35 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
     textAlign: 'center',
     paddingHorizontal: 4,
   },
   emptyStateSubtext: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-    paddingHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 12,
+    paddingHorizontal: 8,
   },
   emptyStateButton: {
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: Colors.hopeWhite,
+    marginTop: 12,
     paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 20,
-    minWidth: 120,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexDirection: 'row',
   },
   buttonIcon: {
     marginRight: 8,
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
@@ -1166,7 +1153,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   retryText: {
-    fontFamily: Fonts.medium,
+    // weight handled by ThemedText
     color: Colors.hopeWhite,
     fontSize: 12,
   },

@@ -1,10 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
 
 import { Check, HandHeart as LuHandHeart, X, Pencil } from 'lucide-react-native';
 
@@ -46,6 +49,10 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
 
+  // Dynamic theming for fonts (match dashboard)
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -55,7 +62,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   const swipeableRefs = React.useRef<{[key: string]: any}>({});
 
   // Determine if we should be in adding mode
-  const shouldShowAddingMode = isAdding || isEditing || (viewMode === 'inline' && globalEditMode?.isGlobalEditMode);
+  const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
 
   // Auth and date context
   const { user } = useAuth();
@@ -169,7 +176,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
 
   // Handle global edit mode activation
   React.useEffect(() => {
-    if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode && !isAdding && !isEditing) {
+    if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode && !isAdding && !isEditing) {
       // If there are existing gratitude items, start editing them
       if (gratitudeItems.length > 0) {
         startEditing();
@@ -421,7 +428,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         closeAllSwipeables();
 
         // Close global edit mode if active
-        if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode) {
+        if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
           globalEditMode.setGlobalEditMode(false);
         }
       } catch (saveError) {
@@ -454,25 +461,25 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               color={Colors.mediumGray}
               style={styles.emptyStateIcon}
             />
-            <Text style={styles.sectionLabel} accessibilityRole="text">GRATITUDE LIST</Text>
+            <ThemedText style={styles.sectionLabel} accessibilityRole="text">GRATITUDE LIST</ThemedText>
           </View>
           <View style={styles.titleContainer}>
-            <Text
+            <ThemedText
               style={styles.emptyStateTitle}
               accessibilityRole="header"
               numberOfLines={1}
               ellipsizeMode="tail"
             >
               {isYesterday ? 'Gratitude for Yesterday' : isEarlier ? 'Gratitude on This Day' : 'Give Thanks Today'}
-            </Text>
+            </ThemedText>
           </View>
-          <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+          <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">
             {isYesterday
               ? 'Pause to notice what God did yesterday'
               : isEarlier
                 ? 'Note ways God was present\non this day'
                 : 'Note blessings to\ncultivate a heart of gratitude'}
-          </Text>
+          </ThemedText>
           <TouchableOpacity
             style={styles.emptyStateButton}
             onPress={startAdding}
@@ -480,9 +487,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             accessibilityLabel={(isYesterday || isEarlier) ? 'Revisit gratitude list' : 'Begin gratitude list'}
           >
             <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>
+            <ThemedText style={styles.emptyStateButtonText}>
               {(isYesterday || isEarlier) ? 'Revisit' : 'Begin'}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         </View>
       );
@@ -525,10 +532,10 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             {editingItemId === item.id ? (
               <View style={styles.editContainer}>
                 <View style={styles.itemNumber}>
-                  <Text style={styles.numberText}>{index + 1}</Text>
+                  <ThemedText style={styles.numberText}>{index + 1}</ThemedText>
                 </View>
                 <TextInput
-                  style={styles.editInput}
+                  style={[styles.editInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                   value={editingItemText}
                   onChangeText={setEditingItemText}
                   autoFocus
@@ -556,9 +563,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             ) : (
               <View style={styles.itemRowTopAligned}>
                 <View style={styles.itemNumber}>
-                  <Text style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</Text>
+                  <ThemedText style={styles.numberText} accessibilityElementsHidden={true}>{index + 1}</ThemedText>
                 </View>
-                <Text style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</Text>
+                <ThemedText style={styles.itemText} accessibilityElementsHidden={true}>{String(item.text || '')}</ThemedText>
               </View>
             )}
           </SwipeableTodoItem>
@@ -577,9 +584,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 accessibilityHint="Loads more gratitude items to the list"
               >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                  <Text style={[styles.paginationButtonText, styles.showMoreText]}>
+                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
                     Show more
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               )}
               {showLessOption && (
@@ -592,9 +599,9 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                 accessibilityHint="Collapses the list to show fewer items"
               >
                   <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
-                  <Text style={[styles.paginationButtonText, styles.showLessText]}>
+                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
                     Show less
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               )}
             </View>
@@ -690,7 +697,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             newItems.map((item, index) => (
               <TextInput
                 key={index}
-                style={[styles.input, index > 0 && styles.inputWithTopMargin]}
+                style={[styles.input, index > 0 && styles.inputWithTopMargin, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                 value={item}
                 onChangeText={(value) => handleNewItemChange(index, value)}
                 placeholder="I'm grateful for..."
@@ -706,7 +713,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
               {newItems.map((item, index) => (
                 <TextInput
                   key={index}
-                  style={[styles.input, index > 0 && styles.inputWithTopMargin]}
+                  style={[styles.input, index > 0 && styles.inputWithTopMargin, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                   value={item}
                   onChangeText={(value) => handleNewItemChange(index, value)}
                   placeholder="I'm grateful for..."
@@ -990,7 +997,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
@@ -1005,7 +1011,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
@@ -1013,7 +1018,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   emptyStateSubtext: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -1037,7 +1041,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,

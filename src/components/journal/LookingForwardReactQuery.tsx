@@ -1,12 +1,15 @@
 import React, { useState, useRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 // SwipeableTodoItem handles the gesture handler imports
 import { SwipeableTodoItem } from '../SwipeableTodoItem';
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
 import { Pencil, X, Check, Sunrise as LuSunrise } from 'lucide-react-native';
 
 import { useAuth } from '../../context/IndustryStandardAuthContext';
@@ -33,6 +36,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   // Global edit mode context (only for inline view)
   // Global edit mode context - safe version that handles missing provider
   const globalEditMode = useEditModeSafe();
+  // Dynamic theming for fonts
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
 
   const { user } = useAuth();
   const [entryText, setEntryText] = useState('');
@@ -97,7 +103,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   };
 
   // Determine if we should be in adding mode
-  const shouldShowAddingMode = isAdding || isEditing || (viewMode === 'inline' && globalEditMode?.isGlobalEditMode);
+  const shouldShowAddingMode = isAdding || isEditing || ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode);
 
   // Get looking forward entries with performance tracking
   const { data: entries = [], isLoading, error, refetch } = useLookingForwardData(userId, dateStr);
@@ -234,7 +240,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
 
   // Handle global edit mode activation
   React.useEffect(() => {
-    if (viewMode === 'inline' && globalEditMode?.isGlobalEditMode) {
+    if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
       // Check if there's existing looking forward content
       const hasExistingEntry = entries.length > 0 && entries[0]?.content;
 
@@ -308,9 +314,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         showAddButton={false}
       >
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
+          <ThemedText style={styles.errorText}>
             Failed to load looking forward entry. Please try again.
-          </Text>
+          </ThemedText>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
@@ -319,7 +325,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
             }}
             activeOpacity={0.8}
           >
-            <Text style={styles.retryText}>Retry</Text>
+            <ThemedText style={styles.retryText}>Retry</ThemedText>
           </TouchableOpacity>
         </View>
       </JournalCard>
@@ -360,7 +366,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         setEntryText('');
 
         // Close global edit mode if active
-        if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+        if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
           globalEditMode.setGlobalEditMode(false);
         }
 
@@ -400,7 +406,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         setEntryText('');
 
         // Close global edit mode if active
-        if (globalEditMode?.isGlobalEditMode && viewMode === 'inline') {
+        if (globalEditMode?.isGlobalEditMode && (viewMode === 'inline' || viewMode === 'carousel')) {
           globalEditMode.setGlobalEditMode(false);
         }
 
@@ -498,7 +504,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           {editingItemId === displayEntry.id ? (
             <View style={styles.editEntryContainer}>
               <TextInput
-                style={styles.editEntryInput}
+                style={[styles.editEntryInput, { fontFamily: getFontFamily(fontKey, 'regular') }]}
                 value={editingItemText}
                 onChangeText={setEditingItemText}
                 autoFocus
@@ -528,7 +534,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               styles.entryContainer,
               viewMode === 'inline' && styles.entryContainerInline,
             ]}>
-              <Text style={styles.entryText}>{displayEntry.text}</Text>
+              <ThemedText style={styles.entryText}>{displayEntry.text}</ThemedText>
             </View>
           )}
         </SwipeableTodoItem>
@@ -537,7 +543,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         <>
           <View style={styles.inputContainer}>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { fontFamily: getFontFamily(fontKey, 'regular') }]}
               value={entryText}
               onChangeText={setEntryText}
               placeholder="What are you looking forward to tomorrow?"
@@ -583,21 +589,21 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
               color={Colors.mediumGray}
               style={styles.emptyStateIcon}
             />
-            <Text style={styles.sectionLabel} accessibilityRole="text">LOOKING FORWARD TO</Text>
+            <ThemedText style={styles.sectionLabel} accessibilityRole="text">LOOKING FORWARD TO</ThemedText>
           </View>
           <View style={styles.titleContainer}>
-            <Text
+            <ThemedText
               style={styles.emptyStateTitle}
               accessibilityRole="header"
               numberOfLines={1}
               ellipsizeMode="tail"
             >
               {getDisplaySubtitle()}
-            </Text>
+            </ThemedText>
           </View>
-          <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+          <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">
             {getEmptySubtitle()}
-          </Text>
+          </ThemedText>
           <TouchableOpacity
             style={styles.emptyStateButton}
             onPress={startAdding}
@@ -605,9 +611,9 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
             accessibilityLabel={dateCategory === 'today' ? 'Begin looking forward' : 'Revisit looking forward'}
           >
             <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-            <Text style={styles.emptyStateButtonText}>
+            <ThemedText style={styles.emptyStateButtonText}>
               {dateCategory === 'today' ? 'Begin' : 'Revisit'}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         </View>
       )}
@@ -783,7 +789,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    fontFamily: Fonts.regular,
     color: Colors.alertCoral,
     fontSize: 14,
     textAlign: 'center',
@@ -798,7 +803,6 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
     fontSize: 12,
   },
   // Empty state styles
@@ -819,7 +823,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
@@ -834,7 +837,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
@@ -842,7 +844,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   emptyStateSubtext: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -866,7 +867,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,

@@ -2,13 +2,14 @@ import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   TextInput,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 export type GroupingType = 'date' | 'month' | 'category' | 'type' | 'none';
 export type SortType = 'newest' | 'oldest' | 'category' | 'type';
@@ -49,6 +50,11 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
   showSearch,
   onToggleSearch,
 }) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
+  const fontMedium = getFontFamily(fontKey, 'medium');
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
   return (
     <View style={styles.container}>
       {/* Search Bar */}
@@ -66,7 +72,7 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
 
         {showSearch && (
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { fontFamily: fontRegular }]}
             placeholder="Search moments..."
             placeholderTextColor={Colors.mediumGray}
             value={searchQuery}
@@ -80,7 +86,7 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
       <View style={styles.controlsRow}>
         {/* Group By */}
         <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Group By</Text>
+          <ThemedText weight="semiBold" style={[styles.controlLabel, { fontFamily: fontSemiBold }]}>Group By</ThemedText>
           <View style={styles.optionsContainer}>
             {GROUPING_OPTIONS.map((option) => (
               <TouchableOpacity
@@ -96,14 +102,15 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
                   size={16}
                   color={groupBy === option.value ? Colors.hopeWhite : Colors.mediumGray}
                 />
-                <Text
+                <ThemedText
                   style={[
                     styles.optionText,
+                    { fontFamily: fontMedium },
                     groupBy === option.value && styles.activeOptionText,
                   ]}
                 >
                   {option.label}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -111,7 +118,7 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
 
         {/* Sort By */}
         <View style={styles.controlGroup}>
-          <Text style={styles.controlLabel}>Sort By</Text>
+          <ThemedText weight="semiBold" style={[styles.controlLabel, { fontFamily: fontSemiBold }]}>Sort By</ThemedText>
           <View style={styles.optionsContainer}>
             {SORT_OPTIONS.map((option) => (
               <TouchableOpacity
@@ -127,14 +134,15 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
                   size={16}
                   color={sortBy === option.value ? Colors.hopeWhite : Colors.mediumGray}
                 />
-                <Text
+                <ThemedText
                   style={[
                     styles.optionText,
+                    { fontFamily: fontMedium },
                     sortBy === option.value && styles.activeOptionText,
                   ]}
                 >
                   {option.label}
-                </Text>
+                </ThemedText>
               </TouchableOpacity>
             ))}
           </View>
@@ -174,7 +182,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontFamily: Fonts.regular,
   },
   controlsRow: {
     gap: 16,
@@ -186,7 +193,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
     marginBottom: 8,
   },
   optionsContainer: {
@@ -209,7 +215,6 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 12,
     color: Colors.mediumGray,
-    fontFamily: Fonts.medium,
   },
   activeOptionText: {
     color: Colors.hopeWhite,

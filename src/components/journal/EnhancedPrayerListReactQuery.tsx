@@ -3,7 +3,6 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -13,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
+// Removed static Fonts usage in favor of ThemedText and dynamic getFontFamily
 import { triggerLightHaptic } from '../../utils/haptics';
 
 import { Pencil, X, Check } from 'lucide-react-native';
@@ -447,12 +446,15 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 size={14}
                 color={item.is_prayer_request === true ? Colors.alertCoral : Colors.growthGreen}
               />
-              <Text style={[
-                styles.prayerTypeLabel,
-                { color: Colors.hopeWhite },
-              ]}>
+              <ThemedText
+                style={[
+                  styles.prayerTypeLabel,
+                  { color: Colors.hopeWhite },
+                ]}
+                weight="semiBold"
+              >
                 {item.is_prayer_request === true ? 'PRAYER REQUEST' : 'PRAYED FOR'}
-              </Text>
+              </ThemedText>
               {item.is_prayer_request === true && item.prayed === true && (
                 <Ionicons
                   name="checkmark-circle"
@@ -462,16 +464,16 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 />
               )}
             </View>
-            <Text style={styles.personName}>
+            <ThemedText style={styles.personName} weight="bold">
               {item.person_name}
-            </Text>
+            </ThemedText>
           </View>
         </View>
         <View style={styles.prayerContentContainer}>
           {/* Main prayer text: show content if exists, otherwise notes */}
-          <Text style={styles.prayerText}>
+          <ThemedText style={styles.prayerText}>
             {item.content || item.notes}
-          </Text>
+          </ThemedText>
           {/* Show Prayer Request label for prayers that came from a request */}
           {(item.requested_by || item.metadata?.requested_by || item.metadata?.prayer_request_display) && item.content && (
             <View style={styles.notesBox}>
@@ -481,20 +483,20 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 color={Colors.alertCoral}
                 style={styles.prayedRequestIcon}
               />
-              <Text style={[styles.notesText, styles.notesTextInside]} numberOfLines={3}>
-                <Text style={styles.notesLabel}>
+              <ThemedText style={[styles.notesText, styles.notesTextInside]} numberOfLines={3}>
+                <ThemedText style={styles.notesLabel} weight="medium">
                   Prayer Request: 
-                </Text>
+                </ThemedText>
                 {item.metadata?.prayer_request_display || item.notes || ''}
-              </Text>
+              </ThemedText>
             </View>
           )}
           {/* Show regular notes for personal prayers (not from requests) */}
           {!(item.requested_by || item.metadata?.requested_by || item.metadata?.prayer_request_display) && item.notes && item.content && (
-            <Text style={styles.notesText} numberOfLines={3}>
-              <Text style={styles.notesLabel}>Note: </Text>
+            <ThemedText style={styles.notesText} numberOfLines={3}>
+              <ThemedText style={styles.notesLabel} weight="medium">Note: </ThemedText>
               {item.notes}
-            </Text>
+            </ThemedText>
           )}
         </View>
         {/* Show Pray for Now button for any prayer request that is not prayed for */}
@@ -509,7 +511,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               color={Colors.hopeWhite}
               style={styles.iconMargin}
             />
-            <Text style={styles.addButtonText}>{`Pray for ${item.person_name} now`}</Text>
+            <ThemedText style={styles.addButtonText} weight="medium">{`Pray for ${item.person_name} now`}</ThemedText>
           </TouchableOpacity>
         )}
       </View>
@@ -525,7 +527,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           {localPrayerRequests.length > 0 && (
             <>
               <View style={styles.categoryHeader}>
-                <Text style={styles.categoryTitle}>PRAYER REQUESTS</Text>
+                <ThemedText style={styles.categoryTitle}>PRAYER REQUESTS</ThemedText>
               </View>
               <View style={styles.sectionSpacing} />
               {localPrayerRequests.map(renderPrayerItem)}
@@ -537,7 +539,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
           {prayedForPrayers.length > 0 && (
             <>
               <View style={styles.categoryHeader}>
-                <Text style={styles.categoryTitle}>PRAYED FOR</Text>
+                <ThemedText style={styles.categoryTitle}>PRAYED FOR</ThemedText>
               </View>
               <View style={styles.sectionSpacing} />
               {prayedForPrayers.map(renderPrayerItem)}
@@ -553,7 +555,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     return (
       <View style={styles.card}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.errorText}>Error loading prayers</Text>
+          <ThemedText style={styles.errorText}>Error loading prayers</ThemedText>
         </View>
       </View>
     );
@@ -595,25 +597,26 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                   style={[styles.emptyStateIcon, styles.flippedIcon]}
                 />
               </View>
-              <Text style={styles.sectionLabel} accessibilityRole="text">
+              <ThemedText style={styles.sectionLabel} accessibilityRole="text" weight="semiBold">
                 PRAYER LIST FOR PEOPLE
-              </Text>
+              </ThemedText>
             </View>
             <View style={styles.titleContainer}>
-              <Text
+              <ThemedText
                 style={styles.emptyStateTitle}
                 accessibilityRole="header"
                 numberOfLines={1}
                 ellipsizeMode="tail"
+                weight="semiBold"
               >
                 {isPast ? pastEmptyTitle : 'Start your prayer list'}
-              </Text>
+              </ThemedText>
             </View>
-            <Text style={styles.emptyStateSubtext} accessibilityRole="text">
+            <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">
               {isPast
                 ? pastEmptySubtitle
                 : "Add people you'd like to pray for or prayer requests from others"}
-            </Text>
+            </ThemedText>
             {!isPast && (
               <TouchableOpacity
                 style={styles.emptyStateButton}
@@ -622,7 +625,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 accessibilityLabel="Begin creating prayer list"
               >
                 <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-                <Text style={styles.emptyStateButtonText}>Begin</Text>
+                <ThemedText style={styles.emptyStateButtonText} weight="medium">Begin</ThemedText>
               </TouchableOpacity>
             )}
           </View>
@@ -669,8 +672,7 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: -1 }],
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
+    // font handled by ThemedText
     fontSize: 12,
     color: Colors.mediumGray,
     letterSpacing: 1.2,
@@ -684,22 +686,21 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
+    // font handled by ThemedText
     fontSize: 18,
     color: Colors.hopeWhite,
     textAlign: 'center',
     paddingHorizontal: 4,
   },
   emptyStateSubtitle: {
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
     lineHeight: 20,
   },
   emptyStateSubtext: {
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -723,7 +724,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
@@ -769,13 +770,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 17,
-    fontFamily: Fonts.bold,
+    // font handled by ThemedText
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
   },
   headerSubtitle: {
     fontSize: 12,
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     color: 'rgba(255, 255, 255, 0.7)',
     marginTop: 2,
   },
@@ -787,7 +788,7 @@ const styles = StyleSheet.create({
   },
   headerPillText: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     color: Colors.hopeWhite,
     opacity: 0.9,
   },
@@ -803,7 +804,7 @@ const styles = StyleSheet.create({
   badgeText: {
     color: 'white',
     fontSize: 12,
-    fontFamily: Fonts.bold,
+    // font handled by ThemedText
     paddingHorizontal: 4,
   },
   // Tabs
@@ -825,12 +826,12 @@ const styles = StyleSheet.create({
   },
   tabText: {
     color: 'rgba(255, 255, 255, 0.7)',
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     fontSize: 12,
   },
   activeTabText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
+    // font handled by ThemedText
   },
   tabContent: {
     flexDirection: 'row',
@@ -854,7 +855,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 16,
     padding: 16,
-    fontFamily: Fonts.regular,
+    // font handled inline via regularFont for TextInput
     lineHeight: 24,
   },
   singleLineInput: {
@@ -886,14 +887,14 @@ const styles = StyleSheet.create({
   notesLabel: {
     color: Colors.hopeWhite,
     fontSize: 12,
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     marginBottom: 8,
     opacity: 0.8,
   },
   notesInput: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontFamily: Fonts.regular,
+    // font handled inline via regularFont for TextInput
     minHeight: 60,
     textAlignVertical: 'top',
     padding: 0,
@@ -931,7 +932,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.3,
@@ -977,8 +978,7 @@ const styles = StyleSheet.create({
   },
   prayerTypeLabel: {
     fontSize: 10,
-    fontFamily: Fonts.semiBold,
-    fontWeight: '600',
+    // font handled by ThemedText
     letterSpacing: 0.8,
     marginLeft: 4,
   },
@@ -987,7 +987,7 @@ const styles = StyleSheet.create({
   },
   personName: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.bold,
+    // font handled by ThemedText
     fontSize: 16,
     marginBottom: 4,
   },
@@ -998,14 +998,14 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 14,
     lineHeight: 20,
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     marginBottom: 4,
   },
   notesText: {
     color: 'rgba(255, 255, 255, 0.8)',
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     marginTop: 8,
     fontStyle: 'italic',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -1049,7 +1049,7 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     fontSize: 12,
     marginLeft: 4,
   },
@@ -1060,13 +1060,13 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     fontSize: 16,
     marginTop: 12,
   },
   debugText: {
     color: 'rgba(255, 255, 255, 0.7)',
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     fontSize: 12,
     marginTop: 4,
   },
@@ -1077,7 +1077,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: Colors.error,
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 16,
@@ -1090,7 +1090,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     fontSize: 14,
   },
   emptyState: {
@@ -1100,14 +1100,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 8,
   },
   emptySubtext: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     fontSize: 14,
     textAlign: 'center',
     opacity: 0.8,
@@ -1122,14 +1122,14 @@ const styles = StyleSheet.create({
   },
   errorStateText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 8,
   },
   errorStateSubtext: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
+    // font handled by ThemedText
     fontSize: 14,
     textAlign: 'center',
     opacity: 0.8,
@@ -1149,7 +1149,7 @@ const styles = StyleSheet.create({
   },
   errorRetryText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.medium,
+    // font handled by ThemedText
     fontSize: 14,
   },
   categoryHeader: {
@@ -1162,7 +1162,7 @@ const styles = StyleSheet.create({
   },
   categoryTitle: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.semiBold,
+    // font handled by ThemedText
     fontSize: 12,
     letterSpacing: 1.2,
     textAlign: 'left',

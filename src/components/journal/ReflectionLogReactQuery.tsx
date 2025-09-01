@@ -2,11 +2,12 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay, startOfToday } from 'date-fns';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, Text, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
 
 import { JournalCard } from './JournalCard';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
+import ThemedText from '../common/ThemedText';
 import { NotebookPen as LuNotebookPen, X, Pencil } from 'lucide-react-native';
 
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
@@ -39,7 +40,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   errorTitle: {
-    fontFamily: Fonts.semiBold,
     fontSize: 16,
     color: Colors.darkGray,
     marginTop: 12,
@@ -47,7 +47,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   errorMessage: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -64,7 +63,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   retryButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 14,
     color: Colors.hopeWhite,
   },
@@ -88,7 +86,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   sectionLabel: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 12,
     color: Colors.mediumGray,
@@ -103,7 +100,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   emptyStateTitle: {
-    fontFamily: Fonts.semiBold,
     fontWeight: '600',
     fontSize: 18,
     color: Colors.hopeWhite,
@@ -111,7 +107,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   emptyStateSubtext: {
-    fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
@@ -135,7 +130,6 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   emptyStateButtonText: {
-    fontFamily: Fonts.medium,
     fontSize: 15,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
@@ -167,7 +161,6 @@ const styles = StyleSheet.create({
   paginationButtonText: {
     marginLeft: 2,
     fontSize: 11,
-    fontFamily: Fonts.medium,
     lineHeight: 14,
   },
   showMoreButton: {
@@ -667,7 +660,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       <View style={promptModalStyles.promptModalContainer}>
         <View style={promptModalStyles.promptModalContent}>
           <View style={promptModalStyles.promptModalHeader}>
-            <Text style={promptModalStyles.promptModalTitle}>Select a Prompt</Text>
+            <ThemedText style={promptModalStyles.promptModalTitle}>Select a Prompt</ThemedText>
             <TouchableOpacity onPress={() => { triggerLightHaptic(); setShowPromptPicker(false); }}>
               <X size={24} color={Colors.darkGray} />
             </TouchableOpacity>
@@ -682,7 +675,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                 ]}
                 onPress={() => handlePromptSelection(prompt)}
               >
-                <Text style={promptModalStyles.promptOptionText}>{prompt}</Text>
+                <ThemedText style={promptModalStyles.promptOptionText}>{prompt}</ThemedText>
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -731,10 +724,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     if (error) {
       return (
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Failed to load reflections</Text>
-          <Text style={styles.errorMessage}>
+          <ThemedText weight="semiBold" style={styles.errorTitle}>Failed to load reflections</ThemedText>
+          <ThemedText style={styles.errorMessage}>
             {error.message || 'Something went wrong. Please try again.'}
-          </Text>
+          </ThemedText>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
@@ -749,7 +742,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             }}
           >
             <Ionicons name="refresh" size={16} color={Colors.hopeWhite} style={styles.spinning} />
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <ThemedText weight="medium" style={styles.retryButtonText}>Retry</ThemedText>
           </TouchableOpacity>
         </View>
       );
@@ -818,19 +811,19 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               color={Colors.mediumGray}
               style={styles.emptyStateIcon}
             />
-            <Text style={styles.sectionLabel} accessibilityRole="text">{emptyEyebrow}</Text>
+            <ThemedText weight="medium" style={styles.sectionLabel} accessibilityRole="text">{emptyEyebrow}</ThemedText>
           </View>
           <View style={styles.titleContainer}>
-            <Text
+            <ThemedText
               style={styles.emptyStateTitle}
               accessibilityRole="header"
               numberOfLines={1}
               ellipsizeMode="tail"
             >
               {emptyTitle}
-            </Text>
+            </ThemedText>
           </View>
-          <Text style={styles.emptyStateSubtext} accessibilityRole="text">{emptySubtitle}</Text>
+          <ThemedText style={styles.emptyStateSubtext} accessibilityRole="text">{emptySubtitle}</ThemedText>
           {!globalEditMode?.isGlobalEditMode && (
             <TouchableOpacity
               style={styles.emptyStateButton}
@@ -854,7 +847,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
               accessibilityLabel={`${emptyCTA} reflection`}
             >
               <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
-              <Text style={styles.emptyStateButtonText}>{emptyCTA}</Text>
+              <ThemedText weight="medium" style={styles.emptyStateButtonText}>{emptyCTA}</ThemedText>
             </TouchableOpacity>
           )}
         </View>
@@ -883,9 +876,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   accessibilityHint="Loads 3 more reflection items to the list"
                 >
                   <Ionicons name="chevron-down" size={12} color={Colors.alertCoral} />
-                  <Text style={[styles.paginationButtonText, styles.showMoreText]}>
+                  <ThemedText style={[styles.paginationButtonText, styles.showMoreText]}>
                     Show more
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               )}
               {visibleCount > 3 && (
@@ -898,9 +891,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
                   accessibilityHint="Collapses the list to show only the first 3 reflections"
                 >
                   <Ionicons name="chevron-up" size={12} color={Colors.mediumGray} />
-                  <Text style={[styles.paginationButtonText, styles.showLessText]}>
+                  <ThemedText style={[styles.paginationButtonText, styles.showLessText]}>
                     Show less
-                  </Text>
+                  </ThemedText>
                 </TouchableOpacity>
               )}
             </View>
@@ -925,83 +918,64 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       activeOpacity={0.8}
     >
       {entry.source === 'devotional' || entry.type === 'devotional' ? (
-        <View>
-          <View style={styles.guidedPromptRow}>
-            <View style={styles.devotionalPromptContainer}>
-              <Text style={styles.devotionalPromptText}>DEVOTIONAL</Text>
-            </View>
-            <Text style={styles.timeText}>
-              {new Date(entry.created_at).toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-              })}
-            </Text>
+        <View style={styles.guidedPromptRow}>
+          <View style={styles.devotionalPromptContainer}>
+            <ThemedText style={styles.devotionalPromptText}>DEVOTIONAL</ThemedText>
           </View>
-          {/* Devotional Metadata - Removed as per design */}
-          {/* Playbook Metadata */}
-          {(entry.playbook_title || entry.day_number || entry.day_title) && entry.source === 'playbook' && (
-            <View style={styles.devotionalMetadata}>
-              {entry.playbook_title && (
-                <Text style={styles.devotionalTitle}>{entry.playbook_title}</Text>
-              )}
-              {(entry.day_number || entry.day_title) && (
-                <Text style={styles.devotionalDayInfo}>
-                  {entry.day_number && `Day ${entry.day_number}`}
-                  {entry.day_number && entry.day_title && ' • '}
-                  {entry.day_title}
-                </Text>
-              )}
-            </View>
-          )}
+          <ThemedText style={styles.timeText}>
+            {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+          </ThemedText>
         </View>
       ) : entry.source === 'playbook' || entry.type === 'playbook' ? (
         <View style={styles.guidedPromptRow}>
           <View style={styles.playbookPromptContainer}>
-            <Text style={styles.playbookPromptText}>PLAYBOOK</Text>
+            <ThemedText style={styles.playbookPromptText}>PLAYBOOK</ThemedText>
           </View>
-          <Text style={styles.timeText}>
+          <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-          </Text>
+          </ThemedText>
         </View>
       ) : entry.type === 'guided' ? (
         <View style={styles.guidedPromptRow}>
           <View style={styles.guidedPromptContainer}>
-            <Text style={styles.guidedPromptText}>GUIDED PROMPT</Text>
+            <ThemedText style={styles.guidedPromptText}>GUIDED PROMPT</ThemedText>
           </View>
-          <Text style={styles.timeText}>
+          <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-          </Text>
+          </ThemedText>
         </View>
       ) : (
         <View style={styles.freeFormPromptRow}>
           <View style={styles.freeFormPromptContainer}>
-            <Text style={styles.freeFormPromptText}>FREE FORM</Text>
+            <ThemedText style={styles.freeFormPromptText}>FREE FORM</ThemedText>
           </View>
-          <Text style={styles.timeText}>
+          <ThemedText style={styles.timeText}>
             {new Date(entry.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-          </Text>
+          </ThemedText>
         </View>
       )}
+
       {entry.source === 'devotional' || entry.type === 'devotional' ? (
-        <Text style={styles.promptCardText}>{entry.prompt || entry.title || 'Devotional Reflection'}</Text>
+        <ThemedText style={styles.promptCardText}>{entry.prompt || entry.title || 'Devotional Reflection'}</ThemedText>
       ) : entry.type === 'guided' ? (
-        <Text style={styles.promptCardText}>{entry.prompt || entry.title || 'Guided Reflection'}</Text>
+        <ThemedText style={styles.promptCardText}>{entry.prompt || entry.title || 'Guided Reflection'}</ThemedText>
       ) : entry.title ? (
-        <Text style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</Text>
+        <ThemedText style={[styles.promptCardText, styles.normalTitleText]}>{entry.title}</ThemedText>
       ) : null}
-      <Text
+
+      <ThemedText
         style={styles.entryContent}
         numberOfLines={3}
         ellipsizeMode="tail"
       >
         {typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content)}
-      </Text>
+      </ThemedText>
+
       {entry.tags && entry.tags.filter(tag => tag !== 'playbook' && tag !== 'guided').length > 0 && (
         <View style={styles.tagsContainer}>
           {entry.tags.filter(tag => tag !== 'playbook' && tag !== 'guided').map((tag, index) => (
             <View key={index} style={styles.tag}>
-              <Text style={styles.tagText}>{tag}</Text>
+              <ThemedText style={styles.tagText}>{tag}</ThemedText>
             </View>
           ))}
         </View>
@@ -1048,10 +1022,10 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         onAdd={() => {}}
       >
         <View style={styles.errorContainer}>
-          <Text style={styles.errorTitle}>Failed to load reflections</Text>
-          <Text style={styles.errorMessage}>
+          <ThemedText style={styles.errorTitle}>Failed to load reflections</ThemedText>
+          <ThemedText style={styles.errorMessage}>
             {error.message || 'Something went wrong. Please try again.'}
-          </Text>
+          </ThemedText>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => {
@@ -1066,7 +1040,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
             }}
           >
             <Ionicons name="refresh" size={16} color={Colors.hopeWhite} style={styles.spinning} />
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <ThemedText style={styles.retryButtonText}>Retry</ThemedText>
           </TouchableOpacity>
         </View>
       </JournalCard>

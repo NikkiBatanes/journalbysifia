@@ -15,6 +15,7 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { faithPointsService } from '../services/faithPointsService';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { usePlaybookStoreReactQuery } from '../store/usePlaybookStoreReactQuery';
+import ThemedText from './common/ThemedText';
 
 interface DocumentCardsProps {
   playbook: Playbook;
@@ -119,7 +120,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
             color={Colors.alertCoral}
             style={[propStyles.icon, styles.quoteIcon]}
           />
-          <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
+          <ThemedText weight="bold" style={propStyles.affirmationsTitle}>Affirmations</ThemedText>
         </View>
         <View style={propStyles.affirmationsList}>
           {playbook.affirmations?.map((affirmation) => (
@@ -289,7 +290,7 @@ const ReadAloudButtonDoc: React.FC<{
         testID="documentAffirmationsReadButton"
       >
         <Ionicons name="book-outline" size={18} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={readDocStyles.readIcon} />
-        <Text style={[readDocStyles.readButtonText, hasRead && readDocStyles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</Text>
+        <ThemedText weight="bold" style={[readDocStyles.readButtonText, hasRead && readDocStyles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
       </TouchableOpacity>
     </View>
   );

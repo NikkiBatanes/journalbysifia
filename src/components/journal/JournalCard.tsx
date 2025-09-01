@@ -1,9 +1,10 @@
 import React, { useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { Pencil } from 'lucide-react-native';
+import ThemedText from '../common/ThemedText';
 
 import { ViewConfigurationManager } from '../../systems/journal/ViewConfigurationManager';
 import { ViewMode } from '../../systems/journal/types';
@@ -180,9 +181,9 @@ export const JournalCard: React.FC<JournalCardProps> = ({
               )
             )}
             <View style={styles.titleContainer}>
-              <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
+              <ThemedText weight="bold" style={[styles.title, titleStyleOverrides]}>{title}</ThemedText>
               {shouldShowSubtitle() && (
-                <Text style={styles.subtitle}>{subtitle}</Text>
+                <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
               )}
             </View>
           </View>
@@ -264,9 +265,9 @@ export const JournalCard: React.FC<JournalCardProps> = ({
             )
           )}
           <View style={styles.titleContainer}>
-            <Text style={[styles.title, titleStyleOverrides]}>{title}</Text>
+            <ThemedText weight="bold" style={[styles.title, titleStyleOverrides]}>{title}</ThemedText>
             {shouldShowSubtitle() && (
-              <Text style={styles.subtitle}>{subtitle}</Text>
+              <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
             )}
           </View>
         </View>

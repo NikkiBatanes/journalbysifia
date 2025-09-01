@@ -8,7 +8,7 @@ import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date
 import { adjustDayIndexForWeekStart, getRawDayIndexFromAdjusted } from '../utils/weekStartUtils';
 import type { Day } from 'date-fns';
 import { Colors } from '../theme/colors';
-import { Fonts } from '../theme/fonts';
+import { Fonts, getFontFamily } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
 import { Typography } from '../theme/typography';
 // import LinearGradient from 'react-native-linear-gradient'; // unused
@@ -18,6 +18,7 @@ import { useScroll } from '../context/ScrollContext';
 import PlanCarousel from '../components/journal/PlanCarousel';
 import ReflectCarousel from '../components/journal/ReflectCarousel';
 import PrayCarousel from '../components/journal/PrayCarousel';
+import ThemedText from '../components/common/ThemedText';
 
 // New Plugin Architecture System
 import { JournalSystem } from '../systems/journal';
@@ -32,7 +33,12 @@ export type JournalScreenRef = {
 
 const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, ref) => {
   const { user } = useAuth();
-  const theme = useTheme();
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
+  const fontMedium = getFontFamily(fontKey, 'medium');
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
+  const fontBold = getFontFamily(fontKey, 'bold');
   // Get week start preference from user metadata
   const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
     | 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | undefined;
@@ -367,7 +373,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               activeOpacity={0.7}
             >
               <View style={styles.dayContent}>
-                <Text
+                <ThemedText
                   style={[
                     styles.dayNameText,
                     isCurrentDay && !isSelected && styles.currentDayNameText,
@@ -375,8 +381,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                   ]}
                 >
                   {isCurrentDay ? 'TODAY' : dayName}
-                </Text>
-                <Text
+                </ThemedText>
+                <ThemedText
                   style={[
                     styles.dayNumberText,
                     isCurrentDay && !isSelected && styles.currentDayText,
@@ -384,7 +390,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                   ]}
                 >
                   {dayNumber}
-                </Text>
+                </ThemedText>
               </View>
             </TouchableOpacity>
           );
@@ -548,7 +554,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       <StatusBar barStyle="dark-content" backgroundColor={Colors.hopeWhite} />
       <View style={styles.header}>
         <View style={[styles.monthYearContainer, styles.headerContent, isHeaderCollapsed && styles.collapsedPadding]}>
-          <Text style={styles.monthYearText}>
+          <ThemedText weight="bold" style={styles.monthYearText}>
             {isHeaderCollapsed
               ? (currentDate.getFullYear() === new Date().getFullYear()
                 ? format(currentDate, 'EEEE, MMMM d')
@@ -556,7 +562,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               : (currentDate.getFullYear() === new Date().getFullYear()
                 ? format(currentDate, 'MMMM')
                 : format(currentDate, 'MMMM yyyy'))}
-          </Text>
+          </ThemedText>
           <View style={styles.headerIcons}>
             <TouchableOpacity
               style={styles.headerIconButton}
@@ -691,7 +697,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                   scrollEventThrottle={16}
                 >
                   <View style={styles.inlinePageContainer}>
-                    <Text style={styles.inlinePageTitle}>{page.title}</Text>
+                    <ThemedText weight="bold" style={styles.inlinePageTitle}>{page.title}</ThemedText>
                     <View style={styles.inlineComponentsContainer}>
                        {page.key === 'plan' && (
                          <JournalSystem
@@ -817,12 +823,12 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>SELECT DATE</Text>
+            <ThemedText weight="semiBold" style={styles.modalTitle}>SELECT DATE</ThemedText>
             <View style={styles.calendarWrapper}>
               <Calendar
                 current={formatLocalYYYYMMDD(currentDate)}
                 renderHeader={(date) => (
-                  <Text style={styles.monthHeaderText}>{format(new Date(date as any), 'MMMM yyyy').toUpperCase()}</Text>
+                  <ThemedText weight="semiBold" style={styles.monthHeaderText}>{format(new Date(date as any), 'MMMM yyyy').toUpperCase()}</ThemedText>
                 )}
                 style={styles.calendarCompact}
                 headerStyle={styles.calendarHeaderCompact}
@@ -850,9 +856,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                   textDisabledColor: 'rgba(255,255,255,0.35)',
                   arrowColor: Colors.hopeWhite,
                   monthTextColor: Colors.hopeWhite,
-                  textDayFontFamily: Fonts.medium,
-                  textMonthFontFamily: Fonts.bold,
-                  textDayHeaderFontFamily: Fonts.medium,
+                  textDayFontFamily: fontMedium,
+                  textMonthFontFamily: fontBold,
+                  textDayHeaderFontFamily: fontMedium,
                   // Compact sizing
                   textDayFontSize: 13,
                   textDayHeaderFontSize: 11,
@@ -865,14 +871,14 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                     [selectedStr]: {
                       selected: true,
                       customStyles: {
-                        text: { fontFamily: Fonts.bold, fontWeight: '800', color: Colors.hopeWhite },
+                        text: { fontFamily: fontBold, fontWeight: '800', color: Colors.hopeWhite },
                       },
                     },
                   };
                   if (todayStr !== selectedStr) {
                     marked[todayStr] = {
                       customStyles: {
-                        text: { color: Colors.alertCoral, fontFamily: Fonts.bold, fontWeight: '700' },
+                        text: { color: Colors.alertCoral, fontFamily: fontBold, fontWeight: '700' },
                       },
                     };
                   }
@@ -881,7 +887,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               />
             </View>
             <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowCalendarModal(false)}>
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <ThemedText weight="semiBold" style={styles.cancelButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
