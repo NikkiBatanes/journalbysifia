@@ -24,6 +24,8 @@ import { enhancedGenerationService } from '../../services/enhancedGenerationServ
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 // import OnboardingProgressIndicator from '../../components/OnboardingProgressIndicator';
 import { triggerLightHaptic } from '../../utils/haptics';
+import { useTheme } from '../../hooks/useTheme';
+import ThemedText from '../../components/common/ThemedText';
 
 interface RouteParams {
   challengeCategory: string;
@@ -53,6 +55,8 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
+  const theme = useTheme();
+  const AnimatedThemedText = Animated.createAnimatedComponent(ThemedText);
   // const { updateOnboardingStep } = useUserState(); // Unused for now
   const params = route.params as RouteParams;
   // const isMounted = useRef(true); // Unused, commented out
@@ -507,10 +511,10 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={64} color={Colors.white} />
-          <Text style={styles.errorTitle}>Generation Failed</Text>
-          <Text style={styles.errorMessage}>{generationError}</Text>
+          <ThemedText weight="bold" style={[styles.errorTitle, { fontWeight: 'normal' }]}>Generation Failed</ThemedText>
+          <ThemedText style={[styles.errorMessage, { fontWeight: 'normal' }]}>{generationError}</ThemedText>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
+            <ThemedText weight="semiBold" style={[styles.retryButtonText, { fontWeight: 'normal' }]}>Try Again</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
@@ -541,7 +545,15 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
               </View>
 
               {/* Title */}
-              <Text style={styles.generationTitle}>Creating Your Playbook</Text>
+              <ThemedText
+                weight="bold"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={[styles.generationTitle, { fontWeight: 'normal' }]}
+              >
+                Creating Your Playbook
+              </ThemedText>
 
               {/* Simple Progress Bar */}
               <View style={styles.progressBarContainer}>
@@ -568,23 +580,24 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
                 contentContainerStyle={styles.stepTextContainer}
               >
                 <View style={styles.stepTextRow}>
-                  <Animated.Text style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]}>
+                  <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0, fontWeight: 'normal' }] }>
                     {baseTitle}
-                  </Animated.Text>
+                  </AnimatedThemedText>
                   {/* Fixed-width container for dots to prevent re-centering */}
                   <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-                    <Text style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
+                    <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0, fontWeight: 'normal' }] }>
                       {'.'.repeat(dotCount)}
-                    </Text>
+                    </ThemedText>
                   </View>
                   {/* Hidden measurer renders once to get exact width of '...' for the current font */}
                   {dotsWidth == null && (
-                    <Text
-                      style={[styles.currentStepText, styles.hiddenMeasure]}
+                    <ThemedText
+                      weight="medium"
+                      style={[styles.currentStepText, styles.hiddenMeasure, { fontWeight: 'normal' }]}
                       onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
                     >
                       ...
-                    </Text>
+                    </ThemedText>
                   )}
                 </View>
               </ScrollView>

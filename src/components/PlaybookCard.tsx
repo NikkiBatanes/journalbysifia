@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, TouchableOpacityProps } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ViewStyle, TextStyle, TouchableOpacityProps } from 'react-native';
 import { format } from 'date-fns';
 import { Playbook } from '../interfaces/playbook';
-import { Colors, Fonts } from '../theme';
+import { Colors } from '../theme';
 import { useTheme } from '../theme/ThemeContext';
 import { progressBarStyles } from '../styles/ProgressBarStyles';
 import { getCompletedStepsCount } from '../utils/taskUtils';
+import ThemedText from './common/ThemedText';
 
 interface PlaybookCardProps extends TouchableOpacityProps {
   playbook: Playbook;
@@ -55,15 +56,15 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
       style={[styles.card, containerStyle, style]}
       {...props}
     >
-      <View style={[styles.cardContent, contentStyle]}>
+      <View style={[styles.cardContent, contentStyle]}> 
         <View style={styles.titleContainer}>
-          <Text style={[styles.date, dateStyle]}>
+          <ThemedText weight="bold" style={[styles.date, dateStyle]}>
             {formattedDate}
-          </Text>
+          </ThemedText>
           <View style={styles.titleRow}>
-            <Text style={[styles.title, titleStyle]} numberOfLines={1}>
+            <ThemedText weight="bold" style={[styles.title, titleStyle]} numberOfLines={1}>
               {playbook.title}
-            </Text>
+            </ThemedText>
           </View>
         </View>
 
@@ -82,9 +83,9 @@ const PlaybookCard: React.FC<PlaybookCardProps> = ({
                 </View>
               </View>
               <View style={progressBarStyles.textContainer}>
-                <Text style={progressBarStyles.text}>
+                <ThemedText style={progressBarStyles.text}>
                   {completed}/{total} Steps
-                </Text>
+                </ThemedText>
               </View>
             </View>
           </View>
@@ -119,7 +120,6 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   date: {
     fontSize: 10,
-    fontFamily: Fonts.bold,
     color: 'rgba(255, 255, 255, 0.8)',
     marginBottom: 4,
     letterSpacing: 0.5,
@@ -132,11 +132,9 @@ const createStyles = (theme: any) => StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
     lineHeight: 20,
     paddingVertical: 1,
-    fontWeight: '700',
     flexShrink: 1,
   },
 });

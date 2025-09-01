@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, Animated, Image, Text, Alert, StatusBar, ScrollView, NativeModules } from 'react-native';
+import { View, StyleSheet, Animated, Image, Alert, StatusBar, ScrollView, NativeModules } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,6 +10,8 @@ import { generatePlaybook, savePlaybook } from '../services/apiIntegration';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { faithPointsService } from '../services/faithPointsService';
 import { subscriptionService } from '../services/subscriptionService';
+import { useTheme } from '../hooks/useTheme';
+import ThemedText from '../components/common/ThemedText';
 
 
 
@@ -18,6 +20,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GeneratingPlaybook'>;
 const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
   const { userInput, userName, isFromOnboarding } = route.params;
   const { user } = useAuth();
+  const theme = useTheme();
+  const AnimatedThemedText = Animated.createAnimatedComponent(ThemedText);
   const insets = useSafeAreaInsets();
   const [isGenerating, setIsGenerating] = useState(false);
   const hasGenerated = useRef(false);
@@ -310,7 +314,15 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
                 />
               </View>
 
-              <Text style={styles.generationTitle}>Creating Your Playbook</Text>
+              <ThemedText
+                weight="bold"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={[styles.generationTitle, { fontWeight: 'normal' }]}
+              >
+                Creating Your Playbook
+              </ThemedText>
 
               <View style={styles.progressBarContainer}>
                 <View style={styles.progressBarBackground}>
@@ -330,28 +342,29 @@ const GeneratingPlaybookScreen: React.FC<Props> = ({ route, navigation }) => {
               </View>
 
               <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.stepTextContainer}
-              >
-                <View style={styles.stepTextRow}>
-                  <Animated.Text style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]}>
-                    {baseTitle}
-                  </Animated.Text>
-                  <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-                    <Text style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
-                      {'.'.repeat(dotCount)}
-                    </Text>
-                  </View>
-                  {dotsWidth == null && (
-                    <Text
-                      style={[styles.currentStepText, styles.hiddenMeasure]}
-                      onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
-                    >
-                      ...
-                    </Text>
-                  )}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.stepTextContainer}
+            >
+              <View style={styles.stepTextRow}>
+                <AnimatedThemedText weight="medium" style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0, fontWeight: 'normal' }]}> 
+                  {baseTitle}
+                </AnimatedThemedText>
+                <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
+                  <ThemedText weight="medium" style={[styles.currentStepText, { paddingHorizontal: 0, fontWeight: 'normal' }]}>
+                    {'.'.repeat(dotCount)}
+                  </ThemedText>
                 </View>
+                {dotsWidth == null && (
+                  <ThemedText
+                    weight="medium"
+                    style={[styles.currentStepText, styles.hiddenMeasure, { fontWeight: 'normal' }]}
+                    onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
+                  >
+                    ...
+                  </ThemedText>
+                )}
+              </View>
               </ScrollView>
               <View style={styles.sunSpacer} />
             </View>

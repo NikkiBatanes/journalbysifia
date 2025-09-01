@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { Colors, Fonts } from '../theme';
+import { Colors } from '../theme';
 
 export const progressBarStyles = StyleSheet.create({
   container: {
@@ -41,7 +41,6 @@ export const progressBarStyles = StyleSheet.create({
   },
   text: {
     fontSize: 12,
-    fontFamily: Fonts.medium,
     color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'right',
     minWidth: 60, // Ensure minimum width for text

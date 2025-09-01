@@ -11,7 +11,7 @@
   },
   "ios": {
     "supportsTablet": true,
-    "bundleIdentifier": "com.anchored.app",
+    "bundleIdentifier": "com.sifiaopc.app",
     "buildNumber": "1.0.0"
   },
   "android": {
@@ -19,7 +19,7 @@
       "foregroundImage": "./assets/images/siFiaAppIcon.png",
       "backgroundColor": "#1A3C6D"
     },
-    "package": "com.anchored.app",
+    "package": "com.sifiaopc.app",
     "versionCode": 1
   },
   "extra": {

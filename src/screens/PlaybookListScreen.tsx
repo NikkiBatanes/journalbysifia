@@ -11,7 +11,6 @@ import {
   Pressable,
   TouchableOpacity,
   NativeModules,
-  Text,
 } from 'react-native';
 
 import { format } from 'date-fns';
@@ -638,14 +637,15 @@ const PlaybookListScreen = ({ navigation }: any) => {
                   }}
                 >
                   <Animated.View style={{ transform: [{ scale: tabScales.current[tab] }] }}>
-                    <Text
+                    <ThemedText
+                      weight="semiBold"
                       style={[
                         styles.filterTabTextOnWhite,
                         filter === tab && styles.filterTabTextActiveOnWhite,
                       ]}
                     >
                       {tab === 'all' ? 'All' : tab === 'ongoing' ? 'In Progress' : 'Completed'}
-                    </Text>
+                    </ThemedText>
                   </Animated.View>
                 </Pressable>
               ))}
@@ -812,7 +812,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     marginBottom: 8,
     marginTop: 10,
     letterSpacing: 0.5,
-    fontWeight: '800',
   },
   // Additional layout styling applied on top of BlueSheet if needed
   contentSheet: {
@@ -860,14 +859,12 @@ const createStyles = (_theme: any) => StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 8,
     fontFamily: Fonts.semiBold,
-    fontWeight: '600',
   },
   heroTitle: {
     fontSize: 18,
     textAlign: 'center',
     color: Colors.hopeWhite,
     fontFamily: Fonts.semiBold,
-    fontWeight: '600',
     lineHeight: 24,
     marginBottom: 8,
     paddingHorizontal: 4,
@@ -953,7 +950,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 12,
     fontFamily: Fonts.semiBold,
-    fontWeight: '600',
   },
   stepText: {
     color: Colors.hopeWhite,
@@ -1000,7 +996,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontSize: 13,
     color: Colors.hopeWhite,
     letterSpacing: 0.2,
-    fontWeight: '400',
   },
   filterTabTextActive: {
     color: Colors.hopeWhite,
@@ -1028,7 +1023,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     fontSize: 13,
     color: Colors.anchorBlue,
     letterSpacing: 0.2,
-    fontWeight: '400',
   },
   filterTabTextActiveOnWhite: {
     color: Colors.hopeWhite,
@@ -1047,7 +1041,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    fontWeight: 'bold',
   },
   card: {
     marginBottom: 12,
@@ -1064,7 +1057,6 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.hopeWhite,
     lineHeight: 24,
     paddingVertical: 1,
-    fontWeight: '700',
     flexShrink: 1,
   },
   date: {
