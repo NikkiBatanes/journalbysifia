@@ -1,11 +1,10 @@
 import React, { useRef, useCallback, useState } from 'react';
-import { View, Animated, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Animated, StyleSheet, Dimensions, ScrollView } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
 import { TodaysFocusReactQuery } from './TodaysFocusReactQuery';
 import { TodosReactQuery } from './TodosReactQuery';
 import { TimeBlockReactQueryWithErrorBoundary as TimeBlockReactQuery } from './TimeBlockReactQuery';
-import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 
@@ -19,16 +18,14 @@ const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 interface PlanCarouselProps {
   selectedDate: Date;
   refreshKey?: number;
-  onComponentTap?: (componentId: string) => void;
 }
 
 
-const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, onComponentTap }) => {
+const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0); // Start with first card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
-  const globalEditMode = useEditModeSafe();
 
 
 
@@ -130,18 +127,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
               key={item.id}
               style={[styles.carouselItem, { transform: [{ scale }], opacity }]}
             >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => {
-                  // Only handle component tap navigation when not in edit mode
-                  if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
-                    triggerLightHaptic();
-                    onComponentTap(item.id);
-                  }
-                }}
-                style={styles.touchableComponent}
-                disabled={globalEditMode?.isGlobalEditMode}
-              >
+              <View style={styles.touchableComponent}>
                 {React.cloneElement(item.component as React.ReactElement<any>, {
                   expanded: expandedIndex === i,
                   onExpand: () => {
@@ -149,7 +135,7 @@ const PlanCarousel: React.FC<PlanCarouselProps> = ({ selectedDate, refreshKey, o
                     setExpandedIndex(expandedIndex === i ? null : i);
                   },
                 })}
-              </TouchableOpacity>
+              </View>
             </Animated.View>
           );
         })}

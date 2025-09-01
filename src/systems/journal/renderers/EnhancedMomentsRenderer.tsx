@@ -924,16 +924,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
       return (
         <View style={styles.carouselContainer}>
-          {/* Fixed header (time + tag) stays put and aligns with Prayer Journal */}
-          <View style={styles.devoHeaderContainer}>
-            <View style={styles.momentHeader}>
-              <ThemedText style={[styles.momentDate, { fontFamily: fontRegular }]}>{format(firstEntry.date, 'h:mm a')}</ThemedText>
-              <View style={styles.categoryBadge}>
-                <ThemedText weight="semiBold" style={[styles.categoryText, { fontFamily: fontSemiBold }]}>{firstEntry.category.toUpperCase()}</ThemedText>
-              </View>
-            </View>
-          </View>
-
           {/* True edge-to-edge carousel */}
           <View style={[styles.devoEdgeToEdge, { marginLeft: -leftBreakout, marginRight: -rightBreakout }]}>
             <FlatList
@@ -993,12 +983,6 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       <View style={styles.carouselItem}>
         <View style={styles.momentItem}>
           <View style={styles.momentContent}>
-            <View style={styles.momentHeader}>
-              <ThemedText style={[styles.momentDate, { fontFamily: fontRegular }]}>{format(entry.date, 'h:mm a')}</ThemedText>
-              <View style={styles.categoryBadge}>
-                <ThemedText weight="semiBold" style={[styles.categoryText, { fontFamily: fontSemiBold }]}>{entry.category.toUpperCase()}</ThemedText>
-              </View>
-            </View>
             <PluginRenderer
               plugin={entry.plugin}
               selectedDate={entry.date}

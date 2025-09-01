@@ -24,7 +24,7 @@ import {
   useDevotionalOperations,
 } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { Typography as TypographyStyles } from '../theme/typography';
+// Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
 import { faithPointsService } from '../services/faithPointsService';
 import { subscriptionService } from '../services/subscriptionService';
 
@@ -945,20 +945,21 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     }}
                   >
                     <View style={styles.questionCardContainer}>
-                      <ThemedText weight="bold" style={[
-                        styles.questionCardNumber,
-                        isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
-                      ]}>{idx + 1}</ThemedText>
-                      <ThemedText style={styles.questionCardText}>
-                        {question.text || 'Reflection question'}
-                      </ThemedText>
-                    </View>
-                  </TouchableOpacity>
+                  <ThemedText weight="bold" style={[
+                    styles.questionCardNumber,
+                    isQuestionJournaled(index + 1, idx + 1) && styles.journaledQuestionNumber,
+                  ]}>{idx + 1}</ThemedText>
+                  <ThemedText style={styles.questionCardText}>
+                    {question.text || 'Reflection question'}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
                 ))
               ) : (
                 <ThemedText style={styles.questionCardText}>No questions for today.</ThemedText>
               )}
             </DevotionalSectionCard>
+
 
             {/* Prayer Card */}
             <DevotionalSectionCard
@@ -1139,7 +1140,6 @@ const styles = StyleSheet.create({
 
   headerTitle: {
     fontSize: 16,
-    fontWeight: '500',
     color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 4,
@@ -1183,7 +1183,6 @@ const styles = StyleSheet.create({
     marginLeft: 0, // Changed from 'auto' to remove extra space
   },
   progressText: {
-    fontWeight: '500',
     fontSize: 12,
     lineHeight: 16,
     color: Colors.anchorBlue,
@@ -1197,7 +1196,6 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: Colors.anchorBlue,
     fontSize: 16,
-    fontWeight: '600',
   },
 
   headerSpacer: {
@@ -1225,13 +1223,11 @@ const styles = StyleSheet.create({
   },
   dayNumber: {
     fontSize: 14,
-    fontWeight: '600',
     color: Colors.faithGold,
     marginBottom: 4,
   },
   dayTitle: {
     fontSize: 22,
-    fontWeight: '700',
     color: Colors.hopeWhite,
     lineHeight: 28,
   },
@@ -1259,7 +1255,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
     color: Colors.anchorBlue,
     marginBottom: 12,
   },
@@ -1285,7 +1280,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   questionCardNumber: {
-    ...TypographyStyles.interBold as any,
     color: Colors.hopeWhite,
     marginRight: 12,
     fontSize: 14,
@@ -1368,7 +1362,6 @@ const styles = StyleSheet.create({
     marginLeft: 2,
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontWeight: '600',
   },
   prayerButtonTextActive: {
     color: Colors.alertCoral,
@@ -1417,10 +1410,8 @@ const styles = StyleSheet.create({
   completedText: {
     marginLeft: 8,
     color: Colors.growthGreen,
-    fontWeight: '600',
   },
   scriptureText: {
-    ...TypographyStyles.interRegular,
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
@@ -1429,9 +1420,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   scriptureReference: {
-    ...TypographyStyles.interSemiBold,
     fontSize: 13,
-    fontWeight: '600',
     lineHeight: 18,
     color: Colors.alertCoral,
     textAlign: 'right',

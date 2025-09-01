@@ -5,14 +5,12 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
 import { PrayerJournalReactQuery } from './PrayerJournalReactQuery';
 import DevotionalPrayerListReactQuery from './DevotionalPrayerListReactQuery';
 import EnhancedPrayerListReactQuery from './EnhancedPrayerListReactQuery';
-import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 
@@ -25,7 +23,6 @@ const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 
 interface PrayCarouselProps {
   selectedDate: Date;
-  onComponentTap?: (componentId: string) => void;
 }
 
 interface CarouselItem {
@@ -36,12 +33,11 @@ interface CarouselItem {
   color: string;
 }
 
-const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTap }) => {
+const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0); // Start with first card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
-  const globalEditMode = useEditModeSafe();
 
   const handleScrollFeedback = useCallback(() => {
     try {
@@ -142,18 +138,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
               key={item.id}
               style={[styles.carouselItem, { transform: [{ scale }], opacity }]}
             >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => {
-                  // Only handle component tap navigation when not in edit mode
-                  if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
-                    triggerLightHaptic();
-                    onComponentTap(item.id);
-                  }
-                }}
-                disabled={globalEditMode?.isGlobalEditMode}
-                style={styles.touchableComponent}
-              >
+              <View style={styles.touchableComponent}>
                 {React.cloneElement(item.component as React.ReactElement<any>, {
                   expanded: expandedIndex === i,
                   onExpand: () => {
@@ -161,7 +146,7 @@ const PrayCarousel: React.FC<PrayCarouselProps> = ({ selectedDate, onComponentTa
                     setExpandedIndex(expandedIndex === i ? null : i);
                   },
                 })}
-              </TouchableOpacity>
+              </View>
             </Animated.View>
           );
         })}

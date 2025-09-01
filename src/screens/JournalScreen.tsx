@@ -1,16 +1,15 @@
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from 'react';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules } from 'react-native';
-import { PanGestureHandler, State } from 'react-native-gesture-handler';
-import { Pencil, Check, Feather, CalendarDays } from 'lucide-react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules } from 'react-native';
+import { Feather, CalendarDays } from 'lucide-react-native';
 import { isToday, isSameDay, format, startOfWeek, addDays, addWeeks } from 'date-fns';
-import { adjustDayIndexForWeekStart, getRawDayIndexFromAdjusted } from '../utils/weekStartUtils';
+import { adjustDayIndexForWeekStart } from '../utils/weekStartUtils';
 import type { Day } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts, getFontFamily } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
-import { Typography } from '../theme/typography';
+// import { Typography } from '../theme/typography';
 // import LinearGradient from 'react-native-linear-gradient'; // unused
 // import { AnimationUtils } from '../utils/AnimationUtils'; // unused
 import { useScroll } from '../context/ScrollContext';
@@ -20,8 +19,7 @@ import ReflectCarousel from '../components/journal/ReflectCarousel';
 import PrayCarousel from '../components/journal/PrayCarousel';
 import ThemedText from '../components/common/ThemedText';
 
-// New Plugin Architecture System
-import { JournalSystem } from '../systems/journal';
+// Inline system removed
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { forceRefreshAllJournalData } from '../storage/journalStorage';
 import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
@@ -62,19 +60,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewMode, setViewMode] = useState<'carousel' | 'inline' | 'moments'>('carousel');
-  const [currentPage, setCurrentPage] = useState(0);
-  const [triggerGlobalEdit, setTriggerGlobalEdit] = useState(false);
-  const [isGlobalEditMode, setIsGlobalEditMode] = useState(false);
-  const [targetComponentId, setTargetComponentId] = useState<string | null>(null);
+  const [viewMode] = useState<'carousel'>('carousel');
   const lastSelectedDate = useRef<Date | null>(null);
-  const pageScrollRefs = useRef<{ [key: string]: ScrollView | null }>({});
-  const horizontalScrollRef = useRef<ScrollView>(null);
 
-  // Handle global edit mode changes from components
-  const handleGlobalEditModeChange = useCallback((isEditMode: boolean) => {
-    setIsGlobalEditMode(isEditMode);
-  }, []);
+  // Removed: global edit mode (inline view no longer used)
 
   // Expose methods to parent component
   useImperativeHandle(ref, () => ({
@@ -401,118 +390,24 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   const { setShowTabBar } = useScroll();
 
-  // Pagination data
-  const pages = useMemo(() => [
-    { title: 'Plan', key: 'plan' },
-    { title: 'Reflect', key: 'reflect' },
-    { title: 'Pray', key: 'pray' },
-  ], []);
+  // Inline view removed: no pages pagination
 
-  // Handle component tap to switch to inline view and scroll to specific component
-  const handleComponentTap = useCallback((pageKey: string, componentId?: string) => {
-    // Subtle feedback when jumping to a component/page
-    triggerLightHaptic();
-    const pageIndex = pages.findIndex(page => page.key === pageKey);
-    if (pageIndex !== -1) {
-      setCurrentPage(pageIndex);
-      setViewMode('inline');
-
-      // Store the component to scroll to
-      if (componentId) {
-        setTargetComponentId(componentId);
-      }
-
-      // Scroll horizontal ScrollView to the correct page after a delay
-      setTimeout(() => {
-        if (horizontalScrollRef.current) {
-          const currentScreenWidth = Dimensions.get('window').width;
-          horizontalScrollRef.current.scrollTo({
-            x: pageIndex * currentScreenWidth,
-            animated: true,
-          });
-        }
-      }, 100);
-    }
-  }, [pages]);
+  // Removed: tap-to-inline navigation (cards no longer tappable)
 
   // Removed unused handleBackToCarousel function
 
-  // Component mapping for scroll-to functionality
-  const componentMapping = useMemo(() => ({
-    'focus': { page: 'plan', index: 0 },
-    'todos': { page: 'plan', index: 1 },
-    'timeblocks': { page: 'plan', index: 2 },
-    'reflection': { page: 'reflect', index: 0 },
-    'gratitude': { page: 'reflect', index: 1 },
-    'todayswin': { page: 'reflect', index: 2 },
-    'lookingforward': { page: 'reflect', index: 3 },
-    'prayerjournal': { page: 'pray', index: 0 },
-    'devotionalprayers': { page: 'pray', index: 1 },
-    'peopleprayers': { page: 'pray', index: 2 },
-  }), []);
-
-  // Scroll to specific component
-  const scrollToComponent = useCallback((componentId: string) => {
-    const mapping = componentMapping[componentId as keyof typeof componentMapping];
-    if (mapping) {
-      const scrollView = pageScrollRefs.current[mapping.page];
-      if (scrollView) {
-        // Calculate approximate scroll position (each component wrapper is ~200px)
-        const scrollPosition = mapping.index * 200;
-        scrollView.scrollTo({ y: scrollPosition, animated: true });
-      }
-    }
-  }, [componentMapping]);
-
-  // Effect to handle scroll-to when target component changes
-  useEffect(() => {
-    if (targetComponentId && viewMode === 'inline') {
-      // Delay scroll to ensure view has rendered
-      setTimeout(() => {
-        scrollToComponent(targetComponentId);
-        setTargetComponentId(null);
-      }, 300);
-    }
-  }, [targetComponentId, viewMode, scrollToComponent]);
+  // Removed: inline page/component mapping and scroll logic
 
   // Temporary function for testing component navigation
   // This can be called from console or added as onPress handlers
-  const navigateToComponent = useCallback((componentId: string) => {
-    const mapping = componentMapping[componentId as keyof typeof componentMapping];
-    if (mapping) {
-      handleComponentTap(mapping.page, componentId);
-    }
-  }, [componentMapping, handleComponentTap]);
+  // Removed: navigateToComponent helper
 
   // Expose navigation function for testing
-  useEffect(() => {
-    // @ts-ignore - for testing purposes
-    window.navigateToComponent = navigateToComponent;
-  }, [navigateToComponent]);
+  // Removed: expose navigateToComponent (no longer applicable)
 
-  // Handle swipe to change pages
-  const handlePageScroll = (event: any) => {
-    const { contentOffset, layoutMeasurement } = event.nativeEvent;
-    const pageIndex = Math.round(contentOffset.x / layoutMeasurement.width);
-    if (pageIndex !== currentPage && pageIndex >= 0 && pageIndex < pages.length) {
-      // Feedback on page change
-      triggerLightHaptic();
-      setCurrentPage(pageIndex);
-    }
-  };
+  // Removed: inline page scroll handler
 
-  // Handle swipe down gesture to close inline view
-  const handleSwipeDown = (event: any) => {
-    if (event.nativeEvent.state === State.END) {
-      const { velocityY, translationY } = event.nativeEvent;
-      // Check for fast downward swipe (velocity > 500 and translation > 50)
-      if (velocityY > 500 && translationY > 50) {
-        // Feedback when closing inline view
-        triggerLightHaptic();
-        setViewMode('carousel');
-      }
-    }
-  };
+  // Removed: swipe-to-close inline view
 
   const handleContentScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
     const y = event.nativeEvent.contentOffset.y;
@@ -610,182 +505,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       </View>
 
       <View style={styles.content}>
-        {viewMode === 'carousel' ? (
-          <KeyboardAvoidingView
-            style={styles.keyboardAvoidingView}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-          >
-            <ScrollView
-              style={styles.tabContent}
-              contentContainerStyle={styles.scrollViewContent}
-              onScroll={handleContentScroll}
-              scrollEventThrottle={16}
-              keyboardShouldPersistTaps="handled"
-              keyboardDismissMode="on-drag"
-          >
-            <View style={styles.carouselContainer}>
-              <PlanCarousel
-                selectedDate={currentDate}
-                refreshKey={refreshKey}
-                onComponentTap={(componentId) => {
-                  const mapping = componentMapping[componentId as keyof typeof componentMapping];
-                  if (mapping) {
-                    handleComponentTap(mapping.page, componentId);
-                  }
-                }}
-              />
-            </View>
-            {/* Only show ReflectCarousel for today or past dates */}
-            {currentDate <= new Date() && (
-              <>
-                <View style={styles.carouselContainer}>
-                  <ReflectCarousel
-                    selectedDate={currentDate}
-                    refreshKey={refreshKey}
-                    onComponentTap={(componentId) => {
-                      const mapping = componentMapping[componentId as keyof typeof componentMapping];
-                      if (mapping) {
-                        handleComponentTap(mapping.page, componentId);
-                      }
-                    }}
-                  />
-                </View>
-                <View style={styles.carouselContainer}>
-                  <PrayCarousel
-                    selectedDate={currentDate}
-                    onComponentTap={(componentId) => {
-                      const mapping = componentMapping[componentId as keyof typeof componentMapping];
-                      if (mapping) {
-                        handleComponentTap(mapping.page, componentId);
-                      }
-                    }}
-                  />
-                </View>
-              </>
-            )}
-          </ScrollView>
-          </KeyboardAvoidingView>
-        ) : viewMode === 'inline' ? (
-          <PanGestureHandler onHandlerStateChange={handleSwipeDown}>
-            <View style={styles.inlineViewContainer}>
-              <KeyboardAvoidingView
-                style={styles.keyboardAvoidingView}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-              >
-                <ScrollView
-                ref={horizontalScrollRef}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={handlePageScroll}
-                scrollEventThrottle={16}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="on-drag"
-                style={styles.tabContent}
-              >
-              {pages.map((page, _index) => (
-                <ScrollView
-                  key={page.key}
-                  ref={(scrollRef) => { pageScrollRefs.current[page.key] = scrollRef; }}
-                  style={[styles.pageContainer, { width: Dimensions.get('window').width }]}
-                  contentContainerStyle={styles.scrollViewContent}
-                  keyboardShouldPersistTaps="handled"
-                  keyboardDismissMode="on-drag"
-                  onScroll={handleContentScroll}
-                  scrollEventThrottle={16}
-                >
-                  <View style={styles.inlinePageContainer}>
-                    <ThemedText weight="bold" style={styles.inlinePageTitle}>{page.title}</ThemedText>
-                    <View style={styles.inlineComponentsContainer}>
-                       {page.key === 'plan' && (
-                         <JournalSystem
-                           selectedDate={currentDate}
-                           viewMode="inline"
-                           categories={['plan']}
-                           refreshKey={refreshKey}
-                           triggerGlobalEdit={triggerGlobalEdit}
-                           onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
-                           onGlobalEditModeChange={handleGlobalEditModeChange}
-                           style={styles.journalSystemContainer}
-                         />
-                       )}
-                       {page.key === 'reflect' && currentDate <= new Date() && (
-                         <JournalSystem
-                           selectedDate={currentDate}
-                           viewMode="inline"
-                           categories={['reflect']}
-                           refreshKey={refreshKey}
-                           triggerGlobalEdit={triggerGlobalEdit}
-                           onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
-                           onGlobalEditModeChange={handleGlobalEditModeChange}
-                           style={styles.journalSystemContainer}
-                         />
-                       )}
-                       {page.key === 'pray' && currentDate <= new Date() && (
-                         <JournalSystem
-                           selectedDate={currentDate}
-                           viewMode="inline"
-                           categories={['pray']}
-                           refreshKey={refreshKey}
-                           triggerGlobalEdit={triggerGlobalEdit}
-                           onGlobalEditTriggered={() => setTriggerGlobalEdit(false)}
-                           onGlobalEditModeChange={handleGlobalEditModeChange}
-                           style={styles.journalSystemContainer}
-                         />
-                       )}
-                    </View>
-                  </View>
-                </ScrollView>
-              ))}
-              </ScrollView>
-              </KeyboardAvoidingView>
-              {/* Pagination Overlay */}
-              <View style={styles.paginationOverlay}>
-                <View style={styles.paginationContainer}>
-                  {pages.map((page, index) => (
-                    <View
-                      key={page.key}
-                      style={[
-                        styles.paginationDot,
-                        currentPage === index && styles.paginationDotActive,
-                      ]}
-                    />
-                  ))}
-                </View>
-                {/* Global Edit Button positioned beside pagination */}
-                <TouchableOpacity
-                  style={[styles.editButton, isGlobalEditMode && styles.editButtonActive]}
-                  onPress={() => {
-                    // Feedback on toggling global edit mode
-                    triggerLightHaptic();
-                    // Switch to inline view and trigger global edit mode
-                    if (viewMode !== 'inline') {
-                      setViewMode('inline');
-                      // Trigger global edit mode after switching to inline view
-                      setTimeout(() => {
-                        setTriggerGlobalEdit(true);
-                      }, 100);
-                    } else {
-                      // Toggle global edit mode if already in inline view
-                      setTriggerGlobalEdit(true);
-                    }
-                  }}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={isGlobalEditMode ? 'Save and exit edit mode' : 'Enter global edit mode'}
-                >
-                  {isGlobalEditMode ? (
-                    <Check size={12} color={Colors.hopeWhite} strokeWidth={2.5} />
-                  ) : (
-                    <Pencil size={12} color={Colors.hopeWhite} strokeWidth={2.5} />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-          </PanGestureHandler>
-        ) : (
+        {
           <KeyboardAvoidingView
             style={styles.keyboardAvoidingView}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -799,19 +519,29 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
             >
-              <View style={styles.inlinePageContainer}>
-                <Text style={styles.inlinePageTitle}>Moments</Text>
-                <JournalSystem
+              <View style={styles.carouselContainer}>
+                <PlanCarousel
                   selectedDate={currentDate}
-                  viewMode="moments"
-                  categories={['plan', 'reflect', 'pray']}
                   refreshKey={refreshKey}
-                  style={styles.journalSystemContainer}
                 />
               </View>
+              {/* Only show ReflectCarousel for today or past dates */}
+              {currentDate <= new Date() && (
+                <>
+                  <View style={styles.carouselContainer}>
+                    <ReflectCarousel
+                      selectedDate={currentDate}
+                      refreshKey={refreshKey}
+                    />
+                  </View>
+                  <View style={styles.carouselContainer}>
+                    <PrayCarousel selectedDate={currentDate} />
+                  </View>
+                </>
+              )}
             </ScrollView>
           </KeyboardAvoidingView>
-        )}
+        }
       </View>
 
       {/* Full Calendar Modal for quick date selection */}
@@ -1165,77 +895,7 @@ const styles = StyleSheet.create({
     color: Colors.anchorBlue,
     marginBottom: 16,
   },
-  // Swipable pagination styles
-  pageContainer: {
-    flex: 1,
-  },
-  // Inline view styles
-  inlineViewContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  inlinePageContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-  },
-  inlinePageTitle: {
-    fontSize: 24,
-    fontFamily: Fonts.bold,
-    color: Colors.anchorBlue,
-    textAlign: 'center',
-    marginBottom: 0,
-  },
-  inlineComponentsContainer: {
-    flex: 1,
-  },
-  componentWrapper: {
-    marginBottom: 0, // Reduced from 16 to 6 for tighter spacing
-  },
-  journalSystemContainer: {
-    flex: 1,
-  },
-  // Pagination overlay styles
-  paginationOverlay: {
-    position: 'absolute',
-    top: 20,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  editButton: {
-    position: 'absolute',
-    left: '50%',
-    marginLeft: 50, // Half of pagination width + gap
-    width: 24,
-    height: 24,
-    borderRadius: 15,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)', // Same as pagination background
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editButtonActive: {
-    backgroundColor: Colors.alertCoral, // Active state with coral background
-  },
-  paginationContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  paginationDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    marginHorizontal: 3,
-  },
-  paginationDotActive: {
-    backgroundColor: Colors.hopeWhite,
-    width: 20,
-  },
+  // Inline view removed: deleted unused styles (edit button, pagination)
   // Calendar modal styles
   modalOverlay: {
     flex: 1,

@@ -1,8 +1,9 @@
 import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 
-import { Colors, Fonts, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import { Colors, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
+import ThemedText from './common/ThemedText';
 
 interface DevotionalSectionCardProps {
   icon: string;
@@ -27,12 +28,12 @@ const DevotionalSectionCard: React.FC<DevotionalSectionCardProps> = ({
         <Ionicons name={icon} size={20} color={Colors.alertCoral} />
       </View>
       <View>
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        <ThemedText weight="bold" style={styles.title}>{title}</ThemedText>
+        <ThemedText weight="regular" style={styles.subtitle}>{subtitle}</ThemedText>
       </View>
     </View>
     <View style={styles.content}>
-      {typeof children === 'string' ? <Text style={styles.defaultText}>{children}</Text> : children}
+      {typeof children === 'string' ? <ThemedText style={styles.defaultText}>{children}</ThemedText> : children}
     </View>
   </View>
 );
@@ -70,14 +71,11 @@ const styles = StyleSheet.create({
     marginRight: 0,
   },
   title: {
-    fontFamily: Fonts.bold,
     fontSize: 18,
     lineHeight: 24,
-    fontWeight: 'bold',
     color: Colors.hopeWhite,
   },
   subtitle: {
-    fontFamily: Fonts.regular,
     fontSize: 13,
     lineHeight: 18,
     color: 'rgba(255, 255, 255, 0.8)',
@@ -89,7 +87,6 @@ const styles = StyleSheet.create({
   },
   defaultText: {
     color: Colors.hopeWhite,
-    fontFamily: Fonts.regular,
     fontSize: 16,
     lineHeight: 22,
   },

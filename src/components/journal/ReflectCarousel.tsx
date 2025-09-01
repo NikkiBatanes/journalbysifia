@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { playSound } from '../../utils/soundUtils';
 import { Colors } from '../../theme/colors';
@@ -13,7 +12,6 @@ import { ReflectionLogReactQuery } from './ReflectionLogReactQuery';
 import { GratitudeListReactQuery } from './GratitudeListReactQuery';
 import { TodayWinReactQuery } from './TodayWinReactQuery';
 import { LookingForwardReactQuery } from './LookingForwardReactQuery';
-import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { triggerLightHaptic } from '../../utils/haptics';
 import ThemedText from '../common/ThemedText';
 
@@ -27,7 +25,6 @@ const SIDE_INSET = Math.max(0, SIDE_OFFSET - PEEK);
 interface ReflectCarouselProps {
   selectedDate: Date;
   refreshKey?: number;
-  onComponentTap?: (componentId: string) => void;
 }
 
 interface CarouselItem {
@@ -38,12 +35,11 @@ interface CarouselItem {
   color: string;
 }
 
-const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0, onComponentTap }) => {
+const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refreshKey = 0 }) => {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0); // Start with first card expanded
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
   const currentCardIndex = useRef(0);
-  const globalEditMode = useEditModeSafe();
 
   // Handle scroll feedback with sound
   const handleScrollFeedback = useCallback(() => {
@@ -148,18 +144,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
               key={item.id}
               style={[styles.carouselItem, { transform: [{ scale }], opacity }]}
             >
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => {
-                  // Only handle component tap navigation when not in edit mode
-                  if (onComponentTap && !globalEditMode?.isGlobalEditMode) {
-                    triggerLightHaptic();
-                    onComponentTap(item.id);
-                  }
-                }}
-                disabled={globalEditMode?.isGlobalEditMode}
-                style={styles.touchableComponent}
-              >
+              <View style={styles.touchableComponent}>
                 {React.cloneElement(item.component as React.ReactElement<any>, {
                   expanded: expandedIndex === i,
                   onExpand: () => {
@@ -167,7 +152,7 @@ const ReflectCarousel: React.FC<ReflectCarouselProps> = ({ selectedDate, refresh
                     setExpandedIndex(expandedIndex === i ? null : i);
                   },
                 })}
-              </TouchableOpacity>
+              </View>
             </Animated.View>
           );
         })}
