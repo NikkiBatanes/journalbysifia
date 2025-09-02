@@ -11,8 +11,9 @@ import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 
-export type GroupingType = 'date' | 'month' | 'category' | 'type' | 'none';
+export type GroupingType = 'date' | 'week' | 'month' | 'year' | 'category' | 'type' | 'none';
 export type SortType = 'newest' | 'oldest' | 'category' | 'type';
+export type PrayerAnswerFilter = 'all' | 'answered' | 'unanswered';
 
 interface GroupingControlsProps {
   groupBy: GroupingType;
@@ -23,12 +24,15 @@ interface GroupingControlsProps {
   onSearchChange: (query: string) => void;
   showSearch: boolean;
   onToggleSearch: () => void;
+  prayerAnswerFilter?: PrayerAnswerFilter;
+  onPrayerAnswerFilterChange?: (filter: PrayerAnswerFilter) => void;
 }
 
 const GROUPING_OPTIONS: { value: GroupingType; label: string; icon: string }[] = [
   { value: 'none', label: 'No Grouping', icon: 'list-outline' },
   { value: 'date', label: 'By Date', icon: 'calendar-outline' },
   { value: 'month', label: 'By Month', icon: 'calendar' },
+  { value: 'year', label: 'By Year', icon: 'calendar-number-outline' },
   { value: 'category', label: 'By Category', icon: 'folder-outline' },
   { value: 'type', label: 'By Type', icon: 'grid-outline' },
 ];
@@ -49,6 +53,8 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
   onSearchChange,
   showSearch,
   onToggleSearch,
+  prayerAnswerFilter = 'all',
+  onPrayerAnswerFilterChange,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -147,6 +153,39 @@ export const GroupingControls: React.FC<GroupingControlsProps> = ({
             ))}
           </View>
         </View>
+
+        {/* Prayer Status Filter */}
+        {onPrayerAnswerFilterChange && (
+          <View style={styles.controlGroup}>
+            <ThemedText weight="semiBold" style={[styles.controlLabel, { fontFamily: fontSemiBold }]}>Prayer Status</ThemedText>
+            <View style={styles.optionsContainer}>
+              {([
+                { value: 'all', label: 'All' },
+                { value: 'answered', label: 'Answered' },
+                { value: 'unanswered', label: 'Unanswered' },
+              ] as const).map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={[
+                    styles.optionButton,
+                    prayerAnswerFilter === opt.value && styles.activeOption,
+                  ]}
+                  onPress={() => onPrayerAnswerFilterChange(opt.value)}
+                >
+                  <ThemedText
+                    style={[
+                      styles.optionText,
+                      { fontFamily: fontMedium },
+                      prayerAnswerFilter === opt.value && styles.activeOptionText,
+                    ]}
+                  >
+                    {opt.label}
+                  </ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
     </View>
   );

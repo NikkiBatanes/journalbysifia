@@ -26,9 +26,13 @@ interface DevotionalPrayerListReactQueryProps {
 }
 
 const { width: screenWidth } = Dimensions.get('window');
-const CARD_WIDTH = screenWidth * 0.75; // Slightly smaller to show next card
-const CARD_SPACING = 12; // Increase spacing to show peek of next card
-const SIDE_PADDING = 16; // More padding for better peek effect
+// Target a ~64px peek of the next card, accounting for card horizontal padding in JournalCard
+const PEEK_WIDTH = 64;
+const HORIZONTAL_GUTTER = 16; // JournalCard content padding
+const CARD_SPACING = 12; // space between cards
+// Card width leaves room for a peek on the right plus both gutters
+const CARD_WIDTH = Math.max(260, screenWidth - (HORIZONTAL_GUTTER * 2) - PEEK_WIDTH);
+const SIDE_PADDING = 16; // side inset inside the scroll area
 
 const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryProps> = ({
   selectedDate,
@@ -145,8 +149,9 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
         </ScrollView>
       );
     } else {
-      // Horizontal carousel for inline and moments view - matching Plan carousel exactly
+      // Horizontal carousel for inline and moments view - matching Plan carousel with peek
       return (
+        <View style={styles.edgeToEdgeContainer}>
         <Animated.ScrollView
           ref={scrollViewRef}
           horizontal
@@ -159,11 +164,12 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
           bounces={true}
           bouncesZoom={false}
           contentInset={{
-            left: SIDE_PADDING / 2,
-            right: SIDE_PADDING / 2,
+            left: SIDE_PADDING,
+            right: SIDE_PADDING,
           }}
           contentContainerStyle={{
             paddingHorizontal: SIDE_PADDING,
+            overflow: 'visible',
           }}
           style={styles.horizontalContainer}
           onScroll={Animated.event(
@@ -229,6 +235,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
             );
           })}
         </Animated.ScrollView>
+        </View>
       );
     }
   };
@@ -303,6 +310,13 @@ const styles = StyleSheet.create({
     // height: 200,
     flexGrow: 0,
     flexShrink: 0,
+    overflow: 'visible',
+  },
+  edgeToEdgeContainer: {
+    // Break out of JournalCard's 16px horizontal padding to allow true edge-to-edge and peeking
+    marginHorizontal: -16,
+    paddingHorizontal: 0,
+    overflow: 'visible',
   },
   horizontalPrayerItemContainer: {
     width: CARD_WIDTH,

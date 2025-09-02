@@ -346,7 +346,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
                     {prayer.answered_date && (
                       <ThemedText style={styles.answeredDate}>
                         {new Date(prayer.answered_date).toLocaleDateString('en-US', {
-                          month: 'short',
+                          month: 'long',
                           day: 'numeric',
                         })}
                       </ThemedText>
