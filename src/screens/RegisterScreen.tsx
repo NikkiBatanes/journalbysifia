@@ -174,7 +174,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           {/* Inline Error Message */}
           {error ? (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIcon} />
+              <Ionicons name="alert-circle" size={18} color={Colors.alertCoral} style={styles.errorIcon} />
               <ThemedText style={styles.errorText}>{error}</ThemedText>
             </View>
           ) : null}
@@ -189,9 +189,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               disabled={loading}
             >
               {activeProvider === 'apple' ? (
-                <ActivityIndicator size="small" color="#FF6B6B" />
+                <ActivityIndicator size="small" color={Colors.alertCoral} />
               ) : (
-                <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
+                <Ionicons name="logo-apple" size={20} color={Colors.alertCoral} />
               )}
               <ThemedText weight="medium" style={styles.buttonText}>
                 {activeProvider === 'apple' ? 'Signing up...' : 'Continue with Apple'}
@@ -205,9 +205,9 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             disabled={loading}
           >
             {activeProvider === 'google' ? (
-              <ActivityIndicator size="small" color="#FF6B6B" />
+              <ActivityIndicator size="small" color={Colors.alertCoral} />
             ) : (
-              <Ionicons name="logo-google" size={20} color="#FF6B6B" />
+              <Ionicons name="logo-google" size={20} color={Colors.alertCoral} />
             )}
             <ThemedText weight="medium" style={styles.buttonText}>
               {activeProvider === 'google' ? 'Signing up...' : 'Continue with Google'}
@@ -219,7 +219,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleEmailSignUp}
             disabled={loading}
           >
-            <Ionicons name="mail" size={20} color="#FF6B6B" />
+            <Ionicons name="mail" size={20} color={Colors.alertCoral} />
             <ThemedText weight="medium" style={styles.buttonText}>Continue with Email</ThemedText>
           </TouchableOpacity>
         </View>
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   errorText: {
-    color: '#FF6B6B',
+    color: Colors.alertCoral,
     fontSize: 14,
     fontFamily: Fonts.system.regular,
     flexShrink: 1,
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.regular,
   },
   loginLink: {
-    color: '#FF6B6B',
+    color: Colors.alertCoral,
     fontSize: 16,
     fontFamily: Fonts.system.bold,
     fontWeight: '600',

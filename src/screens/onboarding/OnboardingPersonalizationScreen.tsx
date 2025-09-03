@@ -185,13 +185,18 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       console.log('[OnboardingPersonalization] Show name step:', needsNameStep);
       setShowNameStep(needsNameStep);
 
-      // Set name if provided
+      // Set name if provided, but only for non-OAuth users
       if ('name' in route.params && route.params.name) {
         const providedName = route.params.name as string;
-        setName(providedName);
-
-        // If name is provided and it's OAuth, we might still want to show the step
-        // so users can edit it if needed
+        
+        // For OAuth users, don't set the name even if provided to force name collection
+        if (method !== 'oauth') {
+          setName(providedName);
+          console.log('[OnboardingPersonalization] Setting name for email user:', providedName);
+        } else {
+          console.log('[OnboardingPersonalization] Ignoring provided name for OAuth user:', providedName);
+          setName(''); // Ensure name is empty for OAuth users
+        }
       }
 
       console.log('📝 Registration method:', method, 'Show name step:', needsNameStep);

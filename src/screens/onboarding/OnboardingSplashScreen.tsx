@@ -241,17 +241,17 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       });
 
       // Check if this is a logout scenario - if so, route to welcome instead of personalization
-      const { isLoggingOut } = useAuth();
-      if (isLoggingOut) {
-        console.log('[SplashScreen] 🚪 LOGOUT DETECTED - Routing to welcome screen');
-        const target = 'OnboardingWelcome';
-        try {
+      try {
+        const { isLoggingOut } = useAuth();
+        if (isLoggingOut) {
+          console.log('[SplashScreen] 🚪 LOGOUT DETECTED - Routing to welcome screen');
+          const target = 'OnboardingWelcome';
           navigation.reset({ index: 0, routes: [{ name: target as any }] });
-        } catch (navErr) {
-          navigation.navigate(target as any);
+          hasNavigatedRef.current = true;
+          return true;
         }
-        hasNavigatedRef.current = true;
-        return true;
+      } catch (authErr) {
+        console.warn('[SplashScreen] Auth context error:', authErr);
       }
 
       try {
@@ -288,9 +288,24 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const target = 'OnboardingPersonalization';
           const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
           const isOAuth = provider === 'apple' || provider === 'google';
-          const displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
+          
+          // For OAuth users, always force name collection to avoid random Apple names
+          let displayName = '';
+          if (isOAuth) {
+            // For Apple/Google users, always start with empty name to force collection
+            // This prevents random Apple-generated names like "pzgttqhzgh"
+            displayName = '';
+            console.log('[SplashScreen] OAuth user - forcing name collection:', {
+              provider,
+              reason: 'Avoiding random/private relay names from Apple'
+            });
+          } else {
+            // For email users, use first name or email prefix
+            displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
+          }
+          
           const params = {
-            name: isOAuth ? '' : displayName,
+            name: displayName,
             registrationMethod: isOAuth ? 'oauth' : 'email',
           };
           console.log('[SplashScreen] 👋 NEW USER - ROUTING TO PERSONALIZATION');
@@ -303,41 +318,31 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           hasNavigatedRef.current = true;
           return true;
         } else {
-          // Returning user with incomplete onboarding → check for sales offer eligibility
-          console.log('[SplashScreen] 🔄 RETURNING INCOMPLETE USER - Checking sales offer eligibility');
-          
-          // Check if personalization was completed but other steps are missing
-          try {
-            const { data: profile } = await supabase
-              .from('user_profiles')
-              .select('personalization_completed')
-              .eq('id', effectiveUser.id)
-              .single();
-              
-            if (profile?.personalization_completed) {
-              // Personalization done, route to sales offer or next step
-              const target = 'SalesOfferScreen'; // Adjust to your actual sales screen name
-              console.log('[SplashScreen] 💰 ROUTING TO SALES OFFER - Personalization completed');
-              try {
-                navigation.reset({ index: 0, routes: [{ name: target as any }] });
-              } catch (navErr) {
-                // Fallback to main tabs if sales screen doesn't exist
-                navigation.reset({ index: 0, routes: [{ name: 'MainTabs' as any }] });
-              }
-              hasNavigatedRef.current = true;
-              return true;
-            }
-          } catch (profileErr) {
-            console.warn('[SplashScreen] Could not check personalization status:', profileErr);
-          }
+          // Returning user with incomplete onboarding → route to personalization
+          console.log('[SplashScreen] 🔄 RETURNING INCOMPLETE USER - Routing to personalization');
           
           // Default: route to personalization
           const target = 'OnboardingPersonalization';
           const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
           const isOAuth = provider === 'apple' || provider === 'google';
-          const displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
+          
+          // For OAuth users, always force name collection to avoid random Apple names (including on app reload)
+          let displayName = '';
+          if (isOAuth) {
+            // For Apple/Google users, always start with empty name to force collection
+            // This prevents random Apple-generated names like "aoigeaoirg" on app reload
+            displayName = '';
+            console.log('[SplashScreen] Returning OAuth user - forcing name collection on reload:', {
+              provider,
+              reason: 'Avoiding random/private relay names from Apple on app reload'
+            });
+          } else {
+            // For email users, use first name or email prefix
+            displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
+          }
+          
           const params = {
-            name: isOAuth ? '' : displayName,
+            name: displayName,
             registrationMethod: isOAuth ? 'oauth' : 'email',
           };
           console.log('[SplashScreen] 👋 ROUTING TO PERSONALIZATION - Onboarding not completed');
@@ -356,9 +361,22 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           const target = effectiveUser ? 'OnboardingPersonalization' : 'OnboardingWelcome';
           const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
           const isOAuth = provider === 'apple' || provider === 'google';
-          const displayName = effectiveUser?.user_metadata?.first_name || effectiveUser?.email?.split('@')[0] || '';
+          
+          // For OAuth users, always force name collection to avoid random Apple names
+          let displayName = '';
+          if (effectiveUser) {
+            if (isOAuth) {
+              // For Apple/Google users, always start with empty name to force collection
+              // This prevents random Apple-generated names like "pzgttqhzgh"
+              displayName = '';
+            } else {
+              // For email users, use first name or email prefix
+              displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
+            }
+          }
+          
           const params = effectiveUser
-            ? { name: isOAuth ? '' : displayName, registrationMethod: isOAuth ? 'oauth' : 'email' }
+            ? { name: displayName, registrationMethod: isOAuth ? 'oauth' : 'email' }
             : undefined;
           console.log('[SplashScreen] 🛟 Fallback routing to', target, params || {});
           try {
@@ -380,20 +398,26 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
     // Always show splash screen for minimum time before making routing decisions
     let navigationTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    // Set a minimum splash display time of 3 seconds to allow auth state propagation
+    // Set a minimum splash display time of 1 second to allow auth state propagation
     navigationTimeout = setTimeout(async () => {
       console.log('[SplashScreen] ⏰ Minimum splash time elapsed, making routing decision...');
-      const redirected = await navigateToCorrectScreen();
-      console.log('[SplashScreen] 📊 Navigation result:', { redirected });
+      try {
+        const redirected = await navigateToCorrectScreen();
+        console.log('[SplashScreen] 📊 Navigation result:', { redirected });
 
-      if (!redirected) {
-        console.log('[SplashScreen] ⚠️ Navigation failed, retrying...');
-        // Retry after a short delay
-        setTimeout(() => {
-          navigateToCorrectScreen();
-        }, 500);
+        if (!redirected) {
+          console.log('[SplashScreen] ⚠️ Navigation failed, falling back to welcome screen');
+          // Fallback to welcome screen if all else fails
+          navigation.reset({ index: 0, routes: [{ name: 'OnboardingWelcome' as any }] });
+          hasNavigatedRef.current = true;
+        }
+      } catch (error) {
+        console.error('[SplashScreen] ❌ Navigation error:', error);
+        // Emergency fallback
+        navigation.reset({ index: 0, routes: [{ name: 'OnboardingWelcome' as any }] });
+        hasNavigatedRef.current = true;
       }
-    }, 3000);
+    }, 500);
 
     // Cleanup function for timeout
     return () => {

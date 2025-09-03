@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -10,6 +10,8 @@ import {
   Platform,
   ScrollView,
   KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
   StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,7 +33,17 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [hasAutoScrolled, setHasAutoScrolled] = useState(false);
+  const [ctaY, setCtaY] = useState<number | null>(null);
+  const [ctaH, setCtaH] = useState<number>(0);
+  const [svH, setSvH] = useState<number>(0);
+  const [contentH, setContentH] = useState<number>(0);
+  const scrollRef = useRef<ScrollView | null>(null);
   const { signUp, loading } = useAuth(); // Removed unused user variable
+
+  // Maximum scroll based on content size (prevents blank space past the end)
+  const maxScrollableY = useMemo(() => Math.max(0, contentH - svH), [contentH, svH]);
 
   const handleRegister = async () => {
     triggerLightHaptic();
@@ -106,13 +118,64 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Login');
   };
 
+  // Keep the form and button above the keyboard and allow tap-to-dismiss
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = (e: any) => {
+      const h = e?.endCoordinates?.height ?? 0;
+      setKeyboardHeight(h);
+    };
+
+    const onHide = () => {
+      setKeyboardHeight(0);
+      // Reset auto-scroll flag when keyboard is dismissed
+      setHasAutoScrolled(false);
+    };
+
+    const subShow = Keyboard.addListener(showEvent, onShow);
+    const subHide = Keyboard.addListener(hideEvent, onHide);
+
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, []);
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={[
+              styles.scrollContent,
+              // Add bottom padding equal to keyboard height so content stays above keyboard
+              // On iOS, automaticallyAdjustKeyboardInsets already handles insets, so avoid stacking padding
+              { paddingBottom: Platform.OS === 'ios' ? 8 : 8 + Math.max(0, keyboardHeight - 8) },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            automaticallyAdjustKeyboardInsets
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+            bounces={false}
+            alwaysBounceVertical={false}
+            overScrollMode="never"
+            onScroll={(e) => {
+              const y = e.nativeEvent.contentOffset.y;
+              if (y > maxScrollableY) {
+                scrollRef.current?.scrollTo({ y: maxScrollableY, animated: false });
+              }
+            }}
+            scrollEventThrottle={16}
+            onContentSizeChange={(_, h) => setContentH(h)}
+            onLayout={(e) => setSvH(e.nativeEvent.layout.height)}
+          >
 
         {/* Header */}
         <View style={styles.header}>
@@ -132,7 +195,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
         {/* Inline Error Banner */}
         {error ? (
           <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
+            <Ionicons name="alert-circle" size={18} color={Colors.alertCoral} style={styles.errorIconMargin} />
             <ThemedText style={styles.errorText}>{error}</ThemedText>
           </View>
         ) : null}
@@ -141,7 +204,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.formContainer}>
           <View style={styles.nameRow}>
             <View style={[styles.inputContainer, styles.nameInput]}>
-              <Ionicons name="person" size={20} color="#FF6B6B" style={styles.inputIcon} />
+              <Ionicons name="person" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
               <ThemedTextInput
                 style={styles.input}
                 placeholder="First Name"
@@ -151,13 +214,28 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                   setFirstName(t);
                   if (error) {setError('');}
                 }}
+                onFocus={() => {
+                  if (!hasAutoScrolled) {
+                    setHasAutoScrolled(true);
+                    setTimeout(() => {
+                      if (ctaY != null && svH > 0) {
+                        const safety = 8;
+                        const raw = ctaY - (svH - keyboardHeight - ctaH - safety);
+                        const clamped = Math.min(Math.max(0, raw), maxScrollableY);
+                        scrollRef.current?.scrollTo({ y: clamped, animated: true });
+                      } else {
+                        scrollRef.current?.scrollTo({ y: maxScrollableY, animated: true });
+                      }
+                    }, 140);
+                  }
+                }}
                 autoCapitalize="words"
                 autoCorrect={false}
               />
             </View>
 
             <View style={[styles.inputContainer, styles.nameInput]}>
-              <Ionicons name="person" size={20} color="#FF6B6B" style={styles.inputIcon} />
+              <Ionicons name="person" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
               <ThemedTextInput
                 style={styles.input}
                 placeholder="Last Name"
@@ -167,6 +245,21 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                   setLastName(t);
                   if (error) {setError('');}
                 }}
+                onFocus={() => {
+                  if (!hasAutoScrolled) {
+                    setHasAutoScrolled(true);
+                    setTimeout(() => {
+                      if (ctaY != null && svH > 0) {
+                        const safety = 8;
+                        const raw = ctaY - (svH - keyboardHeight - ctaH - safety);
+                        const clamped = Math.min(Math.max(0, raw), Math.max(0, ctaY - 8));
+                        scrollRef.current?.scrollTo({ y: clamped, animated: true });
+                      } else {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                      }
+                    }, 140);
+                  }
+                }}
                 autoCapitalize="words"
                 autoCorrect={false}
               />
@@ -174,7 +267,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Ionicons name="mail" size={20} color="#FF6B6B" style={styles.inputIcon} />
+            <Ionicons name="mail" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
             <ThemedTextInput
               style={styles.input}
               placeholder="Email"
@@ -184,6 +277,21 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
                 setEmail(t);
                 if (error) {setError('');}
               }}
+              onFocus={() => {
+                if (!hasAutoScrolled) {
+                  setHasAutoScrolled(true);
+                  setTimeout(() => {
+                    if (ctaY != null && svH > 0) {
+                      const safety = 8;
+                      const raw = ctaY - (svH - keyboardHeight - ctaH - safety);
+                      const clamped = Math.min(Math.max(0, raw), maxScrollableY);
+                      scrollRef.current?.scrollTo({ y: clamped, animated: true });
+                    } else {
+                      scrollRef.current?.scrollTo({ y: maxScrollableY, animated: true });
+                    }
+                  }, 140);
+                }
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -191,7 +299,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed" size={20} color="#FF6B6B" style={styles.inputIcon} />
+            <Ionicons name="lock-closed" size={20} color={Colors.alertCoral} style={styles.inputIcon} />
             <ThemedTextInput
               style={styles.input}
               placeholder="Password"
@@ -200,6 +308,21 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               onChangeText={(t) => {
                 setPassword(t);
                 if (error) {setError('');}
+              }}
+              onFocus={() => {
+                if (!hasAutoScrolled) {
+                  setHasAutoScrolled(true);
+                  setTimeout(() => {
+                    if (ctaY != null && svH > 0) {
+                      const safety = 8;
+                      const raw = ctaY - (svH - keyboardHeight - ctaH - safety);
+                      const clamped = Math.min(Math.max(0, raw), Math.max(0, ctaY - 8));
+                      scrollRef.current?.scrollTo({ y: clamped, animated: true });
+                    } else {
+                      scrollRef.current?.scrollToEnd({ animated: true });
+                    }
+                  }, 140);
+                }
               }}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
@@ -212,7 +335,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name={showPassword ? 'eye-outline' : 'eye-off-outline'}
                 size={20}
-                color="#FF6B6B"
+                color={Colors.alertCoral}
               />
             </TouchableOpacity>
           </View>
@@ -221,6 +344,10 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.registerButton}
             onPress={handleRegister}
             disabled={loading}
+            onLayout={(e) => {
+              setCtaY(e.nativeEvent.layout.y);
+              setCtaH(e.nativeEvent.layout.height);
+            }}
           >
             {loading ? (
               <ActivityIndicator color="#274673" />
@@ -230,15 +357,17 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Login Link */}
-        <View style={styles.loginContainer}>
-          <ThemedText style={styles.loginText}>Already a member? </ThemedText>
-          <TouchableOpacity onPress={handleLogin}>
-            <ThemedText weight="semiBold" style={styles.loginLink}>Login</ThemedText>
-          </TouchableOpacity>
-        </View>
+            {/* Login Link */}
+            <View style={styles.loginContainer}>
+              <ThemedText style={styles.loginText}>Already a member? </ThemedText>
+              <TouchableOpacity onPress={handleLogin}>
+                <ThemedText weight="semiBold" style={styles.loginLink}>Login</ThemedText>
+              </TouchableOpacity>
+            </View>
 
-      </ScrollView>
+          </ScrollView>
+        </View>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 };
@@ -249,13 +378,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
   },
   scrollContent: {
-    flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 40,
+    paddingTop: 40,
+    paddingBottom: 0,
   },
   header: {
-    marginBottom: 10,
+    marginBottom: 20,
+    marginTop: 20,
   },
   backButton: {
     marginRight: 20,
@@ -269,7 +398,7 @@ const styles = StyleSheet.create({
   },
   titleContainer: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 30,
   },
   title: {
     fontSize: 28,
@@ -296,12 +425,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    color: '#FF6B6B',
+    color: Colors.alertCoral,
     fontSize: 14,
     flexShrink: 1,
   },
   formContainer: {
-    marginBottom: 40,
+    marginBottom: 16,
   },
   nameRow: {
     flexDirection: 'row',
@@ -337,7 +466,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   registerButton: {
-    backgroundColor: '#FF6B6B',
+    backgroundColor: Colors.alertCoral,
     borderRadius: 12,
     height: 56,
     alignItems: 'center',
@@ -362,7 +491,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: 12,
   },
   loginText: {
     fontSize: 16,
@@ -373,7 +502,7 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: 16,
     fontFamily: Fonts.system.bold,
-    color: '#FF6B6B',
+    color: Colors.alertCoral,
     fontWeight: '600',
     textDecorationLine: 'none',
   },

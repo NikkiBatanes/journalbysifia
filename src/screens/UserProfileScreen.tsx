@@ -248,7 +248,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     [notificationPrefs, user?.id, formatTo12h]
   );
 
-  const avatarUrl = (user as any)?.user_metadata?.avatar_url as string | undefined;
+  // Don't use Google avatar - force use of custom avatar system
+  const avatarUrl = undefined; // Always use initials instead of Google avatar
   const initialLetter = useMemo(() => {
     const first = (profileForm as any)?.firstName || (user as any)?.user_metadata?.first_name || '';
     const last = (profileForm as any)?.lastName || (user as any)?.user_metadata?.last_name || '';
@@ -1157,9 +1158,14 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleLogout = async () => {
-    // Immediate logout without confirmation
-    await signOut();
-    // Navigation will be handled automatically by auth state change
+    try {
+      console.log('🚪 Starting logout from profile screen...');
+      await signOut();
+      console.log('✅ Logout completed, navigation should handle redirect');
+    } catch (error) {
+      console.error('❌ Logout failed:', error);
+      Alert.alert('Logout Failed', 'Unable to logout. Please try again.');
+    }
   };
 
   const renderProfileHeader = () => {
