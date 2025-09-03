@@ -290,7 +290,10 @@ export default function RootStackNavigator({
           <Stack.Screen
             name="OnboardingTrialOffer"
             component={OnboardingTrialOfferScreen as React.ComponentType}
-            options={OnboardingAnimations.pushFromBottom}
+            options={{
+              ...OnboardingAnimations.crossDissolve,
+              headerShown: false,
+            }}
           />
           <Stack.Screen
             name="OnboardingPaymentProcessing"

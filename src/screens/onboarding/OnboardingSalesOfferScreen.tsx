@@ -61,10 +61,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
-    if (expandedCards.size > 0) {
-      setExpandedCards(new Set());
-    }
-  }, [isAnnual, expandedCards.size]);
+    setExpandedCards(new Set());
+  }, [isAnnual]);
 
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
@@ -231,24 +229,44 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                 ) : null;
               })()}
             </View>
-            <View style={styles.priceRight}>
+            <View style={styles.priceRight}
+              onStartShouldSetResponder={() => false}
+              onStartShouldSetResponderCapture={() => false}
+            >
               <ThemedText weight="semiBold" style={styles.monthlyEquivalent}>
                 {(currencyInfo?.symbol || '$')}{isAnnual ? getMonthlyEquivalent(tier) : tier.monthlyPrice.toFixed(2)}/month
               </ThemedText>
-              <TouchableOpacity
+              <View
+                onStartShouldSetResponder={() => true}
+                onMoveShouldSetResponder={() => true}
+                onResponderTerminationRequest={() => false}
                 style={styles.detailsToggle}
-                onPress={() => {
-                  try { triggerLightHaptic(); } catch {}
-                  toggleCardExpansion(tier.id);
-                }}
-                activeOpacity={0.8}
               >
+                <TouchableOpacity
+                  style={styles.detailsToggle}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  delayPressIn={0}
+                  onPressIn={(e: any) => {
+                    if (e?.stopPropagation) e.stopPropagation();
+                  }}
+                  onPress={(e: any) => {
+                    // prevent parent card onPress from firing
+                    if (e?.stopPropagation) e.stopPropagation();
+                    try { triggerLightHaptic(); } catch {}
+                    toggleCardExpansion(tier.id);
+                  }}
+                  onPressOut={(e: any) => {
+                    if (e?.stopPropagation) e.stopPropagation();
+                  }}
+                  activeOpacity={0.8}
+                >
                 <Ionicons
                   name={isExpanded ? 'chevron-up' : 'chevron-down'}
                   size={14}
                   color={Colors.faithGold}
                 />
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
           {/* original price now shown inline next to current price */}
@@ -274,67 +292,69 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Body content (fixed top + scrollable pricing) */}
+      {/* Body content: sticky toggle header + scrollable content */}
       <View style={styles.content}>
-        {/* Main Content */}
-        <ThemedText weight="bold" style={styles.mainTitle}>You've taken your first step!</ThemedText>
-        <ThemedText style={styles.subtitle}>Keep walking, one faithful step at a time.</ThemedText>
-
-        {/* Feature Bullets */}
-        <View style={styles.featuresSection}>
-          <View style={styles.featureBullet}>
-            <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-            <ThemedText style={styles.bulletText}>
-              Personalized playbooks and devotionals created just for you delivered at a pace that fits your plan.
-            </ThemedText>
-          </View>
-          <View style={styles.featureBullet}>
-            <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-            <ThemedText style={styles.bulletText}>
-              Track your growth with smart journaling and unlock deeper reflections on higher tiers.
-            </ThemedText>
-          </View>
-          <View style={styles.featureBullet}>
-            <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-            <ThemedText style={styles.bulletText}>
-              Picture walking daily with God, growing stronger with every step.
-            </ThemedText>
-          </View>
-          <View style={styles.featureBullet}>
-            <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-            <ThemedText style={styles.bulletText}>Your journey, your pace.</ThemedText>
-          </View>
-        </View>
-
-        {/* Toggle Button */}
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity
-            style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              setIsAnnual(false);
-            }}
-          >
-            <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</ThemedText>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.toggleButton, isAnnual && styles.activeToggle]}
-            onPress={() => {
-              try { triggerLightHaptic(); } catch {}
-              setIsAnnual(true);
-            }}
-          >
-            <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        {/* Pricing Cards - Scrollable only */}
+        {/* Pricing Cards - Scrollable with sticky toggle */}
         <ScrollView
           style={styles.pricingScroll}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContentPadding}
           scrollIndicatorInsets={{ bottom: 60 }}
+          stickyHeaderIndices={[0]}
         >
+          {/* Sticky header: Monthly / Annual toggle */}
+          <View style={styles.stickyToggleHeader}>
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity
+                style={[styles.toggleButton, !isAnnual && styles.activeToggle]}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setIsAnnual(false);
+                }}
+              >
+                <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, isAnnual && styles.activeToggle]}
+                onPress={() => {
+                  try { triggerLightHaptic(); } catch {}
+                  setIsAnnual(true);
+                }}
+              >
+                <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Main Content that should scroll under the sticky toggle */}
+          <ThemedText weight="bold" style={styles.mainTitle}>You've taken your first step!</ThemedText>
+          <ThemedText style={styles.subtitle}>Keep walking, one faithful step at a time.</ThemedText>
+
+          {/* Feature Bullets */}
+          <View style={styles.featuresSection}>
+            <View style={styles.featureBullet}>
+              <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+              <ThemedText style={styles.bulletText}>
+                Personalized playbooks and devotionals created just for you delivered at a pace that fits your plan.
+              </ThemedText>
+            </View>
+            <View style={styles.featureBullet}>
+              <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+              <ThemedText style={styles.bulletText}>
+                Track your growth with smart journaling and unlock deeper reflections on higher tiers.
+              </ThemedText>
+            </View>
+            <View style={styles.featureBullet}>
+              <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+              <ThemedText style={styles.bulletText}>
+                Picture walking daily with God, growing stronger with every step.
+              </ThemedText>
+            </View>
+            <View style={styles.featureBullet}>
+              <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+              <ThemedText style={styles.bulletText}>Your journey, your pace.</ThemedText>
+            </View>
+          </View>
           <View style={styles.cardsContainer}>{pricingTiers.map(renderPricingCard)}</View>
         </ScrollView>
       </View>
@@ -440,6 +460,14 @@ const styles = StyleSheet.create({
     flex: 1,
     marginTop: 4,
   },
+  stickyToggleHeader: {
+    backgroundColor: Colors.anchorBlue,
+    paddingTop: 4,
+    paddingBottom: 8,
+    paddingHorizontal: 24,
+    zIndex: 2,
+    elevation: 2,
+  },
   mainTitle: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -501,9 +529,9 @@ const styles = StyleSheet.create({
   },
   pricingCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
+    borderRadius: 30,
     padding: 16,
-    marginBottom: 6,
+    marginBottom: 8,
     width: '100%',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
@@ -523,7 +551,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     left: 0,
-    borderRadius: 16,
+    borderRadius: 30,
     opacity: 0.14,
   },
   popularBadge: {
@@ -552,7 +580,7 @@ const styles = StyleSheet.create({
   },
   tierDuration: {
     fontSize: 16,
-    fontWeight: 'semibold',
+    fontWeight: '400',
     color: Colors.hopeWhite,
     opacity: 0.8,
     marginLeft: 8,

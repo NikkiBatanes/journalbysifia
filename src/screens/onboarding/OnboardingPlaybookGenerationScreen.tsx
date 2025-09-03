@@ -13,9 +13,10 @@ import {
   Image,
   ScrollView,
   TouchableOpacity,
+  BackHandler,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { Colors } from '../../theme/colors';
@@ -67,6 +68,41 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
   const [_isLoading, _setIsLoading] = useState(false);
   const [shouldNavigate, setShouldNavigate] = useState(false);
   const [navigationData, setNavigationData] = useState<GeneratedPlaybook | null>(null);
+
+  // Disable back navigation entirely on this screen
+  useEffect(() => {
+    try {
+      (navigation as any).setOptions?.({
+        headerBackVisible: false,
+        gestureEnabled: false,
+      });
+    } catch {}
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Block hardware back (Android)
+      const backSub = BackHandler.addEventListener('hardwareBackPress', () => true);
+
+      // Intercept user-initiated navigation attempts but allow programmatic navigation
+      const unsubscribe = (navigation as any).addListener?.('beforeRemove', (e: any) => {
+        // Allow programmatic navigation (like navigation.replace) to proceed
+        if (e.data?.action?.type === 'REPLACE' || shouldNavigate) {
+          return; // Let it proceed
+        }
+        
+        // Block all other navigation attempts (back button, swipe, etc.)
+        e.preventDefault();
+      });
+
+      return () => {
+        backSub?.remove?.();
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
+    }, [navigation, shouldNavigate])
+  );
 
   // Enhanced animations for better UI
   const fadeAnim = useRef(new Animated.Value(0)).current;

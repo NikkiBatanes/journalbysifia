@@ -41,6 +41,13 @@ const OnboardingNotificationSetupScreen = () => {
   const { subscription, refreshSubscription } = useNewSubscription(user?.id || '');
   const { userType, tier } = (route.params as RouteParams) || {};
   
+  // Derive display name for welcome message
+  const displayName =
+    ((user as any)?.user_metadata?.full_name as string | undefined)?.trim() ||
+    ((user as any)?.user_metadata?.first_name as string | undefined)?.trim() ||
+    (user?.email ? user.email.split('@')[0] : undefined) ||
+    'Friend';
+  
   useEffect(() => {
     // Refresh subscription data when screen loads
     if (user?.id) {
@@ -283,7 +290,7 @@ const OnboardingNotificationSetupScreen = () => {
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <ScrollView
         style={styles.scrollContainer}
-        contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header removed by request */}
@@ -304,7 +311,7 @@ const OnboardingNotificationSetupScreen = () => {
             adjustsFontSizeToFit
             minimumFontScale={0.9}
           >
-            {welcomeData.title}
+            {`Welcome ${displayName}`}
           </ThemedText>
           <ThemedText style={styles.welcomeSubtitle}>{welcomeData.subtitle}</ThemedText>
         </View>
@@ -359,7 +366,10 @@ const OnboardingNotificationSetupScreen = () => {
           </View>
         </View>
 
-        {/* Action Buttons */}
+      </ScrollView>
+
+      {/* Sticky Footer Actions */}
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 2 }] }>
         <TouchableOpacity style={styles.enableButton} onPress={handleEnableNotifications}>
           <ThemedText weight="bold" style={styles.enableButtonText}>Enable Notifications</ThemedText>
         </TouchableOpacity>
@@ -368,11 +378,10 @@ const OnboardingNotificationSetupScreen = () => {
           <ThemedText weight="medium" style={styles.skipButtonText}>Maybe Later</ThemedText>
         </TouchableOpacity>
 
-        {/* Privacy Note */}
         <ThemedText style={styles.privacyNote}>
           🔒 We respect your privacy. You can change these settings anytime in your profile.
         </ThemedText>
-      </ScrollView>
+      </View>
     </View>
   );
 };
@@ -385,6 +394,11 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
     paddingHorizontal: 24,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    backgroundColor: 'transparent',
   },
   header: {
     flexDirection: 'row',
@@ -484,7 +498,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 32,
+    marginBottom: 0,
   },
   benefitsTitle: {
     fontSize: 16,
@@ -508,7 +522,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.alertCoral,
     paddingVertical: 16,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 8,
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
@@ -530,7 +544,7 @@ const styles = StyleSheet.create({
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -548,7 +562,7 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     opacity: 0.7,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: 8,
     paddingHorizontal: 24,
     lineHeight: 16,
   },

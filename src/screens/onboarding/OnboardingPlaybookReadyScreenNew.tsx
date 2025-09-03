@@ -13,8 +13,9 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  BackHandler,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import AnimatedRe, { useSharedValue, withTiming, useAnimatedStyle } from 'react-native-reanimated';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -59,6 +60,42 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
   const insets = useSafeAreaInsets();
   const { getCompletedStepsCount, actionSteps, setActionSteps, saveActionSteps } = useActionSteps(); // Use context for dynamic progress
   const { user } = useAuth();
+
+  // Block back navigation to prevent multiple free playbook generation
+  useEffect(() => {
+    try {
+      (navigation as any).setOptions?.({
+        headerBackVisible: false,
+        gestureEnabled: false,
+      });
+    } catch {}
+  }, [navigation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Block hardware back (Android)
+      const backSub = BackHandler.addEventListener('hardwareBackPress', () => true);
+
+      // Block user-initiated navigation attempts but allow programmatic navigation
+      const unsubscribe = (navigation as any).addListener?.('beforeRemove', (e: any) => {
+        // Allow navigation to sales offer or main tabs (forward navigation)
+        if (e.data?.action?.payload?.name === 'OnboardingSalesOffer' || 
+            e.data?.action?.payload?.name === 'MainTabs') {
+          return; // Let it proceed
+        }
+        
+        // Block all other navigation attempts (back to personalization)
+        e.preventDefault();
+      });
+
+      return () => {
+        backSub?.remove?.();
+        if (typeof unsubscribe === 'function') {
+          unsubscribe();
+        }
+      };
+    }, [navigation])
+  );
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set(['action']));
@@ -794,7 +831,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           alwaysBounceVertical
           overScrollMode="always"
           contentInsetAdjustmentBehavior="never"
-          // Make the first child (header) sticky so content scrolls underneath it when expanded
+          // Keep a single sticky header (which now includes the pagination dots inside)
           stickyHeaderIndices={[0]}
           // Match bottom inset to footer height; dynamic with expansion
           scrollIndicatorInsets={{ top: insets.top, bottom: insets.bottom + (expandedCards.size > 0 ? 160 : 80) }}
@@ -850,12 +887,25 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             <ThemedText weight="medium" style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</ThemedText>
           </View>
 
-          {/* CAROUSEL INDICATORS moved out of header to sit above carousel */}
+          {/* Show dots here ONLY when a card is expanded (vertical scroll enabled). */}
+          {expandedCards.size > 0 && (
+            <View style={styles.dotsContainer}>
+              {carouselCards.map((_, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dot,
+                    currentIndex === index && styles.activeDot,
+                  ]}
+                  onPress={() => {
+                    flatListRef.current?.scrollToIndex({ index, animated: true });
+                    setCurrentIndex(index);
+                  }}
+                />
+              ))}
+            </View>
+          )}
         </View>
-
-
-
-        {/* Dot pagination moved into carousel container to sit just above cards */}
 
         {/* CAROUSEL CARDS */}
         <View style={[styles.centeredJustified, { minHeight: availableHeight }] }>
@@ -868,22 +918,24 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             marginRight: -16 - insets.right,
           },
         ]}>
-          {/* Dots just above the cards, outside the card area */}
-          <View style={styles.dotsContainer}>
-            {carouselCards.map((_, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dot,
-                  currentIndex === index && styles.activeDot,
-                ]}
-                onPress={() => {
-                  flatListRef.current?.scrollToIndex({ index, animated: true });
-                  setCurrentIndex(index);
-                }}
-              />
-            ))}
-          </View>
+          {/* Dots outside the card but just above it when nothing is expanded */}
+          {expandedCards.size === 0 && (
+            <View style={styles.overlayDotsContainer}>
+              {carouselCards.map((_, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dot,
+                    currentIndex === index && styles.activeDot,
+                  ]}
+                  onPress={() => {
+                    flatListRef.current?.scrollToIndex({ index, animated: true });
+                    setCurrentIndex(index);
+                  }}
+                />
+              ))}
+            </View>
+          )}
           <Animated.FlatList
             ref={flatListRef}
             data={carouselCards}
@@ -922,8 +974,8 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           />
         </View>
 
-        {/* DEVOTIONAL BUTTON - delayed reveal and persistent */}
-        {devotionalVisible && (
+        {/* DEVOTIONAL BUTTON - show only on last card */}
+        {devotionalVisible && (currentIndex === Math.max(0, carouselCards.length - 1)) && (
           <TouchableOpacity
             style={[styles.devotionalButton, styles.centeredSelfContent, { width: ITEM_WIDTH }]}
             onPress={handleCreateDevotional}
@@ -949,21 +1001,44 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             bottom: 0,
             // Collapse top padding when helper text is hidden (cards expanded)
             paddingTop: expandedCards.size === 0 ? 8 : 0,
-            paddingBottom: insets.bottom + 8,
+            // Keep only a little space between bottom and footer content (minimize safe-area gap)
+            paddingBottom: 6,
             backgroundColor: 'rgba(26, 60, 109, 0.85)', // translucent anchorBlue
           },
         ]}>
+          {/* Compute last card status to gate CTA */}
+          {/**/}
+          {(() => { return null; })()}
           {/* Helper text inside the footer, above the button (hidden when a card is expanded) */}
           {expandedCards.size === 0 && (
             <ThemedText style={[styles.bottomText, styles.bottomTextCentered]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</ThemedText>
           )}
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => { try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
-            activeOpacity={0.8}
-          >
-            <ThemedText weight="bold" style={styles.continueButtonText}>Continue My Journey</ThemedText>
-          </TouchableOpacity>
+          {/**/}
+          {
+            (() => {
+              const isLast = currentIndex === Math.max(0, carouselCards.length - 1);
+              return (
+                <>
+                  <TouchableOpacity
+                    style={[styles.continueButton, !isLast && styles.continueButtonDisabled]}
+                    onPress={() => { if (!isLast) return; try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
+                    activeOpacity={isLast ? 0.8 : 1}
+                    disabled={!isLast}
+                  >
+                    <ThemedText weight="bold" style={styles.continueButtonText}>Continue My Journey</ThemedText>
+                  </TouchableOpacity>
+                  {/* Optional skip path for users who don't want to go through all cards now */}
+                  <TouchableOpacity
+                    onPress={() => { try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
+                    style={styles.skipButton}
+                    activeOpacity={0.7}
+                  >
+                    <ThemedText style={styles.skipButtonText}>Skip for now</ThemedText>
+                  </TouchableOpacity>
+                </>
+              );
+            })()
+          }
         </View>
 
         {/* DEVOTIONAL MODAL */}
@@ -1215,13 +1290,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   cardContent: {
-    borderRadius: BorderRadii.cardXL,
+    borderRadius: 30,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignSelf: 'center',
   },
   carouselCard: {
-    borderRadius: BorderRadii.cardXL,
+    borderRadius: 30,
     minHeight: 400,
   },
   affirmationsHeader: {
@@ -1327,8 +1402,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
   },
   activeDot: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.growthGreen,
     width: 20,
+  },
+  overlayDotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 6,
+    paddingBottom: 6,
   },
   devotionalButton: {
     flexDirection: 'row',
@@ -1384,6 +1466,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  continueButtonDisabled: {
+    opacity: 0.5,
+  },
+  skipButton: {
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'center',
+  },
+  skipButtonText: {
+    color: Colors.hopeWhite,
+    opacity: 0.85,
+    fontSize: 14,
+    fontWeight: '600',
   },
   expandHintButton: {
     position: 'absolute',

@@ -375,32 +375,30 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(20, 52, 96, 0.65)', // deeper pill like photo
-    borderRadius: 22,
-    padding: 6,
-    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 4,
+    marginBottom: 24,
     alignSelf: 'center',
-    borderWidth: 0,
+    overflow: 'hidden',
   },
   toggleButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 18,
-    minWidth: 104,
+    paddingVertical: 10,
+    paddingHorizontal: 26,
+    borderRadius: 16,
     alignItems: 'center',
   },
   activeToggle: {
     backgroundColor: Colors.growthGreen,
   },
   toggleText: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.hopeWhite,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontWeight: '500',
   },
   activeToggleText: {
     color: Colors.hopeWhite,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   timelineContainer: {
     marginBottom: 20,

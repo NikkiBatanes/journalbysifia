@@ -18,6 +18,7 @@ import SmartJournalingTimeBlockModal from '../screens/SmartJournalingTimeBlockMo
 import { InteractiveCoachingModal } from './InteractiveCoachingModal';
 import { toLocalDateString } from '../utils/date';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import ThemedText from './common/ThemedText';
 
 type SubTask = {
   id: string;
@@ -1044,25 +1045,16 @@ export default function ActionStepsCard({
                               </View>
                             </TouchableOpacity>
                             <View style={styles.subTaskContent}>
-                              <Text
+                              <ThemedText
                                 style={[
                                   dynamicStyles.subTaskText,
                                   subTask.completed && styles.completedText,
                                 ]}
                               >
                                 {subTask.text}
-                              </Text>
+                              </ThemedText>
                               {subTask.detected_journal_type && subTask.detected_journal_type !== 'none' && (
-                              <View style={styles.journalTypesContainer}>
-                                {/* Debug: Log journal types */}
-                                {(() => {
-                                  console.log('[ActionStepsCard] Rendering journal types for subtask:', {
-                                    subtaskText: subTask.text,
-                                    detectedType: subTask.detected_journal_type,
-                                    parsedTypes: parseJournalTypes(subTask.detected_journal_type),
-                                  });
-                                  return null;
-                                })()}
+                                <View style={styles.journalTypesContainer}>
                                   {parseJournalTypes(subTask.detected_journal_type).map((journalType, typeIndex) => (
                                     <TouchableOpacity
                                       key={`${journalType}-${typeIndex}`}
@@ -1107,12 +1099,12 @@ export default function ActionStepsCard({
                         />
                       </View>
                       {examples.map((example: { id: string; text: string }) => (
-                        <Text
+                        <ThemedText
                           key={example.id}
                           style={dynamicStyles.exampleText}
                         >
                           {example.text}
-                        </Text>
+                        </ThemedText>
                       ))}
                     </View>
                   )}
