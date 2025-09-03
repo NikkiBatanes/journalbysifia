@@ -102,5 +102,24 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>GoogleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1062728638095-qqvkdh9rnp0v5ql2jnb0kcj6h9kf9dq3</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>AppleSignIn</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>sifia</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

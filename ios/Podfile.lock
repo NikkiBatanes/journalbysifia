@@ -1953,6 +1953,30 @@ PODS:
     - RCTTypeSafety
     - React-Core
     - ReactCommon/turbomodule/core
+  - RNKeychain (10.0.0):
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.11.18.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-hermes
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - RNLiveMarkdown (0.1.298):
     - DoubleConversion
     - glog
@@ -2342,6 +2366,7 @@ DEPENDENCIES:
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - "RNGoogleSignin (from `../node_modules/@react-native-google-signin/google-signin`)"
   - RNIap (from `../node_modules/react-native-iap`)
+  - RNKeychain (from `../node_modules/react-native-keychain`)
   - "RNLiveMarkdown (from `../node_modules/@expensify/react-native-live-markdown`)"
   - RNReactNativeHapticFeedback (from `../node_modules/react-native-haptic-feedback`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
@@ -2536,6 +2561,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-google-signin/google-signin"
   RNIap:
     :path: "../node_modules/react-native-iap"
+  RNKeychain:
+    :path: "../node_modules/react-native-keychain"
   RNLiveMarkdown:
     :path: "../node_modules/@expensify/react-native-live-markdown"
   RNReactNativeHapticFeedback:
@@ -2646,6 +2673,7 @@ SPEC CHECKSUMS:
   RNGestureHandler: 0397fea67f39d5a2d17fcf4a028e206f7ba098ba
   RNGoogleSignin: 204d0031895b0b350268f29945571d4bed371beb
   RNIap: 61f183ac917792fae42b0326b1bef33598c1adf6
+  RNKeychain: 943b4dbceef4b3a310c9122c99d1e5b0bd66b9f3
   RNLiveMarkdown: ba764bdc4171c18a6e000ce7c5f8e37f11d1376a
   RNReactNativeHapticFeedback: 851adf794e1fcdc0664d80820fa3272ee8a6a538
   RNReanimated: ac0cfc5da50d769ec1e3c6ccb362c1bf7d08ac87
@@ -2657,4 +2685,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: c231de0e15667ed4afc31fe84cbe9396f10237a5
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2

@@ -4,9 +4,8 @@ import {
   View,
   TouchableOpacity,
   StyleSheet,
-
   Platform,
-  // ActivityIndicator, // unused
+  ActivityIndicator,
   Image,
   StatusBar,
 } from 'react-native';
@@ -47,6 +46,7 @@ const SocialButton: React.FC<SocialButtonProps> = ({
 const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading, user } = useAuth();
   const [error, setError] = React.useState<string>('');
+  const [activeProvider, setActiveProvider] = React.useState<null | 'apple' | 'google'>(null);
 
   // Set post-auth redirect for splash screen to handle navigation
   React.useEffect(() => {
@@ -73,33 +73,25 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [user, navigation]);
 
+  // When global loading ends (success or error), clear local active provider
+  React.useEffect(() => {
+    if (!loading && activeProvider) {
+      setActiveProvider(null);
+    }
+  }, [loading]);
+
   const handleGoogleSignUp = async () => {
     triggerLightHaptic();
     setError('');
     console.log('🔄 Starting Google sign up...');
 
-    // TEMPORARY: For testing, let's simulate successful OAuth and navigate directly
-    // This helps us test the personalization screen while we debug OAuth
-    const isTestMode = __DEV__; // Only in development
-
-    if (isTestMode) {
-      console.log('🧪 [TEST MODE] Simulating successful Google OAuth...');
-      // Simulate a successful user for testing
-      const testName = 'Test User';
-      navigation.navigate('OnboardingPersonalization' as any, {
-        name: testName,
-        registrationMethod: 'oauth', // Flag for test mode OAuth
-      });
-      return;
-    }
-
+    setActiveProvider('google');
     const { error: googleError } = await signInWithGoogle();
     if (googleError) {
       console.error('Google Sign-In Error:', googleError);
-      console.error('❌ Full error details:', JSON.stringify(googleError, null, 2));
-      // Show inline banner and keep user on page
       triggerErrorHaptic();
       setError(googleError.message || 'Google sign up failed. Please try again.');
+      setActiveProvider(null);
       return;
     }
     console.log('✅ Google sign up successful, waiting for auth state change...');
@@ -111,26 +103,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     setError('');
     console.log('🔄 Starting Apple sign up...');
 
-    // TEMPORARY: For testing, let's simulate successful OAuth and navigate directly
-    const isTestMode = __DEV__; // Only in development
-
-    if (isTestMode) {
-      console.log('🧪 [TEST MODE] Simulating successful Apple OAuth...');
-      const testName = 'Test User';
-      navigation.navigate('OnboardingPersonalization' as any, {
-        name: testName,
-        registrationMethod: 'oauth', // Flag for test mode OAuth
-      });
-      return;
-    }
-
+    setActiveProvider('apple');
     const { error: appleError } = await signInWithApple();
     if (appleError) {
       console.error('Apple Sign-In Error:', appleError);
-      console.error('❌ Full error details:', JSON.stringify(appleError, null, 2));
-      // Show inline banner and keep user on page
       triggerErrorHaptic();
       setError(appleError.message || 'Apple sign up failed. Please try again.');
+      setActiveProvider(null);
       return;
     }
     console.log('✅ Apple sign up successful, waiting for auth state change...');
@@ -175,11 +154,13 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           <ThemedText weight="bold" style={styles.title}>Create an Account</ThemedText>
         </View>
 
-        {/* Inline Error Banner */}
+        {/* Overlay Error Banner */}
         {error ? (
-          <View style={styles.errorBanner}>
-            <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
+          <View style={styles.errorOverlay}>
+            <View style={styles.errorBanner}>
+              <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </View>
           </View>
         ) : null}
 
@@ -191,8 +172,14 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleAppleSignUp}
               disabled={loading}
             >
-              <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
-              <ThemedText weight="medium" style={styles.buttonText}>Continue with Apple</ThemedText>
+              {activeProvider === 'apple' ? (
+                <ActivityIndicator size="small" color="#FF6B6B" />
+              ) : (
+                <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
+              )}
+              <ThemedText weight="medium" style={styles.buttonText}>
+                {activeProvider === 'apple' ? 'Signing up...' : 'Continue with Apple'}
+              </ThemedText>
             </TouchableOpacity>
           )}
 
@@ -201,8 +188,14 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleGoogleSignUp}
             disabled={loading}
           >
-            <Ionicons name="logo-google" size={20} color="#FF6B6B" />
-            <ThemedText weight="medium" style={styles.buttonText}>Continue with Google</ThemedText>
+            {activeProvider === 'google' ? (
+              <ActivityIndicator size="small" color="#FF6B6B" />
+            ) : (
+              <Ionicons name="logo-google" size={20} color="#FF6B6B" />
+            )}
+            <ThemedText weight="medium" style={styles.buttonText}>
+              {activeProvider === 'google' ? 'Signing up...' : 'Continue with Google'}
+            </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -288,16 +281,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
+  errorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    paddingHorizontal: 0,
+  },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,107,107,0.12)',
-    borderColor: 'rgba(255,107,107,0.6)',
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderColor: 'rgba(255,107,107,0.8)',
     borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
-    marginBottom: 16,
+    marginHorizontal: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
   errorText: {
     color: '#FF6B6B',

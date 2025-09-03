@@ -2,6 +2,10 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { User, Session, AuthError as SupabaseAuthError } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseClient';
 import SessionManager from '../utils/sessionManager';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import appleAuth from '@invertase/react-native-apple-authentication';
+import { Platform } from 'react-native';
+import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID } from '@env';
 
 // Industry-standard auth types
 interface AuthState {
@@ -40,6 +44,15 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     bootstrapping: true,
     isAuthenticated: false,
   });
+
+  // Configure Google Sign-In
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
+      offlineAccess: true,
+    });
+  }, []);
 
   useEffect(() => {
     // Get initial session with better error handling
@@ -518,19 +531,47 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signInWithGoogle = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('🔄 Starting Google Sign-In...');
+      setAuthState(prev => ({ ...prev, loading: true }));
+
+      // Check if device supports Google Play services (Android only)
+      if (Platform.OS === 'android') {
+        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      }
+      
+      // Sign in with Google
+      const userInfo = await GoogleSignin.signIn();
+      console.log('✅ Google sign-in successful:', userInfo.data?.user.email);
+
+      // Get the ID token
+      const idToken = userInfo.data?.idToken;
+      
+      if (!idToken) {
+        throw new Error('No ID token received from Google');
+      }
+
+      // Sign in to Supabase with the Google ID token
+      const { error } = await supabase.auth.signInWithIdToken({
         provider: 'google',
-        options: {
-          redirectTo: 'sifia://auth/callback',
-        },
+        token: idToken,
       });
 
-      return { error };
-    } catch (error) {
-      console.error('Google sign-in error:', error);
+      setAuthState(prev => ({ ...prev, loading: false }));
+
+      if (error) {
+        console.error('❌ Supabase Google auth error:', error);
+        return { error };
+      }
+
+      console.log('✅ Google authentication successful');
+      return { error: null };
+    } catch (error: any) {
+      console.error('❌ Google sign-in error:', error);
+      setAuthState(prev => ({ ...prev, loading: false }));
+      
       return {
         error: {
-          message: 'An unexpected error occurred during Google sign-in',
+          message: error.message || 'Google sign-in failed',
           status: 500,
         } as SupabaseAuthError,
       };
@@ -539,19 +580,55 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signInWithApple = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: 'sifia://auth/callback',
-        },
+      console.log('🔄 Starting Apple Sign-In...');
+      setAuthState(prev => ({ ...prev, loading: true }));
+
+      if (Platform.OS !== 'ios') {
+        throw new Error('Apple Sign-In is only available on iOS');
+      }
+
+      // Check if Apple Sign-In is supported
+      if (!appleAuth.isSupported) {
+        throw new Error('Apple Sign-In is not supported on this device');
+      }
+
+      // Perform Apple Sign-In
+      const appleAuthRequestResponse = await appleAuth.performRequest({
+        requestedOperation: appleAuth.Operation.LOGIN,
+        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
       });
 
-      return { error };
-    } catch (error) {
-      console.error('Apple sign-in error:', error);
+      const { identityToken, nonce } = appleAuthRequestResponse;
+      
+      if (!identityToken) {
+        throw new Error('No identity token received from Apple');
+      }
+
+      console.log('✅ Apple sign-in successful');
+
+      // Sign in to Supabase with the Apple identity token
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: identityToken,
+        nonce,
+      });
+
+      setAuthState(prev => ({ ...prev, loading: false }));
+
+      if (error) {
+        console.error('❌ Supabase Apple auth error:', error);
+        return { error };
+      }
+
+      console.log('✅ Apple authentication successful');
+      return { error: null };
+    } catch (error: any) {
+      console.error('❌ Apple sign-in error:', error);
+      setAuthState(prev => ({ ...prev, loading: false }));
+      
       return {
         error: {
-          message: 'An unexpected error occurred during Apple sign-in',
+          message: error.message || 'Apple sign-in failed',
           status: 500,
         } as SupabaseAuthError,
       };

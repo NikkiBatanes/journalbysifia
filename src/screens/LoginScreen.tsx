@@ -6,7 +6,7 @@ import {
   StyleSheet,
   Alert,
   Platform,
-  // ActivityIndicator, // unused
+  ActivityIndicator,
   Image,
   StatusBar,
 } from 'react-native';
@@ -88,8 +88,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleAppleLogin}
               disabled={loading}
             >
-              <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
-              <ThemedText weight="medium" style={styles.buttonText}>Continue with Apple</ThemedText>
+              {loading ? (
+                <ActivityIndicator size="small" color="#FF6B6B" />
+              ) : (
+                <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
+              )}
+              <ThemedText weight="medium" style={styles.buttonText}>
+                {loading ? 'Signing in...' : 'Continue with Apple'}
+              </ThemedText>
             </TouchableOpacity>
           )}
 
@@ -98,8 +104,14 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleGoogleLogin}
             disabled={loading}
           >
-            <Ionicons name="logo-google" size={20} color="#FF6B6B" />
-            <ThemedText weight="medium" style={styles.buttonText}>Continue with Google</ThemedText>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FF6B6B" />
+            ) : (
+              <Ionicons name="logo-google" size={20} color="#FF6B6B" />
+            )}
+            <ThemedText weight="medium" style={styles.buttonText}>
+              {loading ? 'Signing in...' : 'Continue with Google'}
+            </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity

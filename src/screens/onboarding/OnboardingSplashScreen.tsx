@@ -267,10 +267,13 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
 
         // FLOW 2: Detected user but did not finish onboarding → Splash > Personalization directly
         const target = 'OnboardingPersonalization';
+        const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+        const isOAuth = provider === 'apple' || provider === 'google';
         const displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
-        const params = { 
-          name: displayName, 
-          registrationMethod: 'email' 
+        const params = {
+          // For OAuth, always force entering real name (avoid random/email-derived names)
+          name: isOAuth ? '' : displayName,
+          registrationMethod: isOAuth ? 'oauth' : 'email',
         };
         console.log('[SplashScreen] 👋 ROUTING TO PERSONALIZATION - Onboarding not completed');
         console.log('[SplashScreen] 📋 FLOW: Splash > Personalization (skip Welcome)');
@@ -286,9 +289,11 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         // If we have an authenticated user, prefer going straight to Personalization rather than Welcome
         try {
           const target = effectiveUser ? 'OnboardingPersonalization' : 'OnboardingWelcome';
+          const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+          const isOAuth = provider === 'apple' || provider === 'google';
           const displayName = effectiveUser?.user_metadata?.first_name || effectiveUser?.email?.split('@')[0] || '';
           const params = effectiveUser
-            ? { name: displayName, registrationMethod: 'email' }
+            ? { name: isOAuth ? '' : displayName, registrationMethod: isOAuth ? 'oauth' : 'email' }
             : undefined;
           console.log('[SplashScreen] 🛟 Fallback routing to', target, params || {});
           try {
