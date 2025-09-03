@@ -19,6 +19,12 @@ import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
+import {
+  triggerLightHaptic,
+  triggerSuccessHaptic,
+  triggerSelectionHaptic,
+  triggerErrorHaptic,
+} from '../../utils/haptics';
 
 // Prayer types for ACTS method and freeform
 const PRAYER_TYPES = [
@@ -166,6 +172,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // Local state
   const [isEditing, setIsEditing] = useState(false);
   const [selectedPrayerType, setSelectedPrayerType] = useState<string>('adoration');
+  const [activeTab, setActiveTab] = useState<'ACTS' | 'OPEN'>('ACTS');
   const [prayerText, setPrayerText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -247,8 +254,28 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
 
   // Handle prayer type selection
   const handlePrayerTypeSelect = useCallback((type: string) => {
+    if (type !== selectedPrayerType) {
+      // Selection haptic only on actual change
+      triggerSelectionHaptic();
+    }
     setSelectedPrayerType(type);
-  }, []);
+  }, [selectedPrayerType]);
+
+  // Handle tab change and align selected type
+  const handleTabChange = useCallback((tab: 'ACTS' | 'OPEN') => {
+    // Selection haptic only when tab actually changes
+    setActiveTab(prev => {
+      if (prev !== tab) {
+        triggerSelectionHaptic();
+      }
+      return tab;
+    });
+    if (tab === 'OPEN') {
+      setSelectedPrayerType('freeform');
+    } else if (tab === 'ACTS' && selectedPrayerType === 'freeform') {
+      setSelectedPrayerType('adoration');
+    }
+  }, [selectedPrayerType]);
 
   // Handle save prayer
   const handleSavePrayer = useCallback(async () => {
@@ -268,6 +295,9 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
         status: (selectedPrayerType === 'freeform' || selectedPrayerType === 'supplication') ? 'pending' : undefined,
       });
 
+      // Success feedback only after confirmed mutation success
+      triggerSuccessHaptic();
+
       // Track analytics
       analytics.track('prayer_journal_entry_created', {
         prayer_type: selectedPrayerType,
@@ -286,6 +316,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     } catch (saveError) {
       console.error('Error saving prayer:', saveError);
       Alert.alert('Error', 'Failed to save prayer. Please try again.');
+      // Error feedback
+      triggerErrorHaptic();
     } finally {
       setIsSaving(false);
     }
@@ -305,12 +337,17 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // Handle mark prayer as answered
   const handleMarkAnswered = useCallback(async (prayerId: string, isAnswered: boolean) => {
     try {
+      // Immediate selection feedback on explicit user tap
+      triggerSelectionHaptic();
       await markAnsweredMutation.mutateAsync({
         id: prayerId,
         isAnswered,
         _userId: user?.id || '',
         _dateStr: dateStr,
       });
+
+      // Success feedback only after mutation success
+      triggerSuccessHaptic();
 
       analytics.track('prayer_marked_answered', {
         prayer_id: prayerId,
@@ -320,6 +357,8 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
     } catch (error) {
       console.error('Error marking prayer as answered:', error);
       Alert.alert('Error', 'Failed to update prayer status. Please try again.');
+      // Error feedback
+      triggerErrorHaptic();
     }
   }, [markAnsweredMutation, dateStr, user?.id]);
 
@@ -343,77 +382,99 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
       <View style={styles.prayerTypeContainer}>
         <ThemedText style={styles.sectionTitle} weight="semiBold">Choose Prayer Style</ThemedText>
 
-        {/* ACTS Method Section */}
-        <View style={styles.methodSection}>
-          <View style={styles.methodHeader}>
-            <ThemedText style={styles.methodTitle} weight="bold">ACTS Method</ThemedText>
-            <ThemedText style={styles.methodSubtitle}>Structured prayer approach</ThemedText>
-          </View>
-          <View style={styles.prayerTypeGrid}>
-            {actsTypes.map((type) => (
-              <TouchableOpacity
-                key={type.key}
-                style={[
-                  styles.prayerTypeButton,
-                  selectedPrayerType === type.key && styles.prayerTypeButtonSelected,
-                ]}
-                onPress={() => handlePrayerTypeSelect(type.key)}
-              >
-                <Ionicons
-                  name={type.icon}
-                  size={18}
-                  color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.mediumGray}
-                />
-                <ThemedText
-                  style={[
-                    styles.prayerTypeText,
-                    selectedPrayerType === type.key && styles.prayerTypeTextSelected,
-                  ]}
-                  weight="semiBold"
-                >
-                  {type.displayName}
-                </ThemedText>
-                <ThemedText style={styles.prayerTypeDescription}>{type.description}</ThemedText>
-              </TouchableOpacity>
-            ))}
-          </View>
+        {/* Tabs */}
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'ACTS' && styles.tabButtonActive]}
+            onPress={() => handleTabChange('ACTS')}
+            accessibilityRole="tab"
+            accessibilityLabel="ACTS Method"
+            accessibilityState={{ selected: activeTab === 'ACTS' }}
+          >
+            <ThemedText style={[styles.tabText, activeTab === 'ACTS' && styles.tabTextActive]} weight="semiBold">ACTS Method</ThemedText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'OPEN' && styles.tabButtonActive]}
+            onPress={() => handleTabChange('OPEN')}
+            accessibilityRole="tab"
+            accessibilityLabel="Open Prayer"
+            accessibilityState={{ selected: activeTab === 'OPEN' }}
+          >
+            <ThemedText style={[styles.tabText, activeTab === 'OPEN' && styles.tabTextActive]} weight="semiBold">Open Prayer</ThemedText>
+          </TouchableOpacity>
         </View>
 
-        {/* Open Prayer Section */}
-        <View style={styles.methodSection}>
-          <View style={styles.methodHeader}>
-            <ThemedText style={styles.methodTitle} weight="bold">Open Prayer</ThemedText>
-            <ThemedText style={styles.methodSubtitle}>A simple, unstructured prayer</ThemedText>
-          </View>
-          <View style={styles.prayerTypeGrid}>
-            {freeformTypes.map((type) => (
-              <TouchableOpacity
-                key={type.key}
-                style={[
-                  styles.prayerTypeButtonFreeform,
-                  selectedPrayerType === type.key && styles.prayerTypeButtonFreeformSelected,
-                ]}
-                onPress={() => handlePrayerTypeSelect(type.key)}
-              >
-                <Ionicons
-                  name={type.icon}
-                  size={20}
-                  color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.mediumGray}
-                />
-                <ThemedText
+        {activeTab === 'ACTS' ? (
+          <View style={styles.methodSection}>
+            <View style={styles.methodHeader}>
+              <ThemedText style={styles.methodTitle} weight="bold">ACTS Method</ThemedText>
+              <ThemedText style={styles.methodSubtitle}>Structured prayer approach</ThemedText>
+            </View>
+            <View style={styles.prayerTypeGrid}>
+              {actsTypes.map((type) => (
+                <TouchableOpacity
+                  key={type.key}
                   style={[
-                    styles.prayerTypeTextFreeform,
-                    selectedPrayerType === type.key && styles.prayerTypeTextFreeformSelected,
+                    styles.prayerTypeButton,
+                    selectedPrayerType === type.key && styles.prayerTypeButtonSelected,
                   ]}
-                  weight="semiBold"
+                  onPress={() => handlePrayerTypeSelect(type.key)}
                 >
-                  {type.displayName}
-                </ThemedText>
-                <ThemedText style={styles.prayerTypeDescriptionFreeform}>{type.description}</ThemedText>
-              </TouchableOpacity>
-            ))}
+                  <Ionicons
+                    name={type.icon}
+                    size={18}
+                    color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.mediumGray}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.prayerTypeText,
+                      selectedPrayerType === type.key && styles.prayerTypeTextSelected,
+                    ]}
+                    weight="semiBold"
+                  >
+                    {type.displayName}
+                  </ThemedText>
+                  <ThemedText style={styles.prayerTypeDescription}>{type.description}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={styles.methodSection}>
+            <View style={styles.methodHeader}>
+              <ThemedText style={styles.methodTitle} weight="bold">Open Prayer</ThemedText>
+              <ThemedText style={styles.methodSubtitle}>A simple, unstructured prayer</ThemedText>
+            </View>
+            <View style={styles.prayerTypeGrid}>
+              {freeformTypes.map((type) => (
+                <TouchableOpacity
+                  key={type.key}
+                  style={[
+                    styles.prayerTypeButtonFreeform,
+                    selectedPrayerType === type.key && styles.prayerTypeButtonFreeformSelected,
+                  ]}
+                  onPress={() => handlePrayerTypeSelect(type.key)}
+                >
+                  <Ionicons
+                    name={type.icon}
+                    size={20}
+                    color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.mediumGray}
+                  />
+                  <ThemedText
+                    style={[
+                      styles.prayerTypeTextFreeform,
+                      selectedPrayerType === type.key && styles.prayerTypeTextFreeformSelected,
+                    ]}
+                    weight="semiBold"
+                  >
+                    {type.displayName}
+                  </ThemedText>
+                  <ThemedText style={styles.prayerTypeDescriptionFreeform}>{type.description}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
       </View>
     );
   };
@@ -572,7 +633,7 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             </ThemedText>
             <TouchableOpacity
               style={styles.emptyStateButton}
-              onPress={toggleEditing}
+              onPress={() => { triggerLightHaptic(); toggleEditing(); }}
             >
               <Pencil size={16} color={Colors.hopeWhite} style={styles.buttonIcon} />
               <ThemedText style={styles.emptyStateButtonText} weight="medium">
@@ -597,6 +658,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.hopeWhite,
     marginBottom: 4,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 16,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  tabButtonActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  tabText: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  tabTextActive: {
+    color: Colors.hopeWhite,
   },
   methodSection: {
     gap: 12,

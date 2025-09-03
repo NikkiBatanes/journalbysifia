@@ -24,6 +24,12 @@ import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { LookingForwardSkeleton } from '../SkeletonLoader/LookingForwardSkeleton';
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary';
 import { analytics } from '../../utils/analytics';
+import {
+  triggerLightHaptic,
+  triggerSelectionHaptic,
+  triggerSuccessHaptic,
+  triggerErrorHaptic,
+} from '../../utils/haptics';
 
 interface LookingForwardProps {
   selectedDate: Date;
@@ -126,7 +132,15 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            deleteMutation.mutate(id);
+            triggerSelectionHaptic();
+            deleteMutation.mutate(id, {
+              onSuccess: () => {
+                triggerSuccessHaptic();
+              },
+              onError: () => {
+                triggerErrorHaptic();
+              },
+            });
           },
         },
       ]
@@ -138,6 +152,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     const entryItem = displayEntry || lookingForward;
     if (!entryItem) {return;}
 
+    triggerLightHaptic();
     setEditingItemId(id);
     setEditingItemText(entryItem.text);
   };
@@ -167,15 +182,18 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         previous_text_length: 0,
         date: dateStr,
       }, user?.id);
+      triggerSuccessHaptic();
     } catch (updateError) {
       console.error('Failed to update looking forward:', updateError);
       Alert.alert('Error', 'Failed to update looking forward. Please try again.');
+      triggerErrorHaptic();
     } finally {
       setIsSaving(false);
     }
   };
 
   const cancelEditEntry = () => {
+    triggerSelectionHaptic();
     setEditingItemId(null);
     setEditingItemText('');
   };
@@ -333,12 +351,14 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
   }
 
   const startAdding = () => {
+    triggerLightHaptic();
     setIsAdding(true);
     setIsEditing(false);
     setEntryText('');
   };
 
   const cancelAdding = () => {
+    triggerSelectionHaptic();
     setIsAdding(false);
     setIsEditing(false);
     setEntryText('');
@@ -392,6 +412,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         });
 
         console.log('🌅 LookingForward: Entry updated successfully');
+        triggerSuccessHaptic();
       } else {
         // Create new entry with optimistic update
         const tempId = `temp-${Date.now()}`;
@@ -430,6 +451,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
         });
 
         console.log('🌅 LookingForward: Entry created successfully');
+        triggerSuccessHaptic();
       }
     } catch (saveError) {
       console.error('🌅 LookingForward: Save failed:', saveError);
@@ -446,6 +468,7 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
       }, user.id);
 
       Alert.alert('Error', 'Failed to save entry. Please try again.');
+      triggerErrorHaptic();
     } finally {
       setIsSaving(false);
     }
@@ -455,11 +478,13 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
     if (!displayEntry) {return;}
 
     setEntryText(displayEntry.text);
+    triggerLightHaptic();
     setIsEditing(true);
     setIsAdding(true);
   };
 
   const cancelEditing = () => {
+    triggerSelectionHaptic();
     setIsAdding(false);
     setIsEditing(false);
     setEntryText('');

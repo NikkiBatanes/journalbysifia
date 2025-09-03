@@ -25,6 +25,12 @@ import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { ErrorBoundary } from '../ErrorBoundary';
 import { GratitudeSkeleton } from '../SkeletonLoader/GratitudeSkeleton';
 import { analytics } from '../../utils/analytics';
+import {
+  triggerLightHaptic,
+  triggerSelectionHaptic,
+  triggerSuccessHaptic,
+  triggerErrorHaptic,
+} from '../../utils/haptics';
 
 // Pluralization helpers
 const pluralS = (count: number) => (count === 1 ? '' : 's');
@@ -155,11 +161,13 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   }, [dateStr]);
 
   const startAdding = () => {
+    if (!isAdding) { triggerLightHaptic(); }
     setIsAdding(true);
     setIsEditing(false);
   };
 
   const startEditing = useCallback(() => {
+    if (!isEditing) { triggerLightHaptic(); }
     setIsEditing(true);
     setIsAdding(false);
 
@@ -188,12 +196,14 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   }, [globalEditMode?.isGlobalEditMode, gratitudeItems.length, viewMode, isAdding, isEditing, startEditing]);
 
   const cancelAdding = () => {
+    triggerSelectionHaptic();
     setIsAdding(false);
     setIsEditing(false);
     setNewItems(['', '', '']);
   };
 
   const addAnotherField = useCallback(() => {
+    triggerSelectionHaptic();
     setNewItems([...newItems, '']);
 
     // Track field addition
@@ -231,6 +241,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            triggerSelectionHaptic();
             try {
               // Find the original entry that contains this item
               const entryToDelete = gratitudeEntries.find(entry => {
@@ -270,10 +281,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
                     content: JSON.stringify({ items: itemsToSave }),
                   });
                 }
+                triggerSuccessHaptic();
               }
             } catch (deleteError) {
               console.error('Error deleting gratitude item:', deleteError);
               Alert.alert('Error', 'Failed to delete gratitude item. Please try again.');
+              triggerErrorHaptic();
             }
 
             // Reset visible count if needed
@@ -292,6 +305,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
     const item = gratitudeItems.find(gratitudeItem => gratitudeItem.id === id);
     if (!item) {return;}
 
+    triggerLightHaptic();
     setEditingItemId(id);
     setEditingItemText(item.text);
     closeAllSwipeables();
@@ -332,13 +346,16 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         is_editing: true,
         date: dateStr,
       }, user.id);
+      triggerSuccessHaptic();
     } catch (updateError) {
       console.error('Failed to update gratitude item:', updateError);
       Alert.alert('Error', 'Failed to update gratitude item. Please try again.');
+      triggerErrorHaptic();
     }
   }, [editingItemId, editingItemText, user, gratitudeEntries, updateMutation, dateStr]);
 
   const cancelEditGratitudeItem = useCallback(() => {
+    triggerSelectionHaptic();
     setEditingItemId(null);
     setEditingItemText('');
   }, []);
@@ -427,6 +444,8 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
         setIsEditing(false);
         closeAllSwipeables();
 
+        triggerSuccessHaptic();
+
         // Close global edit mode if active
         if ((viewMode === 'inline' || viewMode === 'carousel') && globalEditMode?.isGlobalEditMode) {
           globalEditMode.setGlobalEditMode(false);
@@ -434,6 +453,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       } catch (saveError) {
         console.error('Error saving gratitude items:', saveError);
         Alert.alert('Error', 'Failed to save gratitude items. Please try again.');
+        triggerErrorHaptic();
       }
     }
   };

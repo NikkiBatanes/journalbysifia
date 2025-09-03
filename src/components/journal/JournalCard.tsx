@@ -10,6 +10,7 @@ import { ViewConfigurationManager } from '../../systems/journal/ViewConfiguratio
 import { ViewMode } from '../../systems/journal/types';
 import { AnimationUtils } from '../../utils/animations';
 import LinearGradient from 'react-native-linear-gradient';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 interface JournalCardProps {
   icon?: string | React.ReactNode;
@@ -190,7 +191,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
           {/* Enhanced floating edit button */}
           {showAddButton && onAdd && !isAdding && (viewMode as string) !== 'inline' && (
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <TouchableOpacity onPress={onAdd} style={styles.addButtonFloating}>
+              <TouchableOpacity onPress={() => { triggerLightHaptic(); onAdd && onAdd(); }} style={styles.addButtonFloating}>
                 <LinearGradient
                   colors={[Colors.growthGreen, Colors.faithGold]}
                   style={styles.addButtonGradient}
@@ -273,7 +274,7 @@ export const JournalCard: React.FC<JournalCardProps> = ({
         </View>
         {/* Floating edit button */}
         {showAddButton && onAdd && !isAdding && (viewMode as string) !== 'inline' && (
-          <TouchableOpacity onPress={onAdd} style={styles.addButtonFloating}>
+          <TouchableOpacity onPress={() => { triggerLightHaptic(); onAdd && onAdd(); }} style={styles.addButtonFloating}>
             <Pencil size={14} color={Colors.trustGrey} strokeWidth={2.5} />
           </TouchableOpacity>
         )}

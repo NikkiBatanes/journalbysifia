@@ -26,7 +26,7 @@ import {
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 import { getCategoryColor, getCategoryIcon } from './TimeBlockCategories';
 import TimeBlockCategoryModal from './TimeBlockCategoryModal';
-import { triggerLightHaptic } from '../../utils/haptics';
+import { triggerLightHaptic, triggerSelectionHaptic } from '../../utils/haptics';
 
 type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | 'custom';
 
@@ -533,6 +533,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   };
 
   const toggleAllDay = () => {
+    triggerLightHaptic();
     setNewBlock(prev => ({ ...prev, isAllDay: !prev.isAllDay }));
   };
 
@@ -868,7 +869,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 <View style={styles.timeRangeEdit}>
                   <TouchableOpacity
                     style={styles.timeButton}
-                    onPress={() => setShowTimePicker({ start: true, end: false, id: null })}
+                    onPress={() => { triggerLightHaptic(); setShowTimePicker({ start: true, end: false, id: null }); }}
                     accessibilityRole="button"
                     accessibilityLabel={`Start time: ${formatTime(newBlock.startTime)}`}
                     accessibilityHint="Tap to change the start time for this time block"
@@ -880,7 +881,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   </View>
                   <TouchableOpacity
                     style={styles.timeButton}
-                    onPress={() => setShowTimePicker({ start: false, end: true, id: null })}
+                    onPress={() => { triggerLightHaptic(); setShowTimePicker({ start: false, end: true, id: null }); }}
                     accessibilityRole="button"
                     accessibilityLabel={`End time: ${formatTime(newBlock.endTime)}`}
                     accessibilityHint="Tap to change the end time for this time block"
@@ -920,7 +921,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                 />
                 <TouchableOpacity
                   style={styles.doneButton}
-                  onPress={() => setShowTimePicker({ start: false, end: false, id: null })}
+                  onPress={() => { triggerLightHaptic(); setShowTimePicker({ start: false, end: false, id: null }); }}
                 >
                   <ThemedText weight="medium" style={styles.doneButtonText}>Done</ThemedText>
                 </TouchableOpacity>
@@ -985,7 +986,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   styles.categorySelected,
                 ],
               ]}
-              onPress={() => setShowCategoryPicker(true)}
+              onPress={() => { triggerLightHaptic(); setShowCategoryPicker(true); }}
               accessibilityRole="button"
               accessibilityLabel={newBlock.category ? `Selected category: ${newBlock.category}` : 'Select category'}
               accessibilityHint="Tap to open category selection menu. This field is required."
@@ -1017,7 +1018,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
           <View style={styles.repeatContainer}>
             <TouchableOpacity
               style={styles.repeatButton}
-              onPress={() => setShowRepeatOptions(!showRepeatOptions)}
+              onPress={() => { triggerLightHaptic(); setShowRepeatOptions(!showRepeatOptions); }}
             >
               <Ionicons
                 name="repeat-outline"
@@ -1141,7 +1142,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                     />
                     <TouchableOpacity
                       style={styles.frequencyUnitButton}
-                      onPress={() => setShowFrequencySelector(!_showFrequencySelector)}
+                      onPress={() => { triggerLightHaptic(); setShowFrequencySelector(!_showFrequencySelector); }}
                     >
                       <ThemedText style={styles.frequencyUnitText}>
                         {customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1)}{customFrequency.value > 1 ? 's' : ''}
@@ -1166,6 +1167,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                                 customFrequency: newFreq,
                               },
                             }));
+                            triggerSelectionHaptic();
                             setShowFrequencySelector(false);
                           }}
                         >
@@ -1261,6 +1263,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                       newBlock.repeat.endDate && styles.selectedEndRepeatOption,
                     ]}
                     onPress={() => {
+                      triggerLightHaptic();
                       setShowEndDatePicker(!_showEndDatePicker);
                     }}
                   >
@@ -1324,7 +1327,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
                   />
                   <TouchableOpacity
                     style={styles.doneButton}
-                    onPress={() => setShowEndDatePicker(false)}
+                    onPress={() => { triggerLightHaptic(); setShowEndDatePicker(false); }}
                   >
                     <ThemedText weight="medium" style={styles.doneButtonText}>Done</ThemedText>
                   </TouchableOpacity>

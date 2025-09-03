@@ -977,7 +977,10 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           </View>
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              onPress={handleAddInput}
+              onPress={() => {
+                triggerLightHaptic();
+                handleAddInput();
+              }}
               style={[styles.button, styles.addAnotherButton]}
               accessibilityRole="button"
               accessibilityLabel="Add another todo"

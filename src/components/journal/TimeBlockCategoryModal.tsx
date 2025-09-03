@@ -7,6 +7,7 @@ import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { TIMEBLOCK_CATEGORIES, TimeBlockCategory } from './TimeBlockCategories';
+import { triggerLightHaptic, triggerSelectionHaptic } from '../../utils/haptics';
 
 interface TimeBlockCategoryModalProps {
   visible: boolean;
@@ -53,7 +54,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
         <View style={styles.modalContainer}>
           <View style={styles.header}>
             <ThemedText weight="semiBold" style={styles.title}>Select Category</ThemedText>
-            <TouchableOpacity onPress={onCancel} style={styles.closeButton}>
+            <TouchableOpacity onPress={() => { triggerLightHaptic(); onCancel(); }} style={styles.closeButton}>
               <ThemedText weight="medium" style={styles.closeButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
           </View>
@@ -78,7 +79,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity
-                  onPress={() => setSearchQuery('')}
+                  onPress={() => { triggerLightHaptic(); setSearchQuery(''); }}
                   style={styles.clearButton}
                 >
                   <Ionicons
@@ -101,7 +102,7 @@ const TimeBlockCategoryModal: React.FC<TimeBlockCategoryModalProps> = ({
                   styles.categoryRow,
                   selectedCategory === category.name && styles.selectedCategoryRow,
                 ]}
-                onPress={() => onSelect(category)}
+                onPress={() => { triggerSelectionHaptic(); onSelect(category); }}
               >
                 <View style={styles.categoryContent}>
                   <View style={[styles.categoryIconContainer, { backgroundColor: category.color }]}>

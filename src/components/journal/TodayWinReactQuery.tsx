@@ -23,6 +23,12 @@ import { ErrorBoundary } from '../ErrorBoundary';
 import { TodayWinSkeleton } from '../SkeletonLoader/TodayWinSkeleton';
 import { analytics } from '../../utils/analytics';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
+import {
+  triggerLightHaptic,
+  triggerSelectionHaptic,
+  triggerSuccessHaptic,
+  triggerErrorHaptic,
+} from '../../utils/haptics';
 
 interface TodayWinProps {
   selectedDate: Date;
@@ -204,7 +210,15 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            deleteMutation.mutate(id);
+            triggerSelectionHaptic();
+            deleteMutation.mutate(id, {
+              onSuccess: () => {
+                triggerSuccessHaptic();
+              },
+              onError: () => {
+                triggerErrorHaptic();
+              },
+            });
           },
         },
       ]
@@ -216,6 +230,7 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
     const winItem = displayWin || win;
     if (!winItem) {return;}
 
+    triggerLightHaptic();
     setEditingItemId(id);
     setEditingItemText(winItem.text);
   };
@@ -245,15 +260,18 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
         previous_text_length: 0,
         date: dateStr,
       }, user?.id);
+      triggerSuccessHaptic();
     } catch (updateError) {
       console.error('Failed to update win:', updateError);
       Alert.alert('Error', 'Failed to update win. Please try again.');
+      triggerErrorHaptic();
     } finally {
       setIsSaving(false);
     }
   };
 
   const cancelEditWin = () => {
+    triggerSelectionHaptic();
     setEditingItemId(null);
     setEditingItemText('');
   };
@@ -342,11 +360,13 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
   }
 
   const startAdding = () => {
+    if (!isAdding) { triggerLightHaptic(); }
     setIsAdding(true);
     setWinText('');
   };
 
   const cancelAdding = () => {
+    triggerSelectionHaptic();
     console.log('🏆 TodayWin: Cancelling', { previousWin, isEditing, editingEntryId });
     if (previousWin) {
       // Restore the previous win if we were editing
@@ -445,12 +465,14 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
             previous_text_length: previousWin?.text.length || 0,
             date: dateStr,
           }, user?.id); // Allow useEffect to work again
+          triggerSuccessHaptic();
           // The optimistic update will be replaced by real data when it arrives
         },
         onError: (updateMutationError) => {
           console.error('🏆 TodayWin: Update mutation failed', updateMutationError);
           setIsSaving(false); // Allow useEffect to work again
           Alert.alert('Error', "Couldn't save your win. Please try again.");
+          triggerErrorHaptic();
           // Revert optimistic update and restore editing state on error
           const originalWin = {
             id: editingEntryId,
@@ -508,12 +530,14 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
             text_length: winText.trim().length,
             date: dateStr,
           }, user?.id); // Allow useEffect to work again
+          triggerSuccessHaptic();
           // The optimistic update will be replaced by real data when it arrives
         },
         onError: (createMutationError) => {
           console.error('🏆 TodayWin: Create mutation failed', createMutationError);
           setIsSaving(false); // Allow useEffect to work again
           Alert.alert('Error', "Couldn't save your win. Please try again.");
+          triggerErrorHaptic();
           // Revert optimistic update on error
           setDisplayWin(null);
           console.log('🏆 TodayWin: Reverted optimistic create due to error');
