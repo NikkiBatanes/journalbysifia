@@ -240,6 +240,20 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         email: effectiveUser.email,
       });
 
+      // Check if this is a logout scenario - if so, route to welcome instead of personalization
+      const { isLoggingOut } = useAuth();
+      if (isLoggingOut) {
+        console.log('[SplashScreen] 🚪 LOGOUT DETECTED - Routing to welcome screen');
+        const target = 'OnboardingWelcome';
+        try {
+          navigation.reset({ index: 0, routes: [{ name: target as any }] });
+        } catch (navErr) {
+          navigation.navigate(target as any);
+        }
+        hasNavigatedRef.current = true;
+        return true;
+      }
+
       try {
         const onboardingService = new OnboardingService();
         console.log('[SplashScreen] 📋 Checking onboarding completion...');
@@ -248,7 +262,7 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
         console.log('[SplashScreen] ✅ COMPLETION CHECK RESULT:', {
           userId: effectiveUser.id,
           hasCompleted,
-          decision: hasCompleted ? 'MainTabs' : 'OnboardingWelcome',
+          decision: hasCompleted ? 'MainTabs' : 'OnboardingPersonalization',
         });
 
         if (hasCompleted) {
@@ -265,25 +279,76 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
           return true;
         }
 
-        // FLOW 2: Detected user but did not finish onboarding → Splash > Personalization directly
-        const target = 'OnboardingPersonalization';
-        const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
-        const isOAuth = provider === 'apple' || provider === 'google';
-        const displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
-        const params = {
-          // For OAuth, always force entering real name (avoid random/email-derived names)
-          name: isOAuth ? '' : displayName,
-          registrationMethod: isOAuth ? 'oauth' : 'email',
-        };
-        console.log('[SplashScreen] 👋 ROUTING TO PERSONALIZATION - Onboarding not completed');
-        console.log('[SplashScreen] 📋 FLOW: Splash > Personalization (skip Welcome)');
-        try {
-          navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
-        } catch (navErr) {
-          navigation.navigate(target as any, params);
+        // FLOW 2: Detected user but did not finish onboarding
+        // Check if this is a fresh account creation vs returning incomplete user
+        const isNewUser = Date.now() - new Date(effectiveUser.created_at).getTime() < 5 * 60 * 1000; // 5 minutes
+        
+        if (isNewUser) {
+          // Fresh account creation → go to personalization
+          const target = 'OnboardingPersonalization';
+          const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+          const isOAuth = provider === 'apple' || provider === 'google';
+          const displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
+          const params = {
+            name: isOAuth ? '' : displayName,
+            registrationMethod: isOAuth ? 'oauth' : 'email',
+          };
+          console.log('[SplashScreen] 👋 NEW USER - ROUTING TO PERSONALIZATION');
+          console.log('[SplashScreen] 📋 FLOW: Splash > Personalization (new account)');
+          try {
+            navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+          } catch (navErr) {
+            navigation.navigate(target as any, params);
+          }
+          hasNavigatedRef.current = true;
+          return true;
+        } else {
+          // Returning user with incomplete onboarding → check for sales offer eligibility
+          console.log('[SplashScreen] 🔄 RETURNING INCOMPLETE USER - Checking sales offer eligibility');
+          
+          // Check if personalization was completed but other steps are missing
+          try {
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('personalization_completed')
+              .eq('id', effectiveUser.id)
+              .single();
+              
+            if (profile?.personalization_completed) {
+              // Personalization done, route to sales offer or next step
+              const target = 'SalesOfferScreen'; // Adjust to your actual sales screen name
+              console.log('[SplashScreen] 💰 ROUTING TO SALES OFFER - Personalization completed');
+              try {
+                navigation.reset({ index: 0, routes: [{ name: target as any }] });
+              } catch (navErr) {
+                // Fallback to main tabs if sales screen doesn't exist
+                navigation.reset({ index: 0, routes: [{ name: 'MainTabs' as any }] });
+              }
+              hasNavigatedRef.current = true;
+              return true;
+            }
+          } catch (profileErr) {
+            console.warn('[SplashScreen] Could not check personalization status:', profileErr);
+          }
+          
+          // Default: route to personalization
+          const target = 'OnboardingPersonalization';
+          const provider = (effectiveUser as any)?.app_metadata?.provider as string | undefined;
+          const isOAuth = provider === 'apple' || provider === 'google';
+          const displayName = effectiveUser.user_metadata?.first_name || effectiveUser.email?.split('@')[0] || '';
+          const params = {
+            name: isOAuth ? '' : displayName,
+            registrationMethod: isOAuth ? 'oauth' : 'email',
+          };
+          console.log('[SplashScreen] 👋 ROUTING TO PERSONALIZATION - Onboarding not completed');
+          try {
+            navigation.reset({ index: 0, routes: [{ name: target as any, params }] });
+          } catch (navErr) {
+            navigation.navigate(target as any, params);
+          }
+          hasNavigatedRef.current = true;
+          return true;
         }
-        hasNavigatedRef.current = true;
-        return true;
       } catch (obErr) {
         console.warn('[SplashScreen] ❌ ONBOARDING CHECK FAILED. Applying safer fallback based on auth state:', obErr);
         // If we have an authenticated user, prefer going straight to Personalization rather than Welcome

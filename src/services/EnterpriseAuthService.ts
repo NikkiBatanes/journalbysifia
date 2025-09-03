@@ -37,15 +37,9 @@ export class EnterpriseAuthService {
    */
   static async initialize(): Promise<void> {
     try {
-      // Configure Google Sign-In
-      await GoogleSignin.configure({
-        webClientId: authConfig.google.webClientId,
-        iosClientId: authConfig.google.iosClientId,
-        offlineAccess: false,
-        hostedDomain: '',
-        forceCodeForRefreshToken: true,
-      });
-
+      // Google Sign-In is configured in IndustryStandardAuthContext.tsx
+      // Removing duplicate configuration to prevent conflicts
+      console.log('🔧 EnterpriseAuthService initialized (Google config handled by AuthContext)');
       console.log('✅ EnterpriseAuthService initialized successfully');
     } catch (error) {
       console.error('❌ Failed to initialize EnterpriseAuthService:', error);

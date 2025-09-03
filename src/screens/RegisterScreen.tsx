@@ -90,6 +90,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     if (googleError) {
       console.error('Google Sign-In Error:', googleError);
       triggerErrorHaptic();
+      // Hide cancellation errors to allow choosing other methods
+      const msg = googleError.message?.toLowerCase?.() || '';
+      if (msg.includes('cancel') || msg.includes('cancelled')) {
+        setActiveProvider(null);
+        return;
+      }
       setError(googleError.message || 'Google sign up failed. Please try again.');
       setActiveProvider(null);
       return;
@@ -108,6 +114,12 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     if (appleError) {
       console.error('Apple Sign-In Error:', appleError);
       triggerErrorHaptic();
+      // Hide cancellation errors to allow choosing other methods
+      const msg = appleError.message?.toLowerCase?.() || '';
+      if (msg.includes('cancel') || msg.includes('cancelled')) {
+        setActiveProvider(null);
+        return;
+      }
       setError(appleError.message || 'Apple sign up failed. Please try again.');
       setActiveProvider(null);
       return;
@@ -140,7 +152,10 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         />
 
         {/* Illustration Placeholder */}
-        <View style={styles.illustrationContainer}>
+        <View style={[
+          styles.illustrationContainer,
+          error ? styles.illustrationContainerCompressed : null,
+        ]}>
           <View style={styles.illustrationPlaceholder}>
             <Ionicons name="laptop-outline" size={100} color="rgba(255,255,255,0.3)" />
             <Ionicons name="phone-portrait-outline" size={50} color="rgba(255,255,255,0.2)" style={styles.phoneIcon} />
@@ -150,19 +165,20 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Title */}
-        <View style={styles.titleContainer}>
+        <View style={[
+          styles.titleContainer,
+          error ? styles.titleContainerCompressed : null,
+        ]}>
           <ThemedText weight="bold" style={styles.title}>Create an Account</ThemedText>
-        </View>
 
-        {/* Overlay Error Banner */}
-        {error ? (
-          <View style={styles.errorOverlay}>
-            <View style={styles.errorBanner}>
-              <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
+          {/* Inline Error Message */}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIcon} />
               <ThemedText style={styles.errorText}>{error}</ThemedText>
             </View>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
 
         {/* Social Buttons */}
         <View style={styles.buttonContainer}>
@@ -246,6 +262,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 20,
   },
+  illustrationContainerCompressed: {
+    height: 240,
+    marginVertical: 10,
+  },
   illustrationPlaceholder: {
     width: 300,
     height: 250,
@@ -272,6 +292,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
     width: '100%',
+  },
+  titleContainerCompressed: {
+    marginBottom: 4,
   },
   title: {
     fontSize: 28,
@@ -308,6 +331,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#FF6B6B',
     fontSize: 14,
+    fontFamily: Fonts.system.regular,
     flexShrink: 1,
   },
   subtitle: {
@@ -319,6 +343,8 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: '100%',
     gap: 16,
+    // Keep buttons fixed toward the bottom even when error appears
+    marginTop: 'auto',
   },
   appleButton: {
     flexDirection: 'row',
@@ -412,6 +438,21 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.bold,
     fontWeight: '600',
     textDecorationLine: 'none',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderColor: 'rgba(255,107,107,0.8)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  errorIcon: {
+    marginRight: 8,
   },
   errorIconMargin: {
     marginRight: 8,

@@ -459,6 +459,8 @@ export class OnboardingService {
    */
   async hasCompletedOnboarding(userId: string): Promise<boolean> {
     try {
+      console.log('[OnboardingService] Checking completion for user:', userId);
+      
       // 1) Primary source of truth: user_profiles.onboarding_completed
       try {
         const { data: profile, error: profErr } = await this.supabase
@@ -467,16 +469,36 @@ export class OnboardingService {
           .eq('id', userId)
           .single();
 
-        if (!profErr && profile && profile.onboarding_completed === true) {
-          return true;
+        console.log('[OnboardingService] Profile check result:', { 
+          hasProfile: !!profile, 
+          onboardingCompleted: profile?.onboarding_completed,
+          error: profErr?.message 
+        });
+
+        if (!profErr && profile) {
+          // Explicitly check for true value, not just truthy
+          const isCompleted = profile.onboarding_completed === true;
+          console.log('[OnboardingService] Primary check result:', isCompleted);
+          if (isCompleted) {
+            return true;
+          }
         }
       } catch (e) {
-        // Non-fatal: fall back to onboarding_progress
+        console.warn('[OnboardingService] Profile check failed, falling back:', e);
       }
 
       // 2) Fallback: onboarding_progress.is_completed
+      console.log('[OnboardingService] Checking fallback onboarding_progress...');
       const progress = await this.getOnboardingProgress(userId);
-      return progress?.is_completed || false;
+      const fallbackResult = progress?.is_completed === true;
+      
+      console.log('[OnboardingService] Fallback check result:', {
+        hasProgress: !!progress,
+        isCompleted: progress?.is_completed,
+        finalResult: fallbackResult
+      });
+      
+      return fallbackResult;
     } catch (error) {
       console.error('[OnboardingService] Error checking onboarding completion:', error);
       return false;

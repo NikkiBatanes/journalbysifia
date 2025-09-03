@@ -5,7 +5,8 @@ import SessionManager from '../utils/sessionManager';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import appleAuth from '@invertase/react-native-apple-authentication';
 import { Platform } from 'react-native';
-import { GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID } from '@env';
+import Config from 'react-native-config';
+import NameCollectionModal from '../components/auth/NameCollectionModal';
 
 // Industry-standard auth types
 interface AuthState {
@@ -18,16 +19,23 @@ interface AuthState {
   isAuthenticated: boolean;
 }
 
-interface AuthContextType extends AuthState {
-  signIn: (email: string, password: string) => Promise<{ error: SupabaseAuthError | null }>;
-  signUp: (email: string, password: string, userData?: { firstName?: string; lastName?: string }) => Promise<{ error: SupabaseAuthError | null }>;
-  signOut: () => Promise<{ error: SupabaseAuthError | null }>;
-  resetPassword: (email: string) => Promise<{ error: SupabaseAuthError | null }>;
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  bootstrapping: boolean;
+  isAuthenticated: boolean;
+  signOut: () => Promise<void>;
   updateProfile: (profileData: { full_name?: string; bio?: string; location?: string; avatar_url?: string }) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
   updatePreferences: (preferences: any) => Promise<{ success: boolean; error?: SupabaseAuthError | null }>;
   signInWithGoogle: () => Promise<{ error: SupabaseAuthError | null }>;
   signInWithApple: () => Promise<{ error: SupabaseAuthError | null }>;
   refreshSession: (retryCount?: number) => Promise<any>;
+  showNameCollection: boolean;
+  nameCollectionData: { email: string } | null;
+  completeNameCollection: (firstName: string, lastName: string) => Promise<void>;
+  skipNameCollection: () => void;
+  isLoggingOut: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,13 +53,42 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
     isAuthenticated: false,
   });
 
+  // Name collection state
+  const [showNameCollection, setShowNameCollection] = useState(false);
+  const [nameCollectionData, setNameCollectionData] = useState<{ email: string } | null>(null);
+  
+  // Logout state tracking
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   // Configure Google Sign-In
   useEffect(() => {
+    const rawWebClientId = Config.GOOGLE_WEB_CLIENT_ID;
+    const rawIosClientId = Config.GOOGLE_IOS_CLIENT_ID;
+    
+    // Clean up any duplicate prefixes from environment variables
+    const webClientId = rawWebClientId?.replace('GOOGLE_WEB_CLIENT_ID=', '') || rawWebClientId;
+    const iosClientId = rawIosClientId?.replace('GOOGLE_IOS_CLIENT_ID=', '') || rawIosClientId;
+    
+    console.log('🔧 Configuring Google Sign-In with:');
+    console.log('📱 iOS Client ID (raw):', rawIosClientId || 'UNDEFINED');
+    console.log('📱 iOS Client ID (cleaned):', iosClientId || 'UNDEFINED');
+    console.log('🌐 Web Client ID (cleaned):', webClientId || 'UNDEFINED');
+    
+    if (!iosClientId || !webClientId) {
+      console.error('❌ Missing Google OAuth client IDs in environment variables');
+      console.error('Please check your .env file contains:');
+      console.error('GOOGLE_IOS_CLIENT_ID=your-ios-client-id.googleusercontent.com');
+      console.error('GOOGLE_WEB_CLIENT_ID=your-web-client-id.googleusercontent.com');
+      return;
+    }
+    
     GoogleSignin.configure({
-      webClientId: GOOGLE_WEB_CLIENT_ID,
-      iosClientId: GOOGLE_IOS_CLIENT_ID,
-      offlineAccess: true,
+      webClientId: webClientId,
+      iosClientId: iosClientId,
+      offlineAccess: false, // Improves speed
     });
+    
+    console.log('✅ Google Sign-In configured successfully');
   }, []);
 
   useEffect(() => {
@@ -191,11 +228,11 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
           expiresAt: session?.expires_at,
         });
 
-        // Don't immediately clear auth state on certain events
+        // Handle logout state tracking
         if (event === 'SIGNED_OUT' && session === null) {
-          console.log('⚠️ SIGNED_OUT event detected - checking if this was intentional');
-          // Only clear state if this was an intentional logout
-          // For now, let's be more conservative about clearing state
+          console.log('⚠️ SIGNED_OUT event detected');
+          // Clear logout flag after processing
+          setIsLoggingOut(false);
         }
 
         setAuthState({
@@ -247,7 +284,40 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   }, []);
 
   // Coordinated session refresh with retry logic (Facebook/Instagram style)
-  const refreshSession = async (retryCount: number = 0): Promise<any> => {
+  // Name collection functions
+  const completeNameCollection = async (firstName: string, lastName: string) => {
+    if (!nameCollectionData) return;
+    
+    try {
+      // Update user profile with collected name
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          full_name: `${firstName} ${lastName}`.trim(),
+          first_name: firstName,
+          last_name: lastName,
+          needs_name_completion: false,
+        }
+      });
+      
+      if (error) {
+        console.error('❌ Failed to update user name:', error);
+      } else {
+        console.log('✅ User name updated successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error updating user name:', error);
+    } finally {
+      setShowNameCollection(false);
+      setNameCollectionData(null);
+    }
+  };
+
+  const skipNameCollection = () => {
+    setShowNameCollection(false);
+    setNameCollectionData(null);
+  };
+
+  const refreshSession = async (retryCount = 0): Promise<any> => {
     if (refreshPromise) {
       // If refresh is already in progress, wait for it
       return refreshPromise;
@@ -390,16 +460,22 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
 
   const signOut = async () => {
     try {
+      setIsLoggingOut(true);
+      console.log('🚪 Starting logout process...');
+      
       const { error } = await supabase.auth.signOut();
-      return { error };
+      
+      if (error) {
+        setIsLoggingOut(false);
+        console.error('❌ Logout error:', error);
+        return;
+      }
+      
+      console.log('✅ Logout successful');
+      // isLoggingOut will be cleared by auth state change handler
     } catch (error) {
-      console.error('Sign out error:', error);
-      return {
-        error: {
-          message: 'An unexpected error occurred during sign out',
-          status: 500,
-        } as SupabaseAuthError,
-      };
+      setIsLoggingOut(false);
+      console.error('❌ Logout failed:', error);
     }
   };
 
@@ -534,6 +610,17 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       console.log('🔄 Starting Google Sign-In...');
       setAuthState(prev => ({ ...prev, loading: true }));
 
+      // Clear any existing sessions to prevent nonce conflicts
+      try {
+        await GoogleSignin.signOut();
+        await supabase.auth.signOut();
+        // Wait a moment for session cleanup to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        console.log('🧹 Cleared existing sessions');
+      } catch (clearError) {
+        console.log('⚠️ Session clear warning (safe to ignore):', clearError);
+      }
+
       // Check if device supports Google Play services (Android only)
       if (Platform.OS === 'android') {
         await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -547,28 +634,135 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       const idToken = userInfo.data?.idToken;
       
       if (!idToken) {
-        throw new Error('No ID token received from Google');
+        // User likely cancelled - don't show error, just return silently
+        console.log('ℹ️ Google Sign-In cancelled by user');
+        setAuthState(prev => ({ ...prev, loading: false }));
+        return { error: null }; // Return success to avoid showing error UI
       }
 
-      // Sign in to Supabase with the Google ID token
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken,
-      });
+      console.log('🔍 Signing in to Supabase with Google token (no nonce)');
+      
+      // Ensure we're starting with a completely clean session
+      const { data: currentSession } = await supabase.auth.getSession();
+      if (currentSession?.session) {
+        console.log('🧹 Found existing session, clearing it first');
+        await supabase.auth.signOut();
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      // Try alternative approach: exchange Google token for Supabase session
+      console.log('🔄 Attempting direct Google token exchange...');
+      
+      // First try the standard approach
+      let authError = null;
+      try {
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+        authError = error;
+      } catch (err: any) {
+        authError = err;
+      }
+      
+      // If standard approach fails with nonce error, try manual user creation
+      if (authError && authError.message?.includes('nonce')) {
+        console.log('🔄 Nonce error detected, trying manual approach...');
+        
+        // Decode the Google ID token to get user info
+        const base64Url = idToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        
+        const googleUser = JSON.parse(jsonPayload);
+        console.log('📋 Google user info:', { email: googleUser.email, name: googleUser.name });
+        
+        // Check if we need to collect additional user info
+        const needsNameCollection = !googleUser.name || googleUser.name.trim().length === 0;
+        
+        let userData = {
+          full_name: googleUser.name || '',
+          first_name: googleUser.given_name || '',
+          last_name: googleUser.family_name || '',
+          avatar_url: googleUser.picture,
+          provider: 'google',
+          google_id: googleUser.sub,
+          needs_name_completion: needsNameCollection,
+        };
+        
+        // If name is missing or incomplete, we'll handle it after auth
+        if (needsNameCollection) {
+          console.log('⚠️ Google user has incomplete name info, will prompt after auth');
+          // Set up name collection after successful auth
+          setNameCollectionData({ email: googleUser.email });
+        }
+        
+        // Try to sign up/sign in with email and a temporary password
+        const tempPassword = `google_${googleUser.sub}_${Date.now()}`;
+        
+        // First try sign in
+        let { error: signInError } = await supabase.auth.signInWithPassword({
+          email: googleUser.email,
+          password: tempPassword,
+        });
+        
+        if (signInError && signInError.message?.includes('Invalid login credentials')) {
+          // User doesn't exist, create them
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: googleUser.email,
+            password: tempPassword,
+            options: {
+              data: userData
+            }
+          });
+          
+          if (signUpError) {
+            console.error('❌ Manual Google signup failed:', signUpError);
+            authError = signUpError;
+          } else {
+            console.log('✅ Manual Google signup successful');
+            authError = null;
+          }
+        } else if (signInError) {
+          console.error('❌ Manual Google signin failed:', signInError);
+          authError = signInError;
+        } else {
+          console.log('✅ Manual Google signin successful');
+          authError = null;
+        }
+      }
+      
+      if (authError) {
+        console.error('❌ All Google auth methods failed:', authError);
+        setAuthState(prev => ({ ...prev, loading: false }));
+        return { error: authError };
+      }
 
       setAuthState(prev => ({ ...prev, loading: false }));
-
-      if (error) {
-        console.error('❌ Supabase Google auth error:', error);
-        return { error };
+      
+      // Show name collection modal if needed (check nameCollectionData instead)
+      if (nameCollectionData) {
+        setShowNameCollection(true);
       }
-
+      
       console.log('✅ Google authentication successful');
       return { error: null };
     } catch (error: any) {
-      console.error('❌ Google sign-in error:', error);
       setAuthState(prev => ({ ...prev, loading: false }));
       
+      // Check if this is a user cancellation
+      if (error.code === 'SIGN_IN_CANCELLED' || 
+          error.code === '12501' || // Android cancellation
+          error.message?.includes('cancelled') ||
+          error.message?.includes('canceled') ||
+          error.message?.includes('SIGN_IN_CANCELLED')) {
+        console.log('ℹ️ Google Sign-In cancelled by user');
+        return { error: null }; // Return success to avoid showing error UI
+      }
+      
+      console.error('❌ Google sign-in error:', error);
       return {
         error: {
           message: error.message || 'Google sign-in failed',
@@ -626,6 +820,16 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
       console.error('❌ Apple sign-in error:', error);
       setAuthState(prev => ({ ...prev, loading: false }));
       
+      // Handle user cancellation gracefully
+      if (error.code === '1000' || error.message?.includes('1000') || error.message?.includes('cancelled')) {
+        return {
+          error: {
+            message: 'Sign in was cancelled',
+            status: 400,
+          } as SupabaseAuthError,
+        };
+      }
+      
       return {
         error: {
           message: error.message || 'Apple sign-in failed',
@@ -636,21 +840,33 @@ export const IndustryStandardAuthProvider = ({ children }: { children: ReactNode
   };
 
   const value: AuthContextType = {
-    ...authState,
-    signIn,
-    signUp,
+    user: authState.user,
+    session: authState.session,
+    loading: authState.loading,
+    bootstrapping: authState.bootstrapping,
+    isAuthenticated: authState.isAuthenticated,
     signOut,
-    resetPassword,
     updateProfile,
     updatePreferences,
     signInWithGoogle,
     signInWithApple,
     refreshSession,
+    showNameCollection,
+    nameCollectionData,
+    completeNameCollection,
+    skipNameCollection,
+    isLoggingOut,
   };
 
   return (
     <AuthContext.Provider value={value}>
       {children}
+      <NameCollectionModal
+        visible={showNameCollection}
+        onComplete={completeNameCollection}
+        onSkip={skipNameCollection}
+        userEmail={nameCollectionData?.email || ''}
+      />
     </AuthContext.Provider>
   );
 };

@@ -23,22 +23,49 @@ interface Props {
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
   const { signInWithGoogle, signInWithApple, loading } = useAuth();
+  const [error, setError] = React.useState<string>('');
+  const [activeProvider, setActiveProvider] = React.useState<null | 'apple' | 'google'>(null);
+
+  // When global loading ends (success or error), clear local active provider
+  React.useEffect(() => {
+    if (!loading && activeProvider) {
+      setActiveProvider(null);
+    }
+  }, [loading]);
 
   const handleGoogleLogin = async () => {
     triggerLightHaptic();
-    const { error } = await signInWithGoogle();
-    if (error) {
+    setError('');
+    setActiveProvider('google');
+    const { error: googleError } = await signInWithGoogle();
+    if (googleError) {
+      // Hide cancellation errors
+      const msg = googleError.message?.toLowerCase?.() || '';
+      if (msg.includes('cancel') || msg.includes('cancelled')) {
+        setActiveProvider(null);
+        return;
+      }
       triggerErrorHaptic();
-      Alert.alert('Google Login Failed', error.message || 'Please try again');
+      setError(googleError.message || 'Google login failed. Please try again.');
+      setActiveProvider(null);
     }
   };
 
   const handleAppleLogin = async () => {
     triggerLightHaptic();
-    const { error } = await signInWithApple();
-    if (error) {
+    setError('');
+    setActiveProvider('apple');
+    const { error: appleError } = await signInWithApple();
+    if (appleError) {
+      // Hide cancellation errors
+      const msg = appleError.message?.toLowerCase?.() || '';
+      if (msg.includes('cancel') || msg.includes('cancelled')) {
+        setActiveProvider(null);
+        return;
+      }
       triggerErrorHaptic();
-      Alert.alert('Apple Login Failed', error.message || 'Please try again');
+      setError(appleError.message || 'Apple login failed. Please try again.');
+      setActiveProvider(null);
     }
   };
 
@@ -66,7 +93,10 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         />
 
         {/* Illustration Placeholder */}
-        <View style={styles.illustrationContainer}>
+        <View style={[
+          styles.illustrationContainer,
+          error ? styles.illustrationContainerCompressed : null,
+        ]}>
           <View style={styles.illustrationPlaceholder}>
             <Ionicons name="laptop-outline" size={100} color="rgba(255,255,255,0.3)" />
             <Ionicons name="phone-portrait-outline" size={50} color="rgba(255,255,255,0.2)" style={styles.phoneIcon} />
@@ -76,8 +106,19 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         {/* Title */}
-        <View style={styles.titleContainer}>
+        <View style={[
+          styles.titleContainer,
+          error ? styles.titleContainerCompressed : null,
+        ]}>
           <ThemedText weight="bold" style={styles.title}>Login</ThemedText>
+          
+          {/* Inline Error Message */}
+          {error ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIcon} />
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
+            </View>
+          ) : null}
         </View>
 
         {/* Social Buttons */}
@@ -88,13 +129,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               onPress={handleAppleLogin}
               disabled={loading}
             >
-              {loading ? (
+              {activeProvider === 'apple' ? (
                 <ActivityIndicator size="small" color="#FF6B6B" />
               ) : (
                 <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
               )}
               <ThemedText weight="medium" style={styles.buttonText}>
-                {loading ? 'Signing in...' : 'Continue with Apple'}
+                {activeProvider === 'apple' ? 'Signing in...' : 'Continue with Apple'}
               </ThemedText>
             </TouchableOpacity>
           )}
@@ -104,13 +145,13 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleGoogleLogin}
             disabled={loading}
           >
-            {loading ? (
+            {activeProvider === 'google' ? (
               <ActivityIndicator size="small" color="#FF6B6B" />
             ) : (
               <Ionicons name="logo-google" size={20} color="#FF6B6B" />
             )}
             <ThemedText weight="medium" style={styles.buttonText}>
-              {loading ? 'Signing in...' : 'Continue with Google'}
+              {activeProvider === 'google' ? 'Signing in...' : 'Continue with Google'}
             </ThemedText>
           </TouchableOpacity>
 
@@ -162,6 +203,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginVertical: 20,
   },
+  illustrationContainerCompressed: {
+    height: 240,
+    marginVertical: 10,
+  },
   illustrationPlaceholder: {
     width: 300,
     height: 250,
@@ -189,6 +234,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     width: '100%',
   },
+  titleContainerCompressed: {
+    marginBottom: 4,
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -206,6 +254,8 @@ const styles = StyleSheet.create({
   buttonContainer: {
     width: '100%',
     gap: 16,
+    // Keep buttons fixed toward the bottom even when error appears
+    marginTop: 'auto',
   },
   appleButton: {
     flexDirection: 'row',
@@ -283,6 +333,27 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.system.bold,
     fontWeight: '600',
     textDecorationLine: 'none',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderColor: 'rgba(255,107,107,0.8)',
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  errorIcon: {
+    marginRight: 8,
+  },
+  errorText: {
+    color: '#FF6B6B',
+    fontSize: 14,
+    fontFamily: Fonts.system.regular,
+    flexShrink: 1,
   },
 });
 

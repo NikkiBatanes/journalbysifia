@@ -10,12 +10,8 @@ const AuthDebug: React.FC = () => {
       console.log('🔍 Testing Google Auth...');
       Alert.alert('Debug', 'Starting Google Sign-In test...');
       
-      // Configure Google Sign-In
-      GoogleSignin.configure({
-        webClientId: '1062728638095-qqvkdh9rnp0v5ql2jnb0kcj6h9kf9dq3.apps.googleusercontent.com',
-        iosClientId: '1062728638095-qqvkdh9rnp0v5ql2jnb0kcj6h9kf9dq3.apps.googleusercontent.com',
-        offlineAccess: true,
-      });
+      // Google Sign-In is configured in IndustryStandardAuthContext.tsx
+      // No need to configure here to prevent conflicts
 
       // Check Play Services
       await GoogleSignin.hasPlayServices();

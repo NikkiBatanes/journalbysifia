@@ -102,6 +102,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>google</string>
+		<string>com.googleusercontent.apps.158783468776-1at3oeuablle65rvtsjqeqhv6qc40me8</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -109,7 +114,7 @@
 			<string>GoogleSignIn</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.1062728638095-qqvkdh9rnp0v5ql2jnb0kcj6h9kf9dq3</string>
+				<string>com.googleusercontent.apps.158783468776-1at3oeuablle65rvtsjqeqhv6qc40me8</string>
 			</array>
 		</dict>
 		<dict>
