@@ -8,7 +8,6 @@ import React, { useState, useRef, useEffect } from 'react';
 
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
@@ -22,6 +21,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { OnboardingStyles, OnboardingTypography, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../../components/common/ThemedText';
 
 // Feature interface removed as it's not currently used in the component
 
@@ -129,16 +129,16 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
         {/* Main Content */}
         <View style={styles.mainContent}>
           <View style={styles.textContainer}>
-            <Text style={[OnboardingStyles.mainTitle, styles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</Text>
+            <ThemedText weight="bold" style={[OnboardingStyles.mainTitle, styles.transformTitle, styles.titleLeftAlign]}>This is the start of something new.</ThemedText>
           </View>
 
           <View style={styles.textContainer}>
-            <Text style={styles.mainText}>
+            <ThemedText style={styles.mainText}>
             God has a way of meeting us right in the middle of our story, not when everything is perfect, but when our hearts are open.
-            </Text>
-            <Text style={[styles.mainText, styles.textWithMarginTop]}>
+            </ThemedText>
+            <ThemedText style={[styles.mainText, styles.textWithMarginTop]}>
             Let's take the first step together.
-            </Text>
+            </ThemedText>
           </View>
 
           {/* Features List - Temporarily Hidden */}
@@ -153,16 +153,16 @@ const OnboardingTransformYourLifeScreen: React.FC = () => {
               onPress={handleContinue}
               disabled={isLoading}
             >
-              <Text style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
+              <ThemedText weight="bold" style={[OnboardingStyles.primaryButtonText, styles.startButtonText]}>
                 {isLoading ? 'Starting...' : 'Start My Journey'}
-              </Text>
+              </ThemedText>
             </TouchableOpacity>
 
             {/* Sign in link */}
             <View style={styles.signInRow}>
-              <Text style={styles.signInText}>Already a member? </Text>
+              <ThemedText style={styles.signInText}>Already a member? </ThemedText>
               <TouchableOpacity onPress={() => { triggerLightHaptic(); (navigation as any).navigate('Auth' as any, { screen: 'Login' }); }}>
-                <Text style={styles.signInLink}>Login</Text>
+                <ThemedText weight="semiBold" style={styles.signInLink}>Login</ThemedText>
               </TouchableOpacity>
             </View>
           </View>

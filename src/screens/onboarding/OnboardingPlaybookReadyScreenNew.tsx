@@ -27,6 +27,7 @@ import { faithPointsService } from '../../services/faithPointsService';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { usePlaybookStoreReactQuery } from '../../store/usePlaybookStoreReactQuery';
 import AnimatedProgressBar from '../../components/ui/AnimatedProgressBar';
+import ThemedText from '../../components/common/ThemedText';
 
 import { ActionStepsProvider, useActionSteps } from '../../context/ActionStepsContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -405,7 +406,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 color={Colors.alertCoral}
                 style={[styles.quoteIcon, { transform: [{ scaleX: -1 }] }]}
               />
-              <Text style={styles.affirmationsTitle}>Affirmations</Text>
+              <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
             </View>
             <View style={styles.affirmationsList}>
               {playbook.affirmations.map((affirmation: any, index: number) => (
@@ -417,9 +418,9 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   ]}
                 >
                   <View style={styles.affirmationContent}>
-                    <Text style={styles.affirmationText}>
+                    <ThemedText style={styles.affirmationText}>
                       {typeof affirmation === 'string' ? affirmation : affirmation?.text || ''}
-                    </Text>
+                    </ThemedText>
                   </View>
                 </View>
               ))}
@@ -478,7 +479,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                   accessibilityHint="Tap when you have read the affirmations aloud"
                 >
                   <Ionicons name="book-outline" size={16} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={styles.readIcon} />
-                  <Text style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</Text>
+                  <ThemedText weight="semiBold" style={[styles.readButtonText, hasRead && styles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
                 </TouchableOpacity>
               </View>
             </View>
@@ -727,13 +728,13 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 </Animated.View>
               ))}
             </View>
-            <Text style={styles.modalTitle}>Your Personalized{'\n'}Playbook is Ready</Text>
-            <Text style={styles.modalSubtitle}>Here's your first step toward clarity.</Text>
+            <ThemedText weight="bold" style={styles.modalTitle}>Your Personalized{'\n'}Playbook is Ready</ThemedText>
+            <ThemedText style={styles.modalSubtitle}>Here's your first step toward clarity.</ThemedText>
             <View style={styles.warningContainer}>
               <Ionicons name="heart" size={16} color={Colors.alertCoral} />
-              <Text style={styles.warningText}>
+              <ThemedText style={styles.warningText}>
                 Some truths may be hard to hear, but they are shared in love to help you grow.
-              </Text>
+              </ThemedText>
             </View>
             <TouchableOpacity
               style={styles.modalButton}
@@ -772,7 +773,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 }, 150);
               }}
             >
-              <Text style={styles.modalButtonText}>Explore My First Playbook</Text>
+              <ThemedText weight="bold" style={styles.modalButtonText}>Explore My First Playbook</ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -818,7 +819,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           },
         ]}>
           <TouchableOpacity style={styles.playbookTitleRow} onPress={toggleUserInput} activeOpacity={0.8}>
-            <Text style={styles.playbookLabel}>PLAYBOOK</Text>
+            <ThemedText weight="semiBold" style={styles.playbookLabel}>PLAYBOOK</ThemedText>
             <AnimatedRe.View style={[styles.chevronIcon, chevronStyle]}>
               <Ionicons
                 name={'chevron-down'}
@@ -831,12 +832,12 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
           {/* User Input Display - Between PLAYBOOK and Title */}
           {showUserInput && (
             <View style={styles.userInputContainer}>
-              <Text style={styles.userInputLabel}>Your Challenge:</Text>
-              <Text style={styles.userInputText}>{onboardingData.challengeDetails}</Text>
+              <ThemedText weight="semiBold" style={styles.userInputLabel}>Your Challenge:</ThemedText>
+              <ThemedText style={styles.userInputText}>{onboardingData.challengeDetails}</ThemedText>
             </View>
           )}
 
-          <Text style={styles.playbookTitle}>{playbook.title || 'Your Personalized Journey'}</Text>
+          <ThemedText weight="bold" style={styles.playbookTitle}>{playbook.title || 'Your Personalized Journey'}</ThemedText>
 
           <View style={styles.progressContainer}>
             <AnimatedProgressBar
@@ -846,7 +847,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
               trackStyle={styles.progressBar}
               fillStyle={styles.progressFill}
             />
-            <Text style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</Text>
+            <ThemedText weight="medium" style={styles.progressText}>{progressData.completed}/{progressData.total} Steps</ThemedText>
           </View>
 
           {/* CAROUSEL INDICATORS moved out of header to sit above carousel */}
@@ -928,7 +929,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
             onPress={handleCreateDevotional}
             activeOpacity={0.8}
           >
-            <Text style={styles.devotionalButtonText}>Create a Devotional</Text>
+            <ThemedText weight="semiBold" style={styles.devotionalButtonText}>Create a Devotional</ThemedText>
           </TouchableOpacity>
         )}
 
@@ -954,14 +955,14 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
         ]}>
           {/* Helper text inside the footer, above the button (hidden when a card is expanded) */}
           {expandedCards.size === 0 && (
-            <Text style={[styles.bottomText, styles.bottomTextCentered]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</Text>
+            <ThemedText style={[styles.bottomText, styles.bottomTextCentered]}>This first playbook is yours! Picture walking daily with God, growing stronger through personalized guidance.</ThemedText>
           )}
           <TouchableOpacity
             style={styles.continueButton}
             onPress={() => { try { triggerLightHaptic(); } catch {}; handleContinueJourney(); }}
             activeOpacity={0.8}
           >
-            <Text style={styles.continueButtonText}>Continue My Journey</Text>
+            <ThemedText weight="bold" style={styles.continueButtonText}>Continue My Journey</ThemedText>
           </TouchableOpacity>
         </View>
 

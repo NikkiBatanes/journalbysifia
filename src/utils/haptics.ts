@@ -1,4 +1,5 @@
 import { NativeModules } from 'react-native';
+import { isHapticsEnabled } from '../services/experiencePreferences';
 
 // Safe haptic triggers (no-op if module not linked)
 const getTriggerFn = () => {
@@ -14,6 +15,7 @@ const getTriggerFn = () => {
 };
 
 export const triggerLightHaptic = () => {
+  if (!isHapticsEnabled()) return;
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -21,6 +23,7 @@ export const triggerLightHaptic = () => {
 };
 
 export const triggerMediumHaptic = () => {
+  if (!isHapticsEnabled()) return;
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('impactMedium', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -28,6 +31,7 @@ export const triggerMediumHaptic = () => {
 };
 
 export const triggerHeavyHaptic = () => {
+  if (!isHapticsEnabled()) return;
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('impactHeavy', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -35,6 +39,7 @@ export const triggerHeavyHaptic = () => {
 };
 
 export const triggerSuccessHaptic = () => {
+  if (!isHapticsEnabled()) return;
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('notificationSuccess', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -42,6 +47,7 @@ export const triggerSuccessHaptic = () => {
 };
 
 export const triggerSelectionHaptic = () => {
+  if (!isHapticsEnabled()) return;
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('selection', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
@@ -49,6 +55,7 @@ export const triggerSelectionHaptic = () => {
 };
 
 export const triggerErrorHaptic = () => {
+  if (!isHapticsEnabled()) return;
   const trigger = getTriggerFn();
   if (typeof trigger === 'function') {
     trigger('notificationError', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });

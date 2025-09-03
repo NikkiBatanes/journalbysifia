@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   SafeAreaView,
   TouchableOpacity,
@@ -13,6 +12,7 @@ import { Colors } from '../../theme/colors';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { usePlatformPayment } from '../../hooks/usePlatformPayment';
+import ThemedText from '../../components/common/ThemedText';
 
 const { width, height } = Dimensions.get('window');
 
@@ -116,34 +116,34 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
         </View>
 
         {/* Success Message */}
-        <Text style={styles.title}>Payment Successful!</Text>
-        <Text style={styles.subtitle}>
+        <ThemedText weight="bold" style={styles.title}>Payment Successful!</ThemedText>
+        <ThemedText style={styles.subtitle}>
           Welcome to siFia {getTierDisplayName(tier)}
-        </Text>
+        </ThemedText>
 
         {/* Subscription Details */}
         <View style={styles.subscriptionCard}>
-          <Text style={styles.subscriptionTitle}>Your Subscription</Text>
-          <Text style={styles.tierName}>{getTierDisplayName(tier)} Plan</Text>
+          <ThemedText weight="semiBold" style={styles.subscriptionTitle}>Your Subscription</ThemedText>
+          <ThemedText weight="bold" style={styles.tierName}>{getTierDisplayName(tier)} Plan</ThemedText>
           
           {transactionId && (
-            <Text style={styles.transactionId}>
+            <ThemedText style={styles.transactionId}>
               Transaction ID: {transactionId}
-            </Text>
+            </ThemedText>
           )}
           
-          <Text style={styles.platformInfo}>
+          <ThemedText style={styles.platformInfo}>
             Platform: {platform === 'local_test' ? 'Local Test' : platform}
-          </Text>
+          </ThemedText>
         </View>
 
         {/* Benefits List */}
         <View style={styles.benefitsContainer}>
-          <Text style={styles.benefitsTitle}>What's included:</Text>
+          <ThemedText weight="semiBold" style={styles.benefitsTitle}>What's included:</ThemedText>
           {getTierBenefits(tier).map((benefit, index) => (
             <View key={index} style={styles.benefitItem}>
               <Ionicons name="checkmark" size={20} color={Colors.successGreen} />
-              <Text style={styles.benefitText}>{benefit}</Text>
+              <ThemedText style={styles.benefitText}>{benefit}</ThemedText>
             </View>
           ))}
         </View>
@@ -151,18 +151,18 @@ const OnboardingPaymentConfirmationScreen: React.FC<OnboardingPaymentConfirmatio
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.primaryButton} onPress={handleContinue}>
-            <Text style={styles.primaryButtonText}>Set Up Notifications</Text>
+            <ThemedText weight="bold" style={styles.primaryButtonText}>Set Up Notifications</ThemedText>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.secondaryButton} onPress={handleSkipToApp}>
-            <Text style={styles.secondaryButtonText}>Skip for Now</Text>
+            <ThemedText weight="medium" style={styles.secondaryButtonText}>Skip for Now</ThemedText>
           </TouchableOpacity>
         </View>
 
         {/* Footer */}
-        <Text style={styles.footerText}>
+        <ThemedText style={styles.footerText}>
           You can manage your subscription anytime in Settings
-        </Text>
+        </ThemedText>
       </View>
     </SafeAreaView>
   );

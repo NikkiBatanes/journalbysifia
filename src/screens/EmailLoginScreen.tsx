@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   TextInput,
@@ -18,6 +17,8 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
+import ThemedText from '../components/common/ThemedText';
+import ThemedTextInput from '../components/common/ThemedTextInput';
 
 interface Props {
   navigation: any;
@@ -101,8 +102,8 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Login</Text>
-          <Text style={styles.subtitle}>Welcome back to siFia</Text>
+          <ThemedText weight="bold" style={styles.title}>Login</ThemedText>
+          <ThemedText style={styles.subtitle}>Welcome back to siFia</ThemedText>
         </View>
 
         {/* Form */}
@@ -111,13 +112,13 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
           {error ? (
             <View style={styles.errorBanner}>
               <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
-              <Text style={styles.errorText}>{error}</Text>
+              <ThemedText style={styles.errorText}>{error}</ThemedText>
             </View>
           ) : null}
           {/* Removed inline Create Account CTA as requested */}
           <View style={styles.inputContainer}>
             <Ionicons name="mail" size={20} color="#FF6B6B" style={styles.inputIcon} />
-            <TextInput
+            <ThemedTextInput
               style={styles.input}
               placeholder="Email"
               placeholderTextColor="rgba(255,255,255,0.5)"
@@ -134,7 +135,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color="#FF6B6B" style={styles.inputIcon} />
-            <TextInput
+            <ThemedTextInput
               style={styles.input}
               placeholder="Password"
               placeholderTextColor="rgba(255,255,255,0.5)"
@@ -163,7 +164,7 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.forgotPassword} 
             onPress={() => triggerLightHaptic()}
           >
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            <ThemedText style={styles.forgotPasswordText}>Forgot Password?</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -174,16 +175,16 @@ const EmailLoginScreen: React.FC<Props> = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color="#274673" />
             ) : (
-              <Text style={styles.loginButtonText}>Login</Text>
+              <ThemedText weight="bold" style={styles.loginButtonText}>Login</ThemedText>
             )}
           </TouchableOpacity>
         </View>
 
         {/* Sign Up Link */}
         <View style={styles.signUpContainer}>
-          <Text style={styles.signUpText}>Not yet a member? </Text>
+          <ThemedText style={styles.signUpText}>Not yet a member? </ThemedText>
           <TouchableOpacity onPress={handleSignUp}>
-            <Text style={styles.signUpLink}>Sign Up</Text>
+            <ThemedText weight="semiBold" style={styles.signUpLink}>Sign Up</ThemedText>
           </TouchableOpacity>
         </View>
 

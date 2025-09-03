@@ -7,7 +7,6 @@ import React, { useEffect, useRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   StyleSheet,
   StatusBar,
   Animated,
@@ -20,6 +19,7 @@ import OnboardingProgressIndicator from '../../components/OnboardingProgressIndi
 import { Colors } from '../../theme/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { AnimationUtils } from '../../utils/animations';
+import ThemedText from '../../components/common/ThemedText';
 
 const { height } = Dimensions.get('window');
 
@@ -101,8 +101,8 @@ const OnboardingCompleteScreen: React.FC = () => {
           ]}
         >
           <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>siFia</Text>
-            <Text style={styles.logoSubtext}>Complete</Text>
+            <ThemedText weight="bold" style={styles.logoText}>siFia</ThemedText>
+            <ThemedText style={styles.logoSubtext}>Complete</ThemedText>
           </View>
         </Animated.View>
       </View>
@@ -134,14 +134,14 @@ const OnboardingCompleteScreen: React.FC = () => {
             <Ionicons name="checkmark-circle" size={100} color={Colors.growthGreen} />
           </Animated.View>
 
-          <Text style={styles.title}>Welcome to siFia!</Text>
-          <Text style={styles.subtitle}>
+          <ThemedText weight="bold" style={styles.title}>Welcome to siFia!</ThemedText>
+          <ThemedText style={styles.subtitle}>
             Your spiritual growth journey begins now
-          </Text>
+          </ThemedText>
 
           {/* Progress Completion */}
           <View style={styles.progressContainer}>
-            <Text style={styles.progressLabel}>Setup Complete</Text>
+            <ThemedText weight="semiBold" style={styles.progressLabel}>Setup Complete</ThemedText>
             <View style={styles.progressBar}>
               <Animated.View
                 style={[
@@ -164,7 +164,7 @@ const OnboardingCompleteScreen: React.FC = () => {
             </View>
           </View>
 
-          <Text style={styles.redirectText}>Redirecting to your dashboard...</Text>
+          <ThemedText style={styles.redirectText}>Redirecting to your dashboard...</ThemedText>
         </View>
       </Animated.View>
     </View>

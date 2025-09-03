@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
 
   TouchableOpacity,
@@ -15,6 +14,7 @@ import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { supabase } from '../../services/supabaseClient';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
+import ThemedText from '../../components/common/ThemedText';
 
 const OnboardingTrialOfferScreen = () => {
   const navigation = useNavigation();
@@ -166,15 +166,15 @@ const OnboardingTrialOfferScreen = () => {
         </View>
 
         <View style={styles.timelineContent}>
-          <Text style={styles.timelineTitle}>{item.title}</Text>
+          <ThemedText weight="semiBold" style={styles.timelineTitle}>{item.title}</ThemedText>
           {item.id === 1 ? (
-            <Text style={styles.timelineDescription}>
-              Try <Text style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</Text> free for 3 days{'\n'}
+            <ThemedText style={styles.timelineDescription}>
+              Try <ThemedText weight="bold" style={styles.strong}>{`${getTierDisplayName(selectedTierId)} PLAN`}</ThemedText> free for 3 days{'\n'}
               No pressure, no catch.{'\n'}
               Experience personalized guidance and see how it fits your story.
-            </Text>
+            </ThemedText>
           ) : (
-            <Text style={styles.timelineDescription}>{item.description}</Text>
+            <ThemedText style={styles.timelineDescription}>{item.description}</ThemedText>
           )}
         </View>
       </View>
@@ -189,12 +189,12 @@ const OnboardingTrialOfferScreen = () => {
           <Ionicons name="close" size={22} color={Colors.hopeWhite} />
         </TouchableOpacity>
         <View style={styles.headerTextBlock}>
-          <Text style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+          <ThemedText weight="bold" style={styles.headerMainTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
             You've taken your first step!
-          </Text>
-          <Text style={styles.headerSubtitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+          </ThemedText>
+          <ThemedText style={styles.headerSubtitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
             Keep walking, one faithful step at a time.
-          </Text>
+          </ThemedText>
         </View>
       </View>
 
@@ -206,14 +206,14 @@ const OnboardingTrialOfferScreen = () => {
 
           {/* Intro Text */}
           <View style={styles.introSection}>
-            <Text style={styles.introTitle}>Not sure yet?</Text>
-            <Text style={styles.introText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.92}>
+            <ThemedText weight="semiBold" style={styles.introTitle}>Not sure yet?</ThemedText>
+            <ThemedText style={styles.introText} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.92}>
               That's okay. Starting something new can feel uncertain.
-            </Text>
+            </ThemedText>
           </View>
 
           {/* How Trial Works */}
-          <Text style={styles.sectionTitle}>So, how the trial works:</Text>
+          <ThemedText weight="semiBold" style={styles.sectionTitle}>So, how the trial works:</ThemedText>
 
           {/* Plan Toggle */}
           <View style={styles.toggleContainer}>
@@ -225,7 +225,7 @@ const OnboardingTrialOfferScreen = () => {
               }}
               activeOpacity={0.9}
             >
-              <Text style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</Text>
+              <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.toggleButton, isAnnual && styles.activeToggle]}
@@ -235,7 +235,7 @@ const OnboardingTrialOfferScreen = () => {
               }}
               activeOpacity={0.9}
             >
-              <Text style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</Text>
+              <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</ThemedText>
             </TouchableOpacity>
           </View>
 
@@ -250,18 +250,18 @@ const OnboardingTrialOfferScreen = () => {
             <View style={styles.dividerWrapper}>
               <View style={styles.dividerLine} />
               <View style={styles.planTagFloating}>
-                <Text style={styles.planTagText}>
+                <ThemedText weight="bold" style={styles.planTagText}>
                   {`${getTierDisplayName(selectedTierId)} PLAN`}
-                </Text>
+                </ThemedText>
               </View>
             </View>
-            <Text style={styles.pricingTitle}>
+            <ThemedText weight="bold" style={styles.pricingTitle}>
               {`3 days free, then ${(currencyInfo?.symbol || '$')}${getCurrentPrice().toFixed(2)} per ${isAnnual ? 'year' : 'month'}`}
-            </Text>
+            </ThemedText>
             {isAnnual ? (
-              <Text style={styles.pricingSubtitle}>
+              <ThemedText weight="bold" style={styles.pricingSubtitle}>
                 {`Only ${(currencyInfo?.symbol || '$')}${getMonthlyEquivalent().toFixed(2)}/month`}
-              </Text>
+              </ThemedText>
             ) : null}
           </View>
         </View>
@@ -269,11 +269,11 @@ const OnboardingTrialOfferScreen = () => {
         {/* CTA and Footer */}
         <View style={styles.footerBlock}>
           <TouchableOpacity style={styles.startTrialButton} onPress={handleStartTrial} activeOpacity={0.9}>
-            <Text style={styles.startTrialButtonText}>Start your free 3‑day trial</Text>
+            <ThemedText weight="bold" style={styles.startTrialButtonText}>Start your free 3‑day trial</ThemedText>
           </TouchableOpacity>
-          <Text style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
+          <ThemedText style={styles.footerText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.9}>
             Try 3 days free. No pressure. Cancel anytime
-          </Text>
+          </ThemedText>
         </View>
       </View>
     </SafeAreaView>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
@@ -15,6 +14,7 @@ import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
+import ThemedText from '../../components/common/ThemedText';
 
 // removed Dimensions width as unused
 
@@ -169,24 +169,24 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         )}
         {tier.isPopular && (
           <View style={styles.popularBadge}>
-            <Text style={styles.popularText}>POPULAR</Text>
+            <ThemedText weight="semiBold" style={styles.popularText}>POPULAR</ThemedText>
           </View>
         )}
 
         <View style={styles.cardHeader}>
-          <Text style={[styles.tierName, isSelected && styles.selectedText]}>
+          <ThemedText weight="bold" style={[styles.tierName, isSelected && styles.selectedText]}>
             {tier.name}
-          </Text>
+          </ThemedText>
           {isAnnual && (
-            <Text style={[styles.tierDuration, isSelected && styles.selectedText]}>
+            <ThemedText weight="semiBold" style={[styles.tierDuration, isSelected && styles.selectedText]}>
               -{tier.duration}
-            </Text>
+            </ThemedText>
           )}
         </View>
 
-        <Text style={[styles.tierDescription, isSelected && styles.selectedText]}>
+        <ThemedText weight="semiBold" style={[styles.tierDescription, isSelected && styles.selectedText]}>
           {tier.description}
-        </Text>
+        </ThemedText>
 
         {isExpanded && (
           <View style={styles.featuresContainer}>
@@ -208,7 +208,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               return processed.map((feature, index) => (
                 <View key={index} style={styles.featureRow}>
                   <Ionicons name="heart" size={16} color={Colors.alertCoral} style={styles.iconMarginRight} />
-                  <Text style={styles.featureText}>{feature}</Text>
+                  <ThemedText style={styles.featureText}>{feature}</ThemedText>
                 </View>
               ));
             })()}
@@ -218,23 +218,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
         <View style={styles.priceContainer}>
           <View style={styles.priceRow}>
             <View style={styles.priceLeft}>
-              <Text style={[styles.currentPrice, isSelected && styles.selectedText]}>
+              <ThemedText weight="bold" style={[styles.currentPrice, isSelected && styles.selectedText]}>
                 {(currencyInfo?.symbol || '$')}{isAnnual ? tier.annualPrice.toFixed(2) : tier.monthlyPrice.toFixed(2)}
-              </Text>
+              </ThemedText>
               {(() => {
                 const original = isAnnual ? tier.annualOriginal : tier.monthlyOriginal;
                 const current = isAnnual ? tier.annualPrice : tier.monthlyPrice;
                 return original && original > current ? (
-                  <Text style={styles.originalPrice}>
+                  <ThemedText weight="semiBold" style={styles.originalPrice}>
                     {(currencyInfo?.symbol || '$')}{original.toFixed(2)}
-                  </Text>
+                  </ThemedText>
                 ) : null;
               })()}
             </View>
             <View style={styles.priceRight}>
-              <Text style={styles.monthlyEquivalent}>
+              <ThemedText weight="semiBold" style={styles.monthlyEquivalent}>
                 {(currencyInfo?.symbol || '$')}{isAnnual ? getMonthlyEquivalent(tier) : tier.monthlyPrice.toFixed(2)}/month
-              </Text>
+              </ThemedText>
               <TouchableOpacity
                 style={styles.detailsToggle}
                 onPress={() => {
@@ -277,32 +277,32 @@ const OnboardingSalesOfferScreen: React.FC = () => {
       {/* Body content (fixed top + scrollable pricing) */}
       <View style={styles.content}>
         {/* Main Content */}
-        <Text style={styles.mainTitle}>You've taken your first step!</Text>
-        <Text style={styles.subtitle}>Keep walking, one faithful step at a time.</Text>
+        <ThemedText weight="bold" style={styles.mainTitle}>You've taken your first step!</ThemedText>
+        <ThemedText style={styles.subtitle}>Keep walking, one faithful step at a time.</ThemedText>
 
         {/* Feature Bullets */}
         <View style={styles.featuresSection}>
           <View style={styles.featureBullet}>
             <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-            <Text style={styles.bulletText}>
+            <ThemedText style={styles.bulletText}>
               Personalized playbooks and devotionals created just for you delivered at a pace that fits your plan.
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.featureBullet}>
             <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-            <Text style={styles.bulletText}>
+            <ThemedText style={styles.bulletText}>
               Track your growth with smart journaling and unlock deeper reflections on higher tiers.
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.featureBullet}>
             <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-            <Text style={styles.bulletText}>
+            <ThemedText style={styles.bulletText}>
               Picture walking daily with God, growing stronger with every step.
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.featureBullet}>
             <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-            <Text style={styles.bulletText}>Your journey, your pace.</Text>
+            <ThemedText style={styles.bulletText}>Your journey, your pace.</ThemedText>
           </View>
         </View>
 
@@ -315,7 +315,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               setIsAnnual(false);
             }}
           >
-            <Text style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</Text>
+            <ThemedText weight={!isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, !isAnnual && styles.activeToggleText]}>Monthly</ThemedText>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.toggleButton, isAnnual && styles.activeToggle]}
@@ -324,7 +324,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               setIsAnnual(true);
             }}
           >
-            <Text style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</Text>
+            <ThemedText weight={isAnnual ? 'semiBold' : 'medium'} style={[styles.toggleText, isAnnual && styles.activeToggleText]}>Annual</ThemedText>
           </TouchableOpacity>
         </View>
 
@@ -349,12 +349,12 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           }}
           activeOpacity={0.9}
         >
-          <Text style={styles.unlockButtonText}>Continue My Journey</Text>
+          <ThemedText weight="bold" style={styles.unlockButtonText}>Continue My Journey</ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
           <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />
-          <Text style={styles.footerText}>Cancel anytime.</Text>
-          <Text style={styles.footerText}> Secure checkout</Text>
+          <ThemedText style={styles.footerText}>Cancel anytime.</ThemedText>
+          <ThemedText style={styles.footerText}> Secure checkout</ThemedText>
         </View>
       </View>
 

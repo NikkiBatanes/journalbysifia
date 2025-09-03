@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Modal,
@@ -13,6 +12,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../theme';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
+import ThemedText from './common/ThemedText';
 
 // const { width } = Dimensions.get('window'); // Unused, commented out
 
@@ -152,69 +152,69 @@ const DynamicPricingModal: React.FC<DynamicPricingModalProps> = ({
 
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>A Ministry Gift to {'\n'}Help You Begin</Text>
-            <Text style={styles.headerSubtitle}>We’re committed to serving people at every stage. A limited gifted rate is available to help you start strong.</Text>
+            <ThemedText weight="bold" style={styles.headerTitle}>A Ministry Gift to {'\n'}Help You Begin</ThemedText>
+            <ThemedText style={styles.headerSubtitle}>We're committed to serving people at every stage. A limited gifted rate is available to help you start strong.</ThemedText>
           </View>
 
           {/* Gifted Rate Badge */}
           <View style={styles.discountBadge}>
-            <Text style={styles.discountText}>{discountPercentage}% Gifted Rate</Text>
+            <ThemedText weight="bold" style={styles.discountText}>{discountPercentage}% Gifted Rate</ThemedText>
           </View>
 
           {/* Timer */}
           <View style={styles.timerContainer}>
             <Ionicons name="time" size={24} color={Colors.alertCoral} />
-            <Text style={styles.timerText}>Reserved for {formatTime(timeLeft)}</Text>
+            <ThemedText weight="semiBold" style={styles.timerText}>Reserved for {formatTime(timeLeft)}</ThemedText>
           </View>
 
           {/* Pricing */}
           <View style={styles.pricingContainer}>
-            <Text style={styles.planName}>{getTierDisplayName(tier)} Plan</Text>
-            <Text style={styles.billingPeriod}>{isAnnual ? 'Annual' : 'Monthly'} Billing</Text>
+            <ThemedText weight="bold" style={styles.planName}>{getTierDisplayName(tier)} Plan</ThemedText>
+            <ThemedText style={styles.billingPeriod}>{isAnnual ? 'Annual' : 'Monthly'} Billing</ThemedText>
 
             <View style={styles.priceRow}>
-              <Text style={styles.originalPrice}>${originalPrice.toFixed(2)}</Text>
-              <Text style={styles.discountedPrice}>${discountedPrice.toFixed(2)}</Text>
+              <ThemedText style={styles.originalPrice}>${originalPrice.toFixed(2)}</ThemedText>
+              <ThemedText weight="bold" style={styles.discountedPrice}>${discountedPrice.toFixed(2)}</ThemedText>
             </View>
 
-            <Text style={styles.savingsText}>You save ${savings.toFixed(2)}!</Text>
+            <ThemedText weight="semiBold" style={styles.savingsText}>You save ${savings.toFixed(2)}!</ThemedText>
 
             {/* First-term only note */}
             {isAnnual ? (
-              <Text style={[styles.footerText, styles.firstTermNote]}>
+              <ThemedText style={[styles.footerText, styles.firstTermNote]}>
                 Gifted rate applies to the first year. {'\n'}Renews at the standard annual price.
-              </Text>
+              </ThemedText>
             ) : (
-              <Text style={[styles.footerText, styles.firstTermNote]}>
+              <ThemedText style={[styles.footerText, styles.firstTermNote]}>
                 Gifted rate applies to the first month. {'\n'}Renews at the standard monthly price.
-              </Text>
+              </ThemedText>
             )}
           </View>
 
           {/* Features Highlight */}
           <View style={styles.featuresContainer}>
-            <Text style={styles.featuresTitle}>What you get:</Text>
+            <ThemedText weight="semiBold" style={styles.featuresTitle}>What you get:</ThemedText>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
-              <Text style={styles.featureText}>Unlimited personalized playbooks</Text>
+              <ThemedText style={styles.featureText}>Unlimited personalized playbooks</ThemedText>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
-              <Text style={styles.featureText}>AI-powered devotionals</Text>
+              <ThemedText style={styles.featureText}>AI-powered devotionals</ThemedText>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={16} color={Colors.growthGreen} />
-              <Text style={styles.featureText}>Practical tools for steady growth</Text>
+              <ThemedText style={styles.featureText}>Practical tools for steady growth</ThemedText>
             </View>
           </View>
 
           {/* CTA Button */}
           <TouchableOpacity style={styles.ctaButton} onPress={handleGetOffer}>
-            <Text style={styles.ctaButtonText}>Accept Gifted Rate</Text>
+            <ThemedText weight="bold" style={styles.ctaButtonText}>Accept Gifted Rate</ThemedText>
           </TouchableOpacity>
 
           {/* Footer */}
-          <Text style={styles.footerText}>Shown once per plan during onboarding.</Text>
+          <ThemedText style={styles.footerText}>Shown once per plan during onboarding.</ThemedText>
         </View>
       </View>
     </Modal>

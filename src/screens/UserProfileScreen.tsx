@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
@@ -9,13 +10,19 @@ import {
   Dimensions,
   RefreshControl,
   Alert,
+  Linking,
+  Platform,
+  Share,
   TextInput,
   Modal,
   Switch,
   Image,
+  ActionSheetIOS,
 } from 'react-native';
-import { Pencil } from 'lucide-react-native';
+// Removed lucide-react-native to avoid module resolution issues; using Ionicons instead
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { experiencePreferences } from '../services/experiencePreferences';
+import { initSound, releaseSound } from '../utils/soundUtils';
 
 // import { LinearGradient } from 'expo-linear-gradient'; // Temporarily disabled
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -43,10 +50,23 @@ interface UsageTracking {
 }
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
+import { notificationManagementService, NotificationPreferences } from '../services/notificationManagementService';
 import { useScreenStatusBar } from '../hooks/useScreenStatusBar';
 import { useFamilySubscription } from '../hooks/useFamilySubscription';
+import { reportBug } from '../services/bugReportService';
+import { reportFeature } from '../services/featureRequestService';
+import InAppReview from 'react-native-in-app-review';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 
 const { width } = Dimensions.get('window');
+
+// Store metadata for review links
+// TODO: Replace with your real App Store numeric ID once the app is live in the store
+// Example: const APPLE_APP_ID = '1234567890';
+const APPLE_APP_ID = '';
+// Android package is already defined in app.json and native; keep here for clarity
+const ANDROID_PACKAGE = 'com.sifiaopc.app';
 
 interface Props {
   navigation: any;
@@ -93,6 +113,141 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     firstName: (user as any)?.firstName || (user as any)?.user_metadata?.first_name || '',
     lastName: (user as any)?.lastName || (user as any)?.user_metadata?.last_name || '',
   });
+
+  // Helpers: Quiet Hours formatting and pickers
+  const formatTo12h = useCallback((time24?: string) => {
+    if (!time24) return '';
+    const [hStr, mStr] = time24.split(':');
+    let h = parseInt(hStr || '0', 10);
+    const m = parseInt(mStr || '0', 10);
+    const suffix = h >= 12 ? 'PM' : 'AM';
+    h = h % 12;
+    if (h === 0) h = 12;
+    const mm = m.toString().padStart(2, '0');
+    return `${h}:${mm} ${suffix}`;
+  }, []);
+
+  // Notification preferences from the notification management service
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences | null>(null);
+  
+  // Time picker states
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [timePickerType, setTimePickerType] = useState<'start' | 'end'>('start');
+  const [tempTime, setTempTime] = useState(new Date());
+
+  // Optimistic toggle update for notification preferences
+  const updatePref = useCallback(
+    async (key: keyof NotificationPreferences, value: boolean) => {
+      try { triggerLightHaptic(); } catch {}
+      if (!notificationPrefs || !user?.id) {
+        console.log('[Notifications] Missing prefs or user id, cannot update');
+        return;
+      }
+      const updated = { ...notificationPrefs, [key]: value } as NotificationPreferences;
+      // Optimistic UI update
+      setNotificationPrefs(updated);
+      const ok = await notificationManagementService.updateNotificationPreferences(updated);
+      if (!ok) {
+        // Revert on failure
+        setNotificationPrefs({ ...notificationPrefs });
+        Alert.alert('Update failed', 'Unable to save notification preference. Please try again.');
+      }
+    },
+    [notificationPrefs, user?.id]
+  );
+
+  
+
+  // Native time picker handler
+  const showNativeTimePicker = useCallback((type: 'start' | 'end') => {
+    if (!notificationPrefs) return;
+    
+    const currentTime = type === 'start' 
+      ? notificationPrefs.quiet_hours_start || '22:00'
+      : notificationPrefs.quiet_hours_end || '07:00';
+    
+    const [hours, minutes] = currentTime.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    
+    setTempTime(date);
+    setTimePickerType(type);
+    setShowTimePicker(true);
+  }, [notificationPrefs]);
+
+  const handleTimeChange = useCallback(async (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
+    
+    if (selectedDate && notificationPrefs && user?.id) {
+      const hours = selectedDate.getHours().toString().padStart(2, '0');
+      const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+      const timeString = `${hours}:${minutes}`;
+      
+      const field = timePickerType === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
+      const updated = { ...notificationPrefs, [field]: timeString };
+      
+      console.log(`Updating ${field} to ${timeString}`);
+      const success = await notificationManagementService.updateNotificationPreferences(updated);
+      if (success) {
+        setNotificationPrefs(updated);
+        try { triggerLightHaptic(); } catch {}
+      }
+    }
+  }, [notificationPrefs, user?.id, timePickerType]);
+
+  const pickQuietHour = useCallback(
+    async (which: 'start' | 'end') => {
+      if (!notificationPrefs || !user?.id) return;
+
+      const choices = [
+        '05:00', '06:00', '07:00', '08:00', '09:00',
+        '20:00', '21:00', '22:00', '23:00', '00:00',
+      ];
+
+      const choiceLabels = choices.map((time) => formatTo12h(time));
+
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options: ['Cancel', ...choiceLabels],
+            cancelButtonIndex: 0,
+            title: `Select ${which === 'start' ? 'Start' : 'End'} Time`,
+          },
+          (buttonIndex) => {
+            if (buttonIndex > 0) {
+              const selectedTime = choices[buttonIndex - 1];
+              const field = which === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
+              const updated = { ...notificationPrefs, [field]: selectedTime };
+              notificationManagementService.updateNotificationPreferences(updated);
+              setNotificationPrefs(updated);
+            }
+          }
+        );
+      } else {
+        // Android fallback
+        Alert.alert(
+          `Select ${which === 'start' ? 'Start' : 'End'} Time`,
+          'Choose a time',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            ...choices.map((time) => ({
+              text: formatTo12h(time),
+              onPress: () => {
+                const field = which === 'start' ? 'quiet_hours_start' : 'quiet_hours_end';
+                const updated = { ...notificationPrefs, [field]: time };
+                notificationManagementService.updateNotificationPreferences(updated);
+                setNotificationPrefs(updated);
+              },
+            })),
+          ]
+        );
+      }
+    },
+    [notificationPrefs, user?.id, formatTo12h]
+  );
+
   const avatarUrl = (user as any)?.user_metadata?.avatar_url as string | undefined;
   const initialLetter = useMemo(() => {
     const first = (profileForm as any)?.firstName || (user as any)?.user_metadata?.first_name || '';
@@ -110,7 +265,259 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
   const [settingsModal, setSettingsModal] = useState(false);
+  const [weekStartModal, setWeekStartModal] = useState(false);
+  const [weekStartDraft, setWeekStartDraft] = useState<UserPreferences['weekStart']>('sunday');
+  // Bible Version modal and draft
+  
+  const [bibleVersionModal, setBibleVersionModal] = useState(false);
+  const [bibleVersionDraft, setBibleVersionDraft] = useState<string>('NASB');
+  // Appearance modal and drafts
+  const [appearanceModal, setAppearanceModal] = useState(false);
+  const [themeDraft, setThemeDraft] = useState<any>('default');
+  const [fontDraft, setFontDraft] = useState<UserPreferences['font']>('lexend');
   const [_badgesModal, setBadgesModal] = useState(false);
+  // Report Issue modal
+  const [reportBugModal, setReportBugModal] = useState(false);
+  const [bugReportText, setBugReportText] = useState('');
+
+  // Feature request modal
+  const [featureModal, setFeatureModal] = useState(false);
+  const [featureText, setFeatureText] = useState('');
+  const [featureCategory, setFeatureCategory] = useState<string>('UI/UX');
+
+  // Load persisted experience preferences on mount (defaults are ON)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      await experiencePreferences.loadOnce();
+      if (!mounted) return;
+      setHapticsEnabled(experiencePreferences.hapticsEnabled);
+      setSoundsEnabled(experiencePreferences.soundsEnabled);
+      if (experiencePreferences.soundsEnabled) {
+        initSound();
+      } else {
+        releaseSound();
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Toggle handlers that persist to centralized store
+  const onToggleHaptics = async (value: boolean) => {
+    setHapticsEnabled(value);
+    await experiencePreferences.setHapticsEnabled(value);
+  };
+
+  const onToggleSounds = async (value: boolean) => {
+    setSoundsEnabled(value);
+    await experiencePreferences.setSoundsEnabled(value);
+    if (value) {
+      initSound();
+    } else {
+      releaseSound();
+    }
+  };
+
+  // Report a bug via email (internal helper, accepts optional message)
+  const handleReportBug = async (messageOverride?: string) => {
+    const to = 'bug@sifia.app';
+    // Avoid requiring JSON via Metro to prevent module resolution errors in production bundles
+    const appVersion: string | undefined = undefined;
+
+    const userId = user?.id ?? 'anonymous';
+    const platform = Platform.OS;
+    const osVersion = String(Platform.Version);
+    const screenName = 'UserProfileScreen';
+    const timestamp = new Date().toISOString();
+
+    const subject = encodeURIComponent('Bug Report – siFia');
+    const body = encodeURIComponent(
+      [
+        messageOverride && messageOverride.trim().length > 0
+          ? messageOverride.trim()
+          : [
+              'Issue summary:',
+              '',
+              'Steps to reproduce:',
+              '',
+              'Expected:',
+              '',
+              'Actual:',
+              '',
+              'Please attach screenshots if possible.\n',
+            ].join('\n'),
+        'Context:',
+        `• User: ${userId}`,
+        `• App: ${appVersion ?? 'unknown'}`,
+        `• Device/OS: ${platform}/${osVersion}`,
+        `• Screen: ${screenName}`,
+        `• Time: ${timestamp}`,
+      ].join('\n')
+    );
+
+    const mailtoFull = `mailto:${to}?subject=${subject}&body=${body}`;
+    const mailtoSubjectOnly = `mailto:${to}?subject=${subject}`;
+    const mailtoAddressOnly = `mailto:${to}`;
+    // Gmail URL scheme (works if Gmail installed)
+    const gmailFull = Platform.select({
+      ios: `googlegmail://co?to=${to}&subject=${subject}&body=${body}`,
+      android: `googlegmail://co?to=${to}&subject=${subject}&body=${body}`,
+      default: undefined,
+    });
+    // Web Gmail compose (works if a browser is available and user is signed in)
+    const webGmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+
+    const tryOpen = async (url: string) => {
+      try {
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+          return true;
+        }
+      } catch {}
+      return false;
+    };
+
+    // 1) Try full (subject + body)
+    if (await tryOpen(mailtoFull)) return;
+    // 2) Fallback: subject only
+    if (await tryOpen(mailtoSubjectOnly)) return;
+    // 3) Fallback: address only
+    if (await tryOpen(mailtoAddressOnly)) return;
+    // 4) Try Gmail scheme if available
+    if (gmailFull && (await tryOpen(gmailFull))) return;
+    // 5) Try web Gmail compose
+    if (await tryOpen(webGmail)) return;
+
+    // Final fallback: show instructions with Copy option
+    Alert.alert(
+      'Email not available',
+      'No email app found. Please email bug@sifia.app. You can copy the address now.',
+      [
+        {
+          text: 'Copy address',
+          onPress: async () => {
+            try {
+              await Share.share({ message: to });
+            } catch {}
+          },
+        },
+        { text: 'OK' },
+      ]
+    );
+  };
+
+  const handleSubmitBug = async () => {
+    const text = bugReportText.trim();
+    if (!text) {
+      Alert.alert('Add a brief description', 'Please describe the issue before submitting.');
+      return;
+    }
+    try {
+      await reportBug({
+        user_id: user?.id ?? null,
+        message: text,
+        platform: Platform.OS,
+        os_version: String(Platform.Version),
+        screen: 'UserProfileScreen',
+        app_version: null,
+        extra: { timestamp: new Date().toISOString() },
+      });
+      setReportBugModal(false);
+      setBugReportText('');
+      Alert.alert('Thanks!', 'Your bug report was sent.');
+    } catch (error) {
+      console.error('[ReportBug] Failed to submit bug report', error);
+      Alert.alert('Error', 'Failed to submit bug report. Please try again later.');
+    }
+  };
+
+  // Open App Store / Play Store review page with graceful fallbacks
+  const openStoreReview = async () => {
+    try {
+      if (Platform.OS === 'ios') {
+        if (!APPLE_APP_ID) {
+          Alert.alert(
+            'Coming soon',
+            'Reviews will be available once the app is live on the App Store.'
+          );
+          return;
+        }
+        const iosDeepLink = `itms-apps://itunes.apple.com/app/id${APPLE_APP_ID}?action=write-review`;
+        const iosWeb = `https://apps.apple.com/app/id${APPLE_APP_ID}?action=write-review`;
+        const supported = await Linking.canOpenURL(iosDeepLink);
+        await Linking.openURL(supported ? iosDeepLink : iosWeb);
+        return;
+      }
+
+      const marketUrl = `market://details?id=${ANDROID_PACKAGE}`;
+      const webUrl = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
+      const supported = await Linking.canOpenURL(marketUrl);
+      await Linking.openURL(supported ? marketUrl : webUrl);
+    } catch (e) {
+      Alert.alert(
+        'Not available yet',
+        'The store listing may not be live yet. Please try again after release.'
+      );
+    }
+  };
+
+  // Try in-app review first, with gentle app-level gating, then fallback to store page
+  const handleLeaveReview = async () => {
+    try {
+      const now = Date.now();
+      const year = new Date().getFullYear();
+      const LAST_PROMPT_KEY = 'review:lastPromptAt';
+      const COUNT_KEY = `review:promptCount:${year}`;
+      const MIN_DAYS_BETWEEN = 30; // days
+      const MAX_PER_YEAR = 3;
+
+      const lastPromptRaw = await AsyncStorage.getItem(LAST_PROMPT_KEY);
+      const countRaw = await AsyncStorage.getItem(COUNT_KEY);
+      const lastPromptAt = lastPromptRaw ? parseInt(lastPromptRaw, 10) : 0;
+      const promptCount = countRaw ? parseInt(countRaw, 10) : 0;
+
+      const daysSince = lastPromptAt ? (now - lastPromptAt) / (1000 * 60 * 60 * 24) : Infinity;
+      const withinLimit = promptCount < MAX_PER_YEAR;
+      const spacedEnough = daysSince >= MIN_DAYS_BETWEEN;
+
+      const canPrompt = withinLimit && spacedEnough;
+
+      if (canPrompt && InAppReview.isAvailable()) {
+        await InAppReview.RequestInAppReview();
+        // Regardless of whether the dialog actually appears, record attempt to avoid spamming
+        await AsyncStorage.setItem(LAST_PROMPT_KEY, String(now));
+        await AsyncStorage.setItem(COUNT_KEY, String(promptCount + 1));
+        return; // don't immediately redirect to the store
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+    // Fallback to store if in-app review isn't available or gating disallows it
+    await openStoreReview();
+  };
+
+  // Share app with friends using platform-appropriate store link (with fallback)
+  const handleShareApp = async () => {
+    try {
+      const iosUrl = APPLE_APP_ID ? `https://apps.apple.com/app/id${APPLE_APP_ID}` : 'https://sifia.app';
+      const androidUrl = `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`;
+      const url = Platform.OS === 'ios' ? iosUrl : androidUrl;
+      const message = `I’m using siFia to strengthen my faith journey. Try it here: ${url}`;
+
+      await Share.share(
+        Platform.select({
+          ios: { url, message, title: 'Try siFia', subject: 'Try siFia' },
+          android: { message, title: 'Try siFia' },
+          default: { message, title: 'Try siFia' },
+        }) as any
+      );
+    } catch (e) {
+      Alert.alert('Share failed', 'Unable to open share sheet right now. Please try again later.');
+    }
+  };
 
   const handleEditAvatar = async () => {
     try {
@@ -145,6 +552,219 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const handleSaveAppearance = async () => {
+    try {
+      const updatedPreferences = {
+        ...preferences,
+        theme: themeDraft as any,
+        font: fontDraft as any,
+      };
+      const result = await updatePreferences(updatedPreferences);
+      if (result.success) {
+        setPreferences(updatedPreferences);
+        setAppearanceModal(false);
+      } else {
+        Alert.alert('Error', result.error?.message || 'Failed to update appearance');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update appearance');
+    }
+  };
+
+  const handleSubmitFeature = async () => {
+    const text = featureText.trim();
+    if (!text) {
+      Alert.alert('Add a brief description', 'Please describe the feature before submitting.');
+      return;
+    }
+    try {
+      await reportFeature({
+        user_id: user?.id ?? null,
+        message: text,
+        category: featureCategory,
+        platform: Platform.OS,
+        os_version: String(Platform.Version),
+        screen: 'UserProfileScreen',
+        app_version: null,
+        extra: { timestamp: new Date().toISOString() },
+      });
+      setFeatureModal(false);
+      setFeatureText('');
+      Alert.alert('Thanks!', 'Your feature suggestion was sent.');
+    } catch (error) {
+      console.error('[FeatureRequest] Failed to submit', error);
+      Alert.alert('Error', 'Failed to submit feature suggestion. Please try again later.');
+    }
+  };
+
+  const FEATURE_CATEGORIES = ['UI/UX','New Content','Performance','Notifications','Integrations','Accessibility','Other'];
+
+  const renderFeatureModal = () => (
+    <Modal
+      visible={featureModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setFeatureModal(false); }}>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, font]}>Suggest a Feature</Text>
+          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSubmitFeature(); }}>
+            <Text style={[styles.saveText, font]}>Submit</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.modalContent}>
+          <Text style={[styles.sectionLabel, font]}>Category</Text>
+          <View style={styles.settingChipsRow}>
+            {FEATURE_CATEGORIES.map(cat => {
+              const active = featureCategory === cat;
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  onPress={() => { try { triggerLightHaptic(); } catch {}; setFeatureCategory(cat); }}
+                  style={[styles.chip, active && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{cat}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={{ height: 12 }} />
+          <TextInput
+            style={[styles.bugInput, font]}
+            placeholder="Describe the feature you'd like to see..."
+            placeholderTextColor={'rgba(255,255,255,0.6)'}
+            multiline
+            value={featureText}
+            onChangeText={setFeatureText}
+            textAlignVertical="top"
+          />
+          <Text style={[styles.bugHint, font]}>Picking a category helps us triage suggestions faster.</Text>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  const renderAppearanceModal = () => (
+    <Modal
+      visible={appearanceModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setAppearanceModal(false); }}>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, font]}>Appearance</Text>
+          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSaveAppearance(); }}>
+            <Text style={[styles.saveText, font]}>Save</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.modalContent}>
+          <Text style={[styles.settingDescription, font]}>
+            Choose your preferred theme and font. Changes will apply when you tap Save.
+          </Text>
+
+          <View style={styles.settingItemColumn}>
+            <Text style={[styles.settingLabel, font]}>Theme</Text>
+            <View style={styles.settingChipsRow}>
+              {(
+                [
+                  { key: 'default', label: 'Default', description: 'Original brand colors' },
+                  { key: 'dark', label: 'Dark', description: 'Dark mode' },
+                  { key: 'coral', label: 'Coral', description: 'Warm coral theme' },
+                  { key: 'sunshine', label: 'Sunshine', description: 'Bright yellow theme' },
+                  { key: 'devotional', label: 'Devotional', description: 'Spiritual purple theme' },
+                ] as const
+              ).map((opt) => {
+                const active = themeDraft === opt.key;
+                return (
+                  <TouchableOpacity
+                    key={opt.key}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => { try { triggerLightHaptic(); } catch {}; setThemeDraft(opt.key); }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set theme to ${opt.label}`}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{opt.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.settingItemColumn}>
+            <Text style={[styles.settingLabel, font]}>Font</Text>
+            <View style={styles.settingChipsRow}>
+              {(
+                [
+                  { key: 'lexend', label: 'Lexend', description: 'Dyslexia-friendly' },
+                  { key: 'poppins', label: 'Poppins', description: 'Modern & clean' },
+                  { key: 'nunito', label: 'Nunito Sans', description: 'Friendly & readable' },
+                  { key: 'lora', label: 'Lora', description: 'Elegant serif' },
+                ] as const
+              ).map((fontOption) => {
+                const active = fontDraft === fontOption.key;
+                return (
+                  <TouchableOpacity
+                    key={fontOption.key}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => { try { triggerLightHaptic(); } catch {}; setFontDraft(fontOption.key); }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set font to ${fontOption.label}`}
+                  >
+                    <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{fontOption.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={[styles.fontNote, font]}>Lexend font is specially designed to improve reading proficiency</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  const renderReportBugModal = () => (
+    <Modal
+      visible={reportBugModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView edges={['top','bottom']} style={styles.modalContainer}>
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => { try { triggerLightHaptic(); } catch {}; setReportBugModal(false); }}>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, font]}>Report a Bug</Text>
+          <TouchableOpacity onPress={() => { try { triggerSuccessHaptic(); } catch {}; handleSubmitBug(); }}>
+            <Text style={[styles.saveText, font]}>Submit</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.modalContent}>
+          <TextInput
+            style={[styles.bugInput, font]}
+            placeholder="Please report your issue..."
+            placeholderTextColor={'rgba(255,255,255,0.6)'}
+            multiline
+            value={bugReportText}
+            onChangeText={setBugReportText}
+            textAlignVertical="top"
+            autoFocus
+          />
+          <Text style={[styles.bugHint, font]}>We'll take your reported issues into account to improve siFia.</Text>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+
   const [preferences, setPreferences] = useState<UserPreferences>({
     notifications: {
       dailyDevotional: true,
@@ -170,12 +790,68 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     },
     content: {
       language: 'en',
-      bibleVersion: 'NIV',
+      bibleVersion: 'NASB',
       autoPlayAudio: false,
       downloadForOffline: false,
       showVerseOfDay: true,
     },
   });
+
+  const loadNotificationPreferences = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('Loading notification preferences for user:', user.id);
+      let prefs = await notificationManagementService.getNotificationPreferences(user.id);
+      
+      // If no preferences exist, create defaults
+      if (!prefs) {
+        console.log('No preferences found, creating defaults');
+        const defaultPrefs = {
+          user_id: user.id,
+          playbook_steps: true,
+          devotional_reminders: true,
+          trial_notifications: true,
+          prayer_request_alerts: false,
+          prayer_requests: false,
+          quiet_hours_start: '22:00',
+          quiet_hours_end: '07:00',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        const success = await notificationManagementService.updateNotificationPreferences(defaultPrefs);
+        if (success) {
+          prefs = defaultPrefs;
+        }
+      }
+      
+      console.log('Loaded notification preferences:', prefs);
+      setNotificationPrefs(prefs);
+    } catch (error) {
+      console.error('Error loading notification preferences:', error);
+      // Set minimal defaults on error
+      setNotificationPrefs({
+        user_id: user.id,
+        playbook_steps: false,
+        devotional_reminders: false,
+        trial_notifications: false,
+        prayer_request_alerts: false,
+        prayer_requests: false,
+        quiet_hours_start: '22:00',
+        quiet_hours_end: '07:00',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }, [user?.id]);
+
+  // Reload preferences whenever the settings modal opens (placed after declaration to satisfy lints)
+  useEffect(() => {
+    if (settingsModal && user?.id) {
+      loadNotificationPreferences();
+    }
+  }, [settingsModal, user?.id, loadNotificationPreferences]);
 
   const loadProfileData = useCallback(async () => {
     try {
@@ -185,6 +861,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       const progressResponse = await userApi.getUserProgress(user?.id || '');
       if (progressResponse.success && progressResponse.data) {
         setUserProgress(progressResponse.data);
+      }
+
+      // Load notification preferences
+      if (user?.id) {
+        await loadNotificationPreferences();
       }
 
       // Load profile statistics
@@ -372,6 +1053,80 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert('Error', 'Failed to update preferences');
     }
   };
+
+  // Save handler for week start (no success alert)
+  const handleSaveWeekStart = async () => {
+    try {
+      const updatedPreferences = { ...preferences, weekStart: weekStartDraft };
+      const result = await updatePreferences(updatedPreferences);
+      if (result.success) {
+        setPreferences(updatedPreferences);
+        setWeekStartModal(false);
+      } else {
+        Alert.alert('Error', result.error?.message || 'Failed to update week start');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update week start');
+    }
+  };
+
+  // Save handler for Bible Version (no success alert)
+  const handleSaveBibleVersion = async () => {
+    try {
+      const updatedPreferences = {
+        ...preferences,
+        content: { ...preferences.content, bibleVersion: bibleVersionDraft },
+      };
+      const result = await updatePreferences(updatedPreferences);
+      if (result.success) {
+        setPreferences(updatedPreferences);
+        setBibleVersionModal(false);
+      } else {
+        Alert.alert('Error', result.error?.message || 'Failed to update Bible version');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update Bible version');
+    }
+  };
+
+  const handleWeekStartChange = async (weekStart: string) => {
+    try {
+      const updatedPreferences = { ...preferences, weekStart: weekStart as any };
+      setPreferences(updatedPreferences);
+      
+      const result = await updatePreferences(updatedPreferences);
+      if (result.success) {
+        setWeekStartModal(false);
+        // Removed success alert per UX request
+      } else {
+        Alert.alert('Error', result.error?.message || 'Failed to update week start');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update week start');
+    }
+  };
+
+  // Initialize draft when opening the Week Start modal
+  useEffect(() => {
+    if (weekStartModal) {
+      setWeekStartDraft(preferences.weekStart);
+    }
+  }, [weekStartModal, preferences.weekStart]);
+
+  // Initialize drafts when opening the Appearance modal
+  useEffect(() => {
+    if (appearanceModal) {
+      setThemeDraft(preferences.theme as any);
+      setFontDraft(preferences.font as UserPreferences['font']);
+    }
+  }, [appearanceModal, preferences.theme, preferences.font]);
+
+  // Initialize draft when opening the Bible Version modal
+  useEffect(() => {
+    if (bibleVersionModal) {
+      setBibleVersionDraft(preferences.content?.bibleVersion || 'NASB');
+    }
+  }, [bibleVersionModal, preferences.content?.bibleVersion]);
 
   // Handle immediate theme switching for live preview
   const handleThemeChange = async (newTheme: string) => {
@@ -578,7 +1333,8 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 );
               })}
             </View>
-          </ScrollView>
+            {/* No extra spacer; rely on safe-area insets for edge-to-edge scroll */}
+        </ScrollView>
         ) : (
           <Text style={[styles.badgesSubtitle, { textAlign: 'center' }, font]}>No badges yet</Text>
         )}
@@ -592,7 +1348,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => setSettingsModal(true)}
+          onPress={handleShareApp}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="share-social" size={18} color={Colors.anchorBlue} />
@@ -603,7 +1359,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => setSettingsModal(true)}
+          onPress={handleLeaveReview}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="star" size={18} color={Colors.anchorBlue} />
@@ -614,34 +1370,43 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => setSettingsModal(true)}
+          onPress={() => Linking.openURL('https://instagram.com/sifia.app')}
+          accessibilityRole="button"
+          accessibilityLabel="Open Instagram @sifia.app"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-instagram" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Instagram</Text>
+          <Text style={[styles.menuValueText, font]}>@sifia.app</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => setSettingsModal(true)}
+          onPress={() => Linking.openURL('https://www.facebook.com/siFiaapp')}
+          accessibilityRole="button"
+          accessibilityLabel="Open Facebook page siFiaapp"
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="logo-facebook" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Facebook</Text>
+          <Text style={[styles.menuValueText, font]}>/siFiaapp</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => setSettingsModal(true)}
+          onPress={() => Linking.openURL('https://x.com/sifiaapp')}
+          accessibilityRole="button"
+          accessibilityLabel="Open X (Twitter) @sifiaapp"
         >
           <View style={styles.menuIconBox}>
             <Text style={{ color: Colors.anchorBlue, fontSize: 16, fontWeight: '800' }}>X</Text>
           </View>
           <Text style={[styles.menuText, font]}>X</Text>
+          <Text style={[styles.menuValueText, font]}>@sifiaapp</Text>
           <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
         </TouchableOpacity>
       </View>
@@ -694,7 +1459,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => setSettingsModal(true)}
+          onPress={() => setFeatureModal(true)}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="bulb" size={18} color={Colors.anchorBlue} />
@@ -705,7 +1470,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.menuItem}
-          onPress={() => setSettingsModal(true)}
+          onPress={() => setReportBugModal(true)}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="bug" size={18} color={Colors.anchorBlue} />
@@ -752,7 +1517,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       <View style={styles.menuContainer}>
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => setSettingsModal(true)}
+          onPress={() => setBibleVersionModal(true)}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="book" size={18} color={Colors.anchorBlue} />
@@ -763,7 +1528,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => setSettingsModal(true)}
+          onPress={() => setWeekStartModal(true)}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="calendar" size={18} color={Colors.anchorBlue} />
@@ -774,7 +1539,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <TouchableOpacity
           style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => setSettingsModal(true)}
+          onPress={() => setAppearanceModal(true)}
         >
           <View style={styles.menuIconBox}>
             <Ionicons name="color-palette" size={18} color={Colors.anchorBlue} />
@@ -788,23 +1553,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           onPress={() => setSettingsModal(true)}
         >
           <View style={styles.menuIconBox}>
-            <Ionicons name="text" size={18} color={Colors.anchorBlue} />
-          </View>
-          <Text style={[styles.menuText, font]}>Font</Text>
-          <Ionicons name="chevron-forward" size={20} color={'rgba(255,255,255,0.65)'} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.menuItem, styles.menuItemSpaced]}
-          onPress={() => setSettingsModal(true)}
-        >
-          <View style={styles.menuIconBox}>
             <Ionicons name="pulse" size={18} color={Colors.anchorBlue} />
           </View>
           <Text style={[styles.menuText, font]}>Haptics</Text>
           <Switch
             value={hapticsEnabled}
-            onValueChange={setHapticsEnabled}
+            onValueChange={onToggleHaptics}
             thumbColor={hapticsEnabled ? Colors.hopeWhite : '#f4f3f4'}
             trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
           />
@@ -820,7 +1574,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={[styles.menuText, font]}>Sounds</Text>
           <Switch
             value={soundsEnabled}
-            onValueChange={setSoundsEnabled}
+            onValueChange={onToggleSounds}
             thumbColor={soundsEnabled ? Colors.hopeWhite : '#f4f3f4'}
             trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
           />
@@ -920,7 +1674,10 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       animationType="slide"
       presentationStyle="pageSheet"
     >
-      <SafeAreaView style={styles.modalContainer}>
+      <SafeAreaView
+        edges={['top']}
+        style={styles.modalContainer}
+      >
         <View style={styles.modalHeader}>
           <TouchableOpacity onPress={() => setEditProfileModal(false)} accessibilityRole="button" accessibilityLabel="Go back">
             <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
@@ -949,7 +1706,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
                 accessibilityLabel="Change profile photo"
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Pencil size={16} color={Colors.alertCoral} strokeWidth={2} />
+                <Ionicons name="pencil" size={16} color={Colors.alertCoral} />
               </TouchableOpacity>
             </View>
           </View>
@@ -979,6 +1736,159 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     </Modal>
   );
 
+  const renderWeekStartModal = () => (
+    <Modal
+      visible={weekStartModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView
+        edges={['top']}
+        style={styles.modalContainer}
+      >
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => setWeekStartModal(false)}>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, font]}>Week Start</Text>
+          <TouchableOpacity onPress={handleSaveWeekStart}>
+            <Text style={[styles.saveText, font]}>Save</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.modalContent}>
+          <Text style={[styles.settingDescription, font]}>
+            Choose which day your week starts on. This affects calendar views and weekly reports.
+          </Text>
+          
+          <View style={styles.weekStartOptions}>
+            {[
+              { key: 'sunday', label: 'Sunday', description: 'Traditional week start' },
+              { key: 'monday', label: 'Monday', description: 'ISO standard week start' },
+              { key: 'tuesday', label: 'Tuesday', description: '' },
+              { key: 'wednesday', label: 'Wednesday', description: '' },
+              { key: 'thursday', label: 'Thursday', description: '' },
+              { key: 'friday', label: 'Friday', description: '' },
+              { key: 'saturday', label: 'Saturday', description: '' },
+            ].map((day) => {
+              const isSelected = weekStartDraft === day.key;
+              return (
+                <TouchableOpacity
+                  key={day.key}
+                  style={[styles.weekStartOption, isSelected && styles.weekStartOptionSelected]}
+                  onPress={() => setWeekStartDraft(day.key as UserPreferences['weekStart'])}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Set week start to ${day.label}`}
+                >
+                  <View style={styles.weekStartOptionContent}>
+                    <Text style={[styles.weekStartOptionLabel, isSelected && styles.weekStartOptionLabelSelected, font]}>
+                      {day.label}
+                    </Text>
+                    {day.description && (
+                      <Text style={[styles.weekStartOptionDescription, font]}>
+                        {day.description}
+                      </Text>
+                    )}
+                  </View>
+                  {isSelected && (
+                    <Ionicons name="checkmark" size={20} color={Colors.alertCoral} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+
+  const renderBibleVersionModal = () => (
+    <Modal
+      visible={bibleVersionModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      <SafeAreaView
+        edges={['top','left','right']}
+        style={styles.modalContainer}
+      >
+        <View style={styles.modalHeader}>
+          <TouchableOpacity onPress={() => setBibleVersionModal(false)}>
+            <Text style={[styles.cancelText, font]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.modalTitle, font]}>Bible Version</Text>
+          <TouchableOpacity onPress={handleSaveBibleVersion}>
+            <Text style={[styles.saveText, font]}>Save</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{
+            paddingTop: 20,
+            paddingHorizontal: 20,
+            paddingBottom: 0,
+          }}
+          contentInset={{ bottom: 0 }}
+          scrollIndicatorInsets={{ bottom: (insets?.bottom || 0), top: 0, left: 0, right: 0 }}
+          contentInsetAdjustmentBehavior="never"
+          automaticallyAdjustContentInsets={false}
+          showsVerticalScrollIndicator
+        >
+          <Text style={[styles.settingDescription, font]}>
+            Choose your preferred Bible translation. This will be used across devotionals and verses.
+          </Text>
+
+          <View style={styles.weekStartOptions}>
+            {(() => {
+              const versions = [
+                { key: 'NIV', label: 'NIV', description: 'New International Version' },
+                { key: 'KJV', label: 'KJV', description: 'King James Version' },
+                { key: 'ESV', label: 'ESV', description: 'English Standard Version' },
+                { key: 'NLT', label: 'NLT', description: 'New Living Translation' },
+                { key: 'NKJV', label: 'NKJV', description: 'New King James Version' },
+                { key: 'NASB', label: 'NASB', description: 'New American Standard Bible' },
+                { key: 'CSB', label: 'CSB', description: 'Christian Standard Bible' },
+                { key: 'NRSV', label: 'NRSV', description: 'New Revised Standard Version' },
+                { key: 'MSG', label: 'MSG', description: 'The Message (paraphrase)' },
+                { key: 'AMP', label: 'AMP', description: 'Amplified Bible' },
+              ].sort((a, b) => a.label.localeCompare(b.label));
+              return versions.map((ver) => {
+                const isSelected = bibleVersionDraft === ver.key;
+                return (
+                  <TouchableOpacity
+                    key={ver.key}
+                    style={[styles.weekStartOption, isSelected && styles.weekStartOptionSelected]}
+                    onPress={() => setBibleVersionDraft(ver.key)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set Bible version to ${ver.label}`}
+                  >
+                    <View style={styles.weekStartOptionContent}>
+                      <Text style={[styles.weekStartOptionLabel, isSelected && styles.weekStartOptionLabelSelected, font]}>
+                        {ver.label}
+                      </Text>
+                      {ver.description && (
+                        <Text style={[styles.weekStartOptionDescription, font]}>
+                          {ver.description}
+                        </Text>
+                      )}
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={20} color={Colors.alertCoral} />
+                    )}
+                  </TouchableOpacity>
+                );
+              });
+            })()}
+          </View>
+
+          {/* Footer spacer to clear the home indicator so last item is fully visible */}
+          <View style={{ height: (insets?.bottom || 0) + 8 }} />
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
   const renderSettingsModal = () => (
     <Modal
       visible={settingsModal}
@@ -990,7 +1900,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity onPress={() => setSettingsModal(false)}>
             <Text style={[styles.cancelText, font]}>Cancel</Text>
           </TouchableOpacity>
-          <Text style={[styles.modalTitle, font]}>Settings</Text>
+          <Text style={[styles.modalTitle, font]}>Notifications</Text>
           <TouchableOpacity onPress={handleUpdatePreferences}>
             <Text style={[styles.saveText, font]}>Save</Text>
           </TouchableOpacity>
@@ -998,139 +1908,120 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
 
         <ScrollView style={styles.modalContent}>
           <View style={styles.settingGroup}>
-            <Text style={[styles.settingTitle, font]}>Notifications</Text>
-
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, font]}>Push Notifications</Text>
+              <Text style={[styles.settingLabel, font]}>Playbook Reminders</Text>
               <Switch
-                value={preferences.notifications.pushEnabled}
-                onValueChange={(value) =>
-                  setPreferences({
-                    ...preferences,
-                    notifications: { ...preferences.notifications, pushEnabled: value },
-                  })
-                }
+                value={notificationPrefs?.playbook_steps ?? false}
+                onValueChange={(value) => updatePref('playbook_steps', value)}
               />
             </View>
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, font]}>Email Notifications</Text>
+              <Text style={[styles.settingLabel, font]}>Devotional Reminders</Text>
               <Switch
-                value={preferences.notifications.emailEnabled}
-                onValueChange={(value) =>
-                  setPreferences({
-                    ...preferences,
-                    notifications: { ...preferences.notifications, emailEnabled: value },
-                  })
-                }
+                value={notificationPrefs?.devotional_reminders ?? false}
+                onValueChange={(value) => updatePref('devotional_reminders', value)}
               />
             </View>
-          </View>
-
-          <View style={styles.settingGroup}>
-            <Text style={[styles.settingTitle, font]}>Privacy</Text>
 
             <View style={styles.settingItem}>
-              <Text style={[styles.settingLabel, font]}>Profile Visibility</Text>
-              <Text style={[styles.settingValue, font]}>{preferences.privacy.profileVisibility}</Text>
-            </View>
-          </View>
-
-          <View style={styles.settingGroup}>
-            <Text style={[styles.settingTitle, font]}>Calendar</Text>
-
-            <View style={styles.settingItemColumn}>
-              <Text style={[styles.settingLabel, font]}>Week Start</Text>
-              <View style={styles.settingChipsRow}>
-                {(
-                  [
-                    { key: 'sunday', label: 'Sun' },
-                    { key: 'monday', label: 'Mon' },
-                    { key: 'tuesday', label: 'Tue' },
-                    { key: 'wednesday', label: 'Wed' },
-                    { key: 'thursday', label: 'Thu' },
-                    { key: 'friday', label: 'Fri' },
-                    { key: 'saturday', label: 'Sat' },
-                  ] as const
-                ).map((d) => {
-                  const active = preferences.weekStart === d.key;
-                  return (
-                    <TouchableOpacity
-                      key={d.key}
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => setPreferences({ ...preferences, weekStart: d.key })}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Set week start to ${d.label}`}
-                    >
-                      <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{d.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.settingGroup}>
-            <Text style={[styles.settingTitle, font]}>Appearance</Text>
-
-            <View style={styles.settingItemColumn}>
-              <Text style={[styles.settingLabel, font]}>Theme</Text>
-              <View style={styles.settingChipsRow}>
-                {(
-                  [
-                    { key: 'default', label: 'Default', description: 'Original brand colors' },
-                    { key: 'dark', label: 'Dark', description: 'Dark mode' },
-                    { key: 'coral', label: 'Coral', description: 'Warm coral theme' },
-                    { key: 'sunshine', label: 'Sunshine', description: 'Bright yellow theme' },
-                    { key: 'devotional', label: 'Devotional', description: 'Spiritual purple theme' },
-                  ] as const
-                ).map((opt) => {
-                  const active = preferences.theme === opt.key;
-                  return (
-                    <TouchableOpacity
-                      key={opt.key}
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => handleThemeChange(opt.key)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Set theme to ${opt.label}`}
-                    >
-                      <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              <Text style={[styles.settingLabel, font]}>Prayer Reminders</Text>
+              <Switch
+                value={notificationPrefs?.prayer_reminders ?? false}
+                onValueChange={(value) => updatePref('prayer_reminders', value)}
+                disabled={!notificationPrefs}
+              />
             </View>
 
-            <View style={styles.settingItemColumn}>
-              <Text style={[styles.settingLabel, font]}>Font</Text>
-              <View style={styles.settingChipsRow}>
-                {(
-                  [
-                    { key: 'lexend', label: 'Lexend', description: 'Dyslexia-friendly' },
-                    { key: 'poppins', label: 'Poppins', description: 'Modern & clean' },
-                    { key: 'nunito', label: 'Nunito Sans', description: 'Friendly & readable' },
-                    { key: 'lora', label: 'Lora', description: 'Elegant serif' },
-                  ] as const
-                ).map((fontOption) => {
-                  const active = preferences.font === fontOption.key;
-                  return (
-                    <TouchableOpacity
-                      key={fontOption.key}
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => handleFontChange(fontOption.key)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Set font to ${fontOption.label}`}
-                    >
-                      <Text style={[styles.chipText, active && styles.chipTextActive, font]}>{fontOption.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingLabel, font]}>Journal Prompts</Text>
+              <Switch
+                value={notificationPrefs?.journal_prompts ?? false}
+                onValueChange={(value) => updatePref('journal_prompts', value)}
+                disabled={!notificationPrefs}
+              />
+            </View>
+
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingLabel, font]}>Progress Updates</Text>
+              <Switch
+                value={notificationPrefs?.milestone_celebrations ?? false}
+                onValueChange={(value) => updatePref('milestone_celebrations', value)}
+                disabled={!notificationPrefs}
+              />
+            </View>
+
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingLabel, font]}>Streak Alerts</Text>
+              <Switch
+                value={notificationPrefs?.streak_alerts ?? false}
+                onValueChange={(value) => updatePref('streak_alerts', value)}
+                disabled={!notificationPrefs}
+              />
+            </View>
+
+            {subscription?.tier === 'free_trial' && (
+              <View style={styles.settingItem}>
+                <Text style={[styles.settingLabel, font]}>Trial Notifications</Text>
+                <Switch
+                  value={notificationPrefs?.trial_notifications ?? false}
+                  onValueChange={(value) => updatePref('trial_notifications', value)}
+                  disabled={!notificationPrefs}
+                />
               </View>
-              <Text style={[styles.fontNote, font]}>Lexend font is specially designed to improve reading proficiency</Text>
+            )}
+
+            <View style={styles.settingItem}>
+              <Text style={[styles.settingLabel, font]}>Prayer Request Alerts</Text>
+              <Switch
+                value={notificationPrefs?.prayer_requests ?? false}
+                onValueChange={(value) => updatePref('prayer_requests', value)}
+                disabled={!notificationPrefs}
+              />
+            </View>
+
+            <View style={styles.settingItemColumnNotification}>
+              <Text style={[styles.settingLabel, font]}>Quiet Hours</Text>
+              <Text style={[styles.settingHint, font]}>We'll pause notifications during these times.</Text>
+              <View style={styles.quietHoursContainer}>
+                <TouchableOpacity 
+                  style={styles.timePickerRow} 
+                  onPress={() => {
+                    console.log('Quiet Hours Start pressed, prefs:', notificationPrefs);
+                    showNativeTimePicker('start');
+                  }}
+                >
+                  <Text style={[styles.timeLabel, font]}>Start</Text>
+                  <Text style={[styles.timeValue, font]}>
+                    {notificationPrefs?.quiet_hours_start ? formatTo12h(notificationPrefs.quiet_hours_start) : '10:00 PM'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.timePickerRow} 
+                  onPress={() => {
+                    console.log('Quiet Hours End pressed, prefs:', notificationPrefs);
+                    showNativeTimePicker('end');
+                  }}
+                >
+                  <Text style={[styles.timeLabel, font]}>End</Text>
+                  <Text style={[styles.timeValue, font]}>
+                    {notificationPrefs?.quiet_hours_end ? formatTo12h(notificationPrefs.quiet_hours_end) : '7:00 AM'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </ScrollView>
       </SafeAreaView>
+      {showTimePicker && (
+        <DateTimePicker
+          value={tempTime}
+          mode="time"
+          is24Hour={false}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={handleTimeChange}
+        />
+      )}
     </Modal>
   );
 
@@ -1176,7 +2067,12 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       </View>
 
       {renderEditProfileModal()}
+      {renderWeekStartModal()}
+      {renderBibleVersionModal()}
+      {renderAppearanceModal()}
       {renderSettingsModal()}
+      {renderReportBugModal()}
+      {renderFeatureModal()}
     </SafeAreaView>
   );
 };
@@ -1212,9 +2108,10 @@ const styles = StyleSheet.create({
     // extra space so the header isn't cut by the notch
     paddingTop: 18,
   },
-  // Settings modal additions (chips)
+  // Settings & Appearance modal chips
   settingItemColumn: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: 'transparent',
+    marginBottom: 16,
   },
   settingChipsRow: {
     flexDirection: 'row',
@@ -1226,13 +2123,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: '#e9ecef',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   chipActive: {
     backgroundColor: Colors.alertCoral,
   },
   chipText: {
-    color: Colors.darkerGray,
+    color: 'rgba(255,255,255,0.92)',
     fontWeight: '600',
   },
   chipTextActive: {
@@ -1460,6 +2357,11 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     marginLeft: 10,
   },
+  menuValueText: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.85)',
+    marginRight: 8,
+  },
   menuIconBox: {
     width: 28,
     height: 28,
@@ -1507,6 +2409,22 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     padding: 20,
+  },
+  bugInput: {
+    minHeight: 160,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 30,
+    padding: 12,
+    fontSize: 16,
+    color: Colors.hopeWhite,
+  },
+  bugHint: {
+    marginTop: 10,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.75)',
+    textAlign: 'center',
   },
   sectionLabel: {
     fontSize: 12,
@@ -1603,17 +2521,49 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
   },
   settingLabel: {
     fontSize: 16,
-    color: Colors.text,
+    color: Colors.hopeWhite,
   },
   settingValue: {
     fontSize: 16,
     color: Colors.mediumGray,
     textTransform: 'capitalize',
+  },
+  settingItemColumnNotification: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  settingHint: {
+    fontSize: 14,
+    color: Colors.mediumGray,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  quietHoursContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  timePickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 0.45,
+  },
+  timeLabel: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    marginRight: 8,
+  },
+  timeValue: {
+    fontSize: 14,
+    color: Colors.alertCoral,
+    fontWeight: '600',
   },
   // Subscription and Usage Styles
   subscriptionContainer: {
@@ -1808,6 +2758,47 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: Colors.devotionalPurple,
     borderRadius: 6,
+  },
+  // Week Start Modal Styles
+  settingDescription: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  weekStartOptions: {
+    gap: 12,
+  },
+  weekStartOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  weekStartOptionSelected: {
+    backgroundColor: 'rgba(255,107,107,0.15)',
+    borderColor: Colors.alertCoral,
+  },
+  weekStartOptionContent: {
+    flex: 1,
+  },
+  weekStartOptionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.hopeWhite,
+    marginBottom: 2,
+  },
+  weekStartOptionLabelSelected: {
+    color: Colors.alertCoral,
+  },
+  weekStartOptionDescription: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.6)',
   },
   // Removed test button styles
 });

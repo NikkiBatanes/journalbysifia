@@ -8,7 +8,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
@@ -28,6 +27,7 @@ import { Fonts } from '../../theme/fonts';
 import { OnboardingStyles, OnboardingSpacing } from '../../theme/onboardingStyles';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../../components/common/ThemedText';
 
 const { width } = Dimensions.get('window');
 
@@ -224,17 +224,17 @@ const OnboardingWelcomeScreen: React.FC = () => {
       </View>
 
       {/* Slide Title */}
-      <Text style={styles.slideTitle}>{item.title}</Text>
+      <ThemedText weight="bold" style={styles.slideTitle}>{item.title}</ThemedText>
 
       {/* Slide Subtitle */}
-      <Text style={styles.slideSubtitle}>{item.subtitle}</Text>
+      <ThemedText style={styles.slideSubtitle}>{item.subtitle}</ThemedText>
 
       {/* Features List */}
       <View style={styles.featuresList}>
         {item.features.map((feature, index) => (
           <View key={index} style={styles.featureItem}>
             <Ionicons name="heart" size={24} color={Colors.alertCoral} style={styles.iconMarginTop} />
-            <Text style={styles.featureText}>{feature}</Text>
+            <ThemedText style={styles.featureText}>{feature}</ThemedText>
           </View>
         ))}
       </View>
@@ -295,9 +295,9 @@ const OnboardingWelcomeScreen: React.FC = () => {
             onPress={handleCreateAccount}
             disabled={isLoading}
           >
-            <Text style={styles.createButtonText}>
+            <ThemedText weight="medium" style={styles.createButtonText}>
               {isAuthenticated ? 'Continue Setup' : 'Create an Account'}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -305,19 +305,19 @@ const OnboardingWelcomeScreen: React.FC = () => {
             onPress={handleLogin}
             disabled={isLoading}
           >
-            <Text style={styles.loginButtonText}>
+            <ThemedText weight="medium" style={styles.loginButtonText}>
               {isAuthenticated ? 'Get Started' : 'Login'}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         </View>
 
         {/* Terms Text */}
-        <Text style={styles.termsText}>
+        <ThemedText style={styles.termsText}>
           By continuing, you agree to our{' '}
-          <Text style={styles.linkText}>Terms of Service</Text>
+          <ThemedText style={styles.linkText}>Terms of Service</ThemedText>
           {' '}and{' '}
-          <Text style={styles.linkText}>Privacy Policy</Text>
-        </Text>
+          <ThemedText style={styles.linkText}>Privacy Policy</ThemedText>
+        </ThemedText>
       </View>
     </View>
   );

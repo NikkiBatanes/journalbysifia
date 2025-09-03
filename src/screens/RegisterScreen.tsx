@@ -2,7 +2,6 @@ import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
 
@@ -16,6 +15,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
+import ThemedText from '../components/common/ThemedText';
 
 interface Props {
   navigation: any;
@@ -172,14 +172,14 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Create an Account</Text>
+          <ThemedText weight="bold" style={styles.title}>Create an Account</ThemedText>
         </View>
 
         {/* Inline Error Banner */}
         {error ? (
           <View style={styles.errorBanner}>
             <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
-            <Text style={styles.errorText}>{error}</Text>
+            <ThemedText style={styles.errorText}>{error}</ThemedText>
           </View>
         ) : null}
 
@@ -192,7 +192,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               disabled={loading}
             >
               <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
-              <Text style={styles.buttonText}>Continue with Apple</Text>
+              <ThemedText weight="medium" style={styles.buttonText}>Continue with Apple</ThemedText>
             </TouchableOpacity>
           )}
 
@@ -202,7 +202,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             disabled={loading}
           >
             <Ionicons name="logo-google" size={20} color="#FF6B6B" />
-            <Text style={styles.buttonText}>Continue with Google</Text>
+            <ThemedText weight="medium" style={styles.buttonText}>Continue with Google</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -211,16 +211,16 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             disabled={loading}
           >
             <Ionicons name="mail" size={20} color="#FF6B6B" />
-            <Text style={styles.buttonText}>Continue with Email</Text>
+            <ThemedText weight="medium" style={styles.buttonText}>Continue with Email</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Login Link */}
       <View style={styles.loginContainer}>
-        <Text style={styles.loginText}>Already a member? </Text>
+        <ThemedText style={styles.loginText}>Already a member? </ThemedText>
         <TouchableOpacity onPress={handleSignIn}>
-          <Text style={styles.loginLink}>Login</Text>
+          <ThemedText weight="semiBold" style={styles.loginLink}>Login</ThemedText>
         </TouchableOpacity>
       </View>
     </View>

@@ -17,6 +17,8 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../../theme/colors';
 import { Fonts } from '../../theme/fonts';
 import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../../components/common/ThemedText';
+import ThemedTextInput from '../../components/common/ThemedTextInput';
 
 // const { width } = Dimensions.get('window'); // unused
 
@@ -446,12 +448,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderNameStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>What's your name?</Text>
-      <Text style={styles.stepSubtitle}>
+      <ThemedText weight="bold" style={styles.stepTitle}>What's your name?</ThemedText>
+      <ThemedText style={styles.stepSubtitle}>
         Help us personalize your faith journey experience
-      </Text>
+      </ThemedText>
       <View style={styles.nameInputContainer}>
-        <TextInput
+        <ThemedTextInput
           style={styles.nameInput}
           placeholder="Enter your first name"
           placeholderTextColor="rgba(255,255,255,0.6)"
@@ -466,7 +468,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderAgeStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Which stage of life are you in right now?</Text>
+      <ThemedText weight="bold" style={styles.stepTitle}>Which stage of life are you in right now?</ThemedText>
       <View style={styles.ageOptionsContainer}>
         {ageGroups.map((ageGroup) => (
           <TouchableOpacity
@@ -477,7 +479,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             ]}
             onPress={() => { try { triggerLightHaptic(); } catch {}; setSelectedAgeGroup(ageGroup.value); }}
           >
-            <Text style={styles.ageOptionTitle}>{ageGroup.label}</Text>
+            <ThemedText weight="semiBold" style={styles.ageOptionTitle}>{ageGroup.label}</ThemedText>
           </TouchableOpacity>
         ))}
       </View>
@@ -486,12 +488,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderFaithJourneyStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Where are you in your{`
-`}walk with God?</Text>
-      <Text
+      <ThemedText weight="bold" style={styles.stepTitle}>Where are you in your{`
+`}walk with God?</ThemedText>
+      <ThemedText
         style={styles.stepSubtitle}>
         There's no wrong answer. {'\n'}He welcomes you exactly as you are.
-      </Text>
+      </ThemedText>
       <View style={styles.optionsContainer}>
         {faithJourneyOptions.map((option) => (
           <TouchableOpacity
@@ -506,8 +508,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               <Ionicons name={option.icon} size={24} color={Colors.alertCoral} />
             </View>
             <View style={styles.faithOptionText}>
-              <Text style={styles.faithOptionTitle}>{option.title}</Text>
-              <Text style={styles.faithOptionDescription}>{option.description}</Text>
+              <ThemedText weight="semiBold" style={styles.faithOptionTitle}>{option.title}</ThemedText>
+              <ThemedText style={styles.faithOptionDescription}>{option.description}</ThemedText>
             </View>
           </TouchableOpacity>
         ))}
@@ -517,11 +519,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderChallengeStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>What's your biggest{'\n'}challenge right now?</Text>
-      <Text style={styles.stepSubtitle}>
+      <ThemedText weight="bold" style={styles.stepTitle}>What's your biggest{'\n'}challenge right now?</ThemedText>
+      <ThemedText style={styles.stepSubtitle}>
         Choose the area where you need the most guidance,{'\n'}
         and we'll create a personalized playbook just for you
-      </Text>
+      </ThemedText>
 
       <View style={styles.challengeOptionsContainer}>
         {challengeOptions.map((challenge) => (
@@ -537,8 +539,8 @@ const OnboardingPersonalizationScreen: React.FC = () => {
               <Ionicons name={challenge.icon} size={24} color={Colors.alertCoral} />
             </View>
             <View style={styles.challengeOptionText}>
-              <Text style={styles.challengeOptionTitle}>{challenge.title}</Text>
-              <Text style={styles.challengeOptionDescription}>{challenge.description}</Text>
+              <ThemedText weight="semiBold" style={styles.challengeOptionTitle}>{challenge.title}</ThemedText>
+              <ThemedText style={styles.challengeOptionDescription}>{challenge.description}</ThemedText>
             </View>
           </TouchableOpacity>
         ))}
@@ -548,7 +550,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
 
   const renderChallengeDetailsStep = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Tell us more, if you'd like.</Text>
+      <ThemedText weight="bold" style={styles.stepTitle}>Tell us more, if you'd like.</ThemedText>
 
       {selectedChallenge && (
         <View style={styles.challengeCard}>
@@ -560,12 +562,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             />
           </View>
           <View style={styles.challengeCardText}>
-            <Text style={styles.challengeCardTitle}>
+            <ThemedText weight="semiBold" style={styles.challengeCardTitle}>
               {challengeOptions.find(c => c.id === selectedChallenge)?.title}
-            </Text>
-            <Text style={styles.challengeCardDescription}>
+            </ThemedText>
+            <ThemedText style={styles.challengeCardDescription}>
               {challengeOptions.find(c => c.id === selectedChallenge)?.description}
-            </Text>
+            </ThemedText>
           </View>
         </View>
       )}
@@ -574,7 +576,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
       {challengeOptions.find(c => c.id === selectedChallenge)?.examples && (
         <View style={styles.examplesLabelRow}>
           <Ionicons name="chatbubble-ellipses-outline" size={18} color={Colors.hopeWhite} style={styles.iconWithMarginAndOpacity} />
-          <Text style={styles.examplesLabelText}>Suggested Prompts</Text>
+          <ThemedText style={styles.examplesLabelText}>Suggested Prompts</ThemedText>
         </View>
       )}
 
@@ -585,7 +587,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             style={styles.exampleTag}
             onPress={() => { try { triggerLightHaptic(); } catch {}; setChallengeDetails(example); }}
           >
-            <Text style={styles.exampleTagText}>{example}</Text>
+            <ThemedText style={styles.exampleTagText}>{example}</ThemedText>
           </TouchableOpacity>
         ))}
       </View>
@@ -597,8 +599,7 @@ const OnboardingPersonalizationScreen: React.FC = () => {
           // Provide light haptic feedback when the ask box area is tapped
           onTouchStart={() => { try { triggerLightHaptic(); } catch {} }}
         >
-          <TextInput
-            ref={detailsInputRef}
+          <ThemedTextInput
             style={styles.askInput}
             placeholder={(
               (() => {
@@ -624,7 +625,10 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             // No autoFocus: user must tap to activate cursor
             value={challengeDetails}
             onChangeText={setChallengeDetails}
-            onTouchStart={focusDetailsInput}
+            onTouchStart={() => {
+              focusDetailsInput();
+              triggerLightHaptic();
+            }}
             onFocus={handleDetailsFocus}
             onBlur={handleDetailsBlur}
             multiline
@@ -652,28 +656,28 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             styles.tooltip,
             { opacity: tooltipOpacity, transform: [{ translateY: tooltipTranslateY }] },
           ]} pointerEvents="box-none">
-            <Text style={styles.tooltipKicker}>How Fia can help you.</Text>
-            <Text style={styles.tooltipTitle}>Share what you're going through in detail. The more context, the better.</Text>
-            <Text style={styles.tooltipSubtitle}>Helpful details to include:</Text>
+            <ThemedText weight="semiBold" style={styles.tooltipKicker}>How Fia can help you.</ThemedText>
+            <ThemedText weight="bold" style={styles.tooltipTitle}>Share what you're going through in detail. The more context, the better.</ThemedText>
+            <ThemedText style={styles.tooltipSubtitle}>Helpful details to include:</ThemedText>
             <View style={styles.tooltipList}>
               <View style={styles.tooltipItemRow}>
-                <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>1</Text></View>
-                <Text style={styles.tooltipItemText}>What happened</Text>
+                <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>1</ThemedText></View>
+                <ThemedText style={styles.tooltipItemText}>What happened</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
-                <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>2</Text></View>
-                <Text style={styles.tooltipItemText}>Your pain</Text>
+                <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>2</ThemedText></View>
+                <ThemedText style={styles.tooltipItemText}>Your pain</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
-                <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>3</Text></View>
-                <Text style={styles.tooltipItemText}>A situation or struggle</Text>
+                <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>3</ThemedText></View>
+                <ThemedText style={styles.tooltipItemText}>A situation or struggle</ThemedText>
               </View>
               <View style={styles.tooltipItemRow}>
-                <View style={styles.tooltipBadge}><Text style={styles.tooltipBadgeText}>4</Text></View>
-                <Text style={styles.tooltipItemText}>A decision you need to make</Text>
+                <View style={styles.tooltipBadge}><ThemedText weight="semiBold" style={styles.tooltipBadgeText}>4</ThemedText></View>
+                <ThemedText style={styles.tooltipItemText}>A decision you need to make</ThemedText>
               </View>
             </View>
-            <Text style={styles.tooltipFooter}>Then we'll turn this into a personalized playbook.</Text>
+            <ThemedText style={styles.tooltipFooter}>Then we'll turn this into a personalized playbook.</ThemedText>
             <View style={styles.tooltipCaret} />
           </Animated.View>
         )}
@@ -705,12 +709,12 @@ const OnboardingPersonalizationScreen: React.FC = () => {
         (currentStep === (showNameStep ? 5 : 4) && keyboardVisible) ? { marginBottom: 0 } : null,
       ]}>
         {name ? (
-          <Text style={styles.userGreeting}>Hi, {name}.</Text>
+          <ThemedText weight="bold" style={styles.userGreeting}>Hi, {name}.</ThemedText>
         ) : null}
-        <Text style={OnboardingStyles.mainTitle}>Let's make this yours.</Text>
-        <Text style={OnboardingStyles.subtitle}>
+        <ThemedText weight="bold" style={OnboardingStyles.mainTitle}>Let's make this yours.</ThemedText>
+        <ThemedText style={OnboardingStyles.subtitle}>
           Tell us a little about your season of life so we can create a playbook that speaks right to your heart.
-        </Text>
+        </ThemedText>
       </View>
 
       <Animated.View style={[
@@ -775,11 +779,11 @@ const OnboardingPersonalizationScreen: React.FC = () => {
              currentStep === (showNameStep ? 4 : 3) ||
              currentStep === (showNameStep ? 5 : 4)) && (
             <View style={styles.stepContainer}>
-              <Text style={styles.stepTitle}>Debug: Step Not Found</Text>
-              <Text style={styles.stepSubtitle}>
+              <ThemedText weight="bold" style={styles.stepTitle}>Debug: Step Not Found</ThemedText>
+              <ThemedText style={styles.stepSubtitle}>
                 Current Step: {currentStep}, Show Name: {showNameStep ? 'Yes' : 'No'}, Method: {registrationMethod}
-              </Text>
-              <Text style={styles.stepSubtitle}>Expected step range: {showNameStep ? '1-5' : '1-4'}</Text>
+              </ThemedText>
+              <ThemedText style={styles.stepSubtitle}>Expected step range: {showNameStep ? '1-5' : '1-4'}</ThemedText>
               {/* Force show first step as fallback */}
               {currentStep === 1 && !showNameStep && renderAgeStep()}
               {currentStep === 1 && showNameStep && renderNameStep()}
@@ -805,9 +809,9 @@ const OnboardingPersonalizationScreen: React.FC = () => {
             onPress={handleContinue}
             disabled={!canContinue()}
           >
-            <Text style={styles.continueButtonText}>
+            <ThemedText weight="medium" style={styles.continueButtonText}>
               {currentStep === totalSteps ? 'Create My Playbook' : 'Continue'}
-            </Text>
+            </ThemedText>
           </TouchableOpacity>
         </View>
       </Animated.View>

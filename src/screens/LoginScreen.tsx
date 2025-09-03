@@ -2,7 +2,6 @@ import React from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   TouchableOpacity,
   StyleSheet,
   Alert,
@@ -16,6 +15,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
+import ThemedText from '../components/common/ThemedText';
 
 interface Props {
   navigation: any;
@@ -77,7 +77,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Login</Text>
+          <ThemedText weight="bold" style={styles.title}>Login</ThemedText>
         </View>
 
         {/* Social Buttons */}
@@ -89,7 +89,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
               disabled={loading}
             >
               <Ionicons name="logo-apple" size={20} color="#FF6B6B" />
-              <Text style={styles.buttonText}>Continue with Apple</Text>
+              <ThemedText weight="medium" style={styles.buttonText}>Continue with Apple</ThemedText>
             </TouchableOpacity>
           )}
 
@@ -99,7 +99,7 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             disabled={loading}
           >
             <Ionicons name="logo-google" size={20} color="#FF6B6B" />
-            <Text style={styles.buttonText}>Continue with Google</Text>
+            <ThemedText weight="medium" style={styles.buttonText}>Continue with Google</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -108,16 +108,16 @@ const LoginScreen: React.FC<Props> = ({ navigation }) => {
             disabled={loading}
           >
             <Ionicons name="mail" size={20} color="#FF6B6B" />
-            <Text style={styles.buttonText}>Continue with Email</Text>
+            <ThemedText weight="medium" style={styles.buttonText}>Continue with Email</ThemedText>
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Sign Up Link */}
       <View style={styles.signUpContainer}>
-        <Text style={styles.signUpText}>Not yet a member? </Text>
+        <ThemedText style={styles.signUpText}>Not yet a member? </ThemedText>
         <TouchableOpacity onPress={handleSignUp}>
-          <Text style={styles.signUpLink}>Sign Up</Text>
+          <ThemedText weight="semiBold" style={styles.signUpLink}>Sign Up</ThemedText>
         </TouchableOpacity>
       </View>
     </View>

@@ -139,8 +139,24 @@ const fallbackStyles = {
   promptGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   promptCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 8, margin: 4, padding: 12, flex: 1, minWidth: 120 },
   promptCardText: { color: Colors.hopeWhite, fontSize: 16 },
-  reflectLabel: { marginTop: 8, backgroundColor: Colors.growthGreen, borderRadius: 8, padding: 6, alignItems: 'center' },
-  reflectLabelText: { color: Colors.hopeWhite, fontWeight: 'bold' },
+  // Reflect button styled to match Reflect carousel empty state button
+  reflectLabel: {
+    marginTop: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.hopeWhite,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+    minWidth: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  buttonIcon: {
+    marginRight: 8,
+  },
+  reflectLabelText: { fontSize: 15, color: Colors.hopeWhite, letterSpacing: 0.5 },
   lockedTitleText: {
     color: Colors.hopeWhite,
     opacity: 0.9,
@@ -1013,8 +1029,11 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
                           }, 50);
                         });
                       }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Reflect"
                     >
-                      <ThemedText weight="bold" style={s.reflectLabelText}>REFLECT ON IT</ThemedText>
+                      <Pencil size={16} color={Colors.hopeWhite} style={s.buttonIcon} />
+                      <ThemedText weight="medium" style={s.reflectLabelText}>Reflect</ThemedText>
                     </TouchableOpacity>
                   </View>
                 ))}

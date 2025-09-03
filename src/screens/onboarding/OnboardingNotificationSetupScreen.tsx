@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   StatusBar,
   TouchableOpacity,
@@ -16,6 +15,9 @@ import { Colors } from '../../theme';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { pushNotificationService } from '../../services/pushNotificationService';
+import { supabase } from '../../services/supabaseClient';
+import ThemedText from '../../components/common/ThemedText';
 
 interface RouteParams {
   userType: 'trial' | 'paid' | 'freemium';
@@ -111,24 +113,91 @@ const OnboardingNotificationSetupScreen = () => {
   const handleEnableNotifications = async () => {
     try {
       try { triggerSuccessHaptic(); } catch {}
-      // Here you would request notification permissions
-      // For now, we'll simulate the process
-      console.log('Requesting notification permissions...');
+      
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
 
-      // Simulate permission request
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Initialize push notification service
+      await pushNotificationService.initialize(user.id);
+      
+      // Request permissions
+      const permissionsGranted = await pushNotificationService.requestPermissions();
+      
+      if (permissionsGranted) {
+        console.log('✅ Push notifications enabled successfully');
+        
+        // Save notification preferences to Supabase
+        const enabledSettings = notificationSettings
+          .filter(setting => setting.enabled)
+          .reduce((acc, setting) => {
+            acc[setting.id] = true;
+            return acc;
+          }, {} as Record<string, boolean>);
 
-      // Navigate to home screen
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' as any }],
-      });
+        // Save preferences to notification_preferences table
+        try {
+          const { error: prefsError } = await supabase
+            .from('notification_preferences')
+            .upsert({
+              user_id: user.id,
+              playbook_steps: enabledSettings.playbooks || false,
+              devotional_reminders: enabledSettings.daily_devotional || false,
+              journal_prompts: enabledSettings.journal_reminders || false,
+              prayer_reminders: enabledSettings.prayer_reminders || false,
+              milestone_celebrations: enabledSettings.progress_updates || false,
+              trial_notifications: enabledSettings.trial_reminders || false,
+              updated_at: new Date().toISOString(),
+            });
+
+          if (prefsError) {
+            console.error('Error saving notification preferences:', prefsError);
+          } else {
+            console.log('✅ Notification preferences saved successfully');
+          }
+        } catch (prefsError) {
+          console.error('Error saving notification preferences:', prefsError);
+        }
+        
+        Alert.alert(
+          '🎉 Notifications Enabled!',
+          'You\'ll receive personalized reminders to help you stay connected with God.',
+          [
+            {
+              text: 'Let\'s Go!',
+              onPress: () => navigation.reset({
+                index: 0,
+                routes: [{ name: 'MainTabs' as any }],
+              }),
+            },
+          ]
+        );
+      } else {
+        // Permissions denied
+        Alert.alert(
+          'Notifications Not Enabled',
+          'You can always enable notifications later in your device settings or profile.',
+          [
+            {
+              text: 'Continue Anyway',
+              onPress: () => navigation.reset({
+                index: 0,
+                routes: [{ name: 'MainTabs' as any }],
+              }),
+            },
+            {
+              text: 'Open Settings',
+              onPress: () => pushNotificationService.openNotificationSettings(),
+            },
+          ]
+        );
+      }
 
     } catch (error) {
       console.error('Error setting up notifications:', error);
       Alert.alert(
         'Setup Complete',
-        'You can always enable notifications later in your device settings.',
+        'You can always enable notifications later in your profile settings.',
         [
           {
             text: 'Continue',
@@ -223,26 +292,26 @@ const OnboardingNotificationSetupScreen = () => {
         <View style={styles.welcomeSection}>
           {/* Subscription Badge */}
           <View style={styles.badgeContainer}>
-            <Text style={styles.badgeText}>{welcomeData.badge}</Text>
+            <ThemedText weight="semiBold" style={styles.badgeText}>{welcomeData.badge}</ThemedText>
           </View>
           
           <View style={styles.iconContainer}>
             <Ionicons name="notifications-outline" size={48} color={Colors.alertCoral} />
           </View>
-          <Text
+          <ThemedText
             style={[styles.welcomeTitle, effectiveUserType === 'paid' ? styles.welcomeTitleSmall : null]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.9}
           >
             {welcomeData.title}
-          </Text>
-          <Text style={styles.welcomeSubtitle}>{welcomeData.subtitle}</Text>
+          </ThemedText>
+          <ThemedText style={styles.welcomeSubtitle}>{welcomeData.subtitle}</ThemedText>
         </View>
 
         {/* Notification Settings */}
         <View style={styles.settingsSection}>
-          <Text style={styles.settingsTitle}>Notification Preferences</Text>
+          <ThemedText weight="bold" style={styles.settingsTitle}>Notification Preferences</ThemedText>
 
           {notificationSettings.map((setting) => (
             <View key={setting.id} style={styles.settingItem}>
@@ -251,10 +320,10 @@ const OnboardingNotificationSetupScreen = () => {
                   <Ionicons name={setting.icon as any} size={24} color={Colors.alertCoral} />
                 </View>
                 <View style={styles.settingContent}>
-                  <Text style={styles.settingTitle}>{setting.title}</Text>
-                  <Text style={styles.settingDescription}>{setting.description}</Text>
+                  <ThemedText weight="semiBold" style={styles.settingTitle}>{setting.title}</ThemedText>
+                  <ThemedText style={styles.settingDescription}>{setting.description}</ThemedText>
                   {setting.required && (
-                    <Text style={styles.requiredText}>Required</Text>
+                    <ThemedText weight="semiBold" style={styles.requiredText}>Required</ThemedText>
                   )}
                 </View>
               </View>
@@ -271,38 +340,38 @@ const OnboardingNotificationSetupScreen = () => {
 
         {/* Benefits Section */}
         <View style={styles.benefitsSection}>
-          <Text style={styles.benefitsTitle}>Why turn on notifications?</Text>
+          <ThemedText weight="semiBold" style={styles.benefitsTitle}>Why turn on notifications?</ThemedText>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <Text style={styles.benefitText}>Stay on track with your action steps</Text>
+            <ThemedText style={styles.benefitText}>Stay on track with your action steps</ThemedText>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <Text style={styles.benefitText}>Get reminders for Playbook challenges</Text>
+            <ThemedText style={styles.benefitText}>Get reminders for Playbook challenges</ThemedText>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <Text style={styles.benefitText}>Timely nudges for devotionals, prayer, and journaling</Text>
+            <ThemedText style={styles.benefitText}>Timely nudges for devotionals, prayer, and journaling</ThemedText>
           </View>
           <View style={styles.benefitItem}>
             <Ionicons name="checkmark-circle" size={20} color={Colors.growthGreen} />
-            <Text style={styles.benefitText}>Celebrate milestones and track your progress</Text>
+            <ThemedText style={styles.benefitText}>Celebrate milestones and track your progress</ThemedText>
           </View>
         </View>
 
         {/* Action Buttons */}
         <TouchableOpacity style={styles.enableButton} onPress={handleEnableNotifications}>
-          <Text style={styles.enableButtonText}>Enable Notifications</Text>
+          <ThemedText weight="bold" style={styles.enableButtonText}>Enable Notifications</ThemedText>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipButtonText}>Maybe Later</Text>
+          <ThemedText weight="medium" style={styles.skipButtonText}>Maybe Later</ThemedText>
         </TouchableOpacity>
 
         {/* Privacy Note */}
-        <Text style={styles.privacyNote}>
+        <ThemedText style={styles.privacyNote}>
           🔒 We respect your privacy. You can change these settings anytime in your profile.
-        </Text>
+        </ThemedText>
       </ScrollView>
     </View>
   );

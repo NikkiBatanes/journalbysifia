@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
@@ -12,6 +11,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import ThemedText from '../../components/common/ThemedText';
 
 const OnboardingPaymentProcessingScreen = () => {
   const navigation = useNavigation();
@@ -48,7 +48,7 @@ const OnboardingPaymentProcessingScreen = () => {
         await startTrial({ 
           user_id: user?.id || '', 
           duration_days: trialDays,
-          trial_chosen_tier: tier as any // Pass the selected tier from route params
+          trial_chosen_tier: selectedTier as any // Pass the selected tier from route params
         });
         
         setProcessingStatus('Trial activated successfully!');
@@ -123,15 +123,15 @@ const OnboardingPaymentProcessingScreen = () => {
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>
+          <ThemedText weight="bold" style={styles.title}>
             {isTrial ? 'Starting Free Trial' : 'Processing Payment'}
-          </Text>
-          <Text style={styles.subtitle}>
+          </ThemedText>
+          <ThemedText style={styles.subtitle}>
             {isTrial 
               ? `Activating your ${trialDays}-day free trial`
               : `Subscribing to ${getTierDisplayName(selectedTier)}`
             }
-          </Text>
+          </ThemedText>
         </View>
 
         {/* Processing Animation */}
@@ -159,18 +159,18 @@ const OnboardingPaymentProcessingScreen = () => {
 
         {/* Status Text */}
         <View style={styles.statusContainer}>
-          <Text style={[
+          <ThemedText weight="semiBold" style={[
             styles.statusText,
             paymentSuccess && styles.successText,
             paymentError && styles.errorText
           ]}>
             {processingStatus}
-          </Text>
+          </ThemedText>
           
           {!isTrial && price > 0 && (
-            <Text style={styles.priceText}>
+            <ThemedText style={styles.priceText}>
               ${price.toFixed(2)} {isAnnual ? 'annually' : 'monthly'}
-            </Text>
+            </ThemedText>
           )}
         </View>
 
@@ -181,23 +181,23 @@ const OnboardingPaymentProcessingScreen = () => {
               style={styles.retryButton} 
               onPress={handleRetry}
             >
-              <Text style={styles.retryButtonText}>Try Again</Text>
+              <ThemedText weight="bold" style={styles.retryButtonText}>Try Again</ThemedText>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.cancelButton} 
               onPress={handleCancel}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <ThemedText weight="medium" style={styles.cancelButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Loading Message */}
         {isProcessing && (
-          <Text style={styles.loadingMessage}>
+          <ThemedText style={styles.loadingMessage}>
             Please don't close this screen while we process your {isTrial ? 'trial activation' : 'payment'}...
-          </Text>
+          </ThemedText>
         )}
       </View>
     </SafeAreaView>

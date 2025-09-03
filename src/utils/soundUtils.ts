@@ -1,5 +1,6 @@
 import Sound from 'react-native-sound';
 import { Platform } from 'react-native';
+import { isSoundsEnabled } from '../services/experiencePreferences';
 
 // Sound file paths and loading logic
 const loadSound = (): Sound | null => {
@@ -35,6 +36,7 @@ const loadSound = (): Sound | null => {
 let sound: Sound | null = null;
 
 export const initSound = () => {
+  if (!isSoundsEnabled()) { return null; }
   if (sound) {return sound;}
 
   // Enable audio in silent mode (iOS)
@@ -52,6 +54,9 @@ export const initSound = () => {
 };
 
 export const playSound = () => {
+  if (!isSoundsEnabled()) {
+    return;
+  }
   if (!sound) {
     // Try to initialize sound if not already done
     sound = loadSound();

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
@@ -18,6 +17,8 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
 import { triggerLightHaptic, triggerErrorHaptic } from '../utils/haptics';
+import ThemedText from '../components/common/ThemedText';
+import ThemedTextInput from '../components/common/ThemedTextInput';
 
 interface Props {
   navigation: any;
@@ -124,15 +125,15 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
 
         {/* Title */}
         <View style={styles.titleContainer}>
-          <Text style={styles.title}>Create an Account</Text>
-          <Text style={styles.subtitle}>Join siFia: Faith in Action</Text>
+          <ThemedText weight="bold" style={styles.title}>Create an Account</ThemedText>
+          <ThemedText style={styles.subtitle}>Join siFia: Faith in Action</ThemedText>
         </View>
 
         {/* Inline Error Banner */}
         {error ? (
           <View style={styles.errorBanner}>
             <Ionicons name="alert-circle" size={18} color="#FF6B6B" style={styles.errorIconMargin} />
-            <Text style={styles.errorText}>{error}</Text>
+            <ThemedText style={styles.errorText}>{error}</ThemedText>
           </View>
         ) : null}
 
@@ -141,7 +142,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.nameRow}>
             <View style={[styles.inputContainer, styles.nameInput]}>
               <Ionicons name="person" size={20} color="#FF6B6B" style={styles.inputIcon} />
-              <TextInput
+              <ThemedTextInput
                 style={styles.input}
                 placeholder="First Name"
                 placeholderTextColor="rgba(255,255,255,0.5)"
@@ -157,7 +158,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
 
             <View style={[styles.inputContainer, styles.nameInput]}>
               <Ionicons name="person" size={20} color="#FF6B6B" style={styles.inputIcon} />
-              <TextInput
+              <ThemedTextInput
                 style={styles.input}
                 placeholder="Last Name"
                 placeholderTextColor="rgba(255,255,255,0.5)"
@@ -174,7 +175,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.inputContainer}>
             <Ionicons name="mail" size={20} color="#FF6B6B" style={styles.inputIcon} />
-            <TextInput
+            <ThemedTextInput
               style={styles.input}
               placeholder="Email"
               placeholderTextColor="rgba(255,255,255,0.5)"
@@ -191,7 +192,7 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.inputContainer}>
             <Ionicons name="lock-closed" size={20} color="#FF6B6B" style={styles.inputIcon} />
-            <TextInput
+            <ThemedTextInput
               style={styles.input}
               placeholder="Password"
               placeholderTextColor="rgba(255,255,255,0.5)"
@@ -224,16 +225,16 @@ const EmailRegisterScreen: React.FC<Props> = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator color="#274673" />
             ) : (
-              <Text style={styles.registerButtonText}>Create an Account</Text>
+              <ThemedText weight="bold" style={styles.registerButtonText}>Create an Account</ThemedText>
             )}
           </TouchableOpacity>
         </View>
 
         {/* Login Link */}
         <View style={styles.loginContainer}>
-          <Text style={styles.loginText}>Already a member? </Text>
+          <ThemedText style={styles.loginText}>Already a member? </ThemedText>
           <TouchableOpacity onPress={handleLogin}>
-            <Text style={styles.loginLink}>Login</Text>
+            <ThemedText weight="semiBold" style={styles.loginLink}>Login</ThemedText>
           </TouchableOpacity>
         </View>
 
