@@ -109,12 +109,15 @@ export const MomentsScreen: React.FC = () => {
       <StatusBar barStyle="light-content" backgroundColor={Colors.anchorBlue} />
 
       <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <View style={styles.headerLeftRow}>
+        <View style={[styles.headerTopRow, isSmallScreen && styles.headerTopRowWrap]}>
+          <View style={[styles.headerLeftRow, isSmallScreen && styles.headerLeftRowCompact]}>
             <Feather size={20} color={Colors.hopeWhite} />
             <ThemedText weight="bold" style={[styles.headerTitle, { fontFamily: fontBold, marginLeft: 8 }]}>Moments</ThemedText>
           </View>
-          <View style={styles.headerControls}>
+          <View style={[
+            styles.headerControls,
+            isSmallScreen && styles.headerControlsCompact,
+          ]}>
             <GroupingSelect ref={groupingRef} value={groupingMode} onChange={setGroupingMode} compact={isSmallScreen} />
             <FilterSelect
               ref={filterRef}
@@ -186,14 +189,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  headerTopRowWrap: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
   headerLeftRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerLeftRowCompact: {
+    marginRight: 8,
   },
   headerControls: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  headerControlsCompact: {
+    gap: 8,
+    flexWrap: 'wrap',
+    flexShrink: 1,
+    justifyContent: 'flex-start',
+    alignSelf: 'stretch',
+    marginTop: 8,
   },
   headerTitle: {
     fontSize: 24,

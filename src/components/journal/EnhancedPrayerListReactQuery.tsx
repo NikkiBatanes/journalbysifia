@@ -124,6 +124,9 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
     ? 'Appears when people were prayed for or prayer requests were added yesterday'
     : 'Appears when people were prayed for or prayer requests were added on this day';
 
+  // Show header pencil only when there is content (or while editing) and it's not a past date
+  const showAddInHeader = (hasContent || isEditing) ? (!isEditing && !isPastDate) : false;
+
   // Get dynamic subtitle based on context
   const getSubtitle = () => {
     if (isEditing) {
@@ -577,7 +580,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
         viewMode={viewMode}
         expanded={expanded}
         onExpand={onExpand}
-        showAddButton={hasContent || isEditing ? !isEditing && !isPastDate : !isPastDate}
+        showAddButton={showAddInHeader}
         onAdd={toggleEditing}
         isAdding={isEditing}
         onCancelAdd={handleCancelEdit}

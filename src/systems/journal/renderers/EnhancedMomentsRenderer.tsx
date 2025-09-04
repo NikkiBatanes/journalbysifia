@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { View, StyleSheet, SectionList, RefreshControlProps, Dimensions, FlatList, TouchableOpacity } from 'react-native';
+import { Check, ChevronDown, ChevronUp, X, Feather } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
@@ -14,6 +15,7 @@ import { DateRange } from '../../../components/moments/DateFilterBar';
 import { supabase } from '../../../services/supabaseClient';
 import { useAuth } from '../../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../../utils/haptics';
+import MomentsSkeleton from '../../../components/SkeletonLoader/MomentsSkeleton';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -29,6 +31,8 @@ interface EnhancedMomentsRendererProps {
   refreshControl?: React.ReactElement<RefreshControlProps>;
   prayerAnswerFilter?: 'all' | 'answered' | 'unanswered';
   filterKeys?: Array<'upcoming' | 'unansweredPrayers' | 'answeredPrayers' | 'reflectionJournals' | 'prayers' | 'gratitude' | 'todaysWin' | 'planCarousel'>;
+  // Optional handler for empty-state CTA button
+  onAddPress?: () => void;
 }
 
 interface MomentEntry {
@@ -144,6 +148,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   refreshControl,
   prayerAnswerFilter = 'all',
   filterKeys = [],
+  onAddPress,
 }) => {
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
@@ -1965,6 +1970,51 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     });
   }, [listKey, sectionsWithContent?.length]);
 
+  // Context-aware empty subtitle
+  const emptySubtitleText = useMemo(() => {
+    const parts: string[] = [];
+    if (searchQuery?.trim()) parts.push(`matching “${searchQuery.trim()}”`);
+    const active: string[] = [];
+    if (filterKeys?.includes('answeredPrayers')) active.push('answered prayers');
+    if (filterKeys?.includes('unansweredPrayers')) active.push('unanswered prayers');
+    if (filterKeys?.includes('reflectionJournals')) active.push('reflections');
+    if (filterKeys?.includes('prayers')) active.push('prayers');
+    if (filterKeys?.includes('gratitude')) active.push('gratitude');
+    if (filterKeys?.includes('todaysWin')) active.push("today's win");
+    if (filterKeys?.includes('planCarousel')) active.push('plans');
+    if (active.length) parts.push(`in ${active.join(', ')}`);
+    if (dateRange?.label) parts.push(`for ${dateRange.label.toLowerCase()}`);
+    const suffix = parts.length ? ` ${parts.join(' ')}` : '';
+    return `You don't have any moments${suffix}.`;
+  }, [searchQuery, filterKeys, dateRange?.label]);
+
+  const ListEmpty = useMemo(() => (
+    <View style={styles.emptyState} accessibilityRole="summary">
+      <Feather size={32} color={Colors.mediumGray} style={styles.emptyIcon} />
+      <ThemedText weight="semiBold" style={styles.emptyTitle}>No Moments Yet</ThemedText>
+      <ThemedText style={styles.emptySubtitle}>{emptySubtitleText}</ThemedText>
+      {!!onAddPress && (
+        <TouchableOpacity
+          onPress={() => { triggerLightHaptic(); onAddPress?.(); }}
+          style={styles.emptyButton}
+          accessibilityRole="button"
+          accessibilityLabel="Add a new moment"
+        >
+          <ThemedText weight="medium" style={styles.emptyButtonText}>Add a moment</ThemedText>
+        </TouchableOpacity>
+      )}
+    </View>
+  ), [emptySubtitleText, onAddPress]);
+
+  // Show skeleton during loading instead of empty state
+  if (_loading) {
+    return (
+      <View style={[styles.container, style]}>
+        <MomentsSkeleton />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.container, style]}>
       <SectionList
@@ -1979,6 +2029,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         automaticallyAdjustKeyboardInsets={false}
         contentInset={{ top: 0, bottom: 0, left: 0, right: 0 }}
         scrollIndicatorInsets={{ top: 0, bottom: 0, left: 0, right: 0 }}
+        ListEmptyComponent={ListEmpty}
         onViewableItemsChanged={({ viewableItems }) => {
           // Pick the first visible header's section key, else fall back to first visible item's section key
           const header = viewableItems.find(v => !v.item && v.section && typeof (v.section as any).key === 'string');
@@ -2055,6 +2106,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 0,
+    // Allow ListEmptyComponent to occupy full height so content can center vertically
+    flexGrow: 1,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -2134,11 +2187,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.hopeWhite,
     marginBottom: 8,
+    textAlign: 'center',
   },
   emptySubtitle: {
     fontSize: 14,
     color: Colors.mediumGray,
     textAlign: 'center',
+  },
+  emptyIcon: {
+    marginBottom: 8,
+  },
+  emptyButton: {
+    marginTop: 16,
+    backgroundColor: Colors.alertCoral,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  emptyButtonText: {
+    color: Colors.hopeWhite,
+    fontSize: 14,
   },
   carouselContainer: {
     marginBottom: 16,
