@@ -211,9 +211,11 @@ const ProfileHeader: React.FC<Props> = ({ user, stats, onEditPress, onEditAvatar
 
         <View style={styles.profileInfo}>
           <View style={styles.nameRow}>
-            <Text style={[styles.userName, font]}>{displayName}</Text>
+            <Text style={[styles.userName, font]} numberOfLines={1} ellipsizeMode="tail">{displayName}</Text>
           </View>
-          {!!user?.email && <Text style={[styles.userEmail, font]}>{user.email}</Text>}
+          {!!user?.email && (
+            <Text style={[styles.userEmail, font]} numberOfLines={1} ellipsizeMode="tail">{user.email}</Text>
+          )}
 
           <View style={styles.levelContainer}>
             <Text style={[styles.levelText, font]}>Level {level}: {LEVEL_TITLES[level] || ''}</Text>
@@ -273,6 +275,7 @@ const styles = StyleSheet.create({
   },
   profileInfo: {
     flex: 1,
+    minWidth: 0, // allow Text to shrink and truncate within row
   },
   nameRow: {
     flexDirection: 'row',

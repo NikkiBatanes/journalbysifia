@@ -1697,7 +1697,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.modalContent}>
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           {/* Avatar with edit inside Edit Profile */}
           <View style={styles.modalAvatarSection}>
             <View style={styles.modalAvatarContainer}>
@@ -1842,7 +1842,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           scrollIndicatorInsets={{ bottom: (insets?.bottom || 0), top: 0, left: 0, right: 0 }}
           contentInsetAdjustmentBehavior="never"
           automaticallyAdjustContentInsets={false}
-          showsVerticalScrollIndicator
+          showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.settingDescription, font]}>
             Choose your preferred Bible translation. This will be used across devotionals and verses.
@@ -1915,7 +1915,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.modalContent}>
+        <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
           <View style={styles.settingGroup}>
             <View style={styles.settingItem}>
               <Text style={[styles.settingLabel, font]}>Playbook Reminders</Text>
@@ -2065,6 +2065,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
+          showsVerticalScrollIndicator={false}
         >
           {/* Badges removed from main container */}
           {renderMenuOptions()}
