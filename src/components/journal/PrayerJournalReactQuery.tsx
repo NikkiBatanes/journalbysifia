@@ -440,38 +440,18 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
             </View>
           </View>
         ) : (
+          // OPEN tab: show title with icon and place subtitle inside header to match ACTS spacing
           <View style={styles.methodSection}>
             <View style={styles.methodHeader}>
-              <ThemedText style={styles.methodTitle} weight="bold">Open Prayer</ThemedText>
+              <View style={styles.methodHeaderRow}>
+                <Ionicons
+                  name="chatbubble-ellipses-outline"
+                  size={18}
+                  color={Colors.hopeWhite}
+                />
+                <ThemedText style={styles.methodTitle} weight="bold">Open Prayer</ThemedText>
+              </View>
               <ThemedText style={styles.methodSubtitle}>A simple, unstructured prayer</ThemedText>
-            </View>
-            <View style={styles.prayerTypeGrid}>
-              {freeformTypes.map((type) => (
-                <TouchableOpacity
-                  key={type.key}
-                  style={[
-                    styles.prayerTypeButtonFreeform,
-                    selectedPrayerType === type.key && styles.prayerTypeButtonFreeformSelected,
-                  ]}
-                  onPress={() => handlePrayerTypeSelect(type.key)}
-                >
-                  <Ionicons
-                    name={type.icon}
-                    size={20}
-                    color={selectedPrayerType === type.key ? Colors.hopeWhite : Colors.mediumGray}
-                  />
-                  <ThemedText
-                    style={[
-                      styles.prayerTypeTextFreeform,
-                      selectedPrayerType === type.key && styles.prayerTypeTextFreeformSelected,
-                    ]}
-                    weight="semiBold"
-                  >
-                    {type.displayName}
-                  </ThemedText>
-                  <ThemedText style={styles.prayerTypeDescriptionFreeform}>{type.description}</ThemedText>
-                </TouchableOpacity>
-              ))}
             </View>
           </View>
         )}
@@ -482,19 +462,36 @@ export const PrayerJournalReactQuery: React.FC<PrayerJournalProps> = ({
   // Render prayer input
   const renderPrayerInput = () => (
     <View style={styles.inputContainer}>
-      <ThemedText style={styles.inputLabel} weight="semiBold">
-        {PRAYER_TYPES.find(t => t.key === selectedPrayerType)?.displayName} Prayer
-      </ThemedText>
-      <TextInput
-        style={[styles.textInput, { fontFamily: regularFont }]}
-        placeholder={`Write your ${selectedPrayerType} prayer...`}
-        placeholderTextColor={Colors.mediumGray}
-        value={prayerText}
-        onChangeText={setPrayerText}
-        multiline
-        numberOfLines={6}
-        textAlignVertical="top"
-      />
+      {/* Hide the label for freeform to avoid 'Open Prayer Prayer' */}
+      {selectedPrayerType !== 'freeform' && (
+        <ThemedText style={styles.inputLabel} weight="semiBold">
+          {PRAYER_TYPES.find(t => t.key === selectedPrayerType)?.displayName} Prayer
+        </ThemedText>
+      )}
+
+      {selectedPrayerType === 'freeform' ? (
+        <TextInput
+          style={[styles.textInput, { fontFamily: regularFont }]}
+          placeholder={`Pray freely from your heart...`}
+          placeholderTextColor={Colors.mediumGray}
+          value={prayerText}
+          onChangeText={setPrayerText}
+          multiline
+          numberOfLines={6}
+          textAlignVertical="top"
+        />
+      ) : (
+        <TextInput
+          style={[styles.textInput, { fontFamily: regularFont }]}
+          placeholder={`Write your ${selectedPrayerType} prayer...`}
+          placeholderTextColor={Colors.mediumGray}
+          value={prayerText}
+          onChangeText={setPrayerText}
+          multiline
+          numberOfLines={6}
+          textAlignVertical="top"
+        />
+      )}
 
       <View style={styles.editButtonBar}>
         <TouchableOpacity
@@ -689,6 +686,11 @@ const styles = StyleSheet.create({
     gap: 2,
     marginBottom: 8,
   },
+  methodHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   methodTitle: {
     fontSize: 14,
     color: Colors.hopeWhite,
@@ -782,6 +784,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     lineHeight: 24,
+  },
+  freeformRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  freeformIcon: {
+    marginTop: 14,
+  },
+  freeformInput: {
+    flex: 1,
   },
   editButtonBar: {
     flexDirection: 'row',
