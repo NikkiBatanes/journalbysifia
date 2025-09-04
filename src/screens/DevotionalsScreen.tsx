@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { Pencil } from 'lucide-react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Pencil } from 'lucide-react-native';
 import {
   View,
   StyleSheet,
@@ -13,7 +13,7 @@ import {
   NativeModules,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
@@ -55,7 +55,15 @@ const DevotionalsScreen = () => {
   } = useDevotionalOperations(userId || '');
 
   // Fetch user's playbooks to suggest creating devotionals
-  const { data: playbooks = [], isLoading: isLoadingPlaybooks } = usePlaybooksData(userId || '');
+  const { data: playbooks = [], isLoading: isLoadingPlaybooks, refetch: refetchPlaybooks } = usePlaybooksData(userId || '');
+
+  // Ensure latest playbooks are shown when returning to this screen
+  useFocusEffect(
+    useCallback(() => {
+      // Force a refetch regardless of staleTime, so newly created playbooks are visible
+      refetchPlaybooks();
+    }, [refetchPlaybooks])
+  );
 
   // Subtle haptic feedback, gated by user preference
   const triggerLightHaptic = () => {
@@ -340,20 +348,19 @@ const DevotionalsScreen = () => {
                 return "Create a playbook for what you're facing, then build a daily devotional from it.";
               })()}
             </ThemedText>
-            <TouchableOpacity
-              onPress={() => {
-                if (!hasPlaybooks) {
-                  navigation.navigate('UserInput' as never);
-                } else {
-                  navigation.navigate('Playbooks' as never);
-                }
-              }}
-              activeOpacity={0.85}
-              style={styles.heroOutlineButton}
-            >
-              <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
-              <ThemedText weight="medium" style={styles.heroOutlineButtonText}>{hasPlaybooks ? 'Create a Devotional' : 'Create a Playbook'}</ThemedText>
-            </TouchableOpacity>
+
+            {/* Create Playbook CTA (only when there are no playbooks) */}
+            {!hasPlaybooks && (
+              <TouchableOpacity
+                onPress={() => { triggerLightHaptic(); (navigation as any).navigate('UserInput'); }}
+                activeOpacity={0.85}
+                style={styles.heroOutlineButton}
+              >
+                <Pencil size={16} color={Colors.hopeWhite} style={styles.heroButtonIcon} />
+                <ThemedText weight="medium" style={styles.heroOutlineButtonText}>Create a Playbook</ThemedText>
+              </TouchableOpacity>
+            )}
+
 
             {/* Guided steps */}
             <View style={styles.stepsContainer}>
@@ -427,6 +434,7 @@ const DevotionalsScreen = () => {
                         style={styles.cardCTA}
                         activeOpacity={0.9}
                         onPress={() => {
+                          console.log('[DevotionalsScreen] Selected playbook for devotional modal:', { id: item.id, title: item.title, userInput: item.userInput?.slice?.(0, 80) });
                           setSelectedPlaybookId(item.id);
                           // Use the actual user input captured when creating the playbook
                           setSelectedPlaybookInfo(item.userInput);
@@ -591,13 +599,10 @@ const DevotionalsScreen = () => {
         onClose={() => setShowDevotionalModal(false)}
         playbookId={selectedPlaybookId || undefined}
         playbookInfo={selectedPlaybookInfo || undefined}
-        onSelectDuration={(days) => {
-          setShowDevotionalModal(false);
-          // Navigate to PlaybookDetail to continue creation with selected playbook
-          if (selectedPlaybookId) {
-            // Fallback: fetch playbook then navigate (reuse existing helper)
-            handlePlaybookPress(selectedPlaybookId);
-          }
+        userInput={selectedPlaybookInfo || undefined}
+        onDevotionalCreated={(devotionalId) => {
+          // Navigate straight to the newly created devotional
+          navigation.navigate('DevotionalDetail', { devotionalId });
         }}
       />
     </SafeAreaView>
