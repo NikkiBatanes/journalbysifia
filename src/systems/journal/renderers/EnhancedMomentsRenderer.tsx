@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { View, StyleSheet, SectionList, RefreshControlProps, Dimensions, FlatList, TouchableOpacity } from 'react-native';
-import { Check, ChevronDown, ChevronUp, X, Feather } from 'lucide-react-native';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, SectionList, RefreshControlProps, Dimensions, TouchableOpacity } from 'react-native';
+import { Feather } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { JournalPlugin } from '../types';
 import { PluginRenderer } from '../PluginRenderer';
@@ -17,7 +17,7 @@ import { useAuth } from '../../../context/IndustryStandardAuthContext';
 import { triggerLightHaptic } from '../../../utils/haptics';
 import MomentsSkeleton from '../../../components/SkeletonLoader/MomentsSkeleton';
 
-const { width: screenWidth } = Dimensions.get('window');
+// Removed unused screenWidth variable
 
 interface EnhancedMomentsRendererProps {
   plugins: JournalPlugin[];
@@ -87,52 +87,52 @@ const TYPE_ORDER = {
 
 const textToOrderKey = (text: string): keyof typeof TYPE_ORDER | null => {
   const s = (text || '').toLowerCase();
-  if (s.includes("today's focus") || s.includes('todays focus') || s.includes('focus')) return 'focus';
-  if (s === 'todo' || s.includes('todo')) return 'todos';
+  if (s.includes("today's focus") || s.includes('todays focus') || s.includes('focus')) {return 'focus';}
+  if (s === 'todo' || s.includes('todo')) {return 'todos';}
   // Time blocks (including common typos like timebloack)
-  if (s.includes('time block') || s.includes('timeblocks') || s.includes('timeblock') || s.includes('time blocks') || s.includes('timebloack')) return 'timeblocks';
+  if (s.includes('time block') || s.includes('timeblocks') || s.includes('timeblock') || s.includes('time blocks') || s.includes('timebloack')) {return 'timeblocks';}
   // Gratitude
-  if (s.includes('gratitude list') || s.includes('gratitude')) return 'gratitude';
+  if (s.includes('gratitude list') || s.includes('gratitude')) {return 'gratitude';}
   // Reflection variants
-  if (s.includes('reflections') || s.includes('reflection journal') || s.includes('reflection')) return 'reflection';
+  if (s.includes('reflections') || s.includes('reflection journal') || s.includes('reflection')) {return 'reflection';}
   // Prayer journal
-  if (s.includes('prayer journal')) return 'prayerjournal';
+  if (s.includes('prayer journal')) {return 'prayerjournal';}
   // Devotional prayers
-  if (s.includes('devotional prayers') || s.includes('prayed devotional')) return 'devotionalprayers';
+  if (s.includes('devotional prayers') || s.includes('prayed devotional')) {return 'devotionalprayers';}
   // People prayers
-  if (s.includes('prayer list for people') || s.includes('prayer list') || s.includes('people prayer') || s.includes('people')) return 'peopleprayers';
+  if (s.includes('prayer list for people') || s.includes('prayer list') || s.includes('people prayer') || s.includes('people')) {return 'peopleprayers';}
   // Win
-  if (s.includes("today's win") || s.includes('todays win') || s.includes("yesterday's win") || s.includes('yesterdays win') || s === 'win') return 'win';
+  if (s.includes("today's win") || s.includes('todays win') || s.includes("yesterday's win") || s.includes('yesterdays win') || s === 'win') {return 'win';}
   // Looking forward
-  if (s.includes('looking forward to') || s.includes('looking forward')) return 'lookingforward';
+  if (s.includes('looking forward to') || s.includes('looking forward')) {return 'lookingforward';}
   return null;
 };
 
 const normalizePluginIdToKey = (pidRaw: string): keyof typeof TYPE_ORDER | null => {
   const pid = (pidRaw || '').toLowerCase();
-  if (!pid) return null;
+  if (!pid) {return null;}
   // Direct matches
-  if (pid in TYPE_ORDER) return pid as keyof typeof TYPE_ORDER;
+  if (pid in TYPE_ORDER) {return pid as keyof typeof TYPE_ORDER;}
   // Common aliases -> canonical keys
-  if (pid === 'todo') return 'todos';
-  if (pid === 'timeblock' || pid === 'timeblocks' || pid === 'time-blocks') return 'timeblocks';
-  if (pid === 'gratitude' || pid === 'gratitudejournal') return 'gratitude';
-  if (pid === 'reflection' || pid === 'reflections' || pid === 'reflectionjournal') return 'reflection';
-  if (pid === 'prayer-journal' || pid === 'openprayer' || pid === 'actsprayer') return 'prayerjournal';
-  if (pid === 'devotional' || pid === 'devotional-prayers' || pid === 'prayeddevotional') return 'devotionalprayers';
-  if (pid === 'people' || pid === 'people-prayers' || pid === 'prayerpeople' || pid === 'prayerlist') return 'peopleprayers';
-  if (pid === 'win' || pid === 'wins' || pid === 'yesterdayswin') return 'win';
-  if (pid === 'lookingforwardto' || pid === 'looking-forward') return 'lookingforward';
-  if (pid === "today's focus" || pid === 'todaysfocus' || pid === 'focus-today') return 'focus';
+  if (pid === 'todo') {return 'todos';}
+  if (pid === 'timeblock' || pid === 'timeblocks' || pid === 'time-blocks') {return 'timeblocks';}
+  if (pid === 'gratitude' || pid === 'gratitudejournal') {return 'gratitude';}
+  if (pid === 'reflection' || pid === 'reflections' || pid === 'reflectionjournal') {return 'reflection';}
+  if (pid === 'prayer-journal' || pid === 'openprayer' || pid === 'actsprayer') {return 'prayerjournal';}
+  if (pid === 'devotional' || pid === 'devotional-prayers' || pid === 'prayeddevotional') {return 'devotionalprayers';}
+  if (pid === 'people' || pid === 'people-prayers' || pid === 'prayerpeople' || pid === 'prayerlist') {return 'peopleprayers';}
+  if (pid === 'win' || pid === 'wins' || pid === 'yesterdayswin') {return 'win';}
+  if (pid === 'lookingforwardto' || pid === 'looking-forward') {return 'lookingforward';}
+  if (pid === "today's focus" || pid === 'todaysfocus' || pid === 'focus-today') {return 'focus';}
   return null;
 };
 
 const getEntryRank = (entry: Partial<MomentEntry>): number => {
   const pid = entry?.plugin?.id?.toLowerCase?.() || '';
   const normalized = normalizePluginIdToKey(pid);
-  if (normalized) return TYPE_ORDER[normalized];
+  if (normalized) {return TYPE_ORDER[normalized];}
   const keyFromType = textToOrderKey((entry as any)?.type || entry?.plugin?.title || (entry as any)?.category || '');
-  if (keyFromType) return TYPE_ORDER[keyFromType];
+  if (keyFromType) {return TYPE_ORDER[keyFromType];}
   return 50;
 };
 
@@ -155,7 +155,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
   const fontSemiBold = getFontFamily(fontKey, 'semiBold');
   const fontRegular = getFontFamily(fontKey, 'regular');
   const { user } = useAuth();
-  const insets = useSafeAreaInsets();
+  // Removed unused insets variable
   const [realEntries, setRealEntries] = React.useState<MomentEntry[]>([]);
   const [_loading, setLoading] = React.useState(true);
   // Determine user's week start preference from auth user metadata if available; default to Sunday (0)
@@ -1064,14 +1064,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           const wkKey = expandedKey.split('::')[1];
           const found = Object.values(monthWeeks).find(w => format(w.start, 'yyyy-MM-dd') === wkKey) ||
                         Object.values(monthWeeks).find(w => w.key === expandedKey);
-          if (found) target = found;
+          if (found) {target = found;}
         }
 
         if (target) {
           // Group entries by day
           const byDay = target.entries.reduce((acc, e) => {
             const k = format(e.date, 'yyyy-MM-dd');
-            if (!acc[k]) acc[k] = [] as MomentEntry[];
+            if (!acc[k]) {acc[k] = [] as MomentEntry[];}
             acc[k].push(e);
             return acc;
           }, {} as Record<string, MomentEntry[]>);
@@ -1116,7 +1116,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       sortedEntries.forEach((entry) => {
         const yearKey = format(entry.date, 'yyyy');
         const monthKey = format(startOfMonth(entry.date), 'yyyy-MM');
-        if (!byYear[yearKey]) byYear[yearKey] = {} as YearMonths;
+        if (!byYear[yearKey]) {byYear[yearKey] = {} as YearMonths;}
         if (!byYear[yearKey][monthKey]) {
           const start = startOfMonth(entry.date);
           const end = endOfMonth(entry.date);
@@ -1128,7 +1128,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         const m = byYear[yearKey][monthKey];
         m.entries.push(entry);
         const dk = format(entry.date, 'yyyy-MM-dd');
-        if (!m.days[dk]) m.days[dk] = [];
+        if (!m.days[dk]) {m.days[dk] = [];}
         m.days[dk].push(entry);
       });
 
@@ -1156,7 +1156,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         months.forEach((mk) => {
           const m = byYear[yearKey][mk];
           const isExpanded = expandedSet.has(mk);
-          if (!isExpanded) return;
+          if (!isExpanded) {return;}
           // Emit a month header section with a non-rendering placeholder item so only the sticky title shows
           const monthHeader: MonthHeaderItem = { kind: 'monthHeader', key: m.key };
           sections.push({ title: format(m.start, 'MMMM') + (m.start.getFullYear() === new Date().getFullYear() ? '' : ` ${format(m.start, 'yyyy')}`), data: [monthHeader as any], key: `monthsec-${mk}` });
@@ -1185,7 +1185,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       sortedEntries.forEach((entry) => {
         const yearKey = format(entry.date, 'yyyy');
         const monthKey = format(startOfMonth(entry.date), 'yyyy-MM');
-        if (!byYear[yearKey]) byYear[yearKey] = {} as YearMonths;
+        if (!byYear[yearKey]) {byYear[yearKey] = {} as YearMonths;}
         if (!byYear[yearKey][monthKey]) {
           const start = startOfMonth(entry.date);
           const end = endOfMonth(entry.date);
@@ -1196,7 +1196,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         const m = byYear[yearKey][monthKey];
         m.entries.push(entry);
         const dk = format(entry.date, 'yyyy-MM-dd');
-        if (!m.days[dk]) m.days[dk] = [];
+        if (!m.days[dk]) {m.days[dk] = [];}
         m.days[dk].push(entry);
       });
 
@@ -1422,13 +1422,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         }
         // Default: collapse months and, if available, re-expand the associated year
         setExpandedMonths({});
-        if (yearFromKey) setExpandedYears({ [yearFromKey]: true });
+        if (yearFromKey) {setExpandedYears({ [yearFromKey]: true });}
       };
       const showChevron = section.key === currentStickyKey;
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
           <View style={[styles.sectionHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }]}>
-            <ThemedText accessibilityLabel="Back to months" style={{ marginRight: 8, fontSize: 18, color: Colors.hopeWhite, opacity: showChevron ? 1 : 0 }}>‹</ThemedText>
+            <ThemedText accessibilityLabel="Back to months" style={[styles.chevronIcon, { opacity: showChevron ? 1 : 0 }]}>‹</ThemedText>
             <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
               {section.title}
             </ThemedText>
@@ -1445,9 +1445,9 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       const showChevron = section.key === currentStickyKey;
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
-          <View style={[styles.sectionHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }]}> 
-            <ThemedText accessibilityLabel="Back to weeks" style={{ marginRight: 8, fontSize: 18, color: Colors.hopeWhite, opacity: showChevron ? 1 : 0 }}>‹</ThemedText>
-            <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}> 
+          <View style={[styles.sectionHeader, { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }]}>
+            <ThemedText accessibilityLabel="Back to weeks" style={[styles.chevronIcon, { opacity: showChevron ? 1 : 0 }]}>‹</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
               {section.title}
             </ThemedText>
           </View>
@@ -1500,7 +1500,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     }
   }, [groupBy]);
 
-  const renderCarouselItem: any = ({ item, index, section }: any) => {
+  const renderCarouselItem: any = ({ item, index, _section }: any) => {
     if (groupBy === 'week') {
       // Support custom emitted kinds when a week is expanded
       const maybeKind: any = item as any;
@@ -1534,7 +1534,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         const ordered = filteredEntries.slice().sort((a, b) => {
           const ra = getEntryRank(a);
           const rb = getEntryRank(b);
-          if (ra !== rb) return ra - rb;
+          if (ra !== rb) {return ra - rb;}
           return (b.date?.getTime?.() ?? new Date(b.date as any).getTime()) - (a.date?.getTime?.() ?? new Date(a.date as any).getTime());
         });
         return (
@@ -1552,13 +1552,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         );
       }
       const week = item as WeekItem;
-      if (!week) return null;
+      if (!week) {return null;}
       const weekNumber = getWeek(week.start, { weekStartsOn, firstWeekContainsDate: 4 });
       const isExpanded = !!expandedWeeks[week.key];
       const toggle = () => {
         triggerLightHaptic();
         return setExpandedWeeks(prev => {
-          if (prev[week.key]) return {};
+          if (prev[week.key]) {return {};}
           return { [week.key]: true } as Record<string, boolean>;
         });
       };
@@ -1571,7 +1571,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
 
       const byDay = week.entries.reduce((acc, e) => {
         const k = format(e.date, 'yyyy-MM-dd');
-        if (!acc[k]) acc[k] = [] as typeof week.entries;
+        if (!acc[k]) {acc[k] = [] as typeof week.entries;}
         acc[k].push(e);
         return acc;
       }, {} as Record<string, MomentEntry[]>);
@@ -1588,10 +1588,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
           <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
             <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
-              <ThemedText style={[styles.weekRangeTitle, { fontFamily: fontRegular, marginTop: 0 }] }>
+              <ThemedText style={[styles.weekRangeTitle, { fontFamily: fontRegular }]} >
                 {`Week ${weekNumber}`}
               </ThemedText>
-              <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold, marginTop: 2 }] }>
+              <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }, styles.weekTitleSpacing]} >
                 {displayRangeTitle}
               </ThemedText>
               {Object.keys(counts).length > 0 && (
@@ -1639,7 +1639,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       const ordered = filteredEntries.slice().sort((a, b) => {
                         const ra = getEntryRank(a);
                         const rb = getEntryRank(b);
-                        if (ra !== rb) return ra - rb;
+                        if (ra !== rb) {return ra - rb;}
                         return (b.date?.getTime?.() ?? new Date(b.date as any).getTime()) - (a.date?.getTime?.() ?? new Date(a.date as any).getTime());
                       });
 
@@ -1703,7 +1703,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         const ordered = filteredEntries.slice().sort((a, b) => {
           const ra = getEntryRank(a);
           const rb = getEntryRank(b);
-          if (ra !== rb) return ra - rb;
+          if (ra !== rb) {return ra - rb;}
           return (b.date?.getTime?.() ?? new Date(b.date as any).getTime()) - (a.date?.getTime?.() ?? new Date(a.date as any).getTime());
         });
         return (
@@ -1720,13 +1720,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           </View>
         );
       }
-      if (!month) return null;
+      if (!month) {return null;}
       const isExpanded = !!expandedMonths[month.key];
       const toggle = () => {
         triggerLightHaptic();
         return setExpandedMonths(prev => {
           // Exclusive expansion: if tapping the already-expanded month, collapse all; otherwise expand only this one
-          if (prev[month.key]) return {};
+          if (prev[month.key]) {return {};}
           return { [month.key]: true } as Record<string, boolean>;
         });
       };
@@ -1741,7 +1741,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       // Group by day
       const byDay = month.entries.reduce((acc, e) => {
         const k = format(e.date, 'yyyy-MM-dd');
-        if (!acc[k]) acc[k] = [] as typeof month.entries;
+        if (!acc[k]) {acc[k] = [] as typeof month.entries;}
         acc[k].push(e);
         return acc;
       }, {} as Record<string, MomentEntry[]>);
@@ -1751,7 +1751,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }]}>
           <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
             <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }]}>
-              <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}> 
+              <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
                 {month.title}
               </ThemedText>
               {Object.keys(counts).length > 0 && (
@@ -1787,13 +1787,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
                       });
                       const filtered = dayEntries.filter((e, i) => {
                         const pid = (e as any)?.plugin?.id || '';
-                        if (pid === 'prayerjournal') return i === newestPrayerIdx;
+                        if (pid === 'prayerjournal') {return i === newestPrayerIdx;}
                         return true;
                       });
                       const ordered = filtered.slice().sort((a, b) => {
                         const ra = getEntryRank(a);
                         const rb = getEntryRank(b);
-                        if (ra !== rb) return ra - rb;
+                        if (ra !== rb) {return ra - rb;}
                         return (b.date?.getTime?.() ?? new Date(b.date as any).getTime()) - (a.date?.getTime?.() ?? new Date(a.date as any).getTime());
                       });
                       return ordered.map((entry, i) => (
@@ -1837,13 +1837,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         });
         const filteredEntries = dayEntries.filter((e, i) => {
           const pid = (e as any)?.plugin?.id || '';
-          if (pid === 'prayerjournal') return i === newestPrayerIdx;
+          if (pid === 'prayerjournal') {return i === newestPrayerIdx;}
           return true;
         });
         const ordered = filteredEntries.slice().sort((a, b) => {
           const ra = getEntryRank(a);
           const rb = getEntryRank(b);
-          if (ra !== rb) return ra - rb;
+          if (ra !== rb) {return ra - rb;}
           return (b.date?.getTime?.() ?? new Date(b.date as any).getTime()) - (a.date?.getTime?.() ?? new Date(a.date as any).getTime());
         });
         return (
@@ -1880,7 +1880,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
             <TouchableOpacity onPress={toggle} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
               <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
-                <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}> 
+                <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
                   {month.title}
                 </ThemedText>
                 {Object.keys(counts).length > 0 && (
@@ -1908,7 +1908,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
           <View style={[styles.weekCardContainer, { backgroundColor: 'transparent' }] }>
             <TouchableOpacity onPress={toggleYear} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
               <View style={[styles.weekCardHeader, { backgroundColor: 'transparent', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'flex-start' }] }>
-                <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}> 
+                <ThemedText weight="semiBold" style={[styles.sectionTitle, { fontFamily: fontSemiBold }]}>
                   {year}
                 </ThemedText>
                 {Object.keys(counts).length > 0 && (
@@ -1942,7 +1942,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         ))}
       </View>
     );
-  }
+  };
   // (moved sectionsWithContent useMemo above)
 
   // Ensure scroll resets when structure changes (e.g., expand/collapse year/month/week or switch views/filters)
@@ -1968,22 +1968,22 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         (sectionListRef.current as any)?.getScrollResponder?.()?.scrollTo?.({ y: 0, animated: false });
       }
     });
-  }, [listKey, sectionsWithContent?.length]);
+  }, [listKey]);
 
   // Context-aware empty subtitle
   const emptySubtitleText = useMemo(() => {
     const parts: string[] = [];
-    if (searchQuery?.trim()) parts.push(`matching “${searchQuery.trim()}”`);
+    if (searchQuery?.trim()) {parts.push(`matching “${searchQuery.trim()}”`);}
     const active: string[] = [];
-    if (filterKeys?.includes('answeredPrayers')) active.push('answered prayers');
-    if (filterKeys?.includes('unansweredPrayers')) active.push('unanswered prayers');
-    if (filterKeys?.includes('reflectionJournals')) active.push('reflections');
-    if (filterKeys?.includes('prayers')) active.push('prayers');
-    if (filterKeys?.includes('gratitude')) active.push('gratitude');
-    if (filterKeys?.includes('todaysWin')) active.push("today's win");
-    if (filterKeys?.includes('planCarousel')) active.push('plans');
-    if (active.length) parts.push(`in ${active.join(', ')}`);
-    if (dateRange?.label) parts.push(`for ${dateRange.label.toLowerCase()}`);
+    if (filterKeys?.includes('answeredPrayers')) {active.push('answered prayers');}
+    if (filterKeys?.includes('unansweredPrayers')) {active.push('unanswered prayers');}
+    if (filterKeys?.includes('reflectionJournals')) {active.push('reflections');}
+    if (filterKeys?.includes('prayers')) {active.push('prayers');}
+    if (filterKeys?.includes('gratitude')) {active.push('gratitude');}
+    if (filterKeys?.includes('todaysWin')) {active.push("today's win");}
+    if (filterKeys?.includes('planCarousel')) {active.push('plans');}
+    if (active.length) {parts.push(`in ${active.join(', ')}`);}
+    if (dateRange?.label) {parts.push(`for ${dateRange.label.toLowerCase()}`);}
     const suffix = parts.length ? ` ${parts.join(' ')}` : '';
     return `You don't have any moments${suffix}.`;
   }, [searchQuery, filterKeys, dateRange?.label]);
@@ -2252,7 +2252,7 @@ const styles = StyleSheet.create({
   weekCardHeader: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(0,0,0,0.15)'
+    backgroundColor: 'rgba(0,0,0,0.15)',
   },
   weekRangeTitle: {
     fontSize: 16,
@@ -2306,6 +2306,31 @@ const styles = StyleSheet.create({
     marginHorizontal: -16,
     alignSelf: 'stretch',
     overflow: 'visible',
+  },
+  // New styles for cleaned up inline styles
+  chevronIcon: {
+    marginRight: 8,
+    fontSize: 18,
+    color: Colors.hopeWhite,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  transparentBackground: {
+    backgroundColor: 'transparent',
+  },
+  columnLayout: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+  },
+  weekTitleSpacing: {
+    marginTop: 2,
+  },
+  countsSpacing: {
+    marginTop: 4,
   },
 
 });

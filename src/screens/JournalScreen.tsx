@@ -1,5 +1,5 @@
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import React, { useState, useEffect, useImperativeHandle, forwardRef, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useImperativeHandle, useRef, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, StatusBar, KeyboardAvoidingView, Platform, Modal, NativeModules } from 'react-native';
 import { Feather, CalendarDays } from 'lucide-react-native';
@@ -9,9 +9,6 @@ import type { Day } from 'date-fns';
 import { Colors } from '../theme/colors';
 import { Fonts, getFontFamily } from '../theme/fonts';
 import { useTheme } from '../theme/ThemeContext';
-// import { Typography } from '../theme/typography';
-// import LinearGradient from 'react-native-linear-gradient'; // unused
-// import { AnimationUtils } from '../utils/AnimationUtils'; // unused
 import { useScroll } from '../context/ScrollContext';
 
 import PlanCarousel from '../components/journal/PlanCarousel';
@@ -21,9 +18,6 @@ import ThemedText from '../components/common/ThemedText';
 
 // Inline system removed
 import { useAuth } from '../context/IndustryStandardAuthContext';
-import { forceRefreshAllJournalData } from '../storage/journalStorage';
-import { forceRefreshReflectionEntries } from '../storage/reflectionStorage';
-import { supabase } from '../services/supabaseClient';
 
 export type JournalScreenRef = {
   resetToCurrentDate: () => void;
@@ -33,9 +27,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const { user } = useAuth();
   const { currentFont } = useTheme();
   const fontKey = currentFont || 'lexend';
-  const fontRegular = getFontFamily(fontKey, 'regular');
   const fontMedium = getFontFamily(fontKey, 'medium');
-  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
   const fontBold = getFontFamily(fontKey, 'bold');
   // Get week start preference from user metadata
   const weekStartPreference = (user as any)?.user_metadata?.preferences?.weekStart as
@@ -58,9 +50,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [viewMode] = useState<'carousel'>('carousel');
+  const [refreshKey] = useState(0);
   const lastSelectedDate = useRef<Date | null>(null);
 
   // Removed: global edit mode (inline view no longer used)
@@ -111,9 +101,9 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   const triggerLightHaptic = useCallback(() => {
     try {
       const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) return;
+      if (!RNHapticFeedback) {return;}
       const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) return;
+      if (hapticsPref === false) {return;}
       const Haptic = require('react-native-haptic-feedback');
       const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
       if (typeof triggerFn === 'function') {
@@ -173,8 +163,8 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     const subSelf = navigation?.addListener?.('tabPress', resetToTop);
     const subParent = navigation?.getParent?.()?.addListener?.('tabPress', resetToTop);
     return () => {
-      if (typeof subSelf === 'function') subSelf();
-      if (typeof subParent === 'function') subParent();
+      if (typeof subSelf === 'function') {subSelf();}
+      if (typeof subParent === 'function') {subParent();}
     };
   }, [navigation, resetToTop]);
 
@@ -185,9 +175,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       return () => {};
     }, [])
   );
-  // Unused state variable - keeping for potential future use
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn }));
   const [weeks, setWeeks] = useState<Date[][]>([]);
   const screenWidth = Dimensions.get('window').width;
   const scrollX = useRef(0);
@@ -205,11 +192,11 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
     const { contentOffset } = event.nativeEvent || {};
     const offsetX = contentOffset?.x ?? 0;
     const weekIndex = Math.round(offsetX / screenWidth);
-    if (weeks.length === 0 || weekIndex < 0 || weekIndex >= weeks.length) return;
+    if (weeks.length === 0 || weekIndex < 0 || weekIndex >= weeks.length) {return;}
     const currentWeek = weeks[weekIndex];
-    if (!currentWeek || selectedDayOfWeek < 0 || selectedDayOfWeek >= currentWeek.length) return;
+    if (!currentWeek || selectedDayOfWeek < 0 || selectedDayOfWeek >= currentWeek.length) {return;}
     const targetDay = currentWeek[selectedDayOfWeek];
-    if (!targetDay) return;
+    if (!targetDay) {return;}
     const key = format(targetDay, 'yyyy-MM-dd');
     if (key !== lastHeaderHapticDateKey.current && now - lastHeaderHapticTime.current > 120) {
       triggerLightHaptic();
@@ -237,7 +224,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
       // Generate weeks spanning 3 months (previous, current, next) for smooth scrolling
       const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-      const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
 
       // Get the first day to show (start from previous month)
       let currentWeekStart = startOfWeek(prevMonth, { weekStartsOn });
@@ -435,22 +421,6 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
 
   // Inline view removed: no pages pagination
 
-  // Removed: tap-to-inline navigation (cards no longer tappable)
-
-  // Removed unused handleBackToCarousel function
-
-  // Removed: inline page/component mapping and scroll logic
-
-  // Temporary function for testing component navigation
-  // This can be called from console or added as onPress handlers
-  // Removed: navigateToComponent helper
-
-  // Expose navigation function for testing
-  // Removed: expose navigateToComponent (no longer applicable)
-
-  // Removed: inline page scroll handler
-
-  // Removed: swipe-to-close inline view
 
   const handleContentScroll = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
     const y = event.nativeEvent.contentOffset.y;
@@ -957,7 +927,6 @@ const styles = StyleSheet.create({
     color: Colors.anchorBlue,
     marginBottom: 16,
   },
-  // Inline view removed: deleted unused styles (edit button, pagination)
   // Calendar modal styles
   modalOverlay: {
     flex: 1,

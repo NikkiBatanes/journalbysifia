@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, RefreshControl, StatusBar, TouchableOpacity, Dimensions } from 'react-native';
+import { View, StyleSheet, RefreshControl, StatusBar, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
@@ -10,9 +10,11 @@ import type { DateRange, FilterType } from '../components/moments/DateFilterBar'
 // New dropdown controls
 import GroupingSelect, { GroupingMode, GroupingSelectHandle } from '../components/moments/GroupingSelect';
 import FilterSelect, { FilterKey, FilterSelectHandle } from '../components/moments/FilterSelect';
-import type { GroupingType, SortType, PrayerAnswerFilter } from '../components/moments/GroupingControls';
+import { GroupingType } from '../components/moments/GroupingControls';
 import { EnhancedMomentsRenderer } from '../systems/journal/renderers/EnhancedMomentsRenderer';
 import { getAllPlugins } from '../systems/journal/plugins/registry';
+
+type PrayerAnswerFilter = 'all' | 'answered' | 'unanswered';
 
 export const MomentsScreen: React.FC = () => {
   const { currentFont } = useTheme();
@@ -26,14 +28,14 @@ export const MomentsScreen: React.FC = () => {
     endDate: new Date(), // Cap at current local date to avoid showing future entries by default
     label: 'Until Today',
   });
-  const [filterType, setFilterType] = useState<FilterType>('range');
-  const [showFilters, setShowFilters] = useState(true);
+  const [filterType, _setFilterType] = useState<FilterType>('range');
+  const [_showFilters, _setShowFilters] = useState(false);
 
   // Grouping and search state
   const [groupBy, setGroupBy] = useState<GroupingType>('date');
-  const [sortBy, setSortBy] = useState<SortType>('newest');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
+  const [sortBy, _setSortBy] = useState<'newest' | 'oldest' | 'category' | 'type'>('newest');
+  const [searchQuery, _setSearchQuery] = useState('');
+  const [_showSearch, _setShowSearch] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   // Prayer answered filter state
   const [prayerAnswerFilter, setPrayerAnswerFilter] = useState<PrayerAnswerFilter>('all');
@@ -45,17 +47,17 @@ export const MomentsScreen: React.FC = () => {
   const groupingRef = useRef<GroupingSelectHandle>(null);
   const filterRef = useRef<FilterSelectHandle>(null);
 
-  // TEMP: map new grouping to legacy groupBy until renderer is updated
+  // Map new grouping to legacy groupBy until renderer is updated
   React.useEffect(() => {
     const mapping: Record<GroupingMode, GroupingType> = {
       day: 'date',
-      week: 'week', // now supported by renderer
+      week: 'week',
       month: 'month',
-      year: 'year', // now supported by renderer
+      year: 'year',
     };
     const next = mapping[groupingMode];
-    if (next !== groupBy) setGroupBy(next);
-  }, [groupingMode]);
+    if (next !== groupBy) {setGroupBy(next);}
+  }, [groupBy, groupingMode]);
 
   // Get all available plugins
   const plugins = getAllPlugins();
@@ -69,29 +71,7 @@ export const MomentsScreen: React.FC = () => {
     }, 1000);
   };
 
-  const handleDateChange = (date: Date) => {
-    setSelectedDate(date);
-    setSelectedRange({
-      startDate: date,
-      endDate: date,
-      label: 'Selected Date',
-    });
-  };
-
-  const handleDateRangeChange = (range: DateRange) => {
-    setSelectedRange(range);
-  };
-
-  const handleFilterTypeChange = (type: FilterType) => {
-    setFilterType(type);
-    if (type === 'single') {
-      setSelectedRange({
-        startDate: selectedDate,
-        endDate: selectedDate,
-        label: 'Selected Date',
-      });
-    }
-  };
+  // Removed unused handlers
 
   const getCurrentDateRange = (): DateRange => {
     if (filterType === 'single') {
@@ -181,7 +161,7 @@ const styles = StyleSheet.create({
     borderRadius: 0, // edge-to-edge
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
   },
   headerTopRow: {
@@ -204,10 +184,10 @@ const styles = StyleSheet.create({
   headerControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 4,
   },
   headerControlsCompact: {
-    gap: 8,
+    gap: 4,
     flexWrap: 'wrap',
     flexShrink: 1,
     justifyContent: 'flex-start',
