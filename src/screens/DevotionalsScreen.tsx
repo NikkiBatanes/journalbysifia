@@ -12,6 +12,7 @@ import {
   StatusBar,
   NativeModules,
   Alert,
+  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -128,6 +129,10 @@ const DevotionalsScreen = () => {
 
   // Use any type for rowRefs to avoid TypeScript errors with Swipeable
   const rowRefs = useRef<{ [key: string]: any }>({});
+  // Ref for SectionList to allow programmatic scrolling to top
+  const sectionListRef = useRef<SectionList<any>>(null);
+
+  // Reset logic moved below after 'sections' is declared
 
   const renderRightActions = (devotionalId: string) => {
     return (
@@ -165,6 +170,11 @@ const DevotionalsScreen = () => {
     return format(date, formatString).toUpperCase();
   };
 
+  // Animation values map (declared early so render function can use it)
+  const animatedValues = useRef<Record<string, Animated.Value>>({});
+
+  // (animation setup moved below sortedDevotionals)
+
   const renderDevotionalItem = ({ item }: { item: Devotional }) => {
     // Calculate progress percentage (0-100)
     const completedDays = item.days?.filter(day => day.completed).length || 0;
@@ -197,8 +207,20 @@ const DevotionalsScreen = () => {
     // Use the utility function to extract a clean title
     const cleanTitle = extractCleanTitle(item.title, 'Devotional');
 
+    // Per-item animation values with safe fallbacks
+    const anim = animatedValues.current[item.id] || new Animated.Value(1);
+    const translateY = anim.interpolate?.({ inputRange: [0, 1], outputRange: [50, 0] }) || new Animated.Value(0);
+
     return (
-      <View style={styles.swipeableContainer}>
+      <Animated.View
+        style={[
+          styles.swipeableContainer,
+          {
+            opacity: anim,
+            transform: [{ translateY }],
+          },
+        ]}
+      >
         <Swipeable
           ref={(ref) => {
             if (ref) {rowRefs.current[item.id] = ref;}
@@ -286,7 +308,7 @@ const DevotionalsScreen = () => {
             </View>
           </TouchableOpacity>
         </Swipeable>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -505,16 +527,95 @@ const DevotionalsScreen = () => {
     });
   }, [filteredDevotionals]);
 
+  const initAnimations = useCallback(() => {
+    try {
+      // Collect ids from currently visible list (sorted)
+      const ids: string[] = (Array.isArray(sortedDevotionals) ? sortedDevotionals : []).map(d => d.id);
+      ids.forEach(id => {
+        if (!animatedValues.current[id]) {
+          animatedValues.current[id] = new Animated.Value(0);
+        } else {
+          animatedValues.current[id].setValue(0);
+        }
+      });
+      if (ids.length > 0) {
+        const animations = ids.map((id, index) =>
+          Animated.spring(animatedValues.current[id], {
+            toValue: 1,
+            useNativeDriver: true,
+            speed: 20,
+            bounciness: 8,
+            delay: index * 100,
+          })
+        );
+        Animated.stagger(100, animations).start();
+      }
+    } catch (err) {
+      console.warn('[DevotionalsScreen] initAnimations error', err);
+    }
+  }, [sortedDevotionals]);
+
+  // Restart animations whenever list changes or screen focuses
+  useEffect(() => { initAnimations(); }, [initAnimations]);
+  useEffect(() => {
+    const unsub = (navigation as any)?.addListener?.('focus', () => { initAnimations(); });
+    return () => { if (typeof unsub === 'function') unsub(); };
+  }, [navigation, initAnimations]);
+
   // Grouping by Month Year
   const sections = useMemo(() => {
     const groups: Record<string, Devotional[]> = {};
     for (const d of sortedDevotionals) {
       const key = format(new Date(d.updatedAt || d.createdAt), 'MMMM yyyy').toUpperCase();
-      if (!groups[key]) {groups[key] = [];}
+      if (!groups[key]) { groups[key] = []; }
       groups[key].push(d);
     }
     return Object.entries(groups).map(([title, data]) => ({ title, data }));
   }, [sortedDevotionals]);
+
+  // Reset: always start at the top when navigating to Devotionals from bottom tab
+  const resetToTop = useCallback(() => {
+    try {
+      const hasData = Array.isArray(sections) && sections.length > 0 && Array.isArray(sections[0]?.data) && sections[0].data.length > 0;
+      if (hasData) {
+        sectionListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated: false, viewPosition: 0 });
+      } else {
+        sectionListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated: false, viewPosition: 0 });
+      }
+    } catch {}
+    // Close swipeables
+    try {
+      Object.values(rowRefs.current || {}).forEach((ref: any) => {
+        if (ref && typeof ref.close === 'function') { ref.close(); }
+      });
+    } catch {}
+    // Reset UI filter and modal
+    setFilter('ongoing');
+    setShowDevotionalModal(false);
+  }, [sections]);
+
+  // Listen for tab presses to reset
+  useEffect(() => {
+    const subSelf = (navigation as any)?.addListener?.('tabPress', resetToTop);
+    const subParent = (navigation as any)?.getParent?.()?.addListener?.('tabPress', resetToTop);
+    return () => {
+      if (typeof subSelf === 'function') subSelf();
+      if (typeof subParent === 'function') subParent();
+    };
+  }, [navigation, resetToTop]);
+
+  // Fallback: whenever this screen gains focus, ensure it's at the top
+  useFocusEffect(
+    useCallback(() => {
+      try {
+        const hasData = Array.isArray(sections) && sections.length > 0 && Array.isArray(sections[0]?.data) && sections[0].data.length > 0;
+        if (hasData) {
+          sectionListRef.current?.scrollToLocation?.({ sectionIndex: 0, itemIndex: 0, animated: false, viewPosition: 0 });
+        }
+      } catch {}
+      return () => {};
+    }, [sections])
+  );
 
   const totalDevotionalsAll = Array.isArray(devotionals) ? devotionals.length : 0;
   const isTrulyEmpty = !isLoading && totalDevotionalsAll === 0;
@@ -596,6 +697,7 @@ const DevotionalsScreen = () => {
           </View>
         ) : (
           <SectionList
+            ref={sectionListRef}
             style={styles.sectionList}
             sections={sections}
             keyExtractor={(item) => item.id}
@@ -759,7 +861,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   sectionHeader: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#2c4b77',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,

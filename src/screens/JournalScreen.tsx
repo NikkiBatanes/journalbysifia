@@ -133,6 +133,10 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
   // Track if we've handled the initial scroll
   const hasInitializedScroll = useRef(false);
 
+  // Refs for header weeks scroller and vertical content scroller
+  const scrollViewRef = useRef<ScrollView>(null);
+  const contentScrollRef = useRef<ScrollView>(null);
+
   // Reset to today's date when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -141,11 +145,50 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
       hasInitializedScroll.current = true;
     }, [])
   );
+
+  // Centralized reset: ensure top-of-content and clear transient UI
+  const resetToTop = useCallback(() => {
+    try {
+      // Scroll vertical content to top
+      contentScrollRef.current?.scrollTo?.({ y: 0, animated: false });
+    } catch {}
+    try {
+      // Ensure header expanded
+      setIsHeaderCollapsed(false);
+    } catch {}
+    try {
+      // Reset to today's date
+      const today = new Date();
+      setCurrentDate(today);
+      lastSelectedDate.current = null;
+    } catch {}
+    try {
+      // Close calendar modal if open
+      setShowCalendarModal(false);
+    } catch {}
+  }, []);
+
+  // Listen for bottom tab presses to trigger reset
+  useEffect(() => {
+    const subSelf = navigation?.addListener?.('tabPress', resetToTop);
+    const subParent = navigation?.getParent?.()?.addListener?.('tabPress', resetToTop);
+    return () => {
+      if (typeof subSelf === 'function') subSelf();
+      if (typeof subParent === 'function') subParent();
+    };
+  }, [navigation, resetToTop]);
+
+  // Fallback: ensure top on focus
+  useFocusEffect(
+    useCallback(() => {
+      try { contentScrollRef.current?.scrollTo?.({ y: 0, animated: false }); } catch {}
+      return () => {};
+    }, [])
+  );
   // Unused state variable - keeping for potential future use
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [_, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn }));
   const [weeks, setWeeks] = useState<Date[][]>([]);
-  const scrollViewRef = useRef<ScrollView>(null);
   const screenWidth = Dimensions.get('window').width;
   const scrollX = useRef(0);
 
@@ -512,6 +555,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
             keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
             <ScrollView
+              ref={contentScrollRef}
               style={styles.tabContent}
               contentContainerStyle={styles.scrollViewContent}
               onScroll={handleContentScroll}

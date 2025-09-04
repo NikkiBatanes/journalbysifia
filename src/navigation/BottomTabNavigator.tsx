@@ -4,13 +4,14 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, TouchableOpacity, Platform, Animated, NativeModules } from 'react-native';
+import { StyleSheet, TouchableOpacity, Platform, Animated, NativeModules, Text } from 'react-native';
 import { useScroll } from '../context/ScrollContext';
 import { ParamListBase, TabNavigationState } from '@react-navigation/native';
 import { JournalScreenRef } from '../screens/JournalScreen';
 
 import { Colors } from '../theme/colors';
 import { useTheme } from '../theme/ThemeContext';
+import { getFontFamily } from '../theme/fonts';
 import { TabBarIcons } from './TabBarIcons';
 import PlaybookListScreen from '../screens/PlaybookListScreen';
 
@@ -100,6 +101,14 @@ const CustomTabBarComponent = ({
           ? TabBarIcons[route.name as keyof typeof TabBarIcons]?.focused
           : TabBarIcons[route.name as keyof typeof TabBarIcons]?.name;
 
+        // Label map for tabs
+        const labelMap: Record<string, string> = {
+          Dashboard: 'Dashboard',
+          Playbooks: 'Playbooks',
+          Devotionals: 'Devotionals',
+          Journal: 'Journal',
+        };
+
         return (
           <TouchableOpacity
             key={route.key}
@@ -142,6 +151,17 @@ const CustomTabBarComponent = ({
                 style={styles.icon}
               />
             )}
+            <Text
+              style={[
+                styles.label,
+                {
+                  color: isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight,
+                  fontFamily: getFontFamily(theme.currentFont || 'lexend', isFocused ? 'medium' : 'regular'),
+                },
+              ]}
+            >
+              {labelMap[route.name] || route.name}
+            </Text>
           </TouchableOpacity>
         );
       })}
@@ -292,10 +312,9 @@ const styles = StyleSheet.create({
   },
   // Removed middle tab floating button styles
   label: {
-    fontSize: 14,  // Slightly larger font
-    marginTop: 6,   // More space between icon and text
+    fontSize: 11,  // Smaller font for compact labels
+    marginTop: 4,   // Slightly tighter spacing
     color: Colors.trustGrey,
-    fontWeight: '500',  // Slightly bolder text
   },
   icon: {
     margin: 0,

@@ -658,7 +658,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
         {/* Rounded content area standardized via BlueSheet (matches Journal) */}
         <BlueSheet style={styles.contentSheet}>
 
-          {isLoading || isFetching ? (
+          {(isLoading && playbooks.length === 0) ? (
             <View style={[styles.listContent, styles.pageInner]}>
               <PlaybookSkeleton />
             </View>
@@ -1030,7 +1030,7 @@ const createStyles = (_theme: any) => StyleSheet.create({
     color: Colors.hopeWhite,
   },
   sectionHeader: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#2c4b77',
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
