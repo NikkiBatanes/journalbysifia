@@ -898,57 +898,7 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
     setCurrentMotivationalText(textIndex);
   }, []);
 
-  // Animate when screen is focused (dashboard opened)
-  // Expandable animation that repeats
-  const expandButton = useCallback(() => {
-    let animationCount = 0;
-    const maxAnimations = 2; // Animate 2 times
-
-    const runAnimation = () => {
-      if (animationCount >= maxAnimations) {return;}
-      animationCount++;
-
-      // Expand to show text
-      Animated.parallel([
-        Animated.timing(buttonWidth, {
-          toValue: 220,
-          duration: 400,
-          useNativeDriver: false,
-        }),
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 300,
-          delay: 150,
-          useNativeDriver: false,
-        }),
-      ]).start(() => {
-        // Hold for 2.5 seconds then collapse
-        setTimeout(() => {
-          Animated.parallel([
-            Animated.timing(textOpacity, {
-              toValue: 0,
-              duration: 250,
-              useNativeDriver: false,
-            }),
-            Animated.timing(buttonWidth, {
-              toValue: 56,
-              duration: 350,
-              useNativeDriver: false,
-            }),
-          ]).start(() => {
-            // Wait 3 seconds before next animation
-            if (animationCount < maxAnimations) {
-              setTimeout(() => {
-                runAnimation();
-              }, 3000);
-            }
-          });
-        }, 2500);
-      });
-    };
-
-    runAnimation();
-  }, [buttonWidth, textOpacity]);
+  // Removed auto-expand animation on mount/focus for floating button per UX update
 
   useFocusEffect(
     useCallback(() => {
@@ -975,11 +925,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
         }
       } catch {}
 
-      // Wait a moment then start expanding animation
-      setTimeout(() => {
-        expandButton();
-      }, 1000);
-
       // Collapsing Playbook label
       if (playbookMeasuredWidth > 0) {
         playbookWidth.setValue(playbookMeasuredWidth);
@@ -990,7 +935,6 @@ const DashboardHomeScreen: React.FC<DashboardHomeScreenProps> = ({ navigation })
       playbookWidth,
       buttonWidth,
       textOpacity,
-      expandButton,
       refreshSubscription,
       queryClient,
       user?.id,

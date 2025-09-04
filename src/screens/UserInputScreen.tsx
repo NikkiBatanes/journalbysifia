@@ -546,8 +546,8 @@ const UserInputScreen: React.FC = () => {
                   />
                   {/* Bottom row overlays: status on left, buttons on right */}
                   <View style={styles.bottomRow} pointerEvents="box-none">
-                    <View style={styles.statusInline} pointerEvents="none">
-                      <Text style={[styles.statusText, font]}>
+                    <View style={[styles.statusInline, { flexShrink: 1, minWidth: 80 }]} pointerEvents="none">
+                      <Text style={[styles.statusText, font, { flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="tail">
                         {subscriptionData.isLoading 
                           ? 'Loading subscription...'
                           : !subscriptionData.subscription || subscriptionData.isSeeker
@@ -641,11 +641,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    flexShrink: 1,
+    maxWidth: '75%',
+    overflow: 'hidden',
   },
   statusText: {
     color: 'rgba(255,255,255,0.85)',
     fontSize: 11,
     fontWeight: '600',
+    flexShrink: 1,
+    maxWidth: '100%',
   },
   tierBadgeInline: {
     color: Colors.hopeWhite,
@@ -658,6 +663,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     textAlign: 'center',
     maxWidth: 80,
+    flexShrink: 0,
   },
   askHintButtonInline: {
     opacity: 1,

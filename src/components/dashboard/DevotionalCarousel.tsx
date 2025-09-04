@@ -76,32 +76,17 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
   const refreshTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const devotionalIdsRef = useRef<Set<string>>(new Set());
 
-  const formatFinishedDate = (dateStr?: string) => {
-    if (!dateStr) {return undefined;}
+  const formatFinishedDate = (dateStr?: string): string | undefined => {
+    if (!dateStr) { return undefined; }
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) {return undefined;}
+    if (isNaN(d.getTime())) { return undefined; }
     const weekday = d.toLocaleDateString(undefined, { weekday: 'long' });
     const month = d.toLocaleDateString(undefined, { month: 'long' });
     const day = d.getDate();
     const year = d.getFullYear();
     const currentYear = new Date().getFullYear();
-    const withYear = (
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Ionicons name="calendar-clear-outline" size={14} color={Colors.successGreen} style={{ marginRight: 4 }} />
-        <ThemedText weight="bold" style={styles.finishedDateText}>
-          {`${weekday}, ${month} ${day} ${year}`}
-        </ThemedText>
-      </View>
-    );
-    const withoutYear = (
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Ionicons name="calendar-clear-outline" size={14} color={Colors.successGreen} style={{ marginRight: 4 }} />
-        <ThemedText weight="bold" style={styles.finishedDateText}>
-          {`${weekday}, ${month} ${day}`}
-        </ThemedText>
-      </View>
-    );
-    return year === currentYear ? withoutYear : withYear;
+    const yearPart = year === currentYear ? '' : `, ${year}`;
+    return `${weekday}, ${month} ${day}${yearPart}`;
   };
 
   const fetchDevotionals = useCallback(async () => {
@@ -469,7 +454,12 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
         <View style={styles.mb8}>
           <ThemedText weight="bold" style={styles.completedText}>DONE</ThemedText>
           {!!formatFinishedDate(devotional.completedAt) && (
-            <ThemedText style={styles.finishedDateText}>{formatFinishedDate(devotional.completedAt)}</ThemedText>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="calendar-clear-outline" size={14} color={Colors.successGreen} style={{ marginRight: 4 }} />
+              <ThemedText weight="bold" style={styles.finishedDateText}>
+                {formatFinishedDate(devotional.completedAt)}
+              </ThemedText>
+            </View>
           )}
         </View>
       ) : devotional.nextDayNumber ? (
@@ -498,7 +488,7 @@ const DevotionalCarousel: React.FC<DevotionalCarouselProps> = ({
 
           {devotional.lastAccessed && !devotional.isCompleted && (
             <ThemedText style={styles.lastAccessedText}>
-              Last read: {new Date(devotional.lastAccessed).toLocaleDateString()}
+              {`Last read: ${formatFinishedDate(devotional.lastAccessed) || ''}`}
             </ThemedText>
           )}
         </View>
