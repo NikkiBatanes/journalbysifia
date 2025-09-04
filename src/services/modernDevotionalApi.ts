@@ -13,9 +13,8 @@ interface DevotionalGenerationParams {
   playbookId?: string;
   userInput?: string;
   isOnboarding?: boolean;
+  bibleVersion?: string;
 }
-
-
 
 // Use the standard Devotional interface
 type GeneratedDevotional = Devotional;
@@ -28,7 +27,7 @@ export async function generateDevotional(
   params: DevotionalGenerationParams,
   maxRetries: number = API_RETRY_ATTEMPTS
 ): Promise<GeneratedDevotional> {
-  const { duration, playbookId, userInput, isOnboarding } = params;
+  const { duration, playbookId, userInput, isOnboarding, bibleVersion } = params;
 
   // Get fresh session directly from Supabase
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -49,6 +48,7 @@ export async function generateDevotional(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       console.log(`Generating devotional (attempt ${attempt + 1}/${maxRetries + 1})`);
+      console.log('[ModernDevotionalApi] Bible version being sent to API:', bibleVersion || 'NASB');
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -61,6 +61,7 @@ export async function generateDevotional(
           duration,
           playbookId,
           userInput: userInput || 'General spiritual growth',
+          bibleVersion: bibleVersion || 'NASB',
         }),
       });
 

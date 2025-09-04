@@ -98,6 +98,9 @@ class UserApiService {
         };
       }
 
+      console.log('[UserApi] Updating preferences for user:', user.user.id);
+      console.log('[UserApi] Preferences being saved:', JSON.stringify(preferences, null, 2));
+
       const { error } = await supabase
         .from('user_profiles')
         .update({
@@ -107,12 +110,14 @@ class UserApiService {
         .eq('id', user.user.id);
 
       if (error) {
+        console.error('[UserApi] Error updating preferences:', error);
         return {
           success: false,
           error: { code: 'UPDATE_FAILED', message: error.message },
         };
       }
 
+      console.log('[UserApi] Preferences updated successfully');
       return { success: true };
     } catch (error: any) {
       return {

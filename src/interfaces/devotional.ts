@@ -7,6 +7,7 @@ export interface ReflectionQuestion {
 export interface Scripture {
   text: string;
   reference: string;
+  version?: string; // Bible version (e.g., "NASB", "ESV", "NIV")
 }
 
 export interface DevotionalDay {
@@ -58,6 +59,12 @@ export interface Devotional {
 export type DevotionalCategory =
   | 'Prayer'
   | 'Growth'
+  | 'Spiritual Growth'
+  | 'Faith'
+  | 'Hope'
+  | 'Peace'
+  | 'Forgiveness'
+  | 'Gratitude'
   | 'Healing'
   | 'Wisdom'
   | 'Relationships'
@@ -71,6 +78,12 @@ export type DevotionalCategory =
 export const DEVOTIONAL_CATEGORIES: DevotionalCategory[] = [
   'Prayer',
   'Growth',
+  'Spiritual Growth',
+  'Faith',
+  'Hope',
+  'Peace',
+  'Forgiveness',
+  'Gratitude',
   'Healing',
   'Wisdom',
   'Relationships',

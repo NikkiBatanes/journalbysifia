@@ -27,6 +27,7 @@ import { useAuth } from '../context/IndustryStandardAuthContext';
 // Removed direct TypographyStyles import to ensure fonts are fully themed via ThemedText
 import { faithPointsService } from '../services/faithPointsService';
 import { subscriptionService } from '../services/subscriptionService';
+import { BibleCopyrightModal } from '../components/BibleCopyrightModal';
 
 import DevotionalCompletionModal from '../components/DevotionalCompletionModal';
 import { Colors, Fonts, CARD_CONTENT_PADDING, CARD_HORIZONTAL_PADDING } from '../theme';
@@ -115,6 +116,9 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const [scrollPositions, setScrollPositions] = useState<{[key: number]: number}>({});
   // Flag to prevent feedback loop between programmatic and user scrolls
   const isScrollingProgrammatically = useRef(false);
+  
+  // Bible copyright modal state
+  const [showCopyrightModal, setShowCopyrightModal] = useState(false);
 
   // Heart burst animation state near the Pray button
   type HeartParticle = {
@@ -844,7 +848,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             <ScrollView
               style={styles.scrollView}
               contentContainerStyle={styles.scrollViewContent}
-              showsVerticalScrollIndicator={true}
+              showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
               onScroll={(event) => {
                 // Reset scroll position when changing pages
@@ -881,9 +885,29 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
               <ThemedText style={styles.scriptureText}>
                 {day.scripture?.text || ''}
               </ThemedText>
-              <ThemedText weight="medium" style={styles.scriptureReference}>
-                {day.scripture?.reference || ''}
-              </ThemedText>
+              <View style={styles.scriptureReferenceContainer}>
+                <ThemedText weight="bold" style={styles.scriptureReference}>
+                  {day.scripture?.reference || ''}
+                  {day.scripture?.version && (
+                    <ThemedText weight="bold" style={styles.bibleVersion}>
+                      {' '}{day.scripture.version}
+                    </ThemedText>
+                  )}
+                </ThemedText>
+                {day.scripture?.version && (
+                  <TouchableOpacity
+                    style={styles.infoIcon}
+                    onPress={() => setShowCopyrightModal(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name="information-circle-outline"
+                      size={18}
+                      color={Colors.hopeWhite}
+                    />
+                  </TouchableOpacity>
+                )}
+              </View>
             </DevotionalSectionCard>
 
             {/* Reflection Card */}
@@ -1087,6 +1111,13 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
             setSelectedReflectionQuestion(null);
             setSelectedQuestionMeta(null);
           }}
+        />
+
+        {/* Bible Copyright Modal */}
+        <BibleCopyrightModal
+          visible={showCopyrightModal}
+          onClose={() => setShowCopyrightModal(false)}
+          bibleVersion={currentDay?.scripture?.version || 'NASB'}
         />
       </View>
       </SafeAreaView>
@@ -1426,6 +1457,23 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     marginTop: 8,
     opacity: 0.9,
+  },
+  scriptureReferenceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+  },
+  bibleVersion: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.alertCoral,
+    fontWeight: '700',
+    opacity: 1,
+  },
+  infoIcon: {
+    marginLeft: 6,
+    padding: 2,
   },
   dayNavigation: {
     position: 'absolute',

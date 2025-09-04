@@ -242,12 +242,53 @@ export class DevotionalApi {
    * Generate a new devotional using AI
    */
   static async generateDevotional(params: DevotionalCreationParams): Promise<Devotional> {
+    // Get user's Bible version preference from auth context
+    let bibleVersion = 'NASB'; // default
+    try {
+      const { supabase } = await import('../supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('[DevotionalApi] User ID:', user?.id);
+      
+      if (user) {
+        // Check user_metadata first (where IndustryStandardAuthContext stores it)
+        const userMetadata = user.user_metadata;
+        console.log('[DevotionalApi] User metadata:', JSON.stringify(userMetadata, null, 2));
+        
+        if (userMetadata?.preferences?.content?.bibleVersion) {
+          bibleVersion = userMetadata.preferences.content.bibleVersion;
+          console.log('[DevotionalApi] Found Bible version in user_metadata:', bibleVersion);
+        } else {
+          console.log('[DevotionalApi] No Bible version in user_metadata, checking user_profiles table...');
+          
+          // Fallback to user_profiles table
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('preferences')
+            .eq('id', user.id)
+            .single();
+          
+          console.log('[DevotionalApi] Profile data:', JSON.stringify(profile, null, 2));
+          
+          if (profile?.preferences?.content?.bibleVersion) {
+            bibleVersion = profile.preferences.content.bibleVersion;
+            console.log('[DevotionalApi] Found Bible version in user_profiles:', bibleVersion);
+          } else {
+            console.log('[DevotionalApi] No Bible version found in either location');
+          }
+        }
+      }
+    } catch (error) {
+      console.log('[DevotionalApi] Could not fetch Bible version preference, error:', error);
+    }
+
     // Use the modern devotional API directly
     const { generateDevotional } = await import('../modernDevotionalApi');
     return generateDevotional({
       duration: params.duration,
       playbookId: params.playbookId,
       userInput: params.userInput,
+      isOnboarding: false,
+      bibleVersion,
     });
   }
 }

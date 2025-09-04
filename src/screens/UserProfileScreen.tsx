@@ -1075,18 +1075,23 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Save handler for Bible Version (no success alert)
   const handleSaveBibleVersion = async () => {
     try {
+      console.log('[UserProfile] Saving Bible version:', bibleVersionDraft);
       const updatedPreferences = {
         ...preferences,
         content: { ...preferences.content, bibleVersion: bibleVersionDraft },
       };
+      console.log('[UserProfile] Updated preferences:', JSON.stringify(updatedPreferences, null, 2));
       const result = await updatePreferences(updatedPreferences);
       if (result.success) {
         setPreferences(updatedPreferences);
         setBibleVersionModal(false);
+        console.log('[UserProfile] Bible version saved successfully:', bibleVersionDraft);
       } else {
+        console.error('[UserProfile] Failed to save Bible version:', result.error);
         Alert.alert('Error', result.error?.message || 'Failed to update Bible version');
       }
     } catch (error) {
+      console.error('[UserProfile] Error saving Bible version:', error);
       Alert.alert('Error', 'Failed to update Bible version');
     }
   };

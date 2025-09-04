@@ -6,6 +6,7 @@ import { devotionalAdvisorPersona, enforcePersona, applyPersonaContext } from '.
 interface Scripture {
   text: string;
   reference: string;
+  version?: string;
 }
 
 interface ReflectionQuestion {
@@ -47,6 +48,7 @@ interface DevotionalRequestBody {
   playbookId?: string;
   userInput?: string;
   userName?: string;
+  bibleVersion?: string;
 }
 
 // Initialize Supabase client
@@ -78,6 +80,7 @@ async function fetchPlaybookData(playbookId: string) {
 interface Scripture {
   text: string;
   reference: string;
+  version?: string;
 }
 
 interface ReflectionQuestion {
@@ -167,7 +170,7 @@ function cleanMarkdown(text: unknown): string {
 /**
  * Creates a default devotional day for error cases
  */
-function createDefaultDay(dayNumber: number, isError = false): DevotionalDay {
+function _createDefaultDay(dayNumber: number, isError = false, bibleVersion = 'ESV'): DevotionalDay {
   const timestamp = Date.now();
   return {
     id: `${timestamp}-day-${dayNumber}`,
@@ -176,6 +179,7 @@ function createDefaultDay(dayNumber: number, isError = false): DevotionalDay {
     scripture: {
       text: isError ? 'The Lord is my shepherd; I shall not want.' : 'Your word is a lamp to my feet and a light to my path.',
       reference: isError ? 'PSALM 23:1' : 'PSALM 119:105',
+      version: bibleVersion,
     },
     reflection: isError
       ? 'We encountered an error generating this devotional. Please try again.'
@@ -195,30 +199,17 @@ function createDefaultDay(dayNumber: number, isError = false): DevotionalDay {
 /**
  * Safely parses the OpenAI response into a structured devotional format
  */
-function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: string, userInput?: string): Devotional {
-  const errorDevotional = (msg: string, _pbId?: string, _uInput?: string): Devotional => ({
-    id: `${Date.now()}`,
-    title: 'Error Generating Devotional',
-    description: msg,
-    category: 'Error',
-    categories: ['Error'],
-    days: [createDefaultDay(1, true)],
-    currentDay: 1,
-    totalDays: duration || 1,
-    progress: 0,
-    completed: false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    playbookId: _pbId,
-    userInput: _uInput || '',
-  });
+function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: string, userInput?: string, bibleVersion?: string): Devotional {
+  // Remove errorDevotional - we want to force proper OpenAI parsing instead of fallbacks
 
   try {
     const response = aiData as Record<string, unknown>;
     const choices = Array.isArray(response?.choices) ? response.choices : [];
     const firstChoice = choices[0] as Record<string, unknown> | undefined;
     const content = (firstChoice?.message as Record<string, unknown> | undefined)?.content as string || '';
-    if (!content) {return errorDevotional('No content found in AI response.', playbookId, userInput);}
+    if (!content) {
+      throw new Error('No content found in AI response - OpenAI must provide valid devotional content');
+    }
 
     // Log the raw content for debugging
     console.log('[DEVOTIONAL PARSER] Raw content start:', JSON.stringify(content).substring(0, 500) + (content.length > 500 ? '...' : ''));
@@ -526,9 +517,9 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
         })();
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Title:`, cleanDayTitle);
 
-        // Extract scripture with multiple format support
-        let scriptureText = 'Your word is a lamp to my feet and a light to my path.';
-        let scriptureRef = 'PSALM 119:105';
+        // Extract scripture with multiple format support - no defaults, force AI parsing
+        let scriptureText = '';
+        let scriptureRef = '';
 
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} - Raw day content:\n${dayContent}`);
 
@@ -660,11 +651,11 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
           // Remove any existing 'Heavenly Father' from the prayer body
           prayerBody = prayerBody.replace(/^Heavenly Father[,\s]*/i, '');
 
-          // Format prayer with compact spacing - no extra space after body
-          prayerText = `Heavenly Father,\n${prayerBody}\nIn Jesus' Name, Amen`;
+          // Format prayer with proper spacing - space after "Heavenly Father," and before "In Jesus' Name, Amen"
+          prayerText = `Heavenly Father,\n\n${prayerBody}\n\nIn Jesus' Name, Amen`;
         } else {
-          // Default prayer with compact spacing - no extra space after body
-          prayerText = 'Heavenly Father,\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\nIn Jesus\' Name, Amen';
+          // Default prayer with proper spacing
+          prayerText = 'Heavenly Father,\n\nThank You for this time together. Guide me in Your truth today. Forgive me for doubting Your path. Help me trust Your plan. Thank You for Your faithfulness.\n\nIn Jesus\' Name, Amen';
         }
         console.log(`[DEVOTIONAL PARSER] Day ${dayNum} Prayer:`, prayerText.substring(0, 100));
 
@@ -678,6 +669,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
             scripture: {
               text: scriptureText || 'The Lord is my shepherd, I lack nothing.',
               reference: scriptureRef || 'Psalm 23:1',
+              version: bibleVersion || 'NASB',
             },
             reflection: reflection || 'Reflect on God\'s word today.',
             reflectionQuestions,
@@ -690,7 +682,7 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     }
 
     if (devotional.days.length === 0) {
-      devotional.days.push(createDefaultDay(1, true));
+      throw new Error('No devotional days were parsed from OpenAI response - this should never happen with proper AI generation');
     }
 
     devotional.days.sort((a, b) => a.dayNumber - b.dayNumber);
@@ -702,7 +694,8 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });
-    return errorDevotional('Failed to parse devotional content.', playbookId, userInput);
+    // Re-throw the error instead of returning a default devotional
+    throw error;
   }
 }
 
@@ -727,27 +720,6 @@ serve(async (req: Request): Promise<Response> => {
     );
   };
 
-  const logRequest = (request: Request, body?: unknown) => {
-    console.log('=== Request Details ===');
-    console.log('Method:', request.method);
-    console.log('URL:', request.url);
-    console.log('Headers:', Object.fromEntries(request.headers.entries()));
-    if (body) {console.log('Body:', JSON.stringify(body, null, 2));}
-    console.log('========================');
-  };
-
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-      },
-    });
-  }
-
-  logRequest(req);
-
   if (req.method !== 'POST') {
     return createErrorResponse(405, 'Method not allowed', 'hustle and bustle - Only POST requests are accepted');
   }
@@ -765,14 +737,26 @@ serve(async (req: Request): Promise<Response> => {
     return createErrorResponse(400, 'Invalid request body', error instanceof Error ? error.message : 'Unknown error');
   }
 
-  const { duration = 1, playbookId, userInput = '', userName = 'User' } = requestBody;
+  const { duration = 1, playbookId, userInput = '', userName = 'User', bibleVersion = 'NASB' } = requestBody;
+  console.log('[Generate-Devotional] Request body:', JSON.stringify(requestBody, null, 2));
+  console.log('[Generate-Devotional] Bible version received:', bibleVersion);
+  console.log('[Generate-Devotional] User input received:', userInput);
+  
+  // Add anti-repetition context to user input
+  const enhancedUserInput = `${userInput}
+
+CRITICAL INSTRUCTION: You MUST NOT use these overused verses: Jeremiah 29:11, Philippians 4:13, Romans 8:28, Psalm 119:105, Proverbs 3:5-6, Isaiah 40:31. 
+
+REQUIRED: Use verses from lesser-known books like Zephaniah, Haggai, Malachi, Nahum, Obadiah, Joel, Amos, Micah, or narrative books like Ruth, Esther, Nehemiah, 1-2 Chronicles.
+
+Choose an obscure but meaningful verse that relates to the topic above.`;
 
   if (typeof duration !== 'number' || duration < 1 || duration > 7) {
     return createErrorResponse(400, 'Invalid duration', 'Must be a number between 1 and 7.');
   }
 
   try {
-    applyPersonaContext(devotionalAdvisorPersona, userInput);
+    const contextualPersona = applyPersonaContext(devotionalAdvisorPersona.systemPrompt, enhancedUserInput, bibleVersion);
 
     // Fetch playbook data if playbookId is provided
     let playbookContext = '';
@@ -812,7 +796,7 @@ serve(async (req: Request): Promise<Response> => {
         messages: [
           {
             role: 'system',
-            content: devotionalAdvisorPersona.systemPrompt + playbookContext,
+            content: contextualPersona + playbookContext,
           },
           {
             role: 'user',
@@ -846,7 +830,8 @@ serve(async (req: Request): Promise<Response> => {
       { choices: [{ message: { content } }] },
       duration,
       playbookId,
-      userInput
+      userInput,
+      bibleVersion
     );
 
     return new Response(JSON.stringify(devotional), {

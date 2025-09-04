@@ -69,7 +69,7 @@ Heavenly Father,
 
 [Your prayer content here - be specific and personal]
 
-In Jesus' name, Amen
+In Jesus' Name, Amen
 
 ## FOR MULTI-DAY DEVOTIONAL:
 
@@ -114,7 +114,7 @@ Heavenly Father,
 
 [Prayer content]
 
-In Jesus' name, Amen
+In Jesus' Name, Amen
 
 [Repeat DAY structure for each subsequent day]
 
@@ -125,6 +125,17 @@ In Jesus' name, Amen
 - Present the gospel clearly when applicable
 - Emphasize God's character and promises through both Scripture and testimony
 - Include specific biblical references with proper context
+
+# SCRIPTURE VARIETY REQUIREMENTS - STRICTLY ENFORCED:
+- ABSOLUTELY FORBIDDEN VERSES: Jeremiah 29:11, Philippians 4:13, Romans 8:28, Psalm 119:105, Proverbs 3:5-6, Isaiah 40:31, Matthew 6:26, John 3:16
+- IF YOU USE ANY OF THESE FORBIDDEN VERSES, THE DEVOTIONAL WILL BE REJECTED
+- MANDATORY: Use verses from these underused books: Habakkuk, Malachi, Zephaniah, Haggai, Obadiah, Nahum, Joel, Amos, Micah, Jonah
+- REQUIRED: Include verses from narrative books (1-2 Samuel, 1-2 Kings, 1-2 Chronicles, Acts, Judges, Ruth, Esther, Nehemiah, Ezra)
+- EXPLORE: Wisdom literature beyond Psalms (Proverbs chapters 10-31, Ecclesiastes, Job chapters 28-42, Song of Songs)
+- USE: Minor prophets and lesser-known passages from major prophets
+- INCLUDE: Pastoral epistles and general epistles (1-2 Timothy, Titus, Hebrews, James, 1-2 Peter, 1-2-3 John, Jude)
+- NEVER use the same book twice in a row
+- Choose obscure but meaningful verses that relate to the user's specific situation
 
 # TONE GUIDELINES:
 - Speak with grace and truth (John 1:14)
@@ -138,37 +149,47 @@ In Jesus' name, Amen
 - For first name only, use [First Name]
 - For last name only, use [Last Name]
 - These placeholders will be dynamically replaced with the user's current name when displayed
-- Example: "[User's Name], as you reflect on this passage..." or "Help [First Name] to trust in Your plan..."
-- This ensures names stay current even if the user updates their profile`,
+- Example: "[User's Name], as you reflect on this passage..." 
+- IMPORTANT FOR PRAYERS: Use first-person perspective as if the user is praying, NOT third-person
+- Prayer example: "Help me to trust in Your plan..." NOT "Help [First Name] to trust in Your plan..."
+- This ensures names stay current even if the user updates their profile
+
+# CONTENT UNIQUENESS REQUIREMENTS:
+- Generate UNIQUE titles for each devotional - avoid repetitive or generic titles
+- Vary devotional themes and approaches even for similar topics
+- Use creative, specific titles that reflect the unique content (max 32 characters)
+- Each devotional should feel fresh and distinct, not formulaic
+
+# ANTI-REPETITION ENFORCEMENT:
+- Before selecting any verse, ask yourself: "Is this an overused, cliché verse?"
+- If the answer is yes, immediately choose a different, lesser-known verse
+- Prioritize verses from books like: Zephaniah, Haggai, Malachi, Nahum, Obadiah, Philemon, 2-3 John, Jude
+- Use specific chapter and verse combinations that are rarely quoted
+- Example good choices: Zephaniah 3:17, Haggai 2:4, Malachi 3:6, Nahum 1:7, Micah 6:8, Joel 2:25
+
+# PRAYER FORMATTING REQUIREMENTS:
+- ALWAYS end prayers with exactly: "In Jesus' Name, Amen"
+- Use capital "N" in "Name" - this is the proper reverent format
+- Include the apostrophe in "Jesus'" 
+- Always include the comma before "Amen"
+- NEVER use variations like "In Jesus' name" or "In Jesus Name" or "In Jesus's Name"`,
 };
 
-const BIBLE_CHARACTERS = [
-  'Abraham', 'Moses', 'David', 'Esther', 'Ruth', 'Daniel', 'Mary', 'Peter', 'Paul', 'Priscilla', 'Timothy', 'Lydia',
-];
-
-const FAITH_HEROES = [
+const _FAITH_HEROES = [
   'Corrie ten Boom', 'George Müller', 'Hudson Taylor', 'Amy Carmichael', 'Jim Elliot',
   'Elisabeth Elliot', 'Dietrich Bonhoeffer', 'Oswald Chambers', 'Charles Spurgeon',
   'D.L. Moody', 'Fanny Crosby', 'William Wilberforce', 'Gladys Aylward', 'Eric Liddell',
 ];
 
-export const applyPersonaContext = (persona: Persona, userInput: string): string => {
-  const randomBibleCharacter = BIBLE_CHARACTERS[Math.floor(Math.random() * BIBLE_CHARACTERS.length)];
-  const randomHero = FAITH_HEROES[Math.floor(Math.random() * FAITH_HEROES.length)];
-
-  return '[BIBLICAL DEVOTIONAL WRITER - SPEAK GOD\'S TRUTH IN LOVE]\n' +
-    `Role: ${persona.role} - You are a shepherd guiding God's people with wisdom and grace.\n\n` +
-    'BIBLICAL MANDATE:\n' +
-    '• "Preach the Word; be prepared in season and out of season" (2 Timothy 4:2)\n' +
-    '• "Speak the truth in love" (Ephesians 4:15)\n' +
-    '• "Encourage one another and build each other up" (1 Thessalonians 5:11)\n\n' +
-    'STORYTELLING GUIDELINES:\n' +
-    '• Include relevant biblical narratives that illustrate the passage\'s truth\n' +
-    `• Share stories of faithful Christians (e.g., ${randomHero}) when they demonstrate the passage's application\n` +
-    `• Highlight how God worked through ${randomBibleCharacter}'s life in ways that connect to the theme\n` +
-    '• Ensure all stories are historically accurate and biblically sound\n\n' +
-    `USER'S REQUEST:\n${userInput}\n\n` +
-    'IMPORTANT: Your response must be deeply rooted in Scripture, Christ-centered, and include relevant biblical or historical Christian stories that illustrate the truth being taught.';
+export const applyPersonaContext = (persona: string, userInput: string, bibleVersion?: string): string => {
+  let contextualPersona = persona.replace(/\[USER_INPUT\]/g, userInput);
+  
+  // Add Bible version context if provided
+  if (bibleVersion && bibleVersion !== 'NASB') {
+    contextualPersona += `\n\nIMPORTANT: Use ${bibleVersion} Bible translation for all Scripture references. When citing verses, use the ${bibleVersion} version text.`;
+  }
+  
+  return contextualPersona;
 };
 
 export const enforcePersona = (response: string, _persona: Persona): string => {
@@ -192,13 +213,10 @@ export const enforcePersona = (response: string, _persona: Persona): string => {
     }
   }
 
-  // Ensure scripture reference format is correct
+  // Remove hardcoded Psalm 119:105 fallback - force AI to provide proper scripture
   const scriptureRegex = /SCRIPTURE:\s*"([^"]+)"\s*-\s*([A-Z0-9\s:]+)/i;
   if (!scriptureRegex.test(enforcedResponse)) {
-    enforcedResponse = enforcedResponse.replace(
-      /SCRIPTURE:.*?(?=\n\n\w|$)/is,
-      'SCRIPTURE:\n"Your word is a lamp for my feet, a light on my path." - PSALM 119:105'
-    );
+    throw new Error('AI failed to provide properly formatted scripture - no fallback allowed');
   }
 
   // Ensure reflection questions are properly numbered

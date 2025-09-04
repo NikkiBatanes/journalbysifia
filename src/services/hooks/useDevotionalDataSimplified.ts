@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DeviceEventEmitter } from 'react-native';
 import { DevotionalApi } from '../api/devotionalApi';
-import { DevotionalApiEntry } from '../api/devotionalApi';
-import { Devotional, DevotionalCreationParams } from '../../interfaces/devotional';
+import { queryKeys as globalQueryKeys } from '../queryKeys';
+import { defaultQueryOptions, defaultMutationOptions } from '../config/queryConfig';
+import { Devotional, DevotionalCreationParams, DevotionalCategory } from '../../interfaces/devotional';
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useCrossComponentSync } from './useCrossComponentSync';
 // import { analytics } from '../analytics'; // TODO: Fix analytics import
 
@@ -15,29 +16,56 @@ const queryKeys = {
   },
 };
 
+// Helper function to determine appropriate category based on content
+const determineDevotionalCategory = (apiEntry: DevotionalApiEntry): DevotionalCategory => {
+  // If category is already set and not the default 'Growth', use it
+  if (apiEntry.category && apiEntry.category !== 'Growth') {
+    return apiEntry.category as DevotionalCategory;
+  }
+  
+  // Analyze title and description for category hints
+  const content = `${apiEntry.title || ''} ${apiEntry.description || ''}`.toLowerCase();
+  
+  if (content.includes('prayer') || content.includes('pray')) return 'Prayer';
+  if (content.includes('faith') || content.includes('trust') || content.includes('believe')) return 'Faith';
+  if (content.includes('love') || content.includes('relationship') || content.includes('family')) return 'Relationships';
+  if (content.includes('peace') || content.includes('anxiety') || content.includes('worry') || content.includes('stress')) return 'Peace';
+  if (content.includes('hope') || content.includes('encouragement') || content.includes('strength')) return 'Hope';
+  if (content.includes('wisdom') || content.includes('decision') || content.includes('guidance')) return 'Wisdom';
+  if (content.includes('forgiveness') || content.includes('forgive') || content.includes('mercy')) return 'Forgiveness';
+  if (content.includes('gratitude') || content.includes('thankful') || content.includes('blessing')) return 'Gratitude';
+  if (content.includes('purpose') || content.includes('calling') || content.includes('mission')) return 'Purpose';
+  
+  // Default to 'Spiritual Growth' instead of just 'Growth'
+  return 'Spiritual Growth';
+};
+
 // Data transformer
-const transformApiEntryToDevotional = (apiEntry: DevotionalApiEntry): Devotional => ({
-  id: apiEntry.id,
-  userId: apiEntry.user_id,
-  title: apiEntry.title,
-  description: apiEntry.description,
-  category: (apiEntry.category as any) || 'Growth',
-  categories: apiEntry.categories || [apiEntry.category || 'Growth'],
-  playbookId: apiEntry.playbook_id,
-  playbookTitle: apiEntry.playbook_title,
-  userInput: apiEntry.user_input,
-  totalDays: apiEntry.total_days,
-  currentDay: apiEntry.current_day,
-  progress: apiEntry.progress,
-  completed: apiEntry.completed,
-  completedAt: apiEntry.completed_at,
-  days: apiEntry.days || [],
-  rating: apiEntry.rating,
-  ratedAt: apiEntry.rated_at,
-  feedback: apiEntry.feedback,
-  createdAt: apiEntry.created_at,
-  updatedAt: apiEntry.updated_at,
-});
+const transformApiEntryToDevotional = (apiEntry: DevotionalApiEntry): Devotional => {
+  const category = determineDevotionalCategory(apiEntry);
+  
+  return {
+    id: apiEntry.id,
+    userId: apiEntry.user_id,
+    title: apiEntry.title,
+    description: apiEntry.description,
+    category,
+    categories: apiEntry.categories || [category],
+    playbookId: apiEntry.playbook_id,
+    playbookTitle: apiEntry.playbook_title,
+    userInput: apiEntry.user_input,
+    totalDays: apiEntry.total_days,
+    currentDay: apiEntry.current_day,
+    progress: apiEntry.progress,
+    completed: apiEntry.completed,
+    completedAt: apiEntry.completed_at,
+    days: apiEntry.days || [],
+    rating: apiEntry.rating,
+    feedback: apiEntry.feedback,
+    createdAt: apiEntry.created_at,
+    updatedAt: apiEntry.updated_at,
+  };
+};
 
 /**
  * Fetch all devotionals for a user

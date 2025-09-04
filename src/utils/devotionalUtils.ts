@@ -7,9 +7,9 @@ export function createDefaultDay(dayNumber: number, isError = false): Devotional
     title: isError ? 'Daily Reflection' : `Day ${dayNumber}`,
     scripture: {
       text: isError
-        ? 'Be strong and courageous. Do not be afraid; do not be discouraged, for the LORD your God will be with you wherever you go. (Joshua 1:9)'
-        : 'Your word is a lamp for my feet, a light on my path. (Psalm 119:105)',
-      reference: isError ? 'Joshua 1:9' : 'Psalm 119:105',
+        ? 'Be strong and courageous. Do not be afraid; do not be discouraged, for the LORD your God will be with you wherever you go.'
+        : 'The Lord is good, a refuge in times of trouble. He cares for those who trust in him.',
+      reference: isError ? 'JOSHUA 1:9' : 'NAHUM 1:7',
     },
     reflection: isError
       ? 'We encountered an issue generating your devotional content. Please try again later.'
