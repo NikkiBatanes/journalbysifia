@@ -521,7 +521,6 @@ const LookingForwardComponent: React.FC<LookingForwardProps> = ({ selectedDate, 
           item={{ id: displayEntry.id, text: displayEntry.text, completed: false }}
           onToggle={() => {}}
           onDelete={handleEntryDelete}
-          onEdit={() => editLookingForwardEntry(displayEntry.id)}
           hideCheckbox
           variant="gratitude"
           disableSwipe={viewMode === 'carousel' && !expanded}
@@ -718,11 +717,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     backgroundColor: 'transparent',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
     minHeight: 60,
     textAlignVertical: 'top',
   },

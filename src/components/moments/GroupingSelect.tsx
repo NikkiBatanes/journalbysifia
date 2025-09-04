@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   buttonText: { color: Colors.hopeWhite, fontSize: 13 },
   buttonTextCompact: { fontSize: 12 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  sheet: { width: '88%', maxHeight: '70%', backgroundColor: Colors.anchorBlue, borderRadius: 12, padding: 12 },
+  sheet: { width: '88%', maxHeight: '70%', backgroundColor: Colors.anchorBlue, borderRadius: 30, padding: 20 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   sheetTitle: { fontSize: 16, color: Colors.hopeWhite },
   option: { paddingVertical: 12, paddingHorizontal: 10, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)', marginVertical: 4 },

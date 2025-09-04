@@ -176,7 +176,7 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
         subtitle: shouldShowEditingMode
           ? (hasEntry ? 'Update your focus and priorities' : 'Set your focus and priorities')
           : (hasEntry
-              ? 'Stay focused on what matters today'
+              ? 'Stay focused on what matters'
               : 'Set your focus and priorities to make today count in faith and action—then begin'),
         ctaLabel: hasEntry ? 'Update Focus' : 'Begin',
         ctaAction: hasEntry ? 'update' : 'begin',
@@ -425,15 +425,17 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
   };
 
   const removePriority = (priorityId: string) => {
+    try { triggerLightHaptic(); } catch {}
     Alert.alert(
       'Remove Priority',
       'Are you sure you want to remove this priority?',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel', onPress: () => { try { triggerLightHaptic(); } catch {} } },
         {
           text: 'Remove',
           style: 'destructive',
           onPress: () => {
+            try { triggerLightHaptic(); } catch {}
             setData(prev => ({
               ...prev,
               priorities: prev.priorities.filter(p => p.id !== priorityId),
@@ -690,7 +692,6 @@ export const TodaysFocusReactQuery: React.FC<TodaysFocusProps> = ({ selectedDate
                           }}
                           onToggle={() => togglePriority(index)}
                           onDelete={() => removePriority(priority.id)}
-                          onEdit={() => editPriority(priority.id)}
                           hideCheckbox={true}
                           disableSwipe={viewMode === 'carousel' && !expanded}
                           ref={ref => {

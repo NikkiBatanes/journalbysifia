@@ -1,13 +1,13 @@
 import React, { useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, StyleSheet, Animated } from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import { Swipeable, RectButton } from 'react-native-gesture-handler';
 import { TouchableOpacity } from 'react-native';
 
 import { Check } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
-import { triggerSelectionHaptic } from '../utils/haptics';
+import { triggerLightHaptic } from '../utils/haptics';
 
 interface SwipeableTodoItemProps {
   item: {
@@ -20,6 +20,7 @@ interface SwipeableTodoItemProps {
   onDelete: (id: string) => void;
   onEdit?: (id: string) => void;
   onLongPress?: (id: string) => void;
+  onRowPress?: (id: string) => void; // optional override for row tap behavior
   children: React.ReactNode;
   hideCheckbox?: boolean;
   variant?: 'todo' | 'gratitude';
@@ -35,6 +36,7 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
   onToggle,
   onDelete,
   onEdit,
+  onRowPress,
   children,
   hideCheckbox = false,
   variant = 'todo',
@@ -101,24 +103,23 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
       );
     }
 
-    // Original delete-only behavior
+    // Playbook-like single delete pill button
     return (
       <Animated.View
         style={[
-          styles.deleteButtonSingle,
+          styles.singleActionContainer,
           {
             opacity,
             transform: [{ scale }],
           },
         ]}
       >
-        <TouchableOpacity
+        <RectButton
           onPress={handleDelete}
-          style={styles.deleteButtonContent}
-          activeOpacity={0.7}
+          style={styles.singleDeleteButton}
         >
           <Ionicons name="trash-outline" size={22} color="white" />
-        </TouchableOpacity>
+        </RectButton>
       </Animated.View>
     );
   };
@@ -132,15 +133,15 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
     <Swipeable
       ref={swipeableRef}
       renderRightActions={disableSwipe ? undefined : renderRightActions}
-      rightThreshold={disableSwipe ? 0 : (onEdit ? 40 : 20)}
+      rightThreshold={disableSwipe ? 0 : 40}
       enabled={!disableSwipe}
       containerStyle={styles.swipeableContainer}
       overshootRight={false}
-      friction={3}
+      friction={2}
       enableTrackpadTwoFingerGesture
       onSwipeableWillOpen={() => {
         // Use a very subtle haptic similar to system selection feedback
-        triggerSelectionHaptic();
+        try { triggerLightHaptic(); } catch {}
       }}
     >
       <TouchableOpacity
@@ -150,13 +151,17 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
         ]}
         activeOpacity={1}
         onPress={() => {
-          triggerSelectionHaptic(); // Haptic for checkmark toggle
-          onToggle(item.id, false); // Explicitly pass false for regular toggle
+          try { triggerLightHaptic(); } catch {}
+          if (onRowPress) {
+            onRowPress(item.id);
+          } else {
+            onToggle(item.id, false); // Explicitly pass false for regular toggle
+          }
           closeSwipeable();
         }}
         onLongPress={() => {
           if (!item.completed) {
-            triggerSelectionHaptic(); // Haptic for priority toggle
+            try { triggerLightHaptic(); } catch {}
             onToggle(item.id, true); // Pass true for priority toggle
           }
         }}
@@ -194,15 +199,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: 'transparent',
+    alignItems: 'stretch',
   },
   todoItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     backgroundColor: 'transparent',
     borderRadius: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
-    minHeight: 44,
+    minHeight: 48,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
     position: 'relative',
@@ -216,14 +222,16 @@ const styles = StyleSheet.create({
   textContainer: {
     flex: 1,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     minHeight: 20,
   },
   checkboxContainer: {
     position: 'relative',
     marginRight: 10,
-    marginTop: 2,
+    marginTop: 0,
+    alignSelf: 'center',
+    justifyContent: 'center',
   },
   priorityIndicator: {
     marginLeft: 8,
@@ -253,9 +261,9 @@ const styles = StyleSheet.create({
   // Swipe actions container for edit + delete
   swipeActions: {
     flexDirection: 'row',
-    width: 160,
+    width: 168,
     height: '100%',
-    marginLeft: -10,
+    marginLeft: 8,
     overflow: 'hidden',
     borderRadius: 12,
   },
@@ -270,24 +278,36 @@ const styles = StyleSheet.create({
   deleteButton: {
     width: 75,
     height: '100%',
+    minHeight: 0,
     backgroundColor: '#f87171',
     justifyContent: 'center',
     alignItems: 'center',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
   },
-  // Single delete button (original behavior)
-  deleteButtonSingle: {
+  // Single action wrapper (for single delete pill)
+  singleActionContainer: {
+    flex: 1,
     width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    overflow: 'hidden',
+    alignSelf: 'stretch',
+    // ensure full height to match row without extra spacing
+  },
+  singleDeleteButton: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    minHeight: 0,
     backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'stretch',
-    height: 'auto',
     borderRadius: 12,
-    marginLeft: 4,
-  },
-  deleteButtonContent: {
-    width: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
+    alignSelf: 'stretch',
+    // no border to match row visuals
   },
 });

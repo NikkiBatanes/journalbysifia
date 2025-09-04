@@ -286,6 +286,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
   };
 
   const handleDeleteBlock = async (id: string) => {
+    try { triggerSelectionHaptic(); } catch {}
     Alert.alert('Delete Time Block', 'Are you sure you want to delete this time block?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -300,6 +301,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
 
             await deleteMutation.mutateAsync(id);
 
+            try { triggerLightHaptic(); } catch {}
             // Track delete analytics
             analytics.trackTimeBlockEvent('timeblock_deleted', {
               timeblock_id: id,
@@ -602,6 +604,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               delete swipeableRefs.current[block.id];
             }
           }}
+          onSwipeableWillOpen={() => { try { triggerSelectionHaptic(); } catch {} }}
           renderRightActions={viewMode === 'carousel' && !expanded ? undefined : () => (
             <View style={styles.timeblockSwipeActions}>
               <TouchableOpacity
@@ -613,7 +616,7 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.deleteActionBtn}
-                onPress={() => handleDeleteBlock(block.id)}
+                onPress={() => { try { triggerSelectionHaptic(); } catch {} ; handleDeleteBlock(block.id); }}
                 activeOpacity={0.7}
               >
                 <Ionicons name="trash-outline" size={22} color="white" />
@@ -1453,9 +1456,9 @@ const styles = StyleSheet.create({
   },
   timeblockSwipeActions: {
     flexDirection: 'row',
-    width: 160, // Make the total swipe area smaller
+    width: 168, // Match Todos swipe area width for consistency
     height: '100%', // Match the card height
-    marginLeft: -10, // Align with card edge
+    marginLeft: 8, // Add consistent gap like Todos
     overflow: 'hidden', // Ensure rounded corners are respected
     borderRadius: 12, // Match card border radius
   },
@@ -1473,6 +1476,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f87171',
     justifyContent: 'center',
     alignItems: 'center',
+    borderTopRightRadius: 12,
+    borderBottomRightRadius: 12,
   },
   loadingText: {
     color: Colors.mediumGray,

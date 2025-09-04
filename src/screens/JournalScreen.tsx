@@ -518,6 +518,7 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
               scrollEventThrottle={16}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
             >
               <View style={styles.carouselContainer}>
                 <PlanCarousel

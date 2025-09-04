@@ -312,24 +312,68 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
   }, [gratitudeItems, closeAllSwipeables]);
 
   const saveEditedGratitudeItem = useCallback(async () => {
-    if (!editingItemId || !editingItemText.trim() || !user) {return;}
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to save.');
+      return;
+    }
+    if (!editingItemId) {
+      Alert.alert('Error', 'No item selected for editing.');
+      return;
+    }
+    const newText = editingItemText.trim();
+    if (!newText) {
+      Alert.alert('Empty Text', 'Please enter some text before saving.');
+      return;
+    }
 
     try {
-      // Find the entry that contains this item
-      const entryWithItem = gratitudeEntries.find(entry => {
-        const parsedContent = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
-        return parsedContent.items?.some((item: any) => item.id === editingItemId);
-      });
+      // Try to locate the entry and index using the composite UI id pattern `${entry.id}_${index}`
+      let targetEntry: any | undefined;
+      let targetIndex: number | undefined;
 
-      if (!entryWithItem) {return;}
+      for (const entry of gratitudeEntries) {
+        const parsed = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+        if (Array.isArray(parsed?.items)) {
+          for (let i = 0; i < parsed.items.length; i++) {
+            const compositeId = `${entry.id}_${i}`;
+            if (compositeId === editingItemId) {
+              targetEntry = entry;
+              targetIndex = i;
+              break;
+            }
+          }
+        }
+        if (targetEntry) { break; }
+      }
 
-      const parsedContent = typeof entryWithItem.content === 'string' ? JSON.parse(entryWithItem.content) : entryWithItem.content;
-      const updatedItems = parsedContent.items?.map((item: any) =>
-        item.id === editingItemId ? { ...item, text: editingItemText.trim() } : item
-      ) || [];
+      // Fallback: try to match by item.id when data was saved with explicit ids
+      if (!targetEntry) {
+        for (const entry of gratitudeEntries) {
+          const parsed = typeof entry.content === 'string' ? JSON.parse(entry.content) : entry.content;
+          if (Array.isArray(parsed?.items)) {
+            const idx = parsed.items.findIndex((it: any) => it?.id === editingItemId);
+            if (idx !== -1) {
+              targetEntry = entry;
+              targetIndex = idx;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!targetEntry || targetIndex === undefined) {
+        console.warn('saveEditedGratitudeItem: Could not locate target entry/index for', editingItemId);
+        Alert.alert('Error', 'Could not locate the item to update. Please try again.');
+        return;
+      }
+
+      const parsedContent = typeof targetEntry.content === 'string' ? JSON.parse(targetEntry.content) : targetEntry.content;
+      const updatedItems = [...(parsedContent.items || [])];
+      const original = updatedItems[targetIndex];
+      updatedItems[targetIndex] = { ...original, text: newText };
 
       await updateMutation.mutateAsync({
-        id: entryWithItem.id,
+        id: targetEntry.id,
         updates: {
           content: JSON.stringify({ items: updatedItems }),
         },
@@ -338,11 +382,12 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       // Reset edit state
       setEditingItemId(null);
       setEditingItemText('');
+      closeAllSwipeables();
 
       // Track analytics
       analytics.trackGratitudeEvent('gratitude_items_saved', {
         items_count: 1,
-        total_text_length: editingItemText.trim().length,
+        total_text_length: newText.length,
         is_editing: true,
         date: dateStr,
       }, user.id);
@@ -352,7 +397,7 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
       Alert.alert('Error', 'Failed to update gratitude item. Please try again.');
       triggerErrorHaptic();
     }
-  }, [editingItemId, editingItemText, user, gratitudeEntries, updateMutation, dateStr]);
+  }, [editingItemId, editingItemText, user, gratitudeEntries, updateMutation, dateStr, closeAllSwipeables]);
 
   const cancelEditGratitudeItem = useCallback(() => {
     triggerSelectionHaptic();
@@ -544,7 +589,6 @@ export const GratitudeListReactQuery: React.FC<GratitudeListProps> = ({ selected
             }}
             onToggle={() => {}}
             onDelete={() => handleDeleteGratitudeItem(item.id)}
-            onEdit={() => editGratitudeItem(item.id)}
             hideCheckbox={true}
             variant="gratitude"
             disableSwipe={viewMode === 'carousel' && !expanded}
@@ -900,12 +944,12 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 14,
     lineHeight: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   editButtons: {
     flexDirection: 'row',

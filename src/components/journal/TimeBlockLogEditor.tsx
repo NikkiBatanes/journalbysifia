@@ -884,7 +884,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                 <View style={s.repeatModal}>
                   <View style={s.repeatModalContainer}>
                     <Text style={s.repeatModalTitle}>Repeat</Text>
-                    {['Never', 'Daily', 'Weekly', 'Monthly', 'Custom'].map((option, index, array) => (
+                    {['Never', 'Daily', 'Weekly', 'Bi-weekly', 'Monthly', 'Yearly', 'Custom'].map((option, index, array) => (
                       <TouchableOpacity
                         key={option}
                         style={[

@@ -638,7 +638,6 @@ const TodayWinComponent: React.FC<TodayWinProps> = ({ selectedDate, viewMode, ex
               item={{ id: displayWin.id, text: displayWin.text, completed: false }}
               onToggle={() => {}}
               onDelete={handleDelete}
-              onEdit={() => editWin(displayWin.id)}
               hideCheckbox
               variant="gratitude"
               disableSwipe={viewMode === 'carousel' && !expanded}
@@ -797,6 +796,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
     letterSpacing: 1,
+    fontWeight: '600',
     flexWrap: 'wrap',
   },
   editButton: {
@@ -878,11 +878,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     backgroundColor: 'transparent',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
     minHeight: 60,
     textAlignVertical: 'top',
   },

@@ -270,25 +270,37 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     }
   };
 
-  // Remove a todo
-  const removeTodo = async (id: string) => {
+  // Remove a todo (with confirmation + haptics)
+  const removeTodo = (id: string) => {
     const todo = todos.find(t => t.id === id);
-
-    try {
-      await deleteTodoMutation.mutateAsync(id);
-
-      // Track successful todo deletion
-      if (todo) {
-        analytics.trackTodoEvent('todo_deleted', {
-          todo_id: id,
-          was_completed: todo.completed,
-          date: dateStr,
-        }, user?.id);
-      }
-    } catch (deleteError) {
-      console.error('Failed to delete todo:', deleteError);
-      Alert.alert('Error', 'Failed to delete todo. Please try again.');
-    }
+    try { triggerLightHaptic(); } catch {}
+    Alert.alert(
+      'Delete To-do',
+      'Are you sure you want to delete this to-do?',
+      [
+        { text: 'Cancel', style: 'cancel', onPress: () => { try { triggerLightHaptic(); } catch {} } },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try { triggerLightHaptic(); } catch {}
+            try {
+              await deleteTodoMutation.mutateAsync(id);
+              if (todo) {
+                analytics.trackTodoEvent('todo_deleted', {
+                  todo_id: id,
+                  was_completed: todo.completed,
+                  date: dateStr,
+                }, user?.id);
+              }
+            } catch (deleteError) {
+              console.error('Failed to delete todo:', deleteError);
+              Alert.alert('Error', 'Failed to delete todo. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Edit a todo
@@ -864,6 +876,20 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               onLongPress={(id) => { triggerLightHaptic(); toggleTodo(id, true); }}
               onDelete={removeTodo}
               onEdit={editTodo}
+              onRowPress={(id) => {
+                // If already editing, switch editing focus to the tapped item instead of toggling
+                if (editingId !== null) {
+                  const t = todos.find(tt => tt.id === id);
+                  if (t) {
+                    setEditingId(id);
+                    setEditingText(t.text);
+                  }
+                  return;
+                }
+                // Otherwise, behave like a normal toggle tap
+                toggleTodo(id, false);
+                closeAllSwipeables();
+              }}
               disableSwipe={viewMode === 'carousel' && !expanded}
               ref={ref => {
                 if (ref) {
@@ -1370,12 +1396,12 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
     fontSize: 13,
     lineHeight: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderWidth: 0,
+    borderColor: 'transparent',
   },
   editButtons: {
     flexDirection: 'row',
