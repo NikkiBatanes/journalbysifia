@@ -110,14 +110,14 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
     const allPrayers = sortedDates.flatMap(date => groupedPrayers[date]);
 
     if (viewMode === 'carousel') {
-      // Vertical stack for carousel view
+      // Vertical stack for carousel view without internal scrolling
+      // Show all prayers expanded within the card
       return (
-        <ScrollView
+        <View
           style={[
             styles.prayersContainer,
             expanded && styles.prayersContainerExpanded,
           ]}
-          showsVerticalScrollIndicator={false}
         >
           {allPrayers.map((prayer) => (
             <View style={styles.prayerItem} key={prayer.id}>
@@ -146,7 +146,7 @@ const DevotionalPrayerListReactQuery: React.FC<DevotionalPrayerListReactQueryPro
               </View>
             </View>
           ))}
-        </ScrollView>
+        </View>
       );
     } else {
       // Horizontal carousel for inline and moments view - matching Plan carousel with peek
@@ -298,12 +298,12 @@ const styles = StyleSheet.create({
     // No top margin needed - will be handled by parent
   },
   prayersContainer: {
-    flex: 1,
-    minHeight: 300, // Ensure proper height for carousel view
-    maxHeight: 500, // Increased to allow more content
+    // Allow the container to grow naturally to show all prayers
+    flexGrow: 0,
+    flexShrink: 1,
   },
   prayersContainerExpanded: {
-    maxHeight: 800, // Allow much more expansion
+    // No max height; keep for potential future use
   },
   horizontalContainer: {
     // Remove fixed height to allow content to expand
