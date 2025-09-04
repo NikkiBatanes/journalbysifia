@@ -562,7 +562,10 @@ const DevotionalsScreen = () => {
               ] as const).map(tab => (
                 <TouchableOpacity
                   key={tab.key}
-                  onPress={() => setFilter(tab.key)}
+                  onPress={() => {
+                    try { triggerLightHaptic(); } catch {}
+                    setFilter(tab.key);
+                  }}
                   style={[
                     styles.filterTabOnWhite,
                     filter === tab.key && (
