@@ -350,6 +350,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
 
   // 5. Ref hooks
   const isInitialRender = useRef(true);
+  // Track that we're navigating to DevotionalDetail so we only hide the CTA once the detail screen appears
+  const pendingDevotionalNavigation = useRef(false);
   const animationRefs = useRef<{
     headerOpacityAnimation?: any;
     rafId?: number;
@@ -796,6 +798,17 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       });
     };
   }, []);
+
+  // Hide the Devotional CTA only after this screen blurs (i.e., after navigating to DevotionalDetail)
+  useEffect(() => {
+    const unsubscribe = rootNavigation.addListener('blur', () => {
+      if (pendingDevotionalNavigation.current) {
+        setHasCreatedDevotional(true);
+        pendingDevotionalNavigation.current = false;
+      }
+    });
+    return unsubscribe;
+  }, [rootNavigation]);
 
   // Chevron animation effect
   useEffect(() => {
@@ -1592,11 +1605,10 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
             playbookId={playbookId}
             userInput={playbook?.userInput}
             onDevotionalCreated={(devotionalId: string) => {
-              setHasCreatedDevotional(true);
+              // Close modal and navigate. Keep the CTA visible until the detail screen actually appears.
               setShowDevotionalModal(false);
-              setTimeout(() => {
-                rootNavigation.navigate('DevotionalDetail', { devotionalId });
-              }, 500);
+              pendingDevotionalNavigation.current = true;
+              rootNavigation.navigate('DevotionalDetail', { devotionalId });
             }}
           />
         </>

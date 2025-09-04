@@ -416,6 +416,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
       return;
     }
 
+    try { triggerLightHaptic(); } catch {}
     Alert.alert(
       'Delete Playbook',
       'Are you sure you want to delete this playbook?',
@@ -428,6 +429,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
+            try { triggerLightHaptic(); } catch {}
             try {
               // Delete from database
               await deletePlaybook(id, user?.id || '');
@@ -759,8 +761,8 @@ const createStyles = (_theme: any) => StyleSheet.create({
   },
   swipeableContainer: {
     width: '100%',
-    marginBottom: 8,
-    borderRadius: 20,
+    marginBottom: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     height: 88, // Fixed height to match card
     backgroundColor: 'transparent', // Let page background show when swiping
@@ -769,14 +771,14 @@ const createStyles = (_theme: any) => StyleSheet.create({
     width: '100%',
   },
   deleteButton: {
-    width: 60,
-    backgroundColor: '#f87171',
+    width: 80,
+    backgroundColor: Colors.alertCoral,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
     height: '100%',
-    borderTopRightRadius: 20, // Match card's border radius
-    borderBottomRightRadius: 20, // Match card's border radius
+    borderRadius: 16, // Match Devotionals style
+    marginLeft: 8,
   },
   safeArea: {
     flex: 1,

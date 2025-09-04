@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   StatusBar,
   NativeModules,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -80,6 +81,13 @@ const DevotionalsScreen = () => {
     } catch {}
   };
 
+  // Trigger a gentle haptic when the Devotional creation modal opens
+  useEffect(() => {
+    if (showDevotionalModal) {
+      try { triggerLightHaptic(); } catch {}
+    }
+  }, [showDevotionalModal]);
+
   const handleDevotionalPress = (devotional: Devotional) => {
     // Log title extraction for debugging
     createTitleExtractionMemory(devotional);
@@ -125,7 +133,24 @@ const DevotionalsScreen = () => {
     return (
       <RectButton
         style={styles.deleteButton}
-        onPress={() => handleDeleteDevotional(devotionalId)}
+        onPress={() => {
+          try { triggerLightHaptic(); } catch {}
+          Alert.alert(
+            'Delete Devotional',
+            'Are you sure you want to delete this devotional?',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                  try { triggerLightHaptic(); } catch {}
+                  await handleDeleteDevotional(devotionalId);
+                },
+              },
+            ]
+          );
+        }}
       >
         <Ionicons name="trash-outline" size={24} color="white" />
       </RectButton>
@@ -178,6 +203,7 @@ const DevotionalsScreen = () => {
           ref={(ref) => {
             if (ref) {rowRefs.current[item.id] = ref;}
           }}
+          onSwipeableWillOpen={() => { try { triggerLightHaptic(); } catch {} }}
           renderRightActions={() => renderRightActions(item.id)}
           rightThreshold={40}
           friction={2}
@@ -309,7 +335,7 @@ const DevotionalsScreen = () => {
                   : 'Keep going! Your finished devotionals will appear here.'}
               </ThemedText>
               <TouchableOpacity
-                onPress={() => setFilter(filter === 'ongoing' ? 'completed' : 'ongoing')}
+                onPress={() => { try { triggerLightHaptic(); } catch {} setFilter(filter === 'ongoing' ? 'completed' : 'ongoing'); }}
                 activeOpacity={0.85}
                 style={styles.heroTextButton}
               >
@@ -435,6 +461,7 @@ const DevotionalsScreen = () => {
                         activeOpacity={0.9}
                         onPress={() => {
                           console.log('[DevotionalsScreen] Selected playbook for devotional modal:', { id: item.id, title: item.title, userInput: item.userInput?.slice?.(0, 80) });
+                          try { triggerLightHaptic(); } catch {}
                           setSelectedPlaybookId(item.id);
                           // Use the actual user input captured when creating the playbook
                           setSelectedPlaybookInfo(item.userInput);
@@ -632,14 +659,14 @@ const styles = StyleSheet.create({
   swipeableContainer: {
     width: '100%',
     marginBottom: 12,
-    borderRadius: 16,
+    borderRadius: 26, // Increased border radius to 26
     overflow: 'hidden',
     minHeight: 200, // Minimum height
     backgroundColor: 'transparent', // Keep background clean on BlueSheet
   },
   swipeableInner: {
     width: '100%',
-    borderRadius: 16,
+    borderRadius: 26, // Increased border radius to 26
     overflow: 'hidden',
   },
   header: {
@@ -746,7 +773,7 @@ const styles = StyleSheet.create({
   },
   devotionalCard: {
     backgroundColor: 'rgba(255,255,255,0.08)', // Match Playbook card tint on BlueSheet
-    borderRadius: 16,
+    borderRadius: 26, // Increased border radius to 26
     padding: 16,
     position: 'relative',
   },
@@ -813,7 +840,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 80,
-    borderRadius: 16,
+    borderRadius: 26, // Increased border radius to 26
     marginLeft: 8,
     height: '100%',
   },

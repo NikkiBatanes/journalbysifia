@@ -102,13 +102,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const currentTitle = generationSteps[Math.min(currentStep, generationSteps.length - 1)]?.title || '';
   const baseTitle = React.useMemo(() => currentTitle.replace(/(…|\.{1,3})\s*$/, '').trimEnd(), [currentTitle]);
 
-  // Debug logging
+  // Ensure 'WHAT YOU SHARED' is collapsed initially each time the modal opens
   React.useEffect(() => {
-    // Auto-expand 'WHAT YOU SHARED' section if we have content when opening
-    if (visible && (playbookInfo || userInput)) {
-      setShowPlaybookInfo(true);
+    if (visible) {
+      setShowPlaybookInfo(false);
+      // Reset chevron rotation to collapsed state
+      try { rotateAnim.setValue(0); } catch {}
     }
-  }, [visible, playbookInfo, userInput]);
+  }, [visible]);
 
   React.useEffect(() => {
     console.log('[DevotionalModal] State changed:', { isCreating, error: !!error, isSuccess, selectedDuration });
@@ -154,6 +155,10 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           duration: 1000,
           useNativeDriver: false,
         }).start();
+        // Subtle haptic feedback on each visible step advancement
+        if (!isLast) {
+          try { triggerLightHaptic(); } catch {}
+        }
         return isLast ? prev : nextStep;
       });
     }, 3000);
@@ -248,15 +253,16 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   }, [visible, contentHeight, fadeAnim, translateY]);
 
   const togglePlaybookInfo = () => {
-    const toValue = showPlaybookInfo ? 0 : 1;
-    setShowPlaybookInfo(!showPlaybookInfo);
-
-    Animated.spring(rotateAnim, {
-      toValue,
-      useNativeDriver: true,
-      tension: 100,
-      friction: 10,
-    }).start();
+    setShowPlaybookInfo((prev) => {
+      const next = !prev;
+      Animated.spring(rotateAnim, {
+        toValue: next ? 1 : 0,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 10,
+      }).start();
+      return next;
+    });
   };
 
   const handleSelectDuration = async (days: number) => {
@@ -275,6 +281,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       // If no onSelectDuration provided, handle devotional creation here
       if (playbookId && userInput) {
         console.log('[DevotionalModal] Creating devotional with params:', { duration: days, playbookId, userInput });
+        // Haptic feedback when generation starts (parity with playbook generation)
+        try { triggerLightHaptic(); } catch {}
         const devotional = await createDevotional({
           duration: days,
           playbookId,
@@ -437,9 +445,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         <>
           <View style={styles.generationTitleRow}>
             <MaterialCommunityIcons name="book" size={24} color={Colors.hopeWhite} style={styles.generationTitleIcon} />
-            <Text style={styles.generationTitle}>
+            <ThemedText weight="semiBold" style={styles.generationTitle}>
               {`Creating Your ${selectedDuration ? `${selectedDuration}-day` : ''}${selectedDuration ? ' ' : ''}Devotional`}
-            </Text>
+            </ThemedText>
           </View>
           <View style={styles.progressBarContainer}>
             <View style={styles.progressBarBackground}>
@@ -458,21 +466,24 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             </View>
           </View>
           <View style={styles.stepRow}>
-            <Animated.Text style={[styles.currentStepText, { opacity: shimmerOpacity, paddingHorizontal: 0 }]}>
-              {baseTitle}
-            </Animated.Text>
+            <Animated.View style={{ opacity: shimmerOpacity }}>
+              <ThemedText weight="regular" style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
+                {baseTitle}
+              </ThemedText>
+            </Animated.View>
             <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-              <Text style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
+              <ThemedText weight="regular" style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
                 {'.'.repeat(dotCount)}
-              </Text>
+              </ThemedText>
             </View>
             {dotsWidth == null && (
-              <Text
+              <ThemedText
+                weight="regular"
                 style={[styles.currentStepText, styles.hiddenMeasure]}
                 onLayout={(e) => setDotsWidth(e.nativeEvent.layout.width)}
               >
                 ...
-              </Text>
+              </ThemedText>
             )}
           </View>
         </>
@@ -558,8 +569,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40, // Increased bottom padding for better spacing
     maxHeight: '85%',
     minHeight: 300, // Ensure minimum height for smooth animation
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 0, // Remove modal border
+    borderColor: 'transparent',
     overflow: 'hidden',
     position: 'absolute',
     bottom: 0,
@@ -621,10 +632,10 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
+    borderRadius: 16, // adjusted to 16 radius for duration choices
     padding: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 0, // remove border
+    borderColor: 'transparent',
   },
   optionDays: {
     fontSize: 12,
@@ -645,11 +656,11 @@ const styles = StyleSheet.create({
   playbookInfoContainer: {
     width: '100%',
     marginBottom: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 0, // remove border
+    borderColor: 'transparent',
   },
   playbookInfoHeader: {
     flexDirection: 'row',
@@ -717,9 +728,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16, // adjusted to 16 radius
+    borderWidth: 0, // No border
+    borderColor: 'transparent',
     marginVertical: 10,
   },
   loadingText: {
