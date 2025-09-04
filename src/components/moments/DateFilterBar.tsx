@@ -14,6 +14,7 @@ import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 export type DateRange = {
   startDate: Date;
@@ -99,6 +100,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
   const [tempRange, setTempRange] = useState<{ start?: Date; end?: Date }>({});
 
   const handleDateSelect = (day: any) => {
+    triggerLightHaptic();
     if (filterType === 'single') {
       onDateChange(new Date(day.dateString));
       setShowCalendar(false);
@@ -125,6 +127,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
   };
 
   const handlePresetSelect = (preset: DateRange) => {
+    triggerLightHaptic();
     onDateRangeChange(preset);
     setShowPresets(false);
   };
@@ -176,7 +179,10 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
       <View style={styles.filterTypeContainer}>
         <TouchableOpacity
           style={[styles.filterTypeButton, filterType === 'single' && styles.activeFilterType]}
-          onPress={() => onFilterTypeChange('single')}
+          onPress={() => {
+            triggerLightHaptic();
+            onFilterTypeChange('single');
+          }}
         >
           <ThemedText style={[styles.filterTypeText, { fontFamily: fontMedium }, filterType === 'single' && styles.activeFilterTypeText]}>
             Single Date
@@ -185,7 +191,10 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
 
         <TouchableOpacity
           style={[styles.filterTypeButton, filterType === 'range' && styles.activeFilterType]}
-          onPress={() => onFilterTypeChange('range')}
+          onPress={() => {
+            triggerLightHaptic();
+            onFilterTypeChange('range');
+          }}
         >
           <ThemedText style={[styles.filterTypeText, { fontFamily: fontMedium }, filterType === 'range' && styles.activeFilterTypeText]}>
             Date Range
@@ -194,7 +203,10 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
 
         <TouchableOpacity
           style={[styles.filterTypeButton, filterType === 'preset' && styles.activeFilterType]}
-          onPress={() => onFilterTypeChange('preset')}
+          onPress={() => {
+            triggerLightHaptic();
+            onFilterTypeChange('preset');
+          }}
         >
           <ThemedText style={[styles.filterTypeText, { fontFamily: fontMedium }, filterType === 'preset' && styles.activeFilterTypeText]}>
             Quick Filter
@@ -205,6 +217,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
       <TouchableOpacity
         style={styles.dateSelector}
         onPress={() => {
+          triggerLightHaptic();
           if (filterType === 'preset') {
             setShowPresets(true);
           } else {
@@ -229,7 +242,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
               <ThemedText weight="semiBold" style={[styles.modalTitle, { fontFamily: fontSemiBold }]}>
                 {filterType === 'single' ? 'Select Date' : 'Select Date Range'}
               </ThemedText>
-              <TouchableOpacity onPress={() => setShowCalendar(false)}>
+              <TouchableOpacity onPress={() => { triggerLightHaptic(); setShowCalendar(false); }}>
                 <Ionicons name="close" size={24} color={Colors.hopeWhite} />
               </TouchableOpacity>
             </View>
@@ -271,7 +284,7 @@ export const DateFilterBar: React.FC<DateFilterBarProps> = ({
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <ThemedText weight="semiBold" style={[styles.modalTitle, { fontFamily: fontSemiBold }]}>Quick Filters</ThemedText>
-              <TouchableOpacity onPress={() => setShowPresets(false)}>
+              <TouchableOpacity onPress={() => { triggerLightHaptic(); setShowPresets(false); }}>
                 <Ionicons name="close" size={24} color={Colors.hopeWhite} />
               </TouchableOpacity>
             </View>

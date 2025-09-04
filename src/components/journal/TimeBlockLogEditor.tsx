@@ -4,6 +4,7 @@ import TimeBlockCategoryModal from './TimeBlockCategoryModal';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Modal } from 'react-native';
 
 import { Pencil } from 'lucide-react-native';
+import { triggerLightHaptic } from '../../utils/haptics';
 import { Colors } from '../../theme/colors';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { getCategoryIcon } from './TimeBlockCategories';
@@ -831,7 +832,10 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
               {/* Repeat Section */}
               <TouchableOpacity
                 style={s.repeatButton}
-                onPress={() => setShowRepeatModal(true)}
+                onPress={() => {
+                  triggerLightHaptic();
+                  setShowRepeatModal(true);
+                }}
               >
                 <Text style={s.repeatText}>Repeat</Text>
                 <View style={s.repeatOptionContainer}>
@@ -888,7 +892,11 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                           index === array.length - 1 && s.repeatOptionLast,
                           repeatOption === option && s.repeatOptionSelected,
                         ]}
-                        onPress={() => {
+                        onPress={async () => {
+                          // Trigger haptic feedback first
+                          await triggerLightHaptic();
+                          
+                          // Then handle the action
                           if (option === 'Custom') {
                             setShowRepeatModal(false);
                             setShowCustomRepeatModal(true);

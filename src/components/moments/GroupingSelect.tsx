@@ -5,6 +5,7 @@ import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 export type GroupingMode = 'day' | 'week' | 'month' | 'year';
 export type GroupingSelectHandle = { open: () => void };
@@ -33,7 +34,7 @@ const GroupingSelect = forwardRef<GroupingSelectHandle, GroupingSelectProps>(({ 
 
   return (
     <View>
-      <TouchableOpacity style={[styles.button, compact && styles.buttonCompact]} onPress={() => setOpen(true)}>
+      <TouchableOpacity style={[styles.button, compact && styles.buttonCompact]} onPress={() => { triggerLightHaptic(); setOpen(true); }}>
         <Ionicons name="calendar-outline" size={compact ? 14 : 16} color={Colors.hopeWhite} />
         <ThemedText style={[styles.buttonText, compact && styles.buttonTextCompact, { fontFamily: fontMedium }]}>{OPTIONS.find(o => o.value === value)?.label}</ThemedText>
         <Ionicons name="chevron-down" size={compact ? 14 : 16} color={Colors.hopeWhite} />
@@ -44,7 +45,7 @@ const GroupingSelect = forwardRef<GroupingSelectHandle, GroupingSelectProps>(({ 
           <View style={styles.sheet}>
             <View style={styles.sheetHeader}>
               <ThemedText weight="semiBold" style={[styles.sheetTitle, { fontFamily: fontMedium }]}>Select View</ThemedText>
-              <TouchableOpacity onPress={() => setOpen(false)}><Ionicons name="close" size={22} color={Colors.hopeWhite} /></TouchableOpacity>
+              <TouchableOpacity onPress={() => { triggerLightHaptic(); setOpen(false); }}><Ionicons name="close" size={22} color={Colors.hopeWhite} /></TouchableOpacity>
             </View>
             <FlatList
               data={OPTIONS}
@@ -52,7 +53,7 @@ const GroupingSelect = forwardRef<GroupingSelectHandle, GroupingSelectProps>(({ 
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[styles.option, item.value === value && styles.activeOption]}
-                  onPress={() => { onChange(item.value); setOpen(false); }}
+                  onPress={() => { triggerLightHaptic(); onChange(item.value); setOpen(false); }}
                 >
                   <ThemedText style={[styles.optionText, { fontFamily: fontRegular }]}>{item.label}</ThemedText>
                 </TouchableOpacity>

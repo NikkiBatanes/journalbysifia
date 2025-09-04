@@ -7,6 +7,7 @@ import { TouchableOpacity } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import { triggerSelectionHaptic } from '../utils/haptics';
 
 interface SwipeableTodoItemProps {
   item: {
@@ -138,8 +139,8 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
       friction={3}
       enableTrackpadTwoFingerGesture
       onSwipeableWillOpen={() => {
-        const { Vibration } = require('react-native');
-        Vibration.vibrate(10);
+        // Use a very subtle haptic similar to system selection feedback
+        triggerSelectionHaptic();
       }}
     >
       <TouchableOpacity
@@ -149,11 +150,13 @@ export const SwipeableTodoItem = forwardRef<SwipeableRef, SwipeableTodoItemProps
         ]}
         activeOpacity={1}
         onPress={() => {
+          triggerSelectionHaptic(); // Haptic for checkmark toggle
           onToggle(item.id, false); // Explicitly pass false for regular toggle
           closeSwipeable();
         }}
         onLongPress={() => {
           if (!item.completed) {
+            triggerSelectionHaptic(); // Haptic for priority toggle
             onToggle(item.id, true); // Pass true for priority toggle
           }
         }}

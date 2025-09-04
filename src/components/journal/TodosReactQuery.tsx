@@ -103,10 +103,12 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
   const inputRef = useRef<TextInput>(null);
 
   const toggleCalendar = () => {
+    triggerLightHaptic();
     setShowCalendar(!showCalendar);
   };
 
   const handleDayPress = (day: any) => {
+    triggerLightHaptic();
     const targetDate = new Date(day.timestamp);
     setCopyTargetDate(targetDate);
     setShowCalendar(false);
@@ -770,6 +772,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           {todos.some(t => t.priority && !t.completed) && (
             <TouchableOpacity
               onPress={() => {
+                triggerLightHaptic();
                 if (showCompletedAtBottom) {
                   setShowCompletedAtBottom(false);
                   setShowOnlyPriorities(true);
@@ -794,6 +797,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           {todos.some(t => t.completed) && !todos.every(t => t.completed) && (
             <TouchableOpacity
               onPress={() => {
+                triggerLightHaptic();
                 if (showOnlyPriorities) {
                   setShowOnlyPriorities(false);
                   setShowCompletedAtBottom(true);
@@ -818,7 +822,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           {/* Copy incomplete todos button */}
           {todos.some(t => !t.completed) && (
             <TouchableOpacity
-              onPress={handleCopyTodos}
+              onPress={() => { triggerLightHaptic(); handleCopyTodos(); }}
               style={styles.sortButton}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole="button"
@@ -853,10 +857,11 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             <SwipeableTodoItem
               item={item}
               onToggle={(id, isPriority) => {
+                if (isPriority) { triggerLightHaptic(); }
                 toggleTodo(id, isPriority);
                 closeAllSwipeables();
               }}
-              onLongPress={(id) => toggleTodo(id, true)}
+              onLongPress={(id) => { triggerLightHaptic(); toggleTodo(id, true); }}
               onDelete={removeTodo}
               onEdit={editTodo}
               disableSwipe={viewMode === 'carousel' && !expanded}
@@ -1051,6 +1056,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             <TouchableOpacity
               style={styles.datePickerButton}
               onPress={() => {
+                triggerLightHaptic();
                 // Simple date picker - tomorrow
                 const tomorrow = new Date();
                 tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1063,6 +1069,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             <TouchableOpacity
               style={styles.datePickerButton}
               onPress={() => {
+                triggerLightHaptic();
                 // Simple date picker - next week
                 const nextWeek = new Date();
                 nextWeek.setDate(nextWeek.getDate() + 7);
@@ -1099,8 +1106,8 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                   }}
                   hideArrows={false}
                   firstDay={weekStartsOn}
-                  onPressArrowLeft={subtractMonth => subtractMonth()}
-                  onPressArrowRight={addMonth => addMonth()}
+                  onPressArrowLeft={subtractMonth => { triggerLightHaptic(); subtractMonth(); }}
+                  onPressArrowRight={addMonth => { triggerLightHaptic(); addMonth(); }}
                   theme={{
                     backgroundColor: Colors.anchorBlue,
                     calendarBackground: Colors.anchorBlue,
@@ -1154,7 +1161,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
           <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => setShowCopyModal(false)}
+              onPress={() => { triggerLightHaptic(); setShowCopyModal(false); }}
             >
               <ThemedText weight="semiBold" style={styles.cancelButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
@@ -1162,6 +1169,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
             <TouchableOpacity
               style={[styles.modalButton, styles.copyButton]}
               onPress={async () => {
+                triggerLightHaptic();
                 setShowCopyModal(false);
                 await copyIncompleteTodos(copyTargetDate);
               }}
@@ -1591,6 +1599,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 14,
     paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 12,
     marginHorizontal: 6,
     shadowColor: '#000',
@@ -1614,6 +1624,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.hopeWhite,
     textAlign: 'center',
+    textAlignVertical: 'center',
   },
   copyButtonText: {
     fontSize: 15,

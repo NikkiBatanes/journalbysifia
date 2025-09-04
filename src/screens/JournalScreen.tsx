@@ -562,6 +562,16 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                 )}
                 style={styles.calendarCompact}
                 headerStyle={styles.calendarHeaderCompact}
+                onPressArrowLeft={(subtractMonth: () => void) => {
+                  // Haptic on tapping previous month
+                  triggerLightHaptic();
+                  subtractMonth();
+                }}
+                onPressArrowRight={(addMonth: () => void) => {
+                  // Haptic on tapping next month
+                  triggerLightHaptic();
+                  addMonth();
+                }}
                 onDayPress={(day) => {
                   // Feedback on picking a date from the calendar modal
                   triggerLightHaptic();
@@ -616,7 +626,14 @@ const JournalScreen = React.forwardRef<JournalScreenRef, any>(({ navigation }, r
                 })()}
               />
             </View>
-            <TouchableOpacity style={[styles.modalButton, styles.cancelButton]} onPress={() => setShowCalendarModal(false)}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => {
+                // Haptic on cancel
+                triggerLightHaptic();
+                setShowCalendarModal(false);
+              }}
+            >
               <ThemedText weight="semiBold" style={styles.cancelButtonText}>Cancel</ThemedText>
             </TouchableOpacity>
           </View>

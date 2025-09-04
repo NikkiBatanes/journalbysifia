@@ -13,6 +13,7 @@ import { GroupingType, SortType } from '../../../components/moments/GroupingCont
 import { DateRange } from '../../../components/moments/DateFilterBar';
 import { supabase } from '../../../services/supabaseClient';
 import { useAuth } from '../../../context/IndustryStandardAuthContext';
+import { triggerLightHaptic } from '../../../utils/haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -1400,6 +1401,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       (section.key.startsWith('monthsec-') || section.key.startsWith('daysec-') || section.key.startsWith('daysecyr-') || section.key.startsWith('yearsec-'))
     ) {
       const onPress = () => {
+        triggerLightHaptic();
         let yearFromKey: string | null = null;
         if (section.key.startsWith('monthsec-')) {
           const mk = section.key.replace('monthsec-', '');
@@ -1431,7 +1433,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
     }
     // In week mode, when a week is expanded, we emit sticky Week and Day headers. Mirror chevron/behavior.
     if (groupBy === 'week' && typeof section.key === 'string' && (section.key.startsWith('weeksec-') || section.key.startsWith('daysecw-'))) {
-      const onPress = () => setExpandedWeeks({});
+      const onPress = () => {
+        triggerLightHaptic();
+        setExpandedWeeks({});
+      };
       const showChevron = section.key === currentStickyKey;
       return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.8} accessibilityRole="button" hitSlop={{ top: 8, left: 8, right: 8, bottom: 8 }}>
@@ -1545,10 +1550,13 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       if (!week) return null;
       const weekNumber = getWeek(week.start, { weekStartsOn, firstWeekContainsDate: 4 });
       const isExpanded = !!expandedWeeks[week.key];
-      const toggle = () => setExpandedWeeks(prev => {
-        if (prev[week.key]) return {};
-        return { [week.key]: true } as Record<string, boolean>;
-      });
+      const toggle = () => {
+        triggerLightHaptic();
+        return setExpandedWeeks(prev => {
+          if (prev[week.key]) return {};
+          return { [week.key]: true } as Record<string, boolean>;
+        });
+      };
 
       const counts = week.entries.reduce((acc, e) => {
         const t = (e.category || '').toLowerCase();
@@ -1709,12 +1717,14 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       }
       if (!month) return null;
       const isExpanded = !!expandedMonths[month.key];
-      const toggle = () =>
-        setExpandedMonths(prev => {
+      const toggle = () => {
+        triggerLightHaptic();
+        return setExpandedMonths(prev => {
           // Exclusive expansion: if tapping the already-expanded month, collapse all; otherwise expand only this one
           if (prev[month.key]) return {};
           return { [month.key]: true } as Record<string, boolean>;
         });
+      };
 
       // Counts by category
       const counts = month.entries.reduce((acc, e) => {
@@ -1850,7 +1860,10 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
       if (anyItem && anyItem.start && anyItem.end && anyItem.title && anyItem.key) {
         const month = anyItem as MonthItem;
         const isExpanded = !!expandedMonths[month.key];
-        const toggle = () => setExpandedMonths(prev => (prev[month.key] ? {} : ({ [month.key]: true } as Record<string, boolean>)));
+        const toggle = () => {
+          triggerLightHaptic();
+          return setExpandedMonths(prev => (prev[month.key] ? {} : ({ [month.key]: true } as Record<string, boolean>)));
+        };
 
         const counts = month.entries.reduce((acc, e) => {
           const t = (e.category || '').toLowerCase();
@@ -1881,6 +1894,7 @@ export const EnhancedMomentsRenderer: React.FC<EnhancedMomentsRendererProps> = (
         const year = anyItem.year as string;
         const counts: Record<string, number> = (anyItem.counts as Record<string, number>) || {};
         const toggleYear = () => {
+          triggerLightHaptic();
           // Clear month expansions to avoid stale keys from other modes/years
           setExpandedMonths({});
           setExpandedYears({ [year]: true });

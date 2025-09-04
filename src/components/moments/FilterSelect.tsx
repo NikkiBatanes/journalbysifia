@@ -5,6 +5,7 @@ import ThemedText from '../common/ThemedText';
 import { Colors } from '../../theme/colors';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
+import { triggerLightHaptic } from '../../utils/haptics';
 
 export type FilterKey =
   | 'upcoming'
@@ -48,17 +49,18 @@ const FilterSelect = forwardRef<FilterSelectHandle, FilterSelectProps>(({ values
   const buttonLabel = useMemo(() => (count > 0 ? `Filter (${count})` : 'Filter'), [count]);
 
   const toggle = (key: FilterKey) => {
+    triggerLightHaptic();
     const exists = values.includes(key);
     const next = exists ? values.filter(k => k !== key) : [...values, key];
     // If both answered+unanswered selected, treat as all prayers -> allow both; renderer will interpret
     onChange(next);
   };
 
-  const clearAll = () => onChange([]);
+  const clearAll = () => { triggerLightHaptic(); onChange([]); };
 
   return (
     <View>
-      <TouchableOpacity style={[styles.button, compact && styles.buttonCompact]} onPress={() => setOpen(true)}>
+      <TouchableOpacity style={[styles.button, compact && styles.buttonCompact]} onPress={() => { triggerLightHaptic(); setOpen(true); }}>
         <Ionicons name="options-outline" size={compact ? 14 : 16} color={Colors.hopeWhite} />
         <ThemedText style={[styles.buttonText, compact && styles.buttonTextCompact, { fontFamily: fontMedium }]}>{buttonLabel}</ThemedText>
         <Ionicons name="chevron-down" size={compact ? 14 : 16} color={Colors.hopeWhite} />
@@ -75,7 +77,7 @@ const FilterSelect = forwardRef<FilterSelectHandle, FilterSelectProps>(({ values
                     <ThemedText style={[styles.clearText, { fontFamily: fontMedium }]}>Clear</ThemedText>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity onPress={() => setOpen(false)}>
+                <TouchableOpacity onPress={() => { triggerLightHaptic(); setOpen(false); }}>
                   <Ionicons name="close" size={22} color={Colors.hopeWhite} />
                 </TouchableOpacity>
               </View>
