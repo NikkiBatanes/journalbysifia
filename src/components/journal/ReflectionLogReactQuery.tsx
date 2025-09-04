@@ -439,12 +439,23 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
   const updateMutation = useUpdateReflection();
   const deleteMutation = useDeleteReflection();
 
+  // Helpers to normalize HTML <br> to real newlines for RN Text/TextInput
+  const normalizeIncoming = useCallback((text: string): string => {
+    if (!text) return '';
+    return text.replace(/<br\s*\/?\s*>/gi, '\n');
+  }, []);
+
+  const normalizeOutgoing = useCallback((text: string): string => {
+    if (!text) return '';
+    return text.replace(/<br\s*\/?\s*>/gi, '\n').replace(/\r\n/g, '\n');
+  }, []);
+
   // Transform API data to local format with memoization
   const entries: ReflectionLogEntry[] = React.useMemo(() =>
     reflectionEntries.map(entry => ({
       id: entry.id,
       title: entry.title || '', // Handle optional title from API
-      content: entry.content,
+      content: normalizeIncoming(entry.content),
       type: entry.type as ViewMode,
       source: entry.source as 'devotional' | undefined,
       prompt: entry.prompt, // Use prompt from API
@@ -463,7 +474,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
       created_at: entry.created_at,
       updated_at: entry.updated_at,
       selected_date: entry.selected_date,
-    })), [reflectionEntries]
+    })), [reflectionEntries, normalizeIncoming]
   );
 
   // Determine if there's content for the selected date
@@ -704,7 +715,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
     // Populate the form with existing entry data
     setNewEntry({
       title: entry.title || '',
-      content: entry.content,
+      content: normalizeIncoming(entry.content),
       type: entry.type,
       source: entry.source,
       prompt: entry.prompt || '',
@@ -968,7 +979,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({ selected
         numberOfLines={3}
         ellipsizeMode="tail"
       >
-        {typeof entry.content === 'string' ? entry.content : JSON.stringify(entry.content)}
+        {typeof entry.content === 'string' ? normalizeIncoming(entry.content) : JSON.stringify(entry.content)}
       </ThemedText>
 
       {entry.tags && entry.tags.filter(tag => tag !== 'playbook' && tag !== 'guided').length > 0 && (
@@ -1131,7 +1142,7 @@ return (
                 // Only include fields that exist in the database schema
                 const saveData = {
                   title: entryData.title || '',
-                  content: entryData.content || '',
+                  content: normalizeOutgoing(entryData.content || ''),
                   type: editingId ? (selectedEntry?.type || newEntry.type || 'free') : (entryData.type || newEntry.type || 'free'),
                   user_id: user.id,
                   selected_date: dateStr,

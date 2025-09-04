@@ -390,26 +390,23 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
     }
   }, [initialMode, source, initialPrompt]);
 
-  // Helper function to convert markdown to HTML for Quill
-  const markdownToHtml = (markdown: string): string => {
-    if (!markdown) {return '';}
+  // Normalize any stored HTML <br> tags to real newlines for native TextInput
+  const normalizeIncoming = (text: string): string => {
+    if (!text) return '';
+    return text.replace(/<br\s*\/?\s*>/gi, '\n');
+  };
 
-    // Simple markdown to HTML conversion for basic formatting
-    return markdown
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>') // H1
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>') // H2
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>') // H3
-      .replace(/^- (.*$)/gim, '<li>$1</li>') // List items
-      .replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>') // Blockquotes
-      .replace(/\n/g, '<br>'); // Line breaks
+  // Ensure we save plain text with real newlines (never HTML <br>)
+  const normalizeOutgoing = (text: string): string => {
+    if (!text) return '';
+    // Convert any accidental <br> back to newlines and normalize CRLF
+    return text.replace(/<br\s*\/?\s*>/gi, '\n').replace(/\r\n/g, '\n');
   };
 
   const [newEntry, setNewEntry] = React.useState<{ title: string; content: string; tags: string[] }>(
     {
       title: initialEntry.title || initialTitle || '',
-      content: initialEntry.content ? markdownToHtml(initialEntry.content) : '',
+      content: initialEntry.content ? normalizeIncoming(initialEntry.content) : '',
       tags: initialEntry.tags || [],
     }
   );
@@ -661,7 +658,7 @@ const ReflectionLogEditor = React.forwardRef<ReflectionLogEditorRef, ReflectionL
 
     const entry = {
       title: newEntry.title.trim(),
-      content: newEntry.content.trim(),
+      content: normalizeOutgoing(newEntry.content).trim(),
       tags: newEntry.tags,
       date: dateString ? new Date(dateString) : new Date(), // Use dateString if provided, fallback to current date
       type: entryType,  // Use the determined type

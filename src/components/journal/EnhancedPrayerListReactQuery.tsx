@@ -339,7 +339,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
             key={`name-${inputKey}`}
             style={[styles.input, styles.singleLineInput, { fontFamily: regularFont }]}
             placeholder={activeTab === 'mine' ? 'Who are you praying for?' : 'Who is requesting prayer?'}
-            placeholderTextColor={Colors.inactiveIcon}
+            placeholderTextColor={Colors.mediumGray}
             value={name}
             onChangeText={setName}
             onFocus={() => setIsNameFocused(true)}
@@ -360,7 +360,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
               { height: Math.max(140, prayerHeight), fontFamily: regularFont },
             ]}
             placeholder={activeTab === 'mine' ? 'What would you like to pray for them?' : 'What is the prayer request?'}
-            placeholderTextColor={Colors.inactiveIcon}
+            placeholderTextColor={Colors.mediumGray}
             value={prayer}
             onChangeText={setPrayer}
             onFocus={() => setIsPrayerFocused(true)}
@@ -379,7 +379,7 @@ const EnhancedPrayerListReactQuery: React.FC<EnhancedPrayerListReactQueryProps> 
                 key={`notes-${inputKey}`}
                 style={[styles.notesInput, { height: Math.max(60, notesHeight), fontFamily: regularFont }]}
                 placeholder="Add any additional notes here..."
-                placeholderTextColor={Colors.inactiveIcon}
+                placeholderTextColor={Colors.mediumGray}
                 value={notes}
                 onChangeText={setNotes}
                 onFocus={() => setIsNotesFocused(true)}
