@@ -3,8 +3,9 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, TouchableOpacity, Animated, StyleProp, ViewStyle, TextStyle } from 'react-native';
 
-import { Colors } from '../theme';
+import { Colors, Fonts } from '../theme';
 import { Playbook } from '../interfaces/playbook';
+import ThemedText from './common/ThemedText';
 
 interface PlaybookInfoSectionProps {
   playbook: Playbook;
@@ -41,7 +42,7 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
           onPress={() => setShowUserInput(!showUserInput)}
           activeOpacity={0.7}
         >
-          <Text style={styles.playbookLabel}>PLAYBOOK</Text>
+          <ThemedText weight="semiBold" style={styles.playbookLabel}>PLAYBOOK</ThemedText>
           <Animated.View style={chevronStyle}>
             <Ionicons
               name="chevron-down"
@@ -53,26 +54,26 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
         {/* User Input Card - Collapsible */}
         {showUserInput && playbook.userInput && (
           <View style={styles.userInputCard}>
-            <Text style={styles.userInputText}>{playbook.userInput}</Text>
+            <ThemedText weight="regular" style={styles.userInputText}>{playbook.userInput}</ThemedText>
           </View>
         )}
-        <Text style={styles.playbookTitle}>
+        <ThemedText weight="bold" style={styles.playbookTitle}>
           {firstLine}
-        </Text>
+        </ThemedText>
         {secondLine ? (
-          <Text style={styles.playbookTitleSecondLine}>
+          <ThemedText weight="bold" style={styles.playbookTitleSecondLine}>
             {secondLine}
-          </Text>
+          </ThemedText>
         ) : null}
         {/* Creation Date */}
-        <Text style={styles.creationDate}>
+        <ThemedText weight="regular" style={styles.creationDate}>
           {new Date(playbook.createdAt || new Date()).toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
             day: 'numeric',
           }).toUpperCase()}
-        </Text>
+        </ThemedText>
         {/* Progress and View Toggle Row */}
         <View style={styles.progressAndViewRow}>
           {/* Progress bar and text */}
@@ -86,9 +87,9 @@ const PlaybookInfoSection: React.FC<PlaybookInfoSectionProps> = ({
                   ]}
                 />
               </View>
-              <Text style={styles.progressText}>
+              <ThemedText weight="semiBold" style={styles.progressText}>
                 {completedTasks}/{playbook.totalTasks || 0} Steps
-              </Text>
+              </ThemedText>
             </View>
           </View>
           {/* View mode toggles */}

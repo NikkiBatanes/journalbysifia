@@ -1,13 +1,30 @@
-import React, { useRef, useEffect, useState, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import TimeBlockCategoryModal from './TimeBlockCategoryModal';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Alert, ActivityIndicator, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  Modal,
+  Switch,
+  ActivityIndicator,
+  Alert
+} from 'react-native';
 
 import { Pencil } from 'lucide-react-native';
-import { triggerLightHaptic } from '../../utils/haptics';
 import { Colors } from '../../theme/colors';
+import { toLocalDateString } from '../../utils/date';
+import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { getCategoryIcon } from './TimeBlockCategories';
+import TimeBlockCategoryModal from './TimeBlockCategoryModal';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 interface TimeBlockLogEditorProps {
   onSave: (data: {
@@ -83,7 +100,7 @@ const defaultStyles = {
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    // Typography handled by ThemedText weight="bold"
     color: Colors.anchorBlue,
   },
   modeIconsContainer: {
@@ -132,7 +149,7 @@ const defaultStyles = {
     marginBottom: 8,
   },
   titleInput: {
-    fontWeight: 'bold',
+    // Typography handled by ThemedText weight="bold"
     fontSize: 22,
     paddingVertical: 8,
     includeFontPadding: false,
@@ -145,7 +162,7 @@ const defaultStyles = {
     includeFontPadding: false,
     textAlignVertical: 'center',
     marginBottom: 20,
-    fontWeight: '700',
+    // fontWeight handled by ThemedText weight="bold",
   },
   formContainer: {
     padding: 20,
@@ -580,6 +597,9 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
   },
   ref
 ) => {
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const regularFont = getFontFamily(fontKey, 'regular');
   const s = { ...defaultStyles, ...styles };
   const inputRef = useRef<TextInput>(null);
 
@@ -746,7 +766,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
       <StatusBar hidden />
       <View style={s.backgroundContainer} />
       <View style={s.header}>
-        <Text style={s.title}>{headerDate}</Text>
+        <ThemedText weight="bold" style={s.title}>{headerDate}</ThemedText>
         <View style={s.modeToggle}>
           <TouchableOpacity style={s.modeButton}>
             <Pencil
@@ -767,9 +787,9 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
         <View style={s.contentCard}>
           <ScrollView style={s.content} contentContainerStyle={s.scrollContent} scrollEnabled={false}>
             {/* Title section */}
-            <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
+            <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
               {_subtaskTitle || 'Time Block Entry'}
-            </Text>
+            </ThemedText>
 
             {/* Form content based on active tab */}
             <View style={s.formContainer}>
@@ -782,26 +802,26 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                         style={s.timeButton}
                         onPress={() => setShowStartTimePicker(true)}
                       >
-                        <Text style={s.timeText}>{formatTime(startTime)}</Text>
+                        <ThemedText weight="semiBold" style={s.timeText}>{formatTime(startTime)}</ThemedText>
                       </TouchableOpacity>
 
-                      <Text style={[s.timeSeparator, s.timeSeparatorSmall]}>TO</Text>
+                      <ThemedText weight="medium" style={[s.timeSeparator, s.timeSeparatorSmall]}>TO</ThemedText>
 
                       <TouchableOpacity
                         style={s.timeButton}
                         onPress={() => setShowEndTimePicker(true)}
                       >
-                        <Text style={s.timeText}>{formatTime(endTime)}</Text>
+                        <ThemedText weight="semiBold" style={s.timeText}>{formatTime(endTime)}</ThemedText>
                       </TouchableOpacity>
                     </>
                   )}
                   {isAllDay && (
-                    <Text style={s.timeText}>All Day</Text>
+                    <ThemedText weight="semiBold" style={s.timeText}>All Day</ThemedText>
                   )}
                 </View>
 
                 <View style={s.allDaySection}>
-                  {!isAllDay && <Text style={s.allDayLabel}>All Day</Text>}
+                  {!isAllDay && <ThemedText weight="medium" style={s.allDayLabel}>All Day</ThemedText>}
                   <TouchableOpacity
                     onPress={() => handleContentChange('isAllDay', !isAllDay)}
                     style={s.switchContainer}
@@ -822,7 +842,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
               {/* Title Input */}
               <TextInput
                 ref={inputRef}
-                style={s.formInput}
+                style={[s.formInput, { fontFamily: regularFont }]}
                 placeholder="Title"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={title}
@@ -837,9 +857,9 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                   setShowRepeatModal(true);
                 }}
               >
-                <Text style={s.repeatText}>Repeat</Text>
+                <ThemedText weight="medium" style={s.repeatText}>Repeat</ThemedText>
                 <View style={s.repeatOptionContainer}>
-                  <Text style={[s.repeatText, s.repeatTextWithMargin]}>{repeatOption}</Text>
+                  <ThemedText weight="medium" style={[s.repeatText, s.repeatTextWithMargin]}>{repeatOption}</ThemedText>
                   <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} />
                 </View>
               </TouchableOpacity>
@@ -860,7 +880,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                   color={Colors.hopeWhite}
                   style={s.categoryIcon}
                 />
-                <Text style={s.categoryText}>{category}</Text>
+                <ThemedText weight="medium" style={s.categoryText}>{category}</ThemedText>
                 <Ionicons name="chevron-down" size={18} color={Colors.hopeWhite} style={s.chevronIcon} />
               </TouchableOpacity>
 
@@ -883,7 +903,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
               >
                 <View style={s.repeatModal}>
                   <View style={s.repeatModalContainer}>
-                    <Text style={s.repeatModalTitle}>Repeat</Text>
+                    <ThemedText weight="semiBold" style={s.repeatModalTitle}>Repeat</ThemedText>
                     {['Never', 'Daily', 'Weekly', 'Bi-weekly', 'Monthly', 'Yearly', 'Custom'].map((option, index, array) => (
                       <TouchableOpacity
                         key={option}
@@ -906,12 +926,12 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                           }
                         }}
                       >
-                        <Text style={[
+                        <ThemedText weight="medium" style={[
                           s.repeatOptionText,
                           repeatOption === option && s.repeatOptionSelectedText,
                         ]}>
                           {option}
-                        </Text>
+                        </ThemedText>
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -927,15 +947,15 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
               >
                 <View style={s.repeatModal}>
                   <View style={s.repeatModalContainer}>
-                    <Text style={s.repeatModalTitle}>Custom Repeat</Text>
+                    <ThemedText weight="semiBold" style={s.repeatModalTitle}>Custom Repeat</ThemedText>
 
                     <View style={s.customRepeatContainer}>
-                      <Text style={s.customRepeatLabel}>Repeat every</Text>
+                      <ThemedText weight="medium" style={s.customRepeatLabel}>Repeat every</ThemedText>
 
                       <View style={s.frequencySelector}>
                         <View style={s.frequencyInputs}>
                           <TextInput
-                            style={s.frequencyInput}
+                            style={[s.frequencyInput, { fontFamily: regularFont }]}
                             value={customFrequency.value.toString()}
                             onChangeText={(text) => {
                               const num = parseInt(text, 10) || 1;
@@ -955,9 +975,9 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                               setCustomFrequency({ ...customFrequency, unit: units[nextIndex] });
                             }}
                           >
-                            <Text style={s.frequencyUnitText}>
+                            <ThemedText weight="medium" style={s.frequencyUnitText}>
                               {customFrequency.unit.charAt(0).toUpperCase() + customFrequency.unit.slice(1)}{customFrequency.value > 1 ? 's' : ''}
-                            </Text>
+                            </ThemedText>
                             <Ionicons name="chevron-down" size={16} color={Colors.hopeWhite} />
                           </TouchableOpacity>
                         </View>
@@ -969,7 +989,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                         style={[s.customModalButton, s.customModalCancelButton]}
                         onPress={() => setShowCustomRepeatModal(false)}
                       >
-                        <Text style={s.customModalButtonText}>Cancel</Text>
+                        <ThemedText weight="semiBold" style={s.customModalButtonText}>Cancel</ThemedText>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={[s.customModalButton, s.customModalConfirmButton]}
@@ -978,7 +998,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                           setShowCustomRepeatModal(false);
                         }}
                       >
-                        <Text style={s.customModalButtonText}>Done</Text>
+                        <ThemedText weight="semiBold" style={s.customModalButtonText}>Done</ThemedText>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -987,7 +1007,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
 
               {/* Location Input */}
               <TextInput
-                style={s.formInput}
+                style={[s.formInput, { fontFamily: regularFont }]}
                 placeholder="Location"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={location}
@@ -996,7 +1016,7 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
 
               {/* Notes Input */}
               <TextInput
-                style={[s.formInput, s.multilineInput]}
+                style={[s.formInput, s.multilineInput, { fontFamily: regularFont }]}
                 placeholder="Notes"
                 placeholderTextColor="rgba(255, 255, 255, 0.6)"
                 value={notes}
@@ -1010,14 +1030,14 @@ const TimeBlockLogEditor = React.forwardRef<TimeBlockLogEditorRef, TimeBlockLogE
                 <View style={s.metadataContainer}>
                   <View style={s.verticalLine} />
                   <View>
-                    <Text style={s.fromText}>From Playbook</Text>
+                    <ThemedText weight="medium" style={s.fromText}>From Playbook</ThemedText>
                     {playbookTitle && (
-                      <Text style={s.metadataText}>{playbookTitle}</Text>
+                      <ThemedText style={s.metadataText}>{playbookTitle}</ThemedText>
                     )}
                     {actionStepNumber && actionStepTitle && (
-                      <Text style={s.metadataText}>
+                      <ThemedText style={s.metadataText}>
                         Step {actionStepNumber}: {actionStepTitle}
-                      </Text>
+                      </ThemedText>
                     )}
                   </View>
                 </View>

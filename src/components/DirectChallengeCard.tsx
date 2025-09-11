@@ -9,6 +9,7 @@ import { Typography } from '../theme/typography';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
+import ThemedText from './common/ThemedText';
 
 type DirectChallengeCardProps = {
   challenge: string;
@@ -28,13 +29,13 @@ export default function DirectChallengeCard({ challenge, challengeCTA, playbookT
           color={Colors.anchorBlue}
           style={styles.icon}
         />
-        <Text style={styles.heading}>Rise in Faith</Text>
+        <ThemedText weight="bold" style={styles.heading}>Rise in Faith</ThemedText>
       </View>
-      <Text style={styles.text}>
+      <ThemedText weight="semiBold" style={styles.text}>
         {challenge}
-      </Text>
+      </ThemedText>
       {challengeCTA && (
-        <Text style={styles.cta}>{challengeCTA}</Text>
+        <ThemedText weight="semiBold" style={styles.cta}>{challengeCTA}</ThemedText>
       )}
 
     </View>
@@ -58,14 +59,14 @@ const styles = StyleSheet.create({
     marginRight: 8, // Match TruthInLoveCard's icon margin
   },
   heading: {
-    ...Typography.interBold, // Match TruthInLoveCard
+    // Typography handled by ThemedText weight="bold"
     fontSize: 20,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     textTransform: 'none', // Match TruthInLoveCard
   },
   text: {
-    ...Typography.interSemiBold,
+    // Typography handled by ThemedText weight="semiBold"
     fontSize: 18,
     color: Colors.hopeWhite,
     lineHeight: 26,
@@ -76,7 +77,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   cta: {
-    ...Typography.interSemiBold,
+    // Typography handled by ThemedText weight="semiBold"
     fontSize: 18,
     color: Colors.hopeWhite,
     lineHeight: 26,

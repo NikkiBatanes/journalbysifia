@@ -1,10 +1,26 @@
-import React, { useRef, useEffect, useImperativeHandle } from 'react';
+import React, { useRef, useEffect, useImperativeHandle, useState, forwardRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Keyboard, Alert, ActivityIndicator } from 'react-native';
-
-import { Pencil, X } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  StatusBar,
+  Animated,
+  Dimensions,
+  Alert,
+  Keyboard,
+  ActivityIndicator,
+} from 'react-native';
+import { Pencil, X, Plus } from 'lucide-react-native';
 import { Colors } from '../../theme/colors';
+import { toLocalDateString } from '../../utils/date';
+import { triggerLightHaptic } from '../../utils/haptics';
+import ThemedText from '../common/ThemedText';
 
 interface GratitudeLogEditorProps {
   onSave: (data: {
@@ -83,7 +99,7 @@ const defaultStyles = {
   },
   mainTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    // Typography handled by ThemedText weight="bold"
     color: Colors.anchorBlue,
     marginBottom: 8,
   },
@@ -113,7 +129,7 @@ const defaultStyles = {
     opacity: 0.6,
     marginBottom: 4,
     letterSpacing: 2,
-    fontWeight: '500',
+    // fontWeight handled by ThemedText weight="medium"
     textTransform: 'uppercase',
     lineHeight: 12,
   },
@@ -126,7 +142,7 @@ const defaultStyles = {
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    // Typography handled by ThemedText weight="bold"
     color: Colors.hopeWhite,
     marginBottom: 8,
   },
@@ -136,7 +152,7 @@ const defaultStyles = {
     marginBottom: 8,
   },
   titleInput: {
-    fontWeight: 'bold',
+    // Typography handled by ThemedText weight="bold"
     fontSize: 22,
     paddingVertical: 8,
     includeFontPadding: false,
@@ -230,7 +246,7 @@ const defaultStyles = {
   previewNumber: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontWeight: '600',
+    // fontWeight handled by ThemedText weight="semiBold"
     marginRight: 8,
     opacity: 0.8,
   },
@@ -291,7 +307,7 @@ const defaultStyles = {
   gratitudeItemLabel: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
+    // fontWeight handled by ThemedText weight="semiBold"
     marginBottom: 8,
     opacity: 0.9,
   },
@@ -387,7 +403,7 @@ const defaultStyles = {
     transform: [{ rotate: '45deg' }],
   },
   boldIcon: {
-    fontWeight: 'bold',
+    // fontWeight handled by ThemedText weight="bold"
   },
 };
 
@@ -491,7 +507,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
         const hasExistingData = initialItems && initialItems.some((item: string) => item.trim());
 
         if (hasExistingData) {
-          console.log('🙏 GratitudeLogEditor: Skipping draft load - existing data present');
+          console.log(' GratitudeLogEditor: Skipping draft load - existing data present');
           setIsFirstLoad(false);
           return;
         }
@@ -592,7 +608,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
   };
 
   const handleSave = async () => {
-    console.log('🙏 GratitudeLogEditor: handleSave called! Stack trace:', new Error().stack);
+    console.log(' GratitudeLogEditor: handleSave called! Stack trace:', new Error().stack);
 
     const filledItems = gratitudeItems.filter((item: string) => item.trim());
 
@@ -605,7 +621,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
       return;
     }
 
-    console.log('🙏 GratitudeLogEditor: About to clear draft and call onSave');
+    console.log(' GratitudeLogEditor: About to clear draft and call onSave');
 
     // Clear draft before saving
     await clearDraft();
@@ -613,7 +629,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
     // Remove numbers from items before saving to database
     const cleanItems = filledItems.map(item => item.replace(/^\d+\. /, ''));
 
-    console.log('🙏 GratitudeLogEditor: Calling onSave with data:', {
+    console.log(' GratitudeLogEditor: Calling onSave with data:', {
       items: cleanItems,
       date: new Date(),
     });
@@ -624,7 +640,7 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
       date: new Date(),
     });
 
-    console.log('🙏 GratitudeLogEditor: onSave called successfully');
+    console.log(' GratitudeLogEditor: onSave called successfully');
   };
 
   // Check if form is valid (has content) AND user has made changes
@@ -637,13 +653,13 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
       {showDraftNotification && (
         <View style={s.draftNotification}>
           <Ionicons name="time-outline" size={20} color={Colors.hopeWhite} style={s.draftIcon} />
-          <Text style={s.draftText}>Draft Restored</Text>
+          <ThemedText weight="medium" style={s.draftText}>Draft Restored</ThemedText>
         </View>
       )}
       <StatusBar hidden />
       <View style={s.backgroundContainer} />
       <View style={s.header}>
-        <Text style={s.title}>{getCurrentDate()}</Text>
+        <ThemedText weight="bold" style={s.title}>{getCurrentDate()}</ThemedText>
         <View style={s.modeToggle}>
           <TouchableOpacity style={s.modeButton}>
             <Pencil
@@ -669,9 +685,9 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
             keyboardShouldPersistTaps="handled"
           >
             {/* Title section */}
-            <Text style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
+            <ThemedText weight="bold" style={[s.entryInput, s.titleInput, s.transparentInput, s.lockedTitleText]}>
               What are you grateful for today?
-            </Text>
+            </ThemedText>
             {/* Gratitude items */}
             {gratitudeItems.map((item, index) => (
               <View
@@ -752,23 +768,23 @@ const GratitudeLogEditor = React.forwardRef<GratitudeLogEditorRef, GratitudeLogE
               <View style={s.metadataContainer}>
                 <View style={s.verticalLine} />
                 <View>
-                  <Text style={s.fromText}>
+                  <ThemedText weight="medium" style={s.fromText}>
                     FROM PLAYBOOK
-                  </Text>
+                  </ThemedText>
                   {playbookTitle && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       {playbookTitle}
-                    </Text>
+                    </ThemedText>
                   )}
                   {actionStepNumber && actionStepTitle && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       Step {actionStepNumber}: {actionStepTitle}
-                    </Text>
+                    </ThemedText>
                   )}
                   {subtaskTitle && (
-                    <Text style={s.metadataText}>
+                    <ThemedText style={s.metadataText}>
                       {subtaskTitle}
-                    </Text>
+                    </ThemedText>
                   )}
                 </View>
               </View>

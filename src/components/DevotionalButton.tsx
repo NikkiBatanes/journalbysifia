@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { Colors } from '../theme/colors';
 import { Fonts } from '../theme/fonts';
+import ThemedText from './common/ThemedText';
 
 interface DevotionalButtonProps {
   onPress: () => void;
@@ -18,7 +19,7 @@ const DevotionalButton: React.FC<DevotionalButtonProps> = ({ onPress, visible })
         onPress={onPress}
         activeOpacity={0.8}
       >
-        <Text style={styles.buttonText}>Create a Devotional</Text>
+        <ThemedText weight="semiBold" style={styles.buttonText}>Create a Devotional</ThemedText>
       </TouchableOpacity>
     </View>
   );
@@ -51,8 +52,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
-    fontFamily: Fonts.semiBold,
+    // Typography handled by ThemedText weight="semiBold"
   },
 });
 

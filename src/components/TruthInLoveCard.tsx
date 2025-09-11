@@ -8,6 +8,7 @@ import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
+import ThemedText from './common/ThemedText';
 
 type TruthInLoveCardProps = {
   truth: string;
@@ -103,15 +104,16 @@ export default function TruthInLoveCard({
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons name="heart" size={24} color={Colors.heartRed} style={styles.heartIcon} />
-            <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
+            <ThemedText weight="bold" style={[styles.heading, { color: textColor }]}>Truth in Love</ThemedText>
           </TouchableOpacity>
           {/* Keep the info/insight button as a separate tap target */}
         </View>
-        <Text
+        <ThemedText
+          weight="regular"
           style={[styles.content, styles.contentWithMargin, { color: textColor }]}
         >
-          <Text style={[styles.summary, { color: textColor }]}>{processedSummary}</Text>
-        </Text>
+          <ThemedText weight="bold" style={[styles.summary, { color: textColor }]}>{processedSummary}</ThemedText>
+        </ThemedText>
       </View>
 
       <TouchableOpacity
@@ -123,7 +125,8 @@ export default function TruthInLoveCard({
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
         <View style={styles.textContainer}>
-          <Text
+          <ThemedText
+            weight="regular"
             style={[styles.truth, {
               color: textColor,
               // Remove flex from text style as it's now on the container
@@ -136,7 +139,7 @@ export default function TruthInLoveCard({
             adjustsFontSizeToFit={false}
           >
             {processedTruth}
-          </Text>
+          </ThemedText>
         </View>
       </TouchableOpacity>
 
@@ -175,7 +178,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   heading: {
-    ...Typography.interBold,
+    // Typography handled by ThemedText weight="bold"
     fontSize: 20,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
@@ -188,17 +191,17 @@ const styles = StyleSheet.create({
     maxHeight: '80%', // Limit height to prevent overflow
   },
   content: {
-    ...Typography.interRegular,
+    // Typography handled by ThemedText weight="regular"
     fontSize: 28,
     lineHeight: 38,
     color: Colors.hopeWhite,
     marginBottom: 4, // Reduced from 12 to 4
   },
   summary: {
-    ...Typography.interBlack,
+    // Typography handled by ThemedText weight="bold"
   },
   truth: {
-    ...Typography.interRegular,
+    // Typography handled by ThemedText weight="regular"
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,
@@ -206,7 +209,7 @@ const styles = StyleSheet.create({
     marginTop: 4, // Further reduced from 8 to 4
   },
   truncatedTruth: {
-    ...Typography.interRegular,
+    // Typography handled by ThemedText weight="regular"
     fontSize: 16,
     lineHeight: 24,
     color: Colors.hopeWhite,

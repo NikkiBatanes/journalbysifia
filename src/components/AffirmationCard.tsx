@@ -6,6 +6,7 @@ import { Typography } from '../theme/typography';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
+import ThemedText from './common/ThemedText';
 
 interface AffirmationCardProps {
   id: string;
@@ -26,7 +27,7 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
 }) => {
   const { user } = useAuth();
   const textStyle: TextStyle = {
-    ...Typography.interSemiBold,
+    // Typography handled by ThemedText weight="semiBold"
     fontSize: 16,
     lineHeight: 24,
     color: color,
@@ -37,7 +38,7 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
 
   return (
     <View style={[styles.card, containerStyle]}>
-      <Text style={textStyle}>{text}</Text>
+      <ThemedText weight="semiBold" style={textStyle}>{text}</ThemedText>
     </View>
   );
 };
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   insightPlaceholderText: {
-    ...Typography.interRegular,
+    // Typography handled by ThemedText weight="regular"
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.6)',
     textAlign: 'center',

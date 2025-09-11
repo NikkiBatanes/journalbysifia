@@ -14,6 +14,7 @@ import { triggerLightHaptic, triggerSuccessHaptic } from '../utils/haptics';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { faithPointsService } from '../services/faithPointsService';
 import { usePlaybookStoreReactQuery } from '../store/usePlaybookStoreReactQuery';
+import ThemedText from './common/ThemedText';
 
 interface Affirmation {
   id: string;
@@ -148,7 +149,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
             color={Colors.alertCoral}
             style={[propStyles.icon, styles.affirmationIcon]}
           />
-          <Text style={propStyles.affirmationsTitle}>Affirmations</Text>
+          <ThemedText weight="semiBold" style={propStyles.affirmationsTitle}>Affirmations</ThemedText>
         </View>
         <View style={propStyles.affirmationsList}>
           {Array.isArray(card.affirmations) && card.affirmations.length > 0 ? (
@@ -169,7 +170,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
                 />
               ))
           ) : (
-            <Text style={propStyles.noAffirmationsText}>No affirmations</Text>
+            <ThemedText weight="regular" style={propStyles.noAffirmationsText}>No affirmations</ThemedText>
           )}
         </View>
 
@@ -229,7 +230,7 @@ const DocumentCardView: React.FC<DocumentCardViewProps> = ({ card, styles: propS
               testID="playbookAffirmationsReadButton"
             >
               <Ionicons name="book-outline" size={18} color={hasRead ? Colors.alertCoral : Colors.hopeWhite} style={readStyles.readIcon} />
-              <Text style={[readStyles.readButtonText, hasRead && readStyles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</Text>
+              <ThemedText weight="bold" style={[readStyles.readButtonText, hasRead && readStyles.readButtonTextActive]}>{hasRead ? 'Read' : 'Read Aloud'}</ThemedText>
             </TouchableOpacity>
           </View>
         )}
@@ -338,7 +339,7 @@ const readStyles = StyleSheet.create({
   readButtonText: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontWeight: '700',
+    // Typography handled by ThemedText weight="bold"
     letterSpacing: 0.3,
   },
   readButtonActive: {

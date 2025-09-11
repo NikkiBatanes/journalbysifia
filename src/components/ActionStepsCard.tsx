@@ -868,26 +868,29 @@ export default function ActionStepsCard({
       <View style={style}>
       <View style={styles.headingContainer}>
         <MaterialCommunityIcons
-          name="playlist-check"
+          name="format-list-checks"
           size={24}
           color={Colors.alertCoral}
           style={styles.icon}
         />
-        <Text style={[styles.heading, textColor ? { color: textColor } : {}]}>
+        <ThemedText weight="semiBold" style={[
+          styles.heading,
+          textColor ? { color: textColor } : {}
+        ]}>
           {steps.length} Action Steps
-        </Text>
+        </ThemedText>
       </View>
 
       <View>
         {steps.length === 0 ? (
           <View style={styles.stepsContainer}>
-            <Text style={[
+            <ThemedText weight="semiBold" style={[
               styles.stepTitle,
               styles.noStepsText,
               { color: textColor || Colors.hopeWhite },
             ]}>
               No action steps available.
-            </Text>
+            </ThemedText>
           </View>
         ) : (
           <View style={styles.stepsContainer}>
@@ -960,20 +963,21 @@ export default function ActionStepsCard({
                           step.completed && styles.completedCircle,
                         ]}
                       >
-                        <Text style={dynamicStyles.stepNumber}>
+                        <ThemedText weight="bold" style={dynamicStyles.stepNumber}>
                           {index + 1}
-                        </Text>
+                        </ThemedText>
                       </View>
                     </View>
                     <View style={styles.titleContainer}>
-                      <Text
+                      <ThemedText
+                        weight="semiBold"
                         style={[
                           dynamicStyles.stepTitle,
                           step.completed && styles.completedText,
                         ]}
                       >
                         {step.title}
-                      </Text>
+                      </ThemedText>
                     </View>
                   </View>
 
@@ -1053,9 +1057,9 @@ export default function ActionStepsCard({
                   )}
 
                   {subtasks.length === 0 && step.description && (
-                    <Text style={styles.stepDescription}>
+                    <ThemedText weight="regular" style={styles.stepDescription}>
                       {step.description}
-                    </Text>
+                    </ThemedText>
                   )}
 
                   {!showExampleSubtasksInline && examples.length > 0 && (
@@ -1261,9 +1265,8 @@ const styles = StyleSheet.create({
     color: Colors.hopeWhite,
   },
   stepTitle: {
-    ...Typography.interSemiBold,
+    // Typography handled by ThemedText weight="semiBold"
     fontSize: 15,
-    fontWeight: '600',
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     flexShrink: 1,
@@ -1298,7 +1301,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     lineHeight: 22,
     paddingRight: 12,
-    fontWeight: '400',
+    // fontWeight handled by ThemedText weight="regular"
     flexWrap: 'wrap',
   },
   subTaskContent: {
@@ -1341,7 +1344,7 @@ const styles = StyleSheet.create({
   examplesTitle: {
     color: 'rgba(255,255,255,0.8)',
     fontSize: 12,
-    fontWeight: '600',
+    // fontWeight handled by ThemedText weight="semiBold"
     marginBottom: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,

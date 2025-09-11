@@ -48,9 +48,10 @@ import { triggerLightHaptic } from '../utils/haptics';
 
 // Components
 import DocumentCardView from '../components/DocumentCardView';
+import DocumentCards from '../components/DocumentCards';
 import SwipeUpIndicator from '../components/SwipeUpIndicator';
 import PlaybookHeader from '../components/PlaybookHeader';
-import DocumentCards from '../components/DocumentCards';
+import ThemedText from '../components/common/ThemedText';
 import DevotionalButton from '../components/DevotionalButton';
 import DevotionalModal from '../components/DevotionalModal';
 
@@ -175,7 +176,7 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
           }}
           activeOpacity={0.7}
         >
-          <Text style={styles.playbookLabelText}>PLAYBOOK</Text>
+          <ThemedText weight="semiBold" style={styles.playbookLabelText}>PLAYBOOK</ThemedText>
           <Animated.View style={chevronStyle}>
             <Ionicons
               name="chevron-down"
@@ -187,13 +188,14 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
       )}
       {showCompactHeader && (
         <View style={styles.headerProgressContainer}>
-          <Text
+          <ThemedText
+            weight="bold"
             style={styles.compactHeaderTitle}
             numberOfLines={1}
             ellipsizeMode="tail"
           >
             {playbookTitle}
-          </Text>
+          </ThemedText>
           <View style={styles.headerProgressRow}>
             <View style={styles.headerProgressBarBg}>
               <RNAnimated.View
@@ -203,9 +205,9 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
                 ]}
               />
             </View>
-            <Text style={styles.headerTasksText}>
+            <ThemedText weight="medium" style={styles.headerTasksText}>
               {completedTasksCount}/{totalTasksCount} Steps
-            </Text>
+            </ThemedText>
           </View>
         </View>
       )}
@@ -237,7 +239,7 @@ const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: an
       />
     ) : (
       <View style={styles.initialAvatar}>
-        <Text style={styles.initialLetter}>{(() => {
+        <ThemedText weight="semiBold" style={styles.initialLetter}>{(() => {
           const meta: any = (user as any)?.user_metadata || {};
           const displayName =
             (user as any)?.displayName ||
@@ -246,7 +248,7 @@ const ProfileButton = ({ user, navigation, styles }: { user: any; navigation: an
             (user as any)?.email ||
             'User';
           return (displayName || 'U').trim().charAt(0).toUpperCase();
-        })()}</Text>
+        })()}</ThemedText>
       </View>
     )}
   </TouchableOpacity>
@@ -1521,13 +1523,13 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       </View>
       {!playbookId ? (
         <View style={styles.loadingContainer}>
-          <Text style={styles.progressText}>No playbook ID provided</Text>
+          <ThemedText weight="medium" style={styles.progressText}>No playbook ID provided</ThemedText>
         </View>
       ) : isLoading ? (
         <PlaybookSkeletonLoader />
       ) : error || !playbook ? (
         <View style={styles.loadingContainer}>
-          <Text style={styles.progressText}>Failed to load playbook data</Text>
+          <ThemedText weight="medium" style={styles.progressText}>Failed to load playbook data</ThemedText>
           <TouchableOpacity
             style={styles.navButton}
             onPress={() => {
@@ -1538,7 +1540,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               }
             }}
           >
-            <Text style={styles.navButtonText}>Go Back</Text>
+            <ThemedText weight="medium" style={styles.navButtonText}>Go Back</ThemedText>
           </TouchableOpacity>
         </View>
       ) : (
@@ -1558,9 +1560,9 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   navigation.navigate('OnboardingComplete' as any);
                 }}
               >
-                <Text style={styles.onboardingContinueButtonText}>
+                <ThemedText weight="semiBold" style={styles.onboardingContinueButtonText}>
                   Start Your Journey
-                </Text>
+                </ThemedText>
                 <Ionicons name="arrow-forward" size={20} color={Colors.hopeWhite} style={styles.arrowIcon} />
               </TouchableOpacity>
             ) : (
@@ -1790,8 +1792,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   onboardingContinueButtonText: {
     color: Colors.hopeWhite,
     fontSize: 16,
-    fontWeight: '600',
-    fontFamily: Fonts.regular,
+    // fontFamily handled by ThemedText weight="semiBold"
   },
   devotionalButtonWrapper: {
     width: '100%',
@@ -2091,7 +2092,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   compactHeaderTitle: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: Fonts.bold,
     color: Colors.hopeWhite,
     marginLeft: 4,
     maxWidth: 260,
@@ -2106,7 +2107,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   playbookLabelText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: Fonts.semiBold,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
   },
@@ -2141,7 +2142,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   initialLetter: {
     color: Colors.hopeWhite,
     fontSize: 14,
-    fontWeight: '700' as const,
+    fontFamily: Fonts.semiBold,
   },
   headerProgressContainer: {
     marginLeft: 12,
@@ -2166,7 +2167,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   headerTasksText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: Fonts.medium,
     color: Colors.hopeWhite,
   },
   affirmationsList: {

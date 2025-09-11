@@ -3,7 +3,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { View, Text, TouchableOpacity, Image, StyleSheet, SafeAreaView } from 'react-native';
 
-import { Colors } from '../theme';
+import { Colors, Fonts } from '../theme';
+import ThemedText from './common/ThemedText';
 
 interface PlaybookHeaderProps {
   title: string;
@@ -98,15 +99,16 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
           <View style={styles.headerCenter}>
             {showUserInput && userInput && (
               <View style={[styles.userInputCard, dynamicStyles.userInputCard]}>
-                <Text style={[styles.userInputText, dynamicStyles.userInputText]}>
+                <ThemedText weight="regular" style={[styles.userInputText, dynamicStyles.userInputText]}>
                   {userInput}
-                </Text>
+                </ThemedText>
               </View>
             )}
 
             {titleLines.map((line, index) => (
-              <Text
+              <ThemedText
                 key={index}
+                weight="bold"
                 style={[
                   styles.title,
                   dynamicStyles.title,
@@ -114,13 +116,13 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
                 ]}
               >
                 {line}
-              </Text>
+              </ThemedText>
             ))}
 
             {subtitle && (
-              <Text style={[styles.subtitle, dynamicStyles.subtitle]}>
+              <ThemedText weight="semiBold" style={[styles.subtitle, dynamicStyles.subtitle]}>
                 {subtitle.toUpperCase()}
-              </Text>
+              </ThemedText>
             )}
 
             <View style={[
@@ -130,9 +132,9 @@ const PlaybookHeader: React.FC<PlaybookHeaderProps> = ({
               <View style={[styles.progressBarBg, dynamicStyles.progressBarBg]}>
                 <View style={[styles.progressBarFill, dynamicStyles.progressBarFill]} />
               </View>
-              <Text style={[styles.progressText, dynamicStyles.progressText]}>
+              <ThemedText weight="semiBold" style={[styles.progressText, dynamicStyles.progressText]}>
                 {completedTasks}/{totalTasks} Steps
-              </Text>
+              </ThemedText>
 
               {showToggle && onToggleView && (
                 <View style={styles.toggleRow}>
@@ -243,7 +245,7 @@ const styles = StyleSheet.create({
   },
   playbookLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: Fonts.semiBold,
     textAlign: 'left',
     marginTop: 2,
   },
@@ -252,7 +254,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '800',
+    // fontFamily handled by ThemedText weight="bold"
     textAlign: 'left',
     marginTop: 2,
   },
@@ -263,7 +265,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
     marginBottom: 2,
-    fontWeight: '600',
+    // fontFamily handled by ThemedText weight="semiBold"
     textAlign: 'left',
     alignSelf: 'flex-start',
   },
@@ -293,7 +295,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12,
-    fontWeight: '600',
+    // fontFamily handled by ThemedText weight="semiBold"
     marginLeft: 8,
     minWidth: 80,
   },
@@ -335,7 +337,7 @@ const styles = StyleSheet.create({
   },
   userInputText: {
     fontSize: 13,
-    fontWeight: '400',
+    // fontFamily handled by ThemedText weight="regular"
     letterSpacing: 0.1,
     lineHeight: 18,
   },
