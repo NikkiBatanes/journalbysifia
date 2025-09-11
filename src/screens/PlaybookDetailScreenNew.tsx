@@ -163,7 +163,7 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
         }}
         style={styles.backButtonContainer}
       >
-        <Ionicons name="chevron-back" size={24} color={Colors.anchorBlue} />
+        <Ionicons name="chevron-back" size={24} color={Colors.hopeWhite} />
       </TouchableOpacity>
       {!showCompactHeader && (
         <TouchableOpacity
@@ -180,7 +180,7 @@ const HeaderLeftInner = ({ navigation, showUserInput, setShowUserInput, chevronS
             <Ionicons
               name="chevron-down"
               size={15}
-              color={Colors.anchorBlue}
+              color={Colors.hopeWhite}
             />
           </Animated.View>
         </TouchableOpacity>
@@ -256,8 +256,8 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const theme = useTheme();
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
-  // Status bar: force dark icons (black) on white header background
-  useScreenStatusBar('dark', Colors.hopeWhite);
+  // Status bar: force light icons (white) on dark header background
+  useScreenStatusBar('light', Colors.anchorBlue);
   // Measure header height so we can place the card overlay precisely below it
   const [_headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
   const [playbookHeaderHeight, setPlaybookHeaderHeight] = useState(0);
@@ -368,8 +368,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
   const nudgeY = useSharedValue(0);
   const bounceY = useSharedValue(0);
   const cardScale = useSharedValue(1);
-  const shadowElevation = useSharedValue(4);
-  const shadowOpacity = useSharedValue(0.15);
 
   const translateY = useSharedValue(0);
   const isTransitioning = useSharedValue(false);
@@ -413,8 +411,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       },
       { scale: cardScale.value },
     ],
-    shadowOpacity: shadowOpacity.value,
-    elevation: shadowElevation.value,
   }));
 
   // Previous card animated style
@@ -938,7 +934,7 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
       headerShown: false, // hide native header; screen will control its own header/z-order
       headerTransparent: false,
       headerStyle: {
-        backgroundColor: Colors.hopeWhite,
+        backgroundColor: Colors.anchorBlue,
         height: 50, // Reduced from default ~60
       },
       headerTitleStyle: {
@@ -1325,11 +1321,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                   alignSelf: 'center',
                   borderRadius: 28,
                   backgroundColor: cardIndex === cardData.length - 1 ? Colors.alertCoral : 'transparent',
-                  shadowColor: '#000',
-                  shadowOpacity: 0.2,
-                  shadowRadius: 12,
-                  shadowOffset: { width: 0, height: 6 },
-                  elevation: 8,
                 }
               ]}
               showsVerticalScrollIndicator={true}
@@ -1361,15 +1352,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                 onPressIn={() => {
                   if (isTopCard) {
                     cardScale.value = withTiming(0.98, { duration: 100 });
-                    shadowElevation.value = withTiming(8, { duration: 100 });
-                    shadowOpacity.value = withTiming(0.25, { duration: 100 });
                   }
                 }}
                 onPressOut={() => {
                   if (isTopCard) {
                     cardScale.value = withTiming(1, { duration: 100 });
-                    shadowElevation.value = withTiming(4, { duration: 100 });
-                    shadowOpacity.value = withTiming(0.15, { duration: 100 });
                   }
                 }}
                 style={[
@@ -1399,15 +1386,11 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
               onPressIn={() => {
                 if (isTopCard) {
                   cardScale.value = withTiming(0.98, { duration: 100 });
-                  shadowElevation.value = withTiming(8, { duration: 100 });
-                  shadowOpacity.value = withTiming(0.25, { duration: 100 });
                 }
               }}
               onPressOut={() => {
                 if (isTopCard) {
                   cardScale.value = withTiming(1, { duration: 100 });
-                  shadowElevation.value = withTiming(4, { duration: 100 });
-                  shadowOpacity.value = withTiming(0.15, { duration: 100 });
                 }
               }}
               style={[
@@ -1429,7 +1412,6 @@ export default function PlaybookDetailScreen({ route, navigation }: PlaybookScre
                         zIndex,
                         opacity: !isTopCard ? opacity : 1,
                         position: stackIndex === 0 ? 'relative' : 'absolute',
-                        elevation: 5 - stackIndex,
                       },
                     ],
                 extraStyle,
@@ -1708,7 +1690,7 @@ interface PlaybookDetailStyles {
 const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
     position: 'relative',
   },
   contentContainer: {
@@ -1739,19 +1721,19 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   progressText: {
     fontFamily: Fonts.medium,
     fontSize: 16,
-    color: theme.colors.textDark,
+    color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 16,
   },
   navButton: {
-    backgroundColor: theme.colors.anchorBlue,
+    backgroundColor: Colors.modalBlue,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     marginTop: 16,
   },
   navButtonText: {
-    color: '#FFFFFF',
+    color: Colors.hopeWhite,
     fontFamily: Fonts.medium,
     fontSize: 16,
   },
@@ -1768,17 +1750,15 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     bottom: 0,
     left: 0,
     zIndex: 9999, // ensure above any in-screen header
-    // @ts-ignore elevation is Android-only but allowed in RN styles
-    elevation: 9999,
     // Allow touches to pass through when outside children
     // pointerEvents is set on the View usage; style kept purely for layout
   },
   compactHeaderContainer: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.trustGrey,
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
   },
   mainContainer: {
     flex: 1,
@@ -1794,8 +1774,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     paddingHorizontal: 20,
     // Ensure this sits above the full-screen card overlay (which uses zIndex 9999)
     zIndex: 10000,
-    // @ts-ignore Android elevation for z-ordering above overlay
-    elevation: 10000,
   },
   bottomButtonExpanded: {
     marginTop: 20,
@@ -1808,11 +1786,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   onboardingContinueButtonText: {
     color: Colors.hopeWhite,
@@ -1822,6 +1795,8 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   devotionalButtonWrapper: {
     width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   cardWrapperStyle: {
     width: '100%',
@@ -1837,12 +1812,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     height: 450,
     alignSelf: 'center',
     borderRadius: 28,
-    backgroundColor: Colors.anchorBlue,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    backgroundColor: '#274673',
     padding: 0,
     overflow: 'hidden',
   },
@@ -1868,7 +1838,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     fontStyle: 'italic',
   },
   headerSafeArea: {
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
     // Ensure children can visually overflow without being clipped
     overflow: 'visible',
   },
@@ -1878,7 +1848,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 2,
-    backgroundColor: Colors.hopeWhite,
+    backgroundColor: Colors.anchorBlue,
     marginBottom: -6,
     // Allow profile to render above any overlapping elements
     overflow: 'visible',
@@ -1895,8 +1865,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     position: 'relative',
     // Make header right content (profile) stack above other header elements
     zIndex: 3000,
-    // @ts-ignore Android elevation for z-ordering
-    elevation: 12,
   },
   docContainer: {
     flex: 1,
@@ -1916,12 +1884,8 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     alignSelf: 'center',
     marginBottom: 16,
     borderRadius: 28,
+    backgroundColor: '#274673',
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
   },
   playbookInfoContainer: {
     marginBottom: 20,
@@ -1940,7 +1904,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   headerTitle: {
     fontSize: 24,
     fontFamily: Fonts.bold,
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 6,
   },
@@ -1953,20 +1917,20 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   playbookLabel: {
     fontFamily: Fonts.medium,
     fontSize: 16,
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     marginRight: 8,
   },
   playbookTitle: {
     fontSize: 20,
     fontFamily: Fonts.bold,
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     textAlign: 'center',
     marginBottom: 8,
   },
   creationDate: {
     fontSize: 14,
     fontFamily: Fonts.regular,
-    color: Colors.textGray,
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -1988,32 +1952,34 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: Colors.trustGrey,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 3,
     flex: 1,
     marginRight: 8,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: Colors.growthGreen,
     borderRadius: 3,
   },
   userInputCard: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#274673',
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   userInputText: {
     fontFamily: Fonts.regular,
     fontSize: 14,
-    color: Colors.textDark,
+    color: Colors.hopeWhite,
     lineHeight: 20,
   },
   viewToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 8,
     padding: 4,
   },
@@ -2031,58 +1997,42 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     marginRight: 6,
   },
   iconContainerActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.hopeWhite,
   },
   viewToggleDivider: {
     width: 1,
-    backgroundColor: Colors.trustGrey,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     marginHorizontal: 4,
   },
   truthCard: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: '#274673',
     borderRadius: 28,
     padding: 32,
     marginBottom: 16,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
     width: '100%',
     alignSelf: 'center',
   },
   actionCard: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: '#274673',
     borderRadius: 28,
     padding: 24,
     marginBottom: 16,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
     width: '100%',
     alignSelf: 'center',
   },
   affirmationsCard: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: '#274673',
     borderRadius: 28,
     padding: 24,
     marginBottom: 16,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
     width: '100%',
     alignSelf: 'center',
   },
   bibleCard: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: '#274673',
     borderRadius: 28,
     padding: 24,
     marginBottom: 16,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
     width: '100%',
     alignSelf: 'center',
   },
@@ -2091,10 +2041,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     borderRadius: 24,
     padding: 2,
     marginBottom: 16,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
     width: '100%',
     alignSelf: 'center',
   },
@@ -2106,11 +2052,11 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     paddingHorizontal: 20,
   },
   navButtonDisabled: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     opacity: 0.5,
   },
   cardIndicator: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -2118,7 +2064,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   cardIndicatorText: {
     fontFamily: Fonts.medium,
     fontSize: 12,
-    color: Colors.textGray,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   affirmationsHeader: {
     flexDirection: 'row',
@@ -2134,9 +2080,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     position: 'absolute',
     top: 0,
     alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   headerLeftContainer: {
     flexDirection: 'row',
@@ -2149,7 +2092,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   compactHeaderTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     marginLeft: 4,
     maxWidth: 260,
   },
@@ -2164,7 +2107,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   playbookLabelText: {
     fontSize: 14,
     fontWeight: '700',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
     letterSpacing: 0.5,
   },
   chevronIcon: {
@@ -2172,21 +2115,19 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   profileButton: {
     marginRight: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 0,
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
     // Ensure the avatar stays on top during header fade/overlap
     zIndex: 4000,
-    // @ts-ignore Android elevation for z-ordering
-    elevation: 14,
   },
   profileImage: {
     width: 32,
     height: 32,
     borderRadius: 16,
     zIndex: 4001,
+    borderWidth: 0,
   },
   initialAvatar: {
     width: 32,
@@ -2213,7 +2154,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   },
   headerProgressBarBg: {
     height: 6,
-    backgroundColor: 'rgba(26, 60, 109, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 3,
     flex: 1,
     marginRight: 8,
@@ -2226,7 +2167,7 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
   headerTasksText: {
     fontSize: 12,
     fontWeight: '600',
-    color: Colors.anchorBlue,
+    color: Colors.hopeWhite,
   },
   affirmationsList: {
     marginTop: 8,
@@ -2240,6 +2181,6 @@ const createStyles = (theme: any) => StyleSheet.create<PlaybookDetailStyles>({
     textTransform: 'none',
   },
   affirmationCardStyle: {
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: '#274673',
   },
 });

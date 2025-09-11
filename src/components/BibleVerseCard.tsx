@@ -25,7 +25,7 @@ type BibleVerseCardProps = {
   collapsedLines?: number;
 };
 
-export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = Colors.anchorBlue, playbookTitle, userInput, expanded = true, collapsedLines = 4 }: BibleVerseCardProps) {
+export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = '#274673', playbookTitle, userInput, expanded = true, collapsedLines = 4 }: BibleVerseCardProps) {
   const { user } = useAuth();
   // Default translation/version for onboarding and playbook views
   const [showCopyright, setShowCopyright] = useState(false);
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: Colors.anchorBlue,
+    backgroundColor: '#274673',
   },
   headerContainer: {
     flexDirection: 'row',
@@ -119,8 +119,8 @@ const styles = StyleSheet.create({
   },
   // Match DevotionalDetailScreen scripture styles
   scriptureText: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 26,
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginBottom: 12,

@@ -98,11 +98,7 @@ const DocumentCards: React.FC<DocumentCardsProps> = ({
         truth={playbook.truthInLove?.text}
         summary={playbook.truthInLove?.summary}
         expanded={true}
-        style={(() => {
-          console.log('[DEBUG] Colors.anchorBlue value:', Colors.anchorBlue);
-          console.log('[DEBUG] propStyles.truthCard:', propStyles.truthCard);
-          return [propStyles.docCard, propStyles.truthCard, { backgroundColor: Colors.anchorBlue }];
-        })()}
+        style={[propStyles.docCard, propStyles.truthCard]}
         currentUser={currentUser}
       />
       <ActionStepsCard
