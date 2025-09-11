@@ -22,6 +22,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 
 import PlaybookCard from '../components/PlaybookCard';
+import DevotionalModal from '../components/DevotionalModal';
 import BlueSheet from '../components/layout/BlueSheet';
 import { Colors, Fonts } from '../theme';
 import ThemedText from '../components/common/ThemedText';
@@ -88,6 +89,10 @@ const PlaybookListScreen = ({ navigation }: any) => {
   const tabBarHeight = useBottomTabBarHeight();
   // Visible bar height excluding safe area bottom, plus a small cushion
   const bottomClearance = Math.max(12, Math.max(0, tabBarHeight - insets.bottom) + 12);
+
+  // State for creating a devotional from a playbook via long-press
+  const [devotionalModalVisible, setDevotionalModalVisible] = useState(false);
+  const [selectedPlaybookForDevotional, setSelectedPlaybookForDevotional] = useState<Playbook | null>(null);
 
   // Multiple fallback mechanisms for userId
   const userId = user?.id || session?.user?.id;
@@ -509,6 +514,12 @@ const PlaybookListScreen = ({ navigation }: any) => {
     navigation.navigate('PlaybookDetail', { playbook });
   }, [navigation, triggerLightHaptic]);
 
+  const handleCardLongPress = useCallback((playbook: Playbook) => {
+    try { triggerLightHaptic(); } catch {}
+    setSelectedPlaybookForDevotional(playbook);
+    setDevotionalModalVisible(true);
+  }, [triggerLightHaptic]);
+
   const renderItem = ({ item, index }: { item: Playbook; index: number }) => {
     // Safety check for item
     if (!item || typeof item !== 'object') {
@@ -560,6 +571,7 @@ const PlaybookListScreen = ({ navigation }: any) => {
           <PlaybookCard
             playbook={item}
             onPress={() => handleCardPress(item)}
+            onLongPress={() => handleCardLongPress(item)}
             style={styles.card}
           />
         </Swipeable>
@@ -833,6 +845,17 @@ const PlaybookListScreen = ({ navigation }: any) => {
           </Animated.View>
         </Animated.View>
       </View>
+      {/* Devotional creation modal triggered by long-press on a playbook card */}
+      <DevotionalModal
+        visible={devotionalModalVisible}
+        onClose={() => setDevotionalModalVisible(false)}
+        playbookId={selectedPlaybookForDevotional?.id}
+        userInput={selectedPlaybookForDevotional?.userInput}
+        onDevotionalCreated={(devotionalId: string) => {
+          setDevotionalModalVisible(false);
+          navigation.navigate('DevotionalDetail' as any, { devotionalId });
+        }}
+      />
     </SafeAreaView>
   );
 };

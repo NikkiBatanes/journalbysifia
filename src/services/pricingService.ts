@@ -260,6 +260,47 @@ class PricingService {
   }
 
   /**
+   * Get tier hierarchy for upgrade filtering
+   */
+  getTierHierarchy(): string[] {
+    return ['seeker', 'free_trial', 'spark', 'growth', 'transformation', 'family'];
+  }
+
+  /**
+   * Get available upgrade tiers based on current user tier
+   */
+  getUpgradeTiers(currentTier: string): PricingTier[] {
+    const hierarchy = this.getTierHierarchy();
+    const currentIndex = hierarchy.indexOf(currentTier);
+    
+    if (currentIndex === -1) {
+      // If current tier not found, show all tiers
+      return this.baseUSDPricing;
+    }
+    
+    // Filter to only show higher tiers
+    const availableTierIds = hierarchy.slice(currentIndex + 1);
+    return this.baseUSDPricing.filter(tier => availableTierIds.includes(tier.id));
+  }
+
+  /**
+   * Get location-adjusted upgrade tiers for current user tier
+   */
+  async getLocationAdjustedUpgradeTiers(currentTier: string): Promise<PricingTier[]> {
+    const location = await this.getUserLocation();
+    const locationData = this.locationPricing[location] || this.locationPricing.DEFAULT;
+    const upgradeTiers = this.getUpgradeTiers(currentTier);
+
+    return upgradeTiers.map(tier => ({
+      ...tier,
+      monthlyPrice: Math.round(tier.monthlyPrice * locationData.multiplier * 100) / 100,
+      annualPrice: Math.round(tier.annualPrice * locationData.multiplier * 100) / 100,
+      monthlyOriginal: tier.monthlyOriginal ? Math.round(tier.monthlyOriginal * locationData.multiplier * 100) / 100 : undefined,
+      annualOriginal: tier.annualOriginal ? Math.round(tier.annualOriginal * locationData.multiplier * 100) / 100 : undefined,
+    }));
+  }
+
+  /**
    * Reset opt-out tracking (for testing or new sessions)
    */
   resetOptOutTracking(): void {

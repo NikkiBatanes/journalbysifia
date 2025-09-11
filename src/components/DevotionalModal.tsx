@@ -3,8 +3,11 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Modal, StyleSheet, TouchableOpacity, View, Dimensions, Animated, Easing } from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
+import { useNavigation } from '@react-navigation/native';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
+import DevotionalLockIcon from './DevotionalLockIcon';
+import { useDevotionalGating } from '../hooks/useDevotionalGating';
 
 import { useDevotionalOperations } from '../services/hooks/useDevotionalDataSimplified';
 import { useAuth } from '../context/IndustryStandardAuthContext';
@@ -62,6 +65,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
 }) => {
   const [selectedDuration, setSelectedDuration] = useState<number | null>(null);
   const { user } = useAuth();
+  const navigation = useNavigation();
   const { createDevotional, isCreating, error } = useDevotionalOperations(user?.id || '');
   const rotateAnim = React.useRef(new Animated.Value(0)).current;
   const translateY = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -71,6 +75,9 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const [_ellipsis, setEllipsis] = useState('');
   const contentRef = React.useRef<View>(null);
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
+  
+  // Feature gating
+  const devotionalGating = useDevotionalGating();
 
   // Haptics
   const hapticOptions = React.useMemo(() => ({
@@ -276,6 +283,20 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     console.log('[DevotionalModal] Current props:', { playbookId, userInput, onSelectDuration });
     console.log('[DevotionalModal] User ID:', user?.id);
 
+    // Check if this duration is locked for current tier
+    const accessCheck = devotionalGating.checkAccess(days, playbookId ? 'onboarding' : 'inApp');
+    
+    if (accessCheck.isLocked) {
+      console.log(`[DevotionalModal] Duration ${days} is locked for tier ${devotionalGating.tier}`);
+      onClose(); // Close the devotional modal first
+      navigation.navigate('OnboardingSalesOffer' as any, {
+        upgradeMode: true,
+        currentTier: devotionalGating.tier,
+        requestedDuration: days
+      });
+      return;
+    }
+
     try {
       setSelectedDuration(days);
 
@@ -411,6 +432,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                   Based on what you've shared, we'll craft a devotional tailored to your journey.
                 </ThemedText>
               </View>
+              
+              {/* Usage Counter Display */}
+              {!devotionalGating.loading && (
+                <View style={styles.usageCounterContainer}>
+                  <ThemedText weight="medium" style={styles.usageCounterText}>
+                    {`siFia ${devotionalGating.tier.toUpperCase()} ${devotionalGating.usageInfo.displayMessage}`}
+                  </ThemedText>
+                </View>
+              )}
             </View>
 
             <View style={styles.scrollableContent}>
@@ -521,21 +551,64 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
     </View>
   ) : (
     <View style={styles.optionsContainer}>
-      {DURATION_OPTIONS.map((option) => (
-        <TouchableOpacity
-          key={option.days}
-          style={styles.optionButton}
-          onPress={() => { triggerLightHaptic(); handleSelectDuration(option.days); }}
-          disabled={isCreating}
-        >
-          <ThemedText weight="semiBold" style={styles.optionDays}>{option.days} DAY</ThemedText>
-          <ThemedText weight="semiBold" style={styles.optionTitle}>{option.title}</ThemedText>
-          <ThemedText weight="regular" style={styles.optionDescription}>
-            {option.description}
-          </ThemedText>
-        </TouchableOpacity>
-      ))}
-    </View>
+                {DURATION_OPTIONS.map((option) => {
+                  const accessCheck = devotionalGating.checkAccess(option.days, playbookId ? 'onboarding' : 'inApp');
+                  const isLocked = accessCheck.isLocked;
+                  
+                  return (
+                    <TouchableOpacity
+                      key={option.days}
+                      style={[
+                        styles.optionButton,
+                        isLocked && styles.optionButtonLocked
+                      ]}
+                      onPress={() => { triggerLightHaptic(); handleSelectDuration(option.days); }}
+                      disabled={isCreating}
+                      activeOpacity={isLocked ? 0.6 : 0.8}
+                    >
+                      <View style={styles.optionHeader}>
+                        <View style={styles.optionLeftContent}>
+                          <ThemedText weight="semiBold" style={[
+                            styles.optionDays,
+                            isLocked && styles.optionTextLocked
+                          ]}>
+                            {option.days} DAY
+                          </ThemedText>
+                          <ThemedText weight="semiBold" style={[
+                            styles.optionTitle,
+                            isLocked && styles.optionTextLocked
+                          ]}>
+                            {option.title}
+                          </ThemedText>
+                        </View>
+                        
+                        {/* Lock Icon */}
+                        <DevotionalLockIcon
+                          tier={devotionalGating.tier}
+                          duration={option.days}
+                          context={playbookId ? 'onboarding' : 'inApp'}
+                          onLockTap={() => {
+                            onClose();
+                            navigation.navigate('OnboardingSalesOffer' as any, {
+                              upgradeMode: true,
+                              currentTier: devotionalGating.tier,
+                              requestedDuration: option.days
+                            });
+                          }}
+                          size={20}
+                        />
+                      </View>
+                      
+                      <ThemedText weight="regular" style={[
+                        styles.optionDescription,
+                        isLocked && styles.optionTextLocked
+                      ]}>
+                        {option.description}
+                      </ThemedText>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
   )}
   <ThemedText weight="regular" style={styles.footerText}>
     God's Word is a lamp to your feet and a light to your path.{'\n'}Let this devotional help you walk closer with Him.
@@ -641,6 +714,35 @@ const styles = StyleSheet.create({
     padding: 10,
     borderWidth: 0, // remove border
     borderColor: 'transparent',
+  },
+  optionButtonLocked: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    opacity: 0.7,
+  },
+  optionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  optionLeftContent: {
+    flex: 1,
+  },
+  optionTextLocked: {
+    opacity: 0.6,
+  },
+  usageCounterContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginTop: 8,
+  },
+  usageCounterText: {
+    fontSize: 13,
+    color: Colors.hopeWhite,
+    textAlign: 'center',
   },
   optionDays: {
     fontSize: 12,

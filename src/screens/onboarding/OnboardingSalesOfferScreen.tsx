@@ -6,13 +6,18 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Colors } from '../../theme';
 import pricingService, { LocationPricing, PricingTier as ServicePricingTier } from '../../services/pricingService';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useNewSubscription } from '../../hooks/useNewSubscription';
+import { useDevotionalGating } from '../../hooks/useDevotionalGating';
+import { usePlatformSubscription } from '../../hooks/usePlatformSubscription';
+import { isDevotionalDurationLocked } from '../../utils/tierLockingRules';
+import type { SubscriptionTier } from '../../types/subscription';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
+import SubscriptionUpgradeModal from '../../components/SubscriptionUpgradeModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
 
@@ -21,33 +26,82 @@ import ThemedText from '../../components/common/ThemedText';
 // Use PricingTier from pricingService to avoid drift
 type PricingTier = ServicePricingTier;
 
+interface RouteParams {
+  upgradeMode?: boolean;
+  currentTier?: string;
+  requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
+}
+
 const OnboardingSalesOfferScreen: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute();
   const { user } = useAuth();
   const { upgradeSubscription } = useNewSubscription(user?.id || '');
+  const devotionalGating = useDevotionalGating();
+  const platformSubscription = usePlatformSubscription();
   const [isAnnual, setIsAnnual] = useState(true);
   const [selectedTier, setSelectedTier] = useState('growth');
   const [showDynamicModal, setShowDynamicModal] = useState(false);
   const [dynamicDiscount, setDynamicDiscount] = useState<any>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
   const [pricingTiers, setPricingTiers] = useState<PricingTier[]>([]);
   const [currencyInfo, setCurrencyInfo] = useState<LocationPricing | null>(null);
+  
+  // Check if we're in upgrade mode (from devotional modal) or onboarding mode
+  const routeParams = route.params as RouteParams | undefined;
+  const isUpgradeMode = routeParams?.upgradeMode || false;
+  const currentUserTier = routeParams?.currentTier || devotionalGating.tier;
+  const requestedDuration = routeParams?.requestedDuration;
+
+  // Derived: trial eligibility (only offer trial if user hasn't started one yet)
+  const subscription = devotionalGating.subscription;
+  const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
+  const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
+  const canOfferTrial = !isUpgradeMode && !isCurrentlyOnTrial && !hasEverStartedTrial;
 
   // Load location-adjusted pricing and currency
   useEffect(() => {
     let isMounted = true;
     const loadPricing = async () => {
       try {
-        const [tiers, currency] = await Promise.all([
-          pricingService.getLocationAdjustedPricing(),
-          pricingService.getCurrencyInfo(),
-        ]);
+        let tiers: PricingTier[];
+        
+        if (isUpgradeMode) {
+          // In upgrade mode, only show tiers higher than current user tier
+          tiers = await pricingService.getLocationAdjustedUpgradeTiers(currentUserTier);
+        } else {
+          // In onboarding mode, show all tiers
+          tiers = await pricingService.getLocationAdjustedPricing();
+        }
+        
+        const currency = await pricingService.getCurrencyInfo();
+
+        // If a specific devotional duration was requested, only show tiers that UNLOCK it
+        if (requestedDuration && tiers.length > 0) {
+          const unlocked = tiers.filter(t => {
+            // pricingService tier ids align with SubscriptionTier ids for paid plans
+            const tierId = t.id as SubscriptionTier;
+            return !isDevotionalDurationLocked(tierId, requestedDuration);
+          });
+          if (unlocked.length > 0) {
+            tiers = unlocked;
+          }
+        }
+        
         if (isMounted) {
           setPricingTiers(tiers);
           setCurrencyInfo(currency);
-          // Ensure default selection exists
-          const recommended = pricingService.getRecommendedTier();
-          setSelectedTier(recommended);
+          
+          // Set default selection based on mode
+          if (isUpgradeMode && tiers.length > 0) {
+            // In upgrade mode, select the first available upgrade tier
+            setSelectedTier(tiers[0].id);
+          } else {
+            // In onboarding mode, use recommended tier
+            const recommended = pricingService.getRecommendedTier();
+            setSelectedTier(recommended);
+          }
         }
       } catch (e) {
         console.error('Failed to load pricing:', e);
@@ -57,7 +111,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isUpgradeMode, currentUserTier]);
 
   // Auto-collapse all expanded feature sections when billing period changes
   useEffect(() => {
@@ -66,53 +120,92 @@ const OnboardingSalesOfferScreen: React.FC = () => {
 
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
-    // Track user opt-out and check if dynamic discount should be shown
-    const shouldShowDiscount = await pricingService.trackUserOptOut(user?.id, selectedTier);
+    
+    if (isUpgradeMode) {
+      // In upgrade mode, check for dynamic discount but don't show trial
+      const shouldShowDiscount = await pricingService.trackUserOptOut(user?.id, selectedTier);
 
-    if (shouldShowDiscount) {
-      const discount = await pricingService.getDynamicDiscount(
-        user?.id,
-        selectedTier,
-        isAnnual ? 'annual' : 'monthly'
-      );
-      if (discount) {
-        setDynamicDiscount(discount);
-        setShowDynamicModal(true);
-        return;
+      if (shouldShowDiscount) {
+        const discount = await pricingService.getDynamicDiscount(
+          user?.id,
+          selectedTier,
+          isAnnual ? 'annual' : 'monthly'
+        );
+        if (discount) {
+          setDynamicDiscount(discount);
+          setShowDynamicModal(true);
+          return;
+        }
+      }
+      
+      // In upgrade mode, just go back to previous screen
+      navigation.goBack();
+    } else {
+      // In onboarding mode, show trial offer as before
+      const shouldShowDiscount = await pricingService.trackUserOptOut(user?.id, selectedTier);
+
+      if (shouldShowDiscount) {
+        const discount = await pricingService.getDynamicDiscount(
+          user?.id,
+          selectedTier,
+          isAnnual ? 'annual' : 'monthly'
+        );
+        if (discount) {
+          setDynamicDiscount(discount);
+          setShowDynamicModal(true);
+          return;
+        }
+      }
+      if (canOfferTrial) {
+        navigation.navigate('OnboardingTrialOffer' as any, {
+          selectedTierId: selectedTier,
+          billing: isAnnual ? 'annual' : 'monthly',
+        });
+      } else {
+        navigation.goBack();
       }
     }
-
-    navigation.navigate('OnboardingTrialOffer' as any, {
-      selectedTierId: selectedTier,
-      billing: isAnnual ? 'annual' : 'monthly',
-    });
   };
 
   const handleUnlockPlan = async () => {
     try {
-      // For local testing, simulate payment success and upgrade directly
-      await upgradeSubscription({
-        target_tier: selectedTier as any,
-        platform: 'local_test',
-        is_family_upgrade: selectedTier === 'family'
-      });
+      triggerLightHaptic();
       
-      // Navigate to payment confirmation
-      navigation.navigate('OnboardingPaymentConfirmation' as any, {
-        selectedTier,
-        isAnnual,
-        price: getCurrentPrice(),
-        success: true
-      });
+      if (isUpgradeMode) {
+        // In upgrade mode, use platform subscription upgrade
+        setShowUpgradeModal(true);
+      } else {
+        // In onboarding mode, use existing flow
+        await upgradeSubscription({
+          target_tier: selectedTier as any,
+          platform: 'local_test',
+          is_family_upgrade: selectedTier === 'family'
+        });
+        
+        triggerSuccessHaptic();
+        navigation.navigate('OnboardingPaymentConfirmation' as any, {
+          selectedTier,
+          isAnnual,
+          price: getCurrentPrice(),
+          success: true
+        });
+      }
     } catch (error) {
-      console.error('Failed to upgrade subscription:', error);
-      // Navigate to payment processing for real payment flow
-      navigation.navigate('OnboardingPaymentProcessing' as any, {
-        selectedTier,
-        isAnnual,
-        price: getCurrentPrice(),
-      });
+      console.error('Failed to process subscription:', error);
+      if (!isUpgradeMode) {
+        // Navigate to payment processing for real payment flow
+        navigation.navigate('OnboardingPaymentProcessing' as any, {
+          selectedTier,
+          isAnnual,
+          price: getCurrentPrice(),
+        });
+      }
     }
+  };
+
+  const handleUpgradeSuccess = () => {
+    triggerSuccessHaptic();
+    navigation.goBack();
   };
 
   const getCurrentPrice = () => {
@@ -141,6 +234,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
     const isSelected = selectedTier === tier.id;
     const isFocused = tier.id === 'growth'; // Growth tier always focused
     const isExpanded = expandedCards.has(tier.id);
+    const growthVisible = pricingTiers.some(t => t.id === 'growth');
 
     return (
       <View key={tier.id} style={styles.cardWrapper}>
@@ -165,7 +259,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
             ]}
           />
         )}
-        {tier.isPopular && (
+        {(tier.isPopular || (tier.id === 'transformation' && !growthVisible)) && (
           <View style={styles.popularBadge}>
             <ThemedText weight="semiBold" style={styles.popularText}>POPULAR</ThemedText>
           </View>
@@ -195,10 +289,22 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               if (m) {
                 processed.push(`${m[1]} playbooks each month`);
                 processed.push(`${m[2]} devotionals each month`);
+                // Add devotional access info based on tier
+                if (tier.id === 'seeker') {
+                  processed.push('All devotional durations locked');
+                } else if (tier.id === 'spark') {
+                  processed.push('Access 1-day & 3-day devotionals');
+                } else if (tier.id === 'growth') {
+                  processed.push('Access 1-day, 3-day & 5-day devotionals');
+                } else if (tier.id === 'transformation' || tier.id === 'family') {
+                  processed.push('Access all devotional durations (1-7 days)');
+                }
+                // No extra line for transformation/family as requested (no unlocked text)
                 processed.push(...tier.features.slice(1));
               } else if (/^Unlimited\s+playbooks\s*&\s*devotionals/i.test(first)) {
                 processed.push('Unlimited playbooks each month');
                 processed.push('Unlimited devotionals each month');
+                // Do not add any unlocked duration text
                 processed.push(...tier.features.slice(1));
               } else {
                 processed.push(...tier.features);
@@ -327,33 +433,58 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           </View>
 
           {/* Main Content that should scroll under the sticky toggle */}
-          <ThemedText weight="bold" style={styles.mainTitle}>You've taken your first step!</ThemedText>
-          <ThemedText style={styles.subtitle}>Keep walking, one faithful step at a time.</ThemedText>
+          <ThemedText weight="bold" style={styles.mainTitle}>
+            {isUpgradeMode ? 'Keep walking—grace for the next step' : "You've taken your first step!"}
+          </ThemedText>
+          <ThemedText style={styles.subtitle}>
+            {isUpgradeMode ? 'Choose a plan that meets you where you are and helps you go deeper.' : 'Keep walking, one faithful step at a time.'}
+          </ThemedText>
 
           {/* Feature Bullets */}
           <View style={styles.featuresSection}>
-            <View style={styles.featureBullet}>
-              <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-              <ThemedText style={styles.bulletText}>
-                Personalized playbooks and devotionals created just for you delivered at a pace that fits your plan.
-              </ThemedText>
-            </View>
-            <View style={styles.featureBullet}>
-              <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-              <ThemedText style={styles.bulletText}>
-                Track your growth with smart journaling and unlock deeper reflections on higher tiers.
-              </ThemedText>
-            </View>
-            <View style={styles.featureBullet}>
-              <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-              <ThemedText style={styles.bulletText}>
-                Picture walking daily with God, growing stronger with every step.
-              </ThemedText>
-            </View>
-            <View style={styles.featureBullet}>
-              <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
-              <ThemedText style={styles.bulletText}>Your journey, your pace.</ThemedText>
-            </View>
+            {isUpgradeMode ? (
+              // Upgrade mode benefits (pastoral, limit to 3)
+              <>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Devotionals at the pace you’re ready for—longer paths when you want to linger.
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    More monthly devotionals and playbooks to support steady, faithful rhythms.
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Simple, guided journaling to help you hear and respond to God.
+                  </ThemedText>
+                </View>
+              </>
+            ) : (
+              // Onboarding benefits (limit to 3, aligned copy)
+              <>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Personalized playbooks and devotionals delivered at a pace that fits your plan.
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>
+                    Track growth with smart journaling and deeper reflections over time.
+                  </ThemedText>
+                </View>
+                <View style={styles.featureBullet}>
+                  <Ionicons name="checkmark-circle" size={18} color={Colors.growthGreen} />
+                  <ThemedText style={styles.bulletText}>Your journey, your pace.</ThemedText>
+                </View>
+              </>
+            )}
           </View>
           <View style={styles.cardsContainer}>{pricingTiers.map(renderPricingCard)}</View>
         </ScrollView>
@@ -369,7 +500,9 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           }}
           activeOpacity={0.9}
         >
-          <ThemedText weight="bold" style={styles.unlockButtonText}>Continue My Journey</ThemedText>
+          <ThemedText weight="bold" style={styles.unlockButtonText}>
+            {isUpgradeMode ? 'Upgrade and Continue' : 'Continue My Journey'}
+          </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
           <Ionicons name="shield-checkmark" size={16} color={Colors.hopeWhite} style={styles.footerShield} />
@@ -384,10 +517,17 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           visible={showDynamicModal}
           onClose={() => {
             setShowDynamicModal(false);
-            navigation.navigate('OnboardingTrialOffer' as any, {
-              selectedTierId: selectedTier,
-              billing: isAnnual ? 'annual' : 'monthly',
-            });
+            if (isUpgradeMode) {
+              // No trial in upgrade mode
+              navigation.goBack();
+            } else if (canOfferTrial) {
+              navigation.navigate('OnboardingTrialOffer' as any, {
+                selectedTierId: selectedTier,
+                billing: isAnnual ? 'annual' : 'monthly',
+              });
+            } else {
+              navigation.goBack();
+            }
           }}
           discountPercentage={dynamicDiscount.percentage}
           originalPrice={getCurrentPrice()}
@@ -395,6 +535,16 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           isAnnual={isAnnual}
         />
       )}
+
+      {/* Platform Subscription Upgrade Modal */}
+      <SubscriptionUpgradeModal
+        visible={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        targetTier={selectedTier as any}
+        targetBilling={isAnnual ? 'annual' : 'monthly'}
+        requestedDuration={requestedDuration}
+        onUpgradeSuccess={handleUpgradeSuccess}
+      />
     </SafeAreaView>
   );
 };
