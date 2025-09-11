@@ -5,7 +5,6 @@ import { View, Text, StyleSheet, ViewStyle, StyleProp, TouchableOpacity } from '
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { replaceAllNamePlaceholders } from '../utils/nameReplacement';
-import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
@@ -42,8 +41,6 @@ export default function TruthInLoveCard({
   onToggleExpand,
 }: TruthInLoveCardProps & { numberOfLines?: number; ellipsizeMode?: 'head' | 'middle' | 'tail' | 'clip' }) {
   const { user } = useAuth();
-  const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
-  const [showInsight, setShowInsight] = useState(false);
   const [isExpanded, setIsExpanded] = useState(!!expanded);
 
   // Keep internal state in sync if parent changes the expanded prop
@@ -109,22 +106,6 @@ export default function TruthInLoveCard({
             <Text style={[styles.heading, { color: textColor }]}>Truth in Love</Text>
           </TouchableOpacity>
           {/* Keep the info/insight button as a separate tap target */}
-          <TouchableOpacity
-            style={styles.expandIcon}
-            onPress={() => {
-              triggerLightHaptic();
-              setShowInsight(!showInsight);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={showInsight ? 'Hide insight' : 'Show insight'}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons
-              name={showInsight ? 'chevron-up' : 'information-outline'}
-              size={20}
-              color={textColor}
-            />
-          </TouchableOpacity>
         </View>
         <Text
           style={[styles.content, styles.contentWithMargin, { color: textColor }]}
@@ -159,17 +140,6 @@ export default function TruthInLoveCard({
         </View>
       </TouchableOpacity>
 
-      {/* Simplified Card Insight */}
-      {showInsight && (
-        <SimplifiedCardInsight
-          userId={user?.id || ''}
-          cardType="truth"
-          cardContent={processedTruth}
-          playbookTitle={playbookTitle || ''}
-          userOriginalInput={userInput}
-          hasAccess={expoundingAccess.hasAccess}
-        />
-      )}
     </View>
   );
 }

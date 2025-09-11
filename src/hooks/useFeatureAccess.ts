@@ -210,20 +210,6 @@ export function useExportAccess() {
   };
 }
 
-/**
- * Hook for handling expounding content access
- */
-export function useExpoundingAccess() {
-  const access = useFeatureAccess({ feature: 'expounding_content' });
-
-  return {
-    canAccessExpounding: access.hasAccess,
-    expoundingAccessResult: access.accessResult,
-    isLoading: access.isLoading,
-    handleExpoundingRestriction: access.handleRestriction,
-    showExpoundingUpgrade: access.showUpgradePrompt,
-  };
-}
 
 /**
  * Hook for handling retention offers when users hit restrictions

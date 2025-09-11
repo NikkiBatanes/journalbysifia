@@ -6,7 +6,6 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { formatBibleVerse } from '../utils/textFormatting';
-import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
@@ -28,8 +27,6 @@ type BibleVerseCardProps = {
 
 export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWhite, backgroundColor = Colors.anchorBlue, playbookTitle, userInput, expanded = true, collapsedLines = 4 }: BibleVerseCardProps) {
   const { user } = useAuth();
-  const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
-  const [showInsight, setShowInsight] = useState(false);
   // Default translation/version for onboarding and playbook views
   const [showCopyright, setShowCopyright] = useState(false);
   const bibleVersion = (verse as any)?.version || 'NASB';
@@ -43,21 +40,6 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
           style={styles.icon}
         />
         <ThemedText weight="semiBold" style={[styles.heading, { color: textColor }]}>Bible Verse</ThemedText>
-        <TouchableOpacity
-          style={styles.expandIcon}
-          onPress={() => {
-            triggerLightHaptic();
-            setShowInsight(!showInsight);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={showInsight ? 'Hide insight' : 'Show insight'}
-        >
-          <Icon
-            name={showInsight ? 'chevron-up' : 'information-outline'}
-            size={20}
-            color={textColor}
-          />
-        </TouchableOpacity>
       </View>
       <View style={styles.contentContainer}>
         <ThemedText
@@ -95,17 +77,6 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         </View>
       </View>
 
-      {/* Simplified Card Insight */}
-      {showInsight && (
-        <SimplifiedCardInsight
-          userId={user?.id || ''}
-          cardType="bible"
-          cardContent={`${verse.text} - ${verse.reference}`}
-          playbookTitle={playbookTitle || ''}
-          userOriginalInput={userInput}
-          hasAccess={expoundingAccess.hasAccess}
-        />
-      )}
 
       {/* Bible copyright modal - default to NASB */}
       <BibleCopyrightModal

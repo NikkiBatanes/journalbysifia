@@ -6,7 +6,6 @@ import { BorderRadii } from '../theme/styles';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
-import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
@@ -20,8 +19,6 @@ type DirectChallengeCardProps = {
 
 export default function DirectChallengeCard({ challenge, challengeCTA, playbookTitle, userInput }: DirectChallengeCardProps) {
   const { user } = useAuth();
-  const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
-  const [showInsight, setShowInsight] = useState(false);
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
@@ -32,19 +29,6 @@ export default function DirectChallengeCard({ challenge, challengeCTA, playbookT
           style={styles.icon}
         />
         <Text style={styles.heading}>Rise in Faith</Text>
-        <TouchableOpacity
-          style={styles.expandIcon}
-          onPress={() => {
-            triggerLightHaptic();
-            setShowInsight(!showInsight);
-          }}
-        >
-          <Icon
-            name={showInsight ? 'chevron-up' : 'information-outline'}
-            size={20}
-            color={Colors.hopeWhite}
-          />
-        </TouchableOpacity>
       </View>
       <Text style={styles.text}>
         {challenge}
@@ -53,17 +37,6 @@ export default function DirectChallengeCard({ challenge, challengeCTA, playbookT
         <Text style={styles.cta}>{challengeCTA}</Text>
       )}
 
-      {/* Simplified Card Insight */}
-      {showInsight && (
-        <SimplifiedCardInsight
-          userId={user?.id || ''}
-          cardType="challenge"
-          cardContent={challenge + (challengeCTA ? ` ${challengeCTA}` : '')}
-          playbookTitle={playbookTitle || ''}
-          userOriginalInput={userInput}
-          hasAccess={expoundingAccess.hasAccess}
-        />
-      )}
     </View>
   );
 }

@@ -46,12 +46,6 @@ class TierRestrictionService {
       featureFlag: 'intelligenceEnabled',
     },
 
-    // Expounding content
-    {
-      feature: 'expounding_content',
-      requiredTier: 'transformation',
-      featureFlag: 'expoundingEnabled',
-    },
 
     // Smart journaling
     {
@@ -342,7 +336,6 @@ class TierRestrictionService {
       'devotional_generation': 'Devotional Generation',
       'export_pdf': 'PDF Export',
       'export_docx': 'Word Export',
-      'expounding_content': 'Deeper Insights',
       'smart_journaling': 'Smart Journaling',
       'calendar_sync': 'Calendar Sync',
       'advanced_analytics': 'Advanced Analytics',

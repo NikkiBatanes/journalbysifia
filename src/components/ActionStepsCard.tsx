@@ -7,7 +7,6 @@ import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle, TextInp
 import { NavigationProp } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
-import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
 import { SmartJournalingNavigation } from '../services/smartJournalingNavigation';
@@ -189,8 +188,6 @@ export default function ActionStepsCard({
     subtaskId?: string;
   } | null>(null);
 
-  // Simplified expounding state - track which steps show insights
-  const [expandedSteps, setExpandedSteps] = useState<Set<string>>(new Set());
   
   const completionAnim = React.useRef<Record<string, Animated.Value>>({});
 
@@ -201,22 +198,6 @@ export default function ActionStepsCard({
   );
 
   // Toggle simplified insight for a specific step
-  const toggleInsight = (stepId: string) => {
-    // Subtle confirmation for expanding/collapsing insights
-    triggerLightHaptic();
-    console.log('[ActionStepsCard] Toggling insight for step:', stepId);
-    setExpandedSteps(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(stepId)) {
-        newSet.delete(stepId);
-        console.log('[ActionStepsCard] Collapsing step:', stepId);
-      } else {
-        newSet.add(stepId);
-        console.log('[ActionStepsCard] Expanding step:', stepId);
-      }
-      return newSet;
-    });
-  };
 
   // Debug: Log reflection query results
   React.useEffect(() => {
@@ -483,7 +464,7 @@ export default function ActionStepsCard({
           }
         }
 
-        setSelectedSubtask(subTask);
+        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('reflection');
 
@@ -532,7 +513,7 @@ export default function ActionStepsCard({
           }
         }
 
-        setSelectedSubtask(subTask);
+        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('gratitude');
 
@@ -584,7 +565,7 @@ export default function ActionStepsCard({
         console.log('🔍 ActionStepsCard: Opening prayer modal with subTask:', subTask);
         console.log('🔍 ActionStepsCard: subTask.text:', subTask?.text);
         console.log('🔍 ActionStepsCard: subTask.id:', subTask?.id);
-        setSelectedSubtask(subTask);
+        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('prayer');
 
@@ -636,7 +617,7 @@ export default function ActionStepsCard({
         console.log('🔍 ActionStepsCard: Opening timeblock modal with subTask:', subTask);
         console.log('🔍 ActionStepsCard: subTask.text:', subTask?.text);
         console.log('🔍 ActionStepsCard: subTask.id:', subTask?.id);
-        setSelectedSubtask(subTask);
+        setSelectedSubtask({ subTask, stepInfo: stepInfo || { stepNumber: 0, stepTitle: '' } });
         setSelectedActionStep(stepInfo || null);
         setActiveModal('timeblock');
 
@@ -673,9 +654,9 @@ export default function ActionStepsCard({
 
     try {
       // Invalidate the reflection query to refresh data immediately
-      if (user?.id && selectedSubtask?.id) {
+      if (user?.id && selectedSubtask?.subTask?.id) {
         await queryClient.invalidateQueries({
-          queryKey: ['reflections', 'subtask', user.id, selectedSubtask.id],
+          queryKey: ['reflections', 'subtask', user.id, selectedSubtask.subTask.id],
         });
         console.log('[ActionStepsCard] Reflection query invalidated for immediate refresh');
       }
@@ -689,12 +670,12 @@ export default function ActionStepsCard({
     }
 
     // Modal will close automatically after showing success
-  }, [queryClient, user?.id, selectedSubtask?.id]);
+  }, [queryClient, user?.id, selectedSubtask?.subTask?.id]);
 
   const handleReflectionCancel = React.useCallback(() => {
     console.log('[ActionStepsCard] Reflection modal cancelled - clearing step info:', {
       selectedActionStep,
-      selectedSubtask: selectedSubtask?.text,
+      selectedSubtask: selectedSubtask?.subTask?.text,
     });
 
     // End operation protection when modal closes
@@ -738,7 +719,7 @@ export default function ActionStepsCard({
   const handleGratitudeCancel = React.useCallback(() => {
     console.log('[ActionStepsCard] Gratitude modal cancelled - clearing step info:', {
       selectedActionStep,
-      selectedSubtask: selectedSubtask?.text,
+      selectedSubtask: selectedSubtask?.subTask?.text,
     });
 
     // End operation protection when modal closes
@@ -782,7 +763,7 @@ export default function ActionStepsCard({
   const handlePrayerCancel = React.useCallback(() => {
     console.log('[ActionStepsCard] Prayer modal cancelled - clearing step info:', {
       selectedActionStep,
-      selectedSubtask: selectedSubtask?.text,
+      selectedSubtask: selectedSubtask?.subTask?.text,
     });
 
     // End operation protection when modal closes
@@ -838,7 +819,7 @@ export default function ActionStepsCard({
   const handleTimeBlockCancel = React.useCallback(() => {
     console.log('[ActionStepsCard] TimeBlock modal cancelled - clearing step info:', {
       selectedActionStep,
-      selectedSubtask: selectedSubtask?.text,
+      selectedSubtask: selectedSubtask?.subTask?.text,
     });
 
     // End operation protection when modal closes
@@ -994,17 +975,6 @@ export default function ActionStepsCard({
                         {step.title}
                       </Text>
                     </View>
-                    {/* Original Expounding Button */}
-                    <TouchableOpacity
-                      style={styles.expoundButton}
-                      onPress={() => toggleInsight(step.id)}
-                    >
-                      <MaterialCommunityIcons
-                        name="lightbulb-outline"
-                        size={16}
-                        color="rgba(255, 255, 255, 0.8)"
-                      />
-                    </TouchableOpacity>
                   </View>
 
                   {subtasks.length > 0 && (
@@ -1082,7 +1052,7 @@ export default function ActionStepsCard({
                     </View>
                   )}
 
-                  {subtasks.length === 0 && step.description && expandedSteps.has(step.id) && (
+                  {subtasks.length === 0 && step.description && (
                     <Text style={styles.stepDescription}>
                       {step.description}
                     </Text>
@@ -1109,17 +1079,6 @@ export default function ActionStepsCard({
                     </View>
                   )}
 
-                  {/* Simplified Card Insight */}
-                  {expandedSteps.has(step.id) && (
-                    <SimplifiedCardInsight
-                      userId={user?.id || ''}
-                      cardType="action"
-                      cardContent={step.title}
-                      playbookTitle={playbookTitle || ''}
-                      userOriginalInput={userInput}
-                      hasAccess={expoundingAccess.hasAccess}
-                    />
-                  )}
                 </Animated.View>
               );
             })}
@@ -1132,8 +1091,8 @@ export default function ActionStepsCard({
       {activeModal === 'reflection' && (
         <SmartJournalingReflectionModal
           visible={true}
-          subtaskTitle={selectedSubtask?.text || ''}
-          subtaskId={selectedSubtask?.id}
+          subtaskTitle={selectedSubtask?.subTask?.text || ''}
+          subtaskId={selectedSubtask?.subTask?.id}
           stepId={selectedActionStep?.stepId}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
@@ -1153,8 +1112,8 @@ export default function ActionStepsCard({
       {activeModal === 'gratitude' && (
         <SmartJournalingGratitudeModal
           visible={true}
-          subtaskTitle={selectedSubtask?.text || ''}
-          subtaskId={selectedSubtask?.id}
+          subtaskTitle={selectedSubtask?.subTask?.text || ''}
+          subtaskId={selectedSubtask?.subTask?.id}
           stepId={selectedActionStep?.stepId}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
@@ -1173,8 +1132,8 @@ export default function ActionStepsCard({
       {activeModal === 'prayer' && (
         <SmartJournalingPrayerModal
           visible={true}
-          subtaskTitle={selectedSubtask?.text || ''}
-          subtaskId={selectedSubtask?.id}
+          subtaskTitle={selectedSubtask?.subTask?.text || ''}
+          subtaskId={selectedSubtask?.subTask?.id}
           stepId={selectedActionStep?.stepId}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
@@ -1193,8 +1152,8 @@ export default function ActionStepsCard({
       {activeModal === 'timeblock' && (
         <SmartJournalingTimeBlockModal
           visible={true}
-          subtaskTitle={selectedSubtask?.text || ''}
-          subtaskId={selectedSubtask?.id}
+          subtaskTitle={selectedSubtask?.subTask?.text || ''}
+          subtaskId={selectedSubtask?.subTask?.id}
           stepId={selectedActionStep?.stepId}
           playbookId={playbookId}
           playbookTitle={playbookTitle}
@@ -1403,20 +1362,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 0,
   },
-  expoundButton: {
+  insightsButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
     marginLeft: 8,
   },
-  expoundButtonText: {
+  insightsButtonText: {
     ...Typography.interRegular,
     fontSize: 12,
     color: 'rgba(255, 255, 255, 0.8)',
     marginLeft: 4,
+  },
+  insightPlaceholder: {
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  insightPlaceholderText: {
+    ...Typography.interRegular,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
   },
   stepDescription: {
     ...Typography.interRegular,
@@ -1431,40 +1402,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.7,
   },
-  expoundingContainer: {
+  insightsContainer: {
     marginTop: 12,
     marginLeft: 28,
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(255,255,255,0.2)',
     paddingLeft: 12,
-  },
-  expoundingHeader: {
-    marginBottom: 8,
-  },
-  expoundingTitle: {
-    ...Typography.interSemiBold,
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  expoundingContent: {
-    paddingTop: 8,
-  },
-  expoundingSection: {
-    marginBottom: 12,
-  },
-  expoundingSectionTitle: {
-    ...Typography.interSemiBold,
-    fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  expoundingSectionText: {
-    ...Typography.interRegular,
-    fontSize: 13,
-    lineHeight: 18,
-    color: 'rgba(255, 255, 255, 0.7)',
   },
   questionButton: {
     flexDirection: 'row',

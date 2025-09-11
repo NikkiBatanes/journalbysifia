@@ -28,15 +28,6 @@ export interface SmartJournalEntry {
 
 
 
-// Expounded Step Interface
-export interface SmartExpoundedStep {
-    id: string;
-    action_step_id: string;
-    expounded_content: string;
-    hard_truth_content?: string;
-    created_at: string;
-    updated_at: string;
-}
 
 // Journal Type Metadata for UI
 export interface JournalTypeMetadata {

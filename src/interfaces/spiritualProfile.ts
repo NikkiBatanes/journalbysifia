@@ -177,14 +177,3 @@ export interface PersonalizedExpoundingRequest {
   };
 }
 
-export interface PersonalizedExpoundingResponse {
-  insight: string;
-  personalizedFor: {
-    maturityLevel: SpiritualMaturityLevel;
-    communicationStyle: CommunicationStyle;
-    currentStruggles: string[];
-  };
-  adaptationReasons: string[];          // Why this specific approach was chosen
-  followUpSuggestions: string[];
-  confidenceScore: number;              // How confident the AI is in this personalization
-}

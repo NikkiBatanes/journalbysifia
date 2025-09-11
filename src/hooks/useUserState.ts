@@ -218,7 +218,6 @@ export const useUserState = () => {
         intelligenceEnabled: false,
         smartJournalingEnabled: false,
         calendarSyncEnabled: false,
-        expoundingEnabled: false,
         copyIncompleteTodosEnabled: false,
         answeredPrayerTrackingEnabled: false,
         advancedAnalytics: false,
@@ -242,7 +241,6 @@ export const useUserState = () => {
       intelligenceEnabled: subscription.tier !== 'seeker',
       smartJournalingEnabled: subscription.smart_journaling_enabled,
       calendarSyncEnabled: subscription.tier !== 'seeker',
-      expoundingEnabled: subscription.tier !== 'seeker',
       copyIncompleteTodosEnabled: subscription.tier !== 'seeker',
       answeredPrayerTrackingEnabled: subscription.tier !== 'seeker',
       advancedAnalytics: subscription.tier === 'transformation' || subscription.tier === 'family',
@@ -278,8 +276,6 @@ export const useUserState = () => {
         return subscription.smart_journaling_enabled;
       case 'calendarSync':
         return subscription.tier !== 'seeker';
-      case 'expounding':
-        return subscription.tier !== 'seeker';
       case 'advancedAnalytics':
         return subscription.tier === 'transformation' || subscription.tier === 'family';
       case 'prioritySupport':
@@ -312,7 +308,6 @@ export const useUserState = () => {
         intelligence: hasFeatureAccess('intelligence'),
         smartJournaling: hasFeatureAccess('smartJournaling'),
         calendarSync: hasFeatureAccess('calendarSync'),
-        expounding: hasFeatureAccess('expounding'),
         advancedAnalytics: hasFeatureAccess('advancedAnalytics'),
         prioritySupport: hasFeatureAccess('prioritySupport'),
         familySharing: hasFeatureAccess('familyMembers'),

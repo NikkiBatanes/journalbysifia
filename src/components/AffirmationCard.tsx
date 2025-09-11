@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, TextStyle, TouchableOpacity } from 'react-nativ
 import Icon from 'react-native-vector-icons/Ionicons';
 import { BorderRadii } from '../theme/styles';
 import { Typography } from '../theme/typography';
-import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
@@ -26,8 +25,6 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
   userInput,
 }) => {
   const { user } = useAuth();
-  const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
-  const [showInsight, setShowInsight] = useState(false);
   const textStyle: TextStyle = {
     ...Typography.interSemiBold,
     fontSize: 16,
@@ -40,36 +37,7 @@ const AffirmationCard: React.FC<AffirmationCardProps> = ({
 
   return (
     <View style={[styles.card, containerStyle]}>
-      <View style={styles.headerContainer}>
-        <Text style={textStyle}>
-          {text}
-        </Text>
-        <TouchableOpacity
-          style={styles.expandIcon}
-          onPress={() => {
-            triggerLightHaptic();
-            setShowInsight(!showInsight);
-          }}
-        >
-          <Icon
-            name={showInsight ? 'chevron-up' : 'information-outline'}
-            size={20}
-            color={color}
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Simplified Card Insight */}
-      {showInsight && (
-        <SimplifiedCardInsight
-          userId={user?.id || ''}
-          cardType="affirmation"
-          cardContent={text}
-          playbookTitle={playbookTitle || ''}
-          userOriginalInput={userInput}
-          hasAccess={expoundingAccess.hasAccess}
-        />
-      )}
+      <Text style={textStyle}>{text}</Text>
     </View>
   );
 };
@@ -91,6 +59,18 @@ const styles = StyleSheet.create({
   expandIcon: {
     padding: 4,
     marginLeft: 8,
+  },
+  insightPlaceholder: {
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  insightPlaceholderText: {
+    ...Typography.interRegular,
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
   },
 });
 

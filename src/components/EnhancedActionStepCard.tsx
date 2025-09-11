@@ -1,8 +1,7 @@
 /**
  * Enhanced Action Step Card Component
  *
- * Integrates step-by-step expounding, export functionality,
- * and tier-based access control for the complete Phase 3 experience.
+ * Integrates export functionality and tier-based access control.
  */
 
 import React, { useState } from 'react';
@@ -17,7 +16,6 @@ import {
   Platform,
   UIManager,
 } from 'react-native';
-import { StepByStepExpounding } from './StepByStepExpounding';
 import { ExportOptionsModal } from './ExportOptionsModal';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { Colors } from '../theme';
@@ -62,18 +60,10 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
   onToggleSubtaskComplete,
   onUpgrade,
 }) => {
-  const [showExpounding, setShowExpounding] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [selectedSubtask, setSelectedSubtask] = useState<SubTask | null>(null);
   const [expandedSubtasks, setExpandedSubtasks] = useState(false);
 
-  // Feature access hooks
-  const expoundingAccess = useFeatureAccess({ feature: 'expounding_content' });
 
-  const toggleExpounding = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setShowExpounding(!showExpounding);
-  };
 
   const toggleSubtasks = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -112,10 +102,6 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
     return content;
   };
 
-  const handleSubtaskExpounding = (subtask: SubTask) => {
-    setSelectedSubtask(subtask);
-    setShowExpounding(true);
-  };
 
   return (
     <View style={styles.container}>
@@ -140,17 +126,6 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
             {actionStep.text}
           </Text>
 
-          {/* Expand/Info Icon in upper right */}
-          <TouchableOpacity
-            style={styles.expandIcon}
-            onPress={toggleExpounding}
-          >
-            <Ionicons
-              name="information-circle-outline"
-              size={20}
-              color="#9CA3AF"
-            />
-          </TouchableOpacity>
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
@@ -180,8 +155,8 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
           </View>
         </View>
 
-        {/* Examples - Hidden in stack view, only show when expounding */}
-        {actionStep.examples && showExpounding && (
+        {/* Examples */}
+        {actionStep.examples && (
           <View style={styles.examplesContainer}>
             <Text style={styles.examplesLabel}>Examples:</Text>
             <Text style={styles.examplesText}>{actionStep.examples}</Text>
@@ -197,26 +172,11 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
                 key={subtask.id}
                 subtask={subtask}
                 onToggleComplete={() => onToggleSubtaskComplete(actionStep.id, subtask.id)}
-                onShowExpounding={() => handleSubtaskExpounding(subtask)}
-                hasExpoundingAccess={expoundingAccess.hasAccess}
               />
             ))}
           </View>
         )}
 
-        {/* Step-by-Step Expounding */}
-        {showExpounding && (
-          <View style={styles.expoundingContainer}>
-            <StepByStepExpounding
-              actionStepId={actionStep.id}
-              actionStepText={actionStep.text}
-              subtaskId={selectedSubtask?.id}
-              subtaskText={selectedSubtask?.text}
-              userId={userId}
-              onUpgrade={onUpgrade}
-            />
-          </View>
-        )}
       </View>
 
       {/* Export Modal */}
@@ -242,15 +202,11 @@ export const EnhancedActionStepCard: React.FC<EnhancedActionStepCardProps> = ({
 interface SubtaskItemProps {
   subtask: SubTask;
   onToggleComplete: () => void;
-  onShowExpounding: () => void;
-  hasExpoundingAccess: boolean;
 }
 
 const SubtaskItem: React.FC<SubtaskItemProps> = ({
   subtask,
   onToggleComplete,
-  onShowExpounding,
-  hasExpoundingAccess,
 }) => (
   <View style={styles.subtaskItem}>
     <TouchableOpacity
@@ -271,7 +227,6 @@ const SubtaskItem: React.FC<SubtaskItemProps> = ({
       {subtask.text}
     </Text>
 
-    {/* Icon-only subtask expounding button removed */}
   </View>
 );
 
@@ -301,10 +256,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     color: '#1F2937',
     marginRight: 12,
-  },
-  expandIcon: {
-    padding: 4,
-    marginLeft: 8,
   },
   completedText: {
     textDecorationLine: 'line-through',
@@ -383,11 +334,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
-  },
-  expoundingContainer: {
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#FAFAFA',
   },
 });
 

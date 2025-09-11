@@ -5,8 +5,6 @@ import {
   SpiritualProfile,
   SpiritualMaturityLevel,
   CommunicationStyle,
-  PersonalizedExpoundingRequest,
-  PersonalizedExpoundingResponse,
   MaturityAssessment,
   ConversationMemory,
   PersonalizationConfig,
@@ -19,60 +17,6 @@ export class PersonalizationEngine {
     this.config = this.initializeConfig();
   }
 
-  /**
-   * Generate personalized Christian coaching prompt based on user's spiritual profile
-   */
-  generatePersonalizedPrompt(request: PersonalizedExpoundingRequest): string {
-    const { spiritualProfile, actionStepText, userOriginalInput, playbookTitle } = request;
-
-    // Build context-aware prompt sections
-    const maturityContext = this.getMaturityContext(spiritualProfile.maturityLevel);
-    const communicationStyle = this.getCommunicationStyle(spiritualProfile.communicationStyle);
-    const personalContext = this.buildPersonalContext(spiritualProfile, userOriginalInput);
-    const adaptiveInstructions = this.getAdaptiveInstructions(spiritualProfile);
-
-    return `You are a wise Christian coach providing personalized faith guidance.
-
-${maturityContext}
-
-${communicationStyle}
-
-PERSONAL CONTEXT:
-${personalContext}
-
-CURRENT SITUATION:
-The user is working on: "${actionStepText}"
-From their "${playbookTitle}" playbook.
-Original struggle: "${userOriginalInput}"
-
-CURRENT GROWTH AREAS:
-${spiritualProfile.currentStruggles.length > 0 ?
-  `- Struggling with: ${spiritualProfile.currentStruggles.join(', ')}` : ''}
-${spiritualProfile.recentVictories.length > 0 ?
-  `- Recent victories: ${spiritualProfile.recentVictories.join(', ')}` : ''}
-
-${adaptiveInstructions}
-
-Generate ONE focused faith insight that:
-1. Matches their ${spiritualProfile.maturityLevel} level of spiritual maturity
-2. Uses ${spiritualProfile.communicationStyle} communication style
-3. References their specific struggles and context
-4. Builds on their recent victories and growth
-5. Provides hope and practical next steps
-
-Format as JSON:
-{
-  "stepNumber": 1,
-  "stepTitle": "Brief title that speaks to their situation",
-  "contentType": "spiritual_insight",
-  "content": "Your personalized insight - make it feel like you know their journey",
-  "scriptureReferences": ["Verse that speaks to their specific struggle and maturity level"],
-  "practicalSteps": ["One specific action tailored to their growth stage"],
-  "reflectionQuestions": ["One question that connects to their personal context"]
-}
-
-Remember: This should feel like personal Christian coaching from someone who knows their spiritual journey, struggles, and victories.`;
-  }
 
   /**
    * Assess user's spiritual maturity based on interactions and responses

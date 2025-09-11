@@ -52,14 +52,6 @@ CREATE TABLE IF NOT EXISTS public.smart_financial_entries (
     user_id UUID NOT NULL
 );
 
--- Create smart_expounded_steps table for caching expounded content
-CREATE TABLE IF NOT EXISTS public.smart_expounded_steps (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    action_step_id UUID REFERENCES public.playbook_action_steps(id) ON DELETE CASCADE,
-    expounded_content JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_smart_journal_entries_sub_task_id ON public.smart_journal_entries(sub_task_id);
@@ -72,7 +64,6 @@ CREATE INDEX IF NOT EXISTS idx_smart_financial_entries_user_id ON public.smart_f
 CREATE INDEX IF NOT EXISTS idx_smart_financial_entries_entry_type ON public.smart_financial_entries(entry_type);
 CREATE INDEX IF NOT EXISTS idx_smart_financial_entries_date ON public.smart_financial_entries(date DESC);
 
-CREATE INDEX IF NOT EXISTS idx_smart_expounded_steps_action_step_id ON public.smart_expounded_steps(action_step_id);
 
 CREATE INDEX IF NOT EXISTS idx_playbook_sub_tasks_detected_journal_type ON public.playbook_sub_tasks(detected_journal_type);
 CREATE INDEX IF NOT EXISTS idx_playbook_action_steps_example_interactive ON public.playbook_action_steps(example_interactive);
@@ -99,11 +90,6 @@ CREATE TRIGGER update_smart_financial_entries_updated_at
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-DROP TRIGGER IF EXISTS update_smart_expounded_steps_updated_at ON public.smart_expounded_steps;
-CREATE TRIGGER update_smart_expounded_steps_updated_at
-    BEFORE UPDATE ON public.smart_expounded_steps
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
 
 -- Note: Triggers for playbook_sub_tasks and playbook_action_steps should already exist
 -- If not, add them manually
@@ -135,7 +121,6 @@ END $$;
 -- Add RLS policies for security
 ALTER TABLE public.smart_journal_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.smart_financial_entries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.smart_expounded_steps ENABLE ROW LEVEL SECURITY;
 
 -- Journal entries policies
 CREATE POLICY "Users can view their own smart journal entries" ON public.smart_journal_entries
@@ -163,23 +148,14 @@ CREATE POLICY "Users can update their own smart financial entries" ON public.sma
 CREATE POLICY "Users can delete their own smart financial entries" ON public.smart_financial_entries
     FOR DELETE USING (auth.uid() = user_id);
 
--- Expounded steps policies (no user_id, so anyone can read cached content)
-CREATE POLICY "Anyone can view smart expounded steps" ON public.smart_expounded_steps
-    FOR SELECT USING (true);
-
-CREATE POLICY "Service role can manage smart expounded steps" ON public.smart_expounded_steps
-    FOR ALL USING (auth.role() = 'service_role');
 
 -- Grant necessary permissions
 GRANT ALL ON public.smart_journal_entries TO authenticated;
 GRANT ALL ON public.smart_financial_entries TO authenticated;
-GRANT SELECT ON public.smart_expounded_steps TO authenticated;
-GRANT ALL ON public.smart_expounded_steps TO service_role;
 
 -- Comments for documentation
 COMMENT ON TABLE public.smart_journal_entries IS 'Stores all journal entries linked to action step subtasks';
 COMMENT ON TABLE public.smart_financial_entries IS 'Stores financial stewardship entries (tithing, savings, expenses, investments)';
-COMMENT ON TABLE public.smart_expounded_steps IS 'Caches AI-generated expounded content for action steps';
 COMMENT ON COLUMN public.playbook_sub_tasks.detected_journal_type IS 'AI-detected journal type for smart suggestions';
 COMMENT ON COLUMN public.playbook_sub_tasks.is_example IS 'Whether this subtask is an example';
 COMMENT ON COLUMN public.playbook_sub_tasks.example_interactive IS 'Whether the example can be interacted with';

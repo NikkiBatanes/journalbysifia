@@ -353,7 +353,6 @@ class AnalyticsService {
       'retention_event': 0.2,
       'user_journey': 0.3,
       'export_generated': 0.6,
-      'expounding_viewed': 0.4,
       'question_asked': 0.5,
     };
 
@@ -365,7 +364,7 @@ class AnalyticsService {
     }
 
     // Boost score for premium features
-    if (properties.feature_name && ['export_pdf', 'export_docx', 'expounding_content'].includes(properties.feature_name)) {
+    if (properties.feature_name && ['export_pdf', 'export_docx'].includes(properties.feature_name)) {
       score *= 1.3;
     }
 
