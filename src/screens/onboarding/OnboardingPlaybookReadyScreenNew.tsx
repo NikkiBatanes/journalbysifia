@@ -1317,6 +1317,7 @@ const styles = StyleSheet.create({
   },
   quoteIcon: {
     marginRight: 8,
+    transform: [{ scaleX: -1 }],
   },
   affirmationsList: {
     paddingTop: 14,

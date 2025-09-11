@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
   bibleVersion: {
     fontSize: 13,
     lineHeight: 18,
-    color: Colors.hopeWhite,
+    color: Colors.alertCoral,
     opacity: 0.9,
   },
   infoIcon: {

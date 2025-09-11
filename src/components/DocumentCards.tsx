@@ -173,6 +173,7 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
   },
   quoteIcon: {
+    transform: [{ scaleX: -1 }],
   },
   bibleVerseCard: {
     // No extra margin - docCard already provides marginBottom: 16
