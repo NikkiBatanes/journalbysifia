@@ -377,26 +377,47 @@ function parseOpenAIResponse(aiData: unknown, duration: number, playbookId?: str
     // Extract days - handle the specific format from OpenAI response
     console.log('[DEVOTIONAL PARSER] Trying to parse days...');
 
-    // First try with the exact format from OpenAI: **DAY X:**
+    // Enhanced day parsing with multiple patterns to handle various OpenAI response formats
     let dayMatches: Array<[unknown, string, string]> = [];
-    const dayRegex = /\*\*DAY\s*(\d+):\*\*\s*\n([\s\S]*?)(?=\*\*DAY\s*\d+:|\.{3}|$)/gi;
-
-    let match;
-    while ((match = dayRegex.exec('\n' + content)) !== null) {
-      console.log(`[DEVOTIONAL PARSER] Found day ${match[1]} with content length:`, match[2].length);
-      dayMatches.push([null, match[1], match[2].trim()]);
+    
+    // Pattern 1: **DAY X:** format (bold markdown)
+    const dayRegex1 = /\*\*DAY\s*(\d+):\*\*\s*([^*]*?)(?=\*\*DAY\s*\d+:|$)/gi;
+    let match1;
+    while ((match1 = dayRegex1.exec(content)) !== null) {
+      console.log(`[DEVOTIONAL PARSER] Found day ${match1[1]} (bold format) with content length:`, match1[2].length);
+      dayMatches.push([null, match1[1], match1[2].trim()]);
     }
 
-    console.log('[DEVOTIONAL PARSER] Days parsed (markdown format):', dayMatches.length);
-
-    // If no days found, try with the exact format but without the **
+    // Pattern 2: DAY X: format (plain text)
     if (dayMatches.length === 0) {
-      console.log('[DEVOTIONAL PARSER] Trying alternative day parsing...');
-      const altDayRegex = /DAY\s*(\d+):\s*\n([\s\S]*?)(?=DAY\s*\d+:|$)/gi;
-      let altMatch;
-      while ((altMatch = altDayRegex.exec(content)) !== null) {
-        console.log(`[DEVOTIONAL PARSER] Found day ${altMatch[1]} (alt format) with content length:`, altMatch[2].length);
-        dayMatches.push([null, altMatch[1], altMatch[2].trim()]);
+      console.log('[DEVOTIONAL PARSER] Trying plain DAY format...');
+      const dayRegex2 = /(?:^|\n)DAY\s*(\d+):\s*([^]*?)(?=(?:\n|^)DAY\s*\d+:|$)/gi;
+      let match2;
+      while ((match2 = dayRegex2.exec(content)) !== null) {
+        console.log(`[DEVOTIONAL PARSER] Found day ${match2[1]} (plain format) with content length:`, match2[2].length);
+        dayMatches.push([null, match2[1], match2[2].trim()]);
+      }
+    }
+
+    // Pattern 3: # DAY X or ## DAY X (markdown headers)
+    if (dayMatches.length === 0) {
+      console.log('[DEVOTIONAL PARSER] Trying markdown header format...');
+      const dayRegex3 = /(?:^|\n)#{1,3}\s*DAY\s*(\d+)[^\n]*\n([^]*?)(?=(?:\n|^)#{1,3}\s*DAY\s*\d+|$)/gi;
+      let match3;
+      while ((match3 = dayRegex3.exec(content)) !== null) {
+        console.log(`[DEVOTIONAL PARSER] Found day ${match3[1]} (header format) with content length:`, match3[2].length);
+        dayMatches.push([null, match3[1], match3[2].trim()]);
+      }
+    }
+
+    // Pattern 4: Look for any numbered sections that might be days
+    if (dayMatches.length === 0) {
+      console.log('[DEVOTIONAL PARSER] Trying numbered section format...');
+      const dayRegex4 = /(?:^|\n)(\d+)[\.\)]\s*([^]*?)(?=(?:\n|^)\d+[\.\)]|$)/gi;
+      let match4;
+      while ((match4 = dayRegex4.exec(content)) !== null && parseInt(match4[1]) <= 7) {
+        console.log(`[DEVOTIONAL PARSER] Found day ${match4[1]} (numbered format) with content length:`, match4[2].length);
+        dayMatches.push([null, match4[1], match4[2].trim()]);
       }
     }
 

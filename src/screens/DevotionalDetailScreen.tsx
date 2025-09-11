@@ -2,18 +2,19 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import {
-  Animated,
-  StatusBar,
+  Dimensions,
+  FlatList,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  Dimensions,
-  ScrollView,
+  Alert,
   Platform,
+  Animated,
   NativeModules,
+  StatusBar,
 } from 'react-native';
-import { FlatList, Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -405,7 +406,10 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
   const scrollToDay = useCallback((index: number) => {
     if (flatListRef.current && devotional) {
       // Always ensure we're using a valid index
-      const safeIndex = Math.min(Math.max(0, index), devotional.days.length - 1);
+      const safeIndex = Math.min(
+        Math.max(0, index),
+        devotional.days.length - 1
+      );
 
       console.log('Scrolling to day:', safeIndex + 1); // Debug log
 
@@ -903,7 +907,7 @@ export default function DevotionalDetailScreen({ route, navigation }: Devotional
                     <Ionicons
                       name="information-circle-outline"
                       size={18}
-                      color={Colors.hopeWhite}
+                      color={Colors.alertCoral}
                     />
                   </TouchableOpacity>
                 )}

@@ -370,9 +370,27 @@ export const useDevotionalOperations = (userId: string) => {
   };
 
   const fetchPlaybookById = async (playbookId: string) => {
-    // TODO: Implement playbook fetching if needed
-    console.log('fetchPlaybookById called with:', playbookId);
-    return null;
+    try {
+      console.log('[useDevotionalOperations] Fetching playbook by ID:', playbookId);
+      
+      // Import the playbook API function
+      const { getPlaybooks } = await import('../apiIntegration');
+      
+      // Get all playbooks and find the specific one
+      const playbooks = await getPlaybooks(userId);
+      const playbook = playbooks.find(p => p.id === playbookId);
+      
+      if (!playbook) {
+        console.warn('[useDevotionalOperations] Playbook not found:', playbookId);
+        return null;
+      }
+      
+      console.log('[useDevotionalOperations] Found playbook:', playbook.title);
+      return playbook;
+    } catch (error) {
+      console.error('[useDevotionalOperations] Error fetching playbook:', error);
+      return null;
+    }
   };
 
   return {

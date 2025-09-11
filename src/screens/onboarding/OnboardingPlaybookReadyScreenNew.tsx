@@ -441,7 +441,7 @@ const PlaybookContent: React.FC<{ playbook: any; challengeCategory: string; spec
                 name="format-quote-close"
                 size={24}
                 color={Colors.alertCoral}
-                style={[styles.quoteIcon, { transform: [{ scaleX: -1 }] }]}
+                style={styles.quoteIcon}
               />
               <ThemedText weight="semiBold" style={styles.affirmationsTitle}>Affirmations</ThemedText>
             </View>

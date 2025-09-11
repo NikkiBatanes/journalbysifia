@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, Dimensions, Animated, Easing, ActivityIndicator } from 'react-native';
+import { Modal, StyleSheet, TouchableOpacity, View, Dimensions, Animated, Easing } from 'react-native';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import { Colors } from '../theme';
 import ThemedText from './common/ThemedText';
@@ -68,7 +68,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [showPlaybookInfo, setShowPlaybookInfo] = useState(false);
   const [contentHeight, setContentHeight] = useState(0);
-  const [ellipsis, setEllipsis] = useState('');
+  const [_ellipsis, setEllipsis] = useState('');
   const contentRef = React.useRef<View>(null);
   const checkmarkAnim = useRef(new Animated.Value(0)).current;
 
@@ -92,8 +92,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
   const [currentStep, setCurrentStep] = useState(0);
   const generationSteps = React.useMemo(() => ([
     { title: 'Centering your heart…', description: '' },
-    { title: "Listening to your story…", description: '' },
-    { title: "Finding Scripture for each day…", description: '' },
+    { title: 'Listening to your story…', description: '' },
+    { title: 'Finding Scripture for each day…', description: '' },
     { title: 'Preparing reflections and prompts…', description: '' },
     { title: 'Crafting daily prayers…', description: '' },
     { title: 'Organizing your day-by-day journey…', description: '' },
@@ -109,7 +109,7 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       // Reset chevron rotation to collapsed state
       try { rotateAnim.setValue(0); } catch {}
     }
-  }, [visible]);
+  }, [visible, rotateAnim]);
 
   React.useEffect(() => {
     console.log('[DevotionalModal] State changed:', { isCreating, error: !!error, isSuccess, selectedDuration });
@@ -126,10 +126,14 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         Animated.timing(shimmerOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.timing(shimmerOpacity, { toValue: 0.7, duration: 700, useNativeDriver: true }),
       ]).start(({ finished }) => {
-        if (finished && mounted && isCreating && !isSuccess) loop();
+        if (finished && mounted && isCreating && !isSuccess) {
+          loop();
+        }
       });
     };
-    if (isCreating && !isSuccess) loop();
+    if (isCreating && !isSuccess) {
+      loop();
+    }
     return () => {
       mounted = false;
       shimmerOpacity.stopAnimation();
@@ -157,13 +161,15 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
         }).start();
         // Subtle haptic feedback on each visible step advancement
         if (!isLast) {
-          try { triggerLightHaptic(); } catch {}
+          try {
+            triggerLightHaptic();
+          } catch {}
         }
         return isLast ? prev : nextStep;
       });
     }, 3000);
     return () => clearInterval(stepInterval);
-  }, [isCreating, isSuccess, generationSteps.length, progressAnim]);
+  }, [isCreating, isSuccess, generationSteps.length, progressAnim, triggerLightHaptic]);
 
   const measureContent = () => {
     if (contentRef.current) {
@@ -299,7 +305,6 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
             duration: 280,
             useNativeDriver: true,
           }).start();
-          
           // Simplified timing - single timeout to prevent navigation conflicts
           setTimeout(() => {
             handleClose(() => {
@@ -467,12 +472,12 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
           </View>
           <View style={styles.stepRow}>
             <Animated.View style={{ opacity: shimmerOpacity }}>
-              <ThemedText weight="regular" style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
+              <ThemedText weight="regular" style={[styles.currentStepText, styles.stepTextNoPadding]}>
                 {baseTitle}
               </ThemedText>
             </Animated.View>
             <View style={[styles.dotsContainer, dotsWidth ? { width: dotsWidth } : null]}>
-              <ThemedText weight="regular" style={[styles.currentStepText, { paddingHorizontal: 0 }]}>
+              <ThemedText weight="regular" style={[styles.currentStepText, styles.stepTextNoPadding]}>
                 {'.'.repeat(dotCount)}
               </ThemedText>
             </View>
@@ -823,6 +828,9 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: Colors.hopeWhite,
     fontSize: 14,
+  },
+  stepTextNoPadding: {
+    paddingHorizontal: 0,
   },
 });
 

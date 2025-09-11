@@ -15,13 +15,15 @@ import { supabase } from '../../services/supabaseClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DashboardScriptureSkeleton from '../SkeletonLoader/DashboardScriptureSkeleton';
 import ThemedText from '../common/ThemedText';
-
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { BibleCopyrightModal } from '../BibleCopyrightModal';
 
 interface BibleVerse {
   id: string;
   verse: string;
   reference: string;
   source?: string;
+  version?: string;
 }
 
 interface DailyBibleVerseCardProps {
@@ -35,6 +37,7 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
   const [verse, setVerse] = useState<BibleVerse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showCopyright, setShowCopyright] = useState(false);
 
   const fetchDailyVerse = useCallback(async () => {
     if (!user) {return;}
@@ -80,11 +83,13 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               if (typeof rawBible === 'object') {
                 const text = rawBible.text || rawBible.verse || rawBible.content;
                 const reference = rawBible.reference || rawBible.citation || '';
+                const version = rawBible.version || 'NASB';
                 if (text) {
                   allVerses.push({
                     id: `playbook-${playbook.id}`,
                     verse: text,
                     reference: reference || 'Scripture',
+                    version,
                     source: playbook.title,
                   });
                 }
@@ -92,10 +97,10 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
                 // Attempt to split string into reference and verse if possible
                 const m1 = rawBible.match(/^(.*?\d+:\d+(?:[-–]\d+)?(?:,\s*\d+:?\d*(?:[-–]\d*)?)*)\s*[-—–:]\s*(.+)$/);
                 if (m1) {
-                  allVerses.push({ id: `playbook-${playbook.id}`, verse: m1[2].trim(), reference: m1[1].trim(), source: playbook.title });
+                  allVerses.push({ id: `playbook-${playbook.id}`, verse: m1[2].trim(), reference: m1[1].trim(), version: 'NASB', source: playbook.title });
                 } else {
                   // Could be just reference or just text; push as text
-                  allVerses.push({ id: `playbook-${playbook.id}`, verse: rawBible, reference: 'Scripture', source: playbook.title });
+                  allVerses.push({ id: `playbook-${playbook.id}`, verse: rawBible, reference: 'Scripture', version: 'NASB', source: playbook.title });
                 }
               }
             }
@@ -122,14 +127,16 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               const reference = (typeof content.verse === 'object')
                 ? (content.verse.reference || content.verse.citation || '')
                 : '';
+              const version = (typeof content.verse === 'object') ? (content.verse.version || 'NASB') : 'NASB';
               if (typeof text === 'string' && text.trim().length > 0) {
-                const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
                 if (!seen.has(key)) {
                   seen.add(key);
                   allVerses.push({
                     id: `devotional-${devotional.id}`,
                     verse: text.trim(),
                     reference: (reference || 'Scripture').trim(),
+                    version,
                     source: devotional.title,
                   });
                 }
@@ -141,14 +148,16 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               content.verses.forEach((v: any, index: number) => {
                 const text = v?.text || v?.verse || v?.content || '';
                 const reference = v?.reference || v?.citation || '';
+                const version = v?.version || 'NASB';
                 if (typeof text === 'string' && text.trim().length > 0) {
-                  const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                  const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
                   if (!seen.has(key)) {
                     seen.add(key);
                     allVerses.push({
                       id: `devotional-${devotional.id}-${index}`,
                       verse: text.trim(),
                       reference: (reference || 'Scripture').trim(),
+                      version,
                       source: devotional.title,
                     });
                   }
@@ -164,14 +173,16 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               const reference = (typeof content.scripture === 'object')
                 ? (content.scripture.reference || content.scripture.citation || '')
                 : '';
+              const version = (typeof content.scripture === 'object') ? (content.scripture.version || 'NASB') : 'NASB';
               if (typeof text === 'string' && text.trim().length > 0) {
-                const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
                 if (!seen.has(key)) {
                   seen.add(key);
                   allVerses.push({
                     id: `devotional-${devotional.id}-scripture`,
                     verse: text.trim(),
                     reference: (reference || 'Scripture').trim(),
+                    version,
                     source: devotional.title,
                   });
                 }
@@ -182,14 +193,16 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               content.scriptures.forEach((v: any, index: number) => {
                 const text = v?.text || v?.verse || v?.content || '';
                 const reference = v?.reference || v?.citation || '';
+                const version = v?.version || 'NASB';
                 if (typeof text === 'string' && text.trim().length > 0) {
-                  const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                  const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
                   if (!seen.has(key)) {
                     seen.add(key);
                     allVerses.push({
                       id: `devotional-${devotional.id}-scriptures-${index}`,
                       verse: text.trim(),
                       reference: (reference || 'Scripture').trim(),
+                      version,
                       source: devotional.title,
                     });
                   }
@@ -213,14 +226,16 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
                     const reference = (typeof s === 'object')
                       ? (s.reference || s.citation || '')
                       : '';
+                    const version = (typeof s === 'object') ? (s.version || 'NASB') : 'NASB';
                     if (typeof text === 'string' && text.trim().length > 0) {
-                      const key = `${text.trim()}|${(reference || 'Scripture').trim()}`;
+                      const key = `${text.trim()}|${(reference || 'Scripture').trim()}|${version}`;
                       if (!seen.has(key)) {
                         seen.add(key);
                         allVerses.push({
                           id: `devotional-${devotional.id}-day-${index}`,
                           verse: text.trim(),
                           reference: (reference || 'Scripture').trim(),
+                          version,
                           source: devotional.title,
                         });
                       }
@@ -331,13 +346,32 @@ const DailyBibleVerseCard: React.FC<DailyBibleVerseCardProps> = ({ onRefresh, on
               <ThemedText weight="medium" style={styles.verseText}>
                 {verse?.verse}
               </ThemedText>
-              <ThemedText weight="semiBold" style={styles.referenceText}>
-                {verse?.reference}
-              </ThemedText>
+              <View style={styles.referenceRow}>
+                <ThemedText weight="semiBold" style={styles.referenceText}>
+                  {verse?.reference}
+                  <ThemedText weight="semiBold" style={styles.versionText}>
+                    {' '}{verse?.version || 'NASB'}
+                  </ThemedText>
+                </ThemedText>
+                <TouchableOpacity
+                  style={styles.infoIcon}
+                  onPress={() => setShowCopyright(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Bible translation information"
+                >
+                  <Ionicons name="information-circle-outline" size={18} color={Colors.alertCoral} />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </TouchableOpacity>
       )}
+      {/* Bible copyright modal */}
+      <BibleCopyrightModal
+        visible={!!showCopyright}
+        onClose={() => setShowCopyright(false)}
+        bibleVersion={verse?.version || 'NASB'}
+      />
     </View>
   );
 };
@@ -406,6 +440,19 @@ const styles = StyleSheet.create({
 
     marginTop: 2,
     marginBottom: 4,
+  },
+  versionText: {
+    fontSize: 12,
+    color: Colors.alertCoral,
+  },
+  referenceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  infoIcon: {
+    marginLeft: 6,
+    padding: 4,
   },
   errorContainer: {
     flex: 1,

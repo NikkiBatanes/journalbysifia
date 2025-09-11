@@ -68,26 +68,21 @@ const DevotionalsScreen = () => {
   );
 
   // Subtle haptic feedback, gated by user preference
-  const triggerLightHaptic = () => {
+  const triggerLightHaptic = useCallback(() => {
     try {
-      const { RNHapticFeedback } = NativeModules as any;
-      if (!RNHapticFeedback) {return;}
-      const hapticsPref = (user as any)?.user_metadata?.preferences?.hapticsEnabled;
-      if (hapticsPref === false) {return;}
-      const Haptic = require('react-native-haptic-feedback');
-      const triggerFn = Haptic?.default?.trigger || Haptic?.trigger;
-      if (typeof triggerFn === 'function') {
+      const triggerFn = ReactNativeHapticFeedback.trigger;
+      if (triggerFn) {
         triggerFn('impactLight', { enableVibrateFallback: false, ignoreAndroidSystemSettings: false });
       }
     } catch {}
-  };
+  }, []);
 
   // Trigger a gentle haptic when the Devotional creation modal opens
   useEffect(() => {
     if (showDevotionalModal) {
       try { triggerLightHaptic(); } catch {}
     }
-  }, [showDevotionalModal]);
+  }, [showDevotionalModal, triggerLightHaptic]);
 
   const handleDevotionalPress = (devotional: Devotional) => {
     // Log title extraction for debugging
@@ -559,7 +554,7 @@ const DevotionalsScreen = () => {
   useEffect(() => { initAnimations(); }, [initAnimations]);
   useEffect(() => {
     const unsub = (navigation as any)?.addListener?.('focus', () => { initAnimations(); });
-    return () => { if (typeof unsub === 'function') unsub(); };
+    return () => { if (typeof unsub === 'function') { unsub(); } };
   }, [navigation, initAnimations]);
 
   // Grouping by Month Year
@@ -599,8 +594,12 @@ const DevotionalsScreen = () => {
     const subSelf = (navigation as any)?.addListener?.('tabPress', resetToTop);
     const subParent = (navigation as any)?.getParent?.()?.addListener?.('tabPress', resetToTop);
     return () => {
-      if (typeof subSelf === 'function') subSelf();
-      if (typeof subParent === 'function') subParent();
+      if (typeof subSelf === 'function') {
+        subSelf();
+      }
+      if (typeof subParent === 'function') {
+        subParent();
+      }
     };
   }, [navigation, resetToTop]);
 

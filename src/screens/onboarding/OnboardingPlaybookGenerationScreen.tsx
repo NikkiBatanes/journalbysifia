@@ -182,11 +182,12 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
         isOnboarding: true, // Mark as onboarding playbook (free)
       });
 
-      if (response.success && response.queueId) {
-        console.log('✅ Playbook generation queued successfully, queueId:', response.queueId);
+      if (response.success) {
+        if (response.queueId) {
+          console.log('✅ Playbook generation queued successfully, queueId:', response.queueId);
 
-        // Poll for completion
-        const pollForCompletion = async () => {
+          // Poll for completion
+          const pollForCompletion = async () => {
           const maxAttempts = 35; // 35 attempts = 35 seconds max wait - faster with early direct DB checks
           let attempts = 0;
 
@@ -381,12 +382,91 @@ const OnboardingPlaybookGenerationScreen: React.FC = () => {
           setTimeout(poll, 500); // Wait only 0.5 seconds before first poll
         };
 
-        pollForCompletion().catch((error) => {
-          console.error('❌ Playbook generation failed:', error);
-          setGenerationError(error.message || 'Failed to generate playbook. Please try again.');
-          setIsGenerating(false);
-        });
+          pollForCompletion().catch((error) => {
+            console.error('❌ Playbook generation failed:', error);
+            setGenerationError(error.message || 'Failed to generate playbook. Please try again.');
+            setIsGenerating(false);
+          });
 
+        } else {
+          // Direct generation completed immediately (no queue)
+          console.log('✅ Direct playbook generation completed immediately');
+          
+          // Wait a moment for database to be ready, then check for the playbook
+          setTimeout(async () => {
+            try {
+              if (user?.id) {
+                const { supabase } = await import('../../services/supabaseClient');
+                const { data: recentPlaybooks } = await supabase
+                  .from('playbooks')
+                  .select('*')
+                  .eq('user_id', user.id)
+                  .order('created_at', { ascending: false })
+                  .limit(1);
+
+                if (recentPlaybooks && recentPlaybooks.length > 0) {
+                  const recentPlaybook = recentPlaybooks[0];
+                  const playbookAge = Date.now() - new Date(recentPlaybook.created_at).getTime();
+
+                  // If playbook was created in the last 30 seconds, it's likely our generated one
+                  if (playbookAge < 30000) {
+                    console.log('✅ Found direct generation result, navigating...');
+                    
+                    // Get complete playbook data
+                    const { getPlaybook } = await import('../../services/modernPlaybookApi');
+                    const completePlaybook = await getPlaybook(user.id, recentPlaybook.id);
+                    
+                    if (completePlaybook) {
+                      const realGeneratedPlaybook: any = {
+                        id: completePlaybook.id,
+                        title: completePlaybook.title,
+                        truthInLove: completePlaybook.truthInLove || 'God loves you and is with you in this journey.',
+                        actionSteps: completePlaybook.actionSteps || [],
+                        affirmations: (completePlaybook.affirmations && completePlaybook.affirmations.length > 0)
+                          ? completePlaybook.affirmations.map((aff: any) => typeof aff === 'string' ? aff : aff.text || aff)
+                          : [
+                              'I am loved unconditionally by God',
+                              'God gives me strength for each challenge',
+                              'I can find peace in God\'s presence',
+                            ],
+                        bibleVerse: completePlaybook.bibleVerse || {
+                          text: 'Cast all your anxiety on him because he cares for you.',
+                          reference: '1 Peter 5:7',
+                        },
+                        directChallenge: completePlaybook.directChallenge || 'Take one step forward in faith this week.',
+                      };
+
+                      // Animate progress to 100% and navigate
+                      Animated.timing(progressAnim, {
+                        toValue: 100,
+                        duration: 800,
+                        useNativeDriver: false,
+                      }).start(() => {
+                        setTimeout(() => {
+                          (navigation as any).replace('OnboardingPlaybookReady', {
+                            playbook: realGeneratedPlaybook,
+                            challengeCategory: params.challengeCategory,
+                            specificChallenge: params.specificChallenge,
+                            userInput: params.userInput,
+                          });
+                        }, 500);
+                      });
+                      return;
+                    }
+                  }
+                }
+              }
+              
+              // If we get here, direct generation may have failed
+              throw new Error('Direct generation completed but no playbook found');
+              
+            } catch (directError) {
+              console.error('❌ Direct generation check failed:', directError);
+              setGenerationError('Unable to generate your playbook. Please try again.');
+              setIsGenerating(false);
+            }
+          }, 2000); // Wait 2 seconds for database to be ready
+        }
       } else {
         throw new Error(response.message || 'Failed to generate playbook');
       }

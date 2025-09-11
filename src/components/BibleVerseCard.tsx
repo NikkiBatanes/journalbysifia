@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 
 import { Colors } from '../theme';
 import { Typography } from '../theme/typography';
@@ -10,6 +10,8 @@ import { SimplifiedCardInsight } from './SimplifiedCardInsight';
 import { useAuth } from '../context/IndustryStandardAuthContext';
 import { useFeatureAccess } from '../hooks/useFeatureAccess';
 import { triggerLightHaptic } from '../utils/haptics';
+import { BibleCopyrightModal } from './BibleCopyrightModal';
+import ThemedText from './common/ThemedText';
 
 import { BibleVerse } from '../interfaces/playbook';
 
@@ -28,6 +30,9 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
   const { user } = useAuth();
   const expoundingAccess = useFeatureAccess({ feature: 'expounding' });
   const [showInsight, setShowInsight] = useState(false);
+  // Default translation/version for onboarding and playbook views
+  const [showCopyright, setShowCopyright] = useState(false);
+  const bibleVersion = (verse as any)?.version || 'NASB';
   return (
     <View style={[styles.container, style, { backgroundColor }]}>
       <View style={styles.headerContainer}>
@@ -37,13 +42,15 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
           color={Colors.alertCoral}
           style={styles.icon}
         />
-        <Text style={[styles.heading, { color: textColor }]}>Bible Verse</Text>
+        <ThemedText weight="semiBold" style={[styles.heading, { color: textColor }]}>Bible Verse</ThemedText>
         <TouchableOpacity
           style={styles.expandIcon}
           onPress={() => {
             triggerLightHaptic();
             setShowInsight(!showInsight);
           }}
+          accessibilityRole="button"
+          accessibilityLabel={showInsight ? 'Hide insight' : 'Show insight'}
         >
           <Icon
             name={showInsight ? 'chevron-up' : 'information-outline'}
@@ -53,15 +60,38 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
         </TouchableOpacity>
       </View>
       <View style={styles.contentContainer}>
-        <Text
-          style={[styles.verseText, { color: textColor }]}
+        <ThemedText
+          style={[styles.scriptureText]}
           numberOfLines={expanded ? undefined : collapsedLines}
           ellipsizeMode={expanded ? 'clip' : 'tail'}
         >
           {formatBibleVerse(verse.text)}
-        </Text>
-        <View style={styles.referenceContainer}>
-          <Text style={[styles.reference, { color: Colors.alertCoral }]}>{verse.reference}</Text>
+        </ThemedText>
+        <View style={styles.scriptureReferenceContainer}>
+          <ThemedText weight="bold" style={styles.scriptureReference}>
+            {(verse.reference || '')}
+            {(
+              <ThemedText weight="bold" style={styles.bibleVersion}>
+                {' '}{bibleVersion}
+              </ThemedText>
+            )}
+          </ThemedText>
+          <TouchableOpacity
+            style={styles.infoIcon}
+            onPress={() => {
+              try { triggerLightHaptic(); } catch {}
+              setShowCopyright(true);
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Bible translation information"
+          >
+            <Icon
+              name="information-circle-outline"
+              size={18}
+              color={Colors.alertCoral}
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -76,6 +106,13 @@ export default function BibleVerseCard({ verse, style, textColor = Colors.hopeWh
           hasAccess={expoundingAccess.hasAccess}
         />
       )}
+
+      {/* Bible copyright modal - default to NASB */}
+      <BibleCopyrightModal
+        visible={showCopyright}
+        onClose={() => setShowCopyright(false)}
+        bibleVersion={bibleVersion}
+      />
     </View>
   );
 }
@@ -109,27 +146,38 @@ const styles = StyleSheet.create({
     paddingBottom: 5, // Space below the reference text
     width: '100%',
   },
-  verseText: {
-    ...Typography.interSemiBold,
-    fontSize: 18,
-    lineHeight: 28,
-    color: 'rgba(255, 255, 255, 0.95)',
+  // Match DevotionalDetailScreen scripture styles
+  scriptureText: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: Colors.hopeWhite,
     textAlign: 'left',
+    marginBottom: 12,
+    fontStyle: 'italic',
     paddingHorizontal: 8,
     width: '100%',
   },
-  referenceContainer: {
+  scriptureReferenceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
     width: '100%',
-    marginTop: 24,
-    alignItems: 'flex-end',
   },
-  reference: {
-    ...Typography.interBold,
+  scriptureReference: {
     fontSize: 13,
     lineHeight: 18,
     color: Colors.alertCoral,
-    paddingBottom: 5,
+    marginTop: 8,
     opacity: 0.9,
+  },
+  bibleVersion: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+  },
+  infoIcon: {
+    marginLeft: 8,
   },
   expandIcon: {
     padding: 4,

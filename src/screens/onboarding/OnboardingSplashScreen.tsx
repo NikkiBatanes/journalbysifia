@@ -29,7 +29,7 @@ interface OnboardingSplashScreenProps {
 
 const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onComplete: _onComplete }) => {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const { user, isLoggingOut } = useAuth();
   const hasNavigatedRef = useRef(false);
 
 
@@ -241,17 +241,12 @@ const OnboardingSplashScreen: React.FC<OnboardingSplashScreenProps> = ({ onCompl
       });
 
       // Check if this is a logout scenario - if so, route to welcome instead of personalization
-      try {
-        const { isLoggingOut } = useAuth();
-        if (isLoggingOut) {
-          console.log('[SplashScreen] 🚪 LOGOUT DETECTED - Routing to welcome screen');
-          const target = 'OnboardingWelcome';
-          navigation.reset({ index: 0, routes: [{ name: target as any }] });
-          hasNavigatedRef.current = true;
-          return true;
-        }
-      } catch (authErr) {
-        console.warn('[SplashScreen] Auth context error:', authErr);
+      if (isLoggingOut) {
+        console.log('[SplashScreen] 🚪 LOGOUT DETECTED - Routing to welcome screen');
+        const target = 'OnboardingWelcome';
+        navigation.reset({ index: 0, routes: [{ name: target as any }] });
+        hasNavigatedRef.current = true;
+        return true;
       }
 
       try {

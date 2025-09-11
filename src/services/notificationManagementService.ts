@@ -82,6 +82,11 @@ class NotificationManagementService {
         });
 
       if (error) {
+        // Check if it's a missing table error (common during development)
+        if (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+          console.warn('Notification preferences table not found - skipping notification setup');
+          return true; // Return success to avoid blocking onboarding
+        }
         console.error('Error updating notification preferences:', error);
         return false;
       }
