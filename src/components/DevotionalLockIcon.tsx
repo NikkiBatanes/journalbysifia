@@ -104,6 +104,8 @@ const styles = StyleSheet.create({
     borderRadius: 0,
     borderWidth: 0,
     borderColor: 'transparent',
+    // Slight visual nudge to center icon within tall rows
+    marginTop: 2,
   },
   lockLabel: {
     fontSize: 12,

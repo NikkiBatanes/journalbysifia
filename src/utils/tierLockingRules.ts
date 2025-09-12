@@ -31,12 +31,12 @@ export const LOCK_VISIBILITY_RULES: Record<SubscriptionTier, number[]> = {
 
 // Usage counter messages per tier
 export const USAGE_DISPLAY_RULES: Record<SubscriptionTier, string> = {
-  seeker: "Unlock devotionals with Spark",
-  free_trial: "2 devotionals remaining",
-  spark: "8 devotionals remaining", 
-  growth: "20 devotionals remaining",
-  transformation: "Unlimited devotionals",
-  family: "Unlimited devotionals"
+  seeker: "Unlock Devotionals with Spark",
+  free_trial: "2 Devotionals Remaining",
+  spark: "8 Devotionals Remaining", 
+  growth: "20 Devotionals Remaining",
+  transformation: "Unlimited Devotionals",
+  family: "Unlimited Devotionals"
 };
 
 // Dynamic upgrade messages by context
@@ -93,13 +93,13 @@ export function getUsageDisplayMessage(tier: SubscriptionTier, remaining?: numbe
   
   if (typeof remaining === 'number') {
     if (tier === 'free_trial') {
-      return `${remaining} devotionals remaining`;
+      return `${remaining} Devotionals Remaining`;
     }
     if (tier === 'spark') {
-      return `${remaining} devotionals remaining`;
+      return `${remaining} Devotionals Remaining`;
     }
     if (tier === 'growth') {
-      return `${remaining} devotionals remaining`;
+      return `${remaining} Devotionals Remaining`;
     }
   }
   

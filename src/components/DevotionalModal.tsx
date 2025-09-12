@@ -433,12 +433,19 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
                 </ThemedText>
               </View>
               
-              {/* Usage Counter Display */}
+              {/* Usage Badges: separate tier badge and remaining count badge */}
               {!devotionalGating.loading && (
-                <View style={styles.usageCounterContainer}>
-                  <ThemedText weight="medium" style={styles.usageCounterText}>
-                    {`siFia ${devotionalGating.tier.toUpperCase()} ${devotionalGating.usageInfo.displayMessage}`}
-                  </ThemedText>
+                <View style={styles.badgeRow}>
+                  <View style={styles.tierBadgeContainer}>
+                    <ThemedText weight="semiBold" style={styles.tierBadgeText}>
+                      {`siFia ${devotionalGating.tier.toUpperCase()}`}
+                    </ThemedText>
+                  </View>
+                  <View style={styles.countBadgeContainer}>
+                    <ThemedText weight="semiBold" style={styles.countBadgeText}>
+                      {devotionalGating.usageInfo.displayMessage}
+                    </ThemedText>
+                  </View>
                 </View>
               )}
             </View>
@@ -731,18 +738,56 @@ const styles = StyleSheet.create({
   optionTextLocked: {
     opacity: 0.6,
   },
-  usageCounterContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  // New: split usage badges row (left-aligned)
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 8,
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  tierBadgeContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)'
+  },
+  tierBadgeText: {
+    color: Colors.hopeWhite,
+    fontSize: 13,
+    includeFontPadding: false,
+  },
+  countBadgeContainer: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)'
+  },
+  countBadgeText: {
+    color: Colors.hopeWhite,
+    fontSize: 13,
+    includeFontPadding: false,
+  },
+  usageCounterContainer: {
+    backgroundColor: 'transparent',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
     alignSelf: 'center',
     marginTop: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
   usageCounterText: {
     fontSize: 13,
     color: Colors.hopeWhite,
     textAlign: 'center',
+    includeFontPadding: false,
   },
   optionDays: {
     fontSize: 12,
