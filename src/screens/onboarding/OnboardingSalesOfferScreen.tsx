@@ -33,10 +33,13 @@ interface RouteParams {
   currentTier?: string;
   requestedDuration?: number; // when user tapped a locked duration (e.g., 7 days)
   // Navigation context flags
-  source?: string; // e.g., 'planning_lock'
-  feature?: string; // e.g., 'future_planning'
+  source?: string; // e.g., 'planning_lock', 'copy_todos_lock'
+  feature?: string; // e.g., 'future_planning', 'copy_todos'
   tier?: string; // caller-reported tier
   skipNotificationPreference?: boolean;
+  // Copy todos specific data
+  incompleteTodosCount?: number;
+  incompleteTodosPercentage?: number;
 }
 
 const OnboardingSalesOfferScreen: React.FC = () => {
@@ -65,12 +68,25 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const currentUserTier = (routeParams?.currentTier || routeParams?.tier || devotionalGating.tier) as string;
   const requestedDuration = routeParams?.requestedDuration;
   const fromPlanningLock = !isUpgradeMode && routeParams?.source === 'planning_lock' && routeParams?.feature === 'future_planning' && (currentUserTier === 'seeker' || !currentUserTier);
+  const fromCopyTodosLock = !isUpgradeMode && routeParams?.source === 'copy_todos_lock' && routeParams?.feature === 'copy_todos';
+  const incompleteTodosCount = routeParams?.incompleteTodosCount || 0;
+  const incompleteTodosPercentage = routeParams?.incompleteTodosPercentage || 0;
 
   // Derived: trial eligibility (only offer trial if user hasn't started one yet)
   const subscription = devotionalGating.subscription;
   const hasEverStartedTrial = Boolean(subscription?.trial_start_date);
   const isCurrentlyOnTrial = subscription?.tier === 'free_trial';
-  const canOfferTrial = !isUpgradeMode && !isCurrentlyOnTrial && !hasEverStartedTrial;
+  const canOfferTrial = !isCurrentlyOnTrial && !hasEverStartedTrial;
+  
+  // Debug trial eligibility
+  console.log('[OnboardingSalesOffer] Trial eligibility debug:', {
+    subscription,
+    hasEverStartedTrial,
+    isCurrentlyOnTrial,
+    canOfferTrial,
+    isUpgradeMode,
+    skipNotificationPreference: routeParams?.skipNotificationPreference
+  });
 
   // Load location-adjusted pricing and currency
   useEffect(() => {
@@ -132,49 +148,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
     
-    if (isUpgradeMode) {
-      // In upgrade mode, check for dynamic discount but don't show trial
-      const shouldShowDiscount = await pricingService.trackUserOptOut(user?.id, selectedTier);
-
-      if (shouldShowDiscount) {
-        const discount = await pricingService.getDynamicDiscount(
-          user?.id,
-          selectedTier,
-          isAnnual ? 'annual' : 'monthly'
-        );
-        if (discount) {
-          setDynamicDiscount(discount);
-          setShowDynamicModal(true);
-          return;
-        }
-      }
-      
-      // In upgrade mode, just go back to previous screen
-      navigation.goBack();
+    // Always show trial if eligible for all flows (upgrade mode and feature locks)
+    console.log('[OnboardingSalesOffer] handleClose - canOfferTrial:', canOfferTrial);
+    if (canOfferTrial) {
+      console.log('[OnboardingSalesOffer] Navigating to trial offer');
+      navigation.navigate('OnboardingTrialOffer' as any, {
+        selectedTierId: selectedTier,
+        billing: isAnnual ? 'annual' : 'monthly',
+        skipNotificationPreference: routeParams?.skipNotificationPreference,
+      });
     } else {
-      // In onboarding mode, show trial offer as before
-      const shouldShowDiscount = await pricingService.trackUserOptOut(user?.id, selectedTier);
-
-      if (shouldShowDiscount) {
-        const discount = await pricingService.getDynamicDiscount(
-          user?.id,
-          selectedTier,
-          isAnnual ? 'annual' : 'monthly'
-        );
-        if (discount) {
-          setDynamicDiscount(discount);
-          setShowDynamicModal(true);
-          return;
-        }
-      }
-      if (canOfferTrial) {
-        navigation.navigate('OnboardingTrialOffer' as any, {
-          selectedTierId: selectedTier,
-          billing: isAnnual ? 'annual' : 'monthly',
-        });
-      } else {
-        navigation.goBack();
-      }
+      console.log('[OnboardingSalesOffer] Going back - no trial eligible');
+      navigation.goBack();
     }
   };
 
@@ -485,14 +470,18 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               ? 'Keep walking—grace for the next step'
               : fromPlanningLock
                 ? 'Upgrade to Plan Ahead'
-                : "You've taken your first step!"}
+                : fromCopyTodosLock
+                  ? 'Unlock Copy To-Dos & More'
+                  : "You've taken your first step!"}
           </ThemedText>
           <ThemedText style={styles.subtitle}>
             {isUpgradeMode
               ? 'Choose a plan that meets you where you are and helps you go deeper.'
               : fromPlanningLock
                 ? 'Unlock future planning—plus guided journaling, playbooks, and devotionals to support your journey.'
-                : 'Keep walking, one faithful step at a time.'}
+                : fromCopyTodosLock
+                  ? `Copy ${incompleteTodosCount} incomplete to-do${incompleteTodosCount === 1 ? '' : 's'} to future dates, plus unlock advanced planning features and unlimited devotionals.`
+                  : 'Keep walking, one faithful step at a time.'}
           </ThemedText>
 
           {/* Feature Bullets */}
@@ -542,6 +531,44 @@ const OnboardingSalesOfferScreen: React.FC = () => {
                     </ThemedText>
                   </View>
                 </>
+              ) : fromCopyTodosLock ? (
+                <>
+                  {/* Stats section for copy todos */}
+                  <View style={styles.statsSection}>
+                    <View style={styles.statItem}>
+                      <ThemedText weight="bold" style={styles.statNumber}>
+                        {incompleteTodosPercentage}%
+                      </ThemedText>
+                      <ThemedText style={styles.statLabel}>Incomplete</ThemedText>
+                    </View>
+                    <View style={styles.statDivider} />
+                    <View style={styles.statItem}>
+                      <ThemedText weight="bold" style={styles.statNumber}>
+                        {incompleteTodosCount}
+                      </ThemedText>
+                      <ThemedText style={styles.statLabel}>To Copy</ThemedText>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="copy-outline" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      Copy incomplete to-dos to future dates and stay organized.
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="calendar-outline" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      Plan ahead with unlimited future planning and time blocks.
+                    </ThemedText>
+                  </View>
+                  <View style={styles.featureBullet}>
+                    <Ionicons name="book-outline" size={18} color={Colors.growthGreen} />
+                    <ThemedText style={styles.bulletText}>
+                      Unlimited devotionals and spiritual content to guide your journey.
+                    </ThemedText>
+                  </View>
+                </>
               ) : (
                 <>
                   <View style={styles.featureBullet}>
@@ -579,7 +606,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
           activeOpacity={0.9}
         >
           <ThemedText weight="bold" style={styles.unlockButtonText}>
-            {isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : 'Continue My Journey')}
+            {isUpgradeMode ? 'Upgrade and Continue' : (fromPlanningLock ? 'Start Planning Ahead' : fromCopyTodosLock ? 'Upgrade to Copy To-Dos' : 'Continue My Journey')}
           </ThemedText>
         </TouchableOpacity>
         <View style={styles.footerRow}>
@@ -602,6 +629,7 @@ const OnboardingSalesOfferScreen: React.FC = () => {
               navigation.navigate('OnboardingTrialOffer' as any, {
                 selectedTierId: selectedTier,
                 billing: isAnnual ? 'annual' : 'monthly',
+                skipNotificationPreference: routeParams?.skipNotificationPreference,
               });
             } else {
               navigation.goBack();
@@ -984,6 +1012,37 @@ const styles = StyleSheet.create({
   },
   scrollContentPadding: {
     paddingBottom: 60,
+  },
+  // Copy todos stats styles
+  statsSection: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 24,
+    color: Colors.alertCoral,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 16,
   },
 });
 

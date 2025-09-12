@@ -19,6 +19,7 @@ import ThemedText from '../common/ThemedText';
 import { useTheme } from '../../hooks/useTheme';
 import { getFontFamily } from '../../theme/fonts';
 import { usePlanningGating } from '../../hooks/usePlanningGating';
+import { useNavigation } from '@react-navigation/native';
 import PlanningLockIcon from '../PlanningLockIcon';
 
 // React Query hooks
@@ -543,12 +544,16 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
     }
   };
 
+  const navigation = useNavigation();
+
   const handleCopyTodos = () => {
     const incompleteTodos = todos.filter(t => !t.completed);
     if (incompleteTodos.length === 0) {
       Alert.alert('No Incomplete Todos', 'There are no incomplete todos to copy.');
       return;
     }
+    
+    // Always show the modal first so users can see how it works
     setShowCopyModal(true);
   };
 
@@ -1096,8 +1101,12 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalTitleRow}>
-            <Ionicons style={styles.modalTitleIcon} name="copy-outline" size={18} color={Colors.hopeWhite} />
-            <ThemedText weight="semiBold" style={styles.modalTitle}>Copy Incomplete To-Dos</ThemedText>
+            <ThemedText weight="semiBold" style={[styles.modalTitle, { flex: 1 }]}>Copy Incomplete To-Dos</ThemedText>
+            {planningGating.currentTier === 'seeker' ? (
+              <Ionicons style={styles.modalTitleIcon} name="lock-closed" size={18} color={Colors.alertCoral} />
+            ) : (
+              <Ionicons style={styles.modalTitleIcon} name="copy-outline" size={18} color={Colors.hopeWhite} />
+            )}
           </View>
           <ThemedText style={styles.modalSubtitle}>
             Copy {todos.filter(t => !t.completed).length} incomplete to-do{todos.filter(t => !t.completed).length === 1 ? '' : 's'} to a new date. Original to-dos will remain.
@@ -1181,7 +1190,7 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
                     textDayHeaderFontSize: 13,
                   }}
                   markingType="custom"
-                  markedDates={(function(){
+                  markedDates={(() => {
                     const y = copyTargetDate.getFullYear();
                     const m = String(copyTargetDate.getMonth() + 1).padStart(2,'0');
                     const d = String(copyTargetDate.getDate()).padStart(2,'0');
@@ -1223,7 +1232,20 @@ const TodosReactQueryComponent: React.FC<TodosProps> = ({ selectedDate = new Dat
               onPress={async () => {
                 triggerLightHaptic();
                 setShowCopyModal(false);
-                await copyIncompleteTodos(copyTargetDate);
+                
+                if (planningGating.currentTier === 'seeker') {
+                  // Navigate to OnboardingSalesOffer with copy todos context
+                  (navigation as any).navigate('OnboardingSalesOffer', {
+                    source: 'copy_todos_lock',
+                    feature: 'copy_todos',
+                    tier: 'spark',
+                    incompleteTodosCount: todos.filter(t => !t.completed).length,
+                    incompleteTodosPercentage: Math.round((todos.filter(t => !t.completed).length / Math.max(todos.length, 1)) * 100),
+                    skipNotificationPreference: true,
+                  });
+                } else {
+                  await copyIncompleteTodos(copyTargetDate);
+                }
               }}
             >
               <ThemedText weight="semiBold" style={styles.copyButtonText}>Add to Date</ThemedText>
@@ -1691,5 +1713,54 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: 'center',
     paddingVertical: 4,
+  },
+  // Upgrade container styles for seeker tier
+  upgradeContainer: {
+    marginBottom: 24,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statNumber: {
+    fontSize: 24,
+    color: Colors.alertCoral,
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: Colors.hopeWhite,
+    opacity: 0.7,
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginHorizontal: 16,
+  },
+  benefitsContainer: {
+    gap: 12,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  benefitText: {
+    fontSize: 14,
+    color: Colors.hopeWhite,
+    opacity: 0.9,
+    flex: 1,
+    lineHeight: 20,
   },
 });

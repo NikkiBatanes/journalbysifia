@@ -292,7 +292,8 @@ const DevotionalModal: React.FC<DevotionalModalProps> = ({
       navigation.navigate('OnboardingSalesOffer' as any, {
         upgradeMode: true,
         currentTier: devotionalGating.tier,
-        requestedDuration: days
+        requestedDuration: days,
+        skipNotificationPreference: true
       });
       return;
     }

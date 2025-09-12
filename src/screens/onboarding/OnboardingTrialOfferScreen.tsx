@@ -48,7 +48,14 @@ const OnboardingTrialOfferScreen = () => {
   const handleClose = async () => {
     try { triggerLightHaptic(); } catch {}
     // User declines trial and remains as seeker (freemium)
-    navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+    const skipNotificationPreference = route?.params?.skipNotificationPreference;
+    if (skipNotificationPreference) {
+      // Go back twice to skip the sales offer screen and return to original screen
+      navigation.goBack();
+      setTimeout(() => navigation.goBack(), 100);
+    } else {
+      navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+    }
   };
 
   const handleStartTrial = async () => {
@@ -67,11 +74,25 @@ const OnboardingTrialOfferScreen = () => {
       });
 
       // Navigate to notification setup with trial user type
-      navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'trial' });
+      const skipNotificationPreference = route?.params?.skipNotificationPreference;
+      if (skipNotificationPreference) {
+        // Go back twice to skip the sales offer screen and return to original screen
+        navigation.goBack();
+        setTimeout(() => navigation.goBack(), 100);
+      } else {
+        navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'trial' });
+      }
     } catch (error) {
       console.error('Error starting trial:', error);
       // Fallback: continue as freemium user
-      navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+      const skipNotificationPreference = route?.params?.skipNotificationPreference;
+      if (skipNotificationPreference) {
+        // Go back twice to skip the sales offer screen and return to original screen
+        navigation.goBack();
+        setTimeout(() => navigation.goBack(), 100);
+      } else {
+        navigation.navigate('OnboardingNotificationSetup' as any, { userType: 'freemium' });
+      }
     }
   };
 
