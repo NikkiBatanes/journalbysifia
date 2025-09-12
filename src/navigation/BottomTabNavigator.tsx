@@ -20,6 +20,7 @@ import JournalScreen from '../screens/JournalScreen';
 import JournalStackNavigator from './JournalStackNavigator';
 import HomeStackNavigator from './HomeStackNavigator';
 import { useAuth } from '../context/IndustryStandardAuthContext';
+import { experiencePreferences } from '../services/experiencePreferences';
 
 const Tab = createBottomTabNavigator();
 
@@ -41,6 +42,7 @@ const CustomTabBarComponent = ({
   const theme = useTheme();
   const translateY = React.useRef(new Animated.Value(0)).current;
   const opacity = React.useRef(new Animated.Value(1)).current;
+  const [showLabels, setShowLabels] = useState<boolean>(true);
 
   useEffect(() => {
     Animated.parallel([
@@ -57,6 +59,25 @@ const CustomTabBarComponent = ({
     ]).start();
   }, [showTabBar, translateY, opacity]);
   const { onTabPress } = React.useContext(TabPressContext);
+
+  // Subscribe to appearance preference for showing tab labels
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        await experiencePreferences.loadOnce();
+        if (!isMounted) return;
+        setShowLabels(experiencePreferences.showTabLabelsEnabled);
+      } catch {}
+    })();
+    const unsub = experiencePreferences.subscribe(() => {
+      setShowLabels(experiencePreferences.showTabLabelsEnabled);
+    });
+    return () => {
+      isMounted = false;
+      unsub();
+    };
+  }, []);
 
   return (
     <Animated.View
@@ -151,17 +172,19 @@ const CustomTabBarComponent = ({
                 style={styles.icon}
               />
             )}
-            <Text
-              style={[
-                styles.label,
-                {
-                  color: isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight,
-                  fontFamily: getFontFamily(theme.currentFont || 'lexend', isFocused ? 'medium' : 'regular'),
-                },
-              ]}
-            >
-              {labelMap[route.name] || route.name}
-            </Text>
+            {showLabels && (
+              <Text
+                style={[
+                  styles.label,
+                  {
+                    color: isFocused ? theme.colors.alertCoral : theme.colors.anchorBlueLight,
+                    fontFamily: getFontFamily(theme.currentFont || 'lexend', isFocused ? 'medium' : 'regular'),
+                  },
+                ]}
+              >
+                {labelMap[route.name] || route.name}
+              </Text>
+            )}
           </TouchableOpacity>
         );
       })}

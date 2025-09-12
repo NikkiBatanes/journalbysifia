@@ -265,6 +265,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
   // Personalization toggles
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [soundsEnabled, setSoundsEnabled] = useState(true);
+  const [showTabLabelsEnabled, setShowTabLabelsEnabled] = useState(true);
   const [settingsModal, setSettingsModal] = useState(false);
   const [weekStartModal, setWeekStartModal] = useState(false);
   const [weekStartDraft, setWeekStartDraft] = useState<UserPreferences['weekStart']>('sunday');
@@ -294,6 +295,7 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
       if (!mounted) return;
       setHapticsEnabled(experiencePreferences.hapticsEnabled);
       setSoundsEnabled(experiencePreferences.soundsEnabled);
+      setShowTabLabelsEnabled(experiencePreferences.showTabLabelsEnabled);
       if (experiencePreferences.soundsEnabled) {
         initSound();
       } else {
@@ -319,6 +321,11 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
     } else {
       releaseSound();
     }
+  };
+
+  const onToggleShowTabLabels = async (value: boolean) => {
+    setShowTabLabelsEnabled(value);
+    await experiencePreferences.setShowTabLabelsEnabled(value);
   };
 
   // Report a bug via email (internal helper, accepts optional message)
@@ -1589,6 +1596,22 @@ const UserProfileScreen: React.FC<Props> = ({ navigation }) => {
             value={soundsEnabled}
             onValueChange={onToggleSounds}
             thumbColor={soundsEnabled ? Colors.hopeWhite : '#f4f3f4'}
+            trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.menuItem, styles.menuItemSpaced]}
+          onPress={() => { try { triggerLightHaptic(); } catch {}; onToggleShowTabLabels(!showTabLabelsEnabled); }}
+        >
+          <View style={styles.menuIconBox}>
+            <Ionicons name="albums" size={18} color={Colors.anchorBlue} />
+          </View>
+          <Text style={[styles.menuText, font]}>Show Tab Labels</Text>
+          <Switch
+            value={showTabLabelsEnabled}
+            onValueChange={onToggleShowTabLabels}
+            thumbColor={showTabLabelsEnabled ? Colors.hopeWhite : '#f4f3f4'}
             trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(255,255,255,0.45)' }}
           />
         </TouchableOpacity>
