@@ -1,12 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { View, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
-
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { toLocalDateString } from '../../utils/date';
 import Markdown from 'react-native-markdown-display';
+import { analytics } from '../../utils/analytics';
+import {
+  useACTSPrayerData,
+  useCreatePrayer,
+  useMarkSupplicationAnswered,
+} from '../../services/hooks/usePrayerData';
+import ThemedText from '../common/ThemedText';
+
 // Using a simple error boundary since the custom one isn't available
 class ComponentErrorBoundary extends React.Component<{ children: React.ReactNode }> {
   state = { hasError: false };
@@ -22,7 +30,6 @@ class ComponentErrorBoundary extends React.Component<{ children: React.ReactNode
     return this.props.children;
   }
 }
-import { analytics } from '../../utils/analytics';
 
 // Define the PrayerApiEntry type locally since it's only used for type checking
 interface PrayerApiEntry {
@@ -110,6 +117,14 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
   const { user } = useAuth();
   const dateStr = toLocalDateString(selectedDate);
 
+  // Theme integration - match Dashboard approach
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
+  const fontMedium = getFontFamily(fontKey, 'medium');
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
+  const fontBold = getFontFamily(fontKey, 'bold');
+
   // Performance tracking
   const loadStartTime = useRef<number>(Date.now());
 
@@ -149,6 +164,230 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
       }, user?.id);
     }
   }, [error, dateStr, user?.id]);
+
+  // Reset state when date changes
+  useEffect(() => {
+    setPrayerText('');
+    setIsDropdownOpen(false);
+    loadStartTime.current = Date.now();
+  }, [dateStr]);
+
+  if (!user) {
+    return (
+      <View style={styles.card}>
+        <ThemedText style={styles.errorText}>Please log in to view prayers</ThemedText>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View
+        style={styles.card}
+        accessibilityRole="alert"
+        accessibilityLabel="Error loading prayers"
+      >
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={24} color={Colors.alertCoral} style={styles.errorIcon} />
+          <ThemedText style={styles.errorText}>Unable to load prayers</ThemedText>
+          <ThemedText style={styles.errorSubtext}>Please check your connection and try again</ThemedText>
+          <TouchableOpacity
+            onPress={() => refetch()}
+            style={styles.retryButton}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading prayers"
+            accessibilityHint="Tap to attempt loading prayers again"
+          >
+            <Ionicons name="refresh" size={16} color={Colors.hopeWhite} style={styles.retryIcon} />
+            <ThemedText style={styles.retryText}>Try Again</ThemedText>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Add prayer logic using React Query
+  const handleAddPrayer = async () => {
+    if (prayerText.trim() && !createPrayerMutation.isPending) {
+      const prayerContent = prayerText.trim();
+
+      // Debug: Check user authentication
+      console.log('User context:', { user, userId: user?.id, isAuthenticated: !!user });
+
+      if (!user || !user.id) {
+        console.error('User not authenticated or missing ID');
+        return;
+      }
+
+      try {
+        await createPrayerMutation.mutateAsync({
+          user_id: user.id,
+          content: prayerContent, // Only the main text
+          type: selectedType.key as PrayerApiEntry['type'],
+          selected_date: dateStr,
+          prayer_type: 'journal',
+          journal_category: selectedType.key === 'freeform' ? 'personal_prayer' : selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+          status: selectedType.key === 'supplication' ? 'pending' : undefined,
+          is_answered: selectedType.key === 'supplication' ? false : undefined,
+          metadata: {
+            // Add any extra info here, e.g. tags, answered, etc. For now, just an example:
+            tags: [],
+            answered: selectedType.key === 'supplication' ? false : undefined,
+          },
+        });
+
+        // Track prayer creation
+        analytics.trackPrayerEvent('prayer_created', {
+          prayer_type: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+          content_length: prayerContent.length,
+          date: dateStr,
+        }, user.id);
+
+        // Track prayer type selection
+        analytics.trackPrayerEvent('prayer_type_selected', {
+          prayer_type: selectedType.key as 'adoration' | 'confession' | 'thanksgiving' | 'supplication',
+          date: dateStr,
+        }, user.id);
+
+        setPrayerText('');
+      } catch (err) {
+        // Track error
+        analytics.trackPrayerEvent('prayer_error', {
+          error_type: err instanceof Error ? err.message : 'Unknown error',
+          operation: 'create_prayer',
+          prayer_type: selectedType.key,
+          date: dateStr,
+        }, user.id);
+
+        console.error('Error adding prayer:', err);
+        // Error is handled by React Query
+      }
+    }
+  };
+
+  // Toggle supplication answered status using React Query
+  const handleToggleAnswered = async (id: string) => {
+    if (!actsData) {return;}
+
+    try {
+      const prayer = actsData.supplication.find(p => p.id === id);
+      if (!prayer) {return;}
+
+      const newIsAnswered = !prayer.is_answered;
+      await markAnsweredMutation.mutateAsync({
+        id,
+        isAnswered: newIsAnswered,
+        _userId: user.id,
+        _dateStr: dateStr,
+      });
+
+      // Track prayer answered event
+      if (newIsAnswered) {
+        const createdDate = new Date(prayer.created_at);
+        const currentDate = new Date();
+        const timeDiff = Math.abs(currentDate.getTime() - createdDate.getTime());
+        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+        analytics.trackPrayerEvent('prayer_answered', {
+          prayer_id: id,
+          prayer_type: 'supplication',
+          time_to_answer_days: daysDiff,
+          date: dateStr,
+        }, user.id);
+      }
+    } catch (err) {
+      // Track error
+      analytics.trackPrayerEvent('prayer_error', {
+        error_type: err instanceof Error ? err.message : 'Unknown error',
+        operation: 'toggle_answered',
+        prayer_type: 'supplication',
+        date: dateStr,
+      }, user.id);
+
+      console.error('Error updating prayer status:', err);
+      // Error is handled by React Query
+    }
+  };
+
+  const renderPrayerGroup = (
+    type: typeof PRAYER_TYPES[0],
+    prayers: PrayerApiEntry[]
+  ) => {
+    if (prayers.length === 0) {return null;}
+
+    return (
+      <View key={type.key} style={styles.prayerGroupCard}>
+        <View style={styles.prayerGroupHeader}>
+          <View style={styles.prayerTypeBadge}>
+            <ThemedText style={styles.prayerGroupTitle}>{type.label}</ThemedText>
+          </View>
+        </View>
+
+        {prayers.map((prayer) => (
+          <View key={prayer.id} style={styles.prayerItem}>
+            <Markdown style={prayerMarkdownStyles}>
+              {(() => {
+                // Only display the 'text' field if content is JSON with a 'text' property
+                if (typeof prayer.content === 'string') {
+                  try {
+                    const parsed = JSON.parse(prayer.content);
+                    if (parsed && typeof parsed === 'object' && parsed.text) {
+                      return parsed.text;
+                    }
+                  } catch (e) {
+                    // Not JSON, fall through
+                  }
+                }
+                return prayer.content;
+              })()}
+            </Markdown>
+
+            {/* Show status for supplication prayers */}
+            {type.key === 'supplication' && (
+              <TouchableOpacity
+                style={prayer.is_answered ? styles.answeredPill : styles.pendingPill}
+                onPress={() => handleToggleAnswered(prayer.id)}
+                disabled={markAnsweredMutation.isPending}
+              >
+                {prayer.is_answered ? (
+                  <View style={styles.answeredContainer}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={16}
+                      color={Colors.success}
+                      style={styles.pillIcon}
+                    />
+                    <ThemedText style={styles.answeredText}>Answered</ThemedText>
+                    {prayer.answered_date && (
+                      <ThemedText style={styles.answeredDate}>
+                        {new Date(prayer.answered_date).toLocaleDateString('en-US', {
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </ThemedText>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.waitingContainer}>
+                    <Ionicons
+                      name="time-outline"
+                      size={14}
+                      color="rgba(255, 255, 255, 0.8)"
+                      style={styles.pillIcon}
+                    />
+                    <ThemedText style={styles.pendingText}>Pending</ThemedText>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  // Create dynamic styles with theme fonts
+  const styles = useMemo(() => createStyles({ fontRegular, fontMedium, fontSemiBold, fontBold }), [fontRegular, fontMedium, fontSemiBold, fontBold]);
 
   // Reset state when date changes
   useEffect(() => {
@@ -493,7 +732,7 @@ const PrayerJournalCardReactQuery: React.FC<PrayerJournalCardReactQueryProps> = 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (fonts: { fontRegular: string; fontMedium: string; fontSemiBold: string; fontBold: string }) => StyleSheet.create({
   card: {
     backgroundColor: Colors.anchorBlue,
     borderRadius: 18,

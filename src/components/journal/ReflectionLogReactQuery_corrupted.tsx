@@ -1,36 +1,69 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
-import { isToday as isTodayFn, isYesterday as isYesterdayFn, isAfter, startOfDay, startOfToday } from 'date-fns';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View, TouchableOpacity, Alert, Modal, ScrollView, StyleSheet } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  TouchableOpacity,
+  Alert,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  TextInput,
+} from 'react-native';
+import { format, isAfter, startOfDay, startOfToday, isToday, isYesterday } from 'date-fns';
+import { X, NotebookPen, Pencil } from 'lucide-react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { JournalCard } from './JournalCard';
-import { Colors } from '../../theme/colors';
-import { Fonts } from '../../theme/fonts';
-import ThemedText from '../common/ThemedText';
-import { NotebookPen as LuNotebookPen, X, Pencil } from 'lucide-react-native';
-
+// Context and hooks
+import { useAuth } from '../../context/IndustryStandardAuthContext';
 import { useEditModeSafe } from '../../systems/journal/context/EditModeContext';
 
-import ReflectionLogEditor from './ReflectionLogEditor';
-import { styles as reflectionLogStyles } from './reflectionStyles';
-import { GUIDED_PROMPTS } from './reflectionConstants';
-import { useAuth } from '../../context/IndustryStandardAuthContext';
+// Components
+import ThemedText from '../common/ThemedText';
+import { JournalCard } from './JournalCard';
+import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
+
+// Utils and constants
+import { Colors } from '../../theme/colors';
+import { triggerLightHaptic } from '../../utils/haptics';
+import { toLocalDateString } from '../../utils/date';
+import { analytics } from '../../utils/analytics';
+
+// Theme integration - match Dashboard approach
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
+
+// Data hooks
 import {
   useReflectionData,
   useCreateReflection,
   useUpdateReflection,
   useDeleteReflection,
 } from '../../services/hooks/useReflectionData';
-import { ReflectionSkeleton } from '../SkeletonLoader/ReflectionSkeleton';
-import { toLocalDateString } from '../../utils/date';
-import { analytics } from '../../utils/analytics';
-import NewSuccessModal from '../NewSuccessModal';
-import { useSuccessModal } from '../../hooks/useSuccessModal';
-import { triggerLightHaptic } from '../../utils/haptics';
 
-// Define styles at the top to avoid hoisting issues
-const styles = StyleSheet.create({
+// Pluralization helpers
+const pluralS = (count: number) => (count === 1 ? '' : 's');
+const entryWord = (count: number) => (count === 1 ? 'entry' : 'entries');
+
+interface ReflectionEntry {
+  id: string;
+  content: string;
+  title?: string;
+  prompt?: string;
+  type: 'free' | 'guided' | 'devotional';
+  tags?: string[];
+  created_at: string;
+  selected_date: string;
+  source?: string;
+}
+
+interface ReflectionLogProps {
+  selectedDate?: Date;
+  viewMode?: 'carousel' | 'inline';
+  expanded?: boolean;
+  onExpand?: () => void;
+}
+
+// Create dynamic styles with theme fonts
+const createStyles = (fonts: { fontRegular: string; fontMedium: string; fontSemiBold: string; fontBold: string }) => StyleSheet.create({
   editButton: {
     padding: 4,
     borderRadius: 4,
@@ -41,6 +74,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 16,
+    fontFamily: fonts.fontMedium,
     color: Colors.darkGray,
     marginTop: 12,
     marginBottom: 8,
@@ -48,6 +82,7 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: 14,
+    fontFamily: fonts.fontRegular,
     color: Colors.mediumGray,
     textAlign: 'center',
     lineHeight: 20,
@@ -177,7 +212,7 @@ const styles = StyleSheet.create({
   showMoreText: {
     marginLeft: 2,
     fontSize: 11,
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontBold,
     lineHeight: 14,
     color: Colors.alertCoral,
   },
@@ -221,7 +256,7 @@ const styles = StyleSheet.create({
   devotionalPromptText: {
     fontSize: 8,
     color: Colors.faithGold,
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontBold,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -236,7 +271,7 @@ const styles = StyleSheet.create({
   guidedPromptText: {
     fontSize: 8,
     color: Colors.alertCoral,
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontBold,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -256,7 +291,7 @@ const styles = StyleSheet.create({
   freeFormPromptText: {
     fontSize: 8,
     color: 'rgba(242, 245, 247, 0.8)',
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontBold,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -271,7 +306,7 @@ const styles = StyleSheet.create({
   playbookPromptText: {
     fontSize: 8,
     color: Colors.growthGreen,
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontBold,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -279,7 +314,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 10,
     color: Colors.mediumGray,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontBold,
   },
   promptCardText: {
     color: Colors.hopeWhite,
@@ -295,7 +330,7 @@ const styles = StyleSheet.create({
     fontStyle: 'normal',
   },
   entryContent: {
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontBold,
     color: Colors.hopeWhite,
     fontSize: 12,
     lineHeight: 20,
@@ -326,7 +361,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 8,
     color: Colors.anchorBlue,
-    fontFamily: Fonts.medium,
+    fontFamily: fonts.fontBold,
     fontWeight: '500',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -337,13 +372,13 @@ const styles = StyleSheet.create({
   },
   devotionalTitle: {
     fontSize: 12,
-    fontFamily: Fonts.semiBold,
+    fontFamily: fonts.fontBold,
     color: Colors.faithGold,
     marginBottom: 2,
   },
   devotionalDayInfo: {
     fontSize: 11,
-    fontFamily: Fonts.regular,
+    fontFamily: fonts.fontBold,
     color: Colors.mediumGray,
     fontStyle: 'italic',
   },
@@ -395,8 +430,19 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({
   const isSelectedYesterday = isYesterdayFn(selectedDate);
   const future = isAfter(startOfDay(selectedDate), startOfToday());
   
+  // Theme integration - match Dashboard approach
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
+  const fontMedium = getFontFamily(fontKey, 'medium');
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
+  const fontBold = getFontFamily(fontKey, 'bold');
+  
   // Edit mode context
   const globalEditMode = useEditModeSafe();
+
+  // Create dynamic styles with theme fonts
+  const styles = useMemo(() => createStyles({ fontRegular, fontMedium, fontSemiBold, fontBold }), [fontRegular, fontMedium, fontSemiBold, fontBold]);
 
   // Success modal system
   const successModal = useSuccessModal(
@@ -622,16 +668,17 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({
   // formatDate removed - not used in original design
 
   // Prompt modal styles defined inline to avoid hoisting issues
-  const promptModalStyles = StyleSheet.create({
-    promptModalContainer: {
+  const promptModalStyles = useMemo(() => StyleSheet.create({
+    modalOverlay: {
       flex: 1,
-      justifyContent: 'flex-end',
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
     },
-    promptModalContent: {
+    modalContent: {
       backgroundColor: Colors.hopeWhite,
-      borderTopLeftRadius: 16,
-      borderTopRightRadius: 16,
+      borderRadius: 12,
+      width: '90%',
       maxHeight: '80%',
       padding: 16,
     },
@@ -642,28 +689,54 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({
       marginBottom: 16,
     },
     promptModalTitle: {
-      fontFamily: Fonts.semiBold,
+      fontFamily: fontSemiBold,
       fontSize: 18,
       color: Colors.darkGray,
     },
     promptList: {
       maxHeight: 400,
     },
-    promptOption: {
-      paddingVertical: 12,
-      paddingHorizontal: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: Colors.lightGray,
-    },
     selectedPromptOption: {
       backgroundColor: 'rgba(255, 107, 107, 0.1)',
     },
     promptOptionText: {
-      fontFamily: Fonts.regular,
+      fontFamily: fontMedium,
       fontSize: 14,
       color: Colors.darkGray,
     },
-  });
+  }), [fontSemiBold, fontMedium]);
+
+  // Handle entry press for editing
+  const handleEntryPress = (entry: ReflectionLogEntry) => {
+    console.log('🔍 Editing entry:', entry.id, entry.title, 'type:', entry.type);
+
+    // Set editing state
+    setEditingId(entry.id);
+    setSelectedEntry(entry);
+
+    // For guided and devotional entries, set the selected prompt if available
+    if (entry.type === 'guided' || entry.type === 'devotional') {
+      // Use the stored prompt, or the title if it was used as a prompt, or empty string
+      const promptToUse = entry.prompt || (entry.title && GUIDED_PROMPTS.includes(entry.title) ? entry.title : '');
+      setSelectedPrompt(promptToUse);
+    } else {
+      setSelectedPrompt('');
+    }
+
+    // Populate the form with existing entry data
+    setNewEntry({
+      title: entry.title || '',
+      content: normalizeIncoming(entry.content),
+      type: entry.type,
+      source: entry.source,
+      prompt: entry.prompt || '',
+      tags: entry.tags || [],
+      location: entry.location || '',
+    });
+
+    // Open the editor modal
+    setIsAdding(true);
+  };
 
   const renderPromptPicker = () => (
     <Modal
@@ -699,12 +772,7 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({
     </Modal>
   );
 
-  // Handle entry press for editing
-  const handleEntryPress = (entry: ReflectionLogEntry) => {
-    console.log('🔍 Editing entry:', entry.id, entry.title, 'type:', entry.type);
-
-    // Set editing state
-    setEditingId(entry.id);
+  // ... rest of the code remains the same ...
     setSelectedEntry(entry);
 
     // For guided and devotional entries, set the selected prompt if available
@@ -1010,6 +1078,9 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({
 
   // handleRetry removed - not used in original design
 
+  // Create dynamic styles with theme fonts
+  const styles = useMemo(() => createStyles({ fontRegular, fontMedium, fontSemiBold, fontBold }), [fontRegular, fontMedium, fontSemiBold, fontBold]);
+
   // Loading state with skeleton
   if (isLoading) {
     return (
@@ -1062,9 +1133,8 @@ export const ReflectionLogReactQuery: React.FC<ReflectionLogProps> = ({
     );
   }
 
-// ...
-
-return (
+  // Main component return
+  return (
   <>
     <JournalCard
       icon={!hasContentForSelectedDate ? undefined : <MaterialCommunityIcons name="head-dots-horizontal-outline" size={24} color={Colors.alertCoral} />}

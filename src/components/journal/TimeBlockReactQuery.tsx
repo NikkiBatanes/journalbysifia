@@ -503,7 +503,6 @@ export const TimeBlockReactQuery: React.FC<TimeBlockProps> = ({ selectedDate = n
       },
     });
     setIsAdding(true);
-    setShowCategoryModal(false);
     setShowCategoryError(false);
     setShowCategoryPicker(false);
     setShowRepeatOptions(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   StyleSheet,
@@ -20,6 +20,8 @@ import type { SubscriptionTier } from '../../types/subscription';
 import DynamicPricingModal from '../../components/DynamicPricingModal';
 import { triggerLightHaptic, triggerSuccessHaptic } from '../../utils/haptics';
 import ThemedText from '../../components/common/ThemedText';
+import { useTheme } from '../../hooks/useTheme';
+import { getFontFamily } from '../../theme/fonts';
 
 // removed Dimensions width as unused
 
@@ -41,6 +43,23 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
+  
+  // Theme integration - match Dashboard approach
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
+  const fontMedium = getFontFamily(fontKey, 'medium');
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
+  const fontBold = getFontFamily(fontKey, 'bold');
+  
+  // Use dynamic styles with current theme fonts - match Dashboard pattern
+  const styles = useMemo(() => createStyles({
+    regular: fontRegular,
+    medium: fontMedium,
+    semiBold: fontSemiBold,
+    bold: fontBold,
+  }), [fontRegular, fontMedium, fontSemiBold, fontBold]);
+  
   const { upgradeSubscription } = useNewSubscription(user?.id || '');
   const devotionalGating = useDevotionalGating();
   const platformSubscription = usePlatformSubscription();
@@ -612,7 +631,8 @@ const OnboardingSalesOfferScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+// Create dynamic styles using theme fonts - match Dashboard pattern
+const createStyles = (fonts: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.anchorBlue,
@@ -657,7 +677,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
   },
   logoHeart: {
@@ -683,7 +703,7 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginTop: 0,
@@ -691,6 +711,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     textAlign: 'left',
     marginBottom: 22,
@@ -706,6 +727,7 @@ const styles = StyleSheet.create({
   },
   bulletText: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     marginLeft: 12,
     flex: 1,
@@ -730,12 +752,12 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 14,
+    fontFamily: fonts.medium,
     color: Colors.hopeWhite,
-    fontWeight: '500',
   },
   activeToggleText: {
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    fontWeight: '600',
   },
   cardsContainer: {
     marginBottom: 16,
@@ -778,7 +800,7 @@ const styles = StyleSheet.create({
   },
   popularText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
   },
   cardHeader: {
@@ -788,19 +810,19 @@ const styles = StyleSheet.create({
   },
   tierName: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
   },
   tierDuration: {
     fontSize: 16,
-    fontWeight: '400',
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     opacity: 0.8,
     marginLeft: 8,
   },
   tierDescription: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     marginBottom: 8,
     opacity: 0.9,
@@ -819,6 +841,7 @@ const styles = StyleSheet.create({
   },
   featureText: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     flex: 1,
     lineHeight: 20,
@@ -852,14 +875,14 @@ const styles = StyleSheet.create({
   },
   currentPrice: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     marginRight: 4,
     flexShrink: 0,
   },
   originalPrice: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
     opacity: 0.6,
     textDecorationLine: 'line-through',
@@ -868,8 +891,8 @@ const styles = StyleSheet.create({
   },
   monthlyEquivalent: {
     fontSize: 14,
+    fontFamily: fonts.semiBold,
     color: Colors.hopeWhite,
-    fontWeight: '600',
     marginLeft: 'auto',
     flexShrink: 0,
     textAlign: 'right',
@@ -910,7 +933,7 @@ const styles = StyleSheet.create({
   },
   unlockButtonText: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: fonts.bold,
     color: Colors.hopeWhite,
     textAlign: 'center',
   },
@@ -934,6 +957,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
+    fontFamily: fonts.regular,
     color: Colors.hopeWhite,
     textAlign: 'center',
     opacity: 0.8,
@@ -970,7 +994,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.faithGold,
     marginRight: 4,
-    fontWeight: '500',
+    fontFamily: fonts.medium,
   },
   iconMarginRight: {
     marginRight: 8,

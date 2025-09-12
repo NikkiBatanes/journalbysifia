@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Pencil } from 'lucide-react-native';
@@ -30,6 +31,8 @@ import { Swipeable, RectButton } from 'react-native-gesture-handler';
 
 import { extractCleanTitle } from '../utils/titleUtils';
 import { Colors, Fonts } from '../theme';
+import { useTheme } from '../hooks/useTheme';
+import { getFontFamily } from '../theme/fonts';
 import 'react-native-gesture-handler';
 import DevotionalSkeleton from '../components/SkeletonLoader/DevotionalSkeleton';
 import BlueSheet from '../components/layout/BlueSheet';
@@ -45,6 +48,23 @@ const DevotionalsScreen = () => {
   const userId = user?.id;
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  
+  // Theme integration - match Dashboard approach
+  const { currentFont } = useTheme();
+  const fontKey = currentFont || 'lexend';
+  const fontRegular = getFontFamily(fontKey, 'regular');
+  const fontMedium = getFontFamily(fontKey, 'medium');
+  const fontSemiBold = getFontFamily(fontKey, 'semiBold');
+  const fontBold = getFontFamily(fontKey, 'bold');
+  
+  // Create dynamic styles with theme fonts
+  const styles = useMemo(() => createStyles({
+    fontRegular,
+    fontMedium,
+    fontSemiBold,
+    fontBold
+  }), [fontRegular, fontMedium, fontSemiBold, fontBold]);
+  
   const [filter, setFilter] = useState<FilterType>('ongoing');
   const [showDevotionalModal, setShowDevotionalModal] = useState(false);
   const [selectedPlaybookId, setSelectedPlaybookId] = useState<string | null>(null);
@@ -751,7 +771,12 @@ const createTitleExtractionMemory = (devotional: Devotional) => {
   });
 };
 
-const styles = StyleSheet.create({
+const createStyles = (fonts: {
+  fontRegular: string;
+  fontMedium: string;
+  fontSemiBold: string;
+  fontBold: string;
+}) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.hopeWhite,
@@ -785,12 +810,11 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 24,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     color: Colors.anchorBlue,
     marginBottom: 8,
     marginTop: 10,
     letterSpacing: 0.5,
-    fontWeight: '800',
   },
   headerSpacer: {
     // keeps content pushed down similarly to when headerTitle is visible
@@ -817,11 +841,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.anchorBlue,
   },
   filterTabTextOnWhite: {
-    fontFamily: Fonts.semiBold,
+    fontFamily: fonts.fontSemiBold,
     fontSize: 13,
     color: Colors.anchorBlue,
     letterSpacing: 0.2,
-    fontWeight: '400',
   },
   filterTabTextActiveOnWhite: {
     color: Colors.hopeWhite,
@@ -868,12 +891,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   sectionHeaderText: {
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     fontSize: 12,
     color: Colors.hopeWhite,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    fontWeight: 'bold',
   },
   devotionalCard: {
     backgroundColor: 'rgba(255,255,255,0.08)', // Match Playbook card tint on BlueSheet
@@ -917,7 +939,7 @@ const styles = StyleSheet.create({
   categoryText: {
     color: Colors.hopeWhite,
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: fonts.fontMedium,
   },
   playbookBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
@@ -937,7 +959,7 @@ const styles = StyleSheet.create({
   playbookText: {
     color: Colors.hopeWhite,
     fontSize: 12,
-    fontWeight: '500',
+    fontFamily: fonts.fontMedium,
   },
   deleteButton: {
     backgroundColor: Colors.alertCoral,
@@ -950,7 +972,7 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 10,
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     color: 'rgba(255, 255, 255, 0.8)',
     letterSpacing: 0.8,
     lineHeight: 14,
@@ -959,11 +981,10 @@ const styles = StyleSheet.create({
   },
   devotionalTitle: {
     fontSize: 22, // Larger font size for consistency
-    fontFamily: Fonts.bold,
+    fontFamily: fonts.fontBold,
     color: Colors.hopeWhite,
     lineHeight: 28, // Increased line height
     paddingVertical: 2,
-    fontWeight: '700',
     marginBottom: 8, // Increased margin
   },
   description: {
